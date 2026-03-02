@@ -199,7 +199,7 @@ td:first-child { text-align: left; color: #e6edf3; font-weight: 500; }
 </head>
 <body>
 <!-- STATUS BAR -->
-<div class="statusbar"><span>EUR/USD <span class="sb-price">1.1803</span> <span class="sb-neg">▼ -0.10%</span> <span class="sb-sep">|</span> USD/JPY <span class="sb-price">155.8590</span> <span class="sb-neg">▼ -0.22%</span> <span class="sb-sep">|</span> DXY <span class="sb-price">97.61</span> <span class="sb-neg">▼ -0.18%</span> <span class="sb-sep">|</span> Brent <span class="sb-price">$77.10</span> <span class="sb-sep">|</span> Gold <span class="sb-price">$5,318</span></span><span class="sb-updated">Updated: 02 Mar 2026 23:00 IST</span></div>
+<div class="statusbar"><span>EUR/USD <span class="sb-price">1.1803</span> <span class="sb-neg">▼ -0.10%</span> <span class="sb-sep">|</span> USD/JPY <span class="sb-price">155.8590</span> <span class="sb-neg">▼ -0.22%</span> <span class="sb-sep">|</span> DXY <span class="sb-price">97.61</span> <span class="sb-neg">▼ -0.18%</span> <span class="sb-sep">|</span> Brent <span class="sb-price">$76.87</span> <span class="sb-sep">|</span> Gold <span class="sb-price">$5,310</span></span><span class="sb-updated">Updated: 02 Mar 2026 23:45 IST</span></div>
 <!-- HEADER -->
 <div class="header">
   <div>
@@ -210,7 +210,7 @@ td:first-child { text-align: left; color: #e6edf3; font-weight: 500; }
     data as of: 26 Feb 2026<br>
     COT as of: 26 Feb 2026<br>
     next COT: 06 Mar 2026<br>
-    pipeline run: 02 Mar 2026 23:00 IST
+    pipeline run: 02 Mar 2026 23:45 IST
   </div>
 </div>
 
@@ -224,6 +224,7 @@ td:first-child { text-align: left; color: #e6edf3; font-weight: 500; }
     <tr><td>EUR/USD</td><td>1.1803</td><td class="negative">-0.10%</td><td class="positive">+11.50%</td></tr>
     <tr><td>USD/JPY</td><td>155.8590</td><td class="negative">-0.22%</td><td class="positive">+3.76%</td></tr>
     <tr><td>DXY</td><td>97.61</td><td class="negative">-0.18%</td><td class="negative">-7.89%</td></tr>
+    <tr><td>USD/INR</td><td>—</td><td class="">—</td><td class="">—</td></tr>
   </table>
 </div>
 
@@ -237,7 +238,10 @@ td:first-child { text-align: left; color: #e6edf3; font-weight: 500; }
       <tr><td>US-DE 2Y (same)</td><td>1.42%</td><td class="negative">-0.04pp</td><td class="negative">-0.77pp</td></tr>
       <tr><td>US-JP 10Y (cross)</td><td>1.25%</td><td class="negative">-0.07pp</td><td class="negative">-1.82pp</td></tr>
       <tr><td>US-JP 2Y (same)</td><td>2.17%</td><td class="negative">-0.05pp</td><td class="negative">-1.38pp</td></tr>
+      <tr style="border-top:1px solid #30363d;"><td>US-IN 10Y (cross) *</td><td>—</td><td class="">—</td><td class="neutral-text">—</td></tr>
+      <tr><td>US-IN policy</td><td>—</td><td class="neutral-text">—</td><td class="neutral-text">—</td></tr>
     </table>
+    <div style="font-size:10px;color:#484f58;margin-top:6px;">* IN 10Y = FRED monthly, ~30 day lag</div>
   </div>
   <div class="card">
     <div class="card-title">Volatility <span style="color:#484f58;font-weight:400;">(30D realized, annualized | 3Y pct)</span></div>
@@ -294,6 +298,16 @@ td:first-child { text-align: left; color: #e6edf3; font-weight: 500; }
   </div>
 </div>
 
+<!-- ROW 3.5: USD/INR POSITIONING -->
+<div class="card" style="margin-bottom:12px;">
+  <div class="card-title">USD/INR Positioning <span style="color:#484f58;font-weight:400;">(SEBI FPI Proxy)</span></div>
+  <table>
+    <tr><th>Category</th><th>Net Flow (20D)</th><th>Percentile</th><th>Regime</th></tr>
+    <tr><td>FPI Debt Flow (20D)</td><td class="neutral-text">unavailable</td><td>—</td><td><span class="badge badge-neutral">DATA LIMITED</span></td></tr>
+  </table>
+  <div style="font-size:10px;color:#484f58;margin-top:6px;">* FPI flow proxy — not equivalent to CFTC COT. JS-rendered source pending Playwright integration.</div>
+</div>
+
 <!-- ROW 4: REGIME READ full width -->
 <div class="card" style="margin-bottom:12px;">
   <div class="card-title">Regime Read</div>
@@ -310,10 +324,18 @@ td:first-child { text-align: left; color: #e6edf3; font-weight: 500; }
     <div class="regime-pair">
       USD/JPY
       <span class="badge badge-neutral">NEUTRAL</span>
-      <!-- vol flag badge could go here -->
     </div>
     <div class="regime-text">
       Spread compression favors lower USD/JPY. Leveraged Money 69th and Asset Manager 69th both neutral — carry partially intact, BoJ path is key variable.
+    </div>
+  </div>
+  <div class="regime-block">
+    <div class="regime-pair">
+      USD/INR
+      <span class="badge badge-neutral">DATA LIMITED</span>
+    </div>
+    <div class="regime-text">
+      run inr_pipeline.py to populate USD/INR data.
     </div>
   </div>
 </div>
