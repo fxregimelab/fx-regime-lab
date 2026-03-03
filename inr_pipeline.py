@@ -192,17 +192,17 @@ def build_and_save(price_df, yield_monthly, fpi_df, fpi_status):
             master[c] = inr_aligned[c]
         master = pd.concat([master, inr_aligned[new_cols]], axis=1)
 
-        # compute USDINR % change columns (1D, 1W, 1M, 3M, 12M)
-        periods = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "12M": 252}
-        chg_frames = {
-            f"USDINR_chg_{label}": (master["USDINR"] / master["USDINR"].shift(days) - 1) * 100
-            for label, days in periods.items()
-        }
-        master = pd.concat([master, pd.DataFrame(chg_frames, index=master.index)], axis=1)
-        print("    USDINR change columns computed")
+        if "USDINR" in master.columns:
+            for label, days in {"1D":1,"1W":5,"1M":21,"3M":63,"12M":252}.items():
+                master[f"USDINR_chg_{label}"] = (
+                    master["USDINR"] / master["USDINR"].shift(days) - 1
+                ) * 100
 
         master.to_csv(master_path)
         print(f"    merged into: {master_path}  ({master.shape[1]} cols total)")
+
+        inr_cols = [c for c in master.columns if "IN" in c or "INR" in c]
+        print("INR columns in master:", inr_cols)
 
     return inr
 

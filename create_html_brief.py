@@ -154,11 +154,19 @@ US_JP_2Y_1W = safe('US_JP_2Y_spread_chg_1W')
 US_JP_2Y_12M = safe('US_JP_2Y_spread_chg_12M')
 # US-IN spreads (from inr_pipeline — cross-maturity US 2Y vs IN 10Y)
 US_IN_10Y     = safe('US_IN_10Y_spread')    if 'US_IN_10Y_spread'    in df.columns else '—'
-US_IN_10Y_1W  = safe('US_IN_policy_spread') if 'US_IN_policy_spread' in df.columns else '—'
 US_IN_10Y_12M = '—'   # no 12M change column yet — computed from monthly FRED data
 US_IN_pol     = safe('US_IN_policy_spread') if 'US_IN_policy_spread' in df.columns else '—'
-US_IN_pol_1W  = '—'
 US_IN_pol_12M = '—'
+# 1W change = current value minus value 5 rows back
+def _spread_1w_chg(col):
+    if col not in df.columns:
+        return '—'
+    s = df[col].dropna()
+    if len(s) < 6:
+        return '—'
+    return round(float(s.iloc[-1]) - float(s.iloc[-6]), 4)
+US_IN_10Y_1W = _spread_1w_chg('US_IN_10Y_spread')
+US_IN_pol_1W = _spread_1w_chg('US_IN_policy_spread')
 # FPI flows
 FPI_20D_flow = safe('FPI_20D_flow')       if 'FPI_20D_flow'       in df.columns else '—'
 FPI_20D_pct  = safe('FPI_20D_percentile') if 'FPI_20D_percentile' in df.columns else '—'
@@ -279,6 +287,20 @@ _sb_parts = [
     f'USD/JPY <span class="sb-price">{USDJPY}</span> <span class="{_sb_cls(USDJPY_1D)}">{_sb_arrow(USDJPY_1D)} {fmt_pct(USDJPY_1D)}</span>',
     f'DXY <span class="sb-price">{DXY}</span> <span class="{_sb_cls(DXY_1D)}">{_sb_arrow(DXY_1D)} {fmt_pct(DXY_1D)}</span>',
 ]
+_usdinr_price = df['USDINR'].dropna().iloc[-1]     if 'USDINR'        in df.columns and df['USDINR'].notna().any()        else None
+_usdinr_chg   = df['USDINR_chg_1D'].dropna().iloc[-1] if 'USDINR_chg_1D' in df.columns and df['USDINR_chg_1D'].notna().any() else None
+try:
+    _usdinr_price = float(_usdinr_price)
+    _usdinr_chg   = float(_usdinr_chg)
+    if not pd.isna(_usdinr_price):
+        _u_arrow = '▲' if _usdinr_chg > 0 else '▼' if _usdinr_chg < 0 else '—'
+        _u_color = 'green' if _usdinr_chg > 0 else '#e74c3c' if _usdinr_chg < 0 else 'white'
+        _sb_parts.append(
+            f'USD/INR <span class="sb-price">{_usdinr_price:.2f}</span>'
+            f' <span style="color:{_u_color}">{_u_arrow} {_usdinr_chg:+.2f}%</span>'
+        )
+except (TypeError, ValueError):
+    pass
 if _brent_raw:
     try:
         _v = float(_brent_raw.split(': ', 1)[1])
@@ -398,18 +420,29 @@ def fpi_regime(flow_val, pct_val):
     except:
         return "DATA LIMITED", "badge-neutral"
 
-inr_fpi_text, inr_fpi_class = fpi_regime(FPI_20D_flow, FPI_20D_pct)
 FPI_20D_flow_disp = fmt_net(FPI_20D_flow) if FPI_20D_flow != '—' else 'unavailable'
 FPI_20D_pct_disp  = ordinal_or_dash(FPI_20D_pct)
 
-_inr_spread_str = US_IN_10Y_disp if US_IN_10Y_disp != '—' else 'N/A'
-inr_read = (
-    f"US-IN spread at {_inr_spread_str}%. "
-    "India yield premium intact. Rate differential favors INR strength. "
-    "FPI positioning data pending."
+# INR regime: use spread data if available, regardless of FPI
+_inr_spread_available = (
+    'US_IN_10Y_spread' in df.columns and df['US_IN_10Y_spread'].notna().any()
 )
-if not _inr_available:
+if _inr_spread_available:
+    _raw_spread = df['US_IN_10Y_spread'].dropna().iloc[-1]
+    _spread_disp = f"{_raw_spread:.2f}"
+    _premium_pp = abs(_raw_spread)
+    inr_read = (
+        f"US-IN spread at {_spread_disp}%. "
+        f"India yield premium intact at {_premium_pp:.2f}pp. "
+        "Rate differential favors INR strength. "
+        "FPI positioning data pending Playwright integration."
+    )
+    inr_fpi_text  = "RATE DIFF ONLY"
+    inr_fpi_class = "badge-neutral"
+else:
     inr_read = "run inr_pipeline.py to populate USD/INR data."
+    inr_fpi_text  = "DATA LIMITED"
+    inr_fpi_class = "badge-neutral"
 
 # regime read texts
 eur_read = (
@@ -668,7 +701,7 @@ td:first-child {{ text-align: left; color: #e6edf3; font-weight: 500; }}
       <tr><td>US-JP 10Y (cross)</td><td>{US_JP_10Y}</td><td class="{color_class(US_JP_10Y_1W)}">{fmt_pct(US_JP_10Y_1W,'pp')}</td><td class="{color_class(US_JP_10Y_12M)}">{fmt_pct(US_JP_10Y_12M,'pp')}</td></tr>
       <tr><td>US-JP 2Y (same)</td><td>{US_JP_2Y}</td><td class="{color_class(US_JP_2Y_1W)}">{fmt_pct(US_JP_2Y_1W,'pp')}</td><td class="{color_class(US_JP_2Y_12M)}">{fmt_pct(US_JP_2Y_12M,'pp')}</td></tr>
       <tr style="border-top:1px solid #30363d;"><td>US-IN 10Y (cross) *</td><td>{US_IN_10Y_disp}</td><td class="{color_class(US_IN_10Y_1W)}">{fmt_pct(US_IN_10Y_1W,'pp')}</td><td class="neutral-text">{US_IN_10Y_12M}</td></tr>
-      <tr><td>US-IN policy</td><td>{US_IN_pol_disp}</td><td class="neutral-text">{US_IN_pol_1W}</td><td class="neutral-text">{US_IN_pol_12M}</td></tr>
+      <tr><td>US-IN policy</td><td>{US_IN_pol_disp}</td><td class="{color_class(US_IN_pol_1W)}">{fmt_pct(US_IN_pol_1W,'pp')}</td><td class="neutral-text">{US_IN_pol_12M}</td></tr>
     </table>
     <div style="font-size:10px;color:#484f58;margin-top:6px;">* IN 10Y = FRED monthly, ~30 day lag</div>
   </div>
@@ -810,7 +843,7 @@ td:first-child {{ text-align: left; color: #e6edf3; font-weight: 500; }}
 <!-- FOOTER -->
 <div class="footer">
   <span>G10 FX Regime Detection Framework — Shreyash Sakhare</span>
-  <span>Data: FRED · ECB · Japan MOF · CFTC · Yahoo Finance</span>
+  <span>Data: FRED · ECB · Japan MOF · RBI/FRED · CFTC · Yahoo Finance</span>
 </div>
 
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
