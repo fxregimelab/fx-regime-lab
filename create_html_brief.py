@@ -1,4 +1,5 @@
 import os
+import glob
 import base64
 import pandas as pd
 import numpy as np
@@ -332,6 +333,12 @@ charts = {
     'usdjpy_vol':   embed_image(f'charts/usdjpy_volatility_{DATE_SLUG}.png'),
 }
 
+usdinr_fundamentals_files = sorted(glob.glob("charts/usdinr_fundamentals_*.png"))
+usdinr_fundamentals_b64   = (
+    base64.b64encode(open(usdinr_fundamentals_files[-1], 'rb').read()).decode()
+    if usdinr_fundamentals_files else None
+)
+
 
 def vol_flag(pct):
     try:
@@ -458,6 +465,12 @@ jpy_read = (
 # append vol warnings
 if jpy_vol_text != 'NORMAL':
     jpy_read += f" vol {jpy_vol_text.lower()} — positioning signals less reliable."
+
+usdinr_fund_html = (
+    f'<img src="data:image/png;base64,{usdinr_fundamentals_b64}" style="width:100%;border-radius:4px;" class="chart-img" onclick="openLightbox(this)">'
+    if usdinr_fundamentals_b64 is not None
+    else '<div style="color:#484f58;padding:40px;text-align:center;font-size:12px;">Chart not available — run create_dashboards.py first</div>'
+)
 
 # build HTML
 html = f"""<!DOCTYPE html>
@@ -836,6 +849,17 @@ td:first-child {{ text-align: left; color: #e6edf3; font-weight: 500; }}
     <div class="chart-card">
       <img class="chart-img" src="{charts['usdjpy_vol']}" onclick="openLightbox(this)">
       <div class="chart-label">Volatility</div>
+    </div>
+  </div>
+</div>
+
+<!-- ROW 7: USD/INR CHARTS -->
+<div class="charts-section">
+  <div class="pair-label">USD/INR — Charts</div>
+  <div style="max-width:700px;margin:0 auto;">
+    <div class="chart-card">
+      {usdinr_fund_html}
+      <div class="chart-label">Fundamentals</div>
     </div>
   </div>
 </div>

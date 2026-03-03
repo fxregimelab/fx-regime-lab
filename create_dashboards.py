@@ -472,6 +472,118 @@ def create_vol_chart(df, pair_config):
     return path
 
 
+def create_usdinr_fundamentals_chart():
+    """USD/INR price + rate differential (2 panels, standalone load)."""
+    print("creating USD/INR fundamentals chart")
+
+    path = "data/latest_with_cot.csv"
+    if not os.path.exists(path):
+        print(f"ERROR: {path} not found")
+        return None
+    df = pd.read_csv(path, index_col=0, parse_dates=True)
+
+    # last 12 months, drop rows where USDINR is null
+    cutoff = pd.Timestamp(TODAY) - pd.DateOffset(months=12)
+    d = df[df.index >= cutoff].dropna(subset=['USDINR']).copy()
+    if len(d) == 0:
+        print("ERROR: no USDINR data available")
+        return None
+
+    fig, axes = plt.subplots(2, 1, figsize=(14, 8), facecolor='#ffffff')
+    fig.suptitle(f"USD/INR -- Price + Rate Differential -- {TODAY}",
+                 fontsize=13, fontweight='bold', y=0.98)
+
+    # --- Panel 1: price ---
+    ax = axes[0]
+    _style_ax_basic(ax)
+    price = d['USDINR']
+    ax.plot(d.index, price, color='#e74c3c', linewidth=1.5)
+    latest_price = float(price.iloc[-1])
+    ax.annotate(f"{latest_price:.4f}",
+                xy=(d.index[-1], latest_price),
+                xytext=(10, 0), textcoords='offset points',
+                fontsize=11, color='#e74c3c', fontweight='bold',
+                bbox=dict(boxstyle='round,pad=0.2', facecolor='white',
+                          alpha=0.85, edgecolor='none'))
+    ax.set_ylabel("INR per 1 USD")
+    ax.set_title("USD/INR  |  UP = dollar stronger vs rupee",
+                 fontsize=SUBTITLE_SIZE, color=SUBTITLE_COLOR)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %y'))
+    ax.tick_params(axis='x', rotation=30)
+
+    # --- Panel 2: rate differentials ---
+    ax = axes[1]
+    _style_ax_basic(ax)
+
+    _c10y = 'US_IN_10Y_spread'
+    _cpol = 'US_IN_policy_spread'
+    s10y_series = d[_c10y].dropna() if _c10y in d.columns else pd.Series(dtype=float)
+    spol_series = d[_cpol].dropna() if _cpol in d.columns else pd.Series(dtype=float)
+
+    if len(s10y_series) > 0:
+        ax.plot(s10y_series.index, s10y_series, color=SPREAD_BLUE, linewidth=1.8,
+                label="US 2Y - IN 10Y (cross)")
+    if len(spol_series) > 0:
+        ax.plot(spol_series.index, spol_series, color=SPREAD_ORANGE, linewidth=1.8,
+                label="US 2Y - IN policy rate")
+
+    ax.axhline(y=0, color=ZERO_LINE_CLR, linewidth=1.2, linestyle='--', alpha=0.6)
+    ax.text(d.index[0], 0, '  parity', fontsize=8, va='bottom',
+            color=ZERO_LINE_CLR, alpha=0.6)
+
+    ax.set_title("Rate Differentials (pp)  |  negative = India yields higher = INR strength",
+                 fontsize=SUBTITLE_SIZE, color=SUBTITLE_COLOR)
+    ax.set_ylabel("spread (pp)")
+    ax.legend(fontsize=8)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %y'))
+    ax.tick_params(axis='x', rotation=30)
+
+    # annotate latest values — offset to avoid overlap
+    if len(s10y_series) > 0 and len(spol_series) > 0:
+        v10y = float(s10y_series.iloc[-1])
+        vpol = float(spol_series.iloc[-1])
+        y_off_10y = 8  if v10y >= vpol else -12
+        y_off_pol  = -12 if v10y >= vpol else  8
+        ax.annotate(f"{v10y:.2f}pp",
+                    xy=(s10y_series.index[-1], v10y),
+                    xytext=(-10, y_off_10y), textcoords='offset points',
+                    fontsize=9, fontweight='bold', ha='right', color=SPREAD_BLUE,
+                    bbox=dict(boxstyle='round,pad=0.2', facecolor='white',
+                              alpha=0.85, edgecolor=SPREAD_BLUE))
+        ax.annotate(f"{vpol:.2f}pp",
+                    xy=(spol_series.index[-1], vpol),
+                    xytext=(-10, y_off_pol), textcoords='offset points',
+                    fontsize=9, fontweight='bold', ha='right', color=SPREAD_ORANGE,
+                    bbox=dict(boxstyle='round,pad=0.2', facecolor='white',
+                              alpha=0.85, edgecolor=SPREAD_ORANGE))
+    elif len(s10y_series) > 0:
+        v10y = float(s10y_series.iloc[-1])
+        ax.annotate(f"{v10y:.2f}pp",
+                    xy=(s10y_series.index[-1], v10y),
+                    xytext=(-10, 8), textcoords='offset points',
+                    fontsize=9, fontweight='bold', ha='right', color=SPREAD_BLUE,
+                    bbox=dict(boxstyle='round,pad=0.2', facecolor='white',
+                              alpha=0.85, edgecolor=SPREAD_BLUE))
+    elif len(spol_series) > 0:
+        vpol = float(spol_series.iloc[-1])
+        ax.annotate(f"{vpol:.2f}pp",
+                    xy=(spol_series.index[-1], vpol),
+                    xytext=(-10, 8), textcoords='offset points',
+                    fontsize=9, fontweight='bold', ha='right', color=SPREAD_ORANGE,
+                    bbox=dict(boxstyle='round,pad=0.2', facecolor='white',
+                              alpha=0.85, edgecolor=SPREAD_ORANGE))
+
+    plt.tight_layout(pad=2.0, h_pad=2.5)
+    os.makedirs('charts', exist_ok=True)
+    chart_path = f"charts/usdinr_fundamentals_{TODAY}.png"
+    plt.savefig(chart_path, dpi=150, bbox_inches='tight', facecolor='#ffffff')
+    plt.show(block=False)
+    plt.pause(2)
+    plt.close()
+    print(f"saved: {chart_path}")
+    return chart_path
+
+
 def main():
     print("=" * 55)
     print(f"  FX DASHBOARDS REDESIGN -- {TODAY}")
@@ -569,6 +681,14 @@ def main():
     create_fundamentals_chart(df, jpy_config)
     create_positioning_chart(df, jpy_config)
     create_vol_chart(df, usdjpy_vol_config)
+
+    print("\n[3/3] creating USD/INR fundamentals chart...")
+    usdinr_path = create_usdinr_fundamentals_chart()
+
+    print("\n" + "=" * 55)
+    print("  CHARTS COMPLETE")
+    print("=" * 55)
+    print(f"  USD/INR fundamentals: {usdinr_path}")
 
 
 if __name__ == '__main__':

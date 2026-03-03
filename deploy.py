@@ -37,7 +37,7 @@ def deploy():
 
     # git add, commit, push
     try:
-        subprocess.run(["git", "add", "index.html"], check=True)
+        subprocess.run(["git", "add", "-A"], check=True)
         # check if there is actually anything staged to commit
         status = subprocess.run(
             ["git", "status", "--porcelain"],
