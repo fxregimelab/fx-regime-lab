@@ -38,13 +38,20 @@ def _style_axes(fig):
     return fig
 
 
-def _load_and_filter(months=12):
-    df = pd.read_csv('data/latest_with_cot.csv', 
-                     index_col=0, parse_dates=True)
-    cutoff = pd.Timestamp.today() - pd.DateOffset(months=months)
-    today_str = pd.Timestamp.today().strftime('%Y-%m-%d')
+def _load_and_filter(pair):
+    """Load data and filter to last 12 months"""
+    df = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
+    
+    # Get today and cutoff dates
+    today = pd.Timestamp.today().normalize()
+    cutoff = today - pd.DateOffset(months=12)
     cutoff_str = cutoff.strftime('%Y-%m-%d')
-    return df[df.index >= cutoff], cutoff_str, today_str
+    today_str = today.strftime('%Y-%m-%d')
+    
+    # Filter data
+    df_filtered = df[df.index >= cutoff].copy()
+    
+    return df_filtered, cutoff_str, today_str
 
 
 def _add_annotation(fig, x, y, text, color, row, xref, yref):
@@ -287,8 +294,8 @@ def build_fundamentals_chart(pair):
     cfg = configs[pair]
     PAIR = pair.upper()
     
-    # Load data
-    df, cutoff_str, today_str = _load_and_filter(months=12)
+    # Load and filter data
+    df, cutoff_str, today_str = _load_and_filter(pair)
     df = df[df[cfg['price_col']].notna()]
     
     # Always use 2 subplots for all pairs
@@ -349,24 +356,41 @@ def build_fundamentals_chart(pair):
     fig.update_layout(**_base_layout(height=480))
     _style_axes(fig)
     
-    # Set x-axis range
-    fig.update_xaxes(range=[cutoff_str, today_str])
+    # FIX: Set x-axis ranges for all subplots individually
+    if pair == 'usdinr':
+        # USD/INR has only 2 subplots (xaxis, xaxis2)
+        fig.update_layout(
+            xaxis=dict(range=[cutoff_str, today_str]),
+            xaxis2=dict(range=[cutoff_str, today_str])
+        )
+    else:
+        # EUR/USD and USD/JPY have 3 subplots (xaxis, xaxis2, xaxis3)
+        fig.update_layout(
+            xaxis=dict(range=[cutoff_str, today_str]),
+            xaxis2=dict(range=[cutoff_str, today_str]),
+            xaxis3=dict(range=[cutoff_str, today_str])
+        )
     
-    # FIX 2: Set y-axis ranges with padding
-    # Price panel (row 1)
-    price_min = df[cfg['price_col']].min()
-    price_max = df[cfg['price_col']].max()
-    price_pad = (price_max - price_min) * 0.05
-    fig.update_yaxes(range=[price_min - price_pad, price_max + price_pad], 
-                     row=1, col=1)
+    # FIX: Explicit y-axis ranges from filtered data
+    # Price panel (yaxis)
+    p_min = float(df[cfg['price_col']].min())
+    p_max = float(df[cfg['price_col']].max())
+    pad = (p_max - p_min) * 0.05
+    fig.update_layout(yaxis=dict(range=[p_min-pad, p_max+pad]))
     
-    # Spread panel (row 2)
-    spread_vals = pd.concat([df[cfg['spread_10y']].dropna(), df[cfg['spread_2y']].dropna()])
-    spread_min = spread_vals.min()
-    spread_max = spread_vals.max()
-    spread_pad = (spread_max - spread_min) * 0.1
-    fig.update_yaxes(range=[spread_min - spread_pad, spread_max + spread_pad],
-                     row=2, col=1)
+    # Spread panel (yaxis2)
+    all_spreads = pd.concat([
+        df[cfg['spread_10y']].dropna(), 
+        df[cfg['spread_2y']].dropna()
+    ])
+    s_min = float(all_spreads.min())
+    s_max = float(all_spreads.max())
+    s_pad = (s_max - s_min) * 0.1
+    fig.update_layout(yaxis2=dict(range=[s_min-s_pad, s_max+s_pad]))
+    
+    # Correlation panel (yaxis3) - only for non-usdinr pairs
+    if pair != 'usdinr':
+        fig.update_layout(yaxis3=dict(range=[-1, 1]))
     
     # --- Inline end-labels ---
     last_x = df.index[-1]
@@ -459,7 +483,7 @@ def build_positioning_chart(pair):
     cfg = configs[pair]
     
     # Load data
-    df, cutoff_str, today_str = _load_and_filter(months=12)
+    df, cutoff_str, today_str = _load_and_filter(pair)
     df = df[df[cfg['net_col']].notna()]
     
     fig = make_subplots(
@@ -737,8 +761,8 @@ def build_vol_correlation_chart(pair):
     cfg = configs[pair]
     PAIR = pair.upper()
     
-    # Load data
-    df, cutoff_str, today_str = _load_and_filter(months=12)
+    # Load and filter data
+    df, cutoff_str, today_str = _load_and_filter(pair)
     df = df[df[cfg['vol_col']].notna()]
     
     fig = make_subplots(
@@ -825,8 +849,14 @@ def build_vol_correlation_chart(pair):
     fig.update_layout(**_base_layout(height=460))
     _style_axes(fig)
     
-    # Set x-axis range
-    fig.update_xaxes(range=[cutoff_str, today_str])
+    # FIX: Set x-axis ranges for both subplots
+    fig.update_layout(
+        xaxis=dict(range=[cutoff_str, today_str]),
+        xaxis2=dict(range=[cutoff_str, today_str])
+    )
+    
+    # FIX: Fix correlation panel y-axis range (yaxis3 for subplot 2)
+    fig.update_layout(yaxis3=dict(range=[-1, 1]))
     
     # --- Inline end-labels ---
     last_x = df.index[-1]
@@ -933,84 +963,4 @@ def build_vol_chart(pair):
     PAIR = pair.upper()
     
     # Load data
-    df, cutoff_str, today_str = _load_and_filter(months=12)
-    df = df[df[cfg['vol_col']].notna()]
-    
-    fig = make_subplots(
-        rows=2, cols=1,
-        shared_xaxes=True,
-        row_heights=[0.6, 0.4],
-        vertical_spacing=0.08,
-        specs=[[{"secondary_y": True}], [{"secondary_y": False}]]
-    )
-    
-    # --- Subplot 1: Realized Volatility ---
-    # Filled area trace
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df[cfg['vol_col']],
-            mode='lines',
-            fill='tozeroy',
-            fillcolor=cfg['fill_color'],
-            line=dict(color=cfg['color'], width=1.5),
-            name=PAIR,
-            showlegend=False,
-            hovertemplate='%{x|%d %b %Y}<br>%{y:.2f}%<extra></extra>',
-        ),
-        row=1, col=1, secondary_y=False,
-    )
-    
-    # Percentile line on secondary axis
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df[cfg['pct_col']],
-            mode='lines',
-            line=dict(color='#ffffff', width=2),
-            name='Percentile',
-            showlegend=False,
-            hovertemplate='%{x|%d %b %Y}<br>%{y:.0f}th<extra></extra>',
-        ),
-        row=1, col=1, secondary_y=True,
-    )
-    
-    # Horizontal zones and lines for volatility
-    fig.add_hrect(y0=90, y1=100, fillcolor='rgba(255,68,68,0.08)', 
-                  line_width=0, row=1, col=1, secondary_y=True)
-    fig.add_hrect(y0=75, y1=90, fillcolor='rgba(240,165,0,0.06)', 
-                  line_width=0, row=1, col=1, secondary_y=True)
-    fig.add_hline(y=90, line_color='#ff4444', line_dash='dash', line_width=1, 
-                  row=1, col=1, secondary_y=True)
-    fig.add_hline(y=75, line_color='#f0a500', line_dash='dash', line_width=1, 
-                  row=1, col=1, secondary_y=True)
-    
-    # --- Subplot 2: Cross-pair comparison ---
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df[cfg['vol_col']],
-            mode='lines',
-            line=dict(color=cfg['color'], width=1.5),
-            name=PAIR,
-            showlegend=True,
-            hovertemplate='%{x|%d %b %Y}<br>%{y:.2f}%<extra></extra>',
-        ),
-        row=2, col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df[cfg['other_vol']],
-            mode='lines',
-            line=dict(color='#555555', width=1),
-            name=cfg['other_label'],
-            showlegend=True,
-            hovertemplate='%{x|%d %b %Y}<br>%{y:.2f}%<extra></extra>',
-        ),
-        row=2, col=1,
-    )
-    
-    # --- Apply theme ---
-    fig.update_layout(**_base_layout(height=500))
-    _style_axes(fig)
+    df, cutoff_str, today_str = _load_and_filter(pair)
