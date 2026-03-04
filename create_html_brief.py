@@ -4,6 +4,7 @@ import base64
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import sys
 
 TODAY     = datetime.today().strftime('%Y-%m-%d')
 TODAY_FMT = datetime.today().strftime('%A, %d %B %Y')
@@ -40,6 +41,38 @@ def color_class(val):
     except:
         return ''
 
+
+# ============================================================================
+# STEP 3B — Import and call chart functions
+# ============================================================================
+
+from create_charts_plotly import (
+    build_fundamentals_chart,
+    build_positioning_chart, 
+    build_vol_correlation_chart
+)
+import plotly.io as pio
+
+plotly_config = dict(scrollZoom=True, displayModeBar=False, 
+                     responsive=True)
+
+def fig_to_div(fig):
+    if fig is None:
+        return '<div style="color:#555;padding:20px;font-size:11px;">Chart unavailable</div>'
+    return pio.to_html(fig, full_html=False, 
+                       config=plotly_config,
+                       include_plotlyjs=False)
+
+# Generate all chart divs
+eurusd_fund_div = fig_to_div(build_fundamentals_chart('eurusd'))
+eurusd_pos_div  = fig_to_div(build_positioning_chart('eurusd'))
+eurusd_vol_div  = fig_to_div(build_vol_correlation_chart('eurusd'))
+
+usdjpy_fund_div = fig_to_div(build_fundamentals_chart('usdjpy'))
+usdjpy_pos_div  = fig_to_div(build_positioning_chart('usdjpy'))
+usdjpy_vol_div  = fig_to_div(build_vol_correlation_chart('usdjpy'))
+
+usdinr_fund_div = fig_to_div(build_fundamentals_chart('usdinr'))
 
 # load data
 path = 'data/latest_with_cot.csv'
@@ -286,22 +319,6 @@ statusbar_html = (
 )
 # ─────────────────────────────────────────────────────────────────────────────
 
-charts = {
-    'eurusd_fund':  embed_image(f'charts/eurusd_fundamentals_{DATE_SLUG}.png'),
-    'eurusd_pos':   embed_image(f'charts/eurusd_positioning_{DATE_SLUG}.png'),
-    'eurusd_vol':   embed_image(f'charts/eurusd_volatility_{DATE_SLUG}.png'),
-    'usdjpy_fund':  embed_image(f'charts/usdjpy_fundamentals_{DATE_SLUG}.png'),
-    'usdjpy_pos':   embed_image(f'charts/usdjpy_positioning_{DATE_SLUG}.png'),
-    'usdjpy_vol':   embed_image(f'charts/usdjpy_volatility_{DATE_SLUG}.png'),
-}
-
-usdinr_fundamentals_files = sorted(glob.glob("charts/usdinr_fundamentals_*.png"))
-usdinr_fundamentals_b64   = (
-    base64.b64encode(open(usdinr_fundamentals_files[-1], 'rb').read()).decode()
-    if usdinr_fundamentals_files else None
-)
-
-
 def vol_flag(pct):
     try:
         p = float(pct)
@@ -429,9 +446,7 @@ if jpy_vol_text != 'NORMAL':
     jpy_read += f" vol {jpy_vol_text.lower()} — positioning signals less reliable."
 
 usdinr_fund_html = (
-    f'<img src="data:image/png;base64,{usdinr_fundamentals_b64}" style="width:100%;border-radius:4px;" class="chart-img" onclick="openLightbox(this)">'
-    if usdinr_fundamentals_b64 is not None
-    else '<div style="color:#484f58;padding:40px;text-align:center;font-size:12px;">Chart not available — run create_dashboards.py first</div>'
+    usdinr_fund_div
 )
 
 def color_val(val, reverse=False):
@@ -466,32 +481,6 @@ if _gold_raw:
         pass
 
 
-# carousel chart data
-_eur_srcs = [s for s in [charts['eurusd_fund'], charts['eurusd_pos'], charts['eurusd_vol']] if s]
-_jpy_srcs = [s for s in [charts['usdjpy_fund'], charts['usdjpy_pos'], charts['usdjpy_vol']] if s]
-_inr_src  = (f'data:image/png;base64,{usdinr_fundamentals_b64}' if usdinr_fundamentals_b64 else '')
-_inr_srcs = [_inr_src] if _inr_src else []
-
-def _js_arr(srcs, labels):
-    if not srcs:
-        return '[]'
-    return '[' + ','.join(f'["{s}","{l}"]' for s, l in zip(srcs, labels)) + ']'
-
-_js_eurusd = _js_arr(_eur_srcs, ['FUNDAMENTALS', 'POSITIONING', 'VOLATILITY'])
-_js_usdjpy = _js_arr(_jpy_srcs, ['FUNDAMENTALS', 'POSITIONING', 'VOLATILITY'])
-_js_usdinr = _js_arr(_inr_srcs, ['FUNDAMENTALS'])
-
-def _dots_html(pair, count):
-    return ''.join(
-        f'<span id="dot-{pair}-{i}" class="chart-dot">&#9675;</span>'
-        for i in range(count)
-    )
-
-_eur_dots = _dots_html('eurusd', len(_eur_srcs))
-_jpy_dots = _dots_html('usdjpy', len(_jpy_srcs))
-_inr_dots = _dots_html('usdinr', len(_inr_srcs))
-
-
 # card header badge class lookup
 def _badge_cls(regime):
     return {
@@ -513,6 +502,7 @@ html = f"""<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
 * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 body {{
@@ -631,65 +621,54 @@ body {{
 .brief-right {{
     width: 62%;
     background: #0d0d0d;
-    position: relative;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }}
-.carousel-img-area {{
+.chart-tab-bar {{
+    height: 36px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    gap: 2px;
+}}
+.chart-tab {{
+    padding: 0 14px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: #555;
+    font-size: 10px;
+    font-family: inherit;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: color 0.15s;
+}}
+.chart-tab:hover {{
+    color: #888;
+}}
+.chart-tab.active {{
+    color: #cccccc;
+    background: #252525;
+}}
+.chart-display-area {{
     flex-grow: 1;
     position: relative;
     overflow: hidden;
 }}
-.carousel-img-area img {{
-    width: 100%;
+.chart-pane {{
+    display: none;
     height: 100%;
-    object-fit: contain;
-    padding: 4px;
-    display: block;
-    cursor: zoom-in;
+    overflow: auto;
 }}
-.carousel-arrow {{
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0,0,0,0.6);
-    border: 1px solid #333;
-    border-radius: 3px;
-    color: #888;
-    width: 28px;
-    height: 28px;
-    font-size: 16px;
-    cursor: pointer;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    line-height: 1;
-}}
-.carousel-arrow:hover {{ border-color: #555; color: #ccc; }}
-.carousel-arrow-left  {{ left: 8px; }}
-.carousel-arrow-right {{ right: 8px; }}
-.chart-label-bar {{
-    height: 28px;
-    background: #1a1a1a;
-    border-top: 1px solid #2a2a2a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    flex-shrink: 0;
-}}
-.chart-dot {{
-    font-size: 8px;
-    color: #333;
-    cursor: default;
-}}
-.chart-label-text {{
-    color: #888;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.chart-pane .js-plotly-plot {{
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 480px;
 }}
 .brief-section {{
     border-top: 1px solid #1e1e1e;
@@ -857,14 +836,21 @@ body {{
 
       </div>
       <div class="brief-right">
-        <div class="carousel-img-area">
-          <img id="chart-eurusd" alt="" title="Click to enlarge" onclick="openLightbox(this)">
-          <button class="carousel-arrow carousel-arrow-left" onclick="prevChart('eurusd')">&lsaquo;</button>
-          <button class="carousel-arrow carousel-arrow-right" onclick="nextChart('eurusd')">&rsaquo;</button>
+        <div class="chart-tab-bar">
+          <button class="chart-tab active" data-pair="eurusd" data-tab="0">FUNDAMENTALS</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="1">POSITIONING</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="2">VOL & CORRELATION</button>
         </div>
-        <div class="chart-label-bar">
-          {_eur_dots}
-          <span id="label-eurusd" class="chart-label-text"></span>
+        <div class="chart-display-area">
+          <div class="chart-pane" data-pair="eurusd" data-pane="0" style="display:block;">
+            {eurusd_fund_div}
+          </div>
+          <div class="chart-pane" data-pair="eurusd" data-pane="1" style="display:none;">
+            {eurusd_pos_div}
+          </div>
+          <div class="chart-pane" data-pair="eurusd" data-pane="2" style="display:none;">
+            {eurusd_vol_div}
+          </div>
         </div>
       </div>
     </div>
@@ -935,14 +921,21 @@ body {{
 
       </div>
       <div class="brief-right">
-        <div class="carousel-img-area">
-          <img id="chart-usdjpy" alt="" title="Click to enlarge" onclick="openLightbox(this)">
-          <button class="carousel-arrow carousel-arrow-left" onclick="prevChart('usdjpy')">&lsaquo;</button>
-          <button class="carousel-arrow carousel-arrow-right" onclick="nextChart('usdjpy')">&rsaquo;</button>
+        <div class="chart-tab-bar">
+          <button class="chart-tab active" data-pair="usdjpy" data-tab="0">FUNDAMENTALS</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="1">POSITIONING</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="2">VOL & CORRELATION</button>
         </div>
-        <div class="chart-label-bar">
-          {_jpy_dots}
-          <span id="label-usdjpy" class="chart-label-text"></span>
+        <div class="chart-display-area">
+          <div class="chart-pane" data-pair="usdjpy" data-pane="0" style="display:block;">
+            {usdjpy_fund_div}
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="1" style="display:none;">
+            {usdjpy_pos_div}
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="2" style="display:none;">
+            {usdjpy_vol_div}
+          </div>
         </div>
       </div>
     </div>
@@ -996,12 +989,13 @@ body {{
 
       </div>
       <div class="brief-right">
-        <div class="carousel-img-area">
-          <img id="chart-usdinr" alt="" title="Click to enlarge" onclick="openLightbox(this)">
+        <div class="chart-tab-bar">
+          <button class="chart-tab active" data-pair="usdinr" data-tab="0">FUNDAMENTALS</button>
         </div>
-        <div class="chart-label-bar">
-          {_inr_dots}
-          <span id="label-usdinr" class="chart-label-text"></span>
+        <div class="chart-display-area">
+          <div class="chart-pane" data-pair="usdinr" data-pane="0" style="display:block;">
+            {usdinr_fund_div}
+          </div>
         </div>
       </div>
     </div>
@@ -1015,129 +1009,41 @@ body {{
 </div>
 
 <script>
-const charts = {{
-  eurusd: {_js_eurusd},
-  usdjpy: {_js_usdjpy},
-  usdinr: {_js_usdinr}
-}};
-const state = {{ eurusd: 0, usdjpy: 0, usdinr: 0 }};
-let hoveredPair = null;
+document.querySelectorAll('.chart-tab').forEach(tab => {{
+  tab.addEventListener('click', function() {{
+    const pair = this.dataset.pair;
+    const tabIdx = this.dataset.tab;
+    
+    // deactivate all tabs for this pair
+    document.querySelectorAll(
+      `.chart-tab[data-pair="${{pair}}"]`
+    ).forEach(t => t.classList.remove('active'));
+    
+    // hide all panes for this pair
+    document.querySelectorAll(
+      `.chart-pane[data-pair="${{pair}}"]`
+    ).forEach(p => {{
+      p.style.display = 'none';
+    }});
+    
+    // activate clicked tab
+    this.classList.add('active');
+    
+    // show corresponding pane
+    document.querySelector(
+      `.chart-pane[data-pair="${{pair}}"][data-pane="${{tabIdx}}"]`
+    ).style.display = 'block';
 
-function showChart(pair, index) {{
-  const arr = charts[pair];
-  if (!arr || arr.length === 0) return;
-  index = ((index % arr.length) + arr.length) % arr.length;
-  state[pair] = index;
-  document.getElementById('chart-' + pair).src = arr[index][0];
-  document.getElementById('label-' + pair).textContent = arr[index][1];
-  for (let i = 0; i < arr.length; i++) {{
-    const dot = document.getElementById('dot-' + pair + '-' + i);
-    if (!dot) continue;
-    if (i === index) {{
-      dot.innerHTML = '&#9679;';
-      dot.style.color = '#00d4aa';
-    }} else {{
-      dot.innerHTML = '&#9675;';
-      dot.style.color = '#333';
-    }}
-  }}
-}}
-
-function prevChart(pair) {{ showChart(pair, state[pair] - 1); }}
-function nextChart(pair) {{ showChart(pair, state[pair] + 1); }}
-
-function initCarousels() {{
-  ['eurusd', 'usdjpy', 'usdinr'].forEach(function(pair) {{
-    showChart(pair, 0);
-    const card = document.querySelector('[data-pair="' + pair + '"]');
-    if (card) {{
-      card.addEventListener('mouseenter', function() {{ hoveredPair = pair; }});
-      card.addEventListener('mouseleave', function() {{ hoveredPair = null; }});
+    // trigger plotly resize for the newly visible chart
+    const plotlyDiv = document.querySelector(
+      `.chart-pane[data-pair="${{pair}}"][data-pane="${{tabIdx}}"] .js-plotly-plot`
+    );
+    if (plotlyDiv) {{
+      Plotly.relayout(plotlyDiv, {{autosize: true}});
     }}
   }});
-}}
-
-document.addEventListener('keydown', function(e) {{
-  if (e.key === 'Escape') {{ closeLightbox(); return; }}
-  if (!hoveredPair) return;
-  if (e.key === 'ArrowLeft')  prevChart(hoveredPair);
-  if (e.key === 'ArrowRight') nextChart(hoveredPair);
-}});
-
-// ── Lightbox ──────────────────────────────────────────────────────────────
-let lbScale = 1, lbTX = 0, lbTY = 0;
-let lbDragging = false, lbDragSX = 0, lbDragSY = 0, lbDragTX0 = 0, lbDragTY0 = 0;
-let _lb = null, _lbImg = null;
-
-function _applyLbTransform() {{
-  _lbImg.style.transform = 'scale(' + lbScale + ') translate(' + lbTX + 'px,' + lbTY + 'px)';
-}}
-
-function openLightbox(img) {{
-  lbScale = 1; lbTX = 0; lbTY = 0;
-  _lbImg.src = img.src;
-  _applyLbTransform();
-  _lb.style.display = 'flex';
-}}
-
-function closeLightbox() {{
-  _lb.style.display = 'none';
-  lbScale = 1; lbTX = 0; lbTY = 0;
-  _applyLbTransform();
-}}
-
-function initLightbox() {{
-  _lb    = document.getElementById('lightbox');
-  _lbImg = document.getElementById('lightbox-img');
-
-  _lb.addEventListener('click', function(e) {{
-    if (e.target === _lb) closeLightbox();
-  }});
-  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
-
-  _lb.addEventListener('wheel', function(e) {{
-    e.preventDefault();
-    lbScale += e.deltaY < 0 ? 0.15 : -0.15;
-    lbScale = Math.min(5, Math.max(1, lbScale));
-    if (lbScale === 1) {{ lbTX = 0; lbTY = 0; }}
-    _applyLbTransform();
-  }}, {{ passive: false }});
-
-  _lbImg.addEventListener('mousedown', function(e) {{
-    if (lbScale <= 1) return;
-    lbDragging = true;
-    lbDragSX = e.clientX; lbDragSY = e.clientY;
-    lbDragTX0 = lbTX;     lbDragTY0 = lbTY;
-    _lbImg.style.cursor = 'grabbing';
-    e.preventDefault();
-  }});
-}}
-
-document.addEventListener('mousemove', function(e) {{
-  if (!lbDragging) return;
-  lbTX = lbDragTX0 + (e.clientX - lbDragSX) / lbScale;
-  lbTY = lbDragTY0 + (e.clientY - lbDragSY) / lbScale;
-  _applyLbTransform();
-}});
-
-document.addEventListener('mouseup', function() {{
-  if (!lbDragging) return;
-  lbDragging = false;
-  if (_lbImg) _lbImg.style.cursor = lbScale > 1 ? 'grab' : 'zoom-in';
-}});
-
-document.addEventListener('DOMContentLoaded', function() {{
-  initCarousels();
-  initLightbox();
 }});
 </script>
-
-<!-- LIGHTBOX -->
-<div id="lightbox" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:1000;cursor:zoom-out;align-items:center;justify-content:center;">
-  <img id="lightbox-img" style="max-width:92vw;max-height:92vh;object-fit:contain;cursor:grab;border:1px solid #2a2a2a;border-radius:4px;transform-origin:center;transition:transform 0.1s;">
-  <div id="lightbox-close" style="position:fixed;top:16px;right:20px;color:#888;font-size:20px;cursor:pointer;background:rgba(0,0,0,0.6);padding:4px 10px;border-radius:3px;border:1px solid #333;">&#x2715;</div>
-  <div id="lightbox-hint" style="position:fixed;bottom:16px;color:#555;font-size:11px;">scroll to zoom &middot; click outside to close</div>
-</div>
 
 </body>
 </html>"""

@@ -9,7 +9,6 @@ print("running full pipeline...\n")
 subprocess.run([sys.executable, "pipeline.py"],          check=True)
 subprocess.run([sys.executable, "cot_pipeline.py"],      check=True)
 subprocess.run([sys.executable, "inr_pipeline.py"],      check=True)
-subprocess.run([sys.executable, "create_dashboards.py"], check=True)
 subprocess.run([sys.executable, "morning_brief.py"],     check=True)
 subprocess.run([sys.executable, "create_html_brief.py"], check=True)
 subprocess.run([sys.executable, "deploy.py"],            check=True)
@@ -21,22 +20,7 @@ TODAY = datetime.today().strftime('%Y-%m-%d')
 run_dir = os.path.join('runs', TODAY)
 
 # create folder structure
-os.makedirs(os.path.join(run_dir, 'charts'), exist_ok=True)
 os.makedirs(os.path.join(run_dir, 'data'), exist_ok=True)
-
-# copy charts
-for fname in [
-    f'eurusd_fundamentals_{TODAY.replace("-","")}.png',
-    f'eurusd_positioning_{TODAY.replace("-","")}.png',
-    f'eurusd_volatility_{TODAY.replace("-","")}.png',
-    f'usdjpy_fundamentals_{TODAY.replace("-","")}.png',
-    f'usdjpy_positioning_{TODAY.replace("-","")}.png',
-    f'usdjpy_volatility_{TODAY.replace("-","")}.png',
-]:
-    src = os.path.join('charts', fname)
-    dst = os.path.join(run_dir, 'charts', fname.replace(f'_{TODAY.replace("-","")}', ''))
-    if os.path.exists(src):
-        shutil.copy2(src, dst)
 
 # copy data files
 file_map = {
