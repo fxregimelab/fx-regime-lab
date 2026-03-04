@@ -34,6 +34,14 @@ FX_TICKERS = {
     "DXY":    "DX-Y.NYB",
 }
 
+# Commodity prices from Yahoo Finance (daily futures)
+# Brent crude: BZ=F (ICE front-month Brent)
+# Gold:        GC=F (COMEX front-month Gold)
+COMMODITY_TICKERS = {
+    "Brent": "BZ=F",
+    "Gold":  "GC=F",
+}
+
 # US yields from FRED (daily)
 FRED_SERIES = {
     "US_2Y":  "DGS2",
@@ -90,6 +98,60 @@ def fetch_fx_data():
 
     print(f"    got {prices.shape[0]} rows, {prices.shape[1]} pairs")
     print(f"    from {prices.index[0].date()} to {prices.index[-1].date()}")
+    return prices
+
+
+# -- step 1b: commodity prices -------------------------------------------------
+#
+# Brent crude (BZ=F) and Gold (GC=F) via Yahoo Finance.
+# These are front-month futures — prices roll forward at expiry but are
+# good enough for daily correlation and trend work.
+# Forward-filled up to 5 days to bridge exchange holidays.
+
+def fetch_commodity_data():
+    print("\n[1b] fetching commodity prices from yahoo finance...")
+
+    raw = yf.download(
+        tickers     = list(COMMODITY_TICKERS.values()),
+        start       = START_DATE,
+        end         = TODAY,
+        interval    = "1d",
+        auto_adjust = True,
+        progress    = False
+    )
+
+    # yfinance returns multi-level columns when fetching multiple tickers
+    if isinstance(raw.columns, pd.MultiIndex):
+        prices = raw["Close"].copy()
+    else:
+        prices = raw[["Close"]].copy()
+
+    reverse_map = {v: k for k, v in COMMODITY_TICKERS.items()}
+    prices.rename(columns=reverse_map, inplace=True)
+    prices.index = pd.to_datetime(prices.index)
+    prices.index.name = "date"
+
+    # tz handling: same as FX
+    if prices.index.tz is None:
+        prices.index = prices.index.tz_localize('UTC')
+    prices.index = prices.index.tz_convert('America/New_York')
+    prices.index = pd.to_datetime(prices.index.date)
+
+    prices = prices[prices.index.date < pd.Timestamp(TODAY).date()]
+    prices = prices[prices.index.dayofweek < 5]
+
+    # forward-fill gaps (exchange holidays, expiry roll gaps)
+    for col in prices.columns:
+        prices[col] = prices[col].ffill(limit=5)
+
+    for col in prices.columns:
+        clean = prices[col].dropna()
+        if len(clean) > 0:
+            print(f"    OK  {col} ({COMMODITY_TICKERS.get(col, '?')}) -- "
+                  f"{len(clean)} rows, latest: {clean.iloc[-1]:.2f} on {clean.index[-1].date()}")
+        else:
+            print(f"    FAIL {col} -- no data")
+
     return prices
 
 
@@ -387,15 +449,67 @@ def calculate_regime_correlation(master):
     return master
 
 
+# -- step 3.7: oil correlation layer (Phase 1) ---------------------------------
+#
+# 60D rolling correlation between Brent daily returns and each FX pair's
+# daily returns.  Signals whether oil price moves are transmitting into FX.
+#
+# Expected sign logic:
+#   EUR/USD:  negative  (oil up → wider eurozone trade deficit → EUR weaker)
+#   USD/JPY:  positive  (oil up → wider Japan trade deficit   → JPY weaker)
+#   USD/INR:  positive  (oil up → India import costs rise     → INR weaker)
+#
+# Sign reversal beyond threshold = divergence flag (pair-specific factor
+# overriding the commodity channel — analytically informative).
+
+def calculate_oil_correlation(master):
+    print("\n[OIL] calculating oil correlation (Phase 1)...")
+
+    if "Brent" not in master.columns:
+        print("    SKIP -- Brent column not found (run pipeline with commodity fetch)")
+        return master
+
+    brent_ret = master["Brent"].pct_change()
+
+    pairs = [
+        ("EURUSD", "oil_eurusd_corr_60d"),
+        ("USDJPY", "oil_usdjpy_corr_60d"),
+        ("USDINR", "oil_inr_corr_60d"),
+    ]
+
+    for fx_col, out_col in pairs:
+        if fx_col not in master.columns:
+            print(f"    SKIP -- {fx_col} not in master")
+            continue
+        fx_ret = master[fx_col].pct_change()
+        master[out_col] = brent_ret.rolling(60).corr(fx_ret)
+
+        latest = master[out_col].dropna()
+        if len(latest) > 0:
+            c = latest.iloc[-1]
+            print(f"    {fx_col:<8}: {c:>+.3f}  ({out_col})")
+        else:
+            print(f"    {fx_col:<8}: no data")
+
+    return master
+
+
 # -- step 4: build master table ------------------------------------------------
 
-def build_master(fx_df, yields_df, diff_df):
+def build_master(fx_df, yields_df, diff_df, commodity_df=None):
     print("\n[4/5] building master dataset...")
 
     # FX is the base -- its dates define our trading calendar
     master = fx_df.copy()
     master = master.join(yields_df, how="left")
     master = master.join(diff_df,   how="left")
+
+    # commodity prices: join and forward-fill gaps (exchange holidays)
+    if commodity_df is not None and not commodity_df.empty:
+        master = master.join(commodity_df, how="left")
+        for col in commodity_df.columns:
+            if col in master.columns:
+                master[col] = master[col].ffill(limit=5)
 
     # fill gaps in yield/spread columns after join (max 5 days -- all daily now)
     non_fx_cols = list(yields_df.columns) + list(diff_df.columns)
@@ -452,6 +566,16 @@ def calculate_changes(master):
     else:
         print("    USDINR not in master -- run inr_pipeline.py first")
 
+    # Commodity % changes (Brent, Gold)
+    for commodity in ["Brent", "Gold"]:
+        if commodity not in master.columns:
+            continue
+        for label, days in periods.items():
+            master[f"{commodity}_chg_{label}"] = (
+                (master[commodity] / master[commodity].shift(days) - 1) * 100
+            )
+        print(f"    {commodity} change columns added")
+
     # yield and spread pp changes
     pp_cols = [
         "US_2Y", "US_10Y", "DE_2Y", "DE_10Y", "JP_2Y", "JP_10Y",
@@ -494,6 +618,22 @@ def print_morning_summary(master):
 
     print(f"  as of: {last_date}")
     print()
+
+    # Commodities
+    if "Brent" in latest.index or "Gold" in latest.index:
+        print("  COMMODITIES:")
+        print(f"  {'asset':<10} {'price':>8}  {'1D%':>7}  {'1W%':>7}  {'1M%':>7}")
+        print(f"  {'-'*48}")
+        for com in ["Brent", "Gold"]:
+            if com not in latest.index:
+                continue
+            price = latest[com]
+            d1    = latest.get(f"{com}_chg_1D",  float('nan'))
+            w1    = latest.get(f"{com}_chg_1W",  float('nan'))
+            m1    = latest.get(f"{com}_chg_1M",  float('nan'))
+            unit  = "$/bbl" if com == "Brent" else "$/oz"
+            print(f"  {com:<10} {price:>8.2f}  {d1:>+6.2f}%  {w1:>+6.2f}%  {m1:>+6.2f}%  ({unit})")
+        print()
 
     # FX prices
     print("  FX PRICES:")
@@ -579,13 +719,15 @@ def main():
     print(f"  G10 FX PIPELINE -- {TODAY}")
     print("=" * 70)
 
-    fx_df     = fetch_fx_data()
-    yields_df = fetch_all_yields()
-    diff_df   = calculate_differentials(yields_df)
-    master    = build_master(fx_df, yields_df, diff_df)
-    master    = calculate_volatility(master)
-    master    = calculate_regime_correlation(master)
-    master    = calculate_changes(master)
+    fx_df        = fetch_fx_data()
+    commodity_df = fetch_commodity_data()
+    yields_df    = fetch_all_yields()
+    diff_df      = calculate_differentials(yields_df)
+    master       = build_master(fx_df, yields_df, diff_df, commodity_df)
+    master       = calculate_volatility(master)
+    master       = calculate_regime_correlation(master)
+    master       = calculate_oil_correlation(master)
+    master       = calculate_changes(master)
 
     save_data(master)
     print_morning_summary(master)

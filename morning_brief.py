@@ -70,6 +70,41 @@ def _corr_fmt(val):
     return f"{val:>+.3f}"
 
 
+def _oil_corr_label(corr, pair):
+    """Return (badge_text, is_divergence) for an oil correlation value.
+
+    Expected signs per pair:
+      EUR/USD  negative  (oil up → EUR weaker via trade deficit)
+      USD/JPY  positive  (oil up → JPY weaker via trade deficit)
+      USD/INR  positive  (oil up → INR weaker via import cost)
+
+    Divergence = sign reversal beyond threshold.
+    Magnitude badge: |corr| > 0.5 = HIGH, 0.3-0.5 = MODERATE, < 0.3 = LOW
+    """
+    if pd.isna(corr):
+        return "NO DATA", False
+
+    # divergence check: sign flips from expected
+    divergence = False
+    if pair == "EURUSD" and corr > 0.20:
+        divergence = True
+    elif pair == "USDJPY" and corr < -0.20:
+        divergence = True
+    elif pair == "USDINR" and corr < -0.20:
+        divergence = True
+
+    if divergence:
+        return "OIL DIVERGENCE", True
+
+    abs_c = abs(corr)
+    if abs_c >= 0.50:
+        return "HIGH", False
+    elif abs_c >= 0.30:
+        return "MODERATE", False
+    else:
+        return "LOW", False
+
+
 def _extract_key_levels(row, pair):
     """Extract S1, S2, S3, R1, R2, R3 from row data.
     
@@ -208,6 +243,11 @@ def build_brief(df):
     eur_corr    = row.get("EURUSD_spread_corr_60d",   float('nan'))
     jpy_corr    = row.get("USDJPY_spread_corr_60d",   float('nan'))
 
+    # Oil correlation (Phase 1)
+    oil_eur_corr = row.get("oil_eurusd_corr_60d", float('nan'))
+    oil_jpy_corr = row.get("oil_usdjpy_corr_60d", float('nan'))
+    oil_inr_corr = row.get("oil_inr_corr_60d",    float('nan'))
+
     # Key levels (support and resistance)
     eur_levels = _extract_key_levels(row, "EURUSD")
     jpy_levels = _extract_key_levels(row, "USDJPY")
@@ -304,6 +344,21 @@ def build_brief(df):
     jpy_corr_flag = _correlation_flag(jpy_corr)
     lines.append(f"  {'EUR/USD':<12} {_corr_fmt(eur_corr):>12}   {eur_corr_flag}")
     lines.append(f"  {'USD/JPY':<12} {_corr_fmt(jpy_corr):>12}   {jpy_corr_flag}")
+
+    # ── OIL CORRELATION ───────────────────────────────────────────────────────
+    lines.append("")
+    lines.append("  OIL CORRELATION  (60D rolling | Brent returns vs FX returns)")
+    lines.append("  expected: EUR/USD negative, USD/JPY positive, USD/INR positive")
+    lines.append(f"  {'pair':<12} {'correlation':>12}   {'flag'}")
+    lines.append(f"  {'-'*52}")
+    for pair_name, fx_key, corr_val in [
+        ("EUR/USD", "EURUSD", oil_eur_corr),
+        ("USD/JPY", "USDJPY", oil_jpy_corr),
+        ("USD/INR", "USDINR", oil_inr_corr),
+    ]:
+        label, is_div = _oil_corr_label(corr_val, fx_key)
+        div_note = "  << sign reversal — pair-specific factor overriding oil channel" if is_div else ""
+        lines.append(f"  {pair_name:<12} {_corr_fmt(corr_val):>12}   {label}{div_note}")
 
     # ── KEY LEVELS ────────────────────────────────────────────────────────────
     lines.append("")

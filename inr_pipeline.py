@@ -198,6 +198,16 @@ def build_and_save(price_df, yield_monthly, fpi_df, fpi_status):
                     master["USDINR"] / master["USDINR"].shift(days) - 1
                 ) * 100
 
+        # oil correlation for INR (Phase 1)
+        # Brent is fetched by pipeline.py and lives in master at this point
+        if "Brent" in master.columns and "USDINR" in master.columns:
+            brent_ret = master["Brent"].pct_change()
+            usdinr_ret = master["USDINR"].pct_change()
+            master["oil_inr_corr_60d"] = brent_ret.rolling(60).corr(usdinr_ret)
+            latest_oil = master["oil_inr_corr_60d"].dropna()
+            if len(latest_oil) > 0:
+                print(f"    oil_inr_corr_60d: {latest_oil.iloc[-1]:>+.3f}")
+
         # 12M change for US-IN spreads — windowed search to handle monthly source gaps
         for col in ("US_IN_10Y_spread", "US_IN_policy_spread"):
             chg_col = f"{col}_chg_12M"
