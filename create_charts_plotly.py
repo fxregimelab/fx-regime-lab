@@ -40,7 +40,7 @@ def _style_axes(fig):
 
 def _load_and_filter(pair):
     """Load data and filter to last 12 months"""
-    df = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
+    d = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
     
     # Get today and cutoff dates
     today = pd.Timestamp.today().normalize()
@@ -49,9 +49,9 @@ def _load_and_filter(pair):
     today_str = today.strftime('%Y-%m-%d')
     
     # Filter data
-    df_filtered = df[df.index >= cutoff].copy()
+    d_filtered = d[d.index >= cutoff].copy()
     
-    return df_filtered, cutoff_str, today_str
+    return d_filtered, cutoff_str, today_str
 
 
 def _add_annotation(fig, x, y, text, color, row, xref, yref):
@@ -65,11 +65,11 @@ def _add_annotation(fig, x, y, text, color, row, xref, yref):
 # ============================================================================
 
 def build_eurusd_fundamentals_prototype():
-    df = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
+    d = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
 
     cutoff = pd.Timestamp.today() - pd.DateOffset(months=12)
-    df = df[df.index >= cutoff]
-    df = df[df['EURUSD'].notna()]
+    d = d[d.index >= cutoff]
+    d = d[d['EURUSD'].notna()]
 
     # The correlation column in the CSV is EURUSD_spread_corr_60d
     corr_col = 'EURUSD_spread_corr_60d'
@@ -84,8 +84,8 @@ def build_eurusd_fundamentals_prototype():
     # --- Subplot 1: EUR/USD price ---
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df['EURUSD'],
+            x=d.index,
+            y=d['EURUSD'],
             mode='lines',
             line=dict(color='#4da6ff', width=1.5),
             name='EUR/USD',
@@ -98,8 +98,8 @@ def build_eurusd_fundamentals_prototype():
     # --- Subplot 2: Dual spreads ---
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df['US_DE_10Y_spread'],
+            x=d.index,
+            y=d['US_DE_10Y_spread'],
             mode='lines',
             line=dict(color='#2980b9'),
             name='US 2Y - DE 10Y',
@@ -110,8 +110,8 @@ def build_eurusd_fundamentals_prototype():
     )
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df['US_DE_2Y_spread'],
+            x=d.index,
+            y=d['US_DE_2Y_spread'],
             mode='lines',
             line=dict(color='#e67e22'),
             name='US 2Y - DE 2Y',
@@ -125,8 +125,8 @@ def build_eurusd_fundamentals_prototype():
     # --- Subplot 3: Regime correlation ---
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df[corr_col],
+            x=d.index,
+            y=d[corr_col],
             mode='lines',
             line=dict(color='#aaaaaa', width=1.5),
             name='60D Corr',
@@ -177,13 +177,13 @@ def build_eurusd_fundamentals_prototype():
     fig.update_yaxes(range=[-1, 1], row=3, col=1)
 
     # --- Inline end-of-line labels ---
-    last_x = df.index[-1]
+    last_x = d.index[-1]
     inline_annotations = [
         # Subplot 1: EUR/USD price value
         dict(
             x=last_x,
-            y=df['EURUSD'].iloc[-1],
-            text=f"  {df['EURUSD'].iloc[-1]:.4f}",
+            y=d['EURUSD'].iloc[-1],
+            text=f"  {d['EURUSD'].iloc[-1]:.4f}",
             xref='x', yref='y',
             xanchor='left', showarrow=False,
             font=dict(size=10, color='#4da6ff'),
@@ -191,7 +191,7 @@ def build_eurusd_fundamentals_prototype():
         # Subplot 2: DE 10Y spread label
         dict(
             x=last_x,
-            y=df['US_DE_10Y_spread'].iloc[-1],
+            y=d['US_DE_10Y_spread'].iloc[-1],
             text='  DE 10Y',
             xref='x2', yref='y2',
             xanchor='left', showarrow=False,
@@ -200,7 +200,7 @@ def build_eurusd_fundamentals_prototype():
         # Subplot 2: DE 2Y spread label
         dict(
             x=last_x,
-            y=df['US_DE_2Y_spread'].iloc[-1],
+            y=d['US_DE_2Y_spread'].iloc[-1],
             text='  DE 2Y',
             xref='x2', yref='y2',
             xanchor='left', showarrow=False,
@@ -209,8 +209,8 @@ def build_eurusd_fundamentals_prototype():
         # Subplot 3: correlation value
         dict(
             x=last_x,
-            y=df[corr_col].iloc[-1],
-            text=f"  {df[corr_col].iloc[-1]:.3f}",
+            y=d[corr_col].iloc[-1],
+            text=f"  {d[corr_col].iloc[-1]:.3f}",
             xref='x3', yref='y3',
             xanchor='left', showarrow=False,
             font=dict(size=9, color='#cccccc'),
@@ -294,23 +294,27 @@ def build_fundamentals_chart(pair):
     cfg = configs[pair]
     PAIR = pair.upper()
     
-    # Load and filter data
-    df, cutoff_str, today_str = _load_and_filter(pair)
-    df = df[df[cfg['price_col']].notna()]
+    # Load and filter data - use 'd' for filtered data
+    d, cutoff_str, today_str = _load_and_filter(pair)
+    d = d[d[cfg['price_col']].notna()].copy()
     
-    # Always use 2 subplots for all pairs
+    # Use 3 subplots for EUR/USD and USD/JPY (includes correlation), 2 for USDINR
+    has_correlation = (pair != 'usdinr')
+    num_rows = 3 if has_correlation else 2
+    row_heights = [0.40, 0.35, 0.25] if has_correlation else [0.55, 0.45]
+    
     fig = make_subplots(
-        rows=2, cols=1,
+        rows=num_rows, cols=1,
         shared_xaxes=True,
-        row_heights=[0.55, 0.45],
+        row_heights=row_heights,
         vertical_spacing=0.06,
     )
     
     # --- Subplot 1: Price line ---
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df[cfg['price_col']],
+            x=d.index,
+            y=d[cfg['price_col']],
             mode='lines',
             line=dict(color=cfg['price_color'], width=1.5),
             name=PAIR,
@@ -323,8 +327,8 @@ def build_fundamentals_chart(pair):
     # --- Subplot 2: Spread lines ---
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df[cfg['spread_10y']],
+            x=d.index,
+            y=d[cfg['spread_10y']],
             mode='lines',
             line=dict(color='#2980b9', width=1.5),
             name=cfg['label_10y'],
@@ -335,8 +339,8 @@ def build_fundamentals_chart(pair):
     )
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df[cfg['spread_2y']],
+            x=d.index,
+            y=d[cfg['spread_2y']],
             mode='lines',
             line=dict(color='#e67e22', width=1.5),
             name=cfg['label_2y'],
@@ -348,59 +352,73 @@ def build_fundamentals_chart(pair):
     fig.add_hline(y=0, line_dash='dash', line_color='#333333', line_width=1, 
                   row=2, col=1)
     
-    # --- Removed Subplot 3: Correlation ---
-    # The correlation subplot has been removed as per requirements.
-    # All pairs now use only two subplots.
+    # --- Subplot 3: Correlation (only for EUR/USD and USD/JPY) ---
+    if has_correlation:
+        corr_col = f"{pair.upper()}_spread_corr_60d"
+        fig.add_trace(
+            go.Scatter(
+                x=d.index,
+                y=d[corr_col],
+                mode='lines',
+                line=dict(color='#aaaaaa', width=1.5),
+                name='60D Corr',
+                showlegend=False,
+                hovertemplate='%{x|%d %b %Y}<br>%{y:.2f}<extra></extra>',
+            ),
+            row=3, col=1,
+        )
+        fig.add_hline(y=0.6, line_color='#00d4aa', line_dash='dash', line_width=1, row=3, col=1)
+        fig.add_hline(y=0.3, line_color='#ff4444', line_dash='dash', line_width=1, row=3, col=1)
+        fig.add_hrect(y0=-1, y1=0.3, fillcolor='rgba(255,68,68,0.05)', line_width=0, row=3, col=1)
+        fig.add_hrect(y0=0.6, y1=1, fillcolor='rgba(0,212,170,0.05)', line_width=0, row=3, col=1)
     
     # --- Apply theme ---
     fig.update_layout(**_base_layout(height=480))
     _style_axes(fig)
     
     # FIX: Set x-axis ranges for all subplots individually
-    if pair == 'usdinr':
-        # USD/INR has only 2 subplots (xaxis, xaxis2)
-        fig.update_layout(
-            xaxis=dict(range=[cutoff_str, today_str]),
-            xaxis2=dict(range=[cutoff_str, today_str])
-        )
-    else:
-        # EUR/USD and USD/JPY have 3 subplots (xaxis, xaxis2, xaxis3)
+    if has_correlation:
         fig.update_layout(
             xaxis=dict(range=[cutoff_str, today_str]),
             xaxis2=dict(range=[cutoff_str, today_str]),
-            xaxis3=dict(range=[cutoff_str, today_str])
+            xaxis3=dict(range=[cutoff_str, today_str]),
+        )
+    else:
+        fig.update_layout(
+            xaxis=dict(range=[cutoff_str, today_str]),
+            xaxis2=dict(range=[cutoff_str, today_str]),
         )
     
     # FIX: Explicit y-axis ranges from filtered data
     # Price panel (yaxis)
-    p_min = float(df[cfg['price_col']].min())
-    p_max = float(df[cfg['price_col']].max())
+    p_min = float(d[cfg['price_col']].min())
+    p_max = float(d[cfg['price_col']].max())
     pad = (p_max - p_min) * 0.05
     fig.update_layout(yaxis=dict(range=[p_min-pad, p_max+pad]))
     
     # Spread panel (yaxis2)
     all_spreads = pd.concat([
-        df[cfg['spread_10y']].dropna(), 
-        df[cfg['spread_2y']].dropna()
+        d[cfg['spread_10y']].dropna(), 
+        d[cfg['spread_2y']].dropna()
     ])
     s_min = float(all_spreads.min())
     s_max = float(all_spreads.max())
     s_pad = (s_max - s_min) * 0.1
     fig.update_layout(yaxis2=dict(range=[s_min-s_pad, s_max+s_pad]))
     
-    # Correlation panel (yaxis3) - only for non-usdinr pairs
-    if pair != 'usdinr':
+    # Correlation panel (yaxis3) - only for pairs with correlation
+    if has_correlation:
         fig.update_layout(yaxis3=dict(range=[-1, 1]))
     
     # --- Inline end-labels ---
-    last_x = df.index[-1]
+    last_x = d.index[-1]
     inline_annotations = []
     
     # Row 1: Price value
     inline_annotations.append(dict(
         x=last_x,
-        y=df[cfg['price_col']].iloc[-1],
-        text=f"  {df[cfg['price_col']].iloc[-1]:.4f}",
+        y=d[cfg['price_col']].iloc[-1],
+        text=f"  {d[cfg['price_col']].iloc[-1]:.4f}",
         xref='x', yref='y',
         xanchor='left', showarrow=False,
         font=dict(size=9, color=cfg['price_color']),
@@ -409,7 +427,7 @@ def build_fundamentals_chart(pair):
     # Row 2: Spread labels
     inline_annotations.append(dict(
         x=last_x,
-        y=df[cfg['spread_10y']].iloc[-1],
+        y=d[cfg['spread_10y']].iloc[-1],
         text=f"  {cfg['label_10y']}",
         xref='x2', yref='y2',
         xanchor='left', showarrow=False,
@@ -417,7 +435,7 @@ def build_fundamentals_chart(pair):
     ))
     inline_annotations.append(dict(
         x=last_x,
-        y=df[cfg['spread_2y']].iloc[-1],
+        y=d[cfg['spread_2y']].iloc[-1],
         text=f"  {cfg['label_2y']}",
         xref='x2', yref='y2',
         xanchor='left', showarrow=False,
@@ -425,7 +443,7 @@ def build_fundamentals_chart(pair):
     ))
     
     # --- Panel title annotations ---
-    # Fixed y positions for 2-row layout
+    # Fixed y positions for layout
     panel_titles = [
         dict(
             text=f"{PAIR} PRICE",
@@ -437,13 +455,23 @@ def build_fundamentals_chart(pair):
         ),
         dict(
             text=f"RATE DIFFERENTIALS (pp) — {cfg['subtitle']}",
-            x=0.01, y=0.55,
+            x=0.01, y=0.55 if has_correlation else 0.55,
             xref='paper', yref='paper',
             xanchor='left', yanchor='top',
             font=dict(size=9, color='#555555'),
             showarrow=False,
         ),
     ]
+    
+    if has_correlation:
+        panel_titles.append(dict(
+            text="REGIME CORRELATION (60D)",
+            x=0.01, y=0.20,
+            xref='paper', yref='paper',
+            xanchor='left', yanchor='top',
+            font=dict(size=9, color='#555555'),
+            showarrow=False,
+        ))
     
     fig.update_layout(
         annotations=fig.layout.annotations + tuple(inline_annotations) + tuple(panel_titles)
@@ -483,8 +511,8 @@ def build_positioning_chart(pair):
     cfg = configs[pair]
     
     # Load data
-    df, cutoff_str, today_str = _load_and_filter(pair)
-    df = df[df[cfg['net_col']].notna()]
+    d, cutoff_str, today_str = _load_and_filter(pair)
+    d = d[d[cfg['net_col']].notna()]
     
     fig = make_subplots(
         rows=2, cols=1,
@@ -497,12 +525,12 @@ def build_positioning_chart(pair):
     # --- Subplot 1: Leveraged Money ---
     # Bar chart for net position
     leveraged_bar_colors = ['#00d4aa' if v >= 0 else '#ff4444' 
-                            for v in df[cfg['net_col']]]
+                            for v in d[cfg['net_col']]]
     
     fig.add_trace(
         go.Bar(
-            x=df.index,
-            y=df[cfg['net_col']],
+            x=d.index,
+            y=d[cfg['net_col']],
             marker_color=leveraged_bar_colors,
             marker_opacity=0.7,
             marker_line_width=0.5,
@@ -518,8 +546,8 @@ def build_positioning_chart(pair):
     # Percentile line on secondary axis
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df[cfg['pct_col']],
+            x=d.index,
+            y=d[cfg['pct_col']],
             mode='lines',
             line=dict(color='#ffffff', width=2.5),
             name='Leveraged Pct',
@@ -543,12 +571,12 @@ def build_positioning_chart(pair):
     
     # --- Subplot 2: Asset Manager ---
     am_bar_colors = ['#00d4aa' if v >= 0 else '#ff4444' 
-                     for v in df[cfg['am_net_col']]]
+                     for v in d[cfg['am_net_col']]]
     
     fig.add_trace(
         go.Bar(
-            x=df.index,
-            y=df[cfg['am_net_col']],
+            x=d.index,
+            y=d[cfg['am_net_col']],
             marker_color=am_bar_colors,
             marker_opacity=0.7,
             marker_line_width=0.5,
@@ -564,8 +592,8 @@ def build_positioning_chart(pair):
     # Percentile line on secondary axis
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df[cfg['am_pct_col']],
+            x=d.index,
+            y=d[cfg['am_pct_col']],
             mode='lines',
             line=dict(color='#ffffff', width=2.5),
             name='AM Pct',
@@ -591,19 +619,26 @@ def build_positioning_chart(pair):
     fig.update_layout(**_base_layout(height=560))
     _style_axes(fig)
     
-    # Set x-axis range
-    fig.update_xaxes(range=[cutoff_str, today_str])
+    # FIX: Set x-axis ranges for both subplots individually
+    fig.update_layout(
+        xaxis=dict(range=[cutoff_str, today_str]),
+        xaxis2=dict(range=[cutoff_str, today_str]),
+    )
     
-    # Set secondary y-axis ranges (0-100)
-    fig.update_yaxes(range=[0, 100], secondary_y=True, row=1, col=1)
-    fig.update_yaxes(range=[0, 100], secondary_y=True, row=2, col=1)
+    # FIX: Set secondary y-axis ranges explicitly (0-100)
+    # Primary y-axes (yaxis, yaxis3) - let autorange handle bars
+    # Secondary y-axes (yaxis2, yaxis4) - set explicit range
+    fig.update_layout(
+        yaxis2=dict(range=[0, 100]),
+        yaxis4=dict(range=[0, 100]),
+    )
     
     # --- Annotations ---
-    last_x = df.index[-1]
+    last_x = d.index[-1]
     
     # Subplot 1: Leveraged Money values
-    latest_net_lev = df[cfg['net_col']].iloc[-1]
-    latest_pct_lev = df[cfg['pct_col']].iloc[-1]
+    latest_net_lev = d[cfg['net_col']].iloc[-1]
+    latest_pct_lev = d[cfg['pct_col']].iloc[-1]
     
     # Determine colors for leveraged money
     lev_net_color = '#00d4aa' if latest_net_lev >= 0 else '#ff4444'
@@ -620,8 +655,8 @@ def build_positioning_chart(pair):
         lev_regime_color = '#555555'
     
     # Subplot 2: Asset Manager values
-    latest_net_am = df[cfg['am_net_col']].iloc[-1]
-    latest_pct_am = df[cfg['am_pct_col']].iloc[-1]
+    latest_net_am = d[cfg['am_net_col']].iloc[-1]
+    latest_pct_am = d[cfg['am_pct_col']].iloc[-1]
     
     # Determine colors for asset manager
     am_net_color = '#00d4aa' if latest_net_am >= 0 else '#ff4444'
@@ -762,8 +797,8 @@ def build_vol_correlation_chart(pair):
     PAIR = pair.upper()
     
     # Load and filter data
-    df, cutoff_str, today_str = _load_and_filter(pair)
-    df = df[df[cfg['vol_col']].notna()]
+    d, cutoff_str, today_str = _load_and_filter(pair)
+    d = d[d[cfg['vol_col']].notna()]
     
     fig = make_subplots(
         rows=2, cols=1,
@@ -777,8 +812,8 @@ def build_vol_correlation_chart(pair):
     # Filled area trace
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df[cfg['vol_col']],
+            x=d.index,
+            y=d[cfg['vol_col']],
             mode='lines',
             fill='tozeroy',
             fillcolor=cfg['fill_color'],
@@ -793,8 +828,8 @@ def build_vol_correlation_chart(pair):
     # Percentile line on secondary axis
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df[cfg['pct_col']],
+            x=d.index,
+            y=d[cfg['pct_col']],
             mode='lines',
             line=dict(color='#ffffff', width=2),
             name='Percentile',
@@ -817,8 +852,8 @@ def build_vol_correlation_chart(pair):
     # --- Subplot 2: Regime Correlation ---
     fig.add_trace(
         go.Scatter(
-            x=df.index,
-            y=df[cfg['corr_col']],
+            x=d.index,
+            y=d[cfg['corr_col']],
             mode='lines',
             line=dict(color='#aaaaaa', width=1.5),
             name='Correlation',
@@ -842,9 +877,6 @@ def build_vol_correlation_chart(pair):
     fig.add_hline(y=0, line_color='#333333', line_dash='dot', line_width=1, 
                   row=2, col=1)
     
-    # Fix y-axis range for correlation
-    fig.update_yaxes(range=[-1, 1], row=2, col=1)
-    
     # --- Apply theme ---
     fig.update_layout(**_base_layout(height=460))
     _style_axes(fig)
@@ -859,10 +891,10 @@ def build_vol_correlation_chart(pair):
     fig.update_layout(yaxis3=dict(range=[-1, 1]))
     
     # --- Inline end-labels ---
-    last_x = df.index[-1]
-    latest_vol = df[cfg['vol_col']].iloc[-1]
-    latest_pct = df[cfg['pct_col']].iloc[-1]
-    latest_corr = df[cfg['corr_col']].iloc[-1]
+    last_x = d.index[-1]
+    latest_vol = d[cfg['vol_col']].iloc[-1]
+    latest_pct = d[cfg['pct_col']].iloc[-1]
+    latest_corr = d[cfg['corr_col']].iloc[-1]
     
     # Determine correlation label color based on value
     if latest_corr > 0.6:
@@ -963,4 +995,4 @@ def build_vol_chart(pair):
     PAIR = pair.upper()
     
     # Load data
-    df, cutoff_str, today_str = _load_and_filter(pair)
+    d, cutoff_str, today_str = _load_and_filter(pair)
