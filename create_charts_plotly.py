@@ -14,7 +14,6 @@ def _base_layout(height=None):
         plot_bgcolor='#141414',
         font=dict(family='Inter, system-ui, sans-serif', 
                   color='#cccccc', size=11),
-        autosize=True,
         margin=dict(l=50, r=60, t=30, b=30),
         legend=dict(bgcolor='rgba(0,0,0,0)', borderwidth=0,
                     font=dict(size=10, color='#888888')),
@@ -49,7 +48,9 @@ def _load_and_filter(pair=None, months=12):
     
     d = df[df.index >= cutoff].copy()
     d = d.sort_index()
-    
+    d = d[d.index.notna()].copy()
+    d = d[~d.index.duplicated(keep='last')].copy()
+
     return d, cutoff, today
 
 
@@ -304,15 +305,11 @@ def build_fundamentals_chart(pair):
         q_high = d[price_col].quantile(0.99)
         d = d[(d[price_col] >= q_low) & (d[price_col] <= q_high)]
     
-    # Use 3 subplots for EUR/USD and USD/JPY (includes correlation), 2 for USDINR
-    has_correlation = (pair != 'usdinr')
-    num_rows = 3 if has_correlation else 2
-    row_heights = [0.40, 0.35, 0.25] if has_correlation else [0.55, 0.45]
-    
+    # Use 2 subplots for all pairs (no correlation)
     fig = make_subplots(
-        rows=num_rows, cols=1,
+        rows=2, cols=1,
         shared_xaxes=True,
-        row_heights=row_heights,
+        row_heights=[0.55, 0.45],
         vertical_spacing=0.06,
     )
     
@@ -358,48 +355,33 @@ def build_fundamentals_chart(pair):
     fig.add_hline(y=0, line_dash='dash', line_color='#333333', line_width=1, 
                   row=2, col=1)
     
-    # --- Subplot 3: Correlation (only for EUR/USD and USD/JPY) ---
-    if has_correlation:
-        corr_col = f"{pair.upper()}_spread_corr_60d"
-        fig.add_trace(
-            go.Scatter(
-                x=d.index,
-                y=d[corr_col],
-                mode='lines',
-                line=dict(color='#aaaaaa', width=1.5),
-                name='60D Corr',
-                showlegend=False,
-                hovertemplate='%{x|%d %b %Y}<br>%{y:.2f}<extra></extra>',
-            ),
-            row=3, col=1,
-        )
-        fig.add_hline(y=0.6, line_color='#00d4aa', line_dash='dash', line_width=1, row=3, col=1)
-        fig.add_hline(y=0.3, line_color='#ff4444', line_dash='dash', line_width=1, row=3, col=1)
-        fig.add_hrect(y0=-1, y1=0.3, fillcolor='rgba(255,68,68,0.05)', line_width=0, row=3, col=1)
-        fig.add_hrect(y0=0.6, y1=1, fillcolor='rgba(0,212,170,0.05)', line_width=0, row=3, col=1)
-    
     # --- Apply theme ---
-    fig.update_layout(**_base_layout(height=480))
+    fig.update_layout(**_base_layout(height=400 if pair != 'usdinr' else 360))
     _style_axes(fig)
     
-    # FIX: Set x-axis ranges for all subplots individually using Timestamp objects
-    if has_correlation:
-        fig.update_layout(
-            xaxis=dict(range=[cutoff, today]),
-            xaxis2=dict(range=[cutoff, today]),
-            xaxis3=dict(range=[cutoff, today]),
-        )
-    else:
-        fig.update_layout(
-            xaxis=dict(range=[cutoff, today]),
-            xaxis2=dict(range=[cutoff, today]),
-        )
+    # Set x-axis ranges for both subplots
+    cutoff_iso = cutoff.isoformat()
+    today_iso = today.isoformat()
+    fig.update_layout(
+        xaxis =dict(range=[cutoff_iso, today_iso], type='date'),
+        xaxis2=dict(range=[cutoff_iso, today_iso], type='date'),
+    )
     
-    # FIX: Use autorange for y-axes - Plotly will calculate correct range for visible x window
-    fig.update_yaxes(autorange=True, row=1, col=1)
-    fig.update_yaxes(autorange=True, row=2, col=1)
-    if has_correlation:
-        fig.update_yaxes(autorange=True, row=3, col=1)
+    # FIX: Explicit y-axis ranges from actual data
+    price_data = d[cfg['price_col']].dropna()
+    p_min = float(price_data.min())
+    p_max = float(price_data.max())
+    p_pad = (p_max - p_min) * 0.08
+    
+    spread1 = d[cfg['spread_10y']].dropna()
+    spread2 = d[cfg['spread_2y']].dropna()
+    all_s = pd.concat([spread1, spread2])
+    s_min = float(all_s.min())
+    s_max = float(all_s.max())
+    s_pad = (s_max - s_min) * 0.15
+    
+    fig.update_yaxes(range=[p_min - p_pad, p_max + p_pad], row=1, col=1)
+    fig.update_yaxes(range=[s_min - s_pad, s_max + s_pad], row=2, col=1)
     
     # --- Inline end-labels ---
     last_x = d.index[-1]
@@ -434,7 +416,6 @@ def build_fundamentals_chart(pair):
     ))
     
     # --- Panel title annotations ---
-    # Fixed y positions for layout
     panel_titles = [
         dict(
             text=f"{PAIR} PRICE",
@@ -446,23 +427,13 @@ def build_fundamentals_chart(pair):
         ),
         dict(
             text=f"RATE DIFFERENTIALS (pp) — {cfg['subtitle']}",
-            x=0.01, y=0.55 if has_correlation else 0.55,
+            x=0.01, y=0.55,
             xref='paper', yref='paper',
             xanchor='left', yanchor='top',
             font=dict(size=9, color='#555555'),
             showarrow=False,
         ),
     ]
-    
-    if has_correlation:
-        panel_titles.append(dict(
-            text="REGIME CORRELATION (60D)",
-            x=0.01, y=0.20,
-            xref='paper', yref='paper',
-            xanchor='left', yanchor='top',
-            font=dict(size=9, color='#555555'),
-            showarrow=False,
-        ))
     
     fig.update_layout(
         annotations=fig.layout.annotations + tuple(inline_annotations) + tuple(panel_titles)
@@ -607,22 +578,24 @@ def build_positioning_chart(pair):
                   row=2, col=1, secondary_y=True)
     
     # --- Apply theme ---
-    fig.update_layout(**_base_layout(height=560))
+    fig.update_layout(**_base_layout(height=480))
     _style_axes(fig)
     
     # FIX: Set x-axis ranges for both subplots individually using Timestamp objects
+    cutoff_iso = cutoff.isoformat()
+    today_iso = today.isoformat()
     fig.update_layout(
-        xaxis=dict(range=[cutoff, today]),
-        xaxis2=dict(range=[cutoff, today]),
+        xaxis =dict(range=[cutoff_iso, today_iso], type='date'),
+        xaxis2=dict(range=[cutoff_iso, today_iso], type='date'),
     )
     
-    # FIX: Set secondary y-axis ranges explicitly (0-100)
-    # Primary y-axes (yaxis, yaxis3) - let autorange handle bars
-    # Secondary y-axes (yaxis2, yaxis4) - set explicit range
-    fig.update_layout(
-        yaxis2=dict(range=[0, 100]),
-        yaxis4=dict(range=[0, 100]),
-    )
+    # FIX: Set y-axis ranges
+    # Primary axes - let autorange handle bars
+    # Secondary axes - set explicit range [0, 100]
+    fig.update_yaxes(range=[0, 100], row=1, col=1, secondary_y=True)
+    fig.update_yaxes(range=[0, 100], row=2, col=1, secondary_y=True)
+    fig.update_yaxes(autorange=True, row=1, col=1, secondary_y=False)
+    fig.update_yaxes(autorange=True, row=2, col=1, secondary_y=False)
     
     # --- Annotations ---
     last_x = d.index[-1]
@@ -869,17 +842,20 @@ def build_vol_correlation_chart(pair):
                   row=2, col=1)
     
     # --- Apply theme ---
-    fig.update_layout(**_base_layout(height=460))
+    fig.update_layout(**_base_layout(height=420))
     _style_axes(fig)
     
     # FIX: Set x-axis ranges for both subplots using Timestamp objects
+    cutoff_iso = cutoff.isoformat()
+    today_iso = today.isoformat()
     fig.update_layout(
-        xaxis=dict(range=[cutoff, today]),
-        xaxis2=dict(range=[cutoff, today])
+        xaxis =dict(range=[cutoff_iso, today_iso], type='date'),
+        xaxis2=dict(range=[cutoff_iso, today_iso], type='date')
     )
     
-    # FIX: Fix correlation panel y-axis range (yaxis3 for subplot 2)
-    fig.update_layout(yaxis3=dict(range=[-1, 1]))
+    # FIX: Set y-axis ranges
+    fig.update_yaxes(autorange=True, row=1, col=1)
+    fig.update_yaxes(range=[-1, 1], row=2, col=1)
     
     # --- Inline end-labels ---
     last_x = d.index[-1]
@@ -905,21 +881,21 @@ def build_vol_correlation_chart(pair):
             xanchor='left', showarrow=False,
             font=dict(size=9, color=cfg['color']),
         ),
-        # Percentile value
+        # Percentile value — secondary_y=True in row 1 → yref='y2'
         dict(
             x=last_x,
             y=latest_pct,
             text=f"  {latest_pct:.0f}th pct",
-            xref='x', yref='y',
+            xref='x', yref='y2',
             xanchor='left', showarrow=False,
             font=dict(size=9, color='#aaaaaa'),
         ),
-        # Correlation value
+        # Correlation value — row 2 primary axis → yref='y3'
         dict(
             x=last_x,
             y=latest_corr,
             text=f"  {latest_corr:.3f}",
-            xref='x2', yref='y2',
+            xref='x2', yref='y3',
             xanchor='left', showarrow=False,
             font=dict(size=9, color=corr_color),
         ),
@@ -986,4 +962,70 @@ def build_vol_chart(pair):
     PAIR = pair.upper()
     
     # Load data
-    d, cutoff_str, today_str = _load_and_filter(pair)
+    d, cutoff, today = _load_and_filter(pair)
+    d = d[d[cfg['vol_col']].notna()]
+
+
+def debug_data():
+    df = pd.read_csv('data/latest_with_cot.csv', 
+                     index_col=0, parse_dates=True)
+    print("=== RAW INDEX INFO ===")
+    print(f"Index dtype: {df.index.dtype}")
+    print(f"Index type: {type(df.index[0])}")
+    print(f"First 3 index values: {df.index[:3].tolist()}")
+    print(f"Last 3 index values: {df.index[-3:].tolist()}")
+    print(f"Total rows: {len(df)}")
+    print(f"EURUSD min: {df['EURUSD'].min()}, max: {df['EURUSD'].max()}")
+    print(f"EURUSD null count: {df['EURUSD'].isnull().sum()}")
+    
+    today = pd.Timestamp.today().normalize()
+    cutoff = today - pd.DateOffset(months=12)
+    print(f"\n=== FILTER TEST ===")
+    print(f"Today: {today}")
+    print(f"Cutoff: {cutoff}")
+    
+    df.index = pd.to_datetime(df.index, utc=False).tz_localize(None)
+    df.index = df.index.normalize()
+    
+    d = df[df.index >= cutoff].copy()
+    print(f"Rows after 12M filter: {len(d)}")
+    print(f"Filtered EURUSD min: {d['EURUSD'].min():.4f}")
+    print(f"Filtered EURUSD max: {d['EURUSD'].max():.4f}")
+    print(f"Filtered date range: {d.index[0]} to {d.index[-1]}")
+    
+    if len(d) > 0:
+        print(f"\nFirst 3 filtered dates: {d.index[:3].tolist()}")
+        print(f"Last 3 filtered dates: {d.index[-3:].tolist()}")
+    
+    print(f"\nCutoff as Timestamp: {cutoff}")
+    print(f"xaxis range would be: [{cutoff}, {today}]")
+
+
+if __name__ == '__main__':
+    debug_data()
+    
+    # Generate prototype charts
+    from create_charts_plotly import (
+        build_fundamentals_chart,
+        build_positioning_chart,
+        build_vol_correlation_chart
+    )
+    import plotly.io as pio
+    
+    # Generate all charts
+    charts = [
+        ('eurusd', build_fundamentals_chart('eurusd'), 'proto_eurusd_fundamentals.html'),
+        ('usdjpy', build_fundamentals_chart('usdjpy'), 'proto_usdjpy_fundamentals.html'),
+        ('usdinr', build_fundamentals_chart('usdinr'), 'proto_usdinr_fundamentals.html'),
+        ('eurusd', build_positioning_chart('eurusd'), 'proto_eurusd_positioning.html'),
+        ('usdjpy', build_positioning_chart('usdjpy'), 'proto_usdjpy_positioning.html'),
+        ('eurusd', build_vol_correlation_chart('eurusd'), 'proto_eurusd_vol_correlation.html'),
+        ('usdjpy', build_vol_correlation_chart('usdjpy'), 'proto_usdjpy_vol_correlation.html'),
+    ]
+    
+    for pair, fig, fname in charts:
+        if fig is not None:
+            print(f"Generating {fname}...")
+            pio.write_html(fig, fname, auto_open=False)
+    
+    print("Done!")
