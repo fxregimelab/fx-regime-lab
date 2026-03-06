@@ -109,11 +109,14 @@ body {
 .card-body {
     height: auto;
     display: flex;
+    align-items: stretch;
     background: #141414;
 }
 
 .brief-left {
-    width: 38%;
+    flex: 0 0 38%;
+    min-width: 0;
+    box-sizing: border-box;
     background: #141414;
     border-right: 1px solid #2a2a2a;
     padding: 14px 16px;
@@ -123,11 +126,12 @@ body {
     gap: 12px;
 }
 .brief-right {
-    width: 62%;
+    flex: 1 1 0;
+    min-width: 0;
     background: #0d0d0d;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    overflow: visible;
 }
 .chart-tab-bar {
     height: 36px;
@@ -327,11 +331,22 @@ body {
             <span></span>
             <span class="badge-mini badge-danger">BROKEN</span>
           </div>
+          <div class="brief-row">
+            <span class="name">Oil corr 60D</span>
+            <span class="pct" style="color:#555555" data-field="oil_eurusd_corr_60d">+0.035</span>
+            <span></span>
+            <span class="badge-mini badge-neutral" data-badge="oil_eurusd_corr_60d">LOW</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">DXY corr 60D</span>
+            <span class="pct" style="color:#888888" data-field="dxy_eurusd_corr_60d">-0.501</span>
+            <span></span>
+            <span class="badge-mini badge-warning" data-badge="dxy_eurusd_corr_60d">MIXED</span>
+          </div>
         </div>
 
         <div class="brief-section">
-          <div class="brief-label">REGIME READ</div>
-          <div class="brief-text">Spread compression supports EUR strength. Leveraged Money 94th and Asset Manager 79th both crowded long — dual category confirmation, strongest reversal risk signal this framework produces.</div>
+          <div class="brief-label">REGIME READ</div> Leveraged Money 94th and Asset Manager 79th both crowded long — dual category confirmation, strongest reversal risk signal this framework produces.</div>
         </div>
 
       </div>
@@ -340,6 +355,7 @@ body {
           <button class="chart-tab active" data-pair="eurusd" data-tab="0">FUNDAMENTALS</button>
           <button class="chart-tab" data-pair="eurusd" data-tab="1">POSITIONING</button>
           <button class="chart-tab" data-pair="eurusd" data-tab="2">VOL & CORRELATION</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="3">CROSS ASSET</button>
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="eurusd" data-pane="0" style="visibility:visible; position:relative; pointer-events:auto; width:100%;">
@@ -350,6 +366,9 @@ body {
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
 <iframe src="charts/eurusd_2.html" style="width:100%;height:420px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="eurusd" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
+<iframe src="charts/eurusd_3.html" style="width:100%;height:440px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
@@ -412,6 +431,18 @@ body {
             <span></span>
             <span class="badge-mini badge-danger">BROKEN</span>
           </div>
+          <div class="brief-row">
+            <span class="name">Oil corr 60D</span>
+            <span class="pct" style="color:#555555" data-field="oil_usdjpy_corr_60d">+0.048</span>
+            <span></span>
+            <span class="badge-mini badge-neutral" data-badge="oil_usdjpy_corr_60d">LOW</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">DXY corr 60D</span>
+            <span class="pct" style="color:#888888" data-field="dxy_usdjpy_corr_60d">+0.392</span>
+            <span></span>
+            <span class="badge-mini badge-warning" data-badge="dxy_usdjpy_corr_60d">MIXED</span>
+          </div>
         </div>
 
         <div class="brief-section">
@@ -425,6 +456,7 @@ body {
           <button class="chart-tab active" data-pair="usdjpy" data-tab="0">FUNDAMENTALS</button>
           <button class="chart-tab" data-pair="usdjpy" data-tab="1">POSITIONING</button>
           <button class="chart-tab" data-pair="usdjpy" data-tab="2">VOL & CORRELATION</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="3">CROSS ASSET</button>
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="usdjpy" data-pane="0" style="visibility:visible; position:relative; pointer-events:auto; width:100%;">
@@ -435,6 +467,9 @@ body {
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
 <iframe src="charts/usdjpy_2.html" style="width:100%;height:420px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
+<iframe src="charts/usdjpy_3.html" style="width:100%;height:440px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
@@ -480,6 +515,18 @@ body {
             <span class="pct">—</span>
             <span class="badge-mini badge-neutral">—</span>
           </div>
+          <div class="brief-row">
+            <span class="name">Oil corr 60D</span>
+            <span class="pct" style="color:#555555" data-field="oil_inr_corr_60d">-0.092</span>
+            <span></span>
+            <span class="badge-mini badge-neutral" data-badge="oil_inr_corr_60d">LOW</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">DXY corr 60D</span>
+            <span class="pct" style="color:#00d4aa" data-field="dxy_inr_corr_60d">-0.155</span>
+            <span></span>
+            <span class="badge-mini badge-success" data-badge="dxy_inr_corr_60d">INDIA SPECIFIC</span>
+          </div>
         </div>
 
         <div class="brief-section">
@@ -491,16 +538,28 @@ body {
       <div class="brief-right">
         <div class="chart-tab-bar">
           <button class="chart-tab active" data-pair="usdinr" data-tab="0">FUNDAMENTALS</button>
+          <button class="chart-tab" data-pair="usdinr" data-tab="1">CROSS ASSET</button>
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="usdinr" data-pane="0" style="visibility:visible; position:relative; pointer-events:auto; width:100%;">
 <iframe src="charts/usdinr_0.html" style="width:100%;height:360px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdinr" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
+<iframe src="charts/usdinr_1.html" style="width:100%;height:440px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
     </div>
   </div>
 
+</div>
+
+<!-- GLOBAL ANALYSIS WORKSPACE -->
+<div style="margin:32px 0 0; padding:0 24px;">
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#555;text-transform:uppercase;margin-bottom:8px;">ANALYSIS WORKSPACE &mdash; ALL PAIRS</div>
+  <div class="chart-pane" data-pair="global" data-pane="0" style="visibility:visible;position:relative;pointer-events:auto;width:100%;">
+<iframe src="charts/global_workspace.html" style="width:100%;height:600px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+  </div>
 </div>
 
 <!-- FOOTER -->

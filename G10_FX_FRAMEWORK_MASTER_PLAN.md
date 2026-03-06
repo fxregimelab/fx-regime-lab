@@ -996,15 +996,19 @@ WEEK 1 (PRE-PHASE 1 FIX — COMPLETE):
   ✅ Brent, Gold, and chg_* columns confirmed in latest_with_cot.csv
   ✅ Section 3 column names corrected (corr + AM COT names)
 
-WEEK 1 (PHASE 1 — COMPLETE):
+WEEK 1 (PHASES 1 & 2 — COMPLETE):
   ✅ Phase 1: Oil correlation all 3 pairs
     ✅ oil_eurusd_corr_60d — pipeline.py calculate_oil_correlation()
     ✅ oil_usdjpy_corr_60d — pipeline.py calculate_oil_correlation()
     ✅ oil_inr_corr_60d   — inr_pipeline.py build_and_save()
     ✅ _oil_corr_label() + OIL CORRELATION section in morning_brief.py
     ✅ All 3 pairs show live values in text brief
-  → Phase 2: DXY decomposition all 3 pairs
-  (Uses existing DXY column — zero new API calls)
+  ✅ Phase 2: DXY decomposition all 3 pairs
+    ✅ dxy_eurusd_corr_60d — pipeline.py calculate_dxy_correlation()
+    ✅ dxy_usdjpy_corr_60d — pipeline.py calculate_dxy_correlation()
+    ✅ dxy_inr_corr_60d   — inr_pipeline.py build_and_save()
+    ✅ _dxy_corr_label() + DXY DECOMPOSITION section in morning_brief.py
+    ✅ All 3 pairs show live values: EUR/USD MIXED, USD/JPY MIXED, USD/INR INDIA SPECIFIC
 
 WEEK 2:
   → Phase 3: Dual window correlation 20D+60D
@@ -1073,6 +1077,6 @@ MONTH 3:
 
 ---
 
-*Framework version: Phase 1 complete (Oil Correlation Layer) — entering Phase 2 DXY Decomposition*
+*Framework version: Phases 1 & 2 complete (Oil Correlation + DXY Decomposition) — entering Week 2 (Phases 3–5)*
 *Last updated: March 2026*
 *Live brief: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/*

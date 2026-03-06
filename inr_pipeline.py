@@ -208,6 +208,16 @@ def build_and_save(price_df, yield_monthly, fpi_df, fpi_status):
             if len(latest_oil) > 0:
                 print(f"    oil_inr_corr_60d: {latest_oil.iloc[-1]:>+.3f}")
 
+        # DXY decomposition for INR (Phase 2)
+        # DXY lives in master from pipeline.py; USDINR joined above
+        if "DXY" in master.columns and "USDINR" in master.columns:
+            dxy_ret    = master["DXY"].pct_change()
+            usdinr_ret = master["USDINR"].pct_change()
+            master["dxy_inr_corr_60d"] = dxy_ret.rolling(60).corr(usdinr_ret)
+            latest_dxy = master["dxy_inr_corr_60d"].dropna()
+            if len(latest_dxy) > 0:
+                print(f"    dxy_inr_corr_60d:  {latest_dxy.iloc[-1]:>+.3f}")
+
         # 12M change for US-IN spreads — windowed search to handle monthly source gaps
         for col in ("US_IN_10Y_spread", "US_IN_policy_spread"):
             chg_col = f"{col}_chg_12M"

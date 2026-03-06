@@ -929,6 +929,235 @@ def build_vol_correlation_chart(pair):
 
 
 # ============================================================================
+# FUNCTION: build_cross_asset_chart(pair)  — Phase 1 & 2 HTML
+# Two-row chart:
+#   Row 1: Brent price (amber, left-y) vs FX price (pair colour, right-y)
+#   Row 2: oil_corr_60d (amber) + dxy_corr_60d (steel-blue), range [-1,1]
+# ============================================================================
+
+def build_cross_asset_chart(pair):
+    """Cross-asset chart: Brent vs FX price on top, rolling correlations below."""
+
+    configs = {
+        'eurusd': dict(
+            corr_oil_col='oil_eurusd_corr_60d',
+            corr_dxy_col='dxy_eurusd_corr_60d',
+            fx_col='EURUSD',
+            fx_color='#4da6ff',
+            fx_label='EUR/USD',
+        ),
+        'usdjpy': dict(
+            corr_oil_col='oil_usdjpy_corr_60d',
+            corr_dxy_col='dxy_usdjpy_corr_60d',
+            fx_col='USDJPY',
+            fx_color='#ff9944',
+            fx_label='USD/JPY',
+        ),
+        'usdinr': dict(
+            corr_oil_col='oil_inr_corr_60d',
+            corr_dxy_col='dxy_inr_corr_60d',
+            fx_col='USDINR',
+            fx_color='#c084fc',
+            fx_label='USD/INR',
+        ),
+    }
+
+    cfg = configs[pair]
+    d, cutoff, today = _load_and_filter(pair)
+
+    has_brent   = 'Brent' in d.columns
+    has_fx      = cfg['fx_col'] in d.columns
+    has_oil     = cfg['corr_oil_col'] in d.columns
+    has_dxy     = cfg['corr_dxy_col'] in d.columns
+
+    if not has_fx:
+        return None
+
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        row_heights=[0.52, 0.48],
+        vertical_spacing=0.10,
+        specs=[[{'secondary_y': True}], [{'secondary_y': False}]],
+    )
+
+    # ── Row 1: Brent (left y) + FX price (right y) ────────────────────────
+    if has_brent:
+        fig.add_trace(
+            go.Scatter(
+                x=d.index,
+                y=d['Brent'],
+                mode='lines',
+                line=dict(color='#f0a500', width=1.5),
+                name='Brent ($/bbl)',
+                hovertemplate='%{x|%d %b %Y}<br>$%{y:.2f}<extra></extra>',
+            ),
+            row=1, col=1, secondary_y=False,
+        )
+
+    if has_fx:
+        fig.add_trace(
+            go.Scatter(
+                x=d.index,
+                y=d[cfg['fx_col']],
+                mode='lines',
+                line=dict(color=cfg['fx_color'], width=1.5),
+                name=cfg['fx_label'],
+                hovertemplate='%{x|%d %b %Y}<br>%{y:.4f}<extra></extra>',
+            ),
+            row=1, col=1, secondary_y=True,
+        )
+
+    # ── Row 2: Rolling correlations ────────────────────────────────────────
+    if has_oil:
+        fig.add_trace(
+            go.Scatter(
+                x=d.index,
+                y=d[cfg['corr_oil_col']],
+                mode='lines',
+                line=dict(color='#f0a500', width=1.5),
+                name='Oil corr 60D',
+                hovertemplate='%{x|%d %b %Y}<br>%{y:.3f}<extra></extra>',
+            ),
+            row=2, col=1,
+        )
+
+    if has_dxy:
+        fig.add_trace(
+            go.Scatter(
+                x=d.index,
+                y=d[cfg['corr_dxy_col']],
+                mode='lines',
+                line=dict(color='#6c8ebf', width=1.5),
+                name='DXY corr 60D',
+                hovertemplate='%{x|%d %b %Y}<br>%{y:.3f}<extra></extra>',
+            ),
+            row=2, col=1,
+        )
+
+    # Threshold lines
+    fig.add_hline(y= 0.6,  line_color='#00d4aa', line_dash='dash', line_width=1, row=2, col=1)
+    fig.add_hline(y= 0.3,  line_color='#555555', line_dash='dot',  line_width=1, row=2, col=1)
+    fig.add_hline(y= 0.0,  line_color='#333333', line_dash='dot',  line_width=1, row=2, col=1)
+    fig.add_hline(y=-0.3,  line_color='#555555', line_dash='dot',  line_width=1, row=2, col=1)
+    fig.add_hline(y=-0.6,  line_color='#ff4444', line_dash='dash', line_width=1, row=2, col=1)
+
+    # Fixed correlation y-range
+    fig.update_yaxes(range=[-1, 1], row=2, col=1)
+    fig.update_yaxes(autorange=True, row=1, col=1)
+
+    # ── Theme ──────────────────────────────────────────────────────────────
+    fig.update_layout(**_base_layout(height=440))
+    _style_axes(fig)
+
+    # Legend below the chart, horizontal, with toggle hint
+    fig.update_layout(
+        legend=dict(
+            orientation='h',
+            x=0.0, y=-0.09,
+            xanchor='left', yanchor='top',
+            bgcolor='rgba(0,0,0,0)',
+            font=dict(size=9, color='#666666'),
+            itemsizing='constant',
+            tracegroupgap=8,
+        ),
+        margin=dict(l=52, r=52, t=18, b=60),  # extra bottom margin for legend
+        annotations=[
+            dict(
+                text='click legend items to show/hide lines',
+                x=1.0, y=-0.08,
+                xref='paper', yref='paper',
+                xanchor='right', yanchor='top',
+                font=dict(size=8, color='#333333'),
+                showarrow=False,
+            )
+        ]
+    )
+
+    # x-axis range
+    cutoff_str = cutoff.strftime('%Y-%m-%d')
+    today_str  = today.strftime('%Y-%m-%d')
+    fig.update_layout(
+        xaxis =dict(range=[cutoff_str, today_str], type='date'),
+        xaxis2=dict(range=[cutoff_str, today_str], type='date'),
+    )
+
+    # ── Inline end-labels + panel titles ──────────────────────────────────
+    last_x = d.index[-1]
+    annotations = [
+        dict(
+            text='COMMODITY vs FX PRICE  (12M)',
+            x=0.01, y=1.01,
+            xref='paper', yref='paper',
+            xanchor='left', yanchor='bottom',
+            font=dict(size=9, color='#555555'),
+            showarrow=False,
+        ),
+        dict(
+            text='ROLLING 60D CORRELATION',
+            x=0.01, y=0.46,
+            xref='paper', yref='paper',
+            xanchor='left', yanchor='bottom',
+            font=dict(size=9, color='#555555'),
+            showarrow=False,
+        ),
+    ]
+
+    # Brent end-label (row1, primary y → yref='y')
+    if has_brent:
+        latest_brent = d['Brent'].dropna()
+        if len(latest_brent) > 0:
+            annotations.append(dict(
+                x=last_x, y=latest_brent.iloc[-1],
+                text=f"  ${latest_brent.iloc[-1]:.1f}",
+                xref='x', yref='y',
+                xanchor='left', showarrow=False,
+                font=dict(size=9, color='#f0a500'),
+            ))
+
+    # FX end-label (row1, secondary y → yref='y2')
+    if has_fx:
+        latest_fx = d[cfg['fx_col']].dropna()
+        if len(latest_fx) > 0:
+            annotations.append(dict(
+                x=last_x, y=latest_fx.iloc[-1],
+                text=f"  {latest_fx.iloc[-1]:.4f}",
+                xref='x', yref='y2',
+                xanchor='left', showarrow=False,
+                font=dict(size=9, color=cfg['fx_color']),
+            ))
+
+    # Oil corr end-label (row2 → yref='y3')
+    if has_oil:
+        latest_oil = d[cfg['corr_oil_col']].dropna()
+        if len(latest_oil) > 0:
+            v = latest_oil.iloc[-1]
+            annotations.append(dict(
+                x=last_x, y=v,
+                text=f'  {v:+.3f}',
+                xref='x2', yref='y3',
+                xanchor='left', showarrow=False,
+                font=dict(size=8, color='#f0a500'),
+            ))
+
+    # DXY corr end-label (row2 → yref='y3')
+    if has_dxy:
+        latest_dxy = d[cfg['corr_dxy_col']].dropna()
+        if len(latest_dxy) > 0:
+            v = latest_dxy.iloc[-1]
+            annotations.append(dict(
+                x=last_x, y=v,
+                text=f'  {v:+.3f}',
+                xref='x2', yref='y3',
+                xanchor='left', showarrow=False,
+                font=dict(size=8, color='#6c8ebf'),
+            ))
+
+    fig.update_layout(annotations=tuple(annotations))
+    return fig
+
+
+# ============================================================================
 # FUNCTION 3: build_vol_chart(pair)
 # ============================================================================
 

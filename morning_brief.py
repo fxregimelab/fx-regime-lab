@@ -70,6 +70,46 @@ def _corr_fmt(val):
     return f"{val:>+.3f}"
 
 
+def _dxy_corr_label(corr, pair):
+    """Return (badge_text, is_dollar_regime) for a DXY correlation value.
+
+    Expected signs per pair:
+      EUR/USD  strong negative  (DXY up = EUR/USD down, opposite direction)
+      USD/JPY  strong positive  (DXY up = USD/JPY up, same direction)
+      USD/INR  strong positive  (DXY up = USD/INR up, dollar drives)
+
+    Regime badges:
+      EUR/USD: corr < -0.60 = DOLLAR REGIME | -0.60→-0.30 = MIXED | > -0.30 = EUR SPECIFIC
+      USD/JPY: corr > +0.60 = DOLLAR REGIME | +0.30→+0.60 = MIXED | < +0.30 = YEN SPECIFIC
+      USD/INR: corr > +0.60 = DOLLAR REGIME | +0.30→+0.60 = MIXED | < +0.30 = INDIA SPECIFIC
+    """
+    if pd.isna(corr):
+        return "NO DATA", False
+
+    if pair == "EURUSD":
+        if corr < -0.60:
+            return "DOLLAR REGIME", True
+        elif corr < -0.30:
+            return "MIXED", False
+        else:
+            return "EUR SPECIFIC", False
+    elif pair == "USDJPY":
+        if corr > 0.60:
+            return "DOLLAR REGIME", True
+        elif corr > 0.30:
+            return "MIXED", False
+        else:
+            return "YEN SPECIFIC", False
+    elif pair == "USDINR":
+        if corr > 0.60:
+            return "DOLLAR REGIME", True
+        elif corr > 0.30:
+            return "MIXED", False
+        else:
+            return "INDIA SPECIFIC", False
+    return "UNKNOWN", False
+
+
 def _oil_corr_label(corr, pair):
     """Return (badge_text, is_divergence) for an oil correlation value.
 
@@ -248,6 +288,11 @@ def build_brief(df):
     oil_jpy_corr = row.get("oil_usdjpy_corr_60d", float('nan'))
     oil_inr_corr = row.get("oil_inr_corr_60d",    float('nan'))
 
+    # DXY decomposition (Phase 2)
+    dxy_eur_corr = row.get("dxy_eurusd_corr_60d", float('nan'))
+    dxy_jpy_corr = row.get("dxy_usdjpy_corr_60d", float('nan'))
+    dxy_inr_corr = row.get("dxy_inr_corr_60d",    float('nan'))
+
     # Key levels (support and resistance)
     eur_levels = _extract_key_levels(row, "EURUSD")
     jpy_levels = _extract_key_levels(row, "USDJPY")
@@ -359,6 +404,21 @@ def build_brief(df):
         label, is_div = _oil_corr_label(corr_val, fx_key)
         div_note = "  << sign reversal — pair-specific factor overriding oil channel" if is_div else ""
         lines.append(f"  {pair_name:<12} {_corr_fmt(corr_val):>12}   {label}{div_note}")
+
+    # ── DXY DECOMPOSITION ─────────────────────────────────────────────────────
+    lines.append("")
+    lines.append("  DXY DECOMPOSITION  (60D rolling | DXY returns vs FX returns)")
+    lines.append("  high +ve = dollar-driven | low corr = pair-specific factor")
+    lines.append(f"  {'pair':<12} {'correlation':>12}   {'regime'}")
+    lines.append(f"  {'-'*52}")
+    for pair_name, fx_key, corr_val in [
+        ("EUR/USD", "EURUSD", dxy_eur_corr),
+        ("USD/JPY", "USDJPY", dxy_jpy_corr),
+        ("USD/INR", "USDINR", dxy_inr_corr),
+    ]:
+        label, is_dollar = _dxy_corr_label(corr_val, fx_key)
+        dollar_note = "  << broad USD move" if is_dollar else ""
+        lines.append(f"  {pair_name:<12} {_corr_fmt(corr_val):>12}   {label}{dollar_note}")
 
     # ── KEY LEVELS ────────────────────────────────────────────────────────────
     lines.append("")

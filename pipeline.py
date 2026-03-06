@@ -462,6 +462,38 @@ def calculate_regime_correlation(master):
 # Sign reversal beyond threshold = divergence flag (pair-specific factor
 # overriding the commodity channel — analytically informative).
 
+def calculate_dxy_correlation(master):
+    print("\n[DXY] calculating DXY decomposition (Phase 2)...")
+
+    if "DXY" not in master.columns:
+        print("    SKIP -- DXY column not found")
+        return master
+
+    dxy_ret = master["DXY"].pct_change()
+
+    pairs = [
+        ("EURUSD", "dxy_eurusd_corr_60d"),
+        ("USDJPY", "dxy_usdjpy_corr_60d"),
+        ("USDINR", "dxy_inr_corr_60d"),
+    ]
+
+    for fx_col, out_col in pairs:
+        if fx_col not in master.columns:
+            print(f"    SKIP -- {fx_col} not in master")
+            continue
+        fx_ret = master[fx_col].pct_change()
+        master[out_col] = dxy_ret.rolling(60).corr(fx_ret)
+
+        latest = master[out_col].dropna()
+        if len(latest) > 0:
+            c = latest.iloc[-1]
+            print(f"    {fx_col:<8}: {c:>+.3f}  ({out_col})")
+        else:
+            print(f"    {fx_col:<8}: no data")
+
+    return master
+
+
 def calculate_oil_correlation(master):
     print("\n[OIL] calculating oil correlation (Phase 1)...")
 
@@ -727,6 +759,7 @@ def main():
     master       = calculate_volatility(master)
     master       = calculate_regime_correlation(master)
     master       = calculate_oil_correlation(master)
+    master       = calculate_dxy_correlation(master)
     master       = calculate_changes(master)
 
     save_data(master)

@@ -1,10 +1,12 @@
 import os
 import glob
+import math
 import pandas as pd
 import numpy as np
 import sys
 from core.utils import ordinal, embed_image, fmt_pct, color_class
 from config import TODAY, TODAY_FMT, DATE_SLUG
+from morning_brief import _oil_corr_label, _dxy_corr_label
 
 
 # ============================================================================
@@ -17,12 +19,92 @@ from config import TODAY, TODAY_FMT, DATE_SLUG
 # ============================================================================
 
 from charts.registry import CHART_REGISTRY
+from charts.workspace import build_global_workspace_html
 import plotly.io as pio
 
 plotly_config = dict(scrollZoom=True, displayModeBar=False)
 
 CHARTS_DIR = 'charts'
 os.makedirs(CHARTS_DIR, exist_ok=True)
+
+# ============================================================================
+# Cross-asset value injection helpers (Phase 1 & 2)
+# ============================================================================
+
+_OIL_FIELDS = {
+    'oil_eurusd_corr_60d': 'EURUSD',
+    'oil_usdjpy_corr_60d': 'USDJPY',
+    'oil_inr_corr_60d':    'USDINR',
+}
+_DXY_FIELDS = {
+    'dxy_eurusd_corr_60d': 'EURUSD',
+    'dxy_usdjpy_corr_60d': 'USDJPY',
+    'dxy_inr_corr_60d':    'USDINR',
+}
+
+def _badge_class_for(label):
+    """Map a corr label string to a badge-mini CSS modifier."""
+    if label in ('OIL DIVERGENCE',):
+        return 'badge-danger'
+    if label in ('HIGH', 'EUR SPECIFIC', 'YEN SPECIFIC', 'INDIA SPECIFIC'):
+        return 'badge-success'
+    if label in ('MODERATE', 'MIXED', 'DOLLAR REGIME'):
+        return 'badge-warning'
+    return 'badge-neutral'   # LOW, NO DATA
+
+def _value_color_for(label):
+    """Map a corr label string to an inline hex color."""
+    if label == 'OIL DIVERGENCE':
+        return '#ff4444'
+    if label in ('HIGH', 'EUR SPECIFIC', 'YEN SPECIFIC', 'INDIA SPECIFIC'):
+        return '#00d4aa'
+    if label in ('MODERATE', 'MIXED'):
+        return '#888888'
+    if label == 'DOLLAR REGIME':
+        return '#f0a500'
+    return '#555555'   # LOW, NO DATA
+
+def inject_cross_asset_values(html_content, _re):
+    """Replace data-field / data-badge spans with live corr values from CSV."""
+    try:
+        df  = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
+        row = df.iloc[-1]
+    except Exception:
+        return html_content
+
+    all_fields = list(_OIL_FIELDS.items()) + list(_DXY_FIELDS.items())
+
+    for field_name, pair_key in all_fields:
+        raw = row.get(field_name, float('nan'))
+        is_oil = field_name in _OIL_FIELDS
+
+        if isinstance(raw, float) and math.isnan(raw):
+            formatted = '&mdash;'
+            label     = 'NO DATA'
+        else:
+            formatted = f'{raw:+.3f}'
+            if is_oil:
+                label, _ = _oil_corr_label(raw, pair_key)
+            else:
+                label, _ = _dxy_corr_label(raw, pair_key)
+
+        color       = _value_color_for(label)
+        badge_cls   = _badge_class_for(label)
+
+        # Replace data-field span (value + color)
+        html_content = _re.sub(
+            rf'<span[^>]*\bdata-field="{_re.escape(field_name)}"[^>]*>[^<]*</span>',
+            f'<span class="pct" style="color:{color}" data-field="{field_name}">{formatted}</span>',
+            html_content,
+        )
+        # Replace data-badge span (badge class + label text)
+        html_content = _re.sub(
+            rf'<span[^>]*\bdata-badge="{_re.escape(field_name)}"[^>]*>[^<]*</span>',
+            f'<span class="badge-mini {badge_cls}" data-badge="{field_name}">{label}</span>',
+            html_content,
+        )
+
+    return html_content
 
 def fig_to_iframe(fig, pair, pane, height=480):
     """Save figure as a standalone HTML file and return an <iframe> tag."""
@@ -47,11 +129,32 @@ def fig_to_iframe(fig, pair, pane, height=480):
         f'loading="eager" scrolling="no"></iframe>'
     )
 
+def _builder_to_iframe(builder, pair_str, pane_idx, height):
+    """Call a chart builder; handle both go.Figure and raw-HTML-str returns."""
+    result = builder(pair_str)
+    if isinstance(result, str):
+        chart_file = f'{CHARTS_DIR}/{pair_str}_{pane_idx}.html'
+        with open(chart_file, 'w', encoding='utf-8') as _fh:
+            _fh.write(result)
+        return (
+            f'<iframe src="../{chart_file}" '
+            f'style="width:100%;height:{height}px;border:none;display:block;" '
+            f'loading="eager" scrolling="no"></iframe>'
+        )
+    return fig_to_iframe(result, pair_str, pane_idx, height)
+
+
 # Build all chart iframes from the registry at import time.
 CHART_DIVS = {
-    (pair, pane): fig_to_iframe(builder(pair), pair, pane, height)
+    (pair, pane): _builder_to_iframe(builder, pair, pane, height)
     for (pair, pane), (builder, pair, height) in CHART_REGISTRY.items()
 }
+
+# Generate the global Analysis Workspace (all pairs)
+_gw_html = build_global_workspace_html()
+with open(f'{CHARTS_DIR}/global_workspace.html', 'w', encoding='utf-8') as _fh:
+    _fh.write(_gw_html)
+print('Generated: charts/global_workspace.html')
 
 # ============================================================================
 # Load brief data from existing generated brief
@@ -97,8 +200,34 @@ def generate_html_brief():
         )
 
     # ------------------------------------------------------------------
+    # 1b. Inject live cross-asset correlation values (Phase 1 & 2)
+    # ------------------------------------------------------------------
+    html_content = inject_cross_asset_values(html_content, _re)
+
+    # ------------------------------------------------------------------
     # 2. CSS patches (idempotent — cascade through version history)
     # ------------------------------------------------------------------
+
+    # brief-left/right: use flex shorthand + min-width:0 to prevent bleed
+    html_content = html_content.replace(
+        '.brief-left {\n    width: 38%;\n',
+        '.brief-left {\n    flex: 0 0 38%;\n    min-width: 0;\n    box-sizing: border-box;\n',
+    )
+    html_content = html_content.replace(
+        '.brief-right {\n    width: 62%;\n',
+        '.brief-right {\n    flex: 1 1 0;\n    min-width: 0;\n',
+    )
+    # brief-right overflow: visible so iframes size naturally
+    html_content = html_content.replace(
+        '.brief-right {\n    flex: 1 1 0;\n    min-width: 0;\n    background: #0d0d0d;\n    display: flex;\n    flex-direction: column;\n    overflow-y: auto;\n}',
+        '.brief-right {\n    flex: 1 1 0;\n    min-width: 0;\n    background: #0d0d0d;\n    display: flex;\n    flex-direction: column;\n    overflow: visible;\n}',
+    )
+
+    # card-body: add align-items:stretch so left/right panels fill full height
+    html_content = html_content.replace(
+        '.card-body {\n    height: auto;\n    display: flex;\n    background: #141414;\n}',
+        '.card-body {\n    height: auto;\n    display: flex;\n    align-items: stretch;\n    background: #141414;\n}',
+    )
 
     # card-body: remove all fixed/min heights — height: auto, content drives it
     for _cb_old in [
