@@ -21,16 +21,16 @@ from charts.workspace import build_global_workspace_html
 # builder_callable receives pair as its only argument.
 # If builder returns a str (raw HTML), it is written directly to charts/{pair}_{pane}.html
 CHART_REGISTRY = {
-    ("eurusd", 0): (build_fundamentals_chart,    "eurusd", 400),
-    ("eurusd", 1): (build_positioning_chart,     "eurusd", 480),
-    ("eurusd", 2): (build_vol_correlation_chart, "eurusd", 420),
-    ("eurusd", 3): (build_cross_asset_chart,     "eurusd", 440),  # Phase 1 & 2
+    ("eurusd", 0): (build_fundamentals_chart,    "eurusd", 360),
+    ("eurusd", 1): (build_positioning_chart,     "eurusd", 400),
+    ("eurusd", 2): (build_vol_correlation_chart, "eurusd", 360),
+    ("eurusd", 3): (build_cross_asset_chart,     "eurusd", 380),
 
-    ("usdjpy", 0): (build_fundamentals_chart,    "usdjpy", 400),
-    ("usdjpy", 1): (build_positioning_chart,     "usdjpy", 480),
-    ("usdjpy", 2): (build_vol_correlation_chart, "usdjpy", 420),
-    ("usdjpy", 3): (build_cross_asset_chart,     "usdjpy", 440),  # Phase 1 & 2
+    ("usdjpy", 0): (build_fundamentals_chart,    "usdjpy", 360),
+    ("usdjpy", 1): (build_positioning_chart,     "usdjpy", 400),
+    ("usdjpy", 2): (build_vol_correlation_chart, "usdjpy", 360),
+    ("usdjpy", 3): (build_cross_asset_chart,     "usdjpy", 380),
 
-    ("usdinr", 0): (build_fundamentals_chart,    "usdinr", 360),
-    ("usdinr", 1): (build_cross_asset_chart,     "usdinr", 440),  # Phase 1 & 2
+    ("usdinr", 0): (build_fundamentals_chart,    "usdinr", 320),
+    ("usdinr", 1): (build_cross_asset_chart,     "usdinr", 380),
 }

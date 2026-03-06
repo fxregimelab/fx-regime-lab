@@ -273,6 +273,61 @@ def generate_html_brief():
         '.brief-row .pct {\n    flex: 1;\n    text-align: right;\n    font-size: 11px;\n    font-variant-numeric: tabular-nums;\n}',
     )
 
+    # compactness — density pass (terminal-style reading, not website cards)
+    html_content = html_content.replace(
+        '.content {\n    padding: 20px;\n',
+        '.content {\n    padding: 14px 20px;\n',
+    )
+    html_content = html_content.replace(
+        '    gap: 16px;\n}\n.card {',
+        '    gap: 12px;\n}\n.card {',
+    )
+    html_content = html_content.replace(
+        '.card-header {\n    height: 40px;\n',
+        '.card-header {\n    height: 34px;\n',
+    )
+    html_content = html_content.replace(
+        '.ch-price {\n    font-size: 18px;\n',
+        '.ch-price {\n    font-size: 15px;\n',
+    )
+    # brief-left padding + gap
+    for _old, _new in [
+        ('    padding: 14px 16px;\n', '    padding: 10px 12px;\n'),
+        ('    gap: 12px;\n}\n.brief-right', '    gap: 8px;\n}\n.brief-right'),
+    ]:
+        html_content = html_content.replace(_old, _new, 1)
+    html_content = html_content.replace(
+        '.brief-section {\n    border-top: 1px solid #1e1e1e;\n    padding-top: 10px;\n}',
+        '.brief-section {\n    border-top: 1px solid #1e1e1e;\n    padding-top: 6px;\n}',
+    )
+    html_content = html_content.replace(
+        '    margin-bottom: 6px;\n}\n.brief-row {',
+        '    margin-bottom: 4px;\n}\n.brief-row {',
+    )
+    html_content = html_content.replace(
+        '.brief-row {\n    display: flex;\n    align-items: center;\n    line-height: 1.35;\n    margin-top: 3px;\n}',
+        '.brief-row {\n    display: flex;\n    align-items: center;\n    line-height: 1.25;\n    margin-top: 2px;\n}',
+    )
+    html_content = html_content.replace(
+        '.chart-tab-bar {\n    height: 36px;\n',
+        '.chart-tab-bar {\n    height: 30px;\n',
+    )
+    html_content = html_content.replace(
+        '.chart-tab {\n    padding: 0 14px;\n    height: 28px;\n',
+        '.chart-tab {\n    padding: 0 12px;\n    height: 24px;\n',
+    )
+
+    # fix bare regime-read text (missing brief-text wrapper) — idempotent
+    html_content = _re.sub(
+        r'(<div class="brief-label">REGIME READ</div>)\s+(?!<)(.*?)(</div>\s*</div>)',
+        lambda m: (
+            m.group(1) + '\n          <div class="brief-text">' +
+            m.group(2).strip() + '</div>\n        </div>\n      </div>'
+        ) if '<div' not in m.group(2) else m.group(0),
+        html_content,
+        flags=_re.DOTALL,
+    )
+
     # ------------------------------------------------------------------
     # 3. Pane visibility (display → visibility so hidden panes keep size)
     # ------------------------------------------------------------------
