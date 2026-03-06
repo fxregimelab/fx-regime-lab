@@ -950,7 +950,7 @@ def build_cross_asset_chart(pair):
             corr_oil_col='oil_usdjpy_corr_60d',
             corr_dxy_col='dxy_usdjpy_corr_60d',
             fx_col='USDJPY',
-            fx_color='#ff9944',
+            fx_color='#4da6ff',
             fx_label='USD/JPY',
         ),
         'usdinr': dict(
@@ -1015,7 +1015,7 @@ def build_cross_asset_chart(pair):
                 x=d.index,
                 y=d[cfg['corr_oil_col']],
                 mode='lines',
-                line=dict(color='#f0a500', width=1.5),
+                line=dict(color='#ff6b6b', width=1.5),
                 name='Oil corr 60D',
                 hovertemplate='%{x|%d %b %Y}<br>%{y:.3f}<extra></extra>',
             ),

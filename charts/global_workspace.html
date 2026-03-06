@@ -31,6 +31,7 @@ body{background:#0d0d0d;color:#cccccc;font-family:'Inter',system-ui,sans-serif;f
 #corr-label{text-align:center;font-size:9px;color:#444;margin-bottom:2px}
 #chart-area{flex:1;overflow:hidden;position:relative;background:#0d0d0d}
 #chart{width:100%;height:100%}
+#main.sidebar-hidden #sidebar{display:none}
 </style></head>
 <body>
 <div id="ctrl">
@@ -43,6 +44,8 @@ body{background:#0d0d0d;color:#cccccc;font-family:'Inter',system-ui,sans-serif;f
   <div class="ctrl-sep"></div>
   <label><input type="checkbox" id="cb-norm"> Normalize to 100</label>
   <button class="ctrl-btn" id="btn-reset">Reset</button>
+  <div class="ctrl-sep"></div>
+  <button class="ctrl-btn" id="btn-sidebar">&#9664; Hide</button>
   <span id="ctrl-hint">scroll=zoom · drag=pan · click legend=toggle</span>
 </div>
 <div id="main">
@@ -282,6 +285,16 @@ document.getElementById('corr-a').addEventListener('change', function() {
 });
 document.getElementById('corr-b').addEventListener('change', function() {
   updateCorr(filterByDate(getChecked()));
+});
+
+// Sidebar toggle
+document.getElementById('btn-sidebar').addEventListener('click', function() {
+  const hidden = document.getElementById('main').classList.toggle('sidebar-hidden');
+  this.textContent = hidden ? '▶ Show' : '◄ Hide';
+  setTimeout(function() {
+    const area = document.getElementById('chart-area');
+    Plotly.relayout('chart', {width: area.clientWidth, height: area.clientHeight});
+  }, 50);
 });
 
 // Resize observer to make chart fill container

@@ -24,13 +24,13 @@ CHART_REGISTRY = {
     ("eurusd", 0): (build_fundamentals_chart,    "eurusd", 360),
     ("eurusd", 1): (build_positioning_chart,     "eurusd", 400),
     ("eurusd", 2): (build_vol_correlation_chart, "eurusd", 360),
-    ("eurusd", 3): (build_cross_asset_chart,     "eurusd", 380),
+    ("eurusd", 3): (build_cross_asset_chart,     "eurusd", 460),
 
     ("usdjpy", 0): (build_fundamentals_chart,    "usdjpy", 360),
     ("usdjpy", 1): (build_positioning_chart,     "usdjpy", 400),
     ("usdjpy", 2): (build_vol_correlation_chart, "usdjpy", 360),
-    ("usdjpy", 3): (build_cross_asset_chart,     "usdjpy", 380),
+    ("usdjpy", 3): (build_cross_asset_chart,     "usdjpy", 460),
 
     ("usdinr", 0): (build_fundamentals_chart,    "usdinr", 320),
-    ("usdinr", 1): (build_cross_asset_chart,     "usdinr", 380),
+    ("usdinr", 1): (build_cross_asset_chart,     "usdinr", 460),
 }

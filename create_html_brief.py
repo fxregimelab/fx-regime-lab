@@ -106,6 +106,55 @@ def inject_cross_asset_values(html_content, _re):
 
     return html_content
 
+
+def update_globalbar(html_content, _re):
+    """Replace static globalbar prices with live values + color-coded 1D change spans."""
+    try:
+        df  = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
+        row = df.iloc[-1]
+    except Exception:
+        return html_content
+
+    def _colored(pct):
+        if isinstance(pct, float) and math.isnan(pct):
+            return ''
+        color = '#00d4aa' if pct >= 0 else '#ff4444'
+        sign  = '+' if pct >= 0 else ''
+        return f' <span style="color:{color}">{sign}{pct:.2f}%</span>'
+
+    # Assets: (csv_price_col, csv_chg_col, display_prefix, fmt)
+    assets = [
+        ('DXY',   'DXY_chg_1D',   'DXY ',       lambda v: f'{v:.2f}'),
+        ('Brent', 'Brent_chg_1D', 'Brent $',     lambda v: f'{v:.2f}'),
+        ('Gold',  'Gold_chg_1D',  'Gold $',       lambda v: f'{v:,.0f}'),
+    ]
+
+    parts = []
+    for price_col, chg_col, prefix, fmt in assets:
+        price = row.get(price_col, float('nan'))
+        chg   = row.get(chg_col,   float('nan'))
+        if isinstance(price, float) and math.isnan(price):
+            continue
+        parts.append(f'{prefix}{fmt(price)}{_colored(chg)}')
+
+    if not parts:
+        return html_content
+
+    # Build replacement for the DXY ... Gold section inside the globalbar
+    new_segment = '\n  '.join(
+        (parts[0] if i == 0 else f'&nbsp;|&nbsp; {parts[i]}')
+        for i, _ in enumerate(parts)
+    )
+
+    # Replace only the price+change portion (between start of globalbar and COT info)
+    html_content = _re.sub(
+        r'(class="globalbar">)[\s\S]*?(&nbsp;\|&nbsp; COT:)',
+        lambda m: m.group(1) + '\n  ' + new_segment + '\n  ' + m.group(2),
+        html_content,
+    )
+    return html_content
+
+
 def fig_to_iframe(fig, pair, pane, height=480):
     """Save figure as a standalone HTML file and return an <iframe> tag."""
     if fig is None:
@@ -203,6 +252,11 @@ def generate_html_brief():
     # 1b. Inject live cross-asset correlation values (Phase 1 & 2)
     # ------------------------------------------------------------------
     html_content = inject_cross_asset_values(html_content, _re)
+
+    # ------------------------------------------------------------------
+    # 1c. Update globalbar with live prices + colored 1D changes
+    # ------------------------------------------------------------------
+    html_content = update_globalbar(html_content, _re)
 
     # ------------------------------------------------------------------
     # 2. CSS patches (idempotent — cascade through version history)
@@ -322,6 +376,11 @@ def generate_html_brief():
         '      </div>\n\n      </div>\n      <div class="brief-right">',
         '      </div>\n\n      <div class="brief-right">',
     )
+    # idempotent: insert missing </div> (brief-left close) if regime-read goes straight into brief-right
+    html_content = html_content.replace(
+        '        </div>\n\n      <div class="brief-right">',
+        '        </div>\n      </div>\n\n      <div class="brief-right">',
+    )
 
     # header compression + font hierarchy
     html_content = html_content.replace(
@@ -340,6 +399,51 @@ def generate_html_brief():
         '.brief-section {\n    border-top: 1px solid #1e1e1e;\n',
         '.brief-section {\n    border-top: 1px solid #252525;\n',
     )
+
+    # scroll-snap: each card occupies one full viewport (idempotent)
+    if 'scroll-snap-type' not in html_content:
+        _snap_css = (
+            '/* ---- full-screen scroll-snap ---- */\n'
+            'html { scroll-snap-type: y mandatory; overflow-y: scroll; }\n'
+            '.content { padding: 0; gap: 0; }\n'
+            '.card { height: 100vh; scroll-snap-align: start; border-radius: 0;\n'
+            '        border-left: none; border-right: none;\n'
+            '        display: flex; flex-direction: column; }\n'
+            '.card-body { flex: 1; min-height: 0; }\n'
+            '.workspace-snap { height: 100vh; scroll-snap-align: start;\n'
+            '  display: flex; flex-direction: column; background: #0d0d0d; }\n'
+            '.ws-header { height: 36px; display: flex; align-items: center;\n'
+            '  padding: 0 20px; background: #1a1a1a; border-top: 1px solid #2a2a2a;\n'
+            '  font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #555;\n'
+            '  text-transform: uppercase; flex-shrink: 0; }\n'
+            '.ws-iframe-wrap { flex: 1; min-height: 0; overflow: hidden; }\n'
+            '.ws-iframe-wrap iframe { width: 100%; height: 100%; border: none; display: block; }'
+        )
+        html_content = html_content.replace(
+            '.footer {\n    background: #0d0d0d;\n',
+            _snap_css + '\n.footer {\n    background: #0d0d0d;\n',
+        )
+
+    # workspace section: upgrade old static div to snap-page (idempotent)
+    if 'class="workspace-snap"' not in html_content:
+        html_content = _re.sub(
+            r'<!-- GLOBAL ANALYSIS WORKSPACE -->[\s\S]*?</div>\s*</div>',
+            (
+                '<!-- GLOBAL ANALYSIS WORKSPACE -->\n'
+                '<div class="workspace-snap">\n'
+                '  <div class="ws-header">ANALYSIS WORKSPACE &mdash; ALL PAIRS</div>\n'
+                '  <div class="ws-iframe-wrap">\n'
+                '    <div class="chart-pane" data-pair="global" data-pane="0" '
+                'style="visibility:visible;position:relative;pointer-events:auto;width:100%;height:100%;">\n'
+                '<iframe src="../charts/global_workspace.html" '
+                'style="width:100%;height:calc(100vh - 36px);border:none;display:block;" '
+                'loading="eager" scrolling="no"></iframe>\n'
+                '    </div>\n'
+                '  </div>\n'
+                '</div>'
+            ),
+            html_content,
+        )
 
     # collapsible REGIME READ — inject CSS after .brief-section:first-child (idempotent)
     _regime_css = (
