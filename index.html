@@ -267,20 +267,190 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
     font-size: 10px;
     color: #555;
 }
-</style></head>
+/* lp-css-v3 */
+/* ---- landing page ---- */
+#landing {
+    height: 100vh; scroll-snap-align: start;
+    display: flex; flex-direction: column;
+    background: #0a0a0a; padding: 24px 28px 32px;
+    box-sizing: border-box; overflow: hidden;
+}
+.lp-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 16px; flex-shrink: 0;
+}
+.lp-framework-label {
+    font-size: 9px; letter-spacing: 0.2em; color: #444;
+    text-transform: uppercase; margin-bottom: 4px;
+}
+.lp-date { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.lp-meta { font-size: 10px; color: #555; }
+.lp-ws-btn {
+    display: inline-block; padding: 8px 16px;
+    background: #1a1a1a; border: 1px solid #333;
+    color: #888; font-size: 9px; letter-spacing: 0.15em;
+    text-transform: uppercase; text-decoration: none;
+    border-radius: 3px; flex-shrink: 0; align-self: center;
+    transition: color 0.15s, border-color 0.15s;
+}
+.lp-ws-btn:hover { color: #fff; border-color: #555; }
+.lp-ticker-bar {
+    display: flex; gap: 0; flex-shrink: 0;
+    background: #111; border: 1px solid #1e1e1e;
+    border-radius: 4px; padding: 8px 16px;
+    margin-bottom: 20px; overflow: hidden;
+}
+.lp-ticker-item {
+    display: flex; align-items: center; gap: 8px;
+    flex: 1; padding: 0 12px;
+    border-right: 1px solid #1e1e1e;
+}
+.lp-ticker-item:first-child { padding-left: 0; }
+.lp-ticker-item:last-child { border-right: none; }
+.lp-ticker-label { font-size: 9px; color: #555; letter-spacing: 0.1em; text-transform: uppercase; width: 52px; flex-shrink: 0; }
+.lp-ticker-price { font-size: 12px; color: #fff; font-weight: 600; }
+.lp-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    flex: 1; min-height: 0; overflow: hidden;
+}
+.lp-pair-card {
+    background: #111; border: 1px solid #1e1e1e;
+    border-radius: 4px; display: flex; flex-direction: column;
+    overflow: hidden;
+}
+.lp-card-header {
+    padding: 12px 14px 8px; background: #141414; flex-shrink: 0;
+}
+.lp-pair-label {
+    font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;
+}
+.lp-price-block { display: flex; align-items: baseline; gap: 8px; }
+.lp-price { font-size: 22px; font-weight: 700; color: #fff; }
+.lp-1d { font-size: 14px; }
+.lp-12m-label { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.1em; }
+.lp-12m { font-size: 11px; }
+.lp-spread-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 14px; background: #0d0d0d;
+    border-top: 1px solid #1e1e1e; border-bottom: 1px solid #1e1e1e; flex-shrink: 0;
+}
+.lp-spread-label { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.08em; }
+.lp-spread-val { font-size: 12px; font-weight: 600; }
+.lp-signals { flex: 1; padding: 8px 14px; overflow: hidden; display: flex; flex-direction: column; gap: 4px; }
+.lc-row { display: flex; align-items: center; gap: 6px; }
+.lc-name { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; flex: 1; }
+.lc-val { font-size: 11px; font-variant-numeric: tabular-nums; min-width: 52px; text-align: right; }
+.lc-badge { font-size: 8px; padding: 1px 5px; border-radius: 2px; letter-spacing: 0.06em; }
+.lp-drilldown {
+    display: block; padding: 8px 14px; background: #0d0d0d;
+    border-top: 1px solid #1e1e1e; font-size: 9px;
+    color: #444; text-decoration: none; letter-spacing: 0.1em;
+    text-transform: uppercase; text-align: right; flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+}
+.lp-drilldown:hover { color: #fff; background: #1a1a1a; }
+.lp-nav-hint {
+    text-align: center; font-size: 9px; color: #2a2a2a;
+    padding-top: 8px; letter-spacing: 0.15em; flex-shrink: 0;
+}
+/* badge-info variant for DOLLAR REGIME */
+.badge-info { background: #1a1a2a; color: #4da6ff; }
+/* end lp-css */
+/* pnav-css-v1 */
+/* ---- fixed bottom pair nav ---- */
+#pair-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 32px; z-index: 9999;
+    background: rgba(10,10,10,0.93);
+    backdrop-filter: blur(6px);
+    display: flex; justify-content: center; align-items: center;
+    gap: 0; border-top: 1px solid #2a2a2a;
+}
+#pair-nav a {
+    font-size: 10px; letter-spacing: 0.12em; color: #555;
+    text-transform: uppercase; text-decoration: none;
+    padding: 0 20px; line-height: 32px; transition: color 0.15s;
+    border-right: 1px solid #1e1e1e;
+}
+#pair-nav a:last-child { border-right: none; }
+#pair-nav a.nav-active { color: #ffffff; }
+#pair-nav a:hover { color: #aaa; }
+.card { padding-bottom: 32px; }
+#landing { padding-bottom: 32px; }
+</style>
+</head>
 <body>
 
 <!-- GLOBAL BAR (superseded by landing page) -->
 
 <!-- HEADER (superseded by landing page) -->
-<!-- MAIN CONTENT -->
+    <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
+  </div>
+  <div class="lp-ticker-bar"><div class="lp-ticker-item"><span class="lp-ticker-label">DXY</span><span class="lp-ticker-price">99.32</span><span style="color:#00d4aa;font-size:11px">+0.56%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">EUR/USD</span><span class="lp-ticker-price">1.1636</span><span style="color:#00d4aa;font-size:11px">+0.20%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">USD/JPY</span><span class="lp-ticker-price">156.98</span><span style="color:#ff4444;font-size:11px">-0.50%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">USD/INR</span><span class="lp-ticker-price">92.01</span><span style="color:#00d4aa;font-size:11px">+0.49%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">Brent</span><span class="lp-ticker-price">$85.41</span><span style="color:#00d4aa;font-size:11px">+4.93%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">Gold</span><span class="lp-ticker-price">$5,065</span><span style="color:#ff4444;font-size:11px">-1.07%</span></div></div>
+  <div class="lp-grid">
+    <div class="lp-pair-card">
+          <div class="lp-card-header" style="border-top:3px solid #4da6ff">
+            <span class="lp-pair-label" style="color:#4da6ff">EUR/USD</span>
+            <div class="lp-price-block">
+              <span class="lp-price">1.1636</span>
+              <span class="lp-1d"><span style="color:#00d4aa;font-size:14px">+0.20%</span></span>
+              <span class="lp-12m-label">12M</span>
+              <span class="lp-12m"><span style="color:#00d4aa;font-size:11px">+10.74%</span></span>
+            </div>
+          </div>
+          <div class="lp-spread-row">
+            <span class="lp-spread-label">Rate Spread (10Y)</span>
+            <span class="lp-spread-val" style="color:#ff4444">↑ 0.72%</span>
+          </div>
+          <div class="lp-signals"><div class="lc-row"><span class="lc-name">Lev Money</span><span class="lc-val" style="color:#fff">95th</span><span class="lc-badge badge-danger">95th pct</span></div><div class="lc-row"><span class="lc-name">Vol 30D</span><span class="lc-val" style="color:#fff">8.9%</span><span class="lc-badge badge-neutral">NORMAL</span></div><div class="lc-row"><span class="lc-name">Regime Corr</span><span class="lc-val" style="color:#ff4444">-0.159</span><span class="lc-badge badge-danger">BROKEN</span></div><div class="lc-row"><span class="lc-name">Oil Corr 60D</span><span class="lc-val" style="color:#888">+0.050</span><span class="lc-badge badge-neutral">LOW</span></div><div class="lc-row"><span class="lc-name">DXY Corr 60D</span><span class="lc-val" style="color:#888">-0.464</span><span class="lc-badge badge-neutral">MIXED</span></div></div>
+          <a class="lp-drilldown" href="#card-eurusd">View Detail →</a>
+        </div>
+    <div class="lp-pair-card">
+          <div class="lp-card-header" style="border-top:3px solid #ff9944">
+            <span class="lp-pair-label" style="color:#ff9944">USD/JPY</span>
+            <div class="lp-price-block">
+              <span class="lp-price">156.98</span>
+              <span class="lp-1d"><span style="color:#ff4444;font-size:14px">-0.50%</span></span>
+              <span class="lp-12m-label">12M</span>
+              <span class="lp-12m"><span style="color:#00d4aa;font-size:11px">+3.11%</span></span>
+            </div>
+          </div>
+          <div class="lp-spread-row">
+            <span class="lp-spread-label">Rate Spread (10Y)</span>
+            <span class="lp-spread-val" style="color:#ff4444">↑ 1.41%</span>
+          </div>
+          <div class="lp-signals"><div class="lc-row"><span class="lc-name">Lev Money</span><span class="lc-val" style="color:#fff">69th</span><span class="lc-badge badge-neutral">69th pct</span></div><div class="lc-row"><span class="lc-name">Vol 30D</span><span class="lc-val" style="color:#fff">12.5%</span><span class="lc-badge badge-neutral">NORMAL</span></div><div class="lc-row"><span class="lc-name">Regime Corr</span><span class="lc-val" style="color:#ff4444">+0.209</span><span class="lc-badge badge-danger">BROKEN</span></div><div class="lc-row"><span class="lc-name">Oil Corr 60D</span><span class="lc-val" style="color:#888">+0.017</span><span class="lc-badge badge-neutral">LOW</span></div><div class="lc-row"><span class="lc-name">DXY Corr 60D</span><span class="lc-val" style="color:#888">+0.351</span><span class="lc-badge badge-neutral">MIXED</span></div></div>
+          <a class="lp-drilldown" href="#card-usdjpy">View Detail →</a>
+        </div>
+    <div class="lp-pair-card">
+          <div class="lp-card-header" style="border-top:3px solid #e74c3c">
+            <span class="lp-pair-label" style="color:#e74c3c">USD/INR</span>
+            <div class="lp-price-block">
+              <span class="lp-price">92.01</span>
+              <span class="lp-1d"><span style="color:#00d4aa;font-size:14px">+0.49%</span></span>
+              <span class="lp-12m-label">12M</span>
+              <span class="lp-12m"><span style="color:#00d4aa;font-size:11px">+8.41%</span></span>
+            </div>
+          </div>
+          <div class="lp-spread-row">
+            <span class="lp-spread-label">Rate Spread (10Y)</span>
+            <span class="lp-spread-val" style="color:#ff4444">↑ -3.19%</span>
+          </div>
+          <div class="lp-signals"><div class="lc-row"><span class="lc-name">Oil Corr 60D</span><span class="lc-val" style="color:#888">-0.057</span><span class="lc-badge badge-neutral">LOW</span></div><div class="lc-row"><span class="lc-name">DXY Corr 60D</span><span class="lc-val" style="color:#00d4aa">-0.128</span><span class="lc-badge badge-success">INDIA SPECIFIC</span></div></div>
+          <a class="lp-drilldown" href="#card-usdinr">View Detail →</a>
+        </div>
+  </div>
+  <div class="lp-nav-hint">&#8595; scroll to pair detail</div>
+</div>
+
 <!-- LANDING PAGE -->
 <div id="landing">
   <div class="lp-header">
     <div class="lp-title-block">
       <div class="lp-framework-label">G10 FX REGIME DETECTION FRAMEWORK</div>
       <div class="lp-date">Morning Brief &mdash; Friday, 06 March 2026</div>
-      <div class="lp-meta">data as of: 04 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; pipeline run: 06 Mar 2026 17:36 IST</div>
+      <div class="lp-meta">data as of: 04 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; pipeline run: 06 Mar 2026 18:20 IST</div>
     </div>
     <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
   </div>
@@ -692,7 +862,7 @@ document.querySelectorAll('.regime-toggle').forEach(function(lbl) {
 </script>
 
 <nav id="pair-nav">
-  <a href="#landing-page" class="pnav-btn" data-target="landing-page">HOME</a>
+  <a href="#landing" class="pnav-btn" data-target="landing-page">HOME</a>
   <a href="#card-eurusd" class="pnav-btn" data-target="card-eurusd">EUR/USD</a>
   <a href="#card-usdjpy" class="pnav-btn" data-target="card-usdjpy">USD/JPY</a>
   <a href="#card-usdinr" class="pnav-btn" data-target="card-usdinr">USD/INR</a>

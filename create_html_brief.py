@@ -175,11 +175,16 @@ def _regime_corr_info(corr_val):
 
 
 def inject_landing_page(html_content, _re):
-    """Inject a full-screen landing/overview page before the first pair card."""
-    if 'id="landing"' in html_content or 'id="landing-page"' in html_content.replace('<!-- LANDING PAGE -->', ''):
-        # Only skip if the NEW landing div already exists (old one will be stripped upstream)
-        if 'id="landing"' in html_content:
-            return html_content
+    """Inject a full-screen landing/overview page before the first pair card.
+    Always rebuilds with fresh data so prices/signals stay current.
+    """
+    # Remove any existing landing div so we can inject a fresh one with current data
+    # Match the full landing block: from <!-- LANDING PAGE --> to the closing </div> + blank line
+    html_content = _re.sub(
+        r'<!-- LANDING PAGE -->\n<div id="landing">[\s\S]*?<div class="lp-nav-hint">[\s\S]*?</div>\n</div>\n+',
+        '',
+        html_content,
+    )
 
     try:
         df  = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
@@ -418,9 +423,15 @@ def inject_landing_page(html_content, _re):
 
 def inject_bottom_nav(html_content):
     """Inject fixed bottom navigation strip (idempotent)."""
-    if 'id="pair-nav"' in html_content:
+    # CSS and HTML are injected independently so CSS can be re-applied even if HTML exists
+    _need_css  = '/* pnav-css-v1 */' not in html_content
+    _need_html = 'id="pair-nav"'      not in html_content
+    # Always fix stale HOME href from prior sessions
+    html_content = html_content.replace('href="#landing-page"', 'href="#landing"')
+    if not _need_css and not _need_html:
         return html_content
-    nav_css = '''/* ---- fixed bottom pair nav ---- */
+    nav_css = '''/* pnav-css-v1 */
+/* ---- fixed bottom pair nav ---- */
 #pair-nav {
     position: fixed; bottom: 0; left: 0; right: 0;
     height: 32px; z-index: 9999;
@@ -449,18 +460,41 @@ def inject_bottom_nav(html_content):
   <a href="#workspace-snap">WORKSPACE</a>
 </nav>'''
 
-    # Inject CSS before </style>
-    html_content = html_content.replace('</style>\n</head>', nav_css + '\n</style>\n</head>', 1)
+    # Inject CSS before </style></head> (handles both with/without newline)
+    import re as _rn
+    if _need_css:
+        html_content = _rn.sub(
+            r'</style>\s*</head>',
+            nav_css + '\n</style>\n</head>',
+            html_content,
+            count=1,
+        )
     # Inject nav HTML just before </body>
-    html_content = html_content.replace('</body>\n</html>', nav_html + '\n</body>\n</html>')
+    if _need_html:
+        html_content = html_content.replace('</body>\n</html>', nav_html + '\n</body>\n</html>')
     return html_content
 
 
 def inject_landing_css(html_content):
     """Inject landing page CSS (idempotent)."""
-    if '#landing' in html_content:
+    if '/* lp-css-v3 */' in html_content:
         return html_content
-    lp_css = '''/* ---- landing page ---- */
+    import re as _recss
+    # Strip any prior versioned lp-css block to avoid duplication
+    html_content = _recss.sub(
+        r'/\* lp-css-v\d+ \*/[\s\S]*?/\* end lp-css \*/',
+        '',
+        html_content,
+        flags=_recss.DOTALL,
+    )
+    # Also strip old un-versioned landing page CSS block if present
+    html_content = _recss.sub(
+        r'/\* ---- landing page ---- \*/[\s\S]*?\.badge-info \{ background: #1a1a2a; color: #4da6ff; \}\s*',
+        '',
+        html_content,
+    )
+    lp_css = '''/* lp-css-v3 */
+/* ---- landing page ---- */
 #landing {
     height: 100vh; scroll-snap-align: start;
     display: flex; flex-direction: column;
@@ -547,9 +581,16 @@ def inject_landing_css(html_content):
     padding-top: 8px; letter-spacing: 0.15em; flex-shrink: 0;
 }
 /* badge-info variant for DOLLAR REGIME */
-.badge-info { background: #1a1a2a; color: #4da6ff; }'''
+.badge-info { background: #1a1a2a; color: #4da6ff; }
+/* end lp-css */'''
 
-    html_content = html_content.replace('</style>\n</head>', lp_css + '\n</style>\n</head>', 1)
+    # Inject CSS — use regex to handle both </style></head> and </style>\n</head>
+    html_content = _recss.sub(
+        r'</style>\s*</head>',
+        lp_css + '\n</style>\n</head>',
+        html_content,
+        count=1,
+    )
     return html_content
 
 
@@ -569,6 +610,23 @@ def fig_to_iframe(fig, pair, pane, height=480):
         include_plotlyjs='cdn',
         auto_open=False,
     )
+    # Post-process: make the plotly-graph-div fill its iframe so charts fill the container
+    import re as _rcc
+    with open(chart_file, 'r', encoding='utf-8') as _cf:
+        _ch = _cf.read()
+    _ch = _rcc.sub(
+        r'style="height:\d+px; width:100%;"',
+        'style="height:100%; width:100%;"',
+        _ch,
+    )
+    if '<head>' in _ch and 'html,body{height:100%' not in _ch:
+        _ch = _ch.replace(
+            '<head>',
+            '<head><style>html,body{height:100%;margin:0;padding:0;overflow:hidden;background:#0d0d0d}</style>',
+            1,
+        )
+    with open(chart_file, 'w', encoding='utf-8') as _cf:
+        _cf.write(_ch)
     # brief lives in briefs/ so path to charts/ is ../charts/
     # height:100% fills the absolute-positioned chart-pane which fills chart-display-area
     return (
@@ -582,8 +640,23 @@ def _builder_to_iframe(builder, pair_str, pane_idx, height):
     result = builder(pair_str)
     if isinstance(result, str):
         chart_file = f'{CHARTS_DIR}/{pair_str}_{pane_idx}.html'
+        _raw = result
+        # Post-process Plotly-generated HTML so the graph div fills its iframe
+        if 'plotly-graph-div' in _raw:
+            import re as _rrr
+            _raw = _rrr.sub(
+                r'style="height:\d+px; width:100%;"',
+                'style="height:100%; width:100%;"',
+                _raw,
+            )
+            if '<head>' in _raw and 'html,body{height:100%' not in _raw:
+                _raw = _raw.replace(
+                    '<head>',
+                    '<head><style>html,body{height:100%;margin:0;padding:0;overflow:hidden;background:#0d0d0d}</style>',
+                    1,
+                )
         with open(chart_file, 'w', encoding='utf-8') as _fh:
-            _fh.write(result)
+            _fh.write(_raw)
         return (
             f'<iframe src="../{chart_file}" '
             f'style="width:100%;height:100%;border:none;display:block;" '
@@ -690,6 +763,13 @@ def generate_html_brief():
     )
     # Remove old body class="has-landing" (use clean body tag)
     html_content = html_content.replace('<body class="has-landing">', '<body>')
+    # Strip any orphan HTML between the superseded-header comment and the real landing marker
+    # (handles ticker/grid fragments left behind by prior code generation bugs)
+    html_content = _re.sub(
+        r'(<!-- HEADER \(superseded by landing page\) -->)\s*[\s\S]*?(<!-- LANDING PAGE -->)',
+        r'\1\n\2',
+        html_content,
+    )
 
     # ------------------------------------------------------------------
     # 1g. Inject full-screen landing overview page (Page 0)

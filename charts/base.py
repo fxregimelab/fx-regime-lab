@@ -22,6 +22,7 @@ def _base_layout(height=None):
         hoverlabel=dict(bgcolor='#1a1a1a', bordercolor='#333333',
                         font=dict(color='#cccccc', size=11)),
         dragmode='pan',
+        autosize=True,
     )
     if height is not None:
         layout['height'] = height
