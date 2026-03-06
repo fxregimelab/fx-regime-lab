@@ -244,6 +244,21 @@ body {
     color: #555;
     font-size: 11px;
 }
+/* ---- full-screen scroll-snap ---- */
+html { scroll-snap-type: y mandatory; overflow-y: scroll; }
+.content { padding: 0; gap: 0; }
+.card { height: 100vh; scroll-snap-align: start; border-radius: 0;
+        border-left: none; border-right: none;
+        display: flex; flex-direction: column; }
+.card-body { flex: 1; min-height: 0; }
+.workspace-snap { height: 100vh; scroll-snap-align: start;
+  display: flex; flex-direction: column; background: #0d0d0d; }
+.ws-header { height: 36px; display: flex; align-items: center;
+  padding: 0 20px; background: #1a1a1a; border-top: 1px solid #2a2a2a;
+  font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #555;
+  text-transform: uppercase; flex-shrink: 0; }
+.ws-iframe-wrap { flex: 1; min-height: 0; overflow: hidden; }
+.ws-iframe-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
 .footer {
     background: #0d0d0d;
     border-top: 1px solid #1e1e1e;
@@ -252,14 +267,51 @@ body {
     color: #555;
 }
 </style>
+<style id="lp-styles">
+/* ---- Landing page (Page 0) ---- */
+.snap-page { height: 100vh; scroll-snap-align: start; display: flex; flex-direction: column; overflow: hidden; }
+#landing-page { padding: 22px 28px 16px; background: #0a0a0a; }
+.lp-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #1e1e1e; }
+.lp-fw-label { font-size: 8px; color: #444; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3px; }
+.lp-brief-title { font-size: 15px; color: #fff; font-weight: 600; }
+.lp-ts { font-size: 9px; color: #444; text-align: right; line-height: 1.7; }
+.lp-markets { display: flex; gap: 22px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #1e1e1e; flex-shrink: 0; align-items: baseline; }
+.lp-asset { display: flex; align-items: baseline; gap: 6px; }
+.lp-asset-name { font-size: 8px; color: #555; letter-spacing: 0.1em; text-transform: uppercase; }
+.lp-asset-price { font-size: 13px; color: #fff; font-weight: 600; }
+.lp-pairs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; flex: 1; min-height: 0; overflow: hidden; }
+.lp-pair-card { background: #111; border: 1px solid #1e1e1e; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.lp-pair-name { font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; margin-bottom: 2px; }
+.lp-pair-price { font-size: 24px; color: #fff; font-weight: 700; line-height: 1.1; }
+.lp-pair-changes { display: flex; gap: 8px; font-size: 11px; margin-bottom: 3px; }
+.lp-sig-row { display: flex; justify-content: space-between; align-items: center; font-size: 10px; border-top: 1px solid #161616; padding-top: 3px; }
+.lp-sig-name { color: #555; }
+.lp-badge { padding: 1px 5px; border-radius: 2px; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+.lp-nav { display: flex; justify-content: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #1e1e1e; flex-shrink: 0; }
+.lp-nav-btn { padding: 5px 16px; border: 1px solid #2a2a2a; background: #141414; color: #555; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; border-radius: 3px; transition: color 0.15s, border-color 0.15s; }
+.lp-nav-btn:hover { color: #ccc; border-color: #555; }
+/* Hide legacy header + globalbar when landing page is present */
+.has-landing .globalbar, .has-landing .header { display: none !important; }
+/* Fixed bottom pair navigation */
+#pair-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 26px; background: rgba(10,10,10,0.95); backdrop-filter: blur(8px); border-top: 1px solid #1e1e1e; display: flex; justify-content: center; align-items: center; gap: 14px; z-index: 9999; }
+.pnav-btn { font-size: 9px; letter-spacing: 0.12em; color: #333; text-transform: uppercase; text-decoration: none; padding: 0 8px; transition: color 0.15s; }
+.pnav-btn.active { color: #fff; }
+.pnav-btn:hover { color: #888; }
+html { scroll-padding-bottom: 26px; }
+/* Chart fill — panes fill the entire chart-display-area */
+/* chart-fill-v2 */
+.chart-display-area { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+.chart-display-area .chart-pane { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; }
+.chart-display-area .chart-pane iframe { width: 100%; height: 100%; border: none; display: block; }
+</style>
 </head>
-<body>
+<body class="has-landing">
 
 <!-- GLOBAL BAR -->
 <div class="globalbar">
-  DXY 99.17 <span style="color:#00d4aa">+1.60%</span>
-  &nbsp;|&nbsp; Brent $83.52
-  &nbsp;|&nbsp; Gold $5,184
+  DXY 99.32 <span style="color:#00d4aa">+0.56%</span>
+  &nbsp;|&nbsp; Brent $85.41 <span style="color:#00d4aa">+4.93%</span>
+  &nbsp;|&nbsp; Gold $5,065 <span style="color:#ff4444">-1.07%</span>
   &nbsp;|&nbsp; COT: 02 Mar 2026
   &nbsp;|&nbsp; Next COT: 06 Mar 2026
   &nbsp;|&nbsp; All prices: prior session close
@@ -277,10 +329,31 @@ body {
   </div>
 </div>
 
+<!-- LANDING PAGE -->
+<div id="landing-page" class="snap-page">
+  <div class="lp-header">
+    <div>
+      <div class="lp-fw-label">G10 FX Regime Detection Framework</div>
+      <div class="lp-brief-title">Morning Brief &mdash; Wednesday, 04 March 2026</div>
+    </div>
+    <div class="lp-ts">
+      data as of: 02 Mar 2026<br>
+      pipeline run: 04 Mar 2026 15:14 IST
+    </div>
+  </div>
+  <div class="lp-markets"><div class="lp-asset"><span class="lp-asset-name">DXY</span><span class="lp-asset-price">99.32</span><span style="color:#00d4aa;font-size:11px">+0.56%</span></div><div class="lp-asset"><span class="lp-asset-name">Brent</span><span class="lp-asset-price">85.41</span><span style="color:#00d4aa;font-size:11px">+4.93%</span></div><div class="lp-asset"><span class="lp-asset-name">Gold</span><span class="lp-asset-price">5,065</span><span style="color:#ff4444;font-size:11px">-1.07%</span></div></div>
+  <div class="lp-pairs"><div class="lp-pair-card"><div class="lp-pair-name" style="color:#4da6ff">EUR/USD</div><div class="lp-pair-price">1.1636</div><div class="lp-pair-changes"><span style="color:#00d4aa">+0.20%</span><span style="color:#2a2a2a">|</span><span style="color:#00d4aa">12M +10.74%</span></div><div class="lp-sig-row"><span class="lp-sig-name">US-DE 10Y</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">0.723%</span><span style="color:#00d4aa;font-size:9px">-1.22pp</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">COT Lev</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">95th</span><span class="lp-badge" style="background:#2a1a00;color:#f0a500">CROWDED LONG</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">30D Vol</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">8.9%</span><span class="lp-badge" style="background:#1a1a1a;color:#888888">NORMAL</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">60D Corr</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">-0.159</span><span class="lp-badge" style="background:#2a0000;color:#ff4444">BROKEN</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">Oil corr</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">+0.050</span><span class="lp-badge" style="background:#1a1a1a;color:#555555">LOW</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">DXY corr</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">-0.464</span><span class="lp-badge" style="background:#1a1a1a;color:#888888">MIXED</span></span></div></div><div class="lp-pair-card"><div class="lp-pair-name" style="color:#f0a500">USD/JPY</div><div class="lp-pair-price">156.98</div><div class="lp-pair-changes"><span style="color:#ff4444">-0.50%</span><span style="color:#2a2a2a">|</span><span style="color:#00d4aa">12M +3.11%</span></div><div class="lp-sig-row"><span class="lp-sig-name">US-JP 10Y</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">1.406%</span><span style="color:#00d4aa;font-size:9px">-1.66pp</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">COT Lev</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">69th</span><span class="lp-badge" style="background:#1a1a1a;color:#666666">NEUTRAL</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">30D Vol</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">12.5%</span><span class="lp-badge" style="background:#1a1a1a;color:#888888">NORMAL</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">60D Corr</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">+0.209</span><span class="lp-badge" style="background:#2a0000;color:#ff4444">BROKEN</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">Oil corr</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">+0.017</span><span class="lp-badge" style="background:#1a1a1a;color:#555555">LOW</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">DXY corr</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">+0.351</span><span class="lp-badge" style="background:#1a1a1a;color:#888888">MIXED</span></span></div></div><div class="lp-pair-card"><div class="lp-pair-name" style="color:#e74c3c">USD/INR</div><div class="lp-pair-price">92.009</div><div class="lp-pair-changes"><span style="color:#00d4aa">+0.49%</span><span style="color:#2a2a2a">|</span><span style="color:#00d4aa">12M +8.41%</span></div><div class="lp-sig-row"><span class="lp-sig-name">US-IN 10Y</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">-3.190%</span><span style="color:#00d4aa;font-size:9px">-0.56pp</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">Oil corr</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">-0.057</span><span class="lp-badge" style="background:#1a1a1a;color:#555555">LOW</span></span></div><div class="lp-sig-row"><span class="lp-sig-name">DXY corr</span><span style="display:flex;align-items:center;gap:4px"><span style="color:#888">-0.128</span><span class="lp-badge" style="background:#1a2a1a;color:#00d4aa">INDIA SPECIFIC</span></span></div></div></div>
+  <div class="lp-nav">
+    <a href="#card-eurusd" class="lp-nav-btn">EUR/USD &#9654;</a>
+    <a href="#card-usdjpy" class="lp-nav-btn">USD/JPY &#9654;</a>
+    <a href="#card-usdinr" class="lp-nav-btn">USD/INR &#9654;</a>
+    <a href="#workspace-snap" class="lp-nav-btn">WORKSPACE &#9654;</a>
+  </div>
+</div>
 <!-- MAIN CONTENT -->
 <div class="content">
 
-  <div class="card" data-pair="eurusd">
+  <div class="card" id="card-eurusd" data-pair="eurusd">
     <div class="card-header">
       <span class="ch-pair">EUR/USD</span>
       <span class="ch-price">1.1697</span>
@@ -365,23 +438,23 @@ body {
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="eurusd" data-pane="0" style="visibility:visible; position:relative; pointer-events:auto; width:100%;">
-<iframe src="charts/eurusd_0.html" style="width:100%;height:360px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/eurusd_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
-<iframe src="charts/eurusd_1.html" style="width:100%;height:400px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/eurusd_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
-<iframe src="charts/eurusd_2.html" style="width:100%;height:360px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/eurusd_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
-<iframe src="charts/eurusd_3.html" style="width:100%;height:380px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/eurusd_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="card" data-pair="usdjpy">
+  <div class="card" id="card-usdjpy" data-pair="usdjpy">
     <div class="card-header">
       <span class="ch-pair">USD/JPY</span>
       <span class="ch-price">157.2570</span>
@@ -455,6 +528,7 @@ body {
           <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
           <div class="brief-text">Spread compression favors lower USD/JPY. Leveraged Money 69th and Asset Manager 69th both neutral — carry partially intact, BoJ path is key variable.</div>
         </div>
+      </div>
 
       <div class="brief-right">
         <div class="chart-tab-bar">
@@ -465,23 +539,23 @@ body {
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="usdjpy" data-pane="0" style="visibility:visible; position:relative; pointer-events:auto; width:100%;">
-<iframe src="charts/usdjpy_0.html" style="width:100%;height:360px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdjpy_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
-<iframe src="charts/usdjpy_1.html" style="width:100%;height:400px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdjpy_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
-<iframe src="charts/usdjpy_2.html" style="width:100%;height:360px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdjpy_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
-<iframe src="charts/usdjpy_3.html" style="width:100%;height:380px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdjpy_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="card" data-pair="usdinr">
+  <div class="card" id="card-usdinr" data-pair="usdinr">
     <div class="card-header">
       <span class="ch-pair">USD/INR</span>
       <span class="ch-price">91.0796</span>
@@ -538,6 +612,7 @@ body {
           <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
           <div class="brief-text">US-IN spread at -3.26%. India yield premium intact at 3.26pp. Rate differential favors INR strength. FPI positioning data pending Playwright integration.</div>
         </div>
+      </div>
 
       <div class="brief-right">
         <div class="chart-tab-bar">
@@ -546,10 +621,10 @@ body {
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="usdinr" data-pane="0" style="visibility:visible; position:relative; pointer-events:auto; width:100%;">
-<iframe src="charts/usdinr_0.html" style="width:100%;height:320px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdinr_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdinr" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%;">
-<iframe src="charts/usdinr_1.html" style="width:100%;height:380px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdinr_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
@@ -559,10 +634,12 @@ body {
 </div>
 
 <!-- GLOBAL ANALYSIS WORKSPACE -->
-<div style="margin:32px 0 0; padding:0 24px;">
-  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#555;text-transform:uppercase;margin-bottom:8px;">ANALYSIS WORKSPACE &mdash; ALL PAIRS</div>
-  <div class="chart-pane" data-pair="global" data-pane="0" style="visibility:visible;position:relative;pointer-events:auto;width:100%;">
-<iframe src="charts/global_workspace.html" style="width:100%;height:600px;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<div class="workspace-snap" id="workspace-snap">
+  <div class="ws-header">ANALYSIS WORKSPACE &mdash; ALL PAIRS</div>
+  <div class="ws-iframe-wrap">
+    <div class="chart-pane" data-pair="global" data-pane="0" style="visibility:visible;position:relative;pointer-events:auto;width:100%;height:100%;">
+<iframe src="charts/global_workspace.html" style="width:100%;height:calc(100vh - 36px);border:none;display:block;" loading="eager" scrolling="no"></iframe>
+    </div>
   </div>
 </div>
 
@@ -572,15 +649,12 @@ body {
 </div>
 
 <script>
-function _syncH(pair) {
-  var pane = document.querySelector(
-    '.chart-pane[data-pair="' + pair + '"][style*="position:relative"]'
-  );
-  if (!pane) return;
-  var iframe = pane.querySelector('iframe');
-  var area   = pane.closest('.chart-display-area');
-  if (iframe && area) area.style.height = iframe.style.height || 'auto';
-}
+// Normalise all panes inside .chart-display-area to position:absolute fill
+document.querySelectorAll('.chart-display-area .chart-pane').forEach(function(p) {
+  p.style.position = 'absolute';
+  p.style.top = '0'; p.style.right = '0'; p.style.bottom = '0'; p.style.left = '0';
+  p.style.width = '100%'; p.style.height = '100%';
+});
 
 document.querySelectorAll('.chart-tab').forEach(function(tab) {
   tab.addEventListener('click', function() {
@@ -593,35 +667,51 @@ document.querySelectorAll('.chart-tab').forEach(function(tab) {
     document.querySelectorAll('.chart-pane[data-pair="' + pair + '"]')
       .forEach(function(p) {
         p.style.visibility    = 'hidden';
-        p.style.position      = 'absolute';
         p.style.pointerEvents = 'none';
       });
 
     this.classList.add('active');
-
     var pane = document.querySelector(
       '.chart-pane[data-pair="' + pair + '"][data-pane="' + tabIdx + '"]'
     );
     pane.style.visibility    = 'visible';
-    pane.style.position      = 'relative';
     pane.style.pointerEvents = 'auto';
-    _syncH(pair);
   });
 });
-
-var _ps = [];
-document.querySelectorAll('[data-pair]').forEach(function(el) {
-  if (el.dataset.pair && _ps.indexOf(el.dataset.pair) === -1)
-    _ps.push(el.dataset.pair);
-});
-_ps.forEach(_syncH);
 
 document.querySelectorAll('.regime-toggle').forEach(function(lbl) {
   lbl.addEventListener('click', function() {
     this.closest('.regime-read').classList.toggle('open');
   });
 });
+
+// Pair nav active state via IntersectionObserver
+if (typeof IntersectionObserver !== 'undefined') {
+  var _navBtns = document.querySelectorAll('.pnav-btn[data-target]');
+  if (_navBtns.length) {
+    var _io = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          _navBtns.forEach(function(a) { a.classList.remove('active'); });
+          var a = document.querySelector('.pnav-btn[data-target="' + e.target.id + '"]');
+          if (a) a.classList.add('active');
+        }
+      });
+    }, { threshold: 0.5 });
+    ['landing-page','card-eurusd','card-usdjpy','card-usdinr','workspace-snap'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) _io.observe(el);
+    });
+  }
+}
 </script>
 
+<nav id="pair-nav">
+  <a href="#landing-page" class="pnav-btn" data-target="landing-page">HOME</a>
+  <a href="#card-eurusd" class="pnav-btn" data-target="card-eurusd">EUR/USD</a>
+  <a href="#card-usdjpy" class="pnav-btn" data-target="card-usdjpy">USD/JPY</a>
+  <a href="#card-usdinr" class="pnav-btn" data-target="card-usdinr">USD/INR</a>
+  <a href="#workspace-snap" class="pnav-btn" data-target="workspace-snap">WS</a>
+</nav>
 </body>
 </html>

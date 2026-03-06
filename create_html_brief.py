@@ -155,6 +155,275 @@ def update_globalbar(html_content, _re):
     return html_content
 
 
+# ============================================================================
+# LANDING PAGE (Page 0) — full-screen overview with live signal grid
+# ============================================================================
+
+def inject_landing_page(html_content, _re):
+    """Build and inject a full-screen landing page (Page 0) before the pair cards."""
+    if 'id="landing-page"' in html_content:
+        return html_content  # idempotent
+
+    try:
+        df  = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
+        row = df.iloc[-1]
+    except Exception:
+        return html_content
+
+    # ---- helpers ----
+    def _c(v):
+        if isinstance(v, float) and math.isnan(v):
+            return '#555'
+        return '#00d4aa' if v >= 0 else '#ff4444'
+
+    def _s(v, fmt='+.2f'):
+        if isinstance(v, float) and math.isnan(v):
+            return '—'
+        return f'{v:{fmt}}'
+
+    def _nan(v):
+        return isinstance(v, float) and math.isnan(v)
+
+    def _badge(label, bg, fg):
+        return f'<span class="lp-badge" style="background:{bg};color:{fg}">{label}</span>'
+
+    _BADGE_MAP = {
+        'BROKEN':         ('#2a0000', '#ff4444'), 'INTACT':          ('#002a1a', '#00d4aa'),
+        'WEAKENING':      ('#2a1500', '#f0a500'), 'REBUILDING':      ('#002a1a', '#00d4aa'),
+        'CROWDED LONG':   ('#2a1a00', '#f0a500'), 'CROWDED SHORT':   ('#2a0000', '#e05c5c'),
+        'NEUTRAL':        ('#1a1a1a', '#666666'), 'NORMAL':          ('#1a1a1a', '#888888'),
+        'LONG':           ('#1a2a00', '#8bc34a'),  'SHORT':           ('#1a0000', '#e05c5c'),
+        'ELEVATED':       ('#2a1a00', '#f0a500'), 'EXTREME':         ('#2a0000', '#ff4444'),
+        'HIGH':           ('#002a1a', '#00d4aa'), 'MODERATE':        ('#1a1a1a', '#888888'),
+        'LOW':            ('#1a1a1a', '#555555'), 'OIL DIVERGENCE':  ('#2a0000', '#ff4444'),
+        'DOLLAR REGIME':  ('#1a1a2a', '#4da6ff'), 'MIXED':           ('#1a1a1a', '#888888'),
+        'EUR SPECIFIC':   ('#1a2a1a', '#00d4aa'), 'YEN SPECIFIC':    ('#1a2a1a', '#00d4aa'),
+        'INDIA SPECIFIC': ('#1a2a1a', '#00d4aa'),
+    }
+
+    def _cbadge(label):
+        bg, fg = _BADGE_MAP.get(label, ('#1a1a1a', '#666'))
+        return _badge(label, bg, fg)
+
+    def _vol_lbl(pct):
+        if _nan(pct): return 'NORMAL'
+        if pct >= 90: return 'EXTREME'
+        if pct >= 75: return 'ELEVATED'
+        return 'NORMAL'
+
+    def _regime_lbl(corr):
+        if _nan(corr): return 'NO DATA'
+        v = abs(corr)
+        if v >= 0.5: return 'INTACT'
+        if v >= 0.25: return 'WEAKENING'
+        return 'BROKEN'
+
+    def _cot_lbl(pct):
+        if _nan(pct): return 'NEUTRAL'
+        if pct >= 90: return 'CROWDED LONG'
+        if pct >= 75: return 'LONG'
+        if pct <= 10: return 'CROWDED SHORT'
+        if pct <= 25: return 'SHORT'
+        return 'NEUTRAL'
+
+    # ---- header metadata from existing HTML ----
+    m_title = _re.search(r'<div class="title">([^<]+)</div>', html_content)
+    m_ts    = _re.search(r'data as of:\s*([^\n<]+)', html_content)
+    m_run   = _re.search(r'pipeline run:\s*([^\n<]+)', html_content)
+    brief_title = (m_title.group(1) if m_title else f'Morning Brief &mdash; {TODAY_FMT}')
+    data_as_of  = m_ts.group(1).strip().rstrip('<br>').strip()  if m_ts  else ''
+    run_ts      = m_run.group(1).strip() if m_run else ''
+
+    # ---- market assets row ----
+    def _asset_block(name, price_col, fmt_price, chg_col):
+        price = row.get(price_col, float('nan'))
+        chg   = row.get(chg_col,   float('nan'))
+        if _nan(price): return ''
+        chg_s = (f'<span style="color:{_c(chg)};font-size:11px">{_s(chg)}%</span>'
+                 if not _nan(chg) else '')
+        return (f'<div class="lp-asset">'
+                f'<span class="lp-asset-name">{name}</span>'
+                f'<span class="lp-asset-price">{price:{fmt_price}}</span>'
+                f'{chg_s}</div>')
+
+    market_row = (
+        _asset_block('DXY',   'DXY',   '.2f', 'DXY_chg_1D')   +
+        _asset_block('Brent', 'Brent', '.2f', 'Brent_chg_1D') +
+        _asset_block('Gold',  'Gold',  ',.0f', 'Gold_chg_1D')
+    )
+
+    # ---- pair mini-cards ----
+    def _sig_row(label, val_html, badge_html=''):
+        return (f'<div class="lp-sig-row">'
+                f'<span class="lp-sig-name">{label}</span>'
+                f'<span style="display:flex;align-items:center;gap:4px">'
+                f'{val_html}{badge_html}</span></div>')
+
+    def _pair_card(display, pair_key, price_col, chg_1d, chg_12m,
+                   spr_name, spr_col, spr_chg_col,
+                   cot_col, vol_col, vol_pct_col, corr_col,
+                   oil_col, dxy_col, pair_color):
+        price  = row.get(price_col, float('nan'))
+        p1d    = row.get(chg_1d,    float('nan'))
+        p12m   = row.get(chg_12m,   float('nan'))
+        spr    = row.get(spr_col,        float('nan')) if spr_col else float('nan')
+        spr_ch = row.get(spr_chg_col,    float('nan')) if spr_chg_col else float('nan')
+        cot    = row.get(cot_col,        float('nan')) if cot_col else float('nan')
+        vol    = row.get(vol_col,        float('nan')) if vol_col else float('nan')
+        volp   = row.get(vol_pct_col,    float('nan')) if vol_pct_col else float('nan')
+        corr   = row.get(corr_col,       float('nan')) if corr_col else float('nan')
+        oil    = row.get(oil_col,        float('nan')) if oil_col else float('nan')
+        dxy_c  = row.get(dxy_col,        float('nan')) if dxy_col else float('nan')
+
+        # price display
+        if not _nan(price):
+            if price < 10:    price_s = f'{price:.4f}'
+            elif price < 100: price_s = f'{price:.3f}'
+            else:             price_s = f'{price:.2f}'
+        else:
+            price_s = '—'
+
+        p1d_s  = f'<span style="color:{_c(p1d)}">{_s(p1d)}%</span>'
+        p12m_s = f'<span style="color:{_c(p12m)}">12M {_s(p12m)}%</span>'
+
+        rows_html = ''
+        # rate spread
+        if not _nan(spr):
+            sv = f'{spr:.3f}%' if abs(spr) < 10 else f'{spr:.2f}%'
+            sc = ('—' if _nan(spr_ch) else
+                  f'<span style="color:{_c(-spr_ch)};font-size:9px">{_s(spr_ch,"+.2f")}pp</span>')
+            rows_html += _sig_row(spr_name, f'<span style="color:#888">{sv}</span>', sc)
+        # COT
+        if not _nan(cot):
+            rows_html += _sig_row('COT Lev',
+                f'<span style="color:#888">{cot:.0f}th</span>', _cbadge(_cot_lbl(cot)))
+        # vol
+        if not _nan(vol):
+            rows_html += _sig_row('30D Vol',
+                f'<span style="color:#888">{vol:.1f}%</span>', _cbadge(_vol_lbl(volp)))
+        # 60D regime corr
+        if not _nan(corr):
+            rows_html += _sig_row('60D Corr',
+                f'<span style="color:#888">{corr:+.3f}</span>', _cbadge(_regime_lbl(corr)))
+        # oil corr
+        if not _nan(oil):
+            oil_lbl, _ = _oil_corr_label(oil, pair_key)
+            rows_html += _sig_row('Oil corr',
+                f'<span style="color:#888">{oil:+.3f}</span>', _cbadge(oil_lbl))
+        # dxy corr
+        if not _nan(dxy_c):
+            dxy_lbl, _ = _dxy_corr_label(dxy_c, pair_key)
+            rows_html += _sig_row('DXY corr',
+                f'<span style="color:#888">{dxy_c:+.3f}</span>', _cbadge(dxy_lbl))
+
+        return (f'<div class="lp-pair-card">'
+                f'<div class="lp-pair-name" style="color:{pair_color}">{display}</div>'
+                f'<div class="lp-pair-price">{price_s}</div>'
+                f'<div class="lp-pair-changes">{p1d_s}'
+                f'<span style="color:#2a2a2a">|</span>{p12m_s}</div>'
+                f'{rows_html}</div>')
+
+    eur_card = _pair_card(
+        'EUR/USD', 'EURUSD', 'EURUSD', 'EURUSD_chg_1D', 'EURUSD_chg_12M',
+        'US-DE 10Y', 'US_DE_10Y_spread', 'US_DE_10Y_spread_chg_12M',
+        'EUR_lev_percentile', 'EURUSD_vol30', 'EURUSD_vol_pct',
+        'EURUSD_spread_corr_60d', 'oil_eurusd_corr_60d', 'dxy_eurusd_corr_60d',
+        pair_color='#4da6ff')
+
+    jpy_card = _pair_card(
+        'USD/JPY', 'USDJPY', 'USDJPY', 'USDJPY_chg_1D', 'USDJPY_chg_12M',
+        'US-JP 10Y', 'US_JP_10Y_spread', 'US_JP_10Y_spread_chg_12M',
+        'JPY_lev_percentile', 'USDJPY_vol30', 'USDJPY_vol_pct',
+        'USDJPY_spread_corr_60d', 'oil_usdjpy_corr_60d', 'dxy_usdjpy_corr_60d',
+        pair_color='#f0a500')
+
+    inr_card = _pair_card(
+        'USD/INR', 'USDINR', 'USDINR', 'USDINR_chg_1D', 'USDINR_chg_12M',
+        'US-IN 10Y', 'US_IN_10Y_spread', 'US_IN_10Y_spread_chg_12M',
+        None, None, None, None,
+        'oil_inr_corr_60d', 'dxy_inr_corr_60d',
+        pair_color='#e74c3c')
+
+    # ---- landing page CSS (injected into <head>) ----
+    lp_css = '''<style id="lp-styles">
+/* ---- Landing page (Page 0) ---- */
+.snap-page { height: 100vh; scroll-snap-align: start; display: flex; flex-direction: column; overflow: hidden; }
+#landing-page { padding: 22px 28px 16px; background: #0a0a0a; }
+.lp-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #1e1e1e; }
+.lp-fw-label { font-size: 8px; color: #444; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3px; }
+.lp-brief-title { font-size: 15px; color: #fff; font-weight: 600; }
+.lp-ts { font-size: 9px; color: #444; text-align: right; line-height: 1.7; }
+.lp-markets { display: flex; gap: 22px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #1e1e1e; flex-shrink: 0; align-items: baseline; }
+.lp-asset { display: flex; align-items: baseline; gap: 6px; }
+.lp-asset-name { font-size: 8px; color: #555; letter-spacing: 0.1em; text-transform: uppercase; }
+.lp-asset-price { font-size: 13px; color: #fff; font-weight: 600; }
+.lp-pairs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; flex: 1; min-height: 0; overflow: hidden; }
+.lp-pair-card { background: #111; border: 1px solid #1e1e1e; border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.lp-pair-name { font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; margin-bottom: 2px; }
+.lp-pair-price { font-size: 24px; color: #fff; font-weight: 700; line-height: 1.1; }
+.lp-pair-changes { display: flex; gap: 8px; font-size: 11px; margin-bottom: 3px; }
+.lp-sig-row { display: flex; justify-content: space-between; align-items: center; font-size: 10px; border-top: 1px solid #161616; padding-top: 3px; }
+.lp-sig-name { color: #555; }
+.lp-badge { padding: 1px 5px; border-radius: 2px; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+.lp-nav { display: flex; justify-content: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #1e1e1e; flex-shrink: 0; }
+.lp-nav-btn { padding: 5px 16px; border: 1px solid #2a2a2a; background: #141414; color: #555; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; border-radius: 3px; transition: color 0.15s, border-color 0.15s; }
+.lp-nav-btn:hover { color: #ccc; border-color: #555; }
+/* Hide legacy header + globalbar when landing page is present */
+.has-landing .globalbar, .has-landing .header { display: none !important; }
+/* Fixed bottom pair navigation */
+#pair-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 26px; background: rgba(10,10,10,0.95); backdrop-filter: blur(8px); border-top: 1px solid #1e1e1e; display: flex; justify-content: center; align-items: center; gap: 14px; z-index: 9999; }
+.pnav-btn { font-size: 9px; letter-spacing: 0.12em; color: #333; text-transform: uppercase; text-decoration: none; padding: 0 8px; transition: color 0.15s; }
+.pnav-btn.active { color: #fff; }
+.pnav-btn:hover { color: #888; }
+html { scroll-padding-bottom: 26px; }
+/* Chart fill — panes fill the entire chart-display-area */
+/* chart-fill-v2 */
+.chart-display-area { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+.chart-display-area .chart-pane { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; }
+.chart-display-area .chart-pane iframe { width: 100%; height: 100%; border: none; display: block; }
+</style>'''
+
+    if '<style id="lp-styles">' not in html_content:
+        html_content = html_content.replace('</head>', lp_css + '\n</head>', 1)
+
+    # ---- landing page HTML ----
+    landing_html = (
+        '<!-- LANDING PAGE -->\n'
+        '<div id="landing-page" class="snap-page">\n'
+        '  <div class="lp-header">\n'
+        '    <div>\n'
+        f'      <div class="lp-fw-label">G10 FX Regime Detection Framework</div>\n'
+        f'      <div class="lp-brief-title">{brief_title}</div>\n'
+        '    </div>\n'
+        '    <div class="lp-ts">\n'
+        + (f'      data as of: {data_as_of}<br>\n' if data_as_of else '')
+        + (f'      pipeline run: {run_ts}\n' if run_ts else '')
+        + '    </div>\n'
+        '  </div>\n'
+        f'  <div class="lp-markets">{market_row}</div>\n'
+        f'  <div class="lp-pairs">{eur_card}{jpy_card}{inr_card}</div>\n'
+        '  <div class="lp-nav">\n'
+        '    <a href="#card-eurusd" class="lp-nav-btn">EUR/USD &#9654;</a>\n'
+        '    <a href="#card-usdjpy" class="lp-nav-btn">USD/JPY &#9654;</a>\n'
+        '    <a href="#card-usdinr" class="lp-nav-btn">USD/INR &#9654;</a>\n'
+        '    <a href="#workspace-snap" class="lp-nav-btn">WORKSPACE &#9654;</a>\n'
+        '  </div>\n'
+        '</div>\n'
+    )
+
+    # Insert before <!-- MAIN CONTENT --> or <div class="content">
+    for anchor in ['<!-- MAIN CONTENT -->', '<div class="content">']:
+        if anchor in html_content:
+            html_content = html_content.replace(anchor, landing_html + anchor, 1)
+            break
+
+    # Add has-landing class to <body>
+    if 'class="has-landing"' not in html_content:
+        html_content = html_content.replace('<body>', '<body class="has-landing">', 1)
+
+    return html_content
+
+
 def fig_to_iframe(fig, pair, pane, height=480):
     """Save figure as a standalone HTML file and return an <iframe> tag."""
     if fig is None:
@@ -174,7 +443,7 @@ def fig_to_iframe(fig, pair, pane, height=480):
     # brief lives in briefs/ so path to charts/ is ../charts/
     return (
         f'<iframe src="../{chart_file}" '
-        f'style="width:100%;height:{height}px;border:none;display:block;" '
+        f'style="width:100%;height:100%;border:none;display:block;" '
         f'loading="eager" scrolling="no"></iframe>'
     )
 
@@ -187,7 +456,7 @@ def _builder_to_iframe(builder, pair_str, pane_idx, height):
             _fh.write(result)
         return (
             f'<iframe src="../{chart_file}" '
-            f'style="width:100%;height:{height}px;border:none;display:block;" '
+            f'style="width:100%;height:100%;border:none;display:block;" '
             f'loading="eager" scrolling="no"></iframe>'
         )
     return fig_to_iframe(result, pair_str, pane_idx, height)
@@ -257,6 +526,28 @@ def generate_html_brief():
     # 1c. Update globalbar with live prices + colored 1D changes
     # ------------------------------------------------------------------
     html_content = update_globalbar(html_content, _re)
+
+    # ------------------------------------------------------------------
+    # 1d. Inject landing page (Page 0) with live market overview
+    # ------------------------------------------------------------------
+    html_content = inject_landing_page(html_content, _re)
+
+    # ------------------------------------------------------------------
+    # 1e. Add id attributes to pair cards + workspace for anchor nav
+    # ------------------------------------------------------------------
+    for _pair_id, _pair_val in [('card-eurusd','eurusd'),('card-usdjpy','usdjpy'),('card-usdinr','usdinr')]:
+        if f'id="{_pair_id}"' not in html_content:
+            html_content = html_content.replace(
+                f'<div class="card" data-pair="{_pair_val}">',
+                f'<div class="card" id="{_pair_id}" data-pair="{_pair_val}">',
+                1,
+            )
+    if 'id="workspace-snap"' not in html_content:
+        html_content = html_content.replace(
+            '<div class="workspace-snap">',
+            '<div class="workspace-snap" id="workspace-snap">',
+            1,
+        )
 
     # ------------------------------------------------------------------
     # 2. CSS patches (idempotent — cascade through version history)
@@ -493,15 +784,12 @@ def generate_html_brief():
     #    (iframes are self-contained; no Plotly.Plots.resize needed)
     # ------------------------------------------------------------------
     tab_handler = '''
-function _syncH(pair) {
-  var pane = document.querySelector(
-    '.chart-pane[data-pair="' + pair + '"][style*="position:relative"]'
-  );
-  if (!pane) return;
-  var iframe = pane.querySelector('iframe');
-  var area   = pane.closest('.chart-display-area');
-  if (iframe && area) area.style.height = iframe.style.height || 'auto';
-}
+// Normalise all panes inside .chart-display-area to position:absolute fill
+document.querySelectorAll('.chart-display-area .chart-pane').forEach(function(p) {
+  p.style.position = 'absolute';
+  p.style.top = '0'; p.style.right = '0'; p.style.bottom = '0'; p.style.left = '0';
+  p.style.width = '100%'; p.style.height = '100%';
+});
 
 document.querySelectorAll('.chart-tab').forEach(function(tab) {
   tab.addEventListener('click', function() {
@@ -514,40 +802,64 @@ document.querySelectorAll('.chart-tab').forEach(function(tab) {
     document.querySelectorAll('.chart-pane[data-pair="' + pair + '"]')
       .forEach(function(p) {
         p.style.visibility    = 'hidden';
-        p.style.position      = 'absolute';
         p.style.pointerEvents = 'none';
       });
 
     this.classList.add('active');
-
     var pane = document.querySelector(
       '.chart-pane[data-pair="' + pair + '"][data-pane="' + tabIdx + '"]'
     );
     pane.style.visibility    = 'visible';
-    pane.style.position      = 'relative';
     pane.style.pointerEvents = 'auto';
-    _syncH(pair);
   });
 });
-
-var _ps = [];
-document.querySelectorAll('[data-pair]').forEach(function(el) {
-  if (el.dataset.pair && _ps.indexOf(el.dataset.pair) === -1)
-    _ps.push(el.dataset.pair);
-});
-_ps.forEach(_syncH);
 
 document.querySelectorAll('.regime-toggle').forEach(function(lbl) {
   lbl.addEventListener('click', function() {
     this.closest('.regime-read').classList.toggle('open');
   });
 });
+
+// Pair nav active state via IntersectionObserver
+if (typeof IntersectionObserver !== 'undefined') {
+  var _navBtns = document.querySelectorAll('.pnav-btn[data-target]');
+  if (_navBtns.length) {
+    var _io = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          _navBtns.forEach(function(a) { a.classList.remove('active'); });
+          var a = document.querySelector('.pnav-btn[data-target="' + e.target.id + '"]');
+          if (a) a.classList.add('active');
+        }
+      });
+    }, { threshold: 0.5 });
+    ['landing-page','card-eurusd','card-usdjpy','card-usdinr','workspace-snap'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) _io.observe(el);
+    });
+  }
+}
 '''
 
     all_scripts = list(_re.finditer(r'(<script>)(.*?)(</script>)', html_content, _re.DOTALL))
     if all_scripts:
         m = all_scripts[-1]
         html_content = html_content[:m.start(2)] + tab_handler + html_content[m.end(2):]
+
+    # ------------------------------------------------------------------
+    # 5b. Inject fixed bottom pair nav (idempotent)
+    # ------------------------------------------------------------------
+    if 'id="pair-nav"' not in html_content:
+        _nav_html = (
+            '<nav id="pair-nav">\n'
+            '  <a href="#landing-page" class="pnav-btn" data-target="landing-page">HOME</a>\n'
+            '  <a href="#card-eurusd" class="pnav-btn" data-target="card-eurusd">EUR/USD</a>\n'
+            '  <a href="#card-usdjpy" class="pnav-btn" data-target="card-usdjpy">USD/JPY</a>\n'
+            '  <a href="#card-usdinr" class="pnav-btn" data-target="card-usdinr">USD/INR</a>\n'
+            '  <a href="#workspace-snap" class="pnav-btn" data-target="workspace-snap">WS</a>\n'
+            '</nav>\n'
+        )
+        html_content = html_content.replace('</body>', _nav_html + '</body>', 1)
 
     # ------------------------------------------------------------------
     # 6. Write output
