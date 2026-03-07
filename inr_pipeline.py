@@ -78,21 +78,6 @@ def _fbil_parse_10y(xlsx_bytes: bytes) -> float:
     raise ValueError("10Y tenor not found in FBIL Par Yield sheet")
 
 
-def _fbil_history(start_date: str = START_DATE) -> pd.DataFrame:
-    """
-    Build a daily IN_10Y series from FBIL by iterating calendar days from
-    start_date to today and downloading each business day's XLSX.
-    The archive supports direct date access (no index/auth needed).
-    Returns a DataFrame indexed by date with columns [IN_10Y, IN_repo_proxy].
-    """
-    start_dt = date.fromisoformat(start_date)
-    today_dt = date.today()
-    all_days = [
-        start_dt + timedelta(days=i)
-        for i in range((today_dt - start_dt).days + 1)
-        if (start_dt + timedelta(days=i)).weekday() < 5  # Mon-Fri only
-    ]
-
 _FBIL_CACHE = "data/fbil_in10y_cache.csv"
 
 
@@ -330,11 +315,11 @@ def build_and_save(price_df, yield_df, fpi_df, fpi_status):
         is_monthly = getattr(yield_df, 'is_monthly', True)
         if is_monthly:
             # FRED fallback: cap forward-fill at 22 rows (1 calendar month approx)
-            yield_daily = yield_df.reindex(inr.index, method="ffill", limit=22)
+            yield_daily = yield_df.reindex(inr.index).ffill(limit=22)
             source_label = "FRED monthly (fallback)"
         else:
             # FBIL daily: allow up to 5-day fill (weekends / holidays only)
-            yield_daily = yield_df.reindex(inr.index, method="ffill", limit=5)
+            yield_daily = yield_df.reindex(inr.index).ffill(limit=5)
             source_label = "FBIL daily"
         inr["IN_10Y"]        = yield_daily["IN_10Y"]
         inr["IN_repo_proxy"] = yield_daily["IN_repo_proxy"]
@@ -345,15 +330,15 @@ def build_and_save(price_df, yield_df, fpi_df, fpi_status):
     if os.path.exists(master_path):
         master = pd.read_csv(master_path, index_col=0, parse_dates=True)
         if "US_2Y" in master.columns:
-            inr["US_2Y"] = master["US_2Y"].reindex(inr.index, method="ffill")
+            inr["US_2Y"] = master["US_2Y"].reindex(inr.index).ffill()
             if "IN_10Y" in inr.columns:
                 inr["US_IN_10Y_spread"]    = inr["US_2Y"] - inr["IN_10Y"]
                 inr["US_IN_policy_spread"] = inr["US_2Y"] - inr["IN_repo_proxy"]
 
     # merge FPI flows
     if len(fpi_df) > 0:
-        inr["FPI_20D_flow"]       = fpi_df["FPI_20D_flow"].reindex(inr.index, method="ffill")
-        inr["FPI_20D_percentile"] = fpi_df["FPI_20D_percentile"].reindex(inr.index, method="ffill")
+        inr["FPI_20D_flow"]       = fpi_df["FPI_20D_flow"].reindex(inr.index).ffill()
+        inr["FPI_20D_percentile"] = fpi_df["FPI_20D_percentile"].reindex(inr.index).ffill()
 
     # Compute USDINR vol on the original price series BEFORE reindexing to the
     # US trading calendar.  Reindexing introduces ffill gaps (Indian holidays

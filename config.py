@@ -108,3 +108,35 @@ PAIRS = {
         chart_height = 360,
     ),
 }
+
+# ── MACRO CALENDAR (Phase 10) ────────────────────────────────────────────────
+# Central bank event dates for the macro calendar flag.
+# Format: 'YYYY-MM-DD': 'Event label'  — update monthly.
+# When TODAY matches a key, the brief displays a MACRO EVENT WARNING strip.
+CB_EVENTS = {
+    # 2026 H1
+    '2026-03-19': 'Fed FOMC / BoJ Policy',
+    '2026-04-09': 'RBI MPC',
+    '2026-04-17': 'ECB Meeting',
+    '2026-05-01': 'BoJ Policy',
+    '2026-05-07': 'Fed FOMC',
+    '2026-06-05': 'ECB Meeting / RBI MPC',
+    '2026-06-17': 'BoJ Policy',
+    '2026-06-18': 'Fed FOMC',
+    # 2026 H2
+    '2026-07-24': 'ECB Meeting',
+    '2026-07-30': 'Fed FOMC',
+    '2026-07-31': 'BoJ Policy',
+    '2026-08-06': 'RBI MPC',
+    '2026-09-11': 'ECB Meeting',
+    '2026-09-17': 'Fed FOMC',
+    '2026-09-19': 'BoJ Policy',
+    '2026-10-08': 'RBI MPC',
+    '2026-10-29': 'ECB Meeting',
+    '2026-10-30': 'BoJ Policy',
+    '2026-11-05': 'Fed FOMC',
+    '2026-12-04': 'RBI MPC',
+    '2026-12-10': 'Fed FOMC',
+    '2026-12-17': 'ECB Meeting',
+    '2026-12-19': 'BoJ Policy',
+}

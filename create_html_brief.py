@@ -1027,6 +1027,13 @@ def generate_html_brief():
 
     import re as _re
 
+    # Update <title> tag with today's date (prevents stale title in browser tab)
+    html_content = _re.sub(
+        r'<title>.*?</title>',
+        f'<title>G10 FX Morning Brief \u2014 {TODAY_FMT}</title>',
+        html_content,
+    )
+
     # ------------------------------------------------------------------
     # 1. Inject chart iframes into chart-pane divs
     # ------------------------------------------------------------------

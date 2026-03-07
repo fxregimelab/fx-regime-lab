@@ -470,7 +470,7 @@ def calculate_dxy_correlation(master):
     pairs = [
         ("EURUSD", "dxy_eurusd_corr_60d"),
         ("USDJPY", "dxy_usdjpy_corr_60d"),
-        ("USDINR", "dxy_inr_corr_60d"),
+        # USDINR handled by inr_pipeline.py (USDINR prices not available at this stage)
     ]
 
     for fx_col, out_col in pairs:
@@ -502,7 +502,7 @@ def calculate_oil_correlation(master):
     pairs = [
         ("EURUSD", "oil_eurusd_corr_60d"),
         ("USDJPY", "oil_usdjpy_corr_60d"),
-        ("USDINR", "oil_inr_corr_60d"),
+        # USDINR handled by inr_pipeline.py (USDINR prices not available at this stage)
     ]
 
     for fx_col, out_col in pairs:
@@ -519,6 +519,38 @@ def calculate_oil_correlation(master):
         else:
             print(f"    {fx_col:<8}: no data")
 
+    return master
+
+
+# -- step 3.7: key support/resistance levels ------------------------------------
+
+def calculate_key_levels(master):
+    """Calculate rolling support/resistance key levels (Phase 11 foundation).
+
+    Uses rolling high/low windows on daily close prices as S/R proxies:
+      S3 / R3 = 90-day rolling low / high  (strong structural level)
+      S2 / R2 = 63-day rolling low / high  (medium-term quarterly level)
+      S1 / R1 = 20-day rolling low / high  (short-term monthly level)
+
+    Output columns: {pair}_S1 ... {pair}_R3  (for EURUSD and USDJPY)
+    """
+    print("\n[LEVELS] calculating rolling key support/resistance levels...")
+    for pair in ["EURUSD", "USDJPY"]:
+        if pair not in master.columns:
+            continue
+        px       = master[pair]
+        decimals = 4 if pair == "EURUSD" else 2
+        master[f"{pair}_S1"] = px.rolling(20, min_periods=10).min().round(decimals)
+        master[f"{pair}_S2"] = px.rolling(63, min_periods=30).min().round(decimals)
+        master[f"{pair}_S3"] = px.rolling(90, min_periods=45).min().round(decimals)
+        master[f"{pair}_R1"] = px.rolling(20, min_periods=10).max().round(decimals)
+        master[f"{pair}_R2"] = px.rolling(63, min_periods=30).max().round(decimals)
+        master[f"{pair}_R3"] = px.rolling(90, min_periods=45).max().round(decimals)
+        latest = master[[f"{pair}_S1", f"{pair}_R1"]].dropna()
+        if len(latest) > 0:
+            row = latest.iloc[-1]
+            print(f"    {pair}: S1={row[f'{pair}_S1']:.{decimals}f}  "
+                  f"R1={row[f'{pair}_R1']:.{decimals}f}")
     return master
 
 
@@ -756,6 +788,7 @@ def main():
     master       = calculate_regime_correlation(master)
     master       = calculate_oil_correlation(master)
     master       = calculate_dxy_correlation(master)
+    master       = calculate_key_levels(master)
     master       = calculate_changes(master)
 
     save_data(master)

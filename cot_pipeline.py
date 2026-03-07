@@ -298,7 +298,7 @@ def merge_with_master(cot_df):
         return
 
     master    = pd.read_csv(master_path, index_col=0, parse_dates=True)
-    cot_daily = cot_df.reindex(master.index, method='ffill')
+    cot_daily = cot_df.reindex(master.index).ffill()
 
     for col in cot_daily.columns:
         master[col] = cot_daily[col]

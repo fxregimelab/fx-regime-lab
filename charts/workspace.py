@@ -21,7 +21,7 @@ SERIES_CATALOGUE = [
     # FX Prices
     ("EURUSD",               "EUR/USD",          "FX Prices",    "price",  "#4da6ff"),
     ("USDJPY",               "USD/JPY",          "FX Prices",    "price",  "#ff9944"),
-    ("USDINR",               "USD/INR",          "FX Prices",    "price",  "#c084fc"),
+    ("USDINR",               "USD/INR",          "FX Prices",    "price",  "#e74c3c"),
     ("DXY",                  "DXY",              "FX Prices",    "price",  "#e2e2e2"),
     # Commodities
     ("Brent",                "Brent ($/bbl)",    "Commodities",  "price",  "#f0a500"),

@@ -960,14 +960,14 @@ def build_cross_asset_chart(pair):
             corr_oil_col='oil_usdjpy_corr_60d',
             corr_dxy_col='dxy_usdjpy_corr_60d',
             fx_col='USDJPY',
-            fx_color='#4da6ff',
+            fx_color='#ff9944',
             fx_label='USD/JPY',
         ),
         'usdinr': dict(
             corr_oil_col='oil_inr_corr_60d',
             corr_dxy_col='dxy_inr_corr_60d',
             fx_col='USDINR',
-            fx_color='#c084fc',
+            fx_color='#e74c3c',
             fx_label='USD/INR',
         ),
     }
@@ -1167,148 +1167,3 @@ def build_cross_asset_chart(pair):
     return fig
 
 
-# ============================================================================
-# FUNCTION 3: build_vol_chart(pair)
-# ============================================================================
-
-def build_vol_chart(pair):
-    """Build volatility chart for eurusd or usdjpy only."""
-    
-    if pair == 'usdinr':
-        raise ValueError("build_vol_chart() does not support 'usdinr'")
-    
-    # Configuration
-    configs = {
-        'eurusd': dict(
-            vol_col='EURUSD_vol30',
-            pct_col='EURUSD_vol_pct',
-            color='#4da6ff',
-            fill_color='rgba(77,166,255,0.12)',
-            other_vol='USDJPY_vol30',
-            other_label='USD/JPY'
-        ),
-        'usdjpy': dict(
-            vol_col='USDJPY_vol30',
-            pct_col='USDJPY_vol_pct',
-            color='#ff9944',
-            fill_color='rgba(255,153,68,0.12)',
-            other_vol='EURUSD_vol30',
-            other_label='EUR/USD'
-        )
-    }
-    
-    cfg = configs[pair]
-    PAIR = pair.upper()
-    
-    # Load data
-    d, cutoff, today = _load_and_filter(pair)
-    d = d[d[cfg['vol_col']].notna()]
-
-
-def debug_data():
-    df = pd.read_csv('data/latest_with_cot.csv', 
-                     index_col=0, parse_dates=True)
-    print("=== RAW INDEX INFO ===")
-    print(f"Index dtype: {df.index.dtype}")
-    print(f"Index type: {type(df.index[0])}")
-    print(f"First 3 index values: {df.index[:3].tolist()}")
-    print(f"Last 3 index values: {df.index[-3:].tolist()}")
-    print(f"Total rows: {len(df)}")
-    print(f"EURUSD min: {df['EURUSD'].min()}, max: {df['EURUSD'].max()}")
-    print(f"EURUSD null count: {df['EURUSD'].isnull().sum()}")
-    
-    today = pd.Timestamp.today().normalize()
-    cutoff = today - pd.DateOffset(months=12)
-    print(f"\n=== FILTER TEST ===")
-    print(f"Today: {today}")
-    print(f"Cutoff: {cutoff}")
-    
-    df.index = pd.to_datetime(df.index, utc=False).tz_localize(None)
-    df.index = df.index.normalize()
-    
-    d = df[df.index >= cutoff].copy()
-    print(f"Rows after 12M filter: {len(d)}")
-    print(f"Filtered EURUSD min: {d['EURUSD'].min():.4f}")
-    print(f"Filtered EURUSD max: {d['EURUSD'].max():.4f}")
-    print(f"Filtered date range: {d.index[0]} to {d.index[-1]}")
-    
-    if len(d) > 0:
-        print(f"\nFirst 3 filtered dates: {d.index[:3].tolist()}")
-        print(f"Last 3 filtered dates: {d.index[-3:].tolist()}")
-    
-    print(f"\nCutoff as Timestamp: {cutoff}")
-    print(f"xaxis range would be: [{cutoff}, {today}]")
-
-
-if __name__ == '__main__':
-    debug_data()
-    
-    # Generate prototype charts
-    from create_charts_plotly import (
-        build_fundamentals_chart,
-        build_positioning_chart,
-        build_vol_correlation_chart
-    )
-    import plotly.io as pio
-    
-    # Generate all charts
-    charts = [
-        ('eurusd', build_fundamentals_chart('eurusd'), 'proto_eurusd_fundamentals.html'),
-        ('usdjpy', build_fundamentals_chart('usdjpy'), 'proto_usdjpy_fundamentals.html'),
-        ('usdinr', build_fundamentals_chart('usdinr'), 'proto_usdinr_fundamentals.html'),
-        ('eurusd', build_positioning_chart('eurusd'), 'proto_eurusd_positioning.html'),
-        ('usdjpy', build_positioning_chart('usdjpy'), 'proto_usdjpy_positioning.html'),
-        ('eurusd', build_vol_correlation_chart('eurusd'), 'proto_eurusd_vol_correlation.html'),
-        ('usdjpy', build_vol_correlation_chart('usdjpy'), 'proto_usdjpy_vol_correlation.html'),
-    ]
-    
-    for pair, fig, fname in charts:
-        if fig is not None:
-            print(f"Generating {fname}...")
-            pio.write_html(fig, fname, auto_open=False)
-    
-    print("Done!")
-
-
-def debug_fig_data():
-    d, cutoff, today = _load_and_filter()
-    
-    # Check what data is actually being passed to traces
-    print("=== DATA CHECK ===")
-    print(f"Rows in filtered data: {len(d)}")
-    print(f"EURUSD first value: {d['EURUSD'].iloc[0]:.4f}")
-    print(f"EURUSD last value: {d['EURUSD'].iloc[-1]:.4f}")
-    print(f"EURUSD_vol30 col exists: {'EURUSD_vol30' in d.columns}")
-    if 'EURUSD_vol30' in d.columns:
-        vol = d['EURUSD_vol30'].dropna()
-        print(f"Vol values range: {vol.min():.4f} to {vol.max():.4f}")
-        print(f"Vol first non-null: {vol.iloc[0]:.4f}")
-    
-    print(f"\nEUR_net_pos col exists: {'EUR_net_pos' in d.columns}")
-    if 'EUR_net_pos' in d.columns:
-        net = d['EUR_net_pos'].dropna()
-        print(f"Net pos range: {net.min():,.0f} to {net.max():,.0f}")
-    
-    # Build one fig and inspect its actual trace data
-    fig = build_fundamentals_chart('eurusd')
-    print("\n=== FIGURE TRACE DATA ===")
-    for i, trace in enumerate(fig.data):
-        if hasattr(trace, 'y') and trace.y is not None:
-            y_arr = list(trace.y)
-            non_none = [v for v in y_arr if v is not None]
-            print(f"Trace {i} ({trace.name}): {len(y_arr)} points, "
-                  f"first={non_none[0] if non_none else 'empty'}, "
-                  f"last={non_none[-1] if non_none else 'empty'}")
-        if hasattr(trace, 'x') and trace.x is not None:
-            x_arr = list(trace.x)
-            print(f"  x range: {x_arr[0]} to {x_arr[-1]}")
-    
-    print("\n=== LAYOUT AXES ===")
-    layout_dict = fig.to_dict()['layout']
-    for key in layout_dict:
-        if 'axis' in key and 'range' in str(layout_dict[key]):
-            print(f"  {key}: {layout_dict[key]}")
-
-
-if __name__ == '__main__':
-    debug_fig_data()
