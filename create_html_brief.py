@@ -1000,9 +1000,14 @@ import shutil
 def load_latest_brief_data():
     """Load the most recent HTML brief as the base template."""
     brief_files = sorted(glob.glob('briefs/brief_*.html'))
-    if not brief_files:
-        return None
-    return brief_files[-1]
+    if brief_files:
+        return brief_files[-1]
+    # Fallback for GitHub Actions: briefs/ is gitignored so index.html
+    # (the previously deployed brief) is the only available template.
+    if os.path.exists('index.html'):
+        print("No briefs found in briefs/ — using index.html as template")
+        return 'index.html'
+    return None
 
 def generate_html_brief():
     """Generate complete HTML brief with charts embedded as iframes."""
@@ -1013,6 +1018,12 @@ def generate_html_brief():
 
     with open(brief_file, 'r', encoding='utf-8') as f:
         html_content = f.read()
+
+    # index.html has iframe paths patched to src="charts/" (repo root);
+    # briefs/*.html use src="../charts/" (one level up). Reverse the patch
+    # so downstream inject/deploy steps work consistently.
+    if brief_file == 'index.html':
+        html_content = html_content.replace('src="charts/', 'src="../charts/')
 
     import re as _re
 

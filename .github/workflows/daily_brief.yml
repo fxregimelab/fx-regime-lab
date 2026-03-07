@@ -2,7 +2,7 @@ name: Daily FX Brief
 
 on:
   schedule:
-    # 23:00 UTC = ~18:30 IST = 30 min after NY close (22:30 UTC Mon-Fri)
+    # 23:00 UTC = 04:30 IST (next morning) = 30 min after NY close (22:30 UTC Mon-Fri)
     - cron: '0 23 * * 1-5'
   workflow_dispatch:   # allow manual trigger from GitHub UI
 
