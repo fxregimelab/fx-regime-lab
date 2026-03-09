@@ -1010,7 +1010,7 @@ body { background: #0a0e1a !important; }
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 4px;
+    margin-bottom: 0;
 }
 .lp-logo-mark {
     height: 28px;
@@ -1088,7 +1088,7 @@ body { background: #0a0e1a !important; }
 .badge-neutral-card { background: #1d2235 !important; color: #888 !important; }
 
 /* 11. Wordmark image sizing */
-.lp-wordmark { height: 40px; width: auto; display: block; margin-bottom: 6px; }
+.lp-wordmark { height: 56px; width: auto; display: block; margin-bottom: 10px; }
 /* end brand-v2 */'''
     html_content = _rb.sub(
         r'</style>\s*</head>',
