@@ -244,7 +244,8 @@ def _fetch_mof_yields():
         # drop rows where Date is not a valid date (footer text, blank rows)
         df = df[df["Date"].astype(str).str.match(r"^\d{4}/\d{1,2}/\d{1,2}$", na=False)]
 
-        df["Date"] = pd.to_datetime(df["Date"], format="%Y/%m/%d")
+        df["Date"] = pd.to_datetime(df["Date"], format="%Y/%m/%d", errors="coerce")
+        df = df.dropna(subset=["Date"])
         df = df.drop_duplicates(subset=["Date"], keep="last")
         df = df.sort_values("Date").set_index("Date")
         df.index.name = "date"

@@ -10,6 +10,7 @@ Called by:
 
 import json
 import math
+import html as _html
 import pandas as pd
 from core.paths import LATEST_WITH_COT_CSV
 
@@ -77,7 +78,7 @@ def _build_data_json(df):
     for col in available:
         vals = df[col].tolist()
         # Replace NaN with null for JSON
-        series[col] = [None if (isinstance(v, float) and math.isnan(v)) else round(v, 6) for v in vals]
+        series[col] = [None if pd.isna(v) else round(float(v), 6) for v in vals]
 
     meta = {}
     for col, label, group, axis_type, color in SERIES_CATALOGUE:
@@ -137,8 +138,8 @@ def build_workspace_html(pair=None):
     sidebar_html = _build_sidebar_html(pair, available_cols)
     options_html = _build_options_html(available_cols)
 
-    date_from = df.index[0] if len(df) > 0 else ''
-    date_to   = df.index[-1] if len(df) > 0 else ''
+    date_from = _html.escape(str(df.index[0]), quote=True) if len(df) > 0 else ''
+    date_to   = _html.escape(str(df.index[-1]), quote=True) if len(df) > 0 else ''
 
     title = {
         'eurusd': 'EUR/USD · Analysis Workspace',
@@ -169,7 +170,7 @@ def build_workspace_html(pair=None):
     html = f'''<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>{title}</title>
-<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" crossorigin="anonymous"></script>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{background:#0d0d0d;color:#cccccc;font-family:'Inter',system-ui,sans-serif;font-size:12px;height:100vh;display:flex;flex-direction:column;overflow:hidden}}

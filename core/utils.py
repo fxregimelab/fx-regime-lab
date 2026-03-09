@@ -67,9 +67,27 @@ def _net(val):
 # ── file helpers ─────────────────────────────────────────────────────────────
 
 def embed_image(filepath):
-    """Return a base64 data URI for an image file, or '' if not found."""
-    if not os.path.exists(filepath):
+    """Return a base64 data URI for an image file, or '' if not found.
+    Only serves files within the repository root to prevent path traversal.
+    """
+    try:
+        abs_path = os.path.realpath(os.path.abspath(filepath))
+        repo_root = os.path.realpath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        # Block access outside the repo directory
+        if not abs_path.startswith(repo_root + os.sep) and abs_path != repo_root:
+            return ""
+    except Exception:
         return ""
-    with open(filepath, 'rb') as f:
-        data = base64.b64encode(f.read()).decode('utf-8')
-    return f"data:image/png;base64,{data}"
+    if not os.path.exists(abs_path):
+        return ""
+    ext = os.path.splitext(filepath)[1].lower().lstrip('.')
+    mime = {
+        'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+        'gif': 'image/gif', 'svg': 'image/svg+xml',
+    }.get(ext, 'image/png')
+    try:
+        with open(abs_path, 'rb') as f:
+            data = base64.b64encode(f.read()).decode('utf-8')
+        return f"data:{mime};base64,{data}"
+    except Exception:
+        return ""

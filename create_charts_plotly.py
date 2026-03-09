@@ -191,7 +191,7 @@ def build_eurusd_fundamentals_prototype():
     ]
 
     fig.update_layout(
-        annotations=fig.layout.annotations + tuple(inline_annotations) + tuple(subplot_titles)
+        annotations=(fig.layout.annotations or ()) + tuple(inline_annotations) + tuple(subplot_titles)
     )
 
     return fig
@@ -343,6 +343,8 @@ def build_fundamentals_chart(pair):
     fig.update_yaxes(range=[s_min - s_pad, s_max + s_pad], row=2, col=1)
     
     # --- Inline end-labels ---
+    if d.empty:
+        return fig
     last_x = d.index[-1]
     inline_annotations = []
     
@@ -395,7 +397,7 @@ def build_fundamentals_chart(pair):
     ]
     
     fig.update_layout(
-        annotations=fig.layout.annotations + tuple(inline_annotations) + tuple(panel_titles)
+        annotations=(fig.layout.annotations or ()) + tuple(inline_annotations) + tuple(panel_titles)
     )
     
     return fig
@@ -587,6 +589,8 @@ def build_positioning_chart(pair):
     fig.update_yaxes(autorange=True, row=2, col=1, secondary_y=False)
     
     # --- Annotations ---
+    if d.empty:
+        return fig
     last_x = d.index[-1]
     
     # Subplot 1: Leveraged Money values
@@ -707,7 +711,7 @@ def build_positioning_chart(pair):
     ]
     
     fig.update_layout(
-        annotations=fig.layout.annotations + tuple(inline_annotations) + tuple(panel_titles)
+        annotations=(fig.layout.annotations or ()) + tuple(inline_annotations) + tuple(panel_titles)
     )
     
     return fig
@@ -932,7 +936,7 @@ def build_vol_correlation_chart(pair):
     ]
     
     fig.update_layout(
-        annotations=fig.layout.annotations + tuple(inline_annotations) + tuple(panel_titles)
+        annotations=(fig.layout.annotations or ()) + tuple(inline_annotations) + tuple(panel_titles)
     )
     
     return fig

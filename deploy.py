@@ -36,6 +36,9 @@ def deploy():
     with open(BRIEF_SOURCE_FINAL, 'r', encoding='utf-8') as f:
         html = f.read()
     html = html.replace('src="../charts/', 'src="charts/')
+    if '<html' not in html or '</html>' not in html:
+        print("ERROR: brief HTML appears corrupted (missing <html> tags) — aborting deploy")
+        return
     with open(DEPLOY_TARGET, 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"copied {BRIEF_SOURCE_FINAL} -> {DEPLOY_TARGET} (patched iframe paths)")

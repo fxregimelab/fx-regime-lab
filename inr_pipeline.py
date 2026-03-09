@@ -141,7 +141,10 @@ def _fbil_history(start_date: str = START_DATE) -> pd.DataFrame:
     with ThreadPoolExecutor(max_workers=20) as pool:
         futures = {pool.submit(_fetch_one, d): d for d in new_days}
         for fut in as_completed(futures):
-            result = fut.result()
+            try:
+                result = fut.result()
+            except Exception:
+                result = None
             if result is not None:
                 records.append(result)
             else:

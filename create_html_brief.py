@@ -1,6 +1,7 @@
 import os
 import glob
 import math
+import html as _html
 import pandas as pd
 import numpy as np
 import sys
@@ -334,7 +335,7 @@ def inject_live_card_data(html_content, _re):
             '<div class="brief-section regime-read">\n          '
             '<div class="brief-label regime-toggle">REGIME READ '
             '<span class="regime-arrow">\u25b6</span></div>\n          '
-            f'<div class="brief-text">{regime_text}</div>\n        </div>'
+            f'<div class="brief-text">{_html.escape(regime_text)}</div>\n        </div>'
         )
 
         new_brief_left = ('\n      <div class="brief-left">\n\n'
@@ -505,7 +506,10 @@ def inject_landing_page(html_content, _re):
 
     def _g(col, default=float('nan')):
         v = row.get(col, default)
-        return float(v) if not isinstance(v, float) else v
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return default
 
     def _chg_span(pct, big=False):
         if math.isnan(pct): return '\u2014'
@@ -527,7 +531,7 @@ def inject_landing_page(html_content, _re):
         return f'{pct:.0f}th %ile', 'badge-neutral'
 
     def _vol_badge(pct):
-        if math.isnan(pct): return '\u2014%', '\u2014', 'badge-neutral', 'NORMAL'
+        if math.isnan(pct): return '\u2014', 'badge-neutral', 'NORMAL'
         if pct >= 90: return f'{pct:.0f}th %ile', 'badge-danger', 'EXTREME'
         if pct >= 75: return f'{pct:.0f}th %ile', 'badge-warning', 'ELEVATED'
         return f'{pct:.0f}th %ile', 'badge-neutral', 'NORMAL'
