@@ -420,6 +420,9 @@ def calculate_regime_correlation(master):
             .rank(pct=True) * 100
         )
 
+        # 20-day rolling correlation (Phase 3 dual-window)
+        master["EURUSD_corr_20d"] = spread_chg.rolling(window=20).corr(fx_ret)
+
     # USD/JPY: correlation between US_JP_10Y_spread daily change and USDJPY daily % change
     if "US_JP_10Y_spread" in master.columns and "USDJPY" in master.columns:
         # daily change in spread (pp)
@@ -439,12 +442,23 @@ def calculate_regime_correlation(master):
             .rank(pct=True) * 100
         )
 
+        # 20-day rolling correlation (Phase 3 dual-window)
+        master["USDJPY_corr_20d"] = spread_chg.rolling(window=20).corr(fx_ret)
+
     # print summary
-    for pair, col in [("EURUSD", "EURUSD_spread_corr_60d"), ("USDJPY", "USDJPY_spread_corr_60d")]:
-        if col not in master.columns:
+    for pair, col60, col20 in [
+        ("EURUSD", "EURUSD_spread_corr_60d", "EURUSD_corr_20d"),
+        ("USDJPY", "USDJPY_spread_corr_60d", "USDJPY_corr_20d"),
+    ]:
+        if col60 not in master.columns:
             continue
-        c = master[col].dropna().iloc[-1]
-        print(f"    {pair}: {c:>+.3f} correlation")
+        c60 = master[col60].dropna().iloc[-1]
+        label_20 = ''
+        if col20 in master.columns and len(master[col20].dropna()) > 0:
+            c20 = master[col20].dropna().iloc[-1]
+            div_flag = '  REGIME TRANSITION' if abs(c60 - c20) > 0.3 else ''
+            label_20 = f'  /  20D:{c20:>+.3f}{div_flag}'
+        print(f"    {pair}: 60D:{c60:>+.3f}{label_20}")
 
     return master
 

@@ -537,6 +537,7 @@ def build_vol_correlation_chart(pair):
             vol_col='EURUSD_vol30',
             pct_col='EURUSD_vol_pct',
             corr_col='EURUSD_spread_corr_60d',
+            corr_20d_col='EURUSD_corr_20d',
             corr_name='Regime Corr (60D)',
             color='#4da6ff',
             fill_color='rgba(77,166,255,0.12)',
@@ -547,6 +548,7 @@ def build_vol_correlation_chart(pair):
             vol_col='USDJPY_vol30',
             pct_col='USDJPY_vol_pct',
             corr_col='USDJPY_spread_corr_60d',
+            corr_20d_col='USDJPY_corr_20d',
             corr_name='Regime Corr (60D)',
             color='#ff9944',
             fill_color='rgba(255,153,68,0.12)',
@@ -557,6 +559,7 @@ def build_vol_correlation_chart(pair):
             vol_col='USDINR_vol30',
             pct_col='USDINR_vol_pct',
             corr_col='oil_inr_corr_60d',
+            corr_20d_col=None,
             corr_name='Oil Corr (60D)',
             color='#e74c3c',
             fill_color='rgba(231,76,60,0.12)',
@@ -634,8 +637,25 @@ def build_vol_correlation_chart(pair):
         ),
         row=2, col=1,
     )
-    
-    # Correlation zone fills (FIXED - only extreme zones)
+
+    # 20D correlation trace (Phase 3 dual-window)
+    _corr_20d_col = cfg.get('corr_20d_col')
+    if _corr_20d_col and _corr_20d_col in d.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=d.index,
+                y=d[_corr_20d_col],
+                mode='lines',
+                line=dict(color='#aaaaaa', width=1.0, dash='dash'),
+                opacity=0.5,
+                name='Regime Corr (20D)',
+                showlegend=True,
+                hovertemplate='%{x|%d %b %Y}<br>%{y:.3f}<extra></extra>',
+            ),
+            row=2, col=1,
+        )
+
+    # Correlation zone fills(FIXED - only extreme zones)
     fig.add_hrect(y0=0.6, y1=1.0, fillcolor='rgba(0,212,170,0.04)', 
                   line_width=0, row=2, col=1)
     fig.add_hrect(y0=-1.0, y1=0.3, fillcolor='rgba(255,68,68,0.04)', 
@@ -733,7 +753,7 @@ def build_vol_correlation_chart(pair):
             showarrow=False,
         ),
         dict(
-            text="REGIME CORRELATION (60D ROLLING)",
+            text="REGIME CORRELATION (60D / 20D)",
             x=0.01, y=0.35,
             xref='paper', yref='paper',
             xanchor='left', yanchor='top',

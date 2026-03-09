@@ -162,6 +162,18 @@ def inject_live_card_data(html_content, _re, df=None):
                 f'<span></span>'
                 f'<span class="badge-mini {bdg_cls}">{bdg_lbl}</span></div>\n          ')
 
+    def _corr_row_20d(corr_val):
+        corr_str, color, bdg_cls, bdg_lbl = _corr_badge(corr_val)
+        return (f'<div class="brief-row"><span class="name">20D Corr</span>'
+                f'<span class="pct" style="color:{color}">{corr_str}</span>'
+                f'<span></span>'
+                f'<span class="badge-mini {bdg_cls}">{bdg_lbl}</span></div>\n          ')
+
+    def _regime_transition_row():
+        return ('<div class="brief-row"><span style="color:#f0a500;font-size:0.58rem;'
+                'letter-spacing:0.05em">REGIME TRANSITION \u2014 20D diverging from 60D'
+                '</span></div>\n          ')
+
     def _field_row(label, field, pair_key, is_oil):
         raw = _g(field)
         if math.isnan(raw):
@@ -198,6 +210,7 @@ def inject_live_card_data(html_content, _re, df=None):
             cot_am_net='EUR_assetmgr_net', cot_am_pctoi='EUR_assetmgr_pct_oi', cot_am_pct='EUR_assetmgr_percentile',
             vol_col='EURUSD_vol30', vol_pct_col='EURUSD_vol_pct',
             corr_col='EURUSD_spread_corr_60d',
+            corr_20d_col='EURUSD_corr_20d',
             oil_field='oil_eurusd_corr_60d', oil_pair='EURUSD',
             dxy_field='dxy_eurusd_corr_60d', dxy_pair='EURUSD',
         ),
@@ -212,6 +225,7 @@ def inject_live_card_data(html_content, _re, df=None):
             cot_am_net='JPY_assetmgr_net', cot_am_pctoi='JPY_assetmgr_pct_oi', cot_am_pct='JPY_assetmgr_percentile',
             vol_col='USDJPY_vol30', vol_pct_col='USDJPY_vol_pct',
             corr_col='USDJPY_spread_corr_60d',
+            corr_20d_col='USDJPY_corr_20d',
             oil_field='oil_usdjpy_corr_60d', oil_pair='USDJPY',
             dxy_field='dxy_usdjpy_corr_60d', dxy_pair='USDJPY',
         ),
@@ -226,6 +240,7 @@ def inject_live_card_data(html_content, _re, df=None):
             cot_am_net=None,  cot_am_pctoi=None,  cot_am_pct=None,
             vol_col='USDINR_vol30', vol_pct_col='USDINR_vol_pct',
             corr_col=None,
+            corr_20d_col=None,
             oil_field='oil_inr_corr_60d', oil_pair='USDINR',
             dxy_field='dxy_inr_corr_60d', dxy_pair='USDINR',
         ),
@@ -294,10 +309,15 @@ def inject_live_card_data(html_content, _re, df=None):
 
         vol_val  = _g(cfg['vol_col'])
         vol_pct  = _g(cfg['vol_pct_col'])
-        corr_val = _g(cfg['corr_col']) if cfg['corr_col'] else float('nan')
+        corr_val     = _g(cfg['corr_col'])       if cfg['corr_col']            else float('nan')
+        corr_20d_val = _g(cfg['corr_20d_col']) if cfg.get('corr_20d_col') else float('nan')
         vc = _vol_row(vol_val, vol_pct)
         if cfg['corr_col']:
             vc += _corr_row(corr_val)
+        if cfg.get('corr_20d_col') and not math.isnan(corr_20d_val):
+            vc += _corr_row_20d(corr_20d_val)
+            if not math.isnan(corr_val) and abs(corr_20d_val - corr_val) > 0.3:
+                vc += _regime_transition_row()
         vc += _field_row('Oil corr 60D', cfg['oil_field'], cfg['oil_pair'], is_oil=True)
         vc += _field_row('DXY corr 60D', cfg['dxy_field'], cfg['dxy_pair'], is_oil=False)
         vol_section = (f'<div class="brief-section">\n          '
@@ -349,7 +369,7 @@ def inject_live_card_data(html_content, _re, df=None):
         bl_idx = card_html.find('<div class="brief-left">')
         br_idx = card_html.find('<div class="brief-right">')
         if bl_idx != -1 and br_idx != -1:
-            card_html = (card_html[:bl_idx]
+            card_html = (card_html[:bl_idx].rstrip()
                          + new_brief_left
                          + '\n\n      '
                          + card_html[br_idx:])
@@ -478,7 +498,7 @@ def inject_landing_page(html_content, _re, df=None):
     # Remove any existing landing div so we can inject a fresh one with current data
     # Match the full landing block: from <!-- LANDING PAGE --> to the closing </div> + blank line
     html_content = _re.sub(
-        r'<!-- LANDING PAGE -->\n<div id="landing">[\s\S]*?<div class="lp-nav-hint">[\s\S]*?</div>\n</div>\n+',
+        r'<!-- LANDING PAGE -->\n<div id="landing">[\s\S]*?<div class="(?:lp-nav-hint|brand-footer)">[\s\S]*?</div>\n</div>\n+',
         '',
         html_content,
     )
@@ -619,23 +639,25 @@ def inject_landing_page(html_content, _re, df=None):
     brent_str      = f'${brent_val:.2f}' if not math.isnan(brent_val) else '\u2014'
     gold_str       = f'${gold_val:,.0f}' if not math.isnan(gold_val) else '\u2014'
 
-    def _ticker_item(label, price, chg_col):
+    def _ticker_item(label, price, chg_col, pair_color=None, extra_class=''):
         chg = _g(chg_col)
+        price_style = f' style="color:{pair_color}"' if pair_color else ''
+        css_cls = ('lp-ticker-item ' + extra_class).strip() if extra_class else 'lp-ticker-item'
         return (
-            f'<div class="lp-ticker-item">'
+            f'<div class="{css_cls}">'
             f'<span class="lp-ticker-label">{label}</span>'
-            f'<span class="lp-ticker-price">{price}</span>'
+            f'<span class="lp-ticker-price"{price_style}>{price}</span>'
             f'{_chg_span(chg)}'
             f'</div>'
         )
 
     ticker_html = (
         _ticker_item('DXY', dxy_str, 'DXY_chg_1D') +
-        _ticker_item('EUR/USD', eur_price, 'EURUSD_chg_1D') +
-        _ticker_item('USD/JPY', jpy_price, 'USDJPY_chg_1D') +
-        _ticker_item('USD/INR', inr_price, 'USDINR_chg_1D') +
-        _ticker_item('Brent', brent_str, 'Brent_chg_1D') +
-        _ticker_item('Gold', gold_str, 'Gold_chg_1D')
+        _ticker_item('EUR/USD', eur_price, 'EURUSD_chg_1D', pair_color='#4da6ff') +
+        _ticker_item('USD/JPY', jpy_price, 'USDJPY_chg_1D', pair_color='#ff9944') +
+        _ticker_item('USD/INR', inr_price, 'USDINR_chg_1D', pair_color='#e74c3c') +
+        _ticker_item('Brent', brent_str, 'Brent_chg_1D', extra_class='lp-ticker-item--cross') +
+        _ticker_item('Gold', gold_str, 'Gold_chg_1D', extra_class='lp-ticker-item--cross')
     )
 
     def _pair_card(pair_id, color, display, price_str, chg_1d, chg_12m,
@@ -697,13 +719,17 @@ def inject_landing_page(html_content, _re, df=None):
                           inr_sp10_str, inr_sp10_dir, inr_sp10_col, inr_rows,
                           spread_label='US 2Y\u2013IN 10Y (cross)')
 
+    logo_src = embed_image(os.path.join('logos', 'logo without bg.png'))
+    logo_img = f'<img src="{logo_src}" class="lp-logo-mark" alt="FX Regime Lab">' if logo_src else ''
     from config import TODAY_FMT
     landing_html = f'''<!-- LANDING PAGE -->
 <div id="landing">
   <div class="lp-header">
     <div class="lp-title-block">
-      <div class="lp-framework-label">G10 FX REGIME DETECTION FRAMEWORK</div>
-      <div class="lp-date">Morning Brief &mdash; {TODAY_FMT}</div>
+      <div class="lp-logo-row">{logo_img}<span class="lp-brand-name">FX REGIME LAB</span></div>
+      <div class="lp-framework-label">G10 FX Regime Detection Framework</div>
+      <div class="lp-morning-brief">Morning Brief</div>
+      <div class="lp-date">{TODAY_FMT}</div>
       <div class="lp-meta">FX as of: {date_str} &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: {in10y_date_str} &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: {cot_cutoff_str} (pub&apos;d: {cot_published_str}) &nbsp;&nbsp;|&nbsp;&nbsp; run: {pd.Timestamp.now().strftime("%d %b %Y %H:%M")} IST</div>
     </div>
     <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
@@ -714,7 +740,7 @@ def inject_landing_page(html_content, _re, df=None):
     {jpy_card}
     {inr_card}
   </div>
-  <div class="lp-nav-hint">&#8595; scroll to pair detail</div>
+  <div class="brand-footer">FX Regime Lab &middot; fxregimelab.substack.com &middot; Updated daily</div>
 </div>
 
 '''
@@ -800,7 +826,7 @@ def inject_bottom_nav(html_content):
 
 def inject_landing_css(html_content):
     """Inject landing page CSS (idempotent)."""
-    if '/* lp-css-v3 */' in html_content:
+    if '/* lp-css-v4 */' in html_content:
         return html_content
     import re as _recss
     # Strip any prior versioned lp-css block to avoid duplication
@@ -816,7 +842,7 @@ def inject_landing_css(html_content):
         '',
         html_content,
     )
-    lp_css = '''/* lp-css-v3 */
+    lp_css = '''/* lp-css-v4 */
 /* ---- landing page ---- */
 #landing {
     height: 100vh; scroll-snap-align: start;
@@ -829,23 +855,24 @@ def inject_landing_css(html_content):
     margin-bottom: 16px; flex-shrink: 0;
 }
 .lp-framework-label {
-    font-size: 9px; letter-spacing: 0.2em; color: #444;
+    font-size: 9px; letter-spacing: 0.2em; color: #888;
     text-transform: uppercase; margin-bottom: 4px;
 }
 .lp-date { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
 .lp-meta { font-size: 10px; color: #555; }
 .lp-ws-btn {
     display: inline-block; padding: 8px 16px;
-    background: #1a1a1a; border: 1px solid #333;
-    color: #888; font-size: 9px; letter-spacing: 0.15em;
+    background: #0a0e1a; border: 1px solid #4da6ff;
+    color: #ffffff; font-size: 9px; letter-spacing: 0.15em;
     text-transform: uppercase; text-decoration: none;
     border-radius: 3px; flex-shrink: 0; align-self: center;
-    transition: color 0.15s, border-color 0.15s;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.lp-ws-btn:hover { color: #fff; border-color: #555; }
+.lp-ws-btn:hover { color: #4da6ff; border-color: #4da6ff; background: rgba(77,166,255,0.08); }
 .lp-ticker-bar {
     display: flex; gap: 0; flex-shrink: 0;
     background: #111; border: 1px solid #1e1e1e;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
     border-radius: 4px; padding: 8px 16px;
     margin-bottom: 20px; overflow: hidden;
 }
@@ -911,6 +938,142 @@ def inject_landing_css(html_content):
     html_content = _recss.sub(
         r'</style>\s*</head>',
         lp_css + '\n</style>\n</head>',
+        html_content,
+        count=1,
+    )
+    return html_content
+
+
+def inject_brand_css(html_content):
+    """Inject brand identity CSS overrides (idempotent — guard: /* brand-v1 */).
+
+    Covers:
+    - Background unification to #0a0e1a deep navy
+    - Pair label (.ch-pair) colors on detail cards
+    - Card top border in pair brand colors
+    - Status badge solid fills (BROKEN/ELEVATED/EXTREME/NORMAL)
+    - Logo row + brand-name typography
+    - Morning Brief masthead hierarchy
+    - Brand footer line
+    - Nav active state per pair brand color
+    - Cross-asset ticker visual separation (Brent, Gold)
+    """
+    if '/* brand-v1 */' in html_content:
+        return html_content
+    import re as _rb
+    brand_css = '''/* brand-v1 */
+/* ---- brand identity overrides ---- */
+
+/* 1. Deep navy background throughout */
+body { background: #0a0e1a !important; }
+#landing { background: #0a0e1a !important; }
+.brief-right { background: #0a0e1a !important; }
+.workspace-snap { background: #0a0e1a !important; }
+.lp-spread-row { background: #0a0e1a !important; }
+.lp-drilldown { background: #0a0e1a !important; }
+.lp-pair-card { background: #111827 !important; }
+
+/* 2. Pair label colors on detail card headers */
+#card-eurusd .ch-pair { color: #4da6ff !important; }
+#card-usdjpy .ch-pair { color: #ff9944 !important; }
+#card-usdinr .ch-pair { color: #e74c3c !important; }
+
+/* 3. Card top border in pair brand colors */
+#card-eurusd { border-top: 3px solid #4da6ff !important; }
+#card-usdjpy { border-top: 3px solid #ff9944 !important; }
+#card-usdinr { border-top: 3px solid #e74c3c !important; }
+
+/* 4. Status badge solid fills — pill shape preserved from badge-mini base */
+.badge-mini.badge-danger {
+    background: rgba(231, 76, 60, 0.85) !important;
+    color: #ffffff !important;
+    border-color: #e74c3c !important;
+}
+.badge-mini.badge-warning {
+    background: rgba(255, 153, 68, 0.85) !important;
+    color: #000000 !important;
+    border-color: #ff9944 !important;
+}
+.badge-mini.badge-success {
+    background: rgba(46, 204, 113, 0.22) !important;
+    color: #2ecc71 !important;
+    border-color: rgba(46, 204, 113, 0.45) !important;
+}
+.badge-mini.badge-neutral {
+    background: #1d2235 !important;
+    color: #6b7894 !important;
+    border-color: #2a3050 !important;
+}
+
+/* 5. Logo row layout */
+.lp-logo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+.lp-logo-mark {
+    height: 28px;
+    width: auto;
+    display: block;
+    flex-shrink: 0;
+}
+.lp-brand-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    font-family: \'Inter\', system-ui, -apple-system, sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+/* 6. Morning Brief masthead hierarchy */
+.lp-morning-brief {
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: \'Inter\', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 2px;
+}
+.lp-date {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    color: #888 !important;
+    letter-spacing: 0.04em;
+}
+
+/* 7. Brand footer */
+.brand-footer {
+    text-align: center;
+    font-size: 9px;
+    color: #444;
+    letter-spacing: 0.12em;
+    padding-top: 6px;
+    border-top: 1px solid #1e1e1e;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+/* 8. Bottom nav active state per pair brand color */
+#pair-nav a[href="#card-eurusd"].nav-active { color: #4da6ff !important; }
+#pair-nav a[href="#card-usdjpy"].nav-active { color: #ff9944 !important; }
+#pair-nav a[href="#card-usdinr"].nav-active { color: #e74c3c !important; }
+
+/* 9. Cross-asset ticker visual separation (Brent, Gold) */
+.lp-ticker-item--cross .lp-ticker-price {
+    font-size: 11px !important;
+    opacity: 0.8;
+}
+.lp-ticker-item--cross .lp-ticker-label {
+    color: #3d4560 !important;
+}
+/* end brand-v1 */'''
+    html_content = _rb.sub(
+        r'</style>\s*</head>',
+        brand_css + '\n</style>\n</head>',
         html_content,
         count=1,
     )
@@ -1088,6 +1251,11 @@ def generate_html_brief():
     html_content = inject_landing_css(html_content)
 
     # ------------------------------------------------------------------
+    # 1d-brand. Inject brand identity CSS overrides (v1)
+    # ------------------------------------------------------------------
+    html_content = inject_brand_css(html_content)
+
+    # ------------------------------------------------------------------
     # 1e. Inject fixed bottom nav CSS + HTML
     # ------------------------------------------------------------------
     html_content = inject_bottom_nav(html_content)
@@ -1107,12 +1275,16 @@ def generate_html_brief():
         '\n<!-- MAIN CONTENT -->',
         html_content,
     )
-    # Remove orphan header-right div left behind by old globalbar/header stripper
-    html_content = _re.sub(
-        r'<!-- HEADER \(superseded by landing page\) -->[\s\S]*?</div>\s*</div>\s*\n',
-        '<!-- HEADER (superseded by landing page) -->\n',
-        html_content,
-    )
+    # Remove orphan header-right div left behind by old globalbar/header stripper.
+    # Guard: only run when the old header div is actually present (not when already cleaned).
+    # Without the guard, the greedy [\s\S]*? matches INTO the landing page on subsequent runs,
+    # partially destroying it and preventing inject_landing_page() from stripping it cleanly.
+    if '<!-- HEADER (superseded by landing page) -->\n<div class="header">' in html_content:
+        html_content = _re.sub(
+            r'<!-- HEADER \(superseded by landing page\) -->[\s\S]*?</div>\s*</div>\s*\n',
+            '<!-- HEADER (superseded by landing page) -->\n',
+            html_content,
+        )
     # Remove old body class="has-landing" (use clean body tag)
     html_content = html_content.replace('<body class="has-landing">', '<body>')
     # Strip any orphan HTML between the superseded-header comment and the real landing marker
