@@ -720,7 +720,7 @@ def inject_landing_page(html_content, _re, df=None):
                           spread_label='US 2Y\u2013IN 10Y (cross)')
 
     wordmark_src = embed_image(os.path.join('logos', 'wordmark without bg.png'))
-    wordmark_img = f'<img src="{wordmark_src}" class="lp-wordmark" style="height:90px;width:auto;display:block;margin-bottom:16px;" alt="FX Regime Lab">' if wordmark_src else ''
+    wordmark_img = f'<img src="{wordmark_src}" class="lp-wordmark" style="height:180px;width:auto;display:block;margin-bottom:20px;" alt="FX Regime Lab">' if wordmark_src else ''
     from config import TODAY_FMT
     landing_html = f'''<!-- LANDING PAGE -->
 <div id="landing">
@@ -1088,7 +1088,7 @@ body { background: #0a0e1a !important; }
 .badge-neutral-card { background: #1d2235 !important; color: #888 !important; }
 
 /* 11. Wordmark image sizing */
-.lp-wordmark { height: 90px !important; width: auto !important; display: block; margin-bottom: 16px; }
+.lp-wordmark { height: 180px !important; width: auto !important; display: block; margin-bottom: 20px; }
 
 /* 12. Masthead hierarchy scale-up */
 .lp-morning-brief { font-size: 28px !important; }

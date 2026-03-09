@@ -86,7 +86,7 @@ check("favicon is a data: PNG URI", 'type="image/png" href="data:image/png;base6
 # ── E. Logo + wordmark ───────────────────────────────────────────────────────
 print("\n=== E. Wordmark ===")
 check("lp-wordmark img tag present", 'class="lp-wordmark"' in html)
-check("lp-wordmark has inline height:90px style", 'style="height:90px' in html)
+check("lp-wordmark has inline height:180px style", 'style="height:180px' in html)
 check("old HTML span brand-name ABSENT", '<span class="lp-brand-name">' not in html)
 
 # ── F. charts/base.py source colours ────────────────────────────────────────
