@@ -16,17 +16,15 @@ import numpy as np
 import yfinance as yf
 from fredapi import Fred
 from dotenv import load_dotenv
-from datetime import datetime
 from io import StringIO
+
+from config import TODAY, START_DATE
 
 load_dotenv()
 FRED_KEY = os.getenv("FRED_API_KEY")
 fred     = Fred(api_key=FRED_KEY)
 
 # -- settings ------------------------------------------------------------------
-
-START_DATE = "2020-01-01"
-TODAY      = datetime.today().strftime('%Y-%m-%d')
 
 FX_TICKERS = {
     "EURUSD": "EURUSD=X",
@@ -660,8 +658,13 @@ def save_data(master):
     os.makedirs("data", exist_ok=True)
 
     dated = f"data/master_{TODAY.replace('-', '')}.csv"
-    master.to_csv(dated)
-    master.to_csv("data/latest.csv")
+
+    # Atomic write: write to .tmp then os.replace so a partial failure
+    # never leaves dated file written but latest.csv stale/corrupted.
+    for target in [dated, "data/latest.csv"]:
+        tmp = target + ".tmp"
+        master.to_csv(tmp)
+        os.replace(tmp, target)
 
     print(f"\n    saved: {dated}")
     print(f"    saved: data/latest.csv")

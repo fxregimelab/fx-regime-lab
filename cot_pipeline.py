@@ -102,7 +102,10 @@ def fetch_all_cot():
         combined["Report_Date_as_YYYY-MM-DD"]
     )
     combined = combined.sort_values("Report_Date_as_YYYY-MM-DD")
-    combined = combined.drop_duplicates()
+    combined = combined.drop_duplicates(
+        subset=["Report_Date_as_YYYY-MM-DD", "Market_and_Exchange_Names"],
+        keep="last"
+    )
 
     print(f"    combined: {len(combined)} rows, "
           f"{years[0]} to {years[-1]}")
@@ -169,7 +172,7 @@ def calculate_positioning(raw_df):
             df["Lev_Money_Positions_Short_All"]
         )
         df["lev_pct_oi"] = (
-            df["lev_net"] / df["Open_Interest_All"] * 100
+            df["lev_net"] / df["Open_Interest_All"].replace(0, float('nan')) * 100
         )
         df["lev_percentile"] = df["lev_net"].rank(pct=True) * 100
 
@@ -181,7 +184,7 @@ def calculate_positioning(raw_df):
             df["Asset_Mgr_Positions_Short_All"]
         )
         df["assetmgr_pct_oi"] = (
-            df["assetmgr_net"] / df["Open_Interest_All"] * 100
+            df["assetmgr_net"] / df["Open_Interest_All"].replace(0, float('nan')) * 100
         )
         df["assetmgr_percentile"] = df["assetmgr_net"].rank(pct=True) * 100
 
@@ -204,8 +207,8 @@ def calculate_positioning(raw_df):
 
         # Print summary for each ticker
         latest    = df.iloc[-1]
-        lev_dir   = "LONG" if latest["lev_net"] > 0 else "SHORT"
-        am_dir    = "LONG" if latest["assetmgr_net"] > 0 else "SHORT"
+        lev_dir   = "LONG" if latest["lev_net"] > 0 else ("SHORT" if latest["lev_net"] < 0 else "NEUTRAL")
+        am_dir    = "LONG" if latest["assetmgr_net"] > 0 else ("SHORT" if latest["assetmgr_net"] < 0 else "NEUTRAL")
         lev_p     = latest["lev_percentile"]
         am_p      = latest["assetmgr_percentile"]
 
@@ -330,7 +333,7 @@ def main():
     for ticker, df in positioning.items():
         latest      = df.iloc[-1]
         latest_date = df.index[-1].date()
-        direction   = "LONG" if latest["lev_net"] > 0 else "SHORT"
+        direction   = "LONG" if latest["lev_net"] > 0 else ("SHORT" if latest["lev_net"] < 0 else "NEUTRAL")
         p           = latest["lev_percentile"]
         net         = latest["lev_net"]
 

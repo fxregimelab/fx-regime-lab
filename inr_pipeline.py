@@ -15,10 +15,9 @@ import requests
 import pandas as pd
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 
-TODAY      = datetime.today().strftime('%Y-%m-%d')
-START_DATE = "2020-01-01"
+from config import TODAY, START_DATE
 
 # FBIL API constants
 _FBIL_BASE    = "https://www.fbil.org.in/wasdm"
@@ -73,8 +72,11 @@ def _fbil_parse_10y(xlsx_bytes: bytes) -> float:
     wb = openpyxl.load_workbook(io.BytesIO(xlsx_bytes), data_only=True)
     ws = wb["Par Yield"]
     for row in ws.iter_rows(values_only=True):
-        if row[0] == 10:          # Tenor == 10.0 years
-            return float(row[2])  # col C = YTM% p.a. Annualized
+        try:
+            if row[0] is not None and float(row[0]) == 10.0:  # Tenor == 10 years (may be int, float, or string)
+                return float(row[2])  # col C = YTM% p.a. Annualized
+        except (TypeError, ValueError):
+            continue
     raise ValueError("10Y tenor not found in FBIL Par Yield sheet")
 
 
@@ -156,7 +158,9 @@ def _fbil_history(start_date: str = START_DATE) -> pd.DataFrame:
     # ── merge new rows with cache ────────────────────────────────────────────
     if records:
         new_df = pd.DataFrame(records).set_index("date")
-        combined = pd.concat([cached[["IN_10Y"]] if len(cached) > 0 else pd.DataFrame(), new_df])
+        # Use column intersection so IN_repo_proxy (and any future cols) are preserved
+        cache_slice = cached[cached.columns.intersection(new_df.columns)] if len(cached) > 0 else pd.DataFrame()
+        combined = pd.concat([cache_slice, new_df])
         combined = combined[~combined.index.duplicated(keep="last")].sort_index()
         combined["IN_repo_proxy"] = combined["IN_10Y"] - 1.5
         # save updated cache
