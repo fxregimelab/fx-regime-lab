@@ -42,6 +42,8 @@ def deploy():
 
     # git add, commit, push
     try:
+        # pull remote changes first to avoid rejected push on diverged branches
+        subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=True)
         subprocess.run(["git", "add", "-A"], check=True)
         # check if there is actually anything staged to commit
         status = subprocess.run(
