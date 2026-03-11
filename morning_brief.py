@@ -387,8 +387,8 @@ def build_brief(df):
             rbi_sub  = _rbi_wt.get(str(rbi_flag) if str(rbi_flag) != "nan" else "NEUTRAL", 0.0) * 0.20 * 100
             rate_sub = _sgn(-_spr_c) * 0.10 * 100
             lines.append(f"  Components: Oil({oil_sub:+.0f}) DXY({dxy_sub:+.0f}) FPI({fpi_sub:+.0f}) RBI({rbi_sub:+.0f}) Rate({rate_sub:+.0f})")
-        except Exception:
-            pass
+        except (TypeError, KeyError, ValueError, ArithmeticError):
+            pass  # display only — non-critical if component breakdown fails
     else:
         lines.append(f"  SCORE: n/a  (run inr pipeline to populate)")
     # ── G10 COMPOSITE SCORES ─────────────────────────────────────────────────

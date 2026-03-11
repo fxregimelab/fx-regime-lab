@@ -19,6 +19,7 @@
 # URL: https://www.cftc.gov/files/dea/history/fut_fin_txt_YYYY.zip
 
 import os
+import sys
 import requests
 import zipfile
 import pandas as pd
@@ -316,7 +317,10 @@ def main():
     print(f"  COT POSITIONING PIPELINE -- {TODAY}")
     print("=" * 62)
 
-    raw_df     = fetch_all_cot()
+    raw_df      = fetch_all_cot()
+    if raw_df.empty:
+        print("ERROR: COT data fetch failed — all years unavailable")
+        sys.exit(1)
     positioning = calculate_positioning(raw_df)
 
     print("\n[3/4] saving data...")

@@ -1,6 +1,8 @@
 # config.py
 # All configuration lives here. Change settings in one place, affects everything.
 
+import json
+import os
 from datetime import datetime
 import pandas as pd
 
@@ -129,36 +131,16 @@ PAIRS = {
 }
 
 # ── MACRO CALENDAR (Phase 10) ────────────────────────────────────────────────
-# Central bank event dates for the macro calendar flag.
-# Format: 'YYYY-MM-DD': 'Event label'  — update monthly.
-# When TODAY matches a key, the brief displays a MACRO EVENT WARNING strip.
-CB_EVENTS = {
-    # 2026 H1
-    '2026-03-19': 'Fed FOMC / BoJ Policy',
-    '2026-04-09': 'RBI MPC',
-    '2026-04-17': 'ECB Meeting',
-    '2026-05-01': 'BoJ Policy',
-    '2026-05-07': 'Fed FOMC',
-    '2026-06-05': 'ECB Meeting / RBI MPC',
-    '2026-06-17': 'BoJ Policy',
-    '2026-06-18': 'Fed FOMC',
-    # 2026 H2
-    '2026-07-24': 'ECB Meeting',
-    '2026-07-30': 'Fed FOMC',
-    '2026-07-31': 'BoJ Policy',
-    '2026-08-06': 'RBI MPC',
-    '2026-09-11': 'ECB Meeting',
-    '2026-09-17': 'Fed FOMC',
-    '2026-09-19': 'BoJ Policy',
-    '2026-10-08': 'RBI MPC',
-    '2026-10-29': 'ECB Meeting',
-    '2026-10-30': 'BoJ Policy',
-    '2026-11-05': 'Fed FOMC',
-    '2026-12-04': 'RBI MPC',
-    '2026-12-10': 'Fed FOMC',
-    '2026-12-17': 'ECB Meeting',
-    '2026-12-19': 'BoJ Policy',
-}
+# Central bank event dates — stored in data/cb_events.json for easy monthly
+# updates. Format: {"YYYY-MM-DD": "Event label"}.  Edit that file; no code
+# changes needed.
+_CB_EVENTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cb_events.json')
+try:
+    with open(_CB_EVENTS_PATH, encoding='utf-8') as _f:
+        CB_EVENTS = json.load(_f)
+except FileNotFoundError:
+    CB_EVENTS = {}
+    print(f"WARN: {_CB_EVENTS_PATH} not found — macro calendar disabled")
 
 
 def get_upcoming_event(today=None, window_days=7):

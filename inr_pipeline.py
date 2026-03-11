@@ -11,13 +11,14 @@
 
 import os
 import io
+import sys
 import requests
 import pandas as pd
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 
-from config import TODAY, START_DATE
+from config import TODAY, START_DATE, MAX_FFILL_DAYS, ROLLING_WINDOW, CORR_WINDOW, VOL_WINDOW
 
 # FBIL API constants
 _FBIL_BASE    = "https://www.fbil.org.in/wasdm"
@@ -212,8 +213,8 @@ def _fetch_rbi_reserves() -> pd.Series:
             raise ValueError("RBUKRESERVES returned no data")
         raw.name = "rbi_reserves"
         return raw
-    except Exception:
-        pass  # fall through to monthly fallback
+    except (ImportError, OSError, ValueError, RuntimeError) as e:
+        print(f"    WARN: RBI reserves primary (RBUKRESERVES) failed: {e} — trying fallback")
 
     # Fallback: FRED TRESEGINM052N monthly (USD millions → convert to billions)
     try:
@@ -228,8 +229,8 @@ def _fetch_rbi_reserves() -> pd.Series:
             if len(raw) > 0:
                 raw.name = "rbi_reserves"
                 return raw
-    except Exception:
-        pass
+    except (ImportError, OSError, ValueError, RuntimeError) as e:
+        print(f"    WARN: RBI reserves fallback (TRESEGINM052N) also failed: {e}")
 
     raise RuntimeError("All RBI reserves data sources failed")
 
@@ -333,7 +334,7 @@ def fetch_fpi_flows():
         fpi_df["FPI_20D_flow"]       = fpi_df["FPI_debt_net"].rolling(20).sum()
         fpi_df["FPI_20D_percentile"] = (
             fpi_df["FPI_20D_flow"]
-            .rolling(252 * 3, min_periods=60)
+            .rolling(ROLLING_WINDOW * 3, min_periods=60)
             .rank(pct=True) * 100
         )
 
@@ -371,7 +372,7 @@ def build_and_save(price_df, yield_df, fpi_df, fpi_status):
             source_label = "FRED monthly (fallback)"
         else:
             # FBIL daily: allow up to 5-day fill (weekends / holidays only)
-            yield_daily = yield_df.reindex(inr.index).ffill(limit=5)
+            yield_daily = yield_df.reindex(inr.index).ffill(limit=MAX_FFILL_DAYS)
             source_label = "FBIL daily"
         inr["IN_10Y"]        = yield_daily["IN_10Y"]
         inr["IN_repo_proxy"] = yield_daily["IN_repo_proxy"]
@@ -397,10 +398,10 @@ def build_and_save(price_df, yield_df, fpi_df, fpi_status):
     # mapped to US dates) which produce zero log-returns and understate vol.
     if "USDINR" in inr.columns:
         _lr = np.log(inr["USDINR"] / inr["USDINR"].shift(1))
-        inr["USDINR_vol30"] = _lr.rolling(window=30).std() * np.sqrt(252) * 100
+        inr["USDINR_vol30"] = _lr.rolling(window=VOL_WINDOW).std() * np.sqrt(252) * 100
         inr["USDINR_vol_pct"] = (
             inr["USDINR_vol30"]
-            .rolling(window=252 * 3, min_periods=126)
+            .rolling(window=ROLLING_WINDOW * 3, min_periods=126)
             .rank(pct=True) * 100
         )
         _v = inr["USDINR_vol30"].dropna().iloc[-1]
@@ -436,7 +437,7 @@ def build_and_save(price_df, yield_df, fpi_df, fpi_status):
         if "Brent" in master.columns and "USDINR" in master.columns:
             brent_ret = master["Brent"].pct_change()
             usdinr_ret = master["USDINR"].pct_change()
-            master["oil_inr_corr_60d"] = brent_ret.rolling(60).corr(usdinr_ret)
+            master["oil_inr_corr_60d"] = brent_ret.rolling(CORR_WINDOW).corr(usdinr_ret)
             latest_oil = master["oil_inr_corr_60d"].dropna()
             if len(latest_oil) > 0:
                 print(f"    oil_inr_corr_60d: {latest_oil.iloc[-1]:>+.3f}")
@@ -446,7 +447,7 @@ def build_and_save(price_df, yield_df, fpi_df, fpi_status):
         if "DXY" in master.columns and "USDINR" in master.columns:
             dxy_ret    = master["DXY"].pct_change()
             usdinr_ret = master["USDINR"].pct_change()
-            master["dxy_inr_corr_60d"] = dxy_ret.rolling(60).corr(usdinr_ret)
+            master["dxy_inr_corr_60d"] = dxy_ret.rolling(CORR_WINDOW).corr(usdinr_ret)
             latest_dxy = master["dxy_inr_corr_60d"].dropna()
             if len(latest_dxy) > 0:
                 print(f"    dxy_inr_corr_60d:  {latest_dxy.iloc[-1]:>+.3f}")
@@ -457,7 +458,7 @@ def build_and_save(price_df, yield_df, fpi_df, fpi_status):
         if "Gold" in master.columns and "USDINR" in master.columns:
             gold_ret_inr = master["Gold"].pct_change()
             usdinr_ret_g = master["USDINR"].pct_change()
-            master["gold_inr_corr_60d"] = gold_ret_inr.rolling(60).corr(usdinr_ret_g)
+            master["gold_inr_corr_60d"] = gold_ret_inr.rolling(CORR_WINDOW).corr(usdinr_ret_g)
             latest_gold = master["gold_inr_corr_60d"].dropna()
             if len(latest_gold) > 0:
                 print(f"    gold_inr_corr_60d: {latest_gold.iloc[-1]:>+.3f}")
@@ -539,7 +540,7 @@ def build_and_save(price_df, yield_df, fpi_df, fpi_status):
                     rbi_s  = _rbi_score_map.get(rbi_fv, 0.0) * 0.20
                     rate_s = _sign(-_safe(row_s.get("US_IN_10Y_spread"))) * 0.10
                     return float(np.clip((oil_s + dxy_s + fpi_s + rbi_s + rate_s) * 100, -100, 100))
-                except Exception:
+                except (TypeError, KeyError, ArithmeticError, ValueError):
                     return float("nan")
 
             master["inr_composite_score"] = master.apply(_compute_inr_composite, axis=1)
@@ -602,6 +603,9 @@ def main():
     print("=" * 62)
 
     price_df             = fetch_usdinr()
+    if price_df.empty:
+        print("ERROR: USD/INR price data unavailable — aborting pipeline")
+        sys.exit(1)
     yield_df             = fetch_in_yield()
     fpi_df, fpi_status   = fetch_fpi_flows()
 

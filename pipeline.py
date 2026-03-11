@@ -10,6 +10,7 @@
 # charts are handled separately by create_dashboards.py
 
 import os
+import sys
 import time
 import requests
 import pandas as pd
@@ -20,7 +21,7 @@ from dotenv import load_dotenv
 from io import StringIO
 from concurrent.futures import ThreadPoolExecutor
 
-from config import TODAY, START_DATE
+from config import TODAY, START_DATE, MAX_FFILL_DAYS, VOL_WINDOW, ROLLING_WINDOW, CORR_WINDOW, PERIODS
 
 load_dotenv()
 FRED_KEY = os.getenv("FRED_API_KEY")
@@ -97,9 +98,9 @@ def fetch_fx_data():
     prices = prices[prices.index.date < pd.Timestamp(TODAY).date()]
     prices = prices[prices.index.dayofweek < 5]
 
-    # DXY trades on ICE with different holidays -- fill gaps up to 5 days
+    # DXY trades on ICE with different holidays -- fill gaps up to MAX_FFILL_DAYS days
     if "DXY" in prices.columns:
-        prices["DXY"] = prices["DXY"].ffill(limit=5)
+        prices["DXY"] = prices["DXY"].ffill(limit=MAX_FFILL_DAYS)
 
     print(f"    got {prices.shape[0]} rows, {prices.shape[1]} pairs")
     print(f"    from {prices.index[0].date()} to {prices.index[-1].date()}")
@@ -153,7 +154,7 @@ def fetch_commodity_data():
 
     # forward-fill gaps (exchange holidays, expiry roll gaps)
     for col in prices.columns:
-        prices[col] = prices[col].ffill(limit=5)
+        prices[col] = prices[col].ffill(limit=MAX_FFILL_DAYS)
 
     for col in prices.columns:
         clean = prices[col].dropna()
@@ -370,17 +371,17 @@ def fetch_all_yields():
             yields_df[col] = np.nan
             print(f"    WARNING -- missing series {col}, filling with NaNs")
 
-    # US yields: fill weekends and holidays (max 5 days)
+    # US yields: fill weekends and holidays (max MAX_FFILL_DAYS trading days)
     for col in ["US_2Y", "US_10Y"]:
-        yields_df[col] = yields_df[col].ffill(limit=5)
+        yields_df[col] = yields_df[col].ffill(limit=MAX_FFILL_DAYS)
 
-    # DE yields (ECB): fill weekends and holidays (max 5 days)
+    # DE yields (ECB): fill weekends and holidays (max MAX_FFILL_DAYS trading days)
     for col in ["DE_2Y", "DE_10Y"]:
-        yields_df[col] = yields_df[col].ffill(limit=5)
+        yields_df[col] = yields_df[col].ffill(limit=MAX_FFILL_DAYS)
 
-    # JP yields (MOF): fill weekends and holidays (max 5 days)
+    # JP yields (MOF): fill weekends and holidays (max MAX_FFILL_DAYS trading days)
     for col in ["JP_2Y", "JP_10Y"]:
-        yields_df[col] = yields_df[col].ffill(limit=5)
+        yields_df[col] = yields_df[col].ffill(limit=MAX_FFILL_DAYS)
 
     return yields_df
 
@@ -466,10 +467,10 @@ def calculate_volatility(master):
             continue
         log_ret = np.log(master[pair] / master[pair].shift(1))
         master[f"{pair}_vol30"] = (
-            log_ret.rolling(window=30).std() * np.sqrt(252) * 100
+            log_ret.rolling(window=VOL_WINDOW).std() * np.sqrt(252) * 100
         )
 
-    window_3y = 252 * 3
+    window_3y = ROLLING_WINDOW * 3
     for pair in ["EURUSD", "USDJPY"]:
         col = f"{pair}_vol30"
         if col not in master.columns:
@@ -508,11 +509,11 @@ def calculate_regime_correlation(master):
         fx_ret = master["EURUSD"].pct_change() * 100
         
         # 60-day rolling Pearson correlation
-        corr_series = spread_chg.rolling(window=60).corr(fx_ret)
+        corr_series = spread_chg.rolling(window=CORR_WINDOW).corr(fx_ret)
         master["EURUSD_spread_corr_60d"] = corr_series
         
         # 3-year percentile
-        window_3y = 252 * 3
+        window_3y = ROLLING_WINDOW * 3
         master["EURUSD_corr_percentile"] = (
             corr_series
             .rolling(window=window_3y, min_periods=126)
@@ -530,11 +531,11 @@ def calculate_regime_correlation(master):
         fx_ret = master["USDJPY"].pct_change() * 100
         
         # 60-day rolling Pearson correlation
-        corr_series = spread_chg.rolling(window=60).corr(fx_ret)
+        corr_series = spread_chg.rolling(window=CORR_WINDOW).corr(fx_ret)
         master["USDJPY_spread_corr_60d"] = corr_series
         
         # 3-year percentile
-        window_3y = 252 * 3
+        window_3y = ROLLING_WINDOW * 3
         master["USDJPY_corr_percentile"] = (
             corr_series
             .rolling(window=window_3y, min_periods=126)
@@ -599,7 +600,7 @@ def calculate_dxy_correlation(master):
             print(f"    SKIP -- {fx_col} not in master")
             continue
         fx_ret = master[fx_col].pct_change()
-        master[out_col] = dxy_ret.rolling(60).corr(fx_ret)
+        master[out_col] = dxy_ret.rolling(CORR_WINDOW).corr(fx_ret)
 
         latest = master[out_col].dropna()
         if len(latest) > 0:
@@ -630,7 +631,7 @@ def calculate_gold_correlation(master):
             print(f"    SKIP -- {fx_col} not in master")
             continue
         fx_ret = master[fx_col].pct_change()
-        master[out_col] = gold_ret.rolling(60).corr(fx_ret)
+        master[out_col] = gold_ret.rolling(CORR_WINDOW).corr(fx_ret)
 
         latest = master[out_col].dropna()
         if len(latest) > 0:
@@ -661,7 +662,7 @@ def calculate_oil_correlation(master):
             print(f"    SKIP -- {fx_col} not in master")
             continue
         fx_ret = master[fx_col].pct_change()
-        master[out_col] = brent_ret.rolling(60).corr(fx_ret)
+        master[out_col] = brent_ret.rolling(CORR_WINDOW).corr(fx_ret)
 
         latest = master[out_col].dropna()
         if len(latest) > 0:
@@ -944,7 +945,7 @@ def build_master(fx_df, yields_df, diff_df, commodity_df=None):
 def calculate_changes(master):
     print("\n[5/5] calculating changes...")
 
-    periods = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "12M": 252}
+    periods = PERIODS
 
     master = master.copy()
 
@@ -1126,8 +1127,14 @@ def main():
     print("=" * 70)
 
     fx_df        = fetch_fx_data()
+    if fx_df.empty:
+        print("ERROR: FX price data unavailable — aborting pipeline")
+        sys.exit(1)
     commodity_df = fetch_commodity_data()
     yields_df    = fetch_all_yields()
+    if yields_df.empty:
+        print("ERROR: Yield data unavailable — aborting pipeline")
+        sys.exit(1)
     diff_df      = calculate_differentials(yields_df)
     master       = build_master(fx_df, yields_df, diff_df, commodity_df)
     master       = calculate_volatility(master)
