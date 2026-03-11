@@ -67,8 +67,9 @@ def deploy():
             print("index.html unchanged -- nothing to commit, skipping push")
             print(f"live at: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/")
             return
-        # Pull remote changes after staging so rebase doesn't choke on unstaged files
-        subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=True)
+        # Pull remote changes; --autostash stashes staged files, rebases, then pops them
+        # so that the commit already in the index is cleanly replayed on top of origin.
+        subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", "main"], check=True)
         subprocess.run(["git", "commit", "-m",
                        f"brief update {TODAY} {datetime.now().strftime('%H:%M')} IST"],
                       check=True)
