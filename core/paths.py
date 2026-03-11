@@ -7,8 +7,9 @@ from datetime import datetime
 
 # ── root ─────────────────────────────────────────────────────────────────────
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-assert os.path.basename(ROOT) == 'fx_regime', \
-    f"Unexpected project root '{ROOT}' — expected directory named 'fx_regime'"
+if os.path.basename(ROOT) != 'fx_regime':
+    print(f"WARN: unexpected project root '{ROOT}' — expected directory named 'fx_regime'"
+          f" (continuing, but path-based defaults may not work correctly)")
 
 # ── data directory ───────────────────────────────────────────────────────────
 DATA_DIR   = os.path.join(ROOT, 'data')

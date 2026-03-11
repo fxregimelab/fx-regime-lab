@@ -17,6 +17,17 @@ EXTENDED_HIGH  = 70   # percentile for "extended" (amber) warning
 VOL_EXTREME    = 90   # vol percentile: extreme regime
 VOL_ELEVATED   = 75   # vol percentile: elevated (amber)
 
+# ── ROLLING WINDOW CONSTANTS ────────────────────────────────────────────────
+MAX_FFILL_DAYS  = 5    # max trading days to forward-fill holiday gaps
+VOL_WINDOW      = 30   # realized vol rolling window (calendar days)
+ROLLING_WINDOW  = 252  # 1-year lookback for percentile calculations
+CORR_WINDOW     = 60   # default correlation rolling window (trading days)
+
+# ── RETURN PERIOD LABELS ─────────────────────────────────────────────────────
+# Maps human-readable labels to approximate trading-day offsets.
+# Used by pipeline.py add_return_cols() and morning_brief.py displays.
+PERIODS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "12M": 252}
+
 # ── FX TICKERS (Yahoo Finance format) ───────────────────────
 FX_TICKERS = {
     "EURUSD": "EURUSD=X",   # Euro vs US Dollar

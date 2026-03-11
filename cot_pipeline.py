@@ -23,6 +23,7 @@ import requests
 import zipfile
 import pandas as pd
 from io import BytesIO
+from core.paths import LATEST_CSV, LATEST_WITH_COT_CSV
 from datetime import datetime
 from core.utils import ordinal
 from config import TODAY
@@ -66,7 +67,11 @@ def fetch_cot_year(year):
             return pd.DataFrame()
 
         z  = zipfile.ZipFile(BytesIO(r.content))
-        df = pd.read_csv(z.open(z.namelist()[0]), low_memory=False)
+        names = z.namelist()
+        if len(names) != 1:
+            print(f"    FAILED {year} -- unexpected zip contents: {names}")
+            return pd.DataFrame()
+        df = pd.read_csv(z.open(names[0]), low_memory=False)
 
         # filter immediately -- keeps only EUR and JPY rows
         mask = df["Market_and_Exchange_Names"].isin(TARGET_MARKETS.keys())
@@ -75,7 +80,7 @@ def fetch_cot_year(year):
         print(f"    OK  {year} -- {len(df)} rows")
         return df
 
-    except Exception as e:
+    except (requests.RequestException, zipfile.BadZipFile, KeyError, ValueError) as e:
         print(f"    FAILED {year} -- {e}")
         return pd.DataFrame()
 
@@ -287,7 +292,7 @@ def save_cot(positioning_dict):
 def merge_with_master(cot_df):
     print("\n[4/4] merging COT with FX master data...")
 
-    master_path = "data/latest.csv"
+    master_path = LATEST_CSV
     if not os.path.exists(master_path):
         print("    WARNING -- data/latest.csv not found")
         print("    run pipeline.py first, then cot_pipeline.py")
@@ -299,8 +304,8 @@ def merge_with_master(cot_df):
     for col in cot_daily.columns:
         master[col] = cot_daily[col]
 
-    master.to_csv("data/latest_with_cot.csv")
-    print(f"    saved: data/latest_with_cot.csv")
+    master.to_csv(LATEST_WITH_COT_CSV)
+    print(f"    saved: {LATEST_WITH_COT_CSV}")
     print(f"    shape: {master.shape[0]} rows x {master.shape[1]} columns")
 
 

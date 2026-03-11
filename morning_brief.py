@@ -7,6 +7,7 @@
 # target: readable in 60 seconds by someone on an FX desk
 
 import os
+import sys
 import pandas as pd
 from core.utils import ordinal, _pct, _pp, _net
 from core.utils import (
@@ -510,7 +511,7 @@ def main():
     if not os.path.exists(master_path):
         print("ERROR: data/latest_with_cot.csv not found")
         print("Run pipeline.py then cot_pipeline.py first")
-        return
+        sys.exit(1)
 
     df = pd.read_csv(master_path, index_col=0, parse_dates=True)
 

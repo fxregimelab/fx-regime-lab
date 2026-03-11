@@ -47,7 +47,13 @@ def _load_and_filter(pair=None, months=12):
     The returned DataFrame index is clean 'YYYY-MM-DD' strings.
     cutoff and today are pd.Timestamp objects for use in xaxis range calculations.
     """
-    df = pd.read_csv(LATEST_WITH_COT_CSV, index_col=0, parse_dates=True)
+    try:
+        df = pd.read_csv(LATEST_WITH_COT_CSV, index_col=0, parse_dates=True)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"Chart data not found: {LATEST_WITH_COT_CSV}\n"
+            "Run pipeline.py then cot_pipeline.py to generate it."
+        )
     df.index = pd.to_datetime(df.index, utc=False).tz_localize(None)
     df.index = df.index.normalize()
 

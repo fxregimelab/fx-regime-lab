@@ -104,7 +104,8 @@ def _fbil_history(start_date: str = START_DATE) -> pd.DataFrame:
             cached.index = pd.to_datetime(cached.index.date)
             print(f"    FBIL cache: {len(cached)} rows, "
                   f"last = {cached.index[-1].date()}")
-        except Exception:
+        except (pd.errors.ParserError, OSError, ValueError) as e:
+            print(f"    FBIL cache read failed ({e}) — re-fetching from scratch")
             cached = pd.DataFrame()
 
     # ── decide which days to fetch ───────────────────────────────────────────
@@ -136,7 +137,7 @@ def _fbil_history(start_date: str = START_DATE) -> pd.DataFrame:
                 return None
             yield10 = _fbil_parse_10y(xlsx)
             return {"date": pd.Timestamp(ds), "IN_10Y": yield10}
-        except Exception:
+        except (OSError, ValueError, KeyError, RuntimeError):
             return None
 
     # Use 5 concurrent workers — avoid hammering the server
@@ -145,7 +146,7 @@ def _fbil_history(start_date: str = START_DATE) -> pd.DataFrame:
         for fut in as_completed(futures):
             try:
                 result = fut.result()
-            except Exception:
+            except (OSError, ValueError, KeyError, RuntimeError):
                 result = None
             if result is not None:
                 records.append(result)
@@ -163,8 +164,10 @@ def _fbil_history(start_date: str = START_DATE) -> pd.DataFrame:
         combined = pd.concat([cache_slice, new_df])
         combined = combined[~combined.index.duplicated(keep="last")].sort_index()
         combined["IN_repo_proxy"] = combined["IN_10Y"] - 1.5
-        # save updated cache
-        combined.to_csv(_FBIL_CACHE)
+        # atomic write: write to .tmp then rename so a crash can't corrupt cache
+        _tmp = _FBIL_CACHE + ".tmp"
+        combined.to_csv(_tmp)
+        os.replace(_tmp, _FBIL_CACHE)
         print(f"    FBIL cache updated: {len(combined)} rows total, "
               f"last = {combined.index[-1].date()}")
         return combined

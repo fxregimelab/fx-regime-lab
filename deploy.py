@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from datetime import datetime
 
 TODAY = datetime.today().strftime('%Y-%m-%d')
@@ -32,11 +33,17 @@ def deploy():
     else:
         BRIEF_SOURCE_FINAL = BRIEF_SOURCE
 
+    if not shutil.which("git"):
+        print("ERROR: git not found in PATH — cannot push to GitHub")
+        sys.exit(1)
+
     # copy to index.html, fixing iframe paths:
     # briefs use ../charts/ (brief is in briefs/ subdir) but index.html is at root
     with open(BRIEF_SOURCE_FINAL, 'r', encoding='utf-8') as f:
         html = f.read()
-    html = re.sub(r'(<iframe\b[^>]*\bsrc=")\.\.\/charts\/', r'\1charts/', html)
+    html, n_subs = re.subn(r'(<iframe\b[^>]*\bsrc=")\.\.\/charts\/', r'\1charts/', html)
+    if n_subs == 0:
+        print("WARN: no iframe src paths were rewritten — charts may not load in index.html")
     if '<html' not in html or '</html>' not in html:
         print("ERROR: brief HTML appears corrupted (missing <html> tags) — aborting deploy")
         return
