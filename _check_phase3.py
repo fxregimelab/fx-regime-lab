@@ -5,8 +5,10 @@ Part B: blank-line drift (3 sequential runs — line count must be stable)
 Part C: idempotency (normalised MD5 must match across 2 runs)
 """
 import sys, subprocess, re as _re, hashlib, difflib
+from datetime import datetime
 
-BRIEF = 'briefs/brief_20260309.html'
+_TODAY = datetime.today().strftime('%Y%m%d')
+BRIEF = f'briefs/brief_{_TODAY}.html'
 
 def _run():
     r = subprocess.run([sys.executable, 'create_html_brief.py'], capture_output=True, text=True)

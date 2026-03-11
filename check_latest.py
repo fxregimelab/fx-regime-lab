@@ -67,6 +67,7 @@ def main():
         if pct > NAN_WARN_PCT:
             print(f'  WARN: {col} has {pct:.0f}% NaN')
             nan_warn = True
+            ok = False  # stale/sparse data propagates to exit code
     if not nan_warn:
         print(f'  NaN check : all required columns below {NAN_WARN_PCT}% NaN  OK')
 

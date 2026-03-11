@@ -3,8 +3,10 @@ Phase 2+3 stress test — lp-css-v4 + landing page overhaul
 19 CSS/HTML presence checks + idempotency (2 sequential runs, blank-line normalised)
 """
 import sys, subprocess, os, hashlib, re as _re
+from datetime import datetime
 
-BRIEF = 'briefs/brief_20260309.html'
+_TODAY = datetime.today().strftime('%Y%m%d')
+BRIEF = f'briefs/brief_{_TODAY}.html'
 
 def _run():
     r = subprocess.run([sys.executable, 'create_html_brief.py'], capture_output=True, text=True)

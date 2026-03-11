@@ -10,6 +10,7 @@
 # charts are handled separately by create_dashboards.py
 
 import os
+import time
 import requests
 import pandas as pd
 import numpy as np
@@ -64,14 +65,23 @@ MOF_CURRENT_URL = "https://www.mof.go.jp/english/policy/jgbs/reference/interest_
 def fetch_fx_data():
     print("\n[1/5] fetching FX prices from yahoo finance...")
 
-    raw = yf.download(
-        tickers     = list(FX_TICKERS.values()),
-        start       = START_DATE,
-        end         = TODAY,
-        interval    = "1d",
-        auto_adjust = True,
-        progress    = False
-    )
+    raw = pd.DataFrame()
+    for attempt in range(1, 4):
+        raw = yf.download(
+            tickers     = list(FX_TICKERS.values()),
+            start       = START_DATE,
+            end         = TODAY,
+            interval    = "1d",
+            auto_adjust = True,
+            progress    = False
+        )
+        if not raw.empty and "Close" in raw.columns:
+            break
+        wait = 30 * attempt
+        print(f"    yfinance attempt {attempt}/3 returned empty -- retrying in {wait}s...")
+        time.sleep(wait)
+    else:
+        raise RuntimeError("yfinance failed after 3 attempts -- FX price data unavailable")
 
     prices = raw["Close"].copy()
     reverse_map = {v: k for k, v in FX_TICKERS.items()}
@@ -106,14 +116,23 @@ def fetch_fx_data():
 def fetch_commodity_data():
     print("\n[1b] fetching commodity prices from yahoo finance...")
 
-    raw = yf.download(
-        tickers     = list(COMMODITY_TICKERS.values()),
-        start       = START_DATE,
-        end         = TODAY,
-        interval    = "1d",
-        auto_adjust = True,
-        progress    = False
-    )
+    raw = pd.DataFrame()
+    for attempt in range(1, 4):
+        raw = yf.download(
+            tickers     = list(COMMODITY_TICKERS.values()),
+            start       = START_DATE,
+            end         = TODAY,
+            interval    = "1d",
+            auto_adjust = True,
+            progress    = False
+        )
+        if not raw.empty:
+            break
+        wait = 30 * attempt
+        print(f"    yfinance attempt {attempt}/3 returned empty -- retrying in {wait}s...")
+        time.sleep(wait)
+    else:
+        raise RuntimeError("yfinance failed after 3 attempts -- commodity price data unavailable")
 
     # yfinance returns multi-level columns when fetching multiple tickers
     if isinstance(raw.columns, pd.MultiIndex):
@@ -269,17 +288,76 @@ def _fetch_mof_yields():
     return frames
 
 
-def fetch_all_yields():
-    print("\n[2/5] fetching all yields (FRED + ECB + MOF — parallel)...")
+def _fetch_it_yield() -> dict:
+    """Fetch Italian 10Y government bond yield for BTP-Bund spread (Phase 9).
 
-    with ThreadPoolExecutor(max_workers=3) as pool:
+    Primary  : ECB SDW YC dataset (daily, country-specific series)
+    Fallback : FRED IRLTLT01ITM156N (monthly, linear interpolation to daily)
+    Returns  : dict with key 'IT_10Y' or empty dict on failure.
+    """
+    # Primary: ECB SDW
+    try:
+        it_key = "YC/B.IT.EUR.4F.G_N_A.SV_C_YM.SR_10Y"
+        headers = {"Accept": "application/json"}
+        r = requests.get(
+            f"{ECB_BASE_URL}/{it_key}",
+            headers=headers,
+            params={"startPeriod": START_DATE, "detail": "dataonly"},
+            timeout=30,
+        )
+        r.raise_for_status()
+        data = r.json()
+        datasets = data.get("dataSets", [])
+        if datasets:
+            series_dict = datasets[0].get("series", {})
+            dates_dim = data["structure"]["dimensions"]["observation"][0]["values"]
+            for _, val in series_dict.items():
+                obs = val.get("observations", {})
+                records = [
+                    (pd.Timestamp(dates_dim[int(k)]["id"]), v[0])
+                    for k, v in obs.items()
+                ]
+                s = pd.Series(
+                    [r[1] for r in records],
+                    index=pd.DatetimeIndex([r[0] for r in records]),
+                    name="IT_10Y",
+                ).sort_index().dropna()
+                if len(s) > 100:
+                    print(f"    OK  IT_10Y (ECB daily) -- {len(s)} rows, "
+                          f"latest: {s.iloc[-1]:.2f}% on {s.index[-1].date()}")
+                    return {"IT_10Y": s}
+                break  # only one series expected
+    except Exception as e:
+        print(f"    WARN IT_10Y ECB failed ({type(e).__name__}): {e}")
+
+    # Fallback: FRED monthly series, linearly interpolated to daily
+    try:
+        raw = fred.get_series("IRLTLT01ITM156N", observation_start=START_DATE).dropna()
+        daily = raw.resample("D").interpolate("time")
+        daily.name = "IT_10Y"
+        print(f"    OK  IT_10Y (FRED monthly->daily) -- "
+              f"latest: {daily.iloc[-1]:.2f}% on {daily.index[-1].date()}")
+        return {"IT_10Y": daily}
+    except Exception as e2:
+        print(f"    WARN IT_10Y FRED fallback failed ({type(e2).__name__}): {e2}")
+
+    print("    WARN IT_10Y: all sources failed, BTP-Bund spread will be NaN")
+    return {}
+
+
+def fetch_all_yields():
+    print("\n[2/5] fetching all yields (FRED + ECB + MOF + IT — parallel)...")
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
         fut_us  = pool.submit(_fetch_us_yields)
         fut_ecb = pool.submit(_fetch_ecb_yields)
         fut_mof = pool.submit(_fetch_mof_yields)
+        fut_it  = pool.submit(_fetch_it_yield)
         all_frames = {}
         all_frames.update(fut_us.result())
         all_frames.update(fut_ecb.result())
         all_frames.update(fut_mof.result())
+        all_frames.update(fut_it.result())
 
     yields_df = pd.DataFrame(all_frames)
     yields_df.index = pd.to_datetime(yields_df.index)
@@ -344,12 +422,33 @@ def calculate_differentials(yields_df):
     # negative = inverted (recession signal historically)
     diff["US_curve"] = _spread("US_10Y", "US_2Y")
 
+    # BTP-Bund spread: Italian 10Y minus German 10Y (Phase 9 — eurozone fragmentation signal)
+    if "IT_10Y" in yields_df.columns and "DE_10Y" in yields_df.columns:
+        diff["BTP_Bund_spread"] = yields_df["IT_10Y"] - yields_df["DE_10Y"]
+
+        def _btp_flag(x):
+            if pd.isna(x):  return "UNAVAILABLE"
+            if x > 2.5:     return "STRESS"
+            if x > 1.8:     return "ELEVATED"
+            return "NORMAL"
+
+        diff["BTP_Bund_flag"] = diff["BTP_Bund_spread"].apply(_btp_flag)
+
     for col in diff.columns:
         clean = diff[col].dropna()
-        if len(clean) > 0:
-            print(f"    {col:<22} : {clean.iloc[-1]:+.2f}%")
-        else:
+        if len(clean) == 0:
             print(f"    {col:<22} : no data")
+            continue
+        v = clean.iloc[-1]
+        # skip non-numeric flag columns
+        try:
+            v_float = float(v)
+        except (TypeError, ValueError):
+            print(f"    {col:<22} : {v}")
+            continue
+        flag = diff.get("BTP_Bund_flag", pd.Series()).dropna()
+        suffix = f"  [{flag.iloc[-1]}]" if col == "BTP_Bund_spread" and len(flag) > 0 else ""
+        print(f"    {col:<22} : {v_float:+.2f}%{suffix}")
 
     return diff
 
@@ -511,6 +610,36 @@ def calculate_dxy_correlation(master):
 
     return master
 
+def calculate_gold_correlation(master):
+    print("\n[GOLD] calculating gold correlation (Phase 4)...")
+
+    if "Gold" not in master.columns:
+        print("    SKIP -- Gold column not found")
+        return master
+
+    gold_ret = master["Gold"].pct_change()
+
+    pairs = [
+        ("USDJPY", "gold_usdjpy_corr_60d"),
+        # EURUSD excluded: EUR/gold relationship structurally unstable
+        # USDINR handled by inr_pipeline.py
+    ]
+
+    for fx_col, out_col in pairs:
+        if fx_col not in master.columns:
+            print(f"    SKIP -- {fx_col} not in master")
+            continue
+        fx_ret = master[fx_col].pct_change()
+        master[out_col] = gold_ret.rolling(60).corr(fx_ret)
+
+        latest = master[out_col].dropna()
+        if len(latest) > 0:
+            c = latest.iloc[-1]
+            print(f"    {fx_col:<8}: {c:>+.3f}  ({out_col})")
+        else:
+            print(f"    {fx_col:<8}: no data")
+
+    return master
 
 def calculate_oil_correlation(master):
     print("\n[OIL] calculating oil correlation (Phase 1)...")
@@ -574,6 +703,196 @@ def calculate_key_levels(master):
             print(f"    {pair}: S1={row[f'{pair}_S1']:.{decimals}f}  "
                   f"R1={row[f'{pair}_R1']:.{decimals}f}")
     return master
+
+
+# -- Phase 8: G10 composite regime scores --------------------------------------
+#
+# EUR/USD weights: rate_diff 30%, lev_money 20%, asset_mgr 10%,
+#                  vol 10%, corr_60d 15%, oil 8%, dxy 7%
+# USD/JPY weights: rate_diff 25%, lev_money 20%, asset_mgr 10%,
+#                  vol 10%, corr_60d 15%, oil 10%, gold 5%, dxy 5%
+#
+# Score > 0  = net USD strength pressure
+# Score < 0  = net USD weakness / foreign-currency strength pressure
+# Clipped to [-100, 100].
+
+def _norm_percentile(series):
+    """Map a 0-100 percentile → [-1, +1].  50th pct = 0 (neutral)."""
+    return (series.clip(0, 100) - 50) / 50.0
+
+
+def _norm_corr(series, expected_sign=1.0):
+    """Map a correlation to a signed contribution:
+    positive contribution when correlation is in expected direction.
+    Result bounded to [-1, +1].
+    """
+    return (series.clip(-1, 1) * expected_sign)
+
+
+def calculate_g10_composites(master):
+    """Phase 8: compute eurusd_composite_score and usdjpy_composite_score.
+
+    All sub-signals are normalised to [-1, +1] before weighting.
+    A positive sub-signal means USD is likely to strengthen against that pair.
+    Final score is clipped to [-100, 100].
+    """
+    print("\n[COMPOSITE] calculating G10 composite regime scores (Phase 8)...")
+    df = master.copy()
+
+    # Recompute BTP_Bund_flag from the ffill'd spread (build_master ffills values
+    # but the flag strings were written before ffill, so they may show UNAVAILABLE).
+    if "BTP_Bund_spread" in df.columns:
+        def _btp_flag_post(x):
+            if pd.isna(x):  return "UNAVAILABLE"
+            if x > 2.5:     return "STRESS"
+            if x > 1.8:     return "ELEVATED"
+            return "NORMAL"
+        df["BTP_Bund_flag"] = df["BTP_Bund_spread"].apply(_btp_flag_post)
+
+    # ── EUR/USD ───────────────────────────────────────────────────────────────
+    # Rate differential: higher US-DE spread → USD strength (positive score)
+    if "US_DE_10Y_spread" in df.columns:
+        # Normalise by rolling z-score (252D window); cap at ±3 → /3 → ±1
+        spread_z = (
+            df["US_DE_10Y_spread"]
+            .sub(df["US_DE_10Y_spread"].rolling(252, min_periods=60).mean())
+            .div(df["US_DE_10Y_spread"].rolling(252, min_periods=60).std().replace(0, float('nan')))
+            .clip(-3, 3) / 3.0
+        )
+    else:
+        spread_z = pd.Series(0.0, index=df.index)
+
+    # Leveraged Money EUR percentile: high percentile = crowded EUR long →
+    #   typically precedes EUR weakness (USD strength) so +ve → +ve signal
+    if "EUR_lev_percentile" in df.columns:
+        lev_sig = _norm_percentile(df["EUR_lev_percentile"])
+    else:
+        lev_sig = pd.Series(0.0, index=df.index)
+
+    # Asset Manager EUR percentile: same direction
+    if "EUR_assetmgr_percentile" in df.columns:
+        am_sig = _norm_percentile(df["EUR_assetmgr_percentile"])
+    else:
+        am_sig = pd.Series(0.0, index=df.index)
+
+    # Vol percentile: high vol → USD strength pressure (risk-off)
+    if "EURUSD_vol_pct" in df.columns:
+        vol_sig = _norm_percentile(df["EURUSD_vol_pct"])
+    else:
+        vol_sig = pd.Series(0.0, index=df.index)
+
+    # Regime correlation: high positive 60D corr (spread drives pair) with
+    #   spread being positive (USD direction) → enhances USD signal.
+    #   corr_60d + spread_z combined:
+    if "EURUSD_spread_corr_60d" in df.columns:
+        corr_sig = _norm_corr(df["EURUSD_spread_corr_60d"], expected_sign=1.0) * spread_z.abs()
+    else:
+        corr_sig = pd.Series(0.0, index=df.index)
+
+    # Oil: EUR/USD typically inversely correlated with oil → oil_eur_corr
+    #   negative expected; when corr is negative and oil rising it hurts EUR
+    if "oil_eurusd_corr_60d" in df.columns:
+        oil_sig = _norm_corr(df["oil_eurusd_corr_60d"], expected_sign=-1.0)
+    else:
+        oil_sig = pd.Series(0.0, index=df.index)
+
+    # DXY: strong negative corr with EUR/USD → dollar driving
+    if "dxy_eurusd_corr_60d" in df.columns:
+        dxy_sig = _norm_corr(df["dxy_eurusd_corr_60d"], expected_sign=-1.0)
+    else:
+        dxy_sig = pd.Series(0.0, index=df.index)
+
+    eur_raw = (
+        0.30 * spread_z
+        + 0.20 * lev_sig
+        + 0.10 * am_sig
+        + 0.10 * vol_sig
+        + 0.15 * corr_sig
+        + 0.08 * oil_sig
+        + 0.07 * dxy_sig
+    )
+    df["eurusd_composite_score"] = (eur_raw * 100).clip(-100, 100).round(1)
+
+    def _g10_label(x):
+        if pd.isna(x):    return "UNKNOWN"
+        if x >  60:       return "STRONG USD STRENGTH"
+        if x >  30:       return "MODERATE USD STRENGTH"
+        if x > -30:       return "NEUTRAL"
+        if x > -60:       return "MODERATE USD WEAKNESS"
+        return "STRONG USD WEAKNESS"
+
+    df["eurusd_composite_label"] = df["eurusd_composite_score"].apply(_g10_label)
+
+    # ── USD/JPY ───────────────────────────────────────────────────────────────
+    if "US_JP_10Y_spread" in df.columns:
+        jpy_spread_z = (
+            df["US_JP_10Y_spread"]
+            .sub(df["US_JP_10Y_spread"].rolling(252, min_periods=60).mean())
+            .div(df["US_JP_10Y_spread"].rolling(252, min_periods=60).std().replace(0, float('nan')))
+            .clip(-3, 3) / 3.0
+        )
+    else:
+        jpy_spread_z = pd.Series(0.0, index=df.index)
+
+    if "JPY_lev_percentile" in df.columns:
+        jpy_lev_sig = _norm_percentile(df["JPY_lev_percentile"])
+    else:
+        jpy_lev_sig = pd.Series(0.0, index=df.index)
+
+    if "JPY_assetmgr_percentile" in df.columns:
+        jpy_am_sig = _norm_percentile(df["JPY_assetmgr_percentile"])
+    else:
+        jpy_am_sig = pd.Series(0.0, index=df.index)
+
+    if "USDJPY_vol_pct" in df.columns:
+        jpy_vol_sig = _norm_percentile(df["USDJPY_vol_pct"])
+    else:
+        jpy_vol_sig = pd.Series(0.0, index=df.index)
+
+    if "USDJPY_spread_corr_60d" in df.columns:
+        jpy_corr_sig = _norm_corr(df["USDJPY_spread_corr_60d"], expected_sign=1.0) * jpy_spread_z.abs()
+    else:
+        jpy_corr_sig = pd.Series(0.0, index=df.index)
+
+    # Oil: positive expected for USD/JPY (oil up → JPY weaker)
+    if "oil_usdjpy_corr_60d" in df.columns:
+        jpy_oil_sig = _norm_corr(df["oil_usdjpy_corr_60d"], expected_sign=1.0)
+    else:
+        jpy_oil_sig = pd.Series(0.0, index=df.index)
+
+    # Gold: negative expected for USD/JPY (gold up → safe-haven JPY → lower USD/JPY)
+    if "gold_usdjpy_corr_60d" in df.columns:
+        gold_sig = _norm_corr(df["gold_usdjpy_corr_60d"], expected_sign=-1.0)
+    else:
+        gold_sig = pd.Series(0.0, index=df.index)
+
+    # DXY: positive expected for USD/JPY
+    if "dxy_usdjpy_corr_60d" in df.columns:
+        jpy_dxy_sig = _norm_corr(df["dxy_usdjpy_corr_60d"], expected_sign=1.0)
+    else:
+        jpy_dxy_sig = pd.Series(0.0, index=df.index)
+
+    jpy_raw = (
+        0.25 * jpy_spread_z
+        + 0.20 * jpy_lev_sig
+        + 0.10 * jpy_am_sig
+        + 0.10 * jpy_vol_sig
+        + 0.15 * jpy_corr_sig
+        + 0.10 * jpy_oil_sig
+        + 0.05 * gold_sig
+        + 0.05 * jpy_dxy_sig
+    )
+    df["usdjpy_composite_score"] = (jpy_raw * 100).clip(-100, 100).round(1)
+    df["usdjpy_composite_label"] = df["usdjpy_composite_score"].apply(_g10_label)
+
+    # Print latest composite readings
+    latest = df.dropna(subset=["eurusd_composite_score", "usdjpy_composite_score"])
+    if len(latest) > 0:
+        row = latest.iloc[-1]
+        print(f"    EUR/USD composite: {row['eurusd_composite_score']:+.1f}  [{row['eurusd_composite_label']}]")
+        print(f"    USD/JPY composite: {row['usdjpy_composite_score']:+.1f}  [{row['usdjpy_composite_label']}]")
+
+    return df
 
 
 # -- step 4: build master table ------------------------------------------------
@@ -814,8 +1133,10 @@ def main():
     master       = calculate_volatility(master)
     master       = calculate_regime_correlation(master)
     master       = calculate_oil_correlation(master)
+    master       = calculate_gold_correlation(master)
     master       = calculate_dxy_correlation(master)
     master       = calculate_key_levels(master)
+    master       = calculate_g10_composites(master)
     master       = calculate_changes(master)
 
     save_data(master)

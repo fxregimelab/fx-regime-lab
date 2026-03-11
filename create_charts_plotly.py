@@ -2,6 +2,7 @@ import pandas as pd
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 from charts.base import _base_layout, _style_axes, _load_and_filter, _add_annotation
+from core.paths import LATEST_WITH_COT_CSV
 
 
 # ============================================================================
@@ -148,6 +149,102 @@ def build_fundamentals_chart(pair):
     
     fig.update_yaxes(range=[p_min - p_pad, p_max + p_pad], row=1, col=1)
     fig.update_yaxes(range=[s_min - s_pad, s_max + s_pad], row=2, col=1)
+
+    # --- Phase 11a: 200-day moving average on price panel ---
+    try:
+        df_full = pd.read_csv(LATEST_WITH_COT_CSV, index_col=0, parse_dates=True)
+        df_full.index = pd.to_datetime(df_full.index, utc=False).tz_localize(None).normalize()
+        df_full = df_full.sort_index()
+        df_full = df_full[~df_full.index.duplicated(keep='last')]
+        price_full = df_full[cfg['price_col']].dropna()
+        ma200_full = price_full.rolling(200, min_periods=100).mean()
+        # filter to display window
+        ma200_display = ma200_full[ma200_full.index >= cutoff].dropna()
+        if len(ma200_display) > 0:
+            ma200_x = ma200_display.index.strftime('%Y-%m-%d').tolist()
+            fig.add_trace(
+                go.Scatter(
+                    x=ma200_x,
+                    y=ma200_display.values.tolist(),
+                    mode='lines',
+                    line=dict(color='#444444', width=1, dash='dash'),
+                    name='200D MA',
+                    showlegend=False,
+                    hovertemplate='%{x|%d %b %Y}<br>200D MA: %{y:.4f}<extra></extra>',
+                ),
+                row=1, col=1,
+            )
+    except Exception:
+        pass  # 200D MA is optional; chart still works without it
+
+    # --- Phase 11b: Key support/resistance levels on price panel ---
+    key_level_cols = {
+        'S1': ('#00d4aa', 'dash',    'S1'),
+        'R1': ('#ff4444', 'dash',    'R1'),
+        'S2': ('#00d4aa', 'dot',     'S2'),
+        'R2': ('#ff4444', 'dot',     'R2'),
+    }
+    y_lo = p_min - p_pad
+    y_hi = p_max + p_pad
+    for suffix, (kl_color, kl_dash, kl_label) in key_level_cols.items():
+        col_name = f'{PAIR}_{suffix}'
+        if col_name not in d.columns:
+            continue
+        level_val = d[col_name].dropna()
+        if len(level_val) == 0:
+            continue
+        kl = float(level_val.iloc[-1])
+        if not (y_lo <= kl <= y_hi):
+            continue  # outside visible range — skip
+        fig.add_hline(
+            y=kl,
+            line_dash=kl_dash,
+            line_color=kl_color,
+            line_width=0.8,
+            opacity=0.5,
+            row=1, col=1,
+        )
+        # label annotation at right edge
+        fig.add_annotation(
+            x=d.index[-1],
+            y=kl,
+            text=f'  {kl_label}',
+            xref='x',
+            yref='y',
+            xanchor='left',
+            showarrow=False,
+            font=dict(size=8, color=kl_color),
+        )
+
+    # --- Phase 11c: Yield-curve inversion shading on spread panel ---
+    if 'US_curve' in d.columns:
+        us_curve = d['US_curve'].ffill()
+        inverted = (us_curve < 0)
+        if inverted.any():
+            dates = pd.to_datetime(d.index)
+            in_inv = False
+            inv_start = None
+            for i, (dt, is_inv) in enumerate(zip(dates, inverted)):
+                if is_inv and not in_inv:
+                    inv_start = dt
+                    in_inv = True
+                elif not is_inv and in_inv:
+                    fig.add_vrect(
+                        x0=inv_start.strftime('%Y-%m-%d'),
+                        x1=dt.strftime('%Y-%m-%d'),
+                        fillcolor='rgba(255, 80, 0, 0.04)',
+                        line_width=0,
+                        row=2, col=1,
+                    )
+                    in_inv = False
+            if in_inv and inv_start is not None:
+                fig.add_vrect(
+                    x0=inv_start.strftime('%Y-%m-%d'),
+                    x1=d.index[-1],
+                    fillcolor='rgba(255, 80, 0, 0.04)',
+                    line_width=0,
+                    row=2, col=1,
+                )
     
     # --- Inline end-labels ---
     if d.empty:

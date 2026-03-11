@@ -11,11 +11,14 @@ import pandas as pd
 from core.utils import ordinal, _pct, _pp, _net
 from core.utils import (
     _dxy_corr_label,
+    _gold_corr_label,
     _oil_corr_label,
+    _rbi_intervention_label,
+    _btp_bund_label,
     _eur_interpretation,
     _jpy_interpretation,
 )
-from config import TODAY, TODAY_FMT
+from config import TODAY, TODAY_FMT, get_upcoming_event
 
 
 def _regime_label(percentile, net):
@@ -138,6 +141,33 @@ def build_brief(df):
     dxy_jpy_corr = row.get("dxy_usdjpy_corr_60d", float('nan'))
     dxy_inr_corr = row.get("dxy_inr_corr_60d",    float('nan'))
 
+    # Gold correlation (Phase 4)
+    gold_jpy_corr       = row.get("gold_usdjpy_corr_60d", float('nan'))
+    gold_inr_corr       = row.get("gold_inr_corr_60d",    float('nan'))
+    gold_seasonal_flag  = row.get("gold_seasonal_flag",   0)
+    gold_seasonal_label = row.get("gold_seasonal_label",  "")
+
+    # RBI intervention (Phase 5)
+    rbi_chg  = row.get("rbi_reserve_chg_1w",   float('nan'))
+    rbi_flag = row.get("rbi_intervention_flag", "UNKNOWN")
+
+    # INR Composite Score (Phase 7)
+    inr_composite_score = row.get("inr_composite_score", float('nan'))
+    inr_composite_label = row.get("inr_composite_label", "UNKNOWN")
+
+    # BTP-Bund spread (Phase 9)
+    btp_spread  = row.get("BTP_Bund_spread", float('nan'))
+    btp_flag    = row.get("BTP_Bund_flag",   "UNAVAILABLE")
+
+    # G10 composite scores (Phase 8)
+    eur_comp_score = row.get("eurusd_composite_score", float('nan'))
+    eur_comp_label = row.get("eurusd_composite_label", "UNKNOWN")
+    jpy_comp_score = row.get("usdjpy_composite_score", float('nan'))
+    jpy_comp_label = row.get("usdjpy_composite_label", "UNKNOWN")
+
+    # Macro calendar (Phase 10)
+    upcoming_event = get_upcoming_event()
+
     # Key levels (support and resistance)
     eur_levels = _extract_key_levels(row, "EURUSD")
     jpy_levels = _extract_key_levels(row, "USDJPY")
@@ -220,6 +250,20 @@ def build_brief(df):
     lines.append(f"  FX as of: {as_of}  |  IN 10Y as of: {in10y_date}  |  COT cutoff: {cot_cutoff} (pub'd: {cot_published})")
     lines.append("=" * W)
 
+    # ── MACRO CALENDAR ALERT ─────────────────────────────────────────────────
+    if upcoming_event is not None:
+        days_away = upcoming_event['days_away']
+        evt_name  = upcoming_event['event']
+        evt_date  = upcoming_event['date']
+        if days_away == 0:
+            day_str = "TODAY"
+        elif days_away == 1:
+            day_str = "TOMORROW"
+        else:
+            day_str = f"in {days_away} days"
+        lines.append("")
+        lines.append(f"  !! MACRO EVENT {day_str}: {evt_name} ({evt_date}) !!")
+
     # ── PRICES ────────────────────────────────────────────────────────────────
     lines.append("")
     lines.append("  PRICES")
@@ -238,6 +282,15 @@ def build_brief(df):
     lines.append(f"  {'US-DE 2Y  (same) ':<22} {de2_today:>6.2f}%  {_pp(de2_1w):>8}  {_pp(de2_12m):>8}")
     lines.append(f"  {'US-JP 10Y (cross)':<22} {jp10_today:>6.2f}%  {_pp(jp10_1w):>8}  {_pp(jp10_12m):>8}")
     lines.append(f"  {'US-JP 2Y  (same) ':<22} {jp2_today:>6.2f}%  {_pp(jp2_1w):>8}  {_pp(jp2_12m):>8}")
+    # BTP-Bund spread (Phase 9 -- EUR/USD-relevant Italian sovereign risk)
+    btp_text, _btp_color = _btp_bund_label(btp_flag)
+    btp_spread_str = f"{btp_spread:.2f}pp" if not pd.isna(btp_spread) else "n/a"
+    btp_note = ""
+    if str(btp_flag) == "STRESS":
+        btp_note = "  << Italian sovereign stress -- EUR negative"
+    elif str(btp_flag) == "ELEVATED":
+        btp_note = "  << elevated BTP-Bund premium -- monitor"
+    lines.append(f"  {'BTP-Bund (IT-DE 10Y)':<22} {btp_spread_str:>8}  {'':>8}  {'':>8}  [{btp_text}]{btp_note}")
 
     # ── REGIME CORRELATION ────────────────────────────────────────────────────
     lines.append("")
@@ -278,6 +331,77 @@ def build_brief(df):
         label, is_dollar = _dxy_corr_label(corr_val, fx_key)
         dollar_note = "  << broad USD move" if is_dollar else ""
         lines.append(f"  {pair_name:<12} {_corr_fmt(corr_val):>12}   {label}{dollar_note}")
+
+    # ── GOLD CORRELATION ─────────────────────────────────────────────────────
+    lines.append("")
+    lines.append("  GOLD CORRELATION  (60D rolling | Gold returns vs FX returns)")
+    lines.append("  USD/JPY: negative expected (safe-haven) | USD/INR: positive expected (import demand)")
+    lines.append(f"  {'pair':<12} {'correlation':>12}   {'flag'}")
+    lines.append(f"  {'-'*52}")
+    for pair_name, fx_key, corr_val in [
+        ("USD/JPY", "USDJPY", gold_jpy_corr),
+        ("USD/INR", "USDINR", gold_inr_corr),
+    ]:
+        label, is_div = _gold_corr_label(corr_val, fx_key)
+        div_note = "  << sign reversal -- safe-haven/import demand channel broken" if is_div else ""
+        lines.append(f"  {pair_name:<12} {_corr_fmt(corr_val):>12}   {label}{div_note}")
+    # seasonal demand flag (USD/INR only, when gold_seasonal_flag is active)
+    try:
+        seasonal_active = float(gold_seasonal_flag) > 0.5
+    except (TypeError, ValueError):
+        seasonal_active = False
+    if seasonal_active and str(gold_seasonal_label) not in ('nan', 'None', ''):
+        lines.append(f"  {'':12} {'':>12}   SEASONAL: {gold_seasonal_label}")
+    # ── RBI INTERVENTION ─────────────────────────────────────────────
+    lines.append("")
+    lines.append("  RBI INTERVENTION  (FRED RBUKRESERVES | 7-day change in USD bn)")
+    lines.append(f"  {'-'*52}")
+    rbi_text, _rbi_color, _rbi_active = _rbi_intervention_label(rbi_flag)
+    chg_str = f"{rbi_chg:+.1f}B" if not pd.isna(rbi_chg) else "n/a"
+    div_note = ""
+    if str(rbi_flag) == "ACTIVE SUPPORT":
+        div_note = "  << defending INR floor"
+    elif str(rbi_flag) == "ACTIVE CAPPING":
+        div_note = "  << capping INR appreciation"
+    lines.append(f"  {'RBI Reserves':<20} {chg_str:>10}   {rbi_text}{div_note}")
+
+    # ── INR COMPOSITE SCORE ─────────────────────────────────────────
+    lines.append("")
+    lines.append("  INR COMPOSITE SCORE  (oil 25% | DXY 20% | FPI 25% | RBI 20% | rate 10%)")
+    lines.append(f"  {'-'*52}")
+    if not pd.isna(inr_composite_score):
+        lines.append(f"  SCORE: {inr_composite_score:+.1f}  [{inr_composite_label}]")
+        try:
+            _oil_c = float(row.get("oil_inr_corr_60d", 0) or 0)
+            _dxy_c = float(row.get("dxy_inr_corr_60d", 0) or 0)
+            _fpi_c = float(row.get("FPI_20D_flow",     0) or 0)
+            _spr_c = float(row.get("US_IN_10Y_spread", 0) or 0)
+            _b1d   = float(row.get("Brent_chg_1D",     0) or 0)
+            _d1d   = float(row.get("DXY_chg_1D",       0) or 0)
+            _rbi_wt = {"ACTIVE SUPPORT": -0.30, "ACTIVE CAPPING": 0.20, "NEUTRAL": 0.0, "UNKNOWN": 0.0}
+            _sgn = lambda v: 1 if v > 0 else (-1 if v < 0 else 0)
+            oil_sub  = _oil_c * _sgn(_b1d) * 0.25 * 100
+            dxy_sub  = _dxy_c * _sgn(_d1d) * 0.20 * 100
+            fpi_sub  = -min(max(_fpi_c / 20000, -1), 1) * 0.25 * 100
+            rbi_sub  = _rbi_wt.get(str(rbi_flag) if str(rbi_flag) != "nan" else "NEUTRAL", 0.0) * 0.20 * 100
+            rate_sub = _sgn(-_spr_c) * 0.10 * 100
+            lines.append(f"  Components: Oil({oil_sub:+.0f}) DXY({dxy_sub:+.0f}) FPI({fpi_sub:+.0f}) RBI({rbi_sub:+.0f}) Rate({rate_sub:+.0f})")
+        except Exception:
+            pass
+    else:
+        lines.append(f"  SCORE: n/a  (run inr pipeline to populate)")
+    # ── G10 COMPOSITE SCORES ─────────────────────────────────────────────────
+    lines.append("")
+    lines.append("  G10 COMPOSITE REGIME SCORES  (Phase 8 | +ve = USD strength pressure)")
+    lines.append(f"  {'-'*62}")
+    lines.append(f"  {'pair':<12} {'score':>8}   {'label'}")
+    lines.append(f"  {'-'*62}")
+    eur_score_str = f"{eur_comp_score:>+.1f}" if not pd.isna(eur_comp_score) else "  n/a"
+    jpy_score_str = f"{jpy_comp_score:>+.1f}" if not pd.isna(jpy_comp_score) else "  n/a"
+    lines.append(f"  {'EUR/USD':<12} {eur_score_str:>8}   {eur_comp_label}")
+    lines.append(f"  {'USD/JPY':<12} {jpy_score_str:>8}   {jpy_comp_label}")
+    lines.append(f"  weights: EUR/USD rate 30%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 8%+dxy 7%")
+    lines.append(f"           USD/JPY rate 25%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 10%+gold 5%+dxy 5%")
 
     # ── KEY LEVELS ────────────────────────────────────────────────────────────
     lines.append("")

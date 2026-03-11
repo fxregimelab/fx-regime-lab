@@ -36,6 +36,9 @@ jobs:
             exit 1
           fi
           echo "FRED_API_KEY=${{ secrets.FRED_API_KEY }}" > .env
+          if [ -n "${{ secrets.NOTION_TOKEN }}" ]; then
+            echo "NOTION_TOKEN=${{ secrets.NOTION_TOKEN }}" >> .env
+          fi
 
       - name: Configure git identity
         run: |

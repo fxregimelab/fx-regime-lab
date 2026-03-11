@@ -2,6 +2,7 @@
 # All configuration lives here. Change settings in one place, affects everything.
 
 from datetime import datetime
+import pandas as pd
 
 # ── DATES ────────────────────────────────────────────────────
 TODAY      = datetime.today().strftime('%Y-%m-%d')
@@ -147,3 +148,21 @@ CB_EVENTS = {
     '2026-12-17': 'ECB Meeting',
     '2026-12-19': 'BoJ Policy',
 }
+
+
+def get_upcoming_event(today=None, window_days=7):
+    """Return the nearest CB event within window_days, or None.
+
+    Returns dict: {'event': str, 'date': str, 'days_away': int}
+    or None if no event within window.
+    """
+    if today is None:
+        today = TODAY
+    nearest = None
+    min_days = window_days + 1
+    for date_str, name in CB_EVENTS.items():
+        days_away = (pd.Timestamp(date_str) - pd.Timestamp(today)).days
+        if 0 <= days_away <= window_days and days_away < min_days:
+            min_days = days_away
+            nearest = {'event': name, 'date': date_str, 'days_away': days_away}
+    return nearest

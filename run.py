@@ -60,8 +60,22 @@ _STEP_NAMES = [name for name, _ in STEPS]
 def _run_step(name, script, python_exe):
     """Run one pipeline step.  Returns (success: bool, elapsed_seconds: float)."""
     t0 = time.perf_counter()
-    result = subprocess.run([python_exe, script], capture_output=False)
+    result = subprocess.run(
+        [python_exe, script],
+        capture_output=True,
+        text=True,
+        encoding='utf-8',
+        errors='replace',
+    )
     elapsed = time.perf_counter() - t0
+    # Write captured output through sys.stdout/_Tee so it reaches both
+    # the console AND the pipeline.log file.
+    if result.stdout:
+        sys.stdout.write(result.stdout)
+        sys.stdout.flush()
+    if result.stderr:
+        sys.stderr.write(result.stderr)
+        sys.stderr.flush()
     return result.returncode == 0, elapsed
 
 
@@ -123,58 +137,75 @@ def main():
     log_path = os.path.join('runs', today_str, 'pipeline.log')
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     _log_file = open(log_path, 'w', encoding='utf-8', buffering=1)
-    sys.stdout = _Tee(sys.__stdout__, _log_file)
-    sys.stderr = _Tee(sys.__stderr__, _log_file)
-
-    # Deduplicate: pipeline.py appears as both "fx" and "merge"
-    # — if both are in the run set, only run pipeline.py once.
-    seen_scripts = set()
-    total_start = time.perf_counter()
+    # Wrap everything in try/finally so the log handle is ALWAYS closed,
+    # even if an uncaught exception escapes the step loop (Windows file lock fix).
     failed = False
+    try:
+        sys.stdout = _Tee(sys.__stdout__, _log_file)
+        sys.stderr = _Tee(sys.__stderr__, _log_file)
 
-    print(f'\n{"="*50}')
-    print(f'  fx_regime pipeline  --  {today_str}')
-    print(f'{"="*50}')
+        # Deduplicate: pipeline.py appears as both "fx" and "merge"
+        # — if both are in the run set, only run pipeline.py once.
+        seen_scripts = set()
+        total_start = time.perf_counter()
 
-    for name, script in STEPS:
-        # Filter by --only / --skip
-        if args.only is not None and name not in args.only:
-            print(f'  [skip]  {name}')
-            continue
-        if name in args.skip:
-            print(f'  [skip]  {name}')
-            continue
-        # Deduplicate scripts (fx and merge both call pipeline.py)
-        if script in seen_scripts:
-            print(f'  [dedup] {name}  ({script} already ran)')
-            continue
-        seen_scripts.add(script)
-
-        print(f'\n>>  {name}  ({script})')
-        ok, elapsed = _run_step(name, script, python_exe)
-        if ok:
-            print(f'OK  {name}  -- {elapsed:.1f}s')
-        else:
-            print(f'FAIL  {name} after {elapsed:.1f}s')
-            print(f'   Fix {script} and re-run:  python run.py --only {name}')
-            failed = True
-            break
-
-    total = time.perf_counter() - total_start
-
-    if not failed:
         print(f'\n{"="*50}')
-        print(f'  all steps done  ({total:.1f}s total)')
-        _archive(today_str)
-        print()
-        print('  live at: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/')
-        print(f'{"="*50}\n')
-    else:
-        print(f'\n  pipeline stopped after {total:.1f}s -- fix the error above and retry.\n')
+        print(f'  fx_regime pipeline  --  {today_str}')
+        print(f'{"="*50}')
 
-    sys.stdout = sys.__stdout__
-    sys.stderr = sys.__stderr__
-    _log_file.close()
+        for name, script in STEPS:
+            # Filter by --only / --skip
+            if args.only is not None and name not in args.only:
+                print(f'  [skip]  {name}')
+                continue
+            if name in args.skip:
+                print(f'  [skip]  {name}')
+                continue
+            # Deduplicate scripts (fx and merge both call pipeline.py)
+            if script in seen_scripts:
+                print(f'  [dedup] {name}  ({script} already ran)')
+                continue
+            seen_scripts.add(script)
+
+            print(f'\n>>  {name}  ({script})')
+            ok, elapsed = _run_step(name, script, python_exe)
+            if ok:
+                print(f'OK  {name}  -- {elapsed:.1f}s')
+            else:
+                print(f'FAIL  {name} after {elapsed:.1f}s')
+                print(f'   Fix {script} and re-run:  python run.py --only {name}')
+                failed = True
+                break
+
+        total = time.perf_counter() - total_start
+
+        if not failed:
+            print(f'\n{"="*50}')
+            print(f'  all steps done  ({total:.1f}s total)')
+            _archive(today_str)
+
+            # Notion sync — runs after all pipeline output is complete
+            print("\nRunning Notion sync...")
+            notion_result = subprocess.run(
+                [python_exe, "notion_sync.py"],
+                capture_output=True, text=True,
+            )
+            print(notion_result.stdout)
+            if notion_result.returncode != 0:
+                print(f"Notion sync warning: {notion_result.stderr[:200]}")
+                print("(Pipeline complete — Notion sync failure is non-blocking)")
+
+            print()
+            print('  live at: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/')
+            print(f'{"="*50}\n')
+        else:
+            print(f'\n  pipeline stopped after {total:.1f}s -- fix the error above and retry.\n')
+
+    finally:
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        _log_file.close()
+
     if failed:
         sys.exit(1)
 

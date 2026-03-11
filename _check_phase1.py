@@ -1,6 +1,8 @@
 import sys, subprocess, os, hashlib, re as _re
+from datetime import datetime
 
-BRIEF = 'briefs/brief_20260309.html'
+_TODAY = datetime.today().strftime('%Y%m%d')
+BRIEF = f'briefs/brief_{_TODAY}.html'
 
 def run_generator():
     r = subprocess.run([sys.executable, 'create_html_brief.py'], capture_output=True, text=True)

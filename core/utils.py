@@ -180,6 +180,99 @@ def _oil_corr_label(corr, pair):
         return "LOW", False
 
 
+def _gold_corr_label(corr, pair):
+    """Return (badge_text, is_divergence) for a gold correlation value.
+
+    Expected signs per pair:
+      USD/JPY  negative  (gold up -> safe-haven flow -> JPY strengthens -> USD/JPY down)
+      USD/INR  positive  (gold up -> India import demand -> USD buying -> INR weaker)
+      EUR/USD  excluded  (EUR/gold relationship structurally unstable)
+
+    Divergence = sign reversal beyond threshold.
+    Magnitude badge: |corr| >= 0.60 = STRONG, 0.30-0.60 = MODERATE, < 0.30 = WEAK
+    """
+    if pd.isna(corr):
+        return "NO DATA", False
+
+    # divergence check: sign reversal from expected
+    divergence = False
+    if pair == "USDJPY" and corr > 0.20:
+        divergence = True
+    elif pair == "USDINR" and corr < -0.20:
+        divergence = True
+
+    if divergence:
+        return "GOLD DIVERGENCE", True
+
+    abs_c = abs(corr)
+    if abs_c >= 0.60:
+        return "STRONG", False
+    elif abs_c >= 0.30:
+        return "MODERATE", False
+    else:
+        return "WEAK", False
+
+
+def _rbi_intervention_label(flag):
+    """Return (display_text, color, is_active) for an RBI intervention flag string.
+    ACTIVE SUPPORT = RBI selling USD to defend INR floor (teal)
+    ACTIVE CAPPING = RBI buying USD to limit appreciation (amber)
+    NEUTRAL        = no significant reserve change
+    """
+    try:
+        if pd.isna(flag):
+            return "UNKNOWN", "#555555", False
+    except TypeError:
+        pass
+    mapping = {
+        "ACTIVE SUPPORT": ("ACTIVE SUPPORT", "#00d4aa", True),
+        "ACTIVE CAPPING": ("ACTIVE CAPPING", "#f0a500", True),
+        "NEUTRAL":        ("NEUTRAL",        "#888888", False),
+        "UNKNOWN":        ("UNKNOWN",        "#555555", False),
+    }
+    return mapping.get(str(flag), ("UNKNOWN", "#555555", False))
+
+
+def _inr_score_label(score):
+    """Return a severity label for the INR composite regime score."""
+    if pd.isna(score): return "UNKNOWN"
+    if score >  60:    return "STRONG DEPRECIATION PRESSURE"
+    if score >  30:    return "MODERATE DEPRECIATION PRESSURE"
+    if score > -30:    return "NEUTRAL"
+    if score > -60:    return "MODERATE APPRECIATION PRESSURE"
+    return "STRONG APPRECIATION PRESSURE"
+
+
+def _btp_bund_label(flag):
+    """Return (display_text, color) for a BTP-Bund spread flag.
+
+    STRESS   = spread > 2.5pp  → red     (Italian sovereign risk flaring)
+    ELEVATED = spread > 1.8pp  → amber   (worth monitoring)
+    NORMAL   = spread <= 1.8pp → grey    (benign)
+    """
+    mapping = {
+        "STRESS":      ("STRESS",      "#ff4444"),
+        "ELEVATED":    ("ELEVATED",    "#f0a500"),
+        "NORMAL":      ("NORMAL",      "#888888"),
+        "UNAVAILABLE": ("N/A",         "#555555"),
+    }
+    return mapping.get(str(flag), ("UNKNOWN", "#555555"))
+
+
+def _g10_score_label(score):
+    """Return a direction label for EUR/USD or USD/JPY composite regime score.
+
+    Score > 0  = USD strength pressure against that pair.
+    Score < 0  = USD weakness / foreign-currency strength pressure.
+    """
+    if pd.isna(score): return "UNKNOWN"
+    if score >  60:    return "STRONG USD STRENGTH"
+    if score >  30:    return "MODERATE USD STRENGTH"
+    if score > -30:    return "NEUTRAL"
+    if score > -60:    return "MODERATE USD WEAKNESS"
+    return "STRONG USD WEAKNESS"
+
+
 def _eur_interpretation(spread_10y, spread_10y_12m,
                          lev_pct, lev_net,
                          am_pct, am_net):

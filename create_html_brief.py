@@ -6,8 +6,9 @@ import pandas as pd
 import numpy as np
 import sys
 from core.utils import ordinal, embed_image, fmt_pct, color_class
-from config import TODAY, TODAY_FMT, DATE_SLUG
-from morning_brief import _oil_corr_label, _dxy_corr_label, _eur_interpretation, _jpy_interpretation
+from config import TODAY, TODAY_FMT, DATE_SLUG, get_upcoming_event
+from core.utils import _btp_bund_label
+from morning_brief import _oil_corr_label, _dxy_corr_label, _gold_corr_label, _rbi_intervention_label, _eur_interpretation, _jpy_interpretation
 
 
 # ============================================================================
@@ -45,25 +46,25 @@ _DXY_FIELDS = {
 
 def _badge_class_for(label):
     """Map a corr label string to a badge-mini CSS modifier."""
-    if label in ('OIL DIVERGENCE',):
+    if label in ('OIL DIVERGENCE', 'GOLD DIVERGENCE'):
         return 'badge-danger'
-    if label in ('HIGH', 'EUR SPECIFIC', 'YEN SPECIFIC', 'INDIA SPECIFIC'):
+    if label in ('HIGH', 'STRONG', 'EUR SPECIFIC', 'YEN SPECIFIC', 'INDIA SPECIFIC'):
         return 'badge-success'
     if label in ('MODERATE', 'MIXED', 'DOLLAR REGIME'):
         return 'badge-warning'
-    return 'badge-neutral'   # LOW, NO DATA
+    return 'badge-neutral'   # LOW, WEAK, NO DATA
 
 def _value_color_for(label):
     """Map a corr label string to an inline hex color."""
-    if label == 'OIL DIVERGENCE':
+    if label in ('OIL DIVERGENCE', 'GOLD DIVERGENCE'):
         return '#ff4444'
-    if label in ('HIGH', 'EUR SPECIFIC', 'YEN SPECIFIC', 'INDIA SPECIFIC'):
+    if label in ('HIGH', 'STRONG', 'EUR SPECIFIC', 'YEN SPECIFIC', 'INDIA SPECIFIC'):
         return '#00d4aa'
     if label in ('MODERATE', 'MIXED'):
         return '#888888'
     if label == 'DOLLAR REGIME':
         return '#f0a500'
-    return '#555555'   # LOW, NO DATA
+    return '#555555'   # LOW, WEAK, NO DATA
 
 def inject_live_card_data(html_content, _re, df=None):
     """
@@ -198,6 +199,118 @@ def inject_live_card_data(html_content, _re, df=None):
         except Exception:
             return float('nan')
 
+    def _gold_field_row(label, field, pair_key):
+        raw = _g(field)
+        if math.isnan(raw):
+            val_str, color, bdg_cls, bdg_lbl = '\u2014', '#555', 'badge-neutral', 'NO DATA'
+        else:
+            val_str = f'{raw:+.3f}'
+            bdg_lbl, _ = _gold_corr_label(raw, pair_key)
+            color   = _value_color_for(bdg_lbl)
+            bdg_cls = _badge_class_for(bdg_lbl)
+        return (f'<div class="brief-row"><span class="name">{label}</span>'
+                f'<span class="pct" style="color:{color}" data-field="{field}">{val_str}</span>'
+                f'<span></span>'
+                f'<span class="badge-mini {bdg_cls}" data-badge="{field}">{bdg_lbl}</span>'
+                f'</div>\n          ')
+
+    def _seasonal_row(season_label):
+        return (f'<div class="brief-row"><span class="name">Seasonal window</span>'
+                f'<span class="pct" style="color:#f0a500">ACTIVE</span>'
+                f'<span></span>'
+                f'<span class="badge-mini badge-warning">{season_label}</span>'
+                f'</div>\n          ')
+
+    def _btp_row(spread_val, flag_str):
+        btp_text, btp_color = _btp_bund_label(flag_str)
+        spread_str = f'{spread_val:.2f}pp' if not math.isnan(spread_val) else '\u2014'
+        return (f'<div class="brief-row"><span class="name">BTP-Bund (IT-DE)</span>'
+                f'<span class="val">{spread_str}</span>'
+                f'<span></span>'
+                f'<span class="badge-mini" style="color:{btp_color};border-color:{btp_color}">{btp_text}</span>'
+                f'</div>\n          ')
+
+    def _g10_composite_row(score_col, label_col):
+        score = _g(score_col)
+        label = str(row.get(label_col, 'UNKNOWN'))
+        if math.isnan(score):
+            return ''
+        if score > 30:
+            score_color, bdg_cls = '#ff4444', 'badge-danger'
+        elif score < -30:
+            score_color, bdg_cls = '#00d4aa', 'badge-success'
+        else:
+            score_color, bdg_cls = '#888888', 'badge-neutral'
+        bar_pct   = min(abs(score), 100)
+        bar_color = '#ff4444' if score > 0 else '#00d4aa'
+        return (
+            f'<div class="brief-row"><span class="name">Composite Score</span>'
+            f'<span class="pct" style="color:{score_color};font-size:1.1em">{score:+.0f}</span>'
+            f'<span></span>'
+            f'<span class="badge-mini {bdg_cls}">{label}</span>'
+            f'</div>\n          '
+            f'<div style="height:4px;background:#1e1e1e;margin:4px 0 6px 0;border-radius:2px;">'
+            f'<div style="height:4px;width:{bar_pct:.0f}%;background:{bar_color};border-radius:2px;"></div>'
+            f'</div>\n          '
+        )
+
+    def _rbi_row(chg_str, flag_text, color):
+        return (f'<div class="brief-row"><span class="name">RBI Reserves 1W</span>'
+                f'<span class="pct" style="color:{color}">{chg_str}</span>'
+                f'<span></span>'
+                f'<span class="badge-mini" style="color:{color};border-color:{color}">{flag_text}</span>'
+                f'</div>\n          ')
+
+    def _composite_block_html(score_col, label_col, rbi_flag_col):
+        score = _g(score_col)
+        label = str(row.get(label_col, 'UNKNOWN'))
+        if math.isnan(score):
+            return ''
+        if score > 30:
+            score_color, bdg_cls = '#ff4444', 'badge-danger'
+        elif score < -30:
+            score_color, bdg_cls = '#00d4aa', 'badge-success'
+        else:
+            score_color, bdg_cls = '#888888', 'badge-neutral'
+        bar_pct   = min(abs(score), 100)
+        bar_color = '#ff4444' if score > 0 else '#00d4aa'
+        oil_corr = _g('oil_inr_corr_60d')
+        dxy_corr = _g('dxy_inr_corr_60d')
+        fpi_raw  = _g('FPI_20D_flow')
+        brent1d  = _g('Brent_chg_1D')
+        dxy1d    = _g('DXY_chg_1D')
+        rate_spr = _g('US_IN_10Y_spread')
+        rbi_fv   = str(row.get(rbi_flag_col, 'NEUTRAL'))
+        if rbi_fv == 'nan': rbi_fv = 'NEUTRAL'
+        _rbi_w = {'ACTIVE SUPPORT': -0.30, 'ACTIVE CAPPING': 0.20, 'NEUTRAL': 0.0, 'UNKNOWN': 0.0}
+        def _s(v): return 0.0 if math.isnan(v) else float(v)
+        def _sg(v): return 1.0 if v > 0 else (-1.0 if v < 0 else 0.0)
+        oil_s  = _s(oil_corr) * _sg(_s(brent1d)) * 0.25 * 100
+        dxy_s  = _s(dxy_corr) * _sg(_s(dxy1d))   * 0.20 * 100
+        fpi_s  = -min(max(_s(fpi_raw) / 20000, -1.0), 1.0) * 0.25 * 100
+        rbi_s  = _rbi_w.get(rbi_fv, 0.0) * 0.20 * 100
+        rate_s = _sg(-_s(rate_spr)) * 0.10 * 100
+        def _sc(v): return '#cc4444' if v > 0.5 else ('#007a66' if v < -0.5 else '#555555')
+        sub_rows = ''.join(
+            f'<div class="brief-row" style="font-size:0.85em;padding-left:8px;">'
+            f'<span class="name" style="color:#666">{nm}</span>'
+            f'<span class="pct" style="color:{_sc(vl)}">{vl:+.0f}</span>'
+            f'<span></span><span></span>'
+            f'</div>\n          '
+            for nm, vl in [('Oil', oil_s), ('Dollar', dxy_s), ('FPI', fpi_s), ('RBI', rbi_s), ('Rate diff', rate_s)]
+        )
+        return (
+            f'<div class="brief-row"><span class="name">Regime Score</span>'
+            f'<span class="pct" style="color:{score_color};font-size:1.1em">{score:+.0f}</span>'
+            f'<span></span>'
+            f'<span class="badge-mini {bdg_cls}">{label}</span>'
+            f'</div>\n          '
+            f'<div style="height:4px;background:#1e1e1e;margin:4px 0 6px 0;border-radius:2px;">'
+            f'<div style="height:4px;width:{bar_pct:.0f}%;background:{bar_color};border-radius:2px;"></div>'
+            f'</div>\n          '
+            + sub_rows
+        )
+
     pairs_cfg = {
         'eurusd': dict(
             price_col='EURUSD', price_dec=4,
@@ -227,6 +340,7 @@ def inject_live_card_data(html_content, _re, df=None):
             corr_col='USDJPY_spread_corr_60d',
             corr_20d_col='USDJPY_corr_20d',
             oil_field='oil_usdjpy_corr_60d', oil_pair='USDJPY',
+            gold_field='gold_usdjpy_corr_60d', gold_pair='USDJPY',
             dxy_field='dxy_usdjpy_corr_60d', dxy_pair='USDJPY',
         ),
         'usdinr': dict(
@@ -242,6 +356,13 @@ def inject_live_card_data(html_content, _re, df=None):
             corr_col=None,
             corr_20d_col=None,
             oil_field='oil_inr_corr_60d', oil_pair='USDINR',
+            gold_field='gold_inr_corr_60d', gold_pair='USDINR',
+            seasonal_flag_col='gold_seasonal_flag',
+            seasonal_label_col='gold_seasonal_label',
+            rbi_chg_col='rbi_reserve_chg_1w',
+            rbi_flag_col='rbi_intervention_flag',
+            composite_score_col='inr_composite_score',
+            composite_label_col='inr_composite_label',
             dxy_field='dxy_inr_corr_60d', dxy_pair='USDINR',
         ),
     }
@@ -290,6 +411,12 @@ def inject_live_card_data(html_content, _re, df=None):
             val = _g(val_col)
             chg = _g(chg_col) if chg_col else _df_chg_1w(val_col)
             spread_rows += _spread_row(name, val, chg, favor_narrow)
+        # BTP-Bund row for EUR/USD only (Phase 9)
+        if pair == 'eurusd':
+            btp_spread_val = _g('BTP_Bund_spread')
+            btp_flag_str   = str(row.get('BTP_Bund_flag', 'UNAVAILABLE'))
+            if str(btp_flag_str) == 'nan': btp_flag_str = 'UNAVAILABLE'
+            spread_rows += _btp_row(btp_spread_val, btp_flag_str)
         spread_section = (f'<div class="brief-section">\n          '
                           f'<div class="brief-label">RATE DIFFERENTIALS</div>\n          '
                           f'{spread_rows}</div>')
@@ -319,10 +446,58 @@ def inject_live_card_data(html_content, _re, df=None):
             if not math.isnan(corr_val) and abs(corr_20d_val - corr_val) > 0.3:
                 vc += _regime_transition_row()
         vc += _field_row('Oil corr 60D', cfg['oil_field'], cfg['oil_pair'], is_oil=True)
+        if cfg.get('gold_field'):
+            vc += _gold_field_row('Gold corr 60D', cfg['gold_field'], cfg['gold_pair'])
+            if cfg.get('seasonal_flag_col'):
+                flag_numeric = _g(cfg['seasonal_flag_col'])
+                if not math.isnan(flag_numeric) and flag_numeric > 0.5:
+                    s_label = row.get(cfg['seasonal_label_col'], '')
+                    if s_label and str(s_label) not in ('nan', 'None', ''):
+                        vc += _seasonal_row(str(s_label))
         vc += _field_row('DXY corr 60D', cfg['dxy_field'], cfg['dxy_pair'], is_oil=False)
         vol_section = (f'<div class="brief-section">\n          '
                        f'<div class="brief-label">VOLATILITY &amp; CORRELATION</div>\n          '
                        f'{vc}</div>')
+
+        # ---- RBI intervention (USD/INR only, Phase 5) ----
+        rbi_section = ''
+        if cfg.get('rbi_flag_col'):
+            rbi_flag_val = str(row.get(cfg['rbi_flag_col'], 'UNKNOWN'))
+            rbi_chg_val  = _g(cfg['rbi_chg_col'])
+            rbi_text, rbi_color, _rbi_active = _rbi_intervention_label(rbi_flag_val)
+            chg_str  = f'{rbi_chg_val:+.1f}B' if not math.isnan(rbi_chg_val) else '\u2014'
+            rbi_body = _rbi_row(chg_str, rbi_text, rbi_color)
+            rbi_section = (f'<div class="brief-section">\n          '
+                           f'<div class="brief-label">CENTRAL BANK ACTIVITY</div>\n          '
+                           f'{rbi_body}</div>')
+
+        # ---- INR composite score (USD/INR only, Phase 7) ----
+        composite_section = ''
+        if cfg.get('composite_score_col'):
+            comp_html = _composite_block_html(
+                cfg['composite_score_col'],
+                cfg['composite_label_col'],
+                cfg.get('rbi_flag_col', 'rbi_intervention_flag'),
+            )
+            if comp_html:
+                composite_section = (f'<div class="brief-section">\n          '
+                                     f'<div class="brief-label">INR COMPOSITE</div>\n          '
+                                     f'{comp_html}</div>')
+
+        # ---- G10 composite score section (EUR/USD and USD/JPY, Phase 8) ----
+        g10_composite_section = ''
+        if pair == 'eurusd':
+            comp_html = _g10_composite_row('eurusd_composite_score', 'eurusd_composite_label')
+            if comp_html:
+                g10_composite_section = (f'<div class="brief-section">\n          '
+                                         f'<div class="brief-label">G10 REGIME COMPOSITE</div>\n          '
+                                         f'{comp_html}</div>')
+        elif pair == 'usdjpy':
+            comp_html = _g10_composite_row('usdjpy_composite_score', 'usdjpy_composite_label')
+            if comp_html:
+                g10_composite_section = (f'<div class="brief-section">\n          '
+                                         f'<div class="brief-label">G10 REGIME COMPOSITE</div>\n          '
+                                         f'{comp_html}</div>')
 
         # ---- regime read (regenerated from live data) ----
         if pair == 'eurusd':
@@ -359,10 +534,16 @@ def inject_live_card_data(html_content, _re, df=None):
             f'<div class="brief-text">{_html.escape(regime_text)}</div>\n        </div>'
         )
 
+        rbi_block       = f'        {rbi_section}\n\n'       if rbi_section       else ''
+        composite_block = f'        {composite_section}\n\n' if composite_section else ''
+        g10_comp_block  = f'        {g10_composite_section}\n\n' if g10_composite_section else ''
         new_brief_left = ('\n      <div class="brief-left">\n\n'
                           f'        {spread_section}\n\n'
                           f'        {cot_section}\n\n'
+                          f'{rbi_block}'
                           f'        {vol_section}\n\n'
+                          f'{composite_block}'
+                          f'{g10_comp_block}'
                           f'        {regime_section}\n'
                           '      </div>')
 
@@ -506,6 +687,9 @@ def inject_landing_page(html_content, _re, df=None):
     try:
         if df is None:
             df = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
+        if df.empty:
+            print('  WARN [inject_landing_page]: CSV is empty — landing page skipped')
+            return html_content
         row = df.iloc[-1]
         last_date = df.index[-1]
         date_str  = last_date.strftime('%d %b %Y')
@@ -721,6 +905,30 @@ def inject_landing_page(html_content, _re, df=None):
 
     wordmark_src = embed_image(os.path.join('logos', 'wordmark without bg.png'))
     wordmark_img = f'<img src="{wordmark_src}" class="lp-wordmark" style="height:108px;width:auto;display:block;margin-bottom:20px;" alt="FX Regime Lab">' if wordmark_src else ''
+
+    # --- Macro event strip (Phase 10) ---
+    upcoming_event = get_upcoming_event()
+    if upcoming_event is not None:
+        days_away = upcoming_event['days_away']
+        evt_name  = upcoming_event['event']
+        evt_date  = upcoming_event['date']
+        if days_away == 0:
+            day_str = 'TODAY'
+        elif days_away == 1:
+            day_str = 'TOMORROW'
+        else:
+            day_str = f'in {days_away} days'
+        strip_color = '#ff4444' if days_away <= 1 else '#f0a500'
+        macro_strip_html = (
+            f'<div class="lp-macro-strip" style="background:{strip_color}11;border:1px solid {strip_color}44;'
+            f'border-radius:4px;padding:6px 14px;margin-bottom:8px;font-size:0.75rem;'
+            f'color:{strip_color};letter-spacing:0.04em;text-align:center;">'
+            f'&#9888; MACRO EVENT {day_str}: {evt_name} &nbsp;&mdash;&nbsp; {evt_date}'
+            f'</div>'
+        )
+    else:
+        macro_strip_html = ''
+
     from config import TODAY_FMT
     landing_html = f'''<!-- LANDING PAGE -->
 <div id="landing">
@@ -734,7 +942,7 @@ def inject_landing_page(html_content, _re, df=None):
     </div>
     <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
   </div>
-  <div class="lp-ticker-bar">{ticker_html}</div>
+  {macro_strip_html}<div class="lp-ticker-bar">{ticker_html}</div>
   <div class="lp-grid">
     {eur_card}
     {jpy_card}

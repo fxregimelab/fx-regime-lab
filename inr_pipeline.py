@@ -189,6 +189,48 @@ def _fred_in_yield_fallback() -> pd.DataFrame:
     return monthly
 
 
+def _fetch_rbi_reserves() -> pd.Series:
+    """Fetch India FX reserves.
+    Primary: FRED RBUKRESERVES (weekly, USD billions) via fredapi.
+    Fallback: FRED TRESEGINM052N (monthly total reserves excl gold, USD millions → convert to bn).
+    """
+    # Primary: weekly series via fredapi with API key
+    try:
+        from fredapi import Fred
+        from dotenv import load_dotenv
+        load_dotenv()
+        _api_key = os.getenv("FRED_API_KEY")
+        if not _api_key:
+            raise ValueError("FRED_API_KEY not set")
+        fred_client = Fred(api_key=_api_key)
+        raw = fred_client.get_series("RBUKRESERVES", observation_start=START_DATE)
+        raw = raw.dropna()
+        if len(raw) == 0:
+            raise ValueError("RBUKRESERVES returned no data")
+        raw.name = "rbi_reserves"
+        return raw
+    except Exception:
+        pass  # fall through to monthly fallback
+
+    # Fallback: FRED TRESEGINM052N monthly (USD millions → convert to billions)
+    try:
+        from fredapi import Fred
+        from dotenv import load_dotenv
+        load_dotenv()
+        _api_key = os.getenv("FRED_API_KEY")
+        if _api_key:
+            fred_client = Fred(api_key=_api_key)
+            raw = fred_client.get_series("TRESEGINM052N", observation_start=START_DATE)
+            raw = raw.dropna() / 1000  # millions → billions
+            if len(raw) > 0:
+                raw.name = "rbi_reserves"
+                return raw
+    except Exception:
+        pass
+
+    raise RuntimeError("All RBI reserves data sources failed")
+
+
 def fetch_in_yield():
     print("\n[2/3] fetching IN 10Y yield (FBIL daily G-sec benchmark)...")
 
@@ -405,6 +447,116 @@ def build_and_save(price_df, yield_df, fpi_df, fpi_status):
             latest_dxy = master["dxy_inr_corr_60d"].dropna()
             if len(latest_dxy) > 0:
                 print(f"    dxy_inr_corr_60d:  {latest_dxy.iloc[-1]:>+.3f}")
+
+        # gold correlation for INR (Phase 4)
+        # India is world's 2nd-largest gold consumer: import demand = USD buying = INR selling
+        # Expected correlation: positive (gold up -> INR weaker -> USD/INR up)
+        if "Gold" in master.columns and "USDINR" in master.columns:
+            gold_ret_inr = master["Gold"].pct_change()
+            usdinr_ret_g = master["USDINR"].pct_change()
+            master["gold_inr_corr_60d"] = gold_ret_inr.rolling(60).corr(usdinr_ret_g)
+            latest_gold = master["gold_inr_corr_60d"].dropna()
+            if len(latest_gold) > 0:
+                print(f"    gold_inr_corr_60d: {latest_gold.iloc[-1]:>+.3f}")
+
+        # gold seasonal demand flags for INR
+        # Oct-Nov: Diwali season, Dec-Feb: Wedding season, Apr-May: Akshaya Tritiya
+        master["gold_seasonal_flag"] = master.index.month.isin(
+            [10, 11, 12, 1, 2, 4, 5]
+        ).astype(int)
+
+        def _gold_seasonal_label(m):
+            if m in [10, 11]:
+                return "DIWALI SEASON"
+            elif m in [12, 1, 2]:
+                return "WEDDING SEASON"
+            elif m in [4, 5]:
+                return "AKSHAYA TRITIYA"
+            return None
+
+        master["gold_seasonal_label"] = pd.Series(
+            master.index.month, index=master.index
+        ).map(_gold_seasonal_label)
+        latest_flag = int(master["gold_seasonal_flag"].iloc[-1])
+        latest_lbl  = master["gold_seasonal_label"].iloc[-1]
+        print(f"    gold_seasonal_flag: {latest_flag}  label: {latest_lbl}")
+
+        # RBI FX reserves (Phase 5)
+        # FRED RBUKRESERVES: weekly, USD billions (India total reserves incl. gold, SDR)
+        # Drop >$3B in 7 days = RBI selling USD to defend INR floor (ACTIVE SUPPORT)
+        # Rise >$3B in 7 days = RBI buying USD to cap appreciation  (ACTIVE CAPPING)
+        try:
+            rbi_raw         = _fetch_rbi_reserves()
+            rbi_chg_raw     = rbi_raw.diff(1)   # 1-period change (weekly or monthly, in USD bn)
+            rbi_daily_val   = rbi_raw.resample("D").ffill()
+            rbi_daily_chg   = rbi_chg_raw.resample("D").ffill()
+            # limit=90: covers up to ~3 months of trading days (handles monthly data lag)
+            rbi_aligned     = rbi_daily_val.reindex(master.index).ffill(limit=90)
+            rbi_chg_aligned = rbi_daily_chg.reindex(master.index).ffill(limit=90)
+            master["rbi_reserves"]       = rbi_aligned
+            master["rbi_reserve_chg_1w"] = rbi_chg_aligned
+
+            def _rbi_flag(chg):
+                if pd.isna(chg):  return "UNKNOWN"
+                elif chg < -3.0:  return "ACTIVE SUPPORT"   # -$3B/wk or -$5B/month
+                elif chg >  3.0:  return "ACTIVE CAPPING"   # +$3B/wk or +$5B/month
+                else:             return "NEUTRAL"
+
+            master["rbi_intervention_flag"] = master["rbi_reserve_chg_1w"].apply(_rbi_flag)
+            latest_rbi_chg  = master["rbi_reserve_chg_1w"].dropna()
+            latest_rbi_flag = master["rbi_intervention_flag"].dropna()
+            if len(latest_rbi_chg) > 0:
+                print(f"    rbi_reserve_chg_1w: {latest_rbi_chg.iloc[-1]:>+.1f}B  "
+                      f"flag: {latest_rbi_flag.iloc[-1]}")
+        except Exception as e:
+            print(f"    WARN -- RBI reserves fetch failed: {e}")
+            master["rbi_reserves"]          = float("nan")
+            master["rbi_reserve_chg_1w"]    = float("nan")
+            master["rbi_intervention_flag"] = "UNKNOWN"
+
+        # INR Composite Regime Score (Phase 7)
+        # Synthesizes 5 signals into [-100, +100] score
+        # Positive = depreciation pressure (USD/INR up), Negative = appreciation pressure
+        # FPI and RBI components default to 0 (neutral) when data is unavailable
+        _required_composite = ["oil_inr_corr_60d", "dxy_inr_corr_60d", "US_IN_10Y_spread"]
+        if all(c in master.columns for c in _required_composite):
+            _brent_1d = master["Brent"].pct_change() if "Brent" in master.columns else pd.Series(0.0, index=master.index)
+            _dxy_1d   = master["DXY"].pct_change()   if "DXY"   in master.columns else pd.Series(0.0, index=master.index)
+            _rbi_score_map = {"ACTIVE SUPPORT": -0.30, "ACTIVE CAPPING": 0.20, "NEUTRAL": 0.0, "UNKNOWN": 0.0}
+
+            def _compute_inr_composite(row_s):
+                try:
+                    def _safe(v): return 0.0 if pd.isna(v) else float(v)
+                    def _sign(v): return 1.0 if v > 0 else (-1.0 if v < 0 else 0.0)
+                    oil_s  = _safe(row_s.get("oil_inr_corr_60d")) * _sign(_safe(_brent_1d.get(row_s.name, 0))) * 0.25
+                    dxy_s  = _safe(row_s.get("dxy_inr_corr_60d")) * _sign(_safe(_dxy_1d.get(row_s.name,   0))) * 0.20
+                    fpi_s  = -min(max(_safe(row_s.get("FPI_20D_flow")) / 20000, -1.0), 1.0) * 0.25
+                    rbi_fv = str(row_s.get("rbi_intervention_flag", "NEUTRAL"))
+                    rbi_fv = rbi_fv if rbi_fv != "nan" else "NEUTRAL"
+                    rbi_s  = _rbi_score_map.get(rbi_fv, 0.0) * 0.20
+                    rate_s = _sign(-_safe(row_s.get("US_IN_10Y_spread"))) * 0.10
+                    return float(np.clip((oil_s + dxy_s + fpi_s + rbi_s + rate_s) * 100, -100, 100))
+                except Exception:
+                    return float("nan")
+
+            master["inr_composite_score"] = master.apply(_compute_inr_composite, axis=1)
+
+            def _inr_score_label_fn(score):
+                if pd.isna(score): return "UNKNOWN"
+                if score >  60:    return "STRONG DEPRECIATION PRESSURE"
+                if score >  30:    return "MODERATE DEPRECIATION PRESSURE"
+                if score > -30:    return "NEUTRAL"
+                if score > -60:    return "MODERATE APPRECIATION PRESSURE"
+                return "STRONG APPRECIATION PRESSURE"
+
+            master["inr_composite_label"] = master["inr_composite_score"].apply(_inr_score_label_fn)
+            latest_score = master["inr_composite_score"].dropna()
+            if len(latest_score) > 0:
+                print(f"    inr_composite_score: {latest_score.iloc[-1]:>+.1f}  "
+                      f"[{master['inr_composite_label'].dropna().iloc[-1]}]")
+        else:
+            _missing = [c for c in _required_composite if c not in master.columns]
+            print(f"    SKIP inr_composite -- missing cols: {_missing}")
 
         # 12M change for US-IN spreads — windowed search to handle monthly source gaps
         for col in ("US_IN_10Y_spread", "US_IN_policy_spread"):
