@@ -73,12 +73,29 @@ def inject_live_card_data(html_content, _re, df=None):
     brief-left panel (spreads, COT, vol, regime read) with live values from
     data/latest_with_cot.csv so the detail page always matches the landing page.
     """
+    import json as _json
+    from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+
     try:
         if df is None:
             df = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
         row = df.iloc[-1]
     except Exception:
         return html_content
+
+    # Load AI regime reads if fresh (< 24 h)
+    _ai_reads = {}
+    _ai_path  = os.path.join('data', 'ai_regime_read.json')
+    try:
+        if os.path.exists(_ai_path):
+            with open(_ai_path, encoding='utf-8') as _fh:
+                _ai_data = _json.load(_fh)
+            _gen_at = _dt.fromisoformat(_ai_data.get('generated_at', '2000-01-01T00:00:00+00:00'))
+            if _dt.now(_tz.utc) - _gen_at < _td(hours=24):
+                _ai_reads = {k: v for k, v in _ai_data.items()
+                             if k in ('eurusd', 'usdjpy', 'usdinr') and v}
+    except Exception:
+        pass  # silently fall back to hardcoded logic
 
     def _g(col, default=float('nan')):
         v = row.get(col, default)
@@ -510,8 +527,10 @@ def inject_live_card_data(html_content, _re, df=None):
                                          f'<div class="brief-label">G10 REGIME COMPOSITE</div>\n          '
                                          f'{comp_html}</div>')
 
-        # ---- regime read (regenerated from live data) ----
-        if pair == 'eurusd':
+        # ---- regime read: AI text (fresh < 24h) or hardcoded fallback ----
+        if pair in _ai_reads:
+            regime_text = _ai_reads[pair]
+        elif pair == 'eurusd':
             de10_today  = _g('US_DE_10Y_spread')
             de10_12m    = _g('US_DE_10Y_spread_chg_12M')
             regime_text = _eur_interpretation(de10_today, de10_12m, lev_pct, lev_net, am_pct, am_net)

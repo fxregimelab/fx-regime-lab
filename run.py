@@ -9,7 +9,7 @@
 #   python run.py --only cot inr merge    # refresh COT + INR data, rebuild merge
 #   python run.py --skip cot inr          # skip slow network steps
 #
-# Step names: fx  yields  cot  inr  merge  text  html  deploy
+# Step names: fx  yields  cot  inr  merge  text  ai  html  deploy
 
 import sys
 import os
@@ -54,6 +54,7 @@ STEPS = [
     ("inr",     "inr_pipeline.py"),       # fetch USD/INR + IN yields → data/inr_latest.csv
     ("merge",   "pipeline.py"),           # NOTE: merge is part of pipeline.py (same script)
     ("text",    "morning_brief.py"),      # generate text brief → briefs/brief_YYYYMMDD.txt
+    ("ai",      "ai_brief.py"),           # Phase 13: AI regime reads → data/ai_regime_read.json
     ("html",    "create_html_brief.py"),  # generate HTML brief → briefs/brief_YYYYMMDD.html
     ("deploy",  "deploy.py"),             # copy to index.html and push to GitHub
 ]
