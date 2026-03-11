@@ -299,11 +299,16 @@ def _fetch_mof_yields():
 def _fetch_it_yield() -> dict:
     """Fetch Italian 10Y government bond yield for BTP-Bund spread (Phase 9).
 
-    Primary  : ECB SDW YC dataset (daily, country-specific series)
-    Fallback : FRED IRLTLT01ITM156N (monthly, linear interpolation to daily)
+    Primary  : ECB SDW YC dataset (daily, country-specific series) — currently
+               returning 404 as the series has been discontinued.
+    Fallback : FRED IRLTLT01ITM156N (monthly OECD source, Italy 10Y).
+               Reindexed to the business-day calendar with forward-fill so the
+               series is non-NaN through the current date even when FRED lags
+               1–2 months behind real-time.  No interpolation — the last known
+               monthly value is carried forward cleanly.
     Returns  : dict with key 'IT_10Y' or empty dict on failure.
     """
-    # Primary: ECB SDW
+    # Primary: ECB SDW (kept for future when series is reinstated)
     try:
         it_key = "YC/B.IT.EUR.4F.G_N_A.SV_C_YM.SR_10Y"
         headers = {"Accept": "application/json"}
@@ -338,13 +343,21 @@ def _fetch_it_yield() -> dict:
     except Exception as e:
         print(f"    WARN IT_10Y ECB failed ({type(e).__name__}): {e}")
 
-    # Fallback: FRED monthly series, linearly interpolated to daily
+    # Fallback: FRED IRLTLT01ITM156N — monthly OECD Italy 10Y.
+    # Reindex to a full business-day calendar and forward-fill (no interpolation).
+    # The ffill in calculate_spreads() adds a safety ceil of 90 days, so even if
+    # FRED lags ~60 days the spread remains live and correctly classified.
     try:
         raw = fred.get_series("IRLTLT01ITM156N", observation_start=START_DATE).dropna()
-        daily = raw.resample("D").interpolate("time")
+        bday_range = pd.bdate_range(start=START_DATE, end=pd.Timestamp.today())
+        daily = raw.reindex(bday_range).ffill()
         daily.name = "IT_10Y"
-        print(f"    OK  IT_10Y (FRED monthly->daily) -- "
-              f"latest: {daily.iloc[-1]:.2f}% on {daily.index[-1].date()}")
+        last_valid = daily.last_valid_index()
+        print(
+            f"    OK  IT_10Y (FRED monthly->bday ffill) -- "
+            f"{daily.notna().sum()} rows, "
+            f"latest non-NaN: {daily[last_valid]:.2f}% on {last_valid.date()}"
+        )
         return {"IT_10Y": daily}
     except Exception as e2:
         print(f"    WARN IT_10Y FRED fallback failed ({type(e2).__name__}): {e2}")
