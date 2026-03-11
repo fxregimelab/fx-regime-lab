@@ -12,6 +12,7 @@
 import os
 import io
 import sys
+import time
 import requests
 import pandas as pd
 import numpy as np
@@ -280,18 +281,114 @@ def fetch_in_yield():
 
 # -- source 3: SEBI FPI debt flows ---------------------------------------------
 
-def fetch_fpi_flows():
-    print("\n[3/3] fetching SEBI FPI flows...")
+_NSE_FPI_CACHE = os.path.join("data", "fpi_daily.csv")
+_NSE_HOMEPAGE  = "https://www.nseindia.com"
+_NSE_FIIDII    = "https://www.nseindia.com/api/fiidiiTradeReact"
 
-    url = ("https://www.sebi.gov.in/sebiweb/other/OtherAction.do"
-           "?doRecognisedFpi=yes&intmId=13")
+
+def _fetch_fpi_nse():
+    """Fetch today's FII/FPI equity net flow from NSE and update the daily cache.
+
+    NSE requires loading the homepage first to obtain session cookies before
+    the API endpoint will respond. The API returns only the latest trading
+    day's data (one row per category: DII and FII/FPI).
+
+    Returns a DataFrame indexed by date with column 'FPI_equity_net' (Cr INR).
+    """
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/122.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "en-US,en;q=0.9",
+    })
+    # Load homepage to obtain anti-bot cookies
+    session.get(_NSE_HOMEPAGE, timeout=15)
+    time.sleep(0.5)
+
+    session.headers.update({
+        "Accept":           "application/json, text/plain, */*",
+        "Referer":          _NSE_HOMEPAGE + "/",
+        "X-Requested-With": "XMLHttpRequest",
+    })
+    r = session.get(_NSE_FIIDII, timeout=15)
+    r.raise_for_status()
+    rows = r.json()
+
+    fii_row = next(
+        (x for x in rows if "FII" in str(x.get("category", "")).upper()), None
+    )
+    if fii_row is None:
+        raise ValueError(f"No FII/FPI entry in NSE response: {rows}")
+
+    trade_date = pd.to_datetime(fii_row["date"], dayfirst=True, errors="coerce")
+    net_val    = float(str(fii_row["netValue"]).replace(",", ""))
+
+    new_row = pd.DataFrame({"FPI_equity_net": [net_val]}, index=[trade_date])
+    new_row.index.name = "date"
+
+    # Load existing cache, append new row, deduplicate, persist
+    if os.path.exists(_NSE_FPI_CACHE):
+        cache = pd.read_csv(_NSE_FPI_CACHE, index_col=0, parse_dates=True)
+        cache = pd.concat([cache, new_row])
+    else:
+        cache = new_row
+    cache = cache[~cache.index.duplicated(keep="last")].sort_index()
+    cache.to_csv(_NSE_FPI_CACHE)
+    return cache
+
+
+def fetch_fpi_flows():
+    print("\n[3/3] fetching FPI flows (NSE primary, SEBI fallback)...")
+
+    # ── Primary: NSE FII/FPI equity flow (builds growing daily cache) ─────────
+    try:
+        cache = _fetch_fpi_nse()
+        cache = cache[cache.index >= START_DATE]
+
+        # 20-day rolling sum; min_periods=1 so the signal is live from day one
+        # (a single-day value equals that day's net flow until the window fills)
+        cache["FPI_20D_flow"] = (
+            cache["FPI_equity_net"].rolling(20, min_periods=1).sum()
+        )
+        cache["FPI_20D_percentile"] = (
+            cache["FPI_20D_flow"]
+            .rolling(ROLLING_WINDOW * 3, min_periods=30)
+            .rank(pct=True) * 100
+        )
+
+        valid = cache.dropna(subset=["FPI_20D_flow"])
+        if len(valid) == 0:
+            raise ValueError("cache exists but FPI_20D_flow all NaN")
+
+        latest = valid.iloc[-1]
+        n_days = int(cache["FPI_equity_net"].notna().sum())
+        pct_str = (
+            f"{latest['FPI_20D_percentile']:.0f}th"
+            if pd.notna(latest["FPI_20D_percentile"])
+            else "N/A (building cache)"
+        )
+        print(f"    OK  NSE cache {n_days}d, latest: {cache.index[-1].date()}")
+        print(f"    FPI 20D flow: {latest['FPI_20D_flow']:+,.0f}  "
+              f"percentile: {pct_str}")
+        return cache[["FPI_20D_flow", "FPI_20D_percentile"]], "ok"
+
+    except Exception as nse_err:
+        print(f"    NSE failed ({nse_err}); trying SEBI fallback...")
+
+    # ── Fallback: SEBI HTML scrape (debt market flows) ────────────────────────
+    url = (
+        "https://www.sebi.gov.in/sebiweb/other/OtherAction.do"
+        "?doRecognisedFpi=yes&intmId=13"
+    )
     try:
         r = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code != 200:
             print(f"    FAILED -- status {r.status_code}")
             return pd.DataFrame(), "unavailable"
 
-        # parse all HTML tables, find the one with FPI debt data
         tables = pd.read_html(io.StringIO(r.text))
         fpi_df = None
         for tbl in tables:
@@ -301,37 +398,35 @@ def fetch_fpi_flows():
                 break
 
         if fpi_df is None:
-            print("    FAILED -- no debt table found in page")
+            print("    FAILED -- no debt table found in SEBI page")
             return pd.DataFrame(), "unavailable"
 
-        # normalise column names — find date column and debt net column
         fpi_df.columns = [str(c).strip() for c in fpi_df.columns]
-        date_col = next((c for c in fpi_df.columns
-                         if "date" in c.lower()), None)
-        debt_col = next((c for c in fpi_df.columns
-                         if "debt" in c.lower() and "net" in c.lower()), None)
+        date_col = next((c for c in fpi_df.columns if "date" in c.lower()), None)
+        debt_col = next(
+            (c for c in fpi_df.columns if "debt" in c.lower() and "net" in c.lower()),
+            None,
+        )
         if debt_col is None:
-            debt_col = next((c for c in fpi_df.columns
-                             if "debt" in c.lower()), None)
+            debt_col = next(
+                (c for c in fpi_df.columns if "debt" in c.lower()), None
+            )
 
         if date_col is None or debt_col is None:
-            print(f"    FAILED -- could not identify columns: {fpi_df.columns.tolist()}")
+            print(f"    FAILED -- columns: {fpi_df.columns.tolist()}")
             return pd.DataFrame(), "unavailable"
 
         fpi_df = fpi_df[[date_col, debt_col]].copy()
         fpi_df.columns = ["date", "FPI_debt_net"]
-        fpi_df["date"] = pd.to_datetime(fpi_df["date"], dayfirst=True,
-                                        errors="coerce")
+        fpi_df["date"] = pd.to_datetime(fpi_df["date"], dayfirst=True, errors="coerce")
         fpi_df = fpi_df.dropna(subset=["date"])
         fpi_df["FPI_debt_net"] = pd.to_numeric(
-            fpi_df["FPI_debt_net"].astype(str).str.replace(",", ""),
-            errors="coerce"
+            fpi_df["FPI_debt_net"].astype(str).str.replace(",", ""), errors="coerce"
         )
         fpi_df = fpi_df.set_index("date").sort_index()
         fpi_df = fpi_df[fpi_df.index >= START_DATE]
 
-        # 20-day rolling cumulative flow + 3-year rolling percentile
-        fpi_df["FPI_20D_flow"]       = fpi_df["FPI_debt_net"].rolling(20).sum()
+        fpi_df["FPI_20D_flow"] = fpi_df["FPI_debt_net"].rolling(20).sum()
         fpi_df["FPI_20D_percentile"] = (
             fpi_df["FPI_20D_flow"]
             .rolling(ROLLING_WINDOW * 3, min_periods=60)
@@ -339,9 +434,11 @@ def fetch_fpi_flows():
         )
 
         latest = fpi_df.dropna(subset=["FPI_20D_flow"]).iloc[-1]
-        print(f"    OK  {len(fpi_df)} rows, latest: {fpi_df.index[-1].date()}")
-        print(f"    FPI 20D flow: {latest['FPI_20D_flow']:+,.0f}  "
-              f"percentile: {latest['FPI_20D_percentile']:.0f}th")
+        print(f"    OK (SEBI)  {len(fpi_df)} rows, latest: {fpi_df.index[-1].date()}")
+        print(
+            f"    FPI 20D flow: {latest['FPI_20D_flow']:+,.0f}  "
+            f"percentile: {latest['FPI_20D_percentile']:.0f}th"
+        )
         return fpi_df[["FPI_20D_flow", "FPI_20D_percentile"]], "ok"
 
     except Exception as e:
@@ -390,8 +487,26 @@ def build_and_save(price_df, yield_df, fpi_df, fpi_status):
 
     # merge FPI flows
     if len(fpi_df) > 0:
-        inr["FPI_20D_flow"]       = fpi_df["FPI_20D_flow"].reindex(inr.index).ffill()
-        inr["FPI_20D_percentile"] = fpi_df["FPI_20D_percentile"].reindex(inr.index).ffill()
+        # asof() aligns on nearest preceding date — handles the common case where
+        # NSE reports tomorrow's FPI row before yfinance has updated today's price
+        inr["FPI_20D_flow"]       = fpi_df["FPI_20D_flow"].asof(inr.index)
+        inr["FPI_20D_percentile"] = fpi_df["FPI_20D_percentile"].asof(inr.index)
+        # When the entire FPI cache is ahead of the price calendar (e.g., NSE reports
+        # same-day after market close but yfinance still shows yesterday's close),
+        # asof returns NaN for all rows. Carry the latest FPI value back to the
+        # last 5 price dates (same-week signal, same economic content).
+        if inr["FPI_20D_flow"].iloc[-1:].isna().all():
+            last_fpi_flow = fpi_df["FPI_20D_flow"].dropna()
+            last_fpi_pct  = fpi_df["FPI_20D_percentile"].dropna()
+            if len(last_fpi_flow) > 0:
+                tail_idx = inr.index[-5:]
+                inr.loc[tail_idx, "FPI_20D_flow"] = (
+                    inr.loc[tail_idx, "FPI_20D_flow"].fillna(last_fpi_flow.iloc[-1])
+                )
+                if len(last_fpi_pct) > 0:
+                    inr.loc[tail_idx, "FPI_20D_percentile"] = (
+                        inr.loc[tail_idx, "FPI_20D_percentile"].fillna(last_fpi_pct.iloc[-1])
+                    )
 
     # Compute USDINR vol on the original price series BEFORE reindexing to the
     # US trading calendar.  Reindexing introduces ffill gaps (Indian holidays
