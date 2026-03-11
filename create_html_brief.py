@@ -22,6 +22,7 @@ from morning_brief import _oil_corr_label, _dxy_corr_label, _gold_corr_label, _r
 
 from charts.registry import CHART_REGISTRY
 from charts.workspace import build_global_workspace_html
+from charts.base import set_chart_months
 import plotly.io as pio
 
 plotly_config = dict(scrollZoom=True, displayModeBar=False)
@@ -978,37 +979,24 @@ def inject_landing_page(html_content, _re, df=None):
     return html_content
 
 
+def inject_global_css(html_content):
+    """Link static/styles.css in <head> (idempotent). Handles both briefs/ and root paths."""
+    if 'static/styles.css' in html_content:
+        return html_content
+    html_content = html_content.replace(
+        '</head>',
+        '<link rel="stylesheet" href="../static/styles.css">\n</head>',
+        1,
+    )
+    return html_content
+
+
 def inject_bottom_nav(html_content):
-    """Inject fixed bottom navigation strip (idempotent)."""
-    # CSS and HTML are injected independently so CSS can be re-applied even if HTML exists
-    _need_css  = '/* pnav-css-v1 */' not in html_content
-    _need_html = 'id="pair-nav"'      not in html_content
+    """Inject fixed bottom navigation strip (idempotent — HTML only; CSS is in static/styles.css)."""
     # Always fix stale HOME href from prior sessions
     html_content = html_content.replace('href="#landing-page"', 'href="#landing"')
-    if not _need_css and not _need_html:
+    if 'id="pair-nav"' in html_content:
         return html_content
-    nav_css = '''/* pnav-css-v1 */
-/* ---- fixed bottom pair nav ---- */
-#pair-nav {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    height: 32px; z-index: 9999;
-    background: rgba(10,10,10,0.93);
-    backdrop-filter: blur(6px);
-    display: flex; justify-content: center; align-items: center;
-    gap: 0; border-top: 1px solid #2a2a2a;
-}
-#pair-nav a {
-    font-size: 10px; letter-spacing: 0.12em; color: #555;
-    text-transform: uppercase; text-decoration: none;
-    padding: 0 20px; line-height: 32px; transition: color 0.15s;
-    border-right: 1px solid #1e1e1e;
-}
-#pair-nav a:last-child { border-right: none; }
-#pair-nav a.nav-active { color: #ffffff; }
-#pair-nav a:hover { color: #aaa; }
-.card { padding-bottom: 32px; }
-#landing { padding-bottom: 32px; }'''
-
     nav_html = '''<nav id="pair-nav">
   <a href="#landing">OVERVIEW</a>
   <a href="#card-eurusd">EUR/USD</a>
@@ -1016,19 +1004,7 @@ def inject_bottom_nav(html_content):
   <a href="#card-usdinr">USD/INR</a>
   <a href="#workspace-snap">WORKSPACE</a>
 </nav>'''
-
-    # Inject CSS before </style></head> (handles both with/without newline)
-    import re as _rn
-    if _need_css:
-        html_content = _rn.sub(
-            r'</style>\s*</head>',
-            nav_css + '\n</style>\n</head>',
-            html_content,
-            count=1,
-        )
-    # Inject nav HTML just before </body>
-    if _need_html:
-        html_content = html_content.replace('</body>\n</html>', nav_html + '\n</body>\n</html>')
+    html_content = html_content.replace('</body>\n</html>', nav_html + '\n</body>\n</html>')
     return html_content
 
 
@@ -1381,17 +1357,18 @@ def _builder_to_iframe(builder, pair_str, pane_idx, height):
     return fig_to_iframe(result, pair_str, pane_idx, height)
 
 
-# Build all chart iframes from the registry at import time.
-CHART_DIVS = {
-    (pair, pane): _builder_to_iframe(builder, pair, pane, height)
-    for (pair, pane), (builder, pair, height) in CHART_REGISTRY.items()
-}
-
-# Generate the global Analysis Workspace (all pairs)
-_gw_html = build_global_workspace_html()
-with open(f'{CHARTS_DIR}/global_workspace.html', 'w', encoding='utf-8') as _fh:
-    _fh.write(_gw_html)
-print('Generated: charts/global_workspace.html')
+def _build_chart_divs(months: int = 12) -> dict:
+    """Build all chart iframes for the given data window (months)."""
+    set_chart_months(months)
+    chart_divs = {
+        (pair, pane): _builder_to_iframe(builder, pair, pane, height)
+        for (pair, pane), (builder, pair, height) in CHART_REGISTRY.items()
+    }
+    _gw_html = build_global_workspace_html()
+    with open(f'{CHARTS_DIR}/global_workspace.html', 'w', encoding='utf-8') as _fh:
+        _fh.write(_gw_html)
+    print('Generated: charts/global_workspace.html')
+    return chart_divs
 
 # ============================================================================
 # Load brief data from existing generated brief
@@ -1410,7 +1387,7 @@ def load_latest_brief_data():
         return 'index.html'
     return None
 
-def generate_html_brief():
+def generate_html_brief(months: int = 12):
     """Generate complete HTML brief with charts embedded as iframes."""
     brief_file = load_latest_brief_data()
     if not brief_file:
@@ -1446,11 +1423,12 @@ def generate_html_brief():
             )
 
     # ------------------------------------------------------------------
-    # 1. Inject chart iframes into chart-pane divs
+    # 1. Build charts for the requested data window, then inject iframes
     # ------------------------------------------------------------------
+    chart_divs = _build_chart_divs(months)
     chart_map = {
         (pair, str(pane)): iframe
-        for (pair, pane), iframe in CHART_DIVS.items()
+        for (pair, pane), iframe in chart_divs.items()
     }
     for (pair, pane_str), new_content in chart_map.items():
         pattern = (
@@ -1486,17 +1464,37 @@ def generate_html_brief():
     html_content = inject_live_card_data(html_content, _re, df=_shared_df)
 
     # ------------------------------------------------------------------
-    # 1d. Inject landing page CSS (before landing HTML so CSS is in <head>)
+    # 1d. Inject global CSS link (static/styles.css — landing, brand, nav)
     # ------------------------------------------------------------------
-    html_content = inject_landing_css(html_content)
+    html_content = inject_global_css(html_content)
 
     # ------------------------------------------------------------------
-    # 1d-brand. Inject brand identity CSS overrides (v1)
+    # 1d-period. Stamp active period window on landing page header
     # ------------------------------------------------------------------
-    html_content = inject_brand_css(html_content)
+    _periods = [('1M', 1), ('3M', 3), ('6M', 6), ('12M', 12)]
+    _sel_html = '<div class="period-selector">' + ''.join(
+        f'<span class="period-btn{" period-btn--active" if m == months else ""}">{label}</span>'
+        for label, m in _periods
+    ) + '</div>'
+    # Replace stale period-selector (any prior run) or inject fresh after .lp-ws-btn
+    if 'class="period-selector"' in html_content:
+        html_content = _re.sub(
+            r'<div class="period-selector">.*?</div>',
+            _sel_html, html_content, count=1, flags=_re.DOTALL,
+        )
+    else:
+        html_content = html_content.replace(
+            'class="lp-ws-btn"',
+            'class="lp-ws-btn"',  # no-op placeholder — replaced below via regex
+        )
+        html_content = _re.sub(
+            r'(<a[^>]+class="lp-ws-btn"[^>]*>[^<]*</a>)',
+            r'\1' + _sel_html,
+            html_content, count=1,
+        )
 
     # ------------------------------------------------------------------
-    # 1e. Inject fixed bottom nav CSS + HTML
+    # 1e. Inject fixed bottom nav HTML
     # ------------------------------------------------------------------
     html_content = inject_bottom_nav(html_content)
 
@@ -1852,4 +1850,9 @@ document.querySelectorAll('.regime-toggle').forEach(function(lbl) {
     print(f"Generated: {output_file}")
 
 if __name__ == '__main__':
-    generate_html_brief()
+    import argparse as _ap
+    _parser = _ap.ArgumentParser(description='Generate HTML morning brief')
+    _parser.add_argument('--months', type=int, default=12,
+                         help='Chart data window in months (default: 12)')
+    _args = _parser.parse_args()
+    generate_html_brief(months=_args.months)

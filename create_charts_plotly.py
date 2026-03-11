@@ -1,7 +1,7 @@
 import pandas as pd
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-from charts.base import _base_layout, _style_axes, _load_and_filter, _add_annotation
+from charts.base import _base_layout, _style_axes, _load_and_filter, _add_annotation, get_chart_months
 from core.paths import LATEST_WITH_COT_CSV
 
 
@@ -49,7 +49,7 @@ def build_fundamentals_chart(pair):
     PAIR = pair.upper()
     
     # Load and filter data - use 'd' for filtered data
-    d, cutoff, today = _load_and_filter(pair)
+    d, cutoff, today = _load_and_filter(pair, months=get_chart_months())
     d = d[d[cfg['price_col']].notna()].copy()
     
     # Clean USDINR outliers
@@ -338,7 +338,7 @@ def build_positioning_chart(pair):
     cfg = configs[pair]
     
     # Load data
-    d, cutoff, today = _load_and_filter(pair)
+    d, cutoff, today = _load_and_filter(pair, months=get_chart_months())
     d = d[d[cfg['net_col']].notna()]
     
     fig = make_subplots(
@@ -669,7 +669,7 @@ def build_vol_correlation_chart(pair):
     PAIR = pair.upper()
     
     # Load and filter data
-    d, cutoff, today = _load_and_filter(pair)
+    d, cutoff, today = _load_and_filter(pair, months=get_chart_months())
     d = d[d[cfg['vol_col']].notna()]
     
     fig = make_subplots(
@@ -901,7 +901,7 @@ def build_cross_asset_chart(pair):
     }
 
     cfg = configs[pair]
-    d, cutoff, today = _load_and_filter(pair)
+    d, cutoff, today = _load_and_filter(pair, months=get_chart_months())
 
     has_brent   = 'Brent' in d.columns
     has_fx      = cfg['fx_col'] in d.columns

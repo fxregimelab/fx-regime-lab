@@ -8,6 +8,20 @@ import plotly.graph_objects as go
 from functools import lru_cache
 from core.paths import LATEST_WITH_COT_CSV
 
+# Data window used by all chart builders — set via set_chart_months() before
+# calling any build_* function.  Default is 12 months.
+_chart_months: int = 12
+
+
+def set_chart_months(n: int) -> None:
+    """Override the chart data window (call before building charts)."""
+    global _chart_months
+    _chart_months = int(n)
+
+
+def get_chart_months() -> int:
+    return _chart_months
+
 
 def _base_layout(height=None):
     layout = dict(
@@ -33,10 +47,10 @@ def _base_layout(height=None):
 def _style_axes(fig):
     fig.update_xaxes(showgrid=True, gridcolor='#1e1e1e', gridwidth=1,
                      showline=False, zeroline=False,
-                     tickfont=dict(size=10, color='#666666'))
+                     tickfont=dict(size=10, color='#8896b3'))
     fig.update_yaxes(showgrid=True, gridcolor='#1e1e1e', gridwidth=1,
                      showline=False, zeroline=False,
-                     tickfont=dict(size=10, color='#666666'))
+                     tickfont=dict(size=10, color='#8896b3'))
     return fig
 
 

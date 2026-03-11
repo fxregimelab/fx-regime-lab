@@ -44,6 +44,8 @@ def deploy():
     html, n_subs = re.subn(r'(<iframe\b[^>]*\bsrc=")\.\.\/charts\/', r'\1charts/', html)
     if n_subs == 0:
         print("WARN: no iframe src paths were rewritten — charts may not load in index.html")
+    # Fix CSS link path: briefs use ../static/ but index.html is at repo root
+    html = html.replace('href="../static/styles.css"', 'href="static/styles.css"')
     if '<html' not in html or '</html>' not in html:
         print("ERROR: brief HTML appears corrupted (missing <html> tags) — aborting deploy")
         return

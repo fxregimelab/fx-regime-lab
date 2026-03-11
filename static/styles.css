@@ -1,0 +1,291 @@
+/* ============================================================
+   G10 FX Regime — Global Brief Styles  (auto-written by inject_global_css)
+   ============================================================ */
+
+/* ---- fixed bottom pair nav ---- */
+/* pnav-css-v1 */
+#pair-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 32px; z-index: 9999;
+    background: rgba(10,10,10,0.93);
+    backdrop-filter: blur(6px);
+    display: flex; justify-content: center; align-items: center;
+    gap: 0; border-top: 1px solid #2a2a2a;
+}
+#pair-nav a {
+    font-size: 10px; letter-spacing: 0.12em; color: #555;
+    text-transform: uppercase; text-decoration: none;
+    padding: 0 20px; line-height: 32px; transition: color 0.15s;
+    border-right: 1px solid #1e1e1e;
+}
+#pair-nav a:last-child { border-right: none; }
+#pair-nav a.nav-active { color: #ffffff; }
+#pair-nav a:hover { color: #aaa; }
+.card { padding-bottom: 32px; }
+#landing { padding-bottom: 32px; }
+/* end pnav-css */
+
+/* ---- landing page ---- */
+/* lp-css-v4 */
+#landing {
+    height: 100vh; scroll-snap-align: start;
+    display: flex; flex-direction: column;
+    background: #0a0a0a; padding: 24px 28px 32px;
+    box-sizing: border-box; overflow: hidden;
+}
+.lp-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 20px; flex-shrink: 0;
+}
+.lp-framework-label {
+    font-size: 10px; letter-spacing: 0.18em; color: #888;
+    text-transform: uppercase; margin-bottom: 4px;
+}
+.lp-date { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.lp-meta { font-size: 10px; color: #555; }
+.lp-ws-btn {
+    display: inline-block; padding: 8px 16px;
+    background: #0a0e1a; border: 1px solid #4da6ff;
+    color: #ffffff; font-size: 9px; letter-spacing: 0.15em;
+    text-transform: uppercase; text-decoration: none;
+    border-radius: 3px; flex-shrink: 0; align-self: center;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.lp-ws-btn:hover { color: #4da6ff; border-color: #4da6ff; background: rgba(77,166,255,0.08); }
+.lp-ticker-bar {
+    display: flex; gap: 0; flex-shrink: 0;
+    background: #111; border: 1px solid #1e1e1e;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-radius: 4px; padding: 8px 16px;
+    margin-bottom: 20px; overflow: hidden;
+}
+.lp-ticker-item {
+    display: flex; align-items: center; gap: 8px;
+    flex: 1; padding: 0 12px;
+    border-right: 1px solid #1e1e1e;
+}
+.lp-ticker-item:first-child { padding-left: 0; }
+.lp-ticker-item:last-child { border-right: none; }
+.lp-ticker-label { font-size: 9px; color: #555; letter-spacing: 0.1em; text-transform: uppercase; width: 52px; flex-shrink: 0; }
+.lp-ticker-price { font-size: 12px; color: #fff; font-weight: 600; }
+.lp-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    flex: 1; min-height: 0; overflow: hidden;
+}
+.lp-pair-card {
+    background: #111; border: 1px solid #1e1e1e;
+    border-radius: 4px; display: flex; flex-direction: column;
+    overflow: hidden;
+}
+.lp-card-header {
+    padding: 12px 14px 8px; background: #141414; flex-shrink: 0;
+}
+.lp-pair-label {
+    font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;
+}
+.lp-price-block { display: flex; align-items: baseline; gap: 8px; }
+.lp-price { font-size: 22px; font-weight: 700; color: #fff; }
+.lp-1d { font-size: 14px; }
+.lp-12m-label { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.1em; }
+.lp-12m { font-size: 11px; }
+.lp-spread-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 14px; background: #0d0d0d;
+    border-top: 1px solid #1e1e1e; border-bottom: 1px solid #1e1e1e; flex-shrink: 0;
+}
+.lp-spread-label { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.08em; }
+.lp-spread-val { font-size: 12px; font-weight: 600; }
+.lp-signals { flex: 1; padding: 8px 14px; overflow: hidden; display: flex; flex-direction: column; gap: 4px; }
+.lc-row { display: flex; align-items: center; gap: 6px; }
+.lc-name { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; flex: 1; }
+.lc-val { font-size: 11px; font-variant-numeric: tabular-nums; min-width: 52px; text-align: right; }
+.lc-badge { font-size: 8px; padding: 1px 5px; border-radius: 2px; letter-spacing: 0.06em; }
+.lp-drilldown {
+    display: block; padding: 8px 14px; background: #0d0d0d;
+    border-top: 1px solid #1e1e1e; font-size: 9px;
+    color: #444; text-decoration: none; letter-spacing: 0.1em;
+    text-transform: uppercase; text-align: right; flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+}
+.lp-drilldown:hover { color: #fff; background: #1a1a1a; }
+.lp-nav-hint {
+    text-align: center; font-size: 9px; color: #2a2a2a;
+    padding-top: 8px; letter-spacing: 0.15em; flex-shrink: 0;
+}
+/* badge-info variant for DOLLAR REGIME */
+.badge-info { background: #1a1a2a; color: #4da6ff; }
+/* end lp-css */
+
+/* ---- brand identity overrides ---- */
+/* brand-v2 */
+
+/* 1. Deep navy background throughout */
+body { background: #0a0e1a !important; }
+#landing { background: #0a0e1a !important; }
+.brief-right { background: #0a0e1a !important; }
+.workspace-snap { background: #0a0e1a !important; }
+.lp-spread-row { background: #0a0e1a !important; }
+.lp-drilldown { background: #0a0e1a !important; }
+.lp-pair-card { background: #111827 !important; }
+
+/* 2. Pair label colors on detail card headers */
+#card-eurusd .ch-pair { color: #4da6ff !important; }
+#card-usdjpy .ch-pair { color: #ff9944 !important; }
+#card-usdinr .ch-pair { color: #e74c3c !important; }
+
+/* 3. Card top border in pair brand colors */
+#card-eurusd { border-top: 3px solid #4da6ff !important; }
+#card-usdjpy { border-top: 3px solid #ff9944 !important; }
+#card-usdinr { border-top: 3px solid #e74c3c !important; }
+
+/* 4. Status badge solid fills — pill shape preserved from badge-mini base */
+.badge-mini.badge-danger {
+    background: rgba(231, 76, 60, 0.85) !important;
+    color: #ffffff !important;
+    border-color: #e74c3c !important;
+}
+.badge-mini.badge-warning {
+    background: rgba(255, 153, 68, 0.85) !important;
+    color: #000000 !important;
+    border-color: #ff9944 !important;
+}
+.badge-mini.badge-success {
+    background: rgba(46, 204, 113, 0.22) !important;
+    color: #2ecc71 !important;
+    border-color: rgba(46, 204, 113, 0.45) !important;
+}
+.badge-mini.badge-neutral {
+    background: #1d2235 !important;
+    color: #6b7894 !important;
+    border-color: #2a3050 !important;
+}
+
+/* 5. Logo row layout */
+.lp-logo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0;
+}
+.lp-logo-mark {
+    height: 28px;
+    width: auto;
+    display: block;
+    flex-shrink: 0;
+}
+.lp-brand-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+/* 6. Morning Brief masthead hierarchy */
+.lp-morning-brief {
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 2px;
+}
+.lp-date {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    color: #888 !important;
+    letter-spacing: 0.04em;
+}
+
+/* 7. Brand footer */
+.brand-footer {
+    text-align: center;
+    font-size: 9px;
+    color: #444;
+    letter-spacing: 0.12em;
+    padding-top: 6px;
+    border-top: 1px solid #1e1e1e;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+/* 8. Bottom nav active state per pair brand color */
+#pair-nav a[href="#card-eurusd"].nav-active { color: #4da6ff !important; }
+#pair-nav a[href="#card-usdjpy"].nav-active { color: #ff9944 !important; }
+#pair-nav a[href="#card-usdinr"].nav-active { color: #e74c3c !important; }
+
+/* 9. Cross-asset ticker visual separation (Brent, Gold) */
+.lp-ticker-item--cross .lp-ticker-price {
+    font-size: 11px !important;
+    opacity: 0.8;
+}
+.lp-ticker-item--cross .lp-ticker-label {
+    color: #3d4560 !important;
+}
+
+/* 10. Full background unification — navy palette */
+.globalbar { background: #111827 !important; }
+.card { background: #0d1225 !important; border-color: #1e2d45 !important; }
+.card-header { background: #111827 !important; border-color: #1e2d45 !important; }
+.card-body { background: #0d1225 !important; }
+.brief-left { background: #0d1225 !important; border-color: #1e2d45 !important; }
+.chart-tab-bar { background: #111827 !important; border-color: #1e2d45 !important; }
+.chart-tab.active { background: #162647 !important; }
+.lp-ticker-bar { background: #0d1225 !important; border-color: #1e2d45 !important; }
+.lp-card-header { background: #111827 !important; }
+.lp-drilldown:hover { background: #0f1a34 !important; }
+.ws-header { background: #111827 !important; border-color: #1e2d45 !important; }
+.footer { background: #0a0e1a !important; }
+#pair-nav { background: rgba(10,14,26,0.95) !important; }
+.badge-neutral-card { background: #1d2235 !important; color: #888 !important; }
+
+/* 11. Wordmark image sizing */
+.lp-wordmark { height: 108px !important; width: auto !important; display: block; margin-bottom: 20px; }
+
+/* 12. Masthead hierarchy scale-up */
+.lp-morning-brief { font-size: 28px !important; }
+/* end brand-v2 */
+
+/* ---- period selector indicator ---- */
+.period-selector {
+    display: flex; gap: 2px; align-items: center; flex-shrink: 0;
+    margin-left: 10px;
+}
+.period-btn {
+    font-size: 8px; letter-spacing: 0.12em; color: #333;
+    text-transform: uppercase; padding: 3px 7px;
+    border: 1px solid #222; border-radius: 2px;
+    font-variant-numeric: tabular-nums;
+    cursor: default; user-select: none;
+}
+.period-btn--active {
+    color: #4da6ff; border-color: #4da6ff;
+    background: rgba(77,166,255,0.08);
+}
+
+/* ============================================================
+   Responsive — mobile / tablet
+   ============================================================ */
+
+/* Tablet (≤ 900 px) */
+@media (max-width: 900px) {
+    .lp-grid { grid-template-columns: repeat(2, 1fr); }
+    .brief-left { flex: 0 0 44% !important; }
+}
+
+/* Mobile (≤ 600 px) */
+@media (max-width: 600px) {
+    #landing { padding: 16px 14px 48px; }
+    .lp-header { flex-direction: column; gap: 10px; }
+    .lp-grid { grid-template-columns: 1fr; }
+    .lp-ticker-bar { flex-wrap: wrap; gap: 8px; }
+    .lp-ticker-item { flex: 0 0 calc(50% - 4px); border-right: none; padding: 0; }
+    .brief-left  { flex: 1 1 100% !important; min-width: 0; }
+    .brief-right { flex: 1 1 100% !important; }
+    .card { flex-direction: column !important; }
+    #pair-nav a { padding: 0 12px; font-size: 9px; }
+}
