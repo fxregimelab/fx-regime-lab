@@ -294,7 +294,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
 
 
 </style>
-<link rel="stylesheet" href="../static/styles.css">
+<link rel="stylesheet" href="static/styles.css">
 </head>
 <body>
 
@@ -309,9 +309,9 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
       <div class="lp-framework-label">G10 FX Regime Detection Framework</div>
       <div class="lp-morning-brief">Morning Brief</div>
       <div class="lp-date">Thursday, 12 March 2026</div>
-      <div class="lp-meta">FX as of: 11 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: 11 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: 03 Mar 2026 (pub&apos;d: 06 Mar 2026) &nbsp;&nbsp;|&nbsp;&nbsp; run: 12 Mar 2026 15:50 IST</div>
+      <div class="lp-meta">FX as of: 11 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: 11 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: 03 Mar 2026 (pub&apos;d: 06 Mar 2026) &nbsp;&nbsp;|&nbsp;&nbsp; run: 12 Mar 2026 17:27 IST</div>
     </div>
-    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle light/dark theme" onclick="(function(){var h=document.documentElement,t=h.getAttribute('data-theme')==='light'?'dark':'light';h.setAttribute('data-theme',t);localStorage.setItem('fx-theme',t);document.getElementById('theme-toggle').textContent=t==='light'?'\u2600\uFE0F':'\uD83C\uDF19';})()">🌙</button>
+    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle light/dark theme" onclick="(function(){var h=document.documentElement,t=h.getAttribute('data-theme')==='light'?'dark':'light';h.setAttribute('data-theme',t);localStorage.setItem('fx-theme',t);document.getElementById('theme-toggle').textContent=t==='light'?'&#9728;':'&#127769;';})()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;margin-right:8px">&#127769;</button>
     <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
   </div>
   <div class="lp-macro-strip" style="background:#f0a50011;border:1px solid #f0a50044;border-radius:4px;padding:6px 14px;margin-bottom:8px;font-size:0.75rem;color:#f0a500;letter-spacing:0.04em;text-align:center;">&#9888; MACRO EVENT in 7 days: Fed FOMC / BoJ Policy &nbsp;&mdash;&nbsp; 2026-03-19</div><div class="lp-ticker-bar"><div class="lp-ticker-item"><span class="lp-ticker-label">DXY</span><span class="lp-ticker-price">99.23</span><span style="color:#00d4aa;font-size:11px">+0.40%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">EUR/USD</span><span class="lp-ticker-price" style="color:#4da6ff">1.1611</span><span style="color:#ff4444;font-size:11px">-0.05%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">USD/JPY</span><span class="lp-ticker-price" style="color:#ff9944">158.11</span><span style="color:#00d4aa;font-size:11px">+0.17%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">USD/INR</span><span class="lp-ticker-price" style="color:#e74c3c">92.17</span><span style="color:#00d4aa;font-size:11px">+1.04%</span></div><div class="lp-ticker-item lp-ticker-item--cross"><span class="lp-ticker-label">Brent</span><span class="lp-ticker-price">$91.98</span><span style="color:#00d4aa;font-size:11px">+4.76%</span></div><div class="lp-ticker-item lp-ticker-item--cross"><span class="lp-ticker-label">Gold</span><span class="lp-ticker-price">$5,167</span><span style="color:#ff4444;font-size:11px">-1.19%</span></div></div>
@@ -328,9 +328,9 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
           </div>
           <div class="lp-spread-row">
             <span class="lp-spread-label">Rate Spread (10Y)</span>
-            <span class="lp-spread-val" style="color:#00d4aa">↓ 0.67%</span>
+            <span class="lp-spread-val" style="color:#ff4444">↑ —</span>
           </div>
-          <div class="score-bar-wrap" style="margin:6px 0 2px 0"><div class="score-bar-track"><div class="score-bar-fill" style="width:6%;background:#00d4aa"></div></div><span class="score-bar-label" style="color:#888">-6&nbsp;<span style="font-size:0.8em;letter-spacing:0.06em">NEUTRAL</span></span></div><div class="lp-signals"><div class="lc-row"><span class="lc-name">Lev Money</span><span class="lc-val" style="color:#fff">88th %ile</span><span class="lc-badge badge-warning">88th pct</span></div><div class="lc-row"><span class="lc-name">Vol 30D</span><span class="lc-val" style="color:#fff">6.4%</span><span class="lc-badge badge-neutral">NORMAL</span></div><div class="lc-row"><span class="lc-name">Regime Corr</span><span class="lc-val" style="color:#ff4444">-0.052</span><span class="lc-badge badge-danger">BROKEN</span></div><div class="lc-row"><span class="lc-name">Oil Corr 60D</span><span class="lc-val" style="color:#888">-0.166</span><span class="lc-badge badge-neutral">LOW</span></div><div class="lc-row"><span class="lc-name">DXY Corr 60D</span><span class="lc-val" style="color:#00d4aa">-0.286</span><span class="lc-badge badge-success">EUR SPECIFIC</span></div></div>
+          <div class="lp-signals"><div class="lc-row"><span class="lc-name">Lev Money</span><span class="lc-val" style="color:#fff">88th %ile</span><span class="lc-badge badge-warning">88th pct</span></div><div class="lc-row"><span class="lc-name">Vol 30D</span><span class="lc-val" style="color:#fff">6.4%</span><span class="lc-badge badge-neutral">NORMAL</span></div><div class="lc-row"><span class="lc-name">Regime Corr</span><span class="lc-val" style="color:#555">—</span><span class="lc-badge badge-neutral">NO DATA</span></div><div class="lc-row"><span class="lc-name">Oil Corr 60D</span><span class="lc-val" style="color:#888">-0.166</span><span class="lc-badge badge-neutral">LOW</span></div><div class="lc-row"><span class="lc-name">DXY Corr 60D</span><span class="lc-val" style="color:#00d4aa">-0.286</span><span class="lc-badge badge-success">EUR SPECIFIC</span></div></div>
           <a class="lp-drilldown" href="#card-eurusd">View Detail →</a>
         </div>
     <div class="lp-pair-card">
@@ -345,9 +345,9 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
           </div>
           <div class="lp-spread-row">
             <span class="lp-spread-label">Rate Spread (10Y)</span>
-            <span class="lp-spread-val" style="color:#00d4aa">↓ 1.39%</span>
+            <span class="lp-spread-val" style="color:#ff4444">↑ 1.97%</span>
           </div>
-          <div class="score-bar-wrap" style="margin:6px 0 2px 0"><div class="score-bar-track"><div class="score-bar-fill" style="width:12%;background:#00d4aa"></div></div><span class="score-bar-label" style="color:#888">-12&nbsp;<span style="font-size:0.8em;letter-spacing:0.06em">NEUTRAL</span></span></div><div class="lp-signals"><div class="lc-row"><span class="lc-name">Lev Money</span><span class="lc-val" style="color:#fff">63th %ile</span><span class="lc-badge badge-neutral">63th pct</span></div><div class="lc-row"><span class="lc-name">Vol 30D</span><span class="lc-val" style="color:#fff">8.5%</span><span class="lc-badge badge-neutral">NORMAL</span></div><div class="lc-row"><span class="lc-name">Regime Corr</span><span class="lc-val" style="color:#ff4444">-0.056</span><span class="lc-badge badge-danger">BROKEN</span></div><div class="lc-row"><span class="lc-name">Oil Corr 60D</span><span class="lc-val" style="color:#888">+0.143</span><span class="lc-badge badge-neutral">LOW</span></div><div class="lc-row"><span class="lc-name">DXY Corr 60D</span><span class="lc-val" style="color:#00d4aa">+0.128</span><span class="lc-badge badge-success">YEN SPECIFIC</span></div></div>
+          <div class="score-bar-wrap" style="margin:6px 0 2px 0"><div class="score-bar-track"><div class="score-bar-fill" style="width:12%;background:#00d4aa"></div></div><span class="score-bar-label" style="color:#888">-12&nbsp;<span style="font-size:0.8em;letter-spacing:0.06em">NEUTRAL</span></span></div><div class="lp-signals"><div class="lc-row"><span class="lc-name">Lev Money</span><span class="lc-val" style="color:#fff">63th %ile</span><span class="lc-badge badge-neutral">63th pct</span></div><div class="lc-row"><span class="lc-name">Vol 30D</span><span class="lc-val" style="color:#fff">8.5%</span><span class="lc-badge badge-neutral">NORMAL</span></div><div class="lc-row"><span class="lc-name">Regime Corr</span><span class="lc-val" style="color:#ff4444">+0.006</span><span class="lc-badge badge-danger">BROKEN</span></div><div class="lc-row"><span class="lc-name">Oil Corr 60D</span><span class="lc-val" style="color:#888">+0.143</span><span class="lc-badge badge-neutral">LOW</span></div><div class="lc-row"><span class="lc-name">DXY Corr 60D</span><span class="lc-val" style="color:#00d4aa">+0.128</span><span class="lc-badge badge-success">YEN SPECIFIC</span></div></div>
           <a class="lp-drilldown" href="#card-usdjpy">View Detail →</a>
         </div>
     <div class="lp-pair-card">
@@ -361,8 +361,8 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
             </div>
           </div>
           <div class="lp-spread-row">
-            <span class="lp-spread-label">US 2Y–IN 10Y (cross)</span>
-            <span class="lp-spread-val" style="color:#ff4444">↑ -3.28%</span>
+            <span class="lp-spread-label">US–IN 10Y</span>
+            <span class="lp-spread-val" style="color:#ff4444">↑ -2.70%</span>
           </div>
           <div class="score-bar-wrap" style="margin:6px 0 2px 0"><div class="score-bar-track"><div class="score-bar-fill" style="width:16%;background:#ff4444"></div></div><span class="score-bar-label" style="color:#888">+16&nbsp;<span style="font-size:0.8em;letter-spacing:0.06em">NEUTRAL</span></span></div><div class="lp-signals"><div class="lc-row"><span class="lc-name">Vol 30D</span><span class="lc-val" style="color:#fff">7.3%</span><span class="lc-badge badge-danger">EXTREME</span></div><div class="lc-row"><span class="lc-name">Oil Corr 60D</span><span class="lc-val" style="color:#888">+0.140</span><span class="lc-badge badge-neutral">LOW</span></div><div class="lc-row"><span class="lc-name">DXY Corr 60D</span><span class="lc-val" style="color:#00d4aa">+0.050</span><span class="lc-badge badge-success">INDIA SPECIFIC</span></div></div>
           <a class="lp-drilldown" href="#card-usdinr">View Detail →</a>
@@ -397,28 +397,21 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
         <div class="brief-section">
           <div class="brief-label">VOLATILITY &amp; CORRELATION</div>
           <div class="brief-row"><span class="name">30D Vol</span><span class="val">6.4%</span><span class="pct">48th %ile</span><span class="badge-mini badge-neutral">NORMAL</span></div>
-          <div class="brief-row"><span class="name">60D Corr</span><span class="pct" style="color:#ff4444">-0.052</span><span></span><span class="badge-mini badge-danger">BROKEN</span></div>
-          <div class="brief-row"><span class="name">20D Corr</span><span class="pct" style="color:#ff4444">-0.112</span><span></span><span class="badge-mini badge-danger">BROKEN</span></div>
+          <div class="brief-row"><span class="name">60D Corr</span><span class="pct" style="color:#555">—</span><span></span><span class="badge-mini badge-neutral">NO DATA</span></div>
           <div class="brief-row"><span class="name">Oil corr 60D</span><span class="pct" style="color:#555555" data-field="oil_eurusd_corr_60d">-0.166</span><span></span><span class="badge-mini badge-neutral" data-badge="oil_eurusd_corr_60d">LOW</span></div>
           <div class="brief-row"><span class="name">DXY corr 60D</span><span class="pct" style="color:#00d4aa" data-field="dxy_eurusd_corr_60d">-0.286</span><span></span><span class="badge-mini badge-success" data-badge="dxy_eurusd_corr_60d">EUR SPECIFIC</span></div>
           </div>
 
         <div class="brief-section">
           <div class="brief-label">RATE DIFFERENTIALS</div>
-          <div class="brief-row"><span class="name">US-DE 10Y</span><span class="val">0.67%</span><span class="pct" style="color:#00d4aa">-0.05pp</span></div>
-          <div class="brief-row"><span class="name">US-DE 2Y</span><span class="val">1.39%</span><span class="pct" style="color:#00d4aa">-0.05pp</span></div>
-          <div class="brief-row"><span class="name">BTP-Bund (IT-DE)</span><span class="val">0.59pp</span><span></span><span class="badge-mini" style="color:#888888;border-color:#888888">NORMAL</span></div>
-          </div>
-
-        <div class="brief-section">
-          <div class="brief-label">G10 REGIME COMPOSITE</div>
-          <div class="brief-row"><span class="name">Composite Score</span><span class="pct" style="color:#888888;font-size:1.1em">-6</span><span></span><span class="badge-mini badge-neutral">NEUTRAL</span></div>
-          <div style="height:4px;background:#1e1e1e;margin:4px 0 6px 0;border-radius:2px;"><div style="height:4px;width:6%;background:#00d4aa;border-radius:2px;"></div></div>
+          <div class="brief-row"><span class="name">US-DE 10Y</span><span class="val">—</span><span class="pct" style="color:#888">—</span></div>
+          <div class="brief-row"><span class="name">US-DE 2Y</span><span class="val">1.26%</span><span class="pct" style="color:#00d4aa">-0.18pp</span></div>
+          <div class="brief-row"><span class="name">BTP-Bund (IT-DE)</span><span class="val">—</span><span></span><span class="badge-mini" style="color:#555555;border-color:#555555">N/A</span></div>
           </div>
 
         <div class="brief-section regime-read">
           <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
-          <div class="brief-text">spread compression supports EUR strength; positioning crowded — asymmetric reversal risk, easy move likely priced.</div>
+          <div class="brief-text">spreads flat, no directional signal from differentials; positioning crowded — asymmetric reversal risk, easy move likely priced.</div>
         </div>
       </div>
 
@@ -426,29 +419,29 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
         <div class="chart-tab-bar">
           <button class="chart-tab active" data-pair="eurusd" data-tab="0">FUNDAMENTALS</button>
           <button class="chart-tab" data-pair="eurusd" data-tab="1">POSITIONING</button>
-          <button class="chart-tab" data-pair="eurusd" data-tab="2">VOL & CORRELATION</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="2">VOL &amp; CORRELATION</button>
           <button class="chart-tab" data-pair="eurusd" data-tab="3">CROSS ASSET</button>
           <button class="chart-tab" data-pair="eurusd" data-tab="4">MOMENTUM</button>
           <button class="chart-tab" data-pair="eurusd" data-tab="5">COMPOSITE</button>
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="eurusd" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
-<iframe src="../charts/eurusd_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/eurusd_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/eurusd_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/eurusd_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/eurusd_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/eurusd_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/eurusd_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/eurusd_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="4" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/eurusd_4.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/eurusd_4.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="5" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/eurusd_5.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/eurusd_5.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
@@ -476,9 +469,8 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
         <div class="brief-section">
           <div class="brief-label">VOLATILITY &amp; CORRELATION</div>
           <div class="brief-row"><span class="name">30D Vol</span><span class="val">8.5%</span><span class="pct">35th %ile</span><span class="badge-mini badge-neutral">NORMAL</span></div>
-          <div class="brief-row"><span class="name">60D Corr</span><span class="pct" style="color:#ff4444">-0.056</span><span></span><span class="badge-mini badge-danger">BROKEN</span></div>
-          <div class="brief-row"><span class="name">20D Corr</span><span class="pct" style="color:#888">+0.359</span><span></span><span class="badge-mini badge-neutral">WEAKENING</span></div>
-          <div class="brief-row"><span style="color:#f0a500;font-size:0.58rem;letter-spacing:0.05em">REGIME TRANSITION — 20D diverging from 60D</span></div>
+          <div class="brief-row"><span class="name">60D Corr</span><span class="pct" style="color:#ff4444">+0.006</span><span></span><span class="badge-mini badge-danger">BROKEN</span></div>
+          <div class="brief-row"><span class="name">20D Corr</span><span class="pct" style="color:#ff4444">+0.283</span><span></span><span class="badge-mini badge-danger">BROKEN</span></div>
           <div class="brief-row"><span class="name">Oil corr 60D</span><span class="pct" style="color:#555555" data-field="oil_usdjpy_corr_60d">+0.143</span><span></span><span class="badge-mini badge-neutral" data-badge="oil_usdjpy_corr_60d">LOW</span></div>
           <div class="brief-row"><span class="name">Gold corr 60D</span><span class="pct" style="color:#555555" data-field="gold_usdjpy_corr_60d">-0.134</span><span></span><span class="badge-mini badge-neutral" data-badge="gold_usdjpy_corr_60d">WEAK</span></div>
           <div class="brief-row"><span class="name">DXY corr 60D</span><span class="pct" style="color:#00d4aa" data-field="dxy_usdjpy_corr_60d">+0.128</span><span></span><span class="badge-mini badge-success" data-badge="dxy_usdjpy_corr_60d">YEN SPECIFIC</span></div>
@@ -486,7 +478,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
 
         <div class="brief-section">
           <div class="brief-label">RATE DIFFERENTIALS</div>
-          <div class="brief-row"><span class="name">US-JP 10Y</span><span class="val">1.39%</span><span class="pct" style="color:#00d4aa">-0.01pp</span></div>
+          <div class="brief-row"><span class="name">US-JP 10Y</span><span class="val">1.97%</span><span class="pct" style="color:#ff4444">+0.02pp</span></div>
           <div class="brief-row"><span class="name">US-JP 2Y</span><span class="val">2.32%</span><span class="pct" style="color:#ff4444">+0.01pp</span></div>
           </div>
 
@@ -506,7 +498,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
         <div class="chart-tab-bar">
           <button class="chart-tab active" data-pair="usdjpy" data-tab="0">FUNDAMENTALS</button>
           <button class="chart-tab" data-pair="usdjpy" data-tab="1">POSITIONING</button>
-          <button class="chart-tab" data-pair="usdjpy" data-tab="2">VOL & CORRELATION</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="2">VOL &amp; CORRELATION</button>
           <button class="chart-tab" data-pair="usdjpy" data-tab="3">CROSS ASSET</button>
           <button class="chart-tab" data-pair="usdjpy" data-tab="4">BOJ SIGNAL</button>
           <button class="chart-tab" data-pair="usdjpy" data-tab="5">MOMENTUM</button>
@@ -514,25 +506,25 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="usdjpy" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
-<iframe src="../charts/usdjpy_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdjpy_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/usdjpy_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdjpy_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/usdjpy_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdjpy_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/usdjpy_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdjpy_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="4" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/usdjpy_4.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdjpy_4.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="5" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/usdjpy_5.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdjpy_5.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="6" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/usdjpy_6.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdjpy_6.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
@@ -571,7 +563,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
 
         <div class="brief-section">
           <div class="brief-label">RATE DIFFERENTIALS</div>
-          <div class="brief-row"><span class="name">US 2Y–IN 10Y</span><span class="val">-3.28%</span><span class="pct" style="color:#ff4444">+0.05pp</span></div>
+          <div class="brief-row"><span class="name">US–IN 10Y</span><span class="val">-2.70%</span><span class="pct" style="color:#ff4444">+0.08pp</span></div>
           <div class="brief-row"><span class="name">US-IN Policy</span><span class="val">-1.78%</span><span class="pct" style="color:#ff4444">+0.05pp</span></div>
           </div>
 
@@ -588,7 +580,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
 
         <div class="brief-section regime-read">
           <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
-          <div class="brief-text">US-IN spread at -3.28%. India yield premium intact at 3.28pp. Rate differential favors INR strength. FPI positioning data pending.</div>
+          <div class="brief-text">US-IN spread at -2.70%. India yield premium intact at 2.70pp. Rate differential favors INR strength. FPI positioning data pending.</div>
         </div>
       </div>
 
@@ -603,22 +595,22 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="usdinr" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
-<iframe src="../charts/usdinr_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdinr_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdinr" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/usdinr_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdinr_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdinr" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/usdinr_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdinr_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdinr" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/usdinr_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdinr_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdinr" data-pane="4" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/usdinr_4.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdinr_4.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdinr" data-pane="5" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="../charts/usdinr_5.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/usdinr_5.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
@@ -632,7 +624,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
   <div class="ws-header">ANALYSIS WORKSPACE &mdash; ALL PAIRS</div>
   <div class="ws-iframe-wrap">
     <div class="chart-pane" data-pair="global" data-pane="0" style="visibility:visible;position:relative;pointer-events:auto;width:100%;height:100%;">
-<iframe src="../charts/global_workspace.html" style="width:100%;height:calc(100vh - 36px);border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="charts/global_workspace.html" style="width:100%;height:calc(100vh - 36px);border:none;display:block;" loading="eager" scrolling="no"></iframe>
     </div>
   </div>
 </div>
