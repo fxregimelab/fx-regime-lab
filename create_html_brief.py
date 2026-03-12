@@ -364,7 +364,7 @@ def inject_live_card_data(html_content, _re, df=None):
             price_col='USDINR', price_dec=2,
             chg_1d='USDINR_chg_1D', chg_12m='USDINR_chg_12M',
             spreads=[
-                ('US 2Y–IN 10Y', 'US_IN_10Y_spread',    None, True),
+                ('US–IN 10Y',   'US_IN_10Y_spread',    None, True),
                 ('US-IN Policy',  'US_IN_policy_spread', None, True),
             ],
             cot_lev_net=None, cot_lev_pctoi=None, cot_lev_pct=None,
@@ -1022,7 +1022,7 @@ def inject_landing_page(html_content, _re, df=None):
                           composite_score=jpy_composite)
     inr_card = _pair_card('card-usdinr', '#e74c3c', 'USD/INR', inr_price, inr_1d, inr_12m,
                           inr_sp10_str, inr_sp10_dir, inr_sp10_col, inr_rows,
-                          spread_label='US 2Y\u2013IN 10Y (cross)', composite_score=inr_composite)
+                          spread_label='US\u2013IN 10Y', composite_score=inr_composite)
 
     wordmark_src = embed_image(os.path.join('logos', 'wordmark without bg.png'))
     wordmark_img = f'<img src="{wordmark_src}" class="lp-wordmark" style="height:108px;width:auto;display:block;margin-bottom:20px;" alt="FX Regime Lab">' if wordmark_src else ''
@@ -1061,6 +1061,7 @@ def inject_landing_page(html_content, _re, df=None):
       <div class="lp-date">{TODAY_FMT}</div>
       <div class="lp-meta">FX as of: {date_str} &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: {in10y_date_str} &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: {cot_cutoff_str} (pub&apos;d: {cot_published_str}) &nbsp;&nbsp;|&nbsp;&nbsp; run: {pd.Timestamp.now(tz='Asia/Kolkata').strftime("%d %b %Y %H:%M")} IST</div>
     </div>
+    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle light/dark theme" onclick="(function(){{var h=document.documentElement,t=h.getAttribute('data-theme')==='light'?'dark':'light';h.setAttribute('data-theme',t);localStorage.setItem('fx-theme',t);document.getElementById('theme-toggle').textContent=t==='light'?'&#9728;':'&#127769;';}})()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;margin-right:8px">&#127769;</button>
     <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
   </div>
   {macro_strip_html}<div class="lp-ticker-bar">{ticker_html}</div>
@@ -1227,6 +1228,8 @@ import shutil
 def load_latest_brief_data():
     """Load the most recent HTML brief as the base template."""
     brief_files = sorted(glob.glob('briefs/brief_*.html'))
+    # Skip empty files (e.g. today's output file from a prior failed run)
+    brief_files = [f for f in brief_files if os.path.getsize(f) > 0]
     if brief_files:
         return brief_files[-1]
     # Fallback for GitHub Actions: briefs/ is gitignored so index.html
@@ -1275,6 +1278,54 @@ def generate_html_brief(months: int = 12):
     # 1. Build charts for the requested data window, then inject iframes
     # ------------------------------------------------------------------
     chart_divs = _build_chart_divs(months)
+
+    # ------------------------------------------------------------------
+    # 1a-pre. Sync chart-tab-bar buttons with CHART_REGISTRY (idempotent)
+    # Ensures tabs added to the registry are reflected in the output HTML
+    # even when the source template is an older brief without those tabs.
+    # ------------------------------------------------------------------
+    _tab_labels = {
+        ('eurusd', 0): 'FUNDAMENTALS', ('eurusd', 1): 'POSITIONING',
+        ('eurusd', 2): 'VOL &amp; CORRELATION', ('eurusd', 3): 'CROSS ASSET',
+        ('eurusd', 4): 'MOMENTUM', ('eurusd', 5): 'COMPOSITE',
+        ('usdjpy', 0): 'FUNDAMENTALS', ('usdjpy', 1): 'POSITIONING',
+        ('usdjpy', 2): 'VOL &amp; CORRELATION', ('usdjpy', 3): 'CROSS ASSET',
+        ('usdjpy', 4): 'BOJ SIGNAL', ('usdjpy', 5): 'MOMENTUM', ('usdjpy', 6): 'COMPOSITE',
+        ('usdinr', 0): 'FUNDAMENTALS', ('usdinr', 1): 'CROSS ASSET',
+        ('usdinr', 2): 'VOL &amp; CORRELATION', ('usdinr', 3): 'FPI FLOWS',
+        ('usdinr', 4): 'MOMENTUM', ('usdinr', 5): 'COMPOSITE',
+    }
+    for pair in ('eurusd', 'usdjpy', 'usdinr'):
+        pair_keys = sorted(k for k in _tab_labels if k[0] == pair)
+        # Build replacement tab-bar
+        tabs_html = '\n'.join(
+            f'          <button class="chart-tab{" active" if idx == 0 else ""}" '
+            f'data-pair="{pair}" data-tab="{idx}">{_tab_labels[(pair, idx)]}</button>'
+            for pair, idx in pair_keys
+        )
+        # Build replacement pane divs (preserving structure; iframes injected next)
+        panes_html_lines = []
+        for _pair, idx in pair_keys:
+            vis = 'visible' if idx == 0 else 'hidden'
+            pos = 'absolute'
+            pe  = 'auto' if idx == 0 else 'none'
+            panes_html_lines.append(
+                f'          <div class="chart-pane" data-pair="{pair}" data-pane="{idx}" '
+                f'style="visibility:{vis}; position:{pos}; pointer-events:{pe}; width:100%; height:100%;">\n'
+                f'<iframe src="../charts/{pair}_{idx}.html" '
+                f'style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>\n'
+                f'          </div>'
+            )
+        panes_html = '\n'.join(panes_html_lines)
+        # Replace entire chart-tab-bar + chart-display-area for this pair
+        html_content = _re.sub(
+            rf'<div class="chart-tab-bar">\s*(?:<button[^>]*data-pair="{pair}"[^>]*>[^<]*</button>\s*)+</div>\s*'
+            rf'<div class="chart-display-area">\s*(?:<div[^>]*data-pair="{pair}"[^>]*>[\s\S]*?</div>\s*)+</div>',
+            f'<div class="chart-tab-bar">\n{tabs_html}\n        </div>\n        '
+            f'<div class="chart-display-area">\n{panes_html}\n        </div>',
+            html_content,
+        )
+
     chart_map = {
         (pair, str(pane)): iframe
         for (pair, pane), iframe in chart_divs.items()

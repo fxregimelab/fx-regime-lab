@@ -426,14 +426,14 @@ def calculate_differentials(yields_df):
             return pd.Series(index=yields_df.index, dtype=float)
         return yields_df[a] - yields_df[b]
 
-    # US 2Y minus Germany 10Y -- main cross-maturity driver of EUR/USD
-    diff["US_DE_10Y_spread"] = _spread("US_2Y", "DE_10Y")
+    # US 10Y minus Germany 10Y -- same-maturity 10Y driver of EUR/USD
+    diff["US_DE_10Y_spread"] = _spread("US_10Y", "DE_10Y")
 
     # US 2Y minus Germany 2Y -- same-maturity driver of EUR/USD
     diff["US_DE_2Y_spread"] = _spread("US_2Y", "DE_2Y")
 
-    # US 2Y minus Japan 10Y -- main cross-maturity driver of USD/JPY
-    diff["US_JP_10Y_spread"] = _spread("US_2Y", "JP_10Y")
+    # US 10Y minus Japan 10Y -- same-maturity 10Y driver of USD/JPY
+    diff["US_JP_10Y_spread"] = _spread("US_10Y", "JP_10Y")
     # 5-day momentum of the US-JP spread (BoJ signal: rate of change over a week)
     diff["US_JP_10Y_spread_accel"] = diff["US_JP_10Y_spread"].diff(5)
 

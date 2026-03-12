@@ -45,6 +45,15 @@ SERIES_CATALOGUE = [
     ("US_JP_2Y_spread",       "US-JP 2Y",           "Rate Spreads", "spread", "#fb7185"),
     ("US_JP_10Y_spread_accel","US-JP 10Y Accel(5D)", "Rate Spreads", "spread", "#f9a8d4"),
     ("US_IN_10Y_spread",      "US-IN 10Y",          "Rate Spreads", "spread", "#d8b4fe"),
+    ("US_curve",              "US Yield Curve",     "Rate Spreads", "spread", "#a78bfa"),
+    ("BTP_Bund_spread",       "BTP-Bund Spread",    "Rate Spreads", "spread", "#fbbf24"),
+    # Composite Scores
+    ("eurusd_composite_score","EUR/USD Composite",  "Composite Scores", "spread", "#4da6ff"),
+    ("usdjpy_composite_score","USD/JPY Composite",  "Composite Scores", "spread", "#ff9944"),
+    ("inr_composite_score",   "INR Composite",      "Composite Scores", "spread", "#e74c3c"),
+    # Regime Corr percentiles
+    ("EURUSD_corr_percentile","EUR Corr %ile",      "Regime Corr", "corr",   "#cccccc"),
+    ("USDJPY_corr_percentile","JPY Corr %ile",      "Regime Corr", "corr",   "#aaaaaa"),
 ]
 
 # Default checked series per pair (pair=None means global)
@@ -214,16 +223,30 @@ body{{background:#0a0e1a;color:#cccccc;font-family:'Inter',system-ui,sans-serif;
   <span style="color:#555;font-size:10px">To</span>
   <input type="date" id="dt-to" value="{date_to}">
   <div class="ctrl-sep"></div>
-  <label><input type="checkbox" id="cb-norm"> Normalize to 100</label>
+  <button class="ctrl-btn period-btn" data-months="1">1M</button>
+  <button class="ctrl-btn period-btn" data-months="3">3M</button>
+  <button class="ctrl-btn period-btn" data-months="6">6M</button>
+  <button class="ctrl-btn period-btn" data-months="12">1Y</button>
+  <button class="ctrl-btn period-btn" data-months="24">2Y</button>
+  <button class="ctrl-btn period-btn" data-months="0">ALL</button>
+  <div class="ctrl-sep"></div>
+  <select id="norm-mode" class="ctrl-btn" style="cursor:pointer">
+    <option value="raw">Raw</option>
+    <option value="pct">% Change</option>
+    <option value="zscore">Z-Score</option>
+    <option value="idx100">Index 100</option>
+  </select>
   <button class="ctrl-btn" id="btn-reset">Reset</button>
   <div class="ctrl-sep"></div>
   <span style="color:#444;font-size:9px;letter-spacing:1px;text-transform:uppercase">Presets</span>
   <button class="ctrl-btn preset-btn" data-preset="carry" title="EUR/USD, USD/JPY + rate spreads">CARRY</button>
   <button class="ctrl-btn preset-btn" data-preset="em" title="USD/INR, USD/JPY + EM correlations">EM CROSS</button>
-  <button class="ctrl-btn preset-btn" data-preset="rates" title="All 5 rate spread series">RATES</button>
+  <button class="ctrl-btn preset-btn" data-preset="rates" title="All rate spread series">RATES</button>
+  <button class="ctrl-btn preset-btn" data-preset="composite" title="Composite regime scores">SCORES</button>
   <button class="ctrl-btn preset-btn" data-preset="riskoff" title="All 3 FX pairs + oil correlations">RISK-OFF</button>
   <button class="ctrl-btn preset-btn" data-preset="commodity" title="Brent, Gold + oil correlations">COMMODITY</button>
   <div class="ctrl-sep"></div>
+  <button class="ctrl-btn" id="btn-csv" title="Export visible data as CSV">&#8595; CSV</button>
   <button class="ctrl-btn" id="btn-sidebar">&#9664; Hide</button>
   <span id="ctrl-hint">scroll=zoom · drag=pan · click legend=toggle</span>
 </div>
@@ -231,9 +254,18 @@ body{{background:#0a0e1a;color:#cccccc;font-family:'Inter',system-ui,sans-serif;
   <div id="sidebar">
 {sidebar_html}
     <div id="corr-box">
-      <div class="corr-title">Correlation Table</div>
+      <div class="corr-title">Correlation Calculator</div>
       <select id="corr-a" class="corr-sel">{opts_a}</select>
       <select id="corr-b" class="corr-sel">{opts_b}</select>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+        <span style="color:#444;font-size:9px;text-transform:uppercase;letter-spacing:0.5px">Window</span>
+        <select id="corr-window" class="corr-sel" style="margin:0;flex:1">
+          <option value="20">20D</option>
+          <option value="60" selected>60D</option>
+          <option value="90">90D</option>
+          <option value="0">Full</option>
+        </select>
+      </div>
       <div id="corr-val">—</div>
       <div id="corr-label">Pearson · selected window</div>
     </div>
@@ -302,12 +334,36 @@ function normalize100(vals) {{
   return vals.map(v => v === null ? null : (v / first) * 100);
 }}
 
-function buildTraces(keys, data, doNorm) {{
+function normalizePct(vals) {{
+  const first = vals.find(v => v !== null && v !== undefined);
+  if (first == null || first === 0) return vals;
+  return vals.map(v => v === null ? null : ((v - first) / Math.abs(first)) * 100);
+}}
+
+function normalizeZScore(vals) {{
+  const clean = vals.filter(v => v !== null && v !== undefined);
+  if (clean.length < 2) return vals;
+  const mean = clean.reduce((s, v) => s + v, 0) / clean.length;
+  const std  = Math.sqrt(clean.reduce((s, v) => s + (v - mean) ** 2, 0) / clean.length);
+  if (std === 0) return vals;
+  return vals.map(v => v === null ? null : (v - mean) / std);
+}}
+
+function applyNorm(vals, mode, isCorr) {{
+  if (isCorr) return vals;  // never normalize correlation series
+  if (mode === 'idx100')  return normalize100(vals);
+  if (mode === 'pct')     return normalizePct(vals);
+  if (mode === 'zscore')  return normalizeZScore(vals);
+  return vals;
+}}
+
+function buildTraces(keys, data) {{
+  const mode = document.getElementById('norm-mode').value;
   return keys.filter(k => DATA.meta[k]).map(k => {{
     const m = DATA.meta[k];
     const isCorr = m.type === 'corr';
-    let yvals = data.series[k] || [];
-    if (doNorm && !isCorr) yvals = normalize100(yvals);
+    const raw = data.series[k] || [];
+    const yvals = applyNorm(raw, mode, isCorr);
     return {{
       x: data.dates, y: yvals,
       type: 'scatter', mode: 'lines',
@@ -319,17 +375,14 @@ function buildTraces(keys, data, doNorm) {{
   }});
 }}
 
-function buildLayout(doNorm, data) {{
+function buildLayout(data) {{
+  const mode = document.getElementById('norm-mode').value;
   const layout = JSON.parse(JSON.stringify(LAYOUT_BASE));
   if (data.dates.length > 0) {{
     layout.xaxis.range = [data.dates[0], data.dates[data.dates.length-1]];
   }}
-  if (doNorm) {{
-    layout.yaxis.title = {{text:'Indexed (100 = start)', font:{{size:9,color:'#444'}}}};
-  }} else {{
-    layout.yaxis.title = {{text:'', font:{{size:9,color:'#444'}}}};
-  }}
-  // Add zero line for corr axis
+  const yTitle = {{raw: '', pct: '% Change from Start', zscore: 'Z-Score (σ)', idx100: 'Indexed (100 = start)'}};
+  layout.yaxis.title = {{text: yTitle[mode] || '', font:{{size:9,color:'#444'}}}};
   layout.shapes = [{{
     type:'line', xref:'paper', x0:0, x1:1,
     yref:'y2', y0:0, y1:0,
@@ -340,10 +393,9 @@ function buildLayout(doNorm, data) {{
 
 function update() {{
   const keys   = getChecked();
-  const doNorm = document.getElementById('cb-norm').checked;
   const data   = filterByDate(keys);
-  const traces = buildTraces(keys, data, doNorm);
-  const layout = buildLayout(doNorm, data);
+  const traces = buildTraces(keys, data);
+  const layout = buildLayout(data);
   Plotly.react('chart', traces, layout, CONFIG);
   updateCorr(data);
 }}
@@ -363,18 +415,24 @@ function pearson(xs, ys) {{
 function updateCorr(filteredData) {{
   const ka = document.getElementById('corr-a').value;
   const kb = document.getElementById('corr-b').value;
-  const va = filteredData.series[ka] || (filterByDate([ka]).series[ka] || []);
-  const vb = filteredData.series[kb] || (filterByDate([kb]).series[kb] || []);
-  // re-fetch if not in filtered data keys
+  const winVal = parseInt(document.getElementById('corr-window').value, 10);
   const da = filterByDate([ka, kb]);
-  const r  = pearson(da.series[ka]||[], da.series[kb]||[]);
+  let xa = da.series[ka] || [];
+  let xb = da.series[kb] || [];
+  // Apply rolling window (0 = full range)
+  if (winVal > 0 && xa.length > winVal) {{
+    xa = xa.slice(-winVal);
+    xb = xb.slice(-winVal);
+  }}
+  const r  = pearson(xa, xb);
   const el = document.getElementById('corr-val');
   const lb = document.getElementById('corr-label');
-  if (r === null) {{ el.textContent = '—'; el.style.color='#555'; }}
+  const winLabel = winVal > 0 ? winVal + 'D' : 'Full';
+  if (r === null) {{ el.textContent = '—'; el.style.color='#555'; lb.textContent = 'Pearson · ' + winLabel; }}
   else {{
     el.textContent = (r >= 0 ? '+' : '') + r.toFixed(3);
     el.style.color = Math.abs(r)>0.6 ? '#00d4aa' : Math.abs(r)>0.3 ? '#f0a500' : '#888';
-    lb.textContent = `Pearson · ${{da.dates[0]||''}} → ${{da.dates[da.dates.length-1]||''}}`;
+    lb.textContent = `Pearson·${{winLabel}} · ${{da.dates[Math.max(0,da.dates.length-Math.max(winVal,1))]||da.dates[0]||''}} → ${{da.dates[da.dates.length-1]||''}}`;
   }}
 }}
 
@@ -390,26 +448,54 @@ document.querySelectorAll('#sidebar input[type=checkbox][data-key]').forEach(cb 
 document.getElementById('dt-from').addEventListener('change', update);
 document.getElementById('dt-to').addEventListener('change', update);
 
-// Normalize toggle
-document.getElementById('cb-norm').addEventListener('change', update);
+// Normalization mode toggle
+document.getElementById('norm-mode').addEventListener('change', update);
 
 // Reset button
 document.getElementById('btn-reset').addEventListener('click', function() {{
   document.getElementById('dt-from').value = '{date_from}';
   document.getElementById('dt-to').value   = '{date_to}';
-  document.getElementById('cb-norm').checked = false;
+  document.getElementById('norm-mode').value = 'raw';
   // Reset checkboxes to defaults
   document.querySelectorAll('#sidebar input[type=checkbox][data-key]').forEach(cb => {{
     cb.checked = cb.defaultChecked;
   }});
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('preset-active'));
   update();
+}});
+
+// Period quick-pick buttons
+document.querySelectorAll('.period-btn').forEach(function(btn) {{
+  btn.addEventListener('click', function() {{
+    const months = parseInt(this.dataset.months, 10);
+    const allDates = DATA.dates;
+    const lastDate = allDates[allDates.length - 1] || '';
+    if (months === 0) {{
+      document.getElementById('dt-from').value = allDates[0] || '';
+    }} else {{
+      // Subtract months from last date
+      const d = new Date(lastDate);
+      d.setMonth(d.getMonth() - months);
+      document.getElementById('dt-from').value = d.toISOString().slice(0, 10);
+    }}
+    document.getElementById('dt-to').value = lastDate;
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('preset-active'));
+    this.classList.add('preset-active');
+    update();
+  }});
+}});
+
+// Deactivate period highlight on manual date change
+document.getElementById('dt-from').addEventListener('change', function() {{
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('preset-active'));
 }});
 
 // Preset layout buttons
 const PRESETS = {{
   carry:     ['EURUSD', 'USDJPY', 'US_DE_10Y_spread', 'US_JP_10Y_spread'],
   em:        ['USDINR', 'USDJPY', 'oil_inr_corr_60d', 'dxy_inr_corr_60d', 'US_IN_10Y_spread'],
-  rates:     ['US_DE_10Y_spread', 'US_DE_2Y_spread', 'US_JP_10Y_spread', 'US_JP_2Y_spread', 'US_IN_10Y_spread'],
+  rates:     ['US_DE_10Y_spread', 'US_DE_2Y_spread', 'US_JP_10Y_spread', 'US_JP_2Y_spread', 'US_IN_10Y_spread', 'US_curve', 'BTP_Bund_spread'],
+  composite: ['eurusd_composite_score', 'usdjpy_composite_score', 'inr_composite_score'],
   riskoff:   ['EURUSD', 'USDJPY', 'USDINR', 'oil_eurusd_corr_60d', 'oil_usdjpy_corr_60d', 'oil_inr_corr_60d'],
   commodity: ['Brent', 'Gold', 'oil_eurusd_corr_60d', 'oil_usdjpy_corr_60d', 'oil_inr_corr_60d'],
 }};
@@ -432,11 +518,34 @@ document.querySelectorAll('#sidebar input[type=checkbox][data-key]').forEach(cb 
   }});
 }});
 
+// CSV export
+document.getElementById('btn-csv').addEventListener('click', function() {{
+  const keys = getChecked();
+  const data = filterByDate(keys);
+  if (!data.dates.length || !keys.length) return;
+  const header = ['date'].concat(keys.map(k => DATA.meta[k] ? DATA.meta[k].label : k));
+  const rows = data.dates.map((d, i) => [d].concat(keys.map(k => {{
+    const v = (data.series[k] || [])[i];
+    return v === null || v === undefined ? '' : v;
+  }})));
+  const csv = [header].concat(rows).map(r => r.join(',')).join('\\n');
+  const blob = new Blob([csv], {{type: 'text/csv'}});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'fx_workspace_' + (data.dates[data.dates.length-1] || 'export') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}});
+
 // Correlation dropdown listeners
 document.getElementById('corr-a').addEventListener('change', function() {{
   updateCorr(filterByDate(getChecked()));
 }});
 document.getElementById('corr-b').addEventListener('change', function() {{
+  updateCorr(filterByDate(getChecked()));
+}});
+document.getElementById('corr-window').addEventListener('change', function() {{
   updateCorr(filterByDate(getChecked()));
 }});
 

@@ -39,9 +39,9 @@ def build_fundamentals_chart(pair):
             spread_2y='US_IN_policy_spread',
             label_10y='IN 10Y',
             label_2y='IN policy',
-            legend_10y='US 2Y \u2013 IN 10Y (cross)',
-            legend_2y='US 2Y \u2013 IN Repo Rate',
-            subtitle='cross spread: US 2Y vs India rates \u2014 negative = INR strength'
+            legend_10y='US 10Y – IN 10Y',
+            legend_2y='US 2Y – IN Repo Rate',
+            subtitle='US 10Y – IN 10Y: negative = INR yield premium = INR strength'
         )
     }
     
@@ -1406,5 +1406,121 @@ def build_fpi_flows_chart(pair):
             font=dict(size=9, color='#e74c3c'),
         ))
     fig.update_layout(annotations=tuple(annotations))
+    return fig
+
+
+# ============================================================================
+# FUNCTION 7: build_momentum_chart(pair)
+# ============================================================================
+
+def build_momentum_chart(pair):
+    """Multi-timeframe momentum (1D/1W/1M/3M/12M returns) bar chart for any pair."""
+    pair_map = {
+        'eurusd': ('EURUSD', '#4da6ff', 'EUR/USD'),
+        'usdjpy': ('USDJPY', '#ff9944', 'USD/JPY'),
+        'usdinr': ('USDINR', '#e74c3c', 'USD/INR'),
+    }
+    if pair not in pair_map:
+        raise ValueError(f"build_momentum_chart() unsupported pair: {pair}")
+    col, color, label = pair_map[pair]
+
+    d, cutoff, today = _load_and_filter(pair, months=get_chart_months())
+    if d.empty or col not in d.columns:
+        return None
+
+    timeframes = [
+        ('1D',  f'{col}_chg_1D'),
+        ('1W',  f'{col}_chg_1W'),
+        ('1M',  f'{col}_chg_1M'),
+        ('3M',  f'{col}_chg_3M'),
+        ('12M', f'{col}_chg_12M'),
+    ]
+
+    labels, values, bar_colors = [], [], []
+    for tf_label, tf_col in timeframes:
+        if tf_col in d.columns:
+            val = d[tf_col].dropna()
+            if len(val):
+                v = float(val.iloc[-1]) * 100  # pct
+                labels.append(tf_label)
+                values.append(round(v, 3))
+                bar_colors.append('#00d4aa' if v >= 0 else '#ff4444')
+
+    if not labels:
+        return None
+
+    fig = make_subplots(rows=1, cols=1)
+    fig.add_trace(go.Bar(
+        x=labels, y=values,
+        marker_color=bar_colors,
+        text=[f'{v:+.2f}%' for v in values],
+        textposition='outside',
+        textfont=dict(size=10, color='#cccccc'),
+        name=label,
+        hovertemplate='%{x}: %{y:+.3f}%<extra></extra>',
+    ))
+
+    layout = _base_layout(280)
+    layout['bargap'] = 0.3
+    layout['title'] = dict(text=f'{label} \u2014 Multi-Timeframe Momentum', font=dict(size=11, color='#555555'), x=0.01, xanchor='left')
+    _style_axes(fig)
+    fig.update_layout(**layout)
+    fig.update_yaxes(tickformat='.2f', ticksuffix='%')
+    return fig
+
+
+# ============================================================================
+# FUNCTION 8: build_composite_trend_chart(pair)
+# ============================================================================
+
+def build_composite_trend_chart(pair):
+    """Composite regime score trend over time with price overlay."""
+    score_map = {
+        'eurusd': ('eurusd_composite_score', 'EURUSD', '#4da6ff', 'EUR/USD Composite Score'),
+        'usdjpy': ('usdjpy_composite_score', 'USDJPY', '#ff9944', 'USD/JPY Composite Score'),
+        'usdinr': ('inr_composite_score',    'USDINR', '#e74c3c', 'USD/INR Composite Score'),
+    }
+    if pair not in score_map:
+        raise ValueError(f"build_composite_trend_chart() unsupported pair: {pair}")
+    score_col, price_col, color, title_str = score_map[pair]
+
+    d, cutoff, today = _load_and_filter(pair, months=get_chart_months())
+    if d.empty or score_col not in d.columns:
+        return None
+
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        row_heights=[0.55, 0.45],
+        vertical_spacing=0.06,
+    )
+
+    # Row 1: price
+    if price_col in d.columns:
+        pdata = d[price_col].dropna()
+        fig.add_trace(go.Scatter(
+            x=pdata.index, y=pdata.values,
+            mode='lines', line=dict(color=color, width=1.5),
+            name=price_col, showlegend=False,
+            hovertemplate='%{x|%d %b %Y}<br>%{y:.4f}<extra>price</extra>',
+        ), row=1, col=1)
+
+    # Row 2: composite score as bars (green/red)
+    score_data = d[score_col].dropna()
+    if len(score_data):
+        fig.add_trace(go.Bar(
+            x=score_data.index, y=score_data.values,
+            marker_color=['#00d4aa' if v >= 0 else '#ff4444' for v in score_data.values],
+            marker_line_width=0, opacity=0.8,
+            name='Composite Score',
+            hovertemplate='%{x|%d %b %Y}<br>Score: %{y:+.0f}<extra></extra>',
+        ), row=2, col=1)
+
+    layout = _base_layout(360)
+    layout['bargap'] = 0
+    layout['title'] = dict(text=title_str, font=dict(size=11, color='#555555'), x=0.01, xanchor='left')
+    _style_axes(fig)
+    fig.update_layout(**layout)
+    fig.update_yaxes(row=2, zeroline=True, zerolinecolor='#2a2a2a', gridcolor='#1e1e1e')
     return fig
 

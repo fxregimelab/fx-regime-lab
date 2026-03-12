@@ -294,7 +294,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
 
 
 </style>
-<link rel="stylesheet" href="static/styles.css">
+<link rel="stylesheet" href="../static/styles.css">
 </head>
 <body>
 
@@ -311,6 +311,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
       <div class="lp-date">Thursday, 12 March 2026</div>
       <div class="lp-meta">FX as of: 11 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: 11 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: 03 Mar 2026 (pub&apos;d: 06 Mar 2026) &nbsp;&nbsp;|&nbsp;&nbsp; run: 12 Mar 2026 15:50 IST</div>
     </div>
+    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle light/dark theme" onclick="(function(){var h=document.documentElement,t=h.getAttribute('data-theme')==='light'?'dark':'light';h.setAttribute('data-theme',t);localStorage.setItem('fx-theme',t);document.getElementById('theme-toggle').textContent=t==='light'?'\u2600\uFE0F':'\uD83C\uDF19';})()">🌙</button>
     <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
   </div>
   <div class="lp-macro-strip" style="background:#f0a50011;border:1px solid #f0a50044;border-radius:4px;padding:6px 14px;margin-bottom:8px;font-size:0.75rem;color:#f0a500;letter-spacing:0.04em;text-align:center;">&#9888; MACRO EVENT in 7 days: Fed FOMC / BoJ Policy &nbsp;&mdash;&nbsp; 2026-03-19</div><div class="lp-ticker-bar"><div class="lp-ticker-item"><span class="lp-ticker-label">DXY</span><span class="lp-ticker-price">99.23</span><span style="color:#00d4aa;font-size:11px">+0.40%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">EUR/USD</span><span class="lp-ticker-price" style="color:#4da6ff">1.1611</span><span style="color:#ff4444;font-size:11px">-0.05%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">USD/JPY</span><span class="lp-ticker-price" style="color:#ff9944">158.11</span><span style="color:#00d4aa;font-size:11px">+0.17%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">USD/INR</span><span class="lp-ticker-price" style="color:#e74c3c">92.17</span><span style="color:#00d4aa;font-size:11px">+1.04%</span></div><div class="lp-ticker-item lp-ticker-item--cross"><span class="lp-ticker-label">Brent</span><span class="lp-ticker-price">$91.98</span><span style="color:#00d4aa;font-size:11px">+4.76%</span></div><div class="lp-ticker-item lp-ticker-item--cross"><span class="lp-ticker-label">Gold</span><span class="lp-ticker-price">$5,167</span><span style="color:#ff4444;font-size:11px">-1.19%</span></div></div>
@@ -427,19 +428,27 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
           <button class="chart-tab" data-pair="eurusd" data-tab="1">POSITIONING</button>
           <button class="chart-tab" data-pair="eurusd" data-tab="2">VOL & CORRELATION</button>
           <button class="chart-tab" data-pair="eurusd" data-tab="3">CROSS ASSET</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="4">MOMENTUM</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="5">COMPOSITE</button>
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="eurusd" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
-<iframe src="charts/eurusd_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="../charts/eurusd_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="charts/eurusd_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="../charts/eurusd_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="charts/eurusd_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="../charts/eurusd_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="eurusd" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="charts/eurusd_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="../charts/eurusd_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="eurusd" data-pane="4" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/eurusd_4.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="eurusd" data-pane="5" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/eurusd_5.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
@@ -499,19 +508,31 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
           <button class="chart-tab" data-pair="usdjpy" data-tab="1">POSITIONING</button>
           <button class="chart-tab" data-pair="usdjpy" data-tab="2">VOL & CORRELATION</button>
           <button class="chart-tab" data-pair="usdjpy" data-tab="3">CROSS ASSET</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="4">BOJ SIGNAL</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="5">MOMENTUM</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="6">COMPOSITE</button>
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="usdjpy" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
-<iframe src="charts/usdjpy_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="../charts/usdjpy_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="charts/usdjpy_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="../charts/usdjpy_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="charts/usdjpy_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="../charts/usdjpy_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdjpy" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="charts/usdjpy_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="../charts/usdjpy_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="4" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdjpy_4.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="5" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdjpy_5.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="6" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdjpy_6.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
@@ -575,13 +596,29 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
         <div class="chart-tab-bar">
           <button class="chart-tab active" data-pair="usdinr" data-tab="0">FUNDAMENTALS</button>
           <button class="chart-tab" data-pair="usdinr" data-tab="1">CROSS ASSET</button>
+          <button class="chart-tab" data-pair="usdinr" data-tab="2">VOL &amp; CORRELATION</button>
+          <button class="chart-tab" data-pair="usdinr" data-tab="3">FPI FLOWS</button>
+          <button class="chart-tab" data-pair="usdinr" data-tab="4">MOMENTUM</button>
+          <button class="chart-tab" data-pair="usdinr" data-tab="5">COMPOSITE</button>
         </div>
         <div class="chart-display-area">
           <div class="chart-pane" data-pair="usdinr" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
-<iframe src="charts/usdinr_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="../charts/usdinr_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
           <div class="chart-pane" data-pair="usdinr" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
-<iframe src="charts/usdinr_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="../charts/usdinr_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdinr" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdinr_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdinr" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdinr_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdinr" data-pane="4" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdinr_4.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdinr" data-pane="5" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdinr_5.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
           </div>
         </div>
       </div>
@@ -595,7 +632,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
   <div class="ws-header">ANALYSIS WORKSPACE &mdash; ALL PAIRS</div>
   <div class="ws-iframe-wrap">
     <div class="chart-pane" data-pair="global" data-pane="0" style="visibility:visible;position:relative;pointer-events:auto;width:100%;height:100%;">
-<iframe src="charts/global_workspace.html" style="width:100%;height:calc(100vh - 36px);border:none;display:block;" loading="eager" scrolling="no"></iframe>
+<iframe src="../charts/global_workspace.html" style="width:100%;height:calc(100vh - 36px);border:none;display:block;" loading="eager" scrolling="no"></iframe>
     </div>
   </div>
 </div>

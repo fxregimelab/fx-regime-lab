@@ -483,8 +483,10 @@ def build_and_save(price_df, yield_df, fpi_df, fpi_status):
         master = pd.read_csv(master_path, index_col=0, parse_dates=True)
         if "US_2Y" in master.columns:
             inr["US_2Y"] = master["US_2Y"].reindex(inr.index).ffill()
+        if "US_10Y" in master.columns:
+            inr["US_10Y"] = master["US_10Y"].reindex(inr.index).ffill()
             if "IN_10Y" in inr.columns:
-                inr["US_IN_10Y_spread"]    = inr["US_2Y"] - inr["IN_10Y"]
+                inr["US_IN_10Y_spread"]    = inr["US_10Y"] - inr["IN_10Y"]
                 inr["US_IN_policy_spread"] = inr["US_2Y"] - inr["IN_repo_proxy"]
 
     # merge FPI flows
