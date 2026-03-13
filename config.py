@@ -146,6 +146,9 @@ except FileNotFoundError:
 def get_upcoming_event(today=None, window_days=7):
     """Return the nearest CB event within window_days, or None.
 
+    Reads data/macro_cal.json first (richer data from TE API), falls back
+    to hardcoded CB_EVENTS dict if macro_cal.json is absent.
+
     Returns dict: {'event': str, 'date': str, 'days_away': int}
     or None if no event within window.
     """
@@ -153,6 +156,22 @@ def get_upcoming_event(today=None, window_days=7):
         today = TODAY
     nearest = None
     min_days = window_days + 1
+
+    # Try macro_cal.json first (Phase 10 Stage 2: richer data from TE API)
+    _macro_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'macro_cal.json')
+    if os.path.exists(_macro_path):
+        try:
+            _events = json.load(open(_macro_path, encoding='utf-8'))
+            for ev in _events:
+                days_away = (pd.Timestamp(ev['date']) - pd.Timestamp(today)).days
+                if 0 <= days_away <= window_days and days_away < min_days:
+                    min_days = days_away
+                    nearest = {'event': ev['event'], 'date': ev['date'], 'days_away': days_away}
+            return nearest
+        except Exception:
+            pass
+
+    # Fallback to hardcoded CB_EVENTS
     for date_str, name in CB_EVENTS.items():
         days_away = (pd.Timestamp(date_str) - pd.Timestamp(today)).days
         if 0 <= days_away <= window_days and days_away < min_days:

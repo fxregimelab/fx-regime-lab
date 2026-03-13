@@ -54,6 +54,7 @@ STEPS = [
     ("inr",     "inr_pipeline.py"),       # fetch USD/INR + IN yields → data/inr_latest.csv
     ("merge",   "pipeline.py"),           # NOTE: merge is part of pipeline.py (same script)
     ("text",    "morning_brief.py"),      # generate text brief → briefs/brief_YYYYMMDD.txt
+    ("macro",   "macro_pipeline.py"),      # Phase 10 Stage 2: fetch economic calendar → data/macro_cal.json
     ("ai",      "ai_brief.py"),           # Phase 13: AI regime reads → data/ai_regime_read.json
     ("html",    "create_html_brief.py"),  # generate HTML brief → briefs/brief_YYYYMMDD.html
     ("deploy",  "deploy.py"),             # copy to index.html and push to GitHub
@@ -66,7 +67,7 @@ _STEP_NAMES = [name for name, _ in STEPS]
 # Steps that are non-blocking: pipeline continues even if they fail.
 # ai_brief.py has no ANTHROPIC_API_KEY on CI → always exits 0, but guard
 # here ensures a true failure (import error, crash) is still non-fatal.
-NON_BLOCKING_STEPS = {"ai"}
+NON_BLOCKING_STEPS = {"ai", "macro"}  # macro: TE API may be rate-limited on CI
 
 
 def _run_step(name, script, python_exe):

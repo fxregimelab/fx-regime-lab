@@ -1051,29 +1051,59 @@ def inject_landing_page(html_content, _re, df=None):
         macro_strip_html = ''
 
     # --- Macro calendar (collapsible, next 12 events) ---
+    # Reads data/macro_cal.json (Phase 10 Stage 2: TE API data with impact levels)
+    # Falls back to cb_events.json if macro_cal.json not available
     macro_cal_html = ''
     try:
-        import json as _json
+        import json as _json, os as _os
         _today = pd.Timestamp.today().normalize()
-        _events_raw = _json.load(open('cb_events.json'))
-        _future = sorted((d, e) for d, e in _events_raw.items()
-                         if pd.Timestamp(d) >= _today)
-        if _future:
-            rows = ''
-            for d, e in _future[:12]:
-                dt = pd.Timestamp(d)
-                diff = (dt - _today).days
-                days_lbl = 'TODAY' if diff == 0 else ('1d' if diff == 1 else f'{diff}d')
-                rows += (f'<div class="macro-cal-date">{dt.strftime("%b %d")}</div>'
-                         f'<div class="macro-cal-event">{e}</div>'
-                         f'<div class="macro-cal-days">{days_lbl}</div>')
-            n = len(_future[:12])
-            macro_cal_html = (
-                f'<details class="macro-cal">'
-                f'<summary>MACRO CALENDAR &#9660;&nbsp;({n} events)</summary>'
-                f'<div class="macro-cal-grid">{rows}</div>'
-                f'</details>'
-            )
+        _macro_path = _os.path.join('data', 'macro_cal.json')
+        if _os.path.exists(_macro_path):
+            _events_list = _json.load(open(_macro_path, encoding='utf-8'))
+            _future = [e for e in _events_list if pd.Timestamp(e['date']) >= _today][:12]
+            if _future:
+                rows = ''
+                for ev in _future:
+                    dt       = pd.Timestamp(ev['date'])
+                    diff     = (dt - _today).days
+                    days_lbl = 'TODAY' if diff == 0 else ('1d' if diff == 1 else f'{diff}d')
+                    impact   = ev.get('impact', 'HIGH')
+                    ev_color = '#ff6666' if impact == 'HIGH' else ('#f0a500' if impact == 'MED' else '#777')
+                    name     = ev['event']
+                    time_str = ev.get('time') or ''
+                    if time_str:
+                        name = f'{name} <span style="color:#456;font-size:0.68rem">{time_str}</span>'
+                    rows += (f'<div class="macro-cal-date">{dt.strftime("%b %d")}</div>'
+                             f'<div class="macro-cal-event" style="color:{ev_color}">{name}</div>'
+                             f'<div class="macro-cal-days">{days_lbl}</div>')
+                n = len(_future)
+                macro_cal_html = (
+                    f'<details class="macro-cal">'
+                    f'<summary>MACRO CALENDAR &#9660;&nbsp;({n} events)</summary>'
+                    f'<div class="macro-cal-grid">{rows}</div>'
+                    f'</details>'
+                )
+        else:
+            # Fallback: plain cb_events.json
+            _events_raw = _json.load(open('cb_events.json', encoding='utf-8'))
+            _future = sorted((d, e) for d, e in _events_raw.items()
+                             if pd.Timestamp(d) >= _today)
+            if _future:
+                rows = ''
+                for d, e in _future[:12]:
+                    dt = pd.Timestamp(d)
+                    diff = (dt - _today).days
+                    days_lbl = 'TODAY' if diff == 0 else ('1d' if diff == 1 else f'{diff}d')
+                    rows += (f'<div class="macro-cal-date">{dt.strftime("%b %d")}</div>'
+                             f'<div class="macro-cal-event">{e}</div>'
+                             f'<div class="macro-cal-days">{days_lbl}</div>')
+                n = len(_future[:12])
+                macro_cal_html = (
+                    f'<details class="macro-cal">'
+                    f'<summary>MACRO CALENDAR &#9660;&nbsp;({n} events)</summary>'
+                    f'<div class="macro-cal-grid">{rows}</div>'
+                    f'</details>'
+                )
     except Exception:
         pass
 
