@@ -54,13 +54,7 @@
     transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .lp-ws-btn:hover { color: #4da6ff; border-color: #4da6ff; background: rgba(77,166,255,0.08); }
-.theme-toggle-btn {
-    background: #0a0e1a; border: 1px solid #2a3a55; color: #aaa;
-    font-size: 14px; cursor: pointer; border-radius: 3px;
-    padding: 7px 10px; line-height: 1; align-self: center;
-    transition: border-color 0.15s, color 0.15s;
-}
-.theme-toggle-btn:hover { border-color: #4da6ff; color: #fff; }
+
 .lp-ticker-bar {
     display: flex; gap: 0; flex-shrink: 0;
     background: #111; border: 1px solid #1e1e1e;
@@ -323,12 +317,12 @@ body { background: #0a0e1a !important; }
 }
 
 /* ============================================================
-   Light theme overrides (applied when html[data-theme="light"])
+   Macro calendar collapsible
    ============================================================ */
-html[data-theme="light"] body { background: #f4f5f7; color: #1a1f36; }
-html[data-theme="light"] .card { background: #fff; border-color: #d0d5e8; }
-html[data-theme="light"] #pair-nav { background: rgba(255,255,255,0.95); border-top-color: #d0d5e8; }
-html[data-theme="light"] #pair-nav a { color: #9aa3b8; }
-html[data-theme="light"] #pair-nav a.nav-active { color: #1a1f36; }
-html[data-theme="light"] .brief-label { color: #4a5568; }
-html[data-theme="light"] .brief-value { color: #1a1f36; }
+.macro-cal { border: 1px solid #1e2a3a; border-radius: 4px; margin-bottom: 8px; background: #0d1225; }
+.macro-cal summary { padding: 6px 14px; font-size: 0.72rem; letter-spacing: 0.08em; color: #555; cursor: pointer; text-transform: uppercase; list-style: none; }
+.macro-cal summary:hover { color: #888; }
+.macro-cal-grid { display: grid; grid-template-columns: 90px 1fr 60px; gap: 3px 12px; padding: 8px 14px 10px; max-height: 200px; overflow-y: auto; }
+.macro-cal-date { font-size: 0.72rem; color: #4da6ff; font-variant-numeric: tabular-nums; }
+.macro-cal-event { font-size: 0.72rem; color: #999; }
+.macro-cal-days { font-size: 0.70rem; color: #555; text-align: right; }

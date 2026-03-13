@@ -171,34 +171,7 @@
 }
 
 
-/* =============================================================
-   LIGHT THEME  — toggled via  html[data-theme="light"]
-   ============================================================= */
-html[data-theme="light"] {
-  --color-bg-base:       #f0f2f7;
-  --color-bg-primary:    #ffffff;
-  --color-bg-secondary:  #f5f7fb;
-  --color-bg-tertiary:   #e8ecf4;
-  --color-bg-elevated:   #dce1ee;
-  --color-bg-overlay:    rgba(240, 242, 247, 0.97);
 
-  --color-border-subtle:   #dde3ef;
-  --color-border-default:  #c5ccda;
-  --color-border-emphasis: #a3afc5;
-
-  --color-text-primary:   #1a202c;
-  --color-text-secondary: #4a5568;
-  --color-text-muted:     #a0aab8;
-  --color-text-inverse:   #ffffff;
-
-  --badge-neutral-bg:   #e2e8f0;
-  --badge-neutral-text: #4a5568;
-  --badge-neutral-bdr:  #c5ccda;
-
-  --badge-info-bg:   #ebf4ff;
-  --badge-info-text: #2b6cb0;
-  --badge-info-bdr:  #bee3f8;
-}
 
 
 /* =============================================================

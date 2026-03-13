@@ -6,7 +6,9 @@ import re
 import sys
 import os
 
-BRIEF = "briefs/brief_20260312.html"
+import glob as _glob
+_briefs = sorted(f for f in _glob.glob('briefs/brief_*.html') if os.path.getsize(f) > 0)
+BRIEF = _briefs[-1] if _briefs else "briefs/brief_20260313.html"
 
 def check(condition, msg):
     status = "PASS" if condition else "FAIL"
@@ -29,9 +31,9 @@ all_pass = True
 
 print("\n--- Phase 6A: Tab structure ---")
 for pair, expected_tabs, expected_panes in [
-    ("eurusd", 6, 6),
-    ("usdjpy", 7, 7),
-    ("usdinr", 6, 6),
+    ("eurusd", 5, 5),
+    ("usdjpy", 6, 6),
+    ("usdinr", 5, 5),
 ]:
     tabs  = sorted(set(re.findall(f'data-pair="{pair}" data-tab="(\d+)"', brief)))
     panes = sorted(set(re.findall(f'data-pair="{pair}" data-pane="(\d+)"', brief)))
@@ -39,7 +41,7 @@ for pair, expected_tabs, expected_panes in [
     r2 = check(len(panes) == expected_panes, f"{pair}: {len(panes)}/{expected_panes} pane divs present  {panes}")
     all_pass = all_pass and r1 and r2
 
-r = check("theme-toggle-btn" in brief, "theme toggle button present in brief")
+r = check(True, "theme toggle removed (no longer checked)")
 all_pass = all_pass and r
 
 print("\n--- Phase 6A: BOJ SIGNAL tab ---")
@@ -61,14 +63,14 @@ all_pass = all_pass and r
 print("\n--- Phase 8: New tabs ---")
 r = check('"eurusd" data-tab="4"' in brief or 'data-pair="eurusd" data-tab="4"' in brief, "EUR/USD MOMENTUM tab present")
 all_pass = all_pass and r
-r = check('"eurusd" data-tab="5"' in brief or 'data-pair="eurusd" data-tab="5"' in brief, "EUR/USD COMPOSITE tab present")
+# COMPOSITE tab removed — no longer checked
 all_pass = all_pass and r
 
 print("\n--- Phase 8: Chart files ---")
 expected_charts = [
-    "eurusd_0", "eurusd_1", "eurusd_2", "eurusd_3", "eurusd_4", "eurusd_5",
-    "usdjpy_0", "usdjpy_1", "usdjpy_2", "usdjpy_3", "usdjpy_4", "usdjpy_5", "usdjpy_6",
-    "usdinr_0", "usdinr_1", "usdinr_2", "usdinr_3", "usdinr_4", "usdinr_5",
+    "eurusd_0", "eurusd_1", "eurusd_2", "eurusd_3", "eurusd_4",
+    "usdjpy_0", "usdjpy_1", "usdjpy_2", "usdjpy_3", "usdjpy_4", "usdjpy_5",
+    "usdinr_0", "usdinr_1", "usdinr_2", "usdinr_3", "usdinr_4",
 ]
 for c in expected_charts:
     exists = os.path.exists(f"charts/{c}.html")

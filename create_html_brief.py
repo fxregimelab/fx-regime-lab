@@ -1050,6 +1050,33 @@ def inject_landing_page(html_content, _re, df=None):
     else:
         macro_strip_html = ''
 
+    # --- Macro calendar (collapsible, next 12 events) ---
+    macro_cal_html = ''
+    try:
+        import json as _json
+        _today = pd.Timestamp.today().normalize()
+        _events_raw = _json.load(open('cb_events.json'))
+        _future = sorted((d, e) for d, e in _events_raw.items()
+                         if pd.Timestamp(d) >= _today)
+        if _future:
+            rows = ''
+            for d, e in _future[:12]:
+                dt = pd.Timestamp(d)
+                diff = (dt - _today).days
+                days_lbl = 'TODAY' if diff == 0 else ('1d' if diff == 1 else f'{diff}d')
+                rows += (f'<div class="macro-cal-date">{dt.strftime("%b %d")}</div>'
+                         f'<div class="macro-cal-event">{e}</div>'
+                         f'<div class="macro-cal-days">{days_lbl}</div>')
+            n = len(_future[:12])
+            macro_cal_html = (
+                f'<details class="macro-cal">'
+                f'<summary>MACRO CALENDAR &#9660;&nbsp;({n} events)</summary>'
+                f'<div class="macro-cal-grid">{rows}</div>'
+                f'</details>'
+            )
+    except Exception:
+        pass
+
     from config import TODAY_FMT
     landing_html = f'''<!-- LANDING PAGE -->
 <div id="landing">
@@ -1061,10 +1088,9 @@ def inject_landing_page(html_content, _re, df=None):
       <div class="lp-date">{TODAY_FMT}</div>
       <div class="lp-meta">FX as of: {date_str} &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: {in10y_date_str} &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: {cot_cutoff_str} (pub&apos;d: {cot_published_str}) &nbsp;&nbsp;|&nbsp;&nbsp; run: {pd.Timestamp.now(tz='Asia/Kolkata').strftime("%d %b %Y %H:%M")} IST</div>
     </div>
-    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle light/dark theme" onclick="(function(){{var h=document.documentElement,t=h.getAttribute('data-theme')==='light'?'dark':'light';h.setAttribute('data-theme',t);localStorage.setItem('fx-theme',t);document.getElementById('theme-toggle').textContent=t==='light'?'&#9728;':'&#127769;';}})()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;margin-right:8px">&#127769;</button>
     <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
   </div>
-  {macro_strip_html}<div class="lp-ticker-bar">{ticker_html}</div>
+  {macro_strip_html}{macro_cal_html}<div class="lp-ticker-bar">{ticker_html}</div>
   <div class="lp-grid">
     {eur_card}
     {jpy_card}
@@ -1287,13 +1313,13 @@ def generate_html_brief(months: int = 12):
     _tab_labels = {
         ('eurusd', 0): 'FUNDAMENTALS', ('eurusd', 1): 'POSITIONING',
         ('eurusd', 2): 'VOL &amp; CORRELATION', ('eurusd', 3): 'CROSS ASSET',
-        ('eurusd', 4): 'MOMENTUM', ('eurusd', 5): 'COMPOSITE',
+        ('eurusd', 4): 'MOMENTUM',
         ('usdjpy', 0): 'FUNDAMENTALS', ('usdjpy', 1): 'POSITIONING',
         ('usdjpy', 2): 'VOL &amp; CORRELATION', ('usdjpy', 3): 'CROSS ASSET',
-        ('usdjpy', 4): 'BOJ SIGNAL', ('usdjpy', 5): 'MOMENTUM', ('usdjpy', 6): 'COMPOSITE',
+        ('usdjpy', 4): 'BOJ SIGNAL', ('usdjpy', 5): 'MOMENTUM',
         ('usdinr', 0): 'FUNDAMENTALS', ('usdinr', 1): 'CROSS ASSET',
         ('usdinr', 2): 'VOL &amp; CORRELATION', ('usdinr', 3): 'FPI FLOWS',
-        ('usdinr', 4): 'MOMENTUM', ('usdinr', 5): 'COMPOSITE',
+        ('usdinr', 4): 'MOMENTUM',
     }
     for pair in ('eurusd', 'usdjpy', 'usdinr'):
         pair_keys = sorted(k for k in _tab_labels if k[0] == pair)

@@ -184,7 +184,7 @@ def build_workspace_html(pair=None):
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{background:#0a0e1a;color:#cccccc;font-family:'Inter',system-ui,sans-serif;font-size:12px;height:100vh;display:flex;flex-direction:column;overflow:hidden}}
-#ctrl{{height:40px;background:#1a1a1a;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;gap:10px;padding:0 14px;flex-shrink:0}}
+#ctrl{{height:40px;background:#1a1a1a;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;gap:10px;padding:0 14px;flex-shrink:0;overflow-x:auto;overflow-y:hidden}}
 #ctrl-title{{color:#444;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap}}
 .ctrl-sep{{width:1px;height:18px;background:#2a2a2a;margin:0 2px}}
 #ctrl input[type=date]{{background:#1e1e1e;border:1px solid #2a2a2a;color:#aaa;padding:3px 6px;font-size:11px;border-radius:3px;width:110px}}
