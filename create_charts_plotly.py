@@ -113,17 +113,17 @@ def build_fundamentals_chart(pair):
     fig.update_layout(**_base_layout(height=400 if pair != 'usdinr' else 360))
     _style_axes(fig)
 
-    # --- Legend: rate differential lines (top-right of spreads panel) ---
+    # --- Legend: horizontal bottom center ---
     fig.update_layout(
         legend=dict(
-            x=0.99, y=0.43,
-            xanchor='right', yanchor='top',
-            bgcolor='rgba(13,13,13,0.85)',
-            bordercolor='#2a2a2a', borderwidth=1,
-            font=dict(size=9, color='#cccccc'),
+            orientation='h', x=0.5, y=-0.09,
+            xanchor='center', yanchor='top',
+            bgcolor='rgba(0,0,0,0)',
+            font=dict(size=9, color='#aaaaaa'),
             itemsizing='constant',
-            tracegroupgap=1,
-        )
+            tracegroupgap=4,
+        ),
+        margin=dict(l=50, r=60, t=30, b=60),
     )
     
     # Set x-axis ranges for both subplots
@@ -463,17 +463,17 @@ def build_positioning_chart(pair):
     fig.update_layout(**_base_layout(height=480))
     _style_axes(fig)
 
-    # --- Legend: bottom-left to avoid top-right regime stamp ---
+    # --- Legend: horizontal bottom center ---
     fig.update_layout(
         legend=dict(
-            x=0.01, y=0.01,
-            xanchor='left', yanchor='bottom',
-            bgcolor='rgba(13,13,13,0.85)',
-            bordercolor='#2a2a2a', borderwidth=1,
-            font=dict(size=9, color='#cccccc'),
+            orientation='h', x=0.5, y=-0.09,
+            xanchor='center', yanchor='top',
+            bgcolor='rgba(0,0,0,0)',
+            font=dict(size=9, color='#aaaaaa'),
             itemsizing='constant',
-            tracegroupgap=1,
-        )
+            tracegroupgap=4,
+        ),
+        margin=dict(l=50, r=60, t=30, b=60),
     )
     
     # Set x-axis ranges for both subplots
@@ -770,17 +770,17 @@ def build_vol_correlation_chart(pair):
     fig.update_layout(**_base_layout(height=420))
     _style_axes(fig)
 
-    # --- Legend: top-right of vol panel ---
+    # --- Legend: horizontal bottom center ---
     fig.update_layout(
         legend=dict(
-            x=0.99, y=0.99,
-            xanchor='right', yanchor='top',
-            bgcolor='rgba(13,13,13,0.85)',
-            bordercolor='#2a2a2a', borderwidth=1,
-            font=dict(size=9, color='#cccccc'),
+            orientation='h', x=0.5, y=-0.09,
+            xanchor='center', yanchor='top',
+            bgcolor='rgba(0,0,0,0)',
+            font=dict(size=9, color='#aaaaaa'),
             itemsizing='constant',
-            tracegroupgap=1,
-        )
+            tracegroupgap=4,
+        ),
+        margin=dict(l=50, r=60, t=30, b=60),
     )
     
     # Set x-axis ranges for both subplots
@@ -1209,10 +1209,14 @@ def build_boj_signal_chart(pair):
     _style_axes(fig)
     fig.update_layout(
         legend=dict(
-            x=0.99, y=0.43, xanchor='right', yanchor='top',
-            bgcolor='rgba(13,13,13,0.85)', bordercolor='#2a2a2a', borderwidth=1,
-            font=dict(size=9, color='#cccccc'), itemsizing='constant',
-        )
+            orientation='h', x=0.5, y=-0.09,
+            xanchor='center', yanchor='top',
+            bgcolor='rgba(0,0,0,0)',
+            font=dict(size=9, color='#aaaaaa'),
+            itemsizing='constant',
+            tracegroupgap=4,
+        ),
+        margin=dict(l=50, r=60, t=30, b=60),
     )
 
     cutoff_str, today_str = cutoff.strftime('%Y-%m-%d'), today.strftime('%Y-%m-%d')
@@ -1366,11 +1370,14 @@ def build_fpi_flows_chart(pair):
     _style_axes(fig)
     fig.update_layout(
         legend=dict(
-            orientation='h', x=0.0, y=-0.08, xanchor='left', yanchor='top',
-            bgcolor='rgba(0,0,0,0)', font=dict(size=9, color='#666666'),
+            orientation='h', x=0.5, y=-0.09,
+            xanchor='center', yanchor='top',
+            bgcolor='rgba(0,0,0,0)',
+            font=dict(size=9, color='#aaaaaa'),
             itemsizing='constant',
+            tracegroupgap=4,
         ),
-        margin=dict(l=52, r=60, t=30, b=50),
+        margin=dict(l=50, r=60, t=30, b=60),
     )
 
     cutoff_str, today_str = cutoff.strftime('%Y-%m-%d'), today.strftime('%Y-%m-%d')
@@ -1465,6 +1472,17 @@ def build_momentum_chart(pair):
     layout['title'] = dict(text=f'{label} \u2014 Multi-Timeframe Momentum', font=dict(size=11, color='#555555'), x=0.01, xanchor='left')
     _style_axes(fig)
     fig.update_layout(**layout)
+    fig.update_layout(
+        legend=dict(
+            orientation='h', x=0.5, y=-0.09,
+            xanchor='center', yanchor='top',
+            bgcolor='rgba(0,0,0,0)',
+            font=dict(size=9, color='#aaaaaa'),
+            itemsizing='constant',
+            tracegroupgap=4,
+        ),
+        margin=dict(l=50, r=60, t=30, b=60),
+    )
     fig.update_yaxes(tickformat='.2f', ticksuffix='%')
     return fig
 

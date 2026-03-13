@@ -1061,7 +1061,6 @@ def inject_landing_page(html_content, _re, df=None):
       <div class="lp-date">{TODAY_FMT}</div>
       <div class="lp-meta">FX as of: {date_str} &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: {in10y_date_str} &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: {cot_cutoff_str} (pub&apos;d: {cot_published_str}) &nbsp;&nbsp;|&nbsp;&nbsp; run: {pd.Timestamp.now(tz='Asia/Kolkata').strftime("%d %b %Y %H:%M")} IST</div>
     </div>
-    <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle light/dark theme" onclick="(function(){{var h=document.documentElement,t=h.getAttribute('data-theme')==='light'?'dark':'light';h.setAttribute('data-theme',t);localStorage.setItem('fx-theme',t);document.getElementById('theme-toggle').textContent=t==='light'?'&#9728;':'&#127769;';}})()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;margin-right:8px">&#127769;</button>
     <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
   </div>
   {macro_strip_html}<div class="lp-ticker-bar">{ticker_html}</div>
@@ -1287,13 +1286,13 @@ def generate_html_brief(months: int = 12):
     _tab_labels = {
         ('eurusd', 0): 'FUNDAMENTALS', ('eurusd', 1): 'POSITIONING',
         ('eurusd', 2): 'VOL &amp; CORRELATION', ('eurusd', 3): 'CROSS ASSET',
-        ('eurusd', 4): 'MOMENTUM', ('eurusd', 5): 'COMPOSITE',
+        ('eurusd', 4): 'MOMENTUM',
         ('usdjpy', 0): 'FUNDAMENTALS', ('usdjpy', 1): 'POSITIONING',
         ('usdjpy', 2): 'VOL &amp; CORRELATION', ('usdjpy', 3): 'CROSS ASSET',
-        ('usdjpy', 4): 'BOJ SIGNAL', ('usdjpy', 5): 'MOMENTUM', ('usdjpy', 6): 'COMPOSITE',
+        ('usdjpy', 4): 'BOJ SIGNAL', ('usdjpy', 5): 'MOMENTUM',
         ('usdinr', 0): 'FUNDAMENTALS', ('usdinr', 1): 'CROSS ASSET',
         ('usdinr', 2): 'VOL &amp; CORRELATION', ('usdinr', 3): 'FPI FLOWS',
-        ('usdinr', 4): 'MOMENTUM', ('usdinr', 5): 'COMPOSITE',
+        ('usdinr', 4): 'MOMENTUM',
     }
     for pair in ('eurusd', 'usdjpy', 'usdinr'):
         pair_keys = sorted(k for k in _tab_labels if k[0] == pair)
