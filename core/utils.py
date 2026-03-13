@@ -81,8 +81,13 @@ def embed_image(filepath):
     Only serves files within the repository root to prevent path traversal.
     """
     try:
-        abs_path = os.path.realpath(os.path.abspath(filepath))
         repo_root = os.path.realpath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        # Resolve relative paths from repo root (not CWD) so the path is stable
+        # regardless of which directory the script is launched from
+        if not os.path.isabs(filepath):
+            abs_path = os.path.realpath(os.path.join(repo_root, filepath))
+        else:
+            abs_path = os.path.realpath(filepath)
         # Block access outside the repo directory
         if not abs_path.startswith(repo_root + os.sep) and abs_path != repo_root:
             return ""
