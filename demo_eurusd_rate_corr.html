@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EUR/USD Rate Differential Monitor — FX Regime Lab</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000000;
+    font-family: 'Courier New', 'Lucida Console', monospace;
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container {
+    width: 1200px;
+    height: 700px;
+    background: #000000;
+    border: 1px solid #222222;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .header-bar {
+    background: #ff6600;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    flex-shrink: 0;
+  }
+  .header-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: #ffffff;
+    letter-spacing: 0.08em;
+  }
+  .header-right {
+    font-size: 12px;
+    font-weight: bold;
+    color: #ffffff;
+    letter-spacing: 0.12em;
+  }
+  .sub-header {
+    background: #111111;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    border-bottom: 1px solid #2a2a2a;
+    flex-shrink: 0;
+  }
+  .sub-header-text {
+    font-size: 10px;
+    color: #aaaaaa;
+    letter-spacing: 0.06em;
+  }
+  .charts-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .footer {
+    background: #0a0a0a;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    border-top: 1px solid #1a1a1a;
+    flex-shrink: 0;
+  }
+  .footer-left { font-size: 9px; color: #555555; letter-spacing: 0.05em; }
+  .footer-right { font-size: 9px; color: #555555; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header-bar">
+    <span class="header-title">EUR/USD RATE DIFFERENTIAL MONITOR</span>
+    <span class="header-right">FX REGIME LAB</span>
+  </div>
+
+  <div class="sub-header">
+    <span class="sub-header-text">US-DE 10Y SPREAD vs 60D PRICE-SPREAD CORRELATION &nbsp;|&nbsp; UPDATED MARCH 17 2026</span>
+  </div>
+
+  <div class="charts-area">
+    <canvas id="mainCanvas"></canvas>
+  </div>
+
+  <div class="footer">
+    <span class="footer-left">SOURCE: FRED | ECB SDW | FX REGIME LAB PIPELINE</span>
+    <span class="footer-right">DATA AS OF MARCH 17, 2026</span>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+// 12 months of realistic US-DE 10Y spread (bp) and 60-day rolling correlation.
+// Spread current value: -121bp (US 4.21%, DE ~2.90%)
+// Correlation current value: -0.021 (signal "broken" — EUR idiosyncratic)
+
+const MONTHS = [
+  'APR 25','MAY 25','JUN 25','JUL 25','AUG 25','SEP 25',
+  'OCT 25','NOV 25','DEC 25','JAN 26','FEB 26','MAR 26'
+];
+
+function generateSpreadData() {
+  const anchors = [
+    { t:   0, v: -175 },
+    { t:  40, v: -158 },
+    { t:  65, v: -144 },
+    { t:  90, v: -130 },
+    { t: 115, v: -138 },
+    { t: 140, v: -128 },
+    { t: 160, v: -112 },
+    { t: 185, v: -108 },
+    { t: 205, v: -118 },
+    { t: 225, v: -116 },
+    { t: 245, v: -121 },
+    { t: 251, v: -121 }
+  ];
+  const pts = [];
+  const N = 252;
+  for (let i = 0; i < N; i++) {
+    let a0 = anchors[0], a1 = anchors[anchors.length - 1];
+    for (let k = 0; k < anchors.length - 1; k++) {
+      if (i >= anchors[k].t && i <= anchors[k+1].t) { a0 = anchors[k]; a1 = anchors[k+1]; break; }
+    }
+    const pct = a1.t === a0.t ? 1 : (i - a0.t) / (a1.t - a0.t);
+    const base = a0.v + (a1.v - a0.v) * pct;
+    const noise = (Math.sin(i * 0.37) * 2.1 + Math.cos(i * 0.19) * 1.4) * 1.8;
+    pts.push(base + noise);
+  }
+  return pts;
+}
+
+function generateCorrData(spread) {
+  const anchors = [
+    { t:   0, v: -0.620 },
+    { t:  30, v: -0.550 },
+    { t:  60, v: -0.480 },
+    { t:  90, v: -0.380 },
+    { t: 120, v: -0.290 },
+    { t: 150, v: -0.180 },
+    { t: 180, v: -0.090 },
+    { t: 210, v:  0.040 },
+    { t: 230, v:  0.020 },
+    { t: 251, v: -0.021 }
+  ];
+  const pts = [];
+  const N = spread.length;
+  for (let i = 0; i < N; i++) {
+    let a0 = anchors[0], a1 = anchors[anchors.length - 1];
+    for (let k = 0; k < anchors.length - 1; k++) {
+      if (i >= anchors[k].t && i <= anchors[k+1].t) { a0 = anchors[k]; a1 = anchors[k+1]; break; }
+    }
+    const pct = a1.t === a0.t ? 1 : (i - a0.t) / (a1.t - a0.t);
+    const base = a0.v + (a1.v - a0.v) * pct;
+    const noise = (Math.sin(i * 0.43) * 0.025 + Math.cos(i * 0.27) * 0.018);
+    pts.push(Math.max(-1, Math.min(1, base + noise)));
+  }
+  return pts;
+}
+
+// ─── CANVAS ─────────────────────────────────────────────────────────────────
+const spread = generateSpreadData();
+const corr   = generateCorrData(spread);
+const N      = spread.length;
+
+const container = document.querySelector('.charts-area');
+const canvas    = document.getElementById('mainCanvas');
+
+function resize() {
+  const W = container.clientWidth;
+  const H = container.clientHeight;
+  canvas.width  = W; canvas.height  = H;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  draw(W, H);
+}
+
+function draw(W, H) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Layout ──
+  const ML = 52, MR = 72, MT = 14, MB = 32, GAP = 10;
+  const topH = Math.floor(H * 0.60);
+  const botH = H - topH;
+
+  const p1 = { x: ML, y: MT,           w: W - ML - MR, h: topH - MT - GAP        };
+  const p2 = { x: ML, y: topH + GAP,   w: W - ML - MR, h: botH - GAP - MB        };
+
+  function xMap(i) { return p1.x + (i / (N - 1)) * p1.w; }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  PANEL 1 — SPREAD
+  // ═══════════════════════════════════════════════════════════════════════════
+  const sMin = -200, sMax = 0;
+  function yS(v) { return p1.y + p1.h - ((v - sMin) / (sMax - sMin)) * p1.h; }
+
+  // Subtle grid
+  [-200,-175,-150,-125,-100,-75,-50,-25,0].forEach(t => {
+    const y = yS(t);
+    if (y < p1.y || y > p1.y + p1.h) return;
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 0.5; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(p1.x, y); ctx.lineTo(p1.x + p1.w, y); ctx.stroke();
+  });
+
+  // Zero dotted white (at top of panel since sMax=0)
+  const z1 = yS(0);
+  ctx.strokeStyle = 'rgba(255,255,255,0.40)'; ctx.lineWidth = 1; ctx.setLineDash([4,5]);
+  ctx.beginPath(); ctx.moveTo(p1.x, z1); ctx.lineTo(p1.x + p1.w, z1); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Orange Bloomberg axes (left + bottom only)
+  ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 1.2; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p1.x, p1.y + p1.h); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(p1.x, p1.y + p1.h); ctx.lineTo(p1.x + p1.w, p1.y + p1.h); ctx.stroke();
+
+  // Area fill under spread line (very subtle amber)
+  ctx.save();
+  ctx.beginPath(); ctx.rect(p1.x, p1.y, p1.w, p1.h); ctx.clip();
+  ctx.beginPath();
+  for (let i = 0; i < N; i++) {
+    const x = xMap(i), y = yS(spread[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.lineTo(xMap(N-1), p1.y + p1.h); ctx.lineTo(xMap(0), p1.y + p1.h); ctx.closePath();
+  const ag = ctx.createLinearGradient(0, p1.y, 0, p1.y + p1.h);
+  ag.addColorStop(0, 'rgba(255,153,0,0.06)'); ag.addColorStop(1, 'rgba(255,153,0,0.00)');
+  ctx.fillStyle = ag; ctx.fill();
+  ctx.restore();
+
+  // Spread line
+  ctx.save();
+  ctx.beginPath(); ctx.rect(p1.x, p1.y, p1.w, p1.h); ctx.clip();
+  ctx.strokeStyle = '#ff9900'; ctx.lineWidth = 1.6; ctx.setLineDash([]);
+  ctx.beginPath();
+  for (let i = 0; i < N; i++) {
+    const x = xMap(i), y = yS(spread[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // Y labels right
+  ctx.fillStyle = '#777777'; ctx.font = '9px "Courier New",monospace'; ctx.textAlign = 'left';
+  [-200,-175,-150,-125,-100,-75,-50,-25,0].forEach(t => {
+    const y = yS(t);
+    if (y >= p1.y && y <= p1.y + p1.h) ctx.fillText(t + 'bp', p1.x + p1.w + 5, y + 3.5);
+  });
+
+  // Panel label
+  ctx.fillStyle = '#cccccc'; ctx.font = 'bold 10px "Courier New",monospace'; ctx.textAlign = 'left';
+  ctx.fillText('US-DE 10Y SPREAD (bp)', p1.x + 8, p1.y + 13);
+
+  // Current value orange box
+  const lx = xMap(N-1), ly = yS(spread[N-1]);
+  ctx.font = 'bold 10px "Courier New",monospace';
+  const bTxt = '-121bp';
+  const bw = ctx.measureText(bTxt).width + 10, bh = 16;
+  const bx = lx - bw - 5, by = ly - bh/2;
+  ctx.fillStyle = '#ff6600'; ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center';
+  ctx.fillText(bTxt, bx + bw/2, by + 11);
+
+  // Terminal dot
+  ctx.fillStyle = '#ff9900';
+  ctx.beginPath(); ctx.arc(lx, ly, 3.5, 0, Math.PI*2); ctx.fill();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  PANEL 2 — CORRELATION
+  // ═══════════════════════════════════════════════════════════════════════════
+  function yC(v) { return p2.y + p2.h - ((v + 1) / 2) * p2.h; }
+
+  const z2 = yC(0);
+
+  // Below-zero subtle red fill
+  const gRed = ctx.createLinearGradient(0, z2, 0, p2.y + p2.h);
+  gRed.addColorStop(0, 'rgba(180,20,20,0.10)'); gRed.addColorStop(1, 'rgba(180,20,20,0.04)');
+  ctx.fillStyle = gRed; ctx.fillRect(p2.x, z2, p2.w, p2.y + p2.h - z2);
+
+  // Above-zero subtle green fill
+  const gGreen = ctx.createLinearGradient(0, p2.y, 0, z2);
+  gGreen.addColorStop(0, 'rgba(0,160,60,0.04)'); gGreen.addColorStop(1, 'rgba(0,160,60,0.10)');
+  ctx.fillStyle = gGreen; ctx.fillRect(p2.x, p2.y, p2.w, z2 - p2.y);
+
+  // Threshold lines
+  [-1.0,-0.5,0,0.5,1.0].forEach(t => {
+    const y = yC(t);
+    if (t === 0) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.40)'; ctx.lineWidth = 1; ctx.setLineDash([4,5]);
+    } else if (Math.abs(t) === 0.5) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 0.7; ctx.setLineDash([3,5]);
+    } else {
+      ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 0.5; ctx.setLineDash([]);
+    }
+    ctx.beginPath(); ctx.moveTo(p2.x, y); ctx.lineTo(p2.x + p2.w, y); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Bloomberg axes
+  ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 1.2; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(p2.x, p2.y); ctx.lineTo(p2.x, p2.y + p2.h); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(p2.x, p2.y + p2.h); ctx.lineTo(p2.x + p2.w, p2.y + p2.h); ctx.stroke();
+
+  // Corr area fill
+  ctx.save();
+  ctx.beginPath(); ctx.rect(p2.x, p2.y, p2.w, p2.h); ctx.clip();
+  ctx.beginPath();
+  for (let i = 0; i < N; i++) {
+    const x = xMap(i), y = yC(corr[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.lineTo(xMap(N-1), p2.y + p2.h); ctx.lineTo(xMap(0), p2.y + p2.h); ctx.closePath();
+  const ca = ctx.createLinearGradient(0, p2.y, 0, p2.y + p2.h);
+  ca.addColorStop(0, 'rgba(0,255,255,0.08)'); ca.addColorStop(1, 'rgba(0,255,255,0.00)');
+  ctx.fillStyle = ca; ctx.fill();
+  ctx.restore();
+
+  // Corr line
+  ctx.save();
+  ctx.beginPath(); ctx.rect(p2.x, p2.y, p2.w, p2.h); ctx.clip();
+  ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 1.5; ctx.setLineDash([]);
+  ctx.beginPath();
+  for (let i = 0; i < N; i++) {
+    const x = xMap(i), y = yC(corr[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // Y labels right
+  ctx.fillStyle = '#777777'; ctx.font = '9px "Courier New",monospace'; ctx.textAlign = 'left';
+  [-1.0,-0.5,0,0.5,1.0].forEach(t => {
+    const y = yC(t);
+    ctx.fillText(t.toFixed(1), p2.x + p2.w + 5, y + 3.5);
+  });
+
+  // Panel label
+  ctx.fillStyle = '#cccccc'; ctx.font = 'bold 10px "Courier New",monospace'; ctx.textAlign = 'left';
+  ctx.fillText('EUR/USD vs SPREAD \u2014 60D ROLLING CORR', p2.x + 8, p2.y + 13);
+
+  // Current value white dot
+  const cx = xMap(N-1), cy = yC(corr[N-1]);
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.stroke();
+
+  // Value tag
+  ctx.font = 'bold 9px "Courier New",monospace'; ctx.fillStyle = '#00ffff'; ctx.textAlign = 'right';
+  ctx.fillText('-0.021', cx - 8, cy - 7);
+
+  // "BROKEN — EUR SPECIFIC" annotation
+  const annTxt = 'BROKEN \u2014 EUR SPECIFIC';
+  ctx.font = 'bold 9px "Courier New",monospace';
+  const annW = ctx.measureText(annTxt).width + 10;
+  const annX = cx - 8, annY = cy + 22;
+  ctx.fillStyle = 'rgba(200,0,0,0.20)';
+  ctx.fillRect(annX - annW + 2, annY - 12, annW, 15);
+  ctx.fillStyle = '#ff3333'; ctx.textAlign = 'right';
+  ctx.fillText(annTxt, annX + 2, annY);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  SHARED X-AXIS — monthly labels
+  // ═══════════════════════════════════════════════════════════════════════════
+  ctx.fillStyle = '#666666'; ctx.font = '8.5px "Courier New",monospace'; ctx.textAlign = 'center';
+  for (let m = 0; m < 12; m++) {
+    const idx = Math.round(m * (N / 12));
+    const x = xMap(idx);
+    // tick
+    ctx.strokeStyle = '#333333'; ctx.lineWidth = 0.7; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x, p2.y + p2.h); ctx.lineTo(x, p2.y + p2.h + 4); ctx.stroke();
+    // label
+    ctx.fillText(MONTHS[m], x, p2.y + p2.h + 14);
+  }
+
+  // Current date vertical dotted line
+  ctx.strokeStyle = 'rgba(255,255,255,0.50)'; ctx.lineWidth = 0.8; ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.moveTo(xMap(N-1), p1.y); ctx.lineTo(xMap(N-1), p2.y + p2.h); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // "NOW" label
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '8px "Courier New",monospace'; ctx.textAlign = 'center';
+  ctx.fillText('NOW', xMap(N-1), p1.y + 10);
+
+  // Threshold labels on panel 2
+  ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.font = '8px "Courier New",monospace'; ctx.textAlign = 'left';
+  ctx.fillText('+0.5 THRESHOLD', p2.x + 4, yC(0.5) - 3);
+  ctx.fillText('-0.5 THRESHOLD', p2.x + 4, yC(-0.5) - 3);
+}
+
+window.addEventListener('resize', resize);
+resize();
+</script>
+</body>
+</html>
