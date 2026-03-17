@@ -28,6 +28,9 @@ briefs/
 *.png
 *.jpg
 
+# Keep brand logos committed so GitHub Actions can embed them as base64
+!logos/*.png
+
 # Individual chart files are pushed to GitHub for GitHub Pages
 # charts/ folder is intentionally tracked
 

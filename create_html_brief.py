@@ -1118,7 +1118,10 @@ def inject_landing_page(html_content, _re, df=None):
     except Exception:
         pass
 
-    from config import TODAY_FMT
+    # Use IST-aware timestamp so the header date always matches the run timestamp,
+    # even when the pipeline is invoked near UTC midnight (23:30-00:00 UTC = 05:00-05:30 IST next day).
+    _now_ist = pd.Timestamp.now(tz='Asia/Kolkata')
+    today_fmt_ist = _now_ist.strftime('%A, %d %B %Y')
     landing_html = f'''<!-- LANDING PAGE -->
 <div id="landing">
   <div class="lp-header">
@@ -1126,8 +1129,8 @@ def inject_landing_page(html_content, _re, df=None):
       <div class="lp-logo-row">{wordmark_img}</div>
       <div class="lp-framework-label">G10 FX Regime Detection Framework</div>
       <div class="lp-morning-brief">Morning Brief</div>
-      <div class="lp-date">{TODAY_FMT}</div>
-      <div class="lp-meta">FX as of: {date_str} &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: {in10y_date_str} &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: {cot_cutoff_str} (pub&apos;d: {cot_published_str}) &nbsp;&nbsp;|&nbsp;&nbsp; run: {pd.Timestamp.now(tz='Asia/Kolkata').strftime("%d %b %Y %H:%M")} IST</div>
+      <div class="lp-date">{today_fmt_ist}</div>
+      <div class="lp-meta">FX as of: {date_str} &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: {in10y_date_str} &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: {cot_cutoff_str} (pub&apos;d: {cot_published_str}) &nbsp;&nbsp;|&nbsp;&nbsp; run: {_now_ist.strftime("%d %b %Y %H:%M")} IST</div>
     </div>
     <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
   </div>
