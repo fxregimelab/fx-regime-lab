@@ -34,6 +34,9 @@ briefs/
 # Individual chart files are pushed to GitHub for GitHub Pages
 # charts/ folder is intentionally tracked
 
+# Local logs
+run_log.txt
+
 # Temporary files
 tmpclaude-*
 test_*.py

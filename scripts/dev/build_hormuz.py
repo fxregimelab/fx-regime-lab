@@ -1,0 +1,261 @@
+import os
+import re
+
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+os.chdir(_ROOT)
+
+try:
+    with open(os.path.join("pages", "jpy_correlation_flip.html"), "r", encoding="utf-8") as f:
+        existing = f.read()
+    m = re.search(r'(data:image/png;base64,[A-Za-z0-9+/=]+)', existing)
+    logo_data_url = m.group(1) if m else "LOGO_PLACEHOLDER"
+except Exception:
+    logo_data_url = "LOGO_PLACEHOLDER"
+
+html = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<title>Brent Crude — Day 27 of the Hormuz Crisis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #060b14;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 32px 24px; min-height: 100vh;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    gap: 14px;
+  }
+  .card {
+    width: 1200px; height: 400px;
+    background: #0B1120;
+    border-radius: 10px; border: 1px solid #152035;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .hdr {
+    height: 48px; background: #080e1c;
+    border-bottom: 1px solid #152035;
+    padding: 0 22px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .hdr-left { display: flex; align-items: center; gap: 12px; }
+  .hdr-left .logo-txt { color: #4A90D9; font-size: 12px; font-weight: 700; font-variant: small-caps; letter-spacing: 0.1em; display: flex; align-items: center; gap: 6px; }
+  .hdr-left .logo { height: 24px; opacity: 0.95; display: block; }
+  .hdr-title {
+    color: #FFF; font-size: 16px; font-weight: 700; flex: 1; text-align: center; position: absolute; left: 0; right: 0; pointer-events: none;
+  }
+  .hdr-right { display: flex; align-items: center; justify-content: flex-end; z-index: 10;}
+  /* Layout */
+  .content { display: flex; flex: 1; min-height: 0; position: relative; padding: 20px 20px 0 20px;}
+
+  .footer {
+    height: 28px; padding: 0 22px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid #101828; flex-shrink: 0;
+  }
+  .footer span { color: #1e2d45; font-size: 10.5px; }
+  .footer .fr   { color: #4A5568; font-size: 11px; }
+  
+  .dl-btn {
+    background: #0f1c30; color: #4a5c78;
+    border: 1px solid #1a2d48; border-radius: 6px;
+    padding: 8px 22px; font-size: 12px; font-weight: 500;
+    font-family: inherit; cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .dl-btn:hover    { background: #162540; color: #c0cfe4; }
+  .dl-btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* Logo wrapper if needed */
+  .logo-img { height: 28px; display: block; opacity: 0.9; }
+
+  /* Subtitle text */
+  .bottom-text {
+    position: absolute; bottom: 10px; left: 60px;
+    color: #8892A0; font-size: 11px; font-style: italic; z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<div class="card" id="exportCard">
+  <div class="hdr">
+    <div class="hdr-left">
+      <span class="logo-txt"><span style="font-size: 16px;">&#10141;</span> FX REGIME LAB</span>
+    </div>
+    <div class="hdr-title">Brent Crude &mdash; Day 27 of the Hormuz Crisis</div>
+    <div class="hdr-right">
+    </div>
+  </div>
+
+  <div class="content">
+    <canvas id="mainChart"></canvas>
+    <div class="bottom-text">Rystad: market shifted from 'buffered to fragile'</div>
+  </div>
+
+  <div class="footer">
+    <span>Source: FX Regime Lab Pipeline &nbsp;&middot;&nbsp; 2026</span>
+    <span class="fr">fxregimelab.substack.com</span>
+  </div>
+</div>
+
+<button class="dl-btn" id="dlBtn" onclick="exportPNG()">&#8681;&nbsp; Export PNG (2&times;)</button>
+
+<script>
+const FONT = "'Inter', system-ui, -apple-system, sans-serif";
+
+const labels = ['Feb 20', 'Feb 23', 'Feb 24', 'Feb 25', 'Feb 26', 'Feb 27', 'Mar 02', 'Mar 03', 'Mar 04', 'Mar 05', 'Mar 06', 'Mar 09', 'Mar 10', 'Mar 11', 'Mar 12', 'Mar 13', 'Mar 16', 'Mar 17', 'Mar 18', 'Mar 19', 'Mar 20', 'Mar 23', 'Mar 24', 'Mar 25', 'Mar 26', 'Mar 27', 'Mar 30', 'Mar 31', 'Apr 01', 'Apr 02', 'Apr 03', 'Apr 06'];
+
+const brentData = [71.76, 71.49, 70.77, 70.85, 70.75, 72.48, 77.74, 81.4, 81.4, 85.41, 92.69, 98.96, 87.8, 91.98, 100.46, 103.14, 100.21, 103.42, 107.38, 108.65, 112.19, 99.94, 104.49, 102.22, 108.01, 112.57, null, null, null, null, null, null];
+
+const MONTH_IDX = { 0: 'Feb', 6: 'Mar', 28: 'Apr' };
+
+const annotations = {
+  /* horizontal lines */
+  line100: {
+    type: 'line', yMin: 100, yMax: 100,
+    borderColor: '#4A5568', borderWidth: 1.5, borderDash: [4,4]
+  },
+  lbl100: {
+    type: 'label', xValue: 'Feb 20', yValue: 100,
+    content: '$100 — structural pressure line', color: '#8892A0',
+    font: { size: 10, weight: '500', family: FONT },
+    textAlign: 'left', xAdjust: 4, yAdjust: -12, padding: 0
+  },
+
+  /* Vertical Lines & labels */
+  // Feb 27 - War begins
+  vlWar: { type: 'line', xMin: 'Feb 27', xMax: 'Feb 27', borderColor: 'rgba(239,68,68,0.5)', borderWidth: 1.5, borderDash: [4,4], zIndex: 1 },
+  lblWar: { type: 'label', xValue: 'Feb 27', yValue: 70, content: 'WAR BEGINS — $72', color: '#EF4444', font: {size: 10, weight: '700', family: FONT}, yAdjust: 0, xAdjust: 45, padding: 0, zIndex: 10 },
+
+  // Mar 11 - IEA Release
+  vlIEA: { type: 'line', xMin: 'Mar 11', xMax: 'Mar 11', borderColor: 'rgba(136,146,160,0.4)', borderWidth: 1, borderDash: [3,3], zIndex: 1 },
+  lblIEA: { type: 'label', xValue: 'Mar 11', yValue: 115, content: 'IEA 400M bbl release', color: '#8892A0', font: {size: 9, weight: '500', family: FONT}, yAdjust: 0, xAdjust: 40, padding: 0, zIndex: 10 },
+
+  // Mar 19 - Fed + BoJ hold
+  vlFed: { type: 'line', xMin: 'Mar 19', xMax: 'Mar 19', borderColor: 'rgba(136,146,160,0.4)', borderWidth: 1, borderDash: [3,3], zIndex: 1 },
+  lblFed: { type: 'label', xValue: 'Mar 19', yValue: 110, content: 'Fed + BoJ hold', color: '#8892A0', font: {size: 9, weight: '500', family: FONT}, yAdjust: 0, xAdjust: -35, padding: 0, zIndex: 10 },
+
+  // Peak Point ($119.50 on Mar 19)
+  dPeak: { type: 'point', xValue: 'Mar 19', yValue: 119.50, radius: 4, backgroundColor: '#0B1120', borderColor: '#FF9F43', borderWidth: 2, zIndex: 10 },
+  lblPeak: { type: 'label', xValue: 'Mar 19', yValue: 119.50, content: '$119.50 peak', color: '#E0E6ED', font: {size: 10, weight: '600', family: FONT}, yAdjust: -15, xAdjust: 0, padding: 0, zIndex: 10 },
+
+  // Mar 27 - Latest (112.57)
+  gLatest: { type: 'point', xValue: 'Mar 27', yValue: 112.57, radius: 10, backgroundColor: 'rgba(255,159,67,0.15)', borderWidth: 0, zIndex: 9 },
+  dLatest: { type: 'point', xValue: 'Mar 27', yValue: 112.57, radius: 5.5, backgroundColor: '#0B1120', borderColor: '#FF9F43', borderWidth: 2.5, zIndex: 10 },
+  lblLatest: { type: 'label', xValue: 'Mar 27', yValue: 112.57, content: '$112.57 — Day 27', color: '#E0E6ED', font: {size: 11, weight: '700', family: FONT}, yAdjust: -18, xAdjust: 0, padding: 0, zIndex: 10 },
+
+  /* Future Zone (Mar 27 to Apr 6) */
+  boxFuture: {
+    type: 'box', xMin: 'Mar 27', xMax: 'Apr 06', yMin: 60, yMax: 125,
+    backgroundColor: 'rgba(255,71,87,0.08)', borderWidth: 0, drawTime: 'beforeDraw'
+  },
+  lblFuture1: {
+    type: 'label', xValue: 'Apr 01', yValue: 95,
+    content: 'APRIL 6 — TRUMP DEADLINE', color: '#FF4757',
+    font: { size: 10, weight: '700', family: FONT, letterSpacing: '0.05em' },
+    textAlign: 'center', padding: 0, zIndex: 10
+  },
+  lblFuture2: {
+    type: 'label', xValue: 'Apr 01', yValue: 91,
+    content: '7 days', color: '#8892A0',
+    font: { size: 9, weight: '500', family: FONT },
+    textAlign: 'center', padding: 0, zIndex: 10
+  }
+};
+
+const ctx = document.getElementById('mainChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'Brent Crude',
+        data: brentData,
+        borderColor: '#FF9F43',
+        backgroundColor: 'rgba(255,159,67,0.1)',
+        borderWidth: 2.5,
+        pointRadius: 0,
+        tension: 0.1,
+        fill: true,
+        zIndex: 5
+      }
+    ]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 20, right: 30, bottom: 20, left: 10 } },
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: false },
+      annotation: { annotations }
+    },
+    scales: {
+      x: {
+        grid: { color: '#1A2340', drawBorder: false },
+        border: { display: false },
+        ticks: {
+          color: '#E0E6ED',
+          font: { size: 10, family: FONT },
+          maxRotation: 0,
+          callback: function(value, index) { return MONTH_IDX[index] !== undefined ? MONTH_IDX[index] : ''; },
+          autoSkip: false
+        }
+      },
+      y: {
+        min: 60, max: 125,
+        grid: { color: '#1A2340', drawBorder: false },
+        border: { display: false },
+        ticks: {
+          color: '#E0E6ED',
+          font: { size: 10, family: FONT },
+          stepSize: 10,
+          callback: function(v) { return '$' + v; }
+        }
+      }
+    }
+  }
+});
+
+/* ── PNG Export ─────────────────────────────────────────────────────── */
+function exportPNG() {
+  const btn = document.getElementById('dlBtn');
+  btn.disabled = true; btn.textContent = 'Generating\u2026';
+  html2canvas(document.getElementById('exportCard'), {
+    scale: 2, allowTaint: false, useCORS: false,
+    backgroundColor: '#0B1120', logging: false, imageTimeout: 15000
+  }).then(canvas => {
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'hormuz_countdown.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      btn.disabled = false; btn.innerHTML = '&#8681;&nbsp; Export PNG (2&times;)';
+    }, 'image/png');
+  }).catch(err => {
+    btn.disabled = false; btn.innerHTML = '&#8681;&nbsp; Export PNG (2&times;)';
+    alert('Export failed: ' + err.message);
+  });
+}
+</script>
+</body>
+</html>
+"""
+
+html = html.replace("LOGO_PLACEHOLDER", logo_data_url)
+
+with open(os.path.join("pages", "hormuz_countdown.html"), "w", encoding="utf-8") as f:
+    f.write(html)
+print("Written pages/hormuz_countdown.html, size:", round(len(html)/1024), "KB")

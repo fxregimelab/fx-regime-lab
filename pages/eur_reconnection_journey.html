@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<title>EUR/USD 60-Day Correlation — The Five-Week Reconnection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #060b14;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 32px 24px; min-height: 100vh;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    gap: 14px;
+  }
+  .card {
+    width: 1200px; height: 550px;
+    background: #0B1120;
+    border-radius: 10px; border: 1px solid #152035;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .hdr {
+    height: 48px; background: #080e1c;
+    border-bottom: 1px solid #152035;
+    padding: 0 22px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .hdr-left { display: flex; align-items: center; gap: 12px; }
+  .hdr-left .logo-txt { color: #4A90D9; font-size: 12px; font-weight: 700; font-variant: small-caps; letter-spacing: 0.1em; display: flex; align-items: center; gap: 6px; }
+  .hdr-title {
+    color: #FFF; font-size: 17px; font-weight: 700; flex: 1; text-align: center; position: absolute; left: 0; right: 0; pointer-events: none;
+  }
+  .hdr-right { display: flex; align-items: center; justify-content: flex-end; z-index: 10;}
+  /* Layout */
+  .content { display: flex; flex: 1; min-height: 0; position: relative; padding: 20px 20px 0 20px;}
+
+  .footer {
+    height: 28px; padding: 0 22px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid #101828; flex-shrink: 0;
+  }
+  .footer span { color: #1e2d45; font-size: 10.5px; }
+  .footer .fr   { color: #4A5568; font-size: 11px; }
+  
+  .dl-btn {
+    background: #0f1c30; color: #4a5c78;
+    border: 1px solid #1a2d48; border-radius: 6px;
+    padding: 8px 22px; font-size: 12px; font-weight: 500;
+    font-family: inherit; cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .dl-btn:hover    { background: #162540; color: #c0cfe4; }
+  .dl-btn:disabled { opacity: 0.45; cursor: default; }
+</style>
+</head>
+<body>
+
+<div class="card" id="exportCard">
+  <div class="hdr">
+    <div class="hdr-left">
+      <span class="logo-txt"><span style="font-size: 16px;">&#10141;</span> FX REGIME LAB</span>
+    </div>
+    <div class="hdr-title">EUR/USD 60-Day Correlation &mdash; The Five-Week Reconnection</div>
+    <div class="hdr-right">
+      <!-- Empty space for symmetry or add something if needed -->
+    </div>
+  </div>
+
+  <div class="content">
+    <canvas id="mainChart"></canvas>
+  </div>
+
+  <div class="footer">
+    <span>Source: FX Regime Lab Pipeline &nbsp;&middot;&nbsp; 2026</span>
+    <span class="fr">fxregimelab.substack.com</span>
+  </div>
+</div>
+
+<button class="dl-btn" id="dlBtn" onclick="exportPNG()">&#8681;&nbsp; Export PNG (2&times;)</button>
+
+<script>
+const FONT = "'Inter', system-ui, -apple-system, sans-serif";
+
+const labels = ['Dec 01', 'Dec 02', 'Dec 03', 'Dec 04', 'Dec 05', 'Dec 08', 'Dec 09', 'Dec 10', 'Dec 11', 'Dec 12', 'Dec 15', 'Dec 16', 'Dec 17', 'Dec 18', 'Dec 19', 'Dec 22', 'Dec 23', 'Dec 24', 'Dec 26', 'Dec 29', 'Dec 30', 'Dec 31', 'Jan 02', 'Jan 05', 'Jan 06', 'Jan 07', 'Jan 08', 'Jan 09', 'Jan 12', 'Jan 13', 'Jan 14', 'Jan 15', 'Jan 16', 'Jan 19', 'Jan 20', 'Jan 21', 'Jan 22', 'Jan 23', 'Jan 26', 'Jan 27', 'Jan 28', 'Jan 29', 'Jan 30', 'Feb 02', 'Feb 03', 'Feb 04', 'Feb 05', 'Feb 06', 'Feb 09', 'Feb 10', 'Feb 11', 'Feb 12', 'Feb 13', 'Feb 16', 'Feb 17', 'Feb 18', 'Feb 19', 'Feb 20', 'Feb 23', 'Feb 24', 'Feb 25', 'Feb 26', 'Feb 27', 'Mar 02', 'Mar 03', 'Mar 04', 'Mar 05', 'Mar 06', 'Mar 09', 'Mar 10', 'Mar 11', 'Mar 12', 'Mar 13', 'Mar 16', 'Mar 17', 'Mar 18', 'Mar 19', 'Mar 20', 'Mar 23', 'Mar 24', 'Mar 25', 'Mar 26', 'Mar 27'];
+
+const c60Data = [0.0389, 0.0277, -0.0099, 0.0076, -0.0016, -0.0007, 0.0032, -0.0549, -0.0125, 0.0064, 0.0087, 0.0231, 0.0136, 0.0226, 0.0777, 0.0902, 0.1254, 0.1117, 0.1123, 0.1166, 0.1262, 0.104, 0.1463, 0.1464, 0.0901, 0.0719, 0.0736, 0.0459, 0.0814, 0.0244, 0.0052, 0.0118, -0.0449, -0.0483, -0.0343, -0.1067, -0.0949, -0.1499, -0.1027, -0.1017, -0.0148, -0.0227, 0.0155, -0.0178, 0.0324, 0.0419, 0.0578, 0.0602, 0.059, 0.0348, 0.0244, 0.0421, 0.0439, 0.0101, -0.0005, -0.0119, 0.0024, 0.0096, -0.0271, -0.04, -0.0419, -0.0434, -0.0336, -0.0733, -0.0128, -0.0665, -0.0742, -0.0856, -0.0647, -0.0091, -0.0084, -0.0235, -0.0225, 0.0021, -0.004, 0.0066, -0.0058, 0.0951, 0.0956, 0.1061, 0.105, 0.1118, 0.1135];
+
+const c20Data = [-0.1229, -0.1447, 0.0634, 0.195, 0.2322, 0.2902, 0.262, 0.398, 0.5068, 0.5446, 0.507, 0.4808, 0.4703, 0.3854, 0.337, 0.3058, 0.4104, 0.4171, 0.4222, 0.3872, 0.3925, 0.271, 0.2881, 0.2382, 0.2631, 0.267, 0.2495, 0.2387, 0.039, -0.1099, -0.1047, -0.0035, -0.0888, -0.1052, -0.0851, -0.337, -0.462, -0.5014, -0.4175, -0.4029, -0.2307, -0.178, -0.1897, -0.2463, -0.1543, -0.158, -0.0802, -0.1121, -0.0722, -0.0913, -0.11, -0.0521, 0.0159, 0.0149, -0.0113, 0.0757, 0.0958, 0.1604, 0.0446, 0.0019, -0.1868, -0.1778, -0.17, -0.1655, -0.0717, -0.2424, -0.3034, -0.2918, -0.1768, 0.1028, 0.0999, 0.042, 0.0476, 0.1059, 0.0784, 0.1022, 0.1164, 0.3052, 0.4093, 0.4407, 0.4358, 0.4391, 0.4494];
+
+const MONTH_IDX = { 0: 'Dec', 22: 'Jan', 43: 'Feb', 63: 'Mar' };
+
+/* Milestone annotations */
+const y_27 = c60Data[labels.indexOf('Feb 27')];
+const y_06 = c60Data[labels.indexOf('Mar 06')];
+const y_13 = c60Data[labels.indexOf('Mar 13')];
+const y_20 = c60Data[labels.indexOf('Mar 20')];
+const y_27m = c60Data[labels.indexOf('Mar 27')];
+
+const annotations = {
+  /* horizontal fills */
+  fillFundamental: {
+    type: 'box', yMin: 0.20, yMax: 0.6,
+    backgroundColor: 'rgba(0, 229, 160, 0.05)', borderWidth: 0, drawTime: 'beforeDraw'
+  },
+  fillTransition: {
+    type: 'box', yMin: 0, yMax: 0.20,
+    backgroundColor: 'rgba(74, 144, 217, 0.03)', borderWidth: 0, drawTime: 'beforeDraw'
+  },
+  /* horizontal lines */
+  lineZero: {
+    type: 'line', yMin: 0, yMax: 0,
+    borderColor: '#4A5568', borderWidth: 1.5, borderDash: [4,4]
+  },
+  line20: {
+    type: 'line', yMin: 0.20, yMax: 0.20,
+    borderColor: '#00E5A0', borderWidth: 1.5, borderDash: [4,4]
+  },
+  /* Zone Labels */
+  lblFundamental: {
+    type: 'label', xValue: 'Mar 27', yValue: 0.55,
+    content: 'FUNDAMENTAL REGIME', color: 'rgba(0, 229, 160, 0.8)',
+    font: { size: 10, weight: '700', family: FONT, letterSpacing: '0.05em' },
+    textAlign: 'right', xAdjust: 0, padding: 0
+  },
+  lblTransition: {
+    type: 'label', xValue: 'Mar 27', yValue: 0.18,
+    content: 'TRANSITION ZONE', color: 'rgba(160, 174, 192, 0.6)',
+    font: { size: 10, weight: '700', family: FONT, letterSpacing: '0.05em' },
+    textAlign: 'right', xAdjust: 0, padding: 0
+  },
+  /* Vertical Lines & dots & labels */
+  // Feb 27
+  vl1: { type: 'line', xMin: 'Feb 27', xMax: 'Feb 27', yMax: y_27, borderColor: 'rgba(74,144,217,0.3)', borderWidth: 1, borderDash: [4,4] },
+  d1: { type: 'point', xValue: 'Feb 27', yValue: y_27, radius: 4, backgroundColor: '#0B1120', borderColor: '#4A90D9', borderWidth: 2 },
+  l1: { type: 'label', xValue: 'Feb 27', yValue: y_27, content: '\u22120.131', color: '#E0E6ED', font: {size: 11, weight: '600', family: FONT}, yAdjust: 18, xAdjust: -10, padding: 0 },
+  
+  // Mar 6
+  vl2: { type: 'line', xMin: 'Mar 06', xMax: 'Mar 06', yMax: y_06, borderColor: 'rgba(74,144,217,0.3)', borderWidth: 1, borderDash: [4,4] },
+  d2: { type: 'point', xValue: 'Mar 06', yValue: y_06, radius: 4, backgroundColor: '#0B1120', borderColor: '#4A90D9', borderWidth: 2 },
+  l2: { type: 'label', xValue: 'Mar 06', yValue: y_06, content: '\u22120.086', color: '#E0E6ED', font: {size: 11, weight: '600', family: FONT}, yAdjust: 18, xAdjust: -10, padding: 0 },
+
+  // Mar 13 (using Mar 13 instead of 14 as no data)
+  vl3: { type: 'line', xMin: 'Mar 13', xMax: 'Mar 13', yMax: y_13, borderColor: 'rgba(74,144,217,0.3)', borderWidth: 1, borderDash: [4,4] },
+  d3: { type: 'point', xValue: 'Mar 13', yValue: y_13, radius: 4, backgroundColor: '#0B1120', borderColor: '#4A90D9', borderWidth: 2 },
+  l3: { type: 'label', xValue: 'Mar 13', yValue: y_13, content: '\u22120.021', color: '#E0E6ED', font: {size: 11, weight: '600', family: FONT}, yAdjust: 18, xAdjust: -10, padding: 0 },
+
+  // Mar 20
+  vl4: { type: 'line', xMin: 'Mar 20', xMax: 'Mar 20', yMax: y_20, borderColor: 'rgba(74,144,217,0.3)', borderWidth: 1, borderDash: [4,4] },
+  d4: { type: 'point', xValue: 'Mar 20', yValue: y_20, radius: 4, backgroundColor: '#0B1120', borderColor: '#4A90D9', borderWidth: 2 },
+  l4: { type: 'label', xValue: 'Mar 20', yValue: y_20, content: '+0.005', color: '#E0E6ED', font: {size: 11, weight: '600', family: FONT}, yAdjust: -18, xAdjust: -10, padding: 0 },
+
+  // Mar 27
+  vl5: { type: 'line', xMin: 'Mar 27', xMax: 'Mar 27', yMax: y_27m, borderColor: 'rgba(74,144,217,0.5)', borderWidth: 1, borderDash: [4,4] },
+  g5: { type: 'point', xValue: 'Mar 27', yValue: y_27m, radius: 10, backgroundColor: 'rgba(74,144,217,0.15)', borderWidth: 0 },
+  d5: { type: 'point', xValue: 'Mar 27', yValue: y_27m, radius: 5.5, backgroundColor: '#0B1120', borderColor: '#4A90D9', borderWidth: 2.5 },
+  l5: { type: 'label', xValue: 'Mar 27', yValue: y_27m, content: '+0.113', color: '#E0E6ED', font: {size: 12, weight: '700', family: FONT}, yAdjust: -20, xAdjust: -16, padding: 0 },
+
+  // 20D latest annotation
+  l20d: { 
+    type: 'label', xValue: 'Mar 24', yValue: 0.449, 
+    content: '20D: +0.449 — already in fundamental zone', color: '#00E5A0', 
+    font: {size: 10, weight: '500', family: FONT}, yAdjust: -14, xAdjust: -30, padding: 0 
+  }
+};
+
+const ctx = document.getElementById('mainChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: '60-Day Correlation',
+        data: c60Data,
+        borderColor: '#4A90D9',
+        borderWidth: 2.5,
+        pointRadius: 0,
+        tension: 0.2,
+        fill: false,
+        zIndex: 5
+      },
+      {
+        label: '20-Day Correlation',
+        data: c20Data,
+        borderColor: '#00E5A0',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.2,
+        fill: false,
+        zIndex: 4
+      }
+    ]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 0, right: 30, bottom: 0, left: 10 } },
+    plugins: {
+      legend: {
+        display: true, position: 'top', align: 'end',
+        labels: {
+          color: '#E0E6ED',
+          font: { size: 10, family: FONT, weight: '500' },
+          useBorderRadius: true, borderRadius: 2,
+          boxWidth: 16, boxHeight: 2, padding: 14
+        }
+      },
+      tooltip: { enabled: false },
+      annotation: { annotations }
+    },
+    scales: {
+      x: {
+        grid: { color: '#1A2340', drawBorder: false },
+        border: { display: false },
+        ticks: {
+          color: '#E0E6ED',
+          font: { size: 10, family: FONT },
+          maxRotation: 0,
+          callback: function(value, index) { return MONTH_IDX[index] !== undefined ? MONTH_IDX[index] : ''; },
+          autoSkip: false
+        }
+      },
+      y: {
+        min: -0.6, max: 0.6,
+        grid: { color: '#1A2340', drawBorder: false },
+        border: { display: false },
+        ticks: {
+          color: '#E0E6ED',
+          font: { size: 10, family: FONT },
+          stepSize: 0.2,
+          callback: function(v) { return v === 0 ? '0.0' : (v > 0 ? '+' : '') + v.toFixed(1); }
+        }
+      }
+    }
+  }
+});
+
+/* ── PNG Export ─────────────────────────────────────────────────────── */
+function exportPNG() {
+  const btn = document.getElementById('dlBtn');
+  btn.disabled = true; btn.textContent = 'Generating\u2026';
+  html2canvas(document.getElementById('exportCard'), {
+    scale: 2, allowTaint: false, useCORS: false,
+    backgroundColor: '#0B1120', logging: false, imageTimeout: 15000
+  }).then(canvas => {
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'eur_reconnection_journey.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      btn.disabled = false; btn.innerHTML = '&#8681;&nbsp; Export PNG (2&times;)';
+    }, 'image/png');
+  }).catch(err => {
+    btn.disabled = false; btn.innerHTML = '&#8681;&nbsp; Export PNG (2&times;)';
+    alert('Export failed: ' + err.message);
+  });
+}
+</script>
+</body>
+</html>

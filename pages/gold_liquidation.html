@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<title>Gold — Safe Haven Sold to Meet Margin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #060C18; display: flex; justify-content: center; padding: 24px; min-height: 100vh; }
+  .card {
+    width: 1200px; background: #0B1120; border-radius: 12px;
+    padding: 24px 32px 20px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .title-block { text-align: center; }
+  .title   { color: #E0E6ED; font-size: 15px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .subtitle{ color: #607B99; font-size: 11px; font-weight: 500; margin-top: 3px; letter-spacing: 0.06em; }
+  .footer-text { color: #4A5568; font-size: 11px; }
+  .section-label {
+    color: #607B99; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.10em; text-transform: uppercase; margin: 0 0 5px;
+  }
+  .chart-wrap { position: relative; }
+  .divider { border: none; border-top: 1px solid #1A2340; margin: 12px 0 10px; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div class="header">
+    <img src="logos/wordmark without bg.png" alt="FX Regime Lab" style="height:26px; opacity:0.92;">
+    <div class="title-block">
+      <div class="title">Gold — Safe Haven Sold to Meet Margin</div>
+      <div class="subtitle">Leveraged Long Liquidation Accelerating &middot; Jan &ndash; Mar 2026</div>
+    </div>
+    <div class="footer-text">fxregimelab.substack.com</div>
+  </div>
+
+  <div class="section-label">Gold Spot Price (USD / oz)</div>
+  <div class="chart-wrap" style="height:292px;">
+    <canvas id="goldChart"></canvas>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section-label">Cross-Asset Correlation Breakdown &middot; 60-Day Rolling</div>
+  <div class="chart-wrap" style="height:202px;">
+    <canvas id="corrChart"></canvas>
+  </div>
+
+</div><!-- .card -->
+
+<script>
+const FONT = "'Inter', system-ui, -apple-system, sans-serif";
+const BG   = '#0B1120';
+const GRID = '#1A2340';
+const TICK = '#607B99';
+const TXT  = '#E0E6ED';
+
+const dates = [
+  "2026-01-02","2026-01-05","2026-01-06","2026-01-07","2026-01-08","2026-01-09",
+  "2026-01-12","2026-01-13","2026-01-14","2026-01-15","2026-01-16","2026-01-19",
+  "2026-01-20","2026-01-21","2026-01-22","2026-01-23","2026-01-26","2026-01-27",
+  "2026-01-28","2026-01-29","2026-01-30","2026-02-02","2026-02-03","2026-02-04",
+  "2026-02-05","2026-02-06","2026-02-09","2026-02-10","2026-02-11","2026-02-12",
+  "2026-02-13","2026-02-16","2026-02-17","2026-02-18","2026-02-19","2026-02-20",
+  "2026-02-23","2026-02-24","2026-02-25","2026-02-26","2026-02-27","2026-03-02",
+  "2026-03-03","2026-03-04","2026-03-05","2026-03-06","2026-03-09","2026-03-10",
+  "2026-03-11","2026-03-12","2026-03-13","2026-03-16","2026-03-17","2026-03-18",
+  "2026-03-19","2026-03-20"
+];
+
+// Gold spot price — 56 trading days (index 0 = 2026-01-02, index 55 = 2026-03-20)
+const goldData = [
+  4314.4, 4436.9, 4482.2, 4449.3, 4449.7, 4490.3,
+  4604.3, 4589.2, 4626.3, 4616.3, 4588.4, 4588.4,
+  4759.6, 4831.8, 4908.8, 4976.2, 5079.7, 5079.9,
+  5301.6, 5318.4, 4713.9, 4622.5, 4903.7, 4920.4,
+  4861.4, 4951.2, 5050.9, 5003.8, 5071.6, 4923.7,
+  5022.0, 5022.0, 4882.9, 4986.5, 4975.9, 5059.3,
+  5204.7, 5155.8, 5206.4, 5176.5, 5230.5, 5294.4,
+  5107.4, 5120.2, 5065.3, 5146.1, 5091.5, 5229.7,
+  5167.4, 5115.8, 5052.5, 4994.0, 5001.0, 4889.9,
+  4600.7, 4574.9
+];
+
+// Gold–JPY 60-day rolling correlation
+const gjpyData = [
+  -0.0961, -0.0662, -0.0732, -0.0252, -0.0283, -0.0173,
+   0.0624,  0.0282,  0.0017, -0.0227,  0.0029,  0.0091,
+   0.0495,  0.0729,  0.0665,  0.0679, -0.0412, -0.0177,
+  -0.1291, -0.1312, -0.0940, -0.1317, -0.1127, -0.1345,
+  -0.1461, -0.1469, -0.1361, -0.1249, -0.1360, -0.0942,
+  -0.0998, -0.0905, -0.1136, -0.1193, -0.1257, -0.1185,
+  -0.1330, -0.1367, -0.1279, -0.1357, -0.1372, -0.1325,
+  -0.1470, -0.1461, -0.1364, -0.1273, -0.1225, -0.1325,
+  -0.1343, -0.1459, -0.1446, -0.1456, -0.1448, -0.1735,
+  -0.1998, -0.1854
+];
+
+// Gold–INR 60-day rolling correlation
+const ginrData = [
+  -0.1386, -0.1347, -0.1294, -0.1148, -0.1098, -0.1122,
+   0.0032,  0.0199,  0.0274, -0.0146, -0.0150,  0.0110,
+   0.0357,  0.0465,  0.0909,  0.0888,  0.0780,  0.0861,
+   0.0389,  0.0264,  0.1263,  0.1331, -0.0912, -0.0895,
+  -0.0769, -0.0586, -0.0471, -0.0414, -0.0506, -0.0591,
+  -0.0662, -0.0682, -0.0798, -0.0931, -0.0870, -0.0793,
+  -0.0979, -0.1093, -0.1108, -0.1027, -0.1023, -0.1010,
+  -0.1419, -0.1396, -0.1423, -0.1547, -0.1523, -0.1847,
+  -0.2018, -0.2014, -0.2072, -0.2206, -0.2179, -0.2028,
+  -0.2763, -0.2790
+];
+
+const PEAK_IDX   = 19;  // 2026-01-29  $5,318.40
+const LATEST_IDX = 55;  // 2026-03-20  $4,574.90
+const LIQ_START  = 53;  // 2026-03-18  liquidation window opens
+
+/* ── Gold area-fill gradient plugin ──────────────────────────── */
+const goldGradPlugin = {
+  id: 'goldGradPlugin',
+  afterLayout(chart) {
+    const ds = chart.data.datasets[0];
+    const { chartArea, ctx } = chart;
+    if (!chartArea) return;
+    const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    g.addColorStop(0,    'rgba(255,215,0,0.28)');
+    g.addColorStop(0.55, 'rgba(255,215,0,0.08)');
+    g.addColorStop(1,    'rgba(255,215,0,0.01)');
+    ds.backgroundColor = g;
+  }
+};
+
+/* ── Gold Price Chart ─────────────────────────────────────────── */
+new Chart(document.getElementById('goldChart'), {
+  type: 'line',
+  plugins: [goldGradPlugin],
+  data: {
+    labels: dates,
+    datasets: [{
+      data: goldData,
+      borderColor: '#FFD700',
+      borderWidth: 2.5,
+      fill: true,
+      backgroundColor: 'rgba(255,215,0,0.10)',  // overridden by plugin
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      tension: 0.25
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    events: [],
+    layout: { padding: { top: 36, right: 130, bottom: 8, left: 6 } },
+    scales: {
+      x: {
+        grid:   { color: GRID, lineWidth: 0.7 },
+        ticks:  { color: TICK, font: { size: 10, family: FONT }, maxTicksLimit: 8, maxRotation: 0 },
+        border: { color: GRID }
+      },
+      y: {
+        min: 4100,
+        max: 5580,
+        grid:   { color: GRID, lineWidth: 0.7 },
+        ticks:  {
+          color: TICK,
+          font:  { size: 10, family: FONT },
+          callback: v => '$' + v.toLocaleString()
+        },
+        border: { color: GRID }
+      }
+    },
+    plugins: {
+      legend:  { display: false },
+      tooltip: { enabled: false },
+      annotation: {
+        annotations: {
+          /* red shaded liquidation zone */
+          liqBox: {
+            type: 'box',
+            xMin: LIQ_START,
+            xMax: LATEST_IDX,
+            backgroundColor: 'rgba(255,71,87,0.09)',
+            borderColor:     'rgba(255,71,87,0.35)',
+            borderWidth: 1
+          },
+          /* Jan 29 peak marker */
+          peakDot: {
+            type: 'point',
+            xValue: PEAK_IDX,
+            yValue: 5318.4,
+            radius: 5,
+            backgroundColor: BG,
+            borderColor: '#FFD700',
+            borderWidth: 2.5
+          },
+          peakLabel: {
+            type: 'label',
+            xValue: PEAK_IDX,
+            yValue: 5318.4,
+            content: ['JAN 29 PEAK', '$5,318'],
+            color: '#FFD700',
+            font: { size: 10, weight: '600', family: FONT },
+            yAdjust: -36,
+            padding: { top: 4, bottom: 4, left: 7, right: 7 },
+            borderRadius: 3,
+            backgroundColor: 'rgba(11,17,32,0.82)',
+            borderColor:     'rgba(255,215,0,0.28)',
+            borderWidth: 1
+          },
+          /* Mar 20 latest / liquidation marker */
+          latestDot: {
+            type: 'point',
+            xValue: LATEST_IDX,
+            yValue: 4574.9,
+            radius: 5,
+            backgroundColor: BG,
+            borderColor: '#FF4757',
+            borderWidth: 2.5
+          },
+          latestLabel: {
+            type: 'label',
+            xValue: LATEST_IDX,
+            yValue: 4574.9,
+            content: ['$4,574.90', '\u25BC -9.5% WoW'],
+            color: '#FF4757',
+            font: { size: 10, weight: '600', family: FONT },
+            xAdjust: -72,
+            yAdjust: 36,
+            padding: { top: 4, bottom: 4, left: 7, right: 7 },
+            borderRadius: 3,
+            backgroundColor: 'rgba(11,17,32,0.82)',
+            borderColor:     'rgba(255,71,87,0.28)',
+            borderWidth: 1
+          }
+        }
+      }
+    }
+  }
+});
+
+/* ── Cross-Asset Correlation Chart ───────────────────────────── */
+new Chart(document.getElementById('corrChart'), {
+  type: 'line',
+  data: {
+    labels: dates,
+    datasets: [
+      {
+        label: 'Gold\u2013JPY 60D',
+        data: gjpyData,
+        borderColor: '#FF9F43',
+        borderWidth: 2,
+        fill: false,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        tension: 0.25
+      },
+      {
+        label: 'Gold\u2013INR 60D',
+        data: ginrData,
+        borderColor: '#FF4757',
+        borderWidth: 2,
+        fill: false,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        tension: 0.25
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    events: [],
+    layout: { padding: { top: 16, right: 165, bottom: 8, left: 6 } },
+    scales: {
+      x: {
+        grid:   { color: GRID, lineWidth: 0.7 },
+        ticks:  { color: TICK, font: { size: 10, family: FONT }, maxTicksLimit: 8, maxRotation: 0 },
+        border: { color: GRID }
+      },
+      y: {
+        min: -0.50,
+        max:  0.30,
+        grid:   { color: GRID, lineWidth: 0.7 },
+        ticks:  {
+          color: TICK,
+          font:  { size: 10, family: FONT },
+          callback: v => (v > 0 ? '+' : '') + v.toFixed(2)
+        },
+        border: { color: GRID }
+      }
+    },
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+        align: 'end',
+        labels: {
+          color: TXT,
+          font:     { size: 11, family: FONT },
+          boxWidth: 22,
+          padding:  16,
+          usePointStyle: false
+        }
+      },
+      tooltip: { enabled: false },
+      annotation: {
+        annotations: {
+          zeroLine: {
+            type: 'line',
+            yMin: 0, yMax: 0,
+            borderColor: 'rgba(96,123,153,0.55)',
+            borderWidth: 1,
+            borderDash: [4, 4]
+          },
+          gjpyPin: {
+            type: 'label',
+            xValue: LATEST_IDX,
+            yValue: -0.1854,
+            content: ['-0.185'],
+            color: '#FF9F43',
+            font: { size: 10, weight: '600', family: FONT },
+            xAdjust: -50,
+            yAdjust: -15,
+            padding: { top: 3, bottom: 3, left: 6, right: 6 },
+            borderRadius: 3,
+            backgroundColor: 'rgba(11,17,32,0.80)',
+            borderColor:     'rgba(255,159,67,0.28)',
+            borderWidth: 1
+          },
+          ginrPin: {
+            type: 'label',
+            xValue: LATEST_IDX,
+            yValue: -0.279,
+            content: ['-0.279  GOLD DIVERGENCE'],
+            color: '#FF4757',
+            font: { size: 10, weight: '600', family: FONT },
+            xAdjust: -98,
+            yAdjust: 0,
+            padding: { top: 3, bottom: 3, left: 6, right: 6 },
+            borderRadius: 3,
+            backgroundColor: 'rgba(11,17,32,0.80)',
+            borderColor:     'rgba(255,71,87,0.28)',
+            borderWidth: 1
+          }
+        }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>

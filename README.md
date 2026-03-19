@@ -60,11 +60,16 @@ Fundamental signals break down entirely.
 
 ## Architecture
 
+For a full directory map, entry points, and deploy behaviour, see **[AGENTS.md](AGENTS.md)** (maintainer and AI context).
+
 ```
-run_all.py
-├── pipeline.py          # Layer 1: Rate Differentials
-├── cot_pipeline.py      # Layer 2: Speculative Positioning
-└── create_dashboards.py # Output: Pair-specific dashboards
+run.py / run_all.py
+├── pipeline.py           # Layer 1: Rate differentials & FX data
+├── cot_pipeline.py       # Layer 2: CFTC positioning
+├── inr_pipeline.py       # INR-specific metrics
+├── morning_brief.py      # Text brief
+├── create_html_brief.py  # HTML brief + chart iframes
+└── deploy.py             # GitHub Pages (index.html)
 ```
 
 ### pipeline.py — Layer 1
@@ -100,12 +105,8 @@ Why 3-year lookback: The pre-2022 zero-rate environment is a structurally
 different regime. Including it would compare today's positioning against
 a market that no longer exists. 3 years captures the current rate cycle only.
 
-### create_dashboards.py — Output
-Generates pair-specific dashboards with three panels each:
-- Panel 1: FX price with latest value annotated
-- Panel 2: Dual spread lines — 10Y cross-maturity (blue), 2Y same-maturity (orange)
-- Panel 3: Net position bar chart (green = long, red = short) with
-  percentile line overlaid on secondary axis, crowded zones shaded
+### create_html_brief.py — Output
+Generates the interactive HTML morning brief and supporting chart HTML under `charts/` (iframes + workspace). Deploy copies the latest brief to root `index.html` for GitHub Pages.
 
 ---
 
@@ -145,7 +146,8 @@ Or run individually:
 ```bash
 python pipeline.py
 python cot_pipeline.py
-python create_dashboards.py
+python morning_brief.py
+python create_html_brief.py
 ```
 
 ---
@@ -156,7 +158,7 @@ python create_dashboards.py
 percentage changes across 1D, 1W, 1M, 3M, 12M windows. COT summary with
 regime classification per pair.
 
-**Charts:** Two PNG dashboards saved to /charts with today's date.
+**Charts:** Interactive HTML under `charts/` (iframes used by the brief; also copied into `runs/` when using `run_all.py`).
 
 **Data:** Master CSV saved to /data with full history. Latest snapshot
 always available as data/latest_with_cot.csv.
@@ -236,7 +238,7 @@ flow data as a positioning substitute. Planned as a future extension.
 
 - [x] Layer 1: Rate differentials with daily ECB and MOF yield data
 - [x] Layer 2: CFTC COT Leveraged Money positioning with percentile rank
-- [x] Pair-specific dashboards with dual spread lines and bar chart positioning
+- [x] Pair-specific HTML brief panels (spreads, positioning, cross-asset) via `create_html_brief.py`
 - [ ] Morning brief: Clean formatted text output, desk-readable in 60 seconds
 - [ ] Multiple COT categories: NonCommercial and Asset Manager alongside Leveraged Money
 - [ ] Volatility layer: 30-day realized volatility from existing price data

@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<title>USD/INR — 93 Breached, Vol Cooling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #060C18;
+    display: flex; justify-content: center;
+    padding: 24px; min-height: 100vh;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* ─── Outer card ─────────────────────────── */
+  .card {
+    width: 1200px; height: 500px;
+    background: #0B1120;
+    border-radius: 12px;
+    padding: 16px 24px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ─── Header ─────────────────────────────── */
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px; flex-shrink: 0;
+  }
+  .header-title { color: #E0E6ED; font-size: 15px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .header-sub   { color: #4A5568; font-size: 11px; }
+
+  /* ─── Two-panel row ──────────────────────── */
+  .panels {
+    display: flex; gap: 16px; flex: 1; min-height: 0;
+  }
+
+  /* ─── LEFT PANEL ─────────────────────────── */
+  .left-panel {
+    width: 40%; flex-shrink: 0;
+    background: #111827;
+    border: 1px solid #1F2937;
+    border-radius: 8px;
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  .rate-label { color: #607B99; font-size: 11px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; margin-bottom: 2px; }
+  .rate-value { color: #E0E6ED; font-size: 32px; font-weight: 700; line-height: 1; }
+  .rate-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(255,71,87,0.15); color: #FF4757;
+    font-size: 11px; font-weight: 700;
+    padding: 3px 9px; border-radius: 4px;
+    margin-top: 5px; width: fit-content;
+  }
+
+  .divider { border: none; border-top: 1px solid #1F2937; }
+
+  .metric-row { display: flex; align-items: center; justify-content: space-between; }
+  .metric-key { color: #607B99; font-size: 10.5px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
+  .metric-right { display: flex; align-items: center; gap: 7px; }
+  .metric-val { color: #E0E6ED; font-size: 13px; font-weight: 600; }
+
+  .tag {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 6px; border-radius: 3px;
+  }
+  .tag-orange { background: rgba(255,159,67,0.18); color: #FF9F43; }
+  .tag-yellow { background: rgba(255,215,0,0.14);  color: #FFD700; }
+  .tag-red    { background: rgba(255,71,87,0.18);   color: #FF4757; }
+  .tag-gray   { background: rgba(96,123,153,0.22);  color: #9DB2CC; }
+  .tag-neutral{ background: rgba(100,181,246,0.14); color: #64B5F6; }
+
+  .vol-note { color: #607B99; font-size: 9.5px; font-style: italic; }
+
+  /* composite */
+  .composite-label { color: #607B99; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .composite-row   { display: flex; align-items: center; gap: 10px; margin-top: 3px; }
+  .composite-score { color: #E0E6ED; font-size: 24px; font-weight: 700; }
+  .composite-badge {
+    background: rgba(100,181,246,0.14); color: #64B5F6;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px;
+  }
+
+  /* sub-scores */
+  .subscores-header { color: #607B99; font-size: 9.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px; }
+  .subscores-row    { display: flex; gap: 5px; }
+  .sc-pill {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 2px; padding: 5px 4px; border-radius: 4px;
+  }
+  .sc-name { color: #607B99; font-size: 9.5px; font-weight: 500; white-space: nowrap; }
+  .sc-val  { font-size: 11px; font-weight: 700; }
+  .sc-green { background: rgba(0,229,160,0.12); }
+  .sc-red   { background: rgba(255,71,87,0.12); }
+  .green-txt { color: #00E5A0; }
+  .red-txt   { color: #FF4757; }
+
+  /* ─── RIGHT PANEL ────────────────────────── */
+  .right-panel {
+    flex: 1; display: flex; flex-direction: column; min-height: 0;
+  }
+  .chart-section { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .section-label {
+    color: #607B99; font-size: 9.5px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase;
+    margin-bottom: 4px; flex-shrink: 0;
+  }
+  .chart-wrap { flex: 1; position: relative; min-height: 0; }
+  .panel-divider { border: none; border-top: 1px solid #1A2340; margin: 7px 0; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- ── Header ──────────────────────────────────────────────── -->
+  <div class="header">
+    <img src="logos/wordmark without bg.png" alt="FX Regime Lab" style="height:26px;opacity:0.92;">
+    <div class="header-title">USD/INR &mdash; 93 Breached, Vol Cooling</div>
+    <div class="header-sub">fxregimelab.substack.com</div>
+  </div>
+
+  <!-- ── Panels ──────────────────────────────────────────────── -->
+  <div class="panels">
+
+    <!-- ════ LEFT PANEL ════ -->
+    <div class="left-panel">
+
+      <!-- Rate block -->
+      <div>
+        <div class="rate-label">USD / INR</div>
+        <div class="rate-value">93.65</div>
+        <div class="rate-badge">&#9650; +0.93% WoW</div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Metric rows -->
+      <div class="metric-row">
+        <div class="metric-key">VOL 30D</div>
+        <div class="metric-right">
+          <div class="metric-val">5.7%</div>
+          <span class="tag tag-orange">ELEVATED</span>
+          <span class="vol-note">&#8595;&thinsp;from EXTREME</span>
+        </div>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric-key">OIL CORR 60D</div>
+        <div class="metric-right">
+          <div class="metric-val">+0.148</div>
+          <span class="tag tag-gray">LOW</span>
+        </div>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric-key">GOLD CORR 60D</div>
+        <div class="metric-right">
+          <div class="metric-val">&minus;0.276</div>
+          <span class="tag tag-red">GOLD DIVERGENCE</span>
+        </div>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric-key">RBI RESERVES</div>
+        <div class="metric-right">
+          <div class="metric-val">&minus;$4.7B</div>
+          <span class="tag tag-yellow">ACTIVE SUPPORT</span>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- INR Composite -->
+      <div>
+        <div class="composite-label">INR Composite Score</div>
+        <div class="composite-row">
+          <div class="composite-score">+16</div>
+          <div class="composite-badge">NEUTRAL</div>
+        </div>
+      </div>
+
+      <!-- Sub-scores -->
+      <div>
+        <div class="subscores-header">Component Breakdown</div>
+        <div class="subscores-row">
+          <div class="sc-pill sc-green">
+            <div class="sc-name">Oil</div>
+            <div class="sc-val green-txt">+4</div>
+          </div>
+          <div class="sc-pill sc-green">
+            <div class="sc-name">Dollar</div>
+            <div class="sc-val green-txt">+1</div>
+          </div>
+          <div class="sc-pill sc-green">
+            <div class="sc-name">FPI</div>
+            <div class="sc-val green-txt">+7</div>
+          </div>
+          <div class="sc-pill sc-red">
+            <div class="sc-name">RBI</div>
+            <div class="sc-val red-txt">&minus;6</div>
+          </div>
+          <div class="sc-pill sc-green">
+            <div class="sc-name">Rate&#8239;&Delta;</div>
+            <div class="sc-val green-txt">+10</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.left-panel -->
+
+    <!-- ════ RIGHT PANEL ════ -->
+    <div class="right-panel">
+
+      <!-- Price chart -->
+      <div class="chart-section">
+        <div class="section-label">USD/INR Spot Rate &mdash; Jan to Mar 2026</div>
+        <div class="chart-wrap">
+          <canvas id="priceChart"></canvas>
+        </div>
+      </div>
+
+      <hr class="panel-divider">
+
+      <!-- Vol pct chart -->
+      <div class="chart-section">
+        <div class="section-label">Volatility Percentile (30D, rolling) &mdash; EXTREME &rarr; ELEVATED</div>
+        <div class="chart-wrap">
+          <canvas id="volChart"></canvas>
+        </div>
+      </div>
+
+    </div><!-- /.right-panel -->
+  </div><!-- /.panels -->
+</div><!-- /.card -->
+
+<script>
+const FONT = "'Inter', system-ui, -apple-system, sans-serif";
+const BG   = '#0B1120';
+const GRID = '#1A2340';
+const TICK = '#607B99';
+
+/* ── Shared date labels (56 trading days: 2026-01-02 → 2026-03-20) ── */
+const dates = [
+  "2026-01-02","2026-01-05","2026-01-06","2026-01-07","2026-01-08","2026-01-09",
+  "2026-01-12","2026-01-13","2026-01-14","2026-01-15","2026-01-16","2026-01-19",
+  "2026-01-20","2026-01-21","2026-01-22","2026-01-23","2026-01-26","2026-01-27",
+  "2026-01-28","2026-01-29","2026-01-30","2026-02-02","2026-02-03","2026-02-04",
+  "2026-02-05","2026-02-06","2026-02-09","2026-02-10","2026-02-11","2026-02-12",
+  "2026-02-13","2026-02-16","2026-02-17","2026-02-18","2026-02-19","2026-02-20",
+  "2026-02-23","2026-02-24","2026-02-25","2026-02-26","2026-02-27","2026-03-02",
+  "2026-03-03","2026-03-04","2026-03-05","2026-03-06","2026-03-09","2026-03-10",
+  "2026-03-11","2026-03-12","2026-03-13","2026-03-16","2026-03-17","2026-03-18",
+  "2026-03-19","2026-03-20"
+];
+
+/* ── USD/INR spot price ── */
+const usdinrData = [
+  89.96, 90.01, 90.23, 90.17, 89.86, 89.91,
+  90.24, 90.13, 90.27, 90.18, 90.36, 90.70,
+  90.90, 91.12, 91.54, 91.56, 91.50, 91.71,
+  91.53, 92.04, 91.78, 91.69, 90.25, 90.42,
+  90.13, 90.31, 90.59, 90.82, 90.59, 90.74,
+  90.56, 90.57, 90.78, 90.63, 90.79, 91.04,
+  90.73, 91.02, 90.92, 90.95, 91.01, 91.08,
+  91.56, 92.01, 92.12, 91.79, 91.94, 91.22,
+  92.17, 92.23, 92.39, 92.56, 92.28, 92.39,
+  93.25, 93.65
+];
+
+/* ── Volatility percentile (30D rolling) ── */
+const volPctData = [
+  91.80, 91.53, 91.53, 85.98, 83.33, 83.20,
+  84.52, 84.39, 84.39, 83.73, 82.41, 83.60,
+  81.35, 81.88, 83.99, 82.80, 82.14, 79.89,
+  79.23, 82.28, 83.73, 77.38, 91.93, 91.80,
+  91.80, 91.80, 91.40, 91.27, 91.40, 91.27,
+  91.27, 91.14, 91.01, 91.40, 90.34, 90.48,
+  90.87, 91.40, 91.40, 91.14, 91.01, 89.42,
+  91.40, 91.53, 91.14, 91.40, 91.40, 91.93,
+  94.71, 93.25, 93.12, 93.12, 85.71, 85.45,
+  87.04, 87.04
+];
+
+/* ── Gradient plugins ── */
+const inrGradPlugin = {
+  id: 'inrGradPlugin',
+  afterLayout(chart) {
+    const ds = chart.data.datasets[0];
+    const { chartArea, ctx } = chart;
+    if (!chartArea) return;
+    const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    g.addColorStop(0,    'rgba(255,71,87,0.30)');
+    g.addColorStop(0.60, 'rgba(255,71,87,0.07)');
+    g.addColorStop(1,    'rgba(255,71,87,0.01)');
+    ds.backgroundColor = g;
+  }
+};
+
+const volGradPlugin = {
+  id: 'volGradPlugin',
+  afterLayout(chart) {
+    const ds = chart.data.datasets[0];
+    const { chartArea, ctx } = chart;
+    if (!chartArea) return;
+    const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    g.addColorStop(0,    'rgba(255,159,67,0.38)');
+    g.addColorStop(0.55, 'rgba(255,159,67,0.10)');
+    g.addColorStop(1,    'rgba(255,159,67,0.02)');
+    ds.backgroundColor = g;
+  }
+};
+
+/* ══════════════════════════════════════════
+   PRICE CHART
+   ══════════════════════════════════════════ */
+new Chart(document.getElementById('priceChart'), {
+  type: 'line',
+  plugins: [inrGradPlugin],
+  data: {
+    labels: dates,
+    datasets: [{
+      data: usdinrData,
+      borderColor: '#FF4757',
+      borderWidth: 2,
+      fill: true,
+      backgroundColor: 'rgba(255,71,87,0.10)',
+      pointRadius: 0,
+      tension: 0.25
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    events: [],
+    layout: { padding: { top: 24, right: 140, bottom: 4, left: 4 } },
+    scales: {
+      x: {
+        grid:   { color: GRID, lineWidth: 0.7 },
+        ticks:  { color: TICK, font: { size: 9, family: FONT }, maxTicksLimit: 7, maxRotation: 0 },
+        border: { color: GRID }
+      },
+      y: {
+        min: 89.4,
+        max: 94.6,
+        grid:   { color: GRID, lineWidth: 0.7 },
+        ticks:  { color: TICK, font: { size: 9, family: FONT }, callback: v => v.toFixed(0) },
+        border: { color: GRID }
+      }
+    },
+    plugins: {
+      legend:  { display: false },
+      tooltip: { enabled: false },
+      annotation: {
+        annotations: {
+          /* subtle shaded box for breach zone (last 2 data points) */
+          breachBox: {
+            type: 'box',
+            xMin: 53,
+            xMax: 55,
+            backgroundColor: 'rgba(255,71,87,0.08)',
+            borderColor:     'transparent',
+            borderWidth: 0
+          },
+          /* 93.00 dashed breach line */
+          line93: {
+            type: 'line',
+            yMin: 93.0, yMax: 93.0,
+            borderColor: 'rgba(255,71,87,0.70)',
+            borderWidth: 1.5,
+            borderDash: [5, 4],
+            label: {
+              display: true,
+              content: '93.00  —  BREACHED',
+              color: '#FF4757',
+              font: { size: 10, weight: '600', family: FONT },
+              position: 'end',
+              xAdjust: -90,
+              yAdjust: -12,
+              backgroundColor: 'rgba(11,17,32,0.82)',
+              padding: { top: 3, bottom: 3, left: 7, right: 7 },
+              borderRadius: 3,
+              borderColor: 'rgba(255,71,87,0.30)',
+              borderWidth: 1
+            }
+          },
+          /* latest price dot + label */
+          dotLatest: {
+            type: 'point',
+            xValue: 55,
+            yValue: 93.65,
+            radius: 5,
+            backgroundColor: BG,
+            borderColor: '#FF4757',
+            borderWidth: 2.5
+          },
+          lblLatest: {
+            type: 'label',
+            xValue: 55,
+            yValue: 93.65,
+            content: ['93.65'],
+            color: '#FF4757',
+            font: { size: 10, weight: '700', family: FONT },
+            xAdjust: -36,
+            yAdjust: -16,
+            backgroundColor: 'rgba(11,17,32,0.80)',
+            padding: { top: 3, bottom: 3, left: 6, right: 6 },
+            borderRadius: 3,
+            borderColor: 'rgba(255,71,87,0.28)',
+            borderWidth: 1
+          }
+        }
+      }
+    }
+  }
+});
+
+/* ══════════════════════════════════════════
+   VOL PERCENTILE CHART
+   ══════════════════════════════════════════ */
+new Chart(document.getElementById('volChart'), {
+  type: 'line',
+  plugins: [volGradPlugin],
+  data: {
+    labels: dates,
+    datasets: [{
+      data: volPctData,
+      borderColor: '#FF9F43',
+      borderWidth: 2,
+      fill: true,
+      backgroundColor: 'rgba(255,159,67,0.10)',
+      pointRadius: 0,
+      tension: 0.25
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    events: [],
+    layout: { padding: { top: 18, right: 140, bottom: 4, left: 4 } },
+    scales: {
+      x: {
+        grid:   { color: GRID, lineWidth: 0.7 },
+        ticks:  { color: TICK, font: { size: 9, family: FONT }, maxTicksLimit: 7, maxRotation: 0 },
+        border: { color: GRID }
+      },
+      y: {
+        min: 70,
+        max: 100,
+        grid:   { color: GRID, lineWidth: 0.7 },
+        ticks:  { color: TICK, font: { size: 9, family: FONT }, callback: v => v + '%' },
+        border: { color: GRID }
+      }
+    },
+    plugins: {
+      legend:  { display: false },
+      tooltip: { enabled: false },
+      annotation: {
+        annotations: {
+          /* EXTREME zone shading (90–100) */
+          extremeZone: {
+            type: 'box',
+            yMin: 90, yMax: 100,
+            backgroundColor: 'rgba(255,71,87,0.06)',
+            borderColor: 'transparent',
+            borderWidth: 0
+          },
+          /* ELEVATED zone shading (75–90) */
+          elevatedZone: {
+            type: 'box',
+            yMin: 75, yMax: 90,
+            backgroundColor: 'rgba(255,159,67,0.05)',
+            borderColor: 'transparent',
+            borderWidth: 0
+          },
+          /* EXTREME threshold line at 90 */
+          line90: {
+            type: 'line',
+            yMin: 90, yMax: 90,
+            borderColor: 'rgba(255,71,87,0.65)',
+            borderWidth: 1.5,
+            borderDash: [5, 4],
+            label: {
+              display: true,
+              content: '90 — EXTREME',
+              color: '#FF4757',
+              font: { size: 9.5, weight: '600', family: FONT },
+              position: 'end',
+              xAdjust: -84,
+              yAdjust: -10,
+              backgroundColor: 'rgba(11,17,32,0.82)',
+              padding: { top: 2, bottom: 2, left: 6, right: 6 },
+              borderRadius: 3,
+              borderColor: 'rgba(255,71,87,0.25)',
+              borderWidth: 1
+            }
+          },
+          /* ELEVATED threshold line at 75 */
+          line75: {
+            type: 'line',
+            yMin: 75, yMax: 75,
+            borderColor: 'rgba(255,159,67,0.65)',
+            borderWidth: 1.5,
+            borderDash: [5, 4],
+            label: {
+              display: true,
+              content: '75 — ELEVATED',
+              color: '#FF9F43',
+              font: { size: 9.5, weight: '600', family: FONT },
+              position: 'end',
+              xAdjust: -88,
+              yAdjust: -10,
+              backgroundColor: 'rgba(11,17,32,0.82)',
+              padding: { top: 2, bottom: 2, left: 6, right: 6 },
+              borderRadius: 3,
+              borderColor: 'rgba(255,159,67,0.25)',
+              borderWidth: 1
+            }
+          },
+          /* peak EXTREME marker (Mar 11: 94.71) */
+          dotPeak: {
+            type: 'point',
+            xValue: 48,
+            yValue: 94.71,
+            radius: 4,
+            backgroundColor: BG,
+            borderColor: '#FF4757',
+            borderWidth: 2
+          },
+          lblPeak: {
+            type: 'label',
+            xValue: 48,
+            yValue: 94.71,
+            content: ['94.7%ile PEAK'],
+            color: '#FF4757',
+            font: { size: 9, weight: '600', family: FONT },
+            xAdjust: 2,
+            yAdjust: -14,
+            backgroundColor: 'rgba(11,17,32,0.80)',
+            padding: { top: 2, bottom: 2, left: 5, right: 5 },
+            borderRadius: 3,
+            borderColor: 'rgba(255,71,87,0.25)',
+            borderWidth: 1
+          },
+          /* current value label (Mar 20: 87.04) */
+          dotLatestV: {
+            type: 'point',
+            xValue: 55,
+            yValue: 87.04,
+            radius: 4,
+            backgroundColor: BG,
+            borderColor: '#FF9F43',
+            borderWidth: 2
+          },
+          lblLatestV: {
+            type: 'label',
+            xValue: 55,
+            yValue: 87.04,
+            content: ['87.0%ile'],
+            color: '#FF9F43',
+            font: { size: 9.5, weight: '600', family: FONT },
+            xAdjust: -44,
+            yAdjust: -13,
+            backgroundColor: 'rgba(11,17,32,0.80)',
+            padding: { top: 2, bottom: 2, left: 5, right: 5 },
+            borderRadius: 3,
+            borderColor: 'rgba(255,159,67,0.25)',
+            borderWidth: 1
+          }
+        }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>

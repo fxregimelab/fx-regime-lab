@@ -162,5 +162,5 @@ After implementing, verify:
 ## Reference Files
 
 - [Framework patterns and conventions](./references/framework-patterns.md)
-- [Master plan and known gaps](../../G10_FX_FRAMEWORK_MASTER_PLAN.md)
-- [Project structure](../../STRUCTURE.md)
+- [Master plan and known gaps](../../docs/G10_FX_FRAMEWORK_MASTER_PLAN.md)
+- [Project context & layout](../../AGENTS.md)

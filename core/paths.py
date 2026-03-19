@@ -16,6 +16,7 @@ DATA_DIR   = os.path.join(ROOT, 'data')
 BRIEFS_DIR = os.path.join(ROOT, 'briefs')
 RUNS_DIR   = os.path.join(ROOT, 'runs')
 CHARTS_DIR = os.path.join(ROOT, 'charts')
+PAGES_DIR  = os.path.join(ROOT, 'pages')
 
 # ── key data files ───────────────────────────────────────────────────────────
 LATEST_CSV         = os.path.join(DATA_DIR, 'latest.csv')

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Positioning Inversion — FX Regime Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #060C18;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    #container {
+      width: 1200px;
+      height: 700px;
+      background: #0B1120;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #E0E6ED;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 28px 14px 28px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      height: 42px;
+      flex-shrink: 0;
+    }
+
+    #brand {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 30px;
+      width: auto;
+      display: block;
+      opacity: 0.92;
+    }
+
+    #title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #FFFFFF;
+      text-align: center;
+      letter-spacing: -0.018em;
+      line-height: 1.3;
+    }
+
+    /* ── Charts area ─────────────────────────────────────── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+      min-height: 0;
+    }
+
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .panel-title {
+      font-size: 10.5px;
+      font-weight: 500;
+      color: #5D7899;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      flex-shrink: 0;
+    }
+
+    .chart-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    #footer {
+      flex-shrink: 0;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+
+    #substack {
+      font-size: 11px;
+      color: #4A5568;
+      letter-spacing: 0.025em;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+
+    <div id="header">
+      <img id="brand" src="logos/wordmark without bg.png" alt="FX Regime Lab">
+      <div id="title">The Positioning Inversion &mdash; EUR Flushed, JPY Loading</div>
+    </div>
+
+    <div id="main">
+
+      <div class="panel">
+        <div class="panel-title">EUR Leveraged Money &mdash; Percentile Rank</div>
+        <div class="chart-wrap">
+          <canvas id="eurChart"></canvas>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">JPY Leveraged Money &mdash; Percentile Rank</div>
+        <div class="chart-wrap">
+          <canvas id="jpyChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="footer">
+      <span id="substack">fxregimelab.substack.com</span>
+    </div>
+
+  </div>
+
+  <!-- Chart.js v4 + annotation plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+  <script>
+  // ─── DATA ──────────────────────────────────────────────────────────────────────
+  // Source: data/latest_with_cot.csv  (EUR_lev_percentile, JPY_lev_percentile)
+  // Range : 2026-01-02 → 2026-03-20  (56 trading days, weekly COT forward-filled)
+
+  const dates = [
+    '2026-01-02','2026-01-05','2026-01-06','2026-01-07','2026-01-08',
+    '2026-01-09','2026-01-12','2026-01-13','2026-01-14','2026-01-15',
+    '2026-01-16','2026-01-19','2026-01-20','2026-01-21','2026-01-22',
+    '2026-01-23','2026-01-26','2026-01-27','2026-01-28','2026-01-29',
+    '2026-01-30','2026-02-02','2026-02-03','2026-02-04','2026-02-05',
+    '2026-02-06','2026-02-09','2026-02-10','2026-02-11','2026-02-12',
+    '2026-02-13','2026-02-16','2026-02-17','2026-02-18','2026-02-19',
+    '2026-02-20','2026-02-23','2026-02-24','2026-02-25','2026-02-26',
+    '2026-02-27','2026-03-02','2026-03-03','2026-03-04','2026-03-05',
+    '2026-03-06','2026-03-09','2026-03-10','2026-03-11','2026-03-12',
+    '2026-03-13','2026-03-16','2026-03-17','2026-03-18','2026-03-19',
+    '2026-03-20'
+  ]; // 56 entries
+
+  // EUR leveraged money percentile rank
+  const eurData = [
+    99.40, 99.40, 98.21, 98.21, 98.21,   // Jan 2, 5, 6, 7, 8
+    98.21, 98.21, 82.14, 82.14, 82.14,   // Jan 9, 12, 13, 14, 15
+    82.14, 82.14, 50.00, 50.00, 50.00,   // Jan 16, 19, 20, 21, 22
+    50.00, 50.00, 84.52, 84.52, 84.52,   // Jan 23, 26, 27, 28, 29
+    84.52, 84.52, 96.43, 96.43, 96.43,   // Jan 30, Feb 2, 3, 4, 5
+    96.43, 96.43, 97.62, 97.62, 97.62,   // Feb 6, 9, 10, 11, 12
+    97.62, 97.62, 97.02, 97.02, 97.02,   // Feb 13, 16, 17, 18, 19
+    97.02, 97.02, 94.64, 94.64, 94.64,   // Feb 20, 23, 24(peak), 25, 26
+    94.64, 94.64, 88.10, 88.10, 88.10,   // Feb 27, Mar 2, 3, 4, 5
+    88.10, 88.10, 38.69, 38.69, 38.69,   // Mar 6, 9, 10(flush!), 11, 12
+    38.69, 38.69, 22.02, 22.02, 22.02,   // Mar 13, 16, 17(bottom), 18, 19
+    22.02                                 // Mar 20
+  ]; // 56 entries
+
+  // JPY leveraged money percentile rank
+  const jpyData = [
+    13.10, 13.10, 20.24, 20.24, 20.24,   // Jan 2, 5, 6, 7, 8
+    20.24, 20.24,  4.17,  4.17,  4.17,   // Jan 9, 12, 13, 14, 15
+     4.17,  4.17,  7.74,  7.74,  7.74,   // Jan 16, 19, 20, 21, 22
+     7.74,  7.74, 16.07, 16.07, 16.07,   // Jan 23, 26, 27, 28, 29
+    16.07, 16.07, 30.36, 30.36, 30.36,   // Jan 30, Feb 2, 3, 4, 5
+    30.36, 30.36, 30.95, 30.95, 30.95,   // Feb 6, 9, 10, 11, 12
+    30.95, 30.95, 67.26, 67.26, 67.26,   // Feb 13, 16, 17, 18, 19
+    67.26, 67.26, 69.64, 69.64, 69.64,   // Feb 20, 23, 24(peak), 25, 26
+    69.64, 69.64, 63.69, 63.69, 63.69,   // Feb 27, Mar 2, 3, 4, 5
+    63.69, 63.69, 36.90, 36.90, 36.90,   // Mar 6, 9, 10(drop), 11, 12
+    36.90, 36.90, 17.86, 17.86, 17.86,   // Mar 13, 16, 17(bottom), 18, 19
+    17.86                                 // Mar 20
+  ]; // 56 entries
+
+  // ─── X-AXIS TICK FILTER ────────────────────────────────────────────────────────
+  // Show ~weekly Monday ticks across the 12-week range
+  const tickDates = new Set([
+    '2026-01-05','2026-01-12','2026-01-20','2026-01-27',
+    '2026-02-03','2026-02-10','2026-02-17','2026-02-24',
+    '2026-03-02','2026-03-09','2026-03-16'
+  ]);
+
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun',
+                      'Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function fmtDate(iso) {
+    const parts = iso.split('-');
+    return `${monthNames[+parts[1] - 1]} ${+parts[2]}`;
+  }
+
+  // ─── EUR GRADIENT PLUGIN ───────────────────────────────────────────────────────
+  // Creates a vertical canvas gradient: y=100 → green, y≈55 → amber, y=0 → red.
+  // Fill clips below the actual line, so color reflects the zone being plotted.
+  const eurGradientPlugin = {
+    id: 'eurGradient',
+    afterLayout(chart) {
+      const { ctx, chartArea } = chart;
+      if (!chartArea) return;
+      const grad = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+      grad.addColorStop(0.00, 'rgba(  0, 229, 160, 0.42)'); // y=100 → green
+      grad.addColorStop(0.45, 'rgba(255, 180,  60, 0.10)'); // y≈55  → amber fade
+      grad.addColorStop(1.00, 'rgba(255,  71,  87, 0.48)'); // y=0   → red
+      chart.data.datasets[0].backgroundColor = grad;
+    }
+  };
+
+  // ─── JPY GRADIENT PLUGIN ───────────────────────────────────────────────────────
+  // Orange at top (elevated/loading) fading through amber to red (crowded short).
+  // Mirrors the EUR treatment so both panels feel symmetrically weighted.
+  const jpyGradientPlugin = {
+    id: 'jpyGradient',
+    afterLayout(chart) {
+      const { ctx, chartArea } = chart;
+      if (!chartArea) return;
+      const grad = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+      grad.addColorStop(0.00, 'rgba(255, 159,  67, 0.30)'); // y=100 → orange
+      grad.addColorStop(0.50, 'rgba(255, 120,  50, 0.08)'); // y=50  → amber fade
+      grad.addColorStop(1.00, 'rgba(255,  71,  87, 0.42)'); // y=0   → red
+      chart.data.datasets[0].backgroundColor = grad;
+    }
+  };
+
+  // ─── SHARED HELPERS ────────────────────────────────────────────────────────────
+  const FONT = "'Inter', system-ui, -apple-system, sans-serif";
+  const GRID_COLOR = '#1A2340';
+  const AXIS_COLOR = '#607B99';
+  const TEXT_COLOR = '#E0E6ED';
+  const BG       = '#0B1120';
+
+  function makeXAxis(showLabels) {
+    return {
+      type: 'category',
+      grid: {
+        color: GRID_COLOR,
+        tickLength: showLabels ? 4 : 0,
+      },
+      border: { display: false },
+      ticks: {
+        // On the top EUR chart: render invisible labels so its chartArea
+        // height matches the bottom JPY chart (same tick zone reserved).
+        display: true,
+        color: showLabels ? AXIS_COLOR : 'transparent',
+        font: { size: 10, family: FONT },
+        maxRotation: 0,
+        padding: 4,
+        callback(value, index) {
+          const label = dates[index];
+          if (!tickDates.has(label)) return null;
+          return fmtDate(label);
+        }
+      }
+    };
+  }
+
+  function makeYAxis() {
+    return {
+      min: 0,
+      max: 100,
+      ticks: {
+        color: AXIS_COLOR,
+        font: { size: 10, family: FONT },
+        stepSize: 20,
+        padding: 6
+      },
+      grid: { color: GRID_COLOR },
+      border: { display: false },
+      title: {
+        display: true,
+        text: 'Percentile',
+        color: AXIS_COLOR,
+        font: { size: 10, family: FONT },
+        padding: { bottom: 4 }
+      }
+    };
+  }
+
+  // ─── ANNOTATION BUILDERS ───────────────────────────────────────────────────────
+  const RED_LINE = 'rgba(255, 71, 87, 0.65)';
+
+  function hThreshold(yVal, labelText, labelAbove) {
+    return {
+      type: 'line',
+      yMin: yVal,
+      yMax: yVal,
+      borderColor: RED_LINE,
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+      label: {
+        display: true,
+        content: labelText,
+        position: 'end',
+        xAdjust: -8,
+        yAdjust: labelAbove ? -10 : 10,
+        color: 'rgba(255, 90, 90, 0.90)',
+        backgroundColor: 'transparent',
+        font: { size: 9, family: FONT, weight: '500' }
+      }
+    };
+  }
+
+  function dataPin(xIdx, yVal, text, above) {
+    return {
+      type: 'label',
+      xValue: xIdx,
+      yValue: yVal,
+      content: text,
+      color: TEXT_COLOR,
+      backgroundColor: 'rgba(11, 17, 32, 0.85)',
+      borderRadius: 3,
+      padding: { x: 6, y: 3 },
+      font: { size: 11, family: FONT, weight: '600' },
+      yAdjust: above ? -16 : 16,
+      callout: { display: false }
+    };
+  }
+
+  // ─── COMMON OPTIONS ─────────────────────────────────────────────────────────────
+  const commonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    events: [],
+    plugins: {
+      legend:  { display: false },
+      tooltip: { enabled: false }
+    },
+    layout: { padding: { top: 26, right: 18, bottom: 0, left: 0 } }
+  };
+
+  // ─── EUR CHART ─────────────────────────────────────────────────────────────────
+  // EUR annotated indices: Feb 24 (idx 37), Mar 10 (idx 47), Mar 17 (idx 52)
+  const EUR_PINS = [37, 47, 52];
+
+  const eurPointRadius     = dates.map((_, i) => EUR_PINS.includes(i) ? 5.5 : 0);
+  const eurPointBorderW    = dates.map((_, i) => EUR_PINS.includes(i) ? 2.0 : 0);
+
+  const eurCtx = document.getElementById('eurChart').getContext('2d');
+  new Chart(eurCtx, {
+    type: 'line',
+    plugins: [eurGradientPlugin],
+
+    data: {
+      labels: dates,
+      datasets: [{
+        data: eurData,
+        borderColor: '#00E5A0',
+        borderWidth: 2.2,
+        pointRadius: eurPointRadius,
+        pointHoverRadius: 0,
+        pointBackgroundColor: '#00E5A0',
+        pointBorderColor: BG,
+        pointBorderWidth: eurPointBorderW,
+        fill: 'origin',
+        backgroundColor: 'rgba(0,229,160,0.3)', // overridden by eurGradientPlugin
+        tension: 0
+      }]
+    },
+    options: {
+      ...commonOptions,
+      plugins: {
+        ...commonOptions.plugins,
+        annotation: {
+          annotations: {
+            tLong:  hThreshold(80, 'CROWDED LONG',  true),
+            tShort: hThreshold(20, 'CROWDED SHORT', false),
+            pin94:  dataPin(37, 94.64, '94th', true),  // Feb 24
+            pin38:  dataPin(47, 38.69, '38th', true),  // Mar 10
+            pin22:  dataPin(52, 22.02, '22nd', true)   // Mar 17
+          }
+        }
+      },
+      scales: {
+        x: makeXAxis(false), // labels hidden on top chart; space still reserved
+        y: makeYAxis()
+      }
+    }
+  });
+
+  // ─── JPY CHART ─────────────────────────────────────────────────────────────────
+  // JPY annotated indices: Feb 24 (idx 37), Mar 10 (idx 47), Mar 17 (idx 52)
+  const JPY_PINS = [37, 47, 52];
+
+  const jpyPointRadius  = dates.map((_, i) => JPY_PINS.includes(i) ? 5.5 : 0);
+  const jpyPointBorderW = dates.map((_, i) => JPY_PINS.includes(i) ? 2.0 : 0);
+
+  const jpyCtx = document.getElementById('jpyChart').getContext('2d');
+  new Chart(jpyCtx, {
+    type: 'line',
+    plugins: [jpyGradientPlugin],
+    data: {
+      labels: dates,
+      datasets: [{
+        data: jpyData,
+        borderColor: '#FF9F43',
+        borderWidth: 2.2,
+        pointRadius: jpyPointRadius,
+        pointHoverRadius: 0,
+        pointBackgroundColor: '#FF9F43',
+        pointBorderColor: BG,
+        pointBorderWidth: jpyPointBorderW,
+        fill: 'origin',
+        backgroundColor: 'rgba(255,159,67,0.2)', // overridden by jpyGradientPlugin
+        tension: 0
+      }]
+    },
+    options: {
+      ...commonOptions,
+      plugins: {
+        ...commonOptions.plugins,
+        annotation: {
+          annotations: {
+            tLong:  hThreshold(80, 'CROWDED LONG',  true),
+            tShort: hThreshold(20, 'CROWDED SHORT', false),
+            pin69:  dataPin(37, 69.64, '69th', true),
+            pin37:  dataPin(47, 36.90, '37th', true),
+            // "18th" is just below the crowded-short line — pin above to stay visible
+            pin18:  dataPin(52, 17.86, '18th', true)
+          }
+        }
+      },
+      scales: {
+        x: makeXAxis(true), // labels shown on bottom chart
+        y: makeYAxis()
+      }
+    }
+  });
+  </script>
+</body>
+</html>
