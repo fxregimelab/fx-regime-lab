@@ -4,35 +4,51 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Performance — FX Regime Lab</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/site.css" />
 </head>
 <body>
-  <header class="site-header">
-    <a href="/" style="text-decoration:none;color:inherit;font-weight:700;">FX REGIME LAB</a>
-    <nav class="nav">
+  <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
+  <div class="v2-wrap">
+    <header class="v2-nav" data-nav-root>
+      <a class="v2-nav__brand" href="/">FX Regime Lab</a>
+      <ul class="v2-nav__links">
+        <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
+        <li><a href="/brief/" data-path="/brief">Brief</a></li>
+        <li><a href="/performance/" data-path="/performance">Performance</a></li>
+        <li><a href="/about/" data-path="/about">About</a></li>
+        <li><a href="/newsletter" data-path="/newsletter">Newsletter</a></li>
+      </ul>
+      <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu"><span></span><span></span><span></span></button>
+    </header>
+    <div class="v2-nav__overlay" data-nav-overlay>
       <a href="/dashboard/">Dashboard</a>
       <a href="/brief/">Brief</a>
       <a href="/performance/">Performance</a>
       <a href="/about/">About</a>
       <a href="/newsletter">Newsletter</a>
-    </nav>
-  </header>
-  <main>
-    <div class="panel" style="max-width:520px">
-      <h1>Paper trading track record</h1>
-      <p style="color:var(--text-sec);font-size:0.9rem;margin:1rem 0;line-height:1.5;">
-        Live performance tracking begins once the full signal stack is validated out-of-sample.
-      </p>
-      <p style="color:var(--text-muted);font-size:0.85rem;"><span class="mono">Target launch: Q3 2026</span></p>
-      <p style="color:var(--text-sec);font-size:0.88rem;margin-top:0.75rem;">
-        Strategy: regime-conditional. All positions timestamped and publicly auditable (Phase 4).
-      </p>
-      <p style="margin-top:1.5rem;">
-        <a class="cta" href="/newsletter">Subscribe for updates →</a>
-      </p>
     </div>
-  </main>
-  <footer class="site-footer"><div class="row" style="justify-content:center"><a href="/">Home</a></div></footer>
+
+    <main class="page-centered">
+      <p class="label-caps" style="color:var(--text-muted)">Performance track record</p>
+      <h1>Paper trading begins when the signal stack is fully validated.</h1>
+      <p>Every position will be timestamped at entry — before the outcome is known. No backdating. No selection. The record will be what it is.</p>
+      <p><strong style="color:var(--text)">Strategy:</strong> Regime-conditional entries across EUR/USD and USD/JPY.<br /><strong style="color:var(--text)">Launch target:</strong> Q3 2026.</p>
+      <a class="ghost-btn" href="/newsletter">Subscribe for launch update →</a>
+    </main>
+
+    <footer class="v2-footer">
+      <div class="v2-footer__grid">
+        <div><strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong></div>
+        <nav class="v2-footer__nav"><a href="/">Home</a><a href="/brief/">Brief</a></nav>
+        <div><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a></div>
+      </div>
+      <p class="v2-footer__rule">© 2026 FX Regime Lab</p>
+    </footer>
+  </div>
+  <script src="/assets/canvas-bg.js"></script>
+  <script src="/assets/nav.js"></script>
 </body>
 </html>

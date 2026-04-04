@@ -84,5 +84,8 @@ jobs:
           fi
           echo "brief_${SLUG}.html found OK"
 
+      - name: Publish brief to site/ for Cloudflare
+        run: python scripts/publish_brief_for_site.py
+
       - name: Deploy to GitHub Pages
         run: python deploy.py

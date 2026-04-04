@@ -22,6 +22,8 @@ Names must match exactly (`SUPABASE_URL`, `SUPABASE_ANON_KEY`). Do **not** add *
 
 After saving, redeploy (push to `main` or **Retry deployment**). Verify: open `/assets/supabase-env.js` on your domain — you should see `window.__SUPABASE_URL__` set (not empty strings).
 
+**Morning brief on-domain:** CI runs `scripts/publish_brief_for_site.py` before `deploy.py`, producing `site/brief/latest.html` plus `site/charts/` and `site/static/`. Users open **`/brief/latest.html`** (same origin; no GitHub embed).
+
 ### Local preview (`wrangler dev`)
 
 Copy `.dev.vars.example` → **`.dev.vars`** in the repo root (gitignored), same keys as above. Run `npx wrangler dev` from the repo root.

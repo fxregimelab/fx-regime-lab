@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="250" viewBox="0 0 200 250" fill="none">
+  <rect width="200" height="250" fill="#EDEEF0"/>
+  <rect x="1" y="1" width="198" height="248" stroke="#E2E4E8" fill="none"/>
+  <circle cx="100" cy="88" r="36" fill="#D1D5DB"/>
+  <ellipse cx="100" cy="195" rx="56" ry="48" fill="#D1D5DB"/>
+  <text x="100" y="238" text-anchor="middle" fill="#9CA3AF" font-family="system-ui,sans-serif" font-size="10">Photo</text>
+</svg>

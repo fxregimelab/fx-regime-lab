@@ -21,11 +21,12 @@ Nothing here is investment advice; research and learning only.
 | `morning_brief.py` | Text brief → `briefs/brief_YYYYMMDD.txt`. |
 | `create_html_brief.py` | HTML brief + `charts/*.html` iframes → `briefs/brief_YYYYMMDD.html`. |
 | `deploy.py` | Copies latest brief to repo-root `index.html`, rewrites `../charts/` → `charts/`, `../static/` → `static/`, then git commit/push. |
+| `scripts/publish_brief_for_site.py` | Copies latest `briefs/brief_*.html` → `site/brief/latest.html` (path rewrites), syncs `charts/` → `site/charts/`, `static/` → `site/static/` for **fxregimelab.com** (Cloudflare). Run in CI before `deploy.py`. |
 | `config.py` | Shared constants and configuration. |
 | `create_charts_plotly.py` | Plotly chart builders used by the HTML pipeline. |
 | `check_latest.py` | Data freshness / sanity checks. |
 | `core/` | `paths.py` (`ROOT`, `DATA_DIR`, `BRIEFS_DIR`, `CHARTS_DIR`, `PAGES_DIR`, helpers), `utils.py`. |
-| `site/` | **(Phase 0A)** Static Cloudflare Pages site for **fxregimelab.com** — landing, dashboard shell, redirects; see `contaxt files/PLAN.md` Phase 0A. |
+| `site/` | Public **fxregimelab.com** shell (UI v2: light editorial + canvas). Includes `brief/latest.html` (published from pipeline), `site/charts/`, `site/static/` copies for same-origin brief; see `docs/FX_REGIME_LAB_UI_PROMPT_V2.md`. |
 | `charts/` | Generated interactive HTML fragments + `registry.py`, `base.py`, `workspace.py` (tracked for GitHub Pages). |
 | `static/` | CSS/assets referenced by briefs (`static/styles.css` after deploy patch). |
 | `logos/` | Brand PNGs (some gitignored exceptions reversed in `.gitignore` for CI). |

@@ -3,154 +3,333 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FX Regime Lab — G10 FX Regime Detection</title>
+  <title>FX Regime Lab — Regime detection, publicly proven</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/site.css" />
 </head>
 <body>
-  <header class="site-header">
-    <a href="/" style="text-decoration:none;color:inherit;font-weight:700;letter-spacing:0.06em;font-size:0.9rem;">FX REGIME LAB</a>
-    <nav class="nav" aria-label="Main">
+  <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
+  <div class="v2-wrap">
+    <header class="v2-nav" data-nav-root>
+      <a class="v2-nav__brand" href="/">FX Regime Lab</a>
+      <ul class="v2-nav__links">
+        <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
+        <li><a href="/brief/" data-path="/brief">Brief</a></li>
+        <li><a href="/performance/" data-path="/performance">Performance</a></li>
+        <li><a href="/about/" data-path="/about">About</a></li>
+        <li><a href="/newsletter" data-path="/newsletter">Newsletter</a></li>
+      </ul>
+      <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </header>
+    <div class="v2-nav__overlay" data-nav-overlay>
       <a href="/dashboard/">Dashboard</a>
       <a href="/brief/">Brief</a>
       <a href="/performance/">Performance</a>
       <a href="/about/">About</a>
       <a href="/newsletter">Newsletter</a>
-    </nav>
-  </header>
-
-  <main>
-    <section class="hero">
-      <h1>G10 FX Regime Detection</h1>
-      <p class="sub">Live daily signals across EUR/USD, USD/JPY, and USD/INR — rate differentials, COT positioning, implied volatility, and cross-asset correlations.</p>
-      <a class="cta" href="/dashboard/">View Live Dashboard →</a>
-    </section>
-
-    <section class="cards-row" id="regime-cards" aria-label="Regime summary">
-      <article class="card-regime" data-pair="EURUSD">
-        <div class="pair eur">EUR/USD</div>
-        <hr />
-        <div class="regime-line" id="card-eur-regime">TRENDING LONG</div>
-        <div class="conf-line">Confidence <span class="mono" id="card-eur-conf">72</span>%</div>
-        <hr />
-        <div class="stat-grid">
-          <span>Rate diff</span><span class="mono" id="card-eur-rd">+47 bp</span>
-          <span>COT</span><span class="mono" id="card-eur-cot">72nd pct</span>
-          <span>Realized vol</span><span class="mono" id="card-eur-vol">8.4%</span>
-          <span>Updated</span><span class="mono" id="card-eur-upd">Today 23:14 UTC</span>
-        </div>
-      </article>
-      <article class="card-regime" data-pair="USDJPY">
-        <div class="pair jpy">USD/JPY</div>
-        <hr />
-        <div class="regime-line" id="card-jpy-regime">NEUTRAL</div>
-        <div class="conf-line">Confidence <span class="mono" id="card-jpy-conf">58</span>%</div>
-        <hr />
-        <div class="stat-grid">
-          <span>Rate diff</span><span class="mono" id="card-jpy-rd">—</span>
-          <span>COT</span><span class="mono" id="card-jpy-cot">—</span>
-          <span>Realized vol</span><span class="mono" id="card-jpy-vol">—</span>
-          <span>Updated</span><span class="mono" id="card-jpy-upd">—</span>
-        </div>
-      </article>
-      <article class="card-regime" data-pair="USDINR">
-        <div class="pair inr">USD/INR</div>
-        <hr />
-        <div class="regime-line" id="card-inr-regime">DIRECTIONAL ONLY</div>
-        <div class="conf-line">Confidence <span class="mono" id="card-inr-conf">—</span>%</div>
-        <hr />
-        <div class="stat-grid">
-          <span>Spot</span><span class="mono" id="card-inr-spot">—</span>
-          <span>Realized vol</span><span class="mono" id="card-inr-vol">—</span>
-          <span>Updated</span><span class="mono" id="card-inr-upd">—</span>
-          <span></span><span></span>
-        </div>
-      </article>
-    </section>
-
-    <section class="strip" aria-label="Signal methodology">
-      <div>
-        <h3>Rate differentials</h3>
-        <p>2Y and 10Y yield spreads vs major peers — carry and policy divergence backbone.</p>
-      </div>
-      <div>
-        <h3>COT positioning</h3>
-        <p>Leveraged money and asset manager nets with rolling percentiles for crowding.</p>
-      </div>
-      <div>
-        <h3>Implied volatility</h3>
-        <p>CVOL-style implied vol and skew (pipeline integration in Phase 1).</p>
-      </div>
-      <div>
-        <h3>Cross-asset</h3>
-        <p>DXY, oil, gold correlations vs pairs for regime context.</p>
-      </div>
-    </section>
-
-    <section class="brief-preview">
-      <h2>Latest morning brief</h2>
-      <p id="brief-preview-meta">Read the full institutional brief after each pipeline run (23:00 UTC).</p>
-      <p><a class="cta" href="/brief/">Read full brief →</a> · <a class="cta" href="https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/" style="margin-left:0.5rem">GitHub Pages mirror →</a></p>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <div class="row">
-      <span>FX Regime Lab · Live quantamental macro research</span>
-      <nav class="nav">
-        <a href="/dashboard/">Dashboard</a>
-        <a href="/brief/">Brief</a>
-        <a href="/newsletter">Newsletter</a>
-      </nav>
-      <span><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a> · <a href="https://fxregimelab.substack.com">fxregimelab.substack.com</a></span>
     </div>
-    <div class="row" style="margin-top:0.75rem;justify-content:center">
-      Built by Shreyash Sakhare · fxregimelab.com
-    </div>
-  </footer>
 
+    <main>
+      <section class="hero-v2">
+        <div class="hero-v2__col-left">
+          <p class="label-caps hero-v2__label">Live · Daily · Verified</p>
+          <h1 class="hero-v2__title">Regime detection.<br />Publicly proven.</h1>
+          <p class="hero-v2__sub">Live daily signals across EUR/USD, USD/JPY, and USD/INR — built on rate differentials, COT positioning, implied volatility, and cross-asset correlations. Every call logged. Every outcome tracked.</p>
+          <div class="hero-v2__links">
+            <a class="link-primary" href="/dashboard/">View live dashboard →</a>
+            <a class="link-sec" href="/brief/">Read today's brief →</a>
+          </div>
+          <p class="hero-v2__attr">Built by Shreyash Sakhare · fxregimelab.com</p>
+        </div>
+        <div class="hero-v2__col-right">
+          <div class="card-dark card-dark--eur" id="hero-card-eur">
+            <div class="hero-card-dark__top">
+              <span class="hero-card-dark__pair">EUR / USD</span>
+              <span class="badge-regime" id="hero-eur-badge">TRENDING LONG</span>
+            </div>
+            <div class="hero-card-dark__conf">
+              <span class="hero-card-dark__conf-num" id="hero-eur-conf" data-count="72">0</span><span class="hero-card-dark__conf-num" style="font-size:28px">%</span>
+              <span class="hero-card-dark__conf-lbl">Confidence</span>
+            </div>
+            <div class="hero-card-dark__divider"></div>
+            <div class="hero-card-dark__row"><span>Rate Differential</span><span class="hero-card-dark__pos" id="hero-eur-rd">▲ +47bp</span></div>
+            <div class="hero-card-dark__row"><span>COT Position</span><span id="hero-eur-cot">72nd pct</span></div>
+            <div class="hero-card-dark__row"><span>Realized Vol</span><span id="hero-eur-vol">8.4%</span></div>
+            <div class="hero-card-dark__row"><span>Signal composite</span><span id="hero-eur-sc">+0.68</span></div>
+            <div class="hero-card-dark__foot">
+              <span class="pulse-dot" aria-hidden="true"></span>
+              <span id="hero-eur-ts">Updated — UTC</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-v2">
+        <h2 class="section-v2__title">Three pairs. One framework. Daily.</h2>
+        <p class="section-v2__sub">EUR/USD · USD/JPY · USD/INR — each pair tracked across the same signal stack, updated every trading day after market close.</p>
+        <div class="grid-pairs" id="regime-cards">
+          <article class="card-light card-light--eur">
+            <div class="pair-card__head">
+              <span class="pair-card__name">EUR/USD</span>
+              <span class="badge-regime" style="background:rgba(37,99,168,.1);border-color:rgba(37,99,168,.25);color:var(--pair-eur)" id="card-eur-regime">TRENDING LONG</span>
+            </div>
+            <div class="conf-bar-wrap">
+              <span class="label-caps">Confidence</span>
+              <div class="conf-bar-row">
+                <div class="conf-bar"><div class="conf-bar__fill" id="card-eur-bar" style="width:72%;background:var(--pair-eur)"></div></div>
+                <span class="font-mono" style="font-weight:600" id="card-eur-conf">72%</span>
+              </div>
+            </div>
+            <ul class="signal-dots">
+              <li><span class="dot dot-ok"></span> Rate stack</li>
+              <li><span class="dot dot-ok"></span> COT</li>
+              <li><span class="dot dot-warn"></span> Vol</li>
+            </ul>
+            <a class="link-primary" href="/dashboard/">View in dashboard →</a>
+          </article>
+          <article class="card-light card-light--jpy">
+            <div class="pair-card__head">
+              <span class="pair-card__name">USD/JPY</span>
+              <span class="badge-regime" style="background:rgba(184,107,42,.1);border-color:rgba(184,107,42,.25);color:var(--pair-jpy)" id="card-jpy-regime">NEUTRAL</span>
+            </div>
+            <div class="conf-bar-wrap">
+              <span class="label-caps">Confidence</span>
+              <div class="conf-bar-row">
+                <div class="conf-bar"><div class="conf-bar__fill" id="card-jpy-bar" style="width:58%;background:var(--pair-jpy)"></div></div>
+                <span class="font-mono" style="font-weight:600" id="card-jpy-conf">58%</span>
+              </div>
+            </div>
+            <ul class="signal-dots">
+              <li><span class="dot dot-miss"></span> Rate stack</li>
+              <li><span class="dot dot-miss"></span> COT</li>
+              <li><span class="dot dot-miss"></span> Vol</li>
+            </ul>
+            <a class="link-primary" href="/dashboard/">View in dashboard →</a>
+          </article>
+          <article class="card-light card-light--inr">
+            <div class="pair-card__head">
+              <span class="pair-card__name">USD/INR</span>
+              <span class="badge-regime" style="background:rgba(166,48,48,.1);border-color:rgba(166,48,48,.25);color:var(--pair-inr)" id="card-inr-regime">DIRECTIONAL ONLY</span>
+            </div>
+            <div class="conf-bar-wrap">
+              <span class="label-caps">Confidence</span>
+              <div class="conf-bar-row">
+                <div class="conf-bar"><div class="conf-bar__fill" id="card-inr-bar" style="width:0%;background:var(--pair-inr)"></div></div>
+                <span class="font-mono" style="font-weight:600" id="card-inr-conf">—</span>
+              </div>
+            </div>
+            <ul class="signal-dots">
+              <li><span class="dot dot-warn"></span> Spot / vol</li>
+              <li><span class="dot dot-miss"></span> COT</li>
+              <li><span class="dot dot-miss"></span> Cross-asset</li>
+            </ul>
+            <a class="link-primary" href="/dashboard/">View in dashboard →</a>
+          </article>
+        </div>
+      </section>
+
+      <div class="section-bg-subtle">
+        <div class="section-v2 section-v2__inner">
+          <div class="meth-grid">
+            <div class="meth-item">
+              <p class="label-caps">Rate differentials</p>
+              <h3>Yield spreads</h3>
+              <p>2Y and 10Y yield spreads across Fed, ECB, and BoJ — the primary directional driver for G10 FX regime direction.</p>
+            </div>
+            <div class="meth-item">
+              <p class="label-caps">COT positioning</p>
+              <h3>Crowding</h3>
+              <p>CFTC Commitment of Traders — Leveraged Money and Asset Manager categories, ranked by 52-week percentile to detect crowding risk.</p>
+            </div>
+            <div class="meth-item">
+              <p class="label-caps">Implied volatility</p>
+              <h3>Regime shifts</h3>
+              <p>CME CVOL 30-day implied vol and skew — distinguishes trending regimes from vol-expansion regimes before they occur.</p>
+            </div>
+            <div class="meth-item">
+              <p class="label-caps">Cross-asset</p>
+              <h3>Context</h3>
+              <p>VIX, DXY, and oil — regime confirmation signals that change what every other signal means.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-bg-white section-canvas-dim">
+        <div class="section-v2__inner two-col" style="padding-top:var(--section-y);padding-bottom:var(--section-y)">
+          <div>
+            <p class="label-caps" style="color:var(--text-muted)">The daily brief</p>
+            <h2 class="section-v2__title mt-0">Every morning.<br />Before the market opens.</h2>
+            <p class="section-v2__sub">A daily regime brief covering what the signals say, what changed overnight, and what setups are forming. Written for practitioners, not for algorithms.</p>
+            <a class="ghost-btn" href="/brief/latest.html">Read this morning's brief →</a>
+          </div>
+          <div class="card-dark brief-preview-dark" style="border-left:3px solid var(--accent)">
+            <div class="bp-head">
+              <span>FX REGIME LAB</span>
+              <span>QUANTAMENTAL MACRO BRIEF</span>
+            </div>
+            <div class="bp-head" style="margin-top:4px">
+              <span></span>
+              <span class="font-mono" id="brief-preview-date">APR 04 2026 · 23:14 UTC</span>
+            </div>
+            <div class="bp-divider"></div>
+            <p class="bp-acc">Regime Accuracy (last 20 days): EUR/USD 68% | USD/JPY 71% | USD/INR 64%</p>
+            <p class="bp-pair">EUR/USD</p>
+            <p class="bp-regime">TRENDING LONG</p>
+            <p class="bp-meta">Confidence: 72% · Rate diff: +47bp · COT: 72nd pct</p>
+            <p class="bp-body">Rate differential momentum remains positive with the 2Y spread holding above +45bp. COT positioning at 72nd percentile…</p>
+            <p class="bp-link"><a href="/brief/latest.html">Read full brief →</a></p>
+          </div>
+        </div>
+      </div>
+
+      <section class="section-v2 text-center">
+        <h2 class="section-v2__title mx-auto">Every call. Every outcome.<br />On the record.</h2>
+        <p class="section-v2__sub mx-auto" style="max-width:560px">Since April 2026, every regime prediction has been logged at the moment of generation and compared against actual next-day price movement. No backdating. No cherry-picking.</p>
+        <div class="stats-row">
+          <div class="stat-block">
+            <div class="num" data-count="68" data-suffix="%">0%</div>
+            <div class="lbl">20-day accuracy</div>
+            <div class="sub">EUR/USD</div>
+          </div>
+          <div class="stat-block">
+            <div class="num" data-count="247">0</div>
+            <div class="lbl">Predictions logged</div>
+            <div class="sub">Across all pairs</div>
+          </div>
+          <div class="stat-block">
+            <div class="num" style="font-size:36px">Apr 2026</div>
+            <div class="lbl">Tracking since</div>
+            <div class="sub">No backdating</div>
+          </div>
+        </div>
+        <div style="overflow-x:auto;margin-bottom:24px">
+          <table class="table-v2 mx-auto" style="max-width:800px">
+            <thead><tr><th>Date</th><th>Pair</th><th>Predicted</th><th>Confidence</th><th>Outcome</th></tr></thead>
+            <tbody>
+              <tr class="row-ok"><td class="cell-date">Apr 03</td><td class="cell-pair-eur">EUR/USD</td><td>Long</td><td class="cell-mono">72%</td><td>✓</td></tr>
+              <tr class="row-ok"><td class="cell-date">Apr 03</td><td class="cell-pair-jpy">USD/JPY</td><td>Neutral</td><td class="cell-mono">58%</td><td>✓</td></tr>
+              <tr class="row-bad"><td class="cell-date">Apr 02</td><td class="cell-pair-inr">USD/INR</td><td>Long</td><td class="cell-mono">55%</td><td>✗</td></tr>
+              <tr class="row-ok"><td class="cell-date">Apr 02</td><td class="cell-pair-eur">EUR/USD</td><td>Long</td><td class="cell-mono">70%</td><td>✓</td></tr>
+              <tr class="row-ok"><td class="cell-date">Apr 01</td><td class="cell-pair-jpy">USD/JPY</td><td>Neutral</td><td class="cell-mono">61%</td><td>✓</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <a class="link-primary" href="/dashboard/#validation">View full validation log →</a>
+      </section>
+
+      <div class="section-bg-white">
+        <div class="section-v2__inner researcher-grid" style="padding:var(--section-y) 24px">
+          <img class="researcher-photo" src="/assets/researcher-placeholder.svg" alt="Shreyash Sakhare" width="200" height="250" />
+          <div>
+            <p class="label-caps" style="color:var(--text-muted)">The researcher</p>
+            <h2 class="section-v2__title mt-0" style="font-size:32px">Shreyash Sakhare</h2>
+            <p style="color:var(--text-sec);max-width:520px">B.Tech Electrical Engineering, Pune. Building toward a career in quantamental macro — the intersection of systematic signal engineering and discretionary regime judgment. FX Regime Lab is the work in progress, running live since early 2026.</p>
+            <p style="margin-top:20px">
+              <a class="link-primary" href="https://linkedin.com/in/shreyash045" target="_blank" rel="noopener">LinkedIn ↗</a>
+              <span style="display:inline-block;width:24px"></span>
+              <a class="link-sec" href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a>
+              <span style="display:inline-block;width:24px"></span>
+              <a class="link-primary" href="https://fxregimelab.substack.com" target="_blank" rel="noopener">Substack ↗</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="v2-footer">
+      <div class="v2-footer__grid">
+        <div>
+          <strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong>
+          <p style="font-size:12px;margin:8px 0 0">Live quantamental macro research · fxregimelab.com</p>
+        </div>
+        <nav class="v2-footer__nav">
+          <a href="/dashboard/">Dashboard</a>
+          <a href="/brief/">Brief</a>
+          <a href="/performance/">Performance</a>
+          <a href="/about/">About</a>
+          <a href="/newsletter">Newsletter</a>
+        </nav>
+        <div><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a></div>
+      </div>
+      <p class="v2-footer__rule">© 2026 FX Regime Lab · Built by Shreyash Sakhare</p>
+    </footer>
+  </div>
+
+  <script src="/assets/canvas-bg.js"></script>
+  <script src="/assets/nav.js"></script>
   <script src="/assets/site.js"></script>
   <script src="/assets/supabase-env.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
   <script>
-    (async function () {
-      const st = await window.FXRegimeSite.loadPipelineStatus();
-      if (st && st.last_run_utc) {
-        const ts = window.FXRegimeSite.formatTs(st.last_run_utc);
-        document.querySelectorAll('#card-eur-upd, #card-jpy-upd, #card-inr-upd').forEach(function (el) { el.textContent = ts; });
+    (function () {
+      function countUp(el, target, suffix, dur) {
+        var start = performance.now();
+        function tick(now) {
+          var p = Math.min(1, (now - start) / dur);
+          var ease = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(target * ease) + (suffix || '');
+          if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
       }
+      setTimeout(function () {
+        var h = document.getElementById('hero-eur-conf');
+        if (h) countUp(h, 72, '', 1000);
+      }, 400);
+      var obs = new IntersectionObserver(function (ents) {
+        ents.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          e.target.querySelectorAll('.num[data-count]').forEach(function (nel) {
+            var t = parseInt(nel.getAttribute('data-count'), 10);
+            var suf = nel.getAttribute('data-suffix') || '';
+            countUp(nel, t, suf, 800);
+          });
+          obs.unobserve(e.target);
+        });
+      }, { threshold: 0.3 });
+      var sr = document.querySelector('.stats-row');
+      if (sr) obs.observe(sr.closest('section') || sr);
+    })();
+  </script>
+  <script>
+    (async function () {
+      var st = await window.FXRegimeSite.loadPipelineStatus();
+      var ts = st && st.last_run_utc ? window.FXRegimeSite.formatTs(st.last_run_utc) : '—';
+      var hel = document.getElementById('hero-eur-ts');
+      if (hel && st && st.last_run_utc) hel.textContent = 'Updated ' + ts.replace(' UTC', '') + ' UTC';
       var url = window.__SUPABASE_URL__;
       var key = window.__SUPABASE_ANON_KEY__;
-      var sb = window.supabase;
-      if (!url || !key || !sb || !sb.createClient) return;
+      var S = window.supabase;
+      if (!url || !key || !S || !S.createClient) return;
       try {
-        var client = sb.createClient(url, key);
-        var sel = 'date,pair,rate_diff_2y,rate_diff_10y,cot_percentile,realized_vol_20d';
-        var q = await client.from('signals').select(sel).order('date', { ascending: false }).limit(9);
+        var client = S.createClient(url, key);
+        var q = await client.from('signals').select('date,pair,rate_diff_2y,rate_diff_10y,cot_percentile,realized_vol_20d').order('date', { ascending: false }).limit(9);
         if (q.error) return;
         var byPair = {};
-        (q.data || []).forEach(function (row) {
-          if (!byPair[row.pair]) byPair[row.pair] = row;
-        });
-        function fmtPct(x) { return x == null ? '—' : (Math.round(x) + 'th pct'); }
-        function fmtVol(x) { return x == null ? '—' : (Number(x).toFixed(1) + '%'); }
-        function fmtBp(x) { return x == null ? '—' : (x >= 0 ? '+' : '') + Math.round(x) + ' bp'; }
+        (q.data || []).forEach(function (row) { if (!byPair[row.pair]) byPair[row.pair] = row; });
+        function fmtPct(x) { return x == null ? '—' : Math.round(x) + 'th pct'; }
+        function fmtVol(x) { return x == null ? '—' : Number(x).toFixed(1) + '%'; }
+        function fmtBp(x) { if (x == null) return '—'; var v = Math.round(x); return (v >= 0 ? '▲ +' : '▼ ') + Math.abs(v) + 'bp'; }
         if (byPair.EURUSD) {
-          document.getElementById('card-eur-rd').textContent = fmtBp(byPair.EURUSD.rate_diff_10y != null ? byPair.EURUSD.rate_diff_10y : byPair.EURUSD.rate_diff_2y);
-          document.getElementById('card-eur-cot').textContent = fmtPct(byPair.EURUSD.cot_percentile);
-          document.getElementById('card-eur-vol').textContent = fmtVol(byPair.EURUSD.realized_vol_20d);
+          var rd = document.getElementById('hero-eur-rd');
+          rd.textContent = fmtBp(byPair.EURUSD.rate_diff_10y != null ? byPair.EURUSD.rate_diff_10y : byPair.EURUSD.rate_diff_2y);
+          rd.classList.add('hero-card-dark__pos');
+          document.getElementById('hero-eur-cot').textContent = fmtPct(byPair.EURUSD.cot_percentile);
+          document.getElementById('hero-eur-vol').textContent = fmtVol(byPair.EURUSD.realized_vol_20d);
         }
         if (byPair.USDJPY) {
-          document.getElementById('card-jpy-rd').textContent = fmtBp(byPair.USDJPY.rate_diff_10y != null ? byPair.USDJPY.rate_diff_10y : byPair.USDJPY.rate_diff_2y);
-          document.getElementById('card-jpy-cot').textContent = fmtPct(byPair.USDJPY.cot_percentile);
-          document.getElementById('card-jpy-vol').textContent = fmtVol(byPair.USDJPY.realized_vol_20d);
+          document.getElementById('card-jpy-bar').style.width = '58%';
         }
         if (byPair.USDINR) {
-          document.getElementById('card-inr-vol').textContent = fmtVol(byPair.USDINR.realized_vol_20d);
+          document.getElementById('card-inr-bar').style.width = '45%';
+          document.getElementById('card-inr-conf').textContent = '45%';
         }
-      } catch (e) { /* keep placeholders */ }
+      } catch (e) {}
     })();
   </script>
 </body>

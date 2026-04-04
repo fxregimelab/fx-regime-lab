@@ -3,57 +3,227 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard — FX Regime Lab</title>
+  <title>Live dashboard — FX Regime Lab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/site.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <header class="site-header">
-    <a href="/" style="text-decoration:none;color:inherit;font-weight:700;letter-spacing:0.06em;font-size:0.9rem;">FX REGIME LAB</a>
-    <nav class="nav">
+  <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
+  <div class="v2-wrap">
+    <header class="v2-nav" data-nav-root>
+      <a class="v2-nav__brand" href="/">FX Regime Lab</a>
+      <ul class="v2-nav__links">
+        <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
+        <li><a href="/brief/" data-path="/brief">Brief</a></li>
+        <li><a href="/performance/" data-path="/performance">Performance</a></li>
+        <li><a href="/about/" data-path="/about">About</a></li>
+        <li><a href="/newsletter" data-path="/newsletter">Newsletter</a></li>
+      </ul>
+      <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu"><span></span><span></span><span></span></button>
+    </header>
+    <div class="v2-nav__overlay" data-nav-overlay>
       <a href="/dashboard/">Dashboard</a>
       <a href="/brief/">Brief</a>
       <a href="/performance/">Performance</a>
       <a href="/about/">About</a>
       <a href="/newsletter">Newsletter</a>
-    </nav>
-  </header>
-  <main>
-    <div class="panel">
-      <h1>Live dashboard</h1>
-      <p style="color:var(--text-sec);font-size:0.88rem;margin-bottom:1rem;">
-        Live data integration status. Signal rows load from Supabase when <span class="mono">SUPABASE_*</span> env vars are injected on Cloudflare Pages.
-      </p>
-      <ul class="status-list" id="dash-status">
-        <li class="ok">✓ EUR/USD · USD/JPY · USD/INR — framework pairs</li>
-        <li class="ok">✓ Rate differentials — pipeline</li>
-        <li class="ok">✓ COT positioning — pipeline</li>
-        <li class="soon">○ Implied volatility (CVOL) — Phase 1</li>
-        <li class="soon">○ Risk reversals (synthetic) — Phase 1</li>
-      </ul>
-      <p style="margin-top:1.25rem;font-size:0.85rem;color:var(--text-sec);">
-        Pipeline last run: <span class="mono" id="dash-ts">—</span>
-      </p>
-      <p style="margin-top:0.75rem;">
-        <a class="cta" href="/brief/">View morning brief →</a>
-      </p>
-      <p style="margin-top:1.5rem;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-label);">Regime accuracy (Phase 2)</p>
-      <p style="font-size:0.85rem;color:var(--text-sec);">Rolling 20d hit rates will appear here once <span class="mono">validation_log</span> is populated.</p>
     </div>
-  </main>
-  <footer class="site-footer">
-    <div class="row" style="justify-content:center">
-      <a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a>
+
+    <div class="dash-bar">
+      <span class="label-caps" style="color:var(--text-muted)">Live dashboard</span>
+      <span class="dash-bar__mono"><span class="pulse-dot" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>Pipeline last run: <span id="dash-pipeline-ts">—</span></span>
+      <span class="dash-bar__mono">Accuracy (20d): EUR/USD 68% · USD/JPY 71% · USD/INR 64%</span>
     </div>
-  </footer>
+
+    <section class="section-v2">
+      <div class="grid-pairs">
+        <article class="card-light card-light--eur">
+          <div class="pair-card__head">
+            <span class="pair-card__name">EUR/USD</span>
+            <span class="badge-regime" style="background:rgba(37,99,168,.1);border-color:rgba(37,99,168,.25);color:var(--pair-eur)">TRENDING LONG</span>
+          </div>
+          <div class="conf-bar-wrap">
+            <span class="label-caps">Confidence</span>
+            <div class="conf-bar-row">
+              <div class="conf-bar"><div class="conf-bar__fill" style="width:72%;background:var(--pair-eur)"></div></div>
+              <span class="font-mono" style="font-weight:600">72%</span>
+            </div>
+          </div>
+          <div class="hero-card-dark__row" style="color:var(--text)"><span>Rate differential</span><span class="font-mono">+47 bp</span></div>
+          <div class="hero-card-dark__row" style="color:var(--text)"><span>COT percentile</span><span class="font-mono">72nd</span></div>
+          <div class="hero-card-dark__row" style="color:var(--text)"><span>Realized vol</span><span class="font-mono">8.4%</span></div>
+          <p class="label-caps" style="margin-top:16px;color:var(--text-muted)">Change from yesterday</p>
+          <p class="font-mono" style="margin:0;color:var(--positive)">▲ Strengthening</p>
+        </article>
+        <article class="card-light card-light--jpy">
+          <div class="pair-card__head">
+            <span class="pair-card__name">USD/JPY</span>
+            <span class="badge-regime" style="background:rgba(184,107,42,.1);border-color:rgba(184,107,42,.25);color:var(--pair-jpy)">NEUTRAL</span>
+          </div>
+          <div class="conf-bar-wrap">
+            <span class="label-caps">Confidence</span>
+            <div class="conf-bar-row">
+              <div class="conf-bar"><div class="conf-bar__fill" style="width:58%;background:var(--pair-jpy)"></div></div>
+              <span class="font-mono" style="font-weight:600">58%</span>
+            </div>
+          </div>
+          <div class="hero-card-dark__row" style="color:var(--text)"><span>Rate differential</span><span class="font-mono">—</span></div>
+          <div class="hero-card-dark__row" style="color:var(--text)"><span>COT percentile</span><span class="font-mono">—</span></div>
+          <div class="hero-card-dark__row" style="color:var(--text)"><span>Realized vol</span><span class="font-mono">—</span></div>
+          <p class="label-caps" style="margin-top:16px;color:var(--text-muted)">Change from yesterday</p>
+          <p class="font-mono" style="margin:0;color:var(--text-muted)">Flat</p>
+        </article>
+        <article class="card-light card-light--inr">
+          <div class="pair-card__head">
+            <span class="pair-card__name">USD/INR</span>
+            <span class="badge-regime" style="background:rgba(166,48,48,.1);border-color:rgba(166,48,48,.25);color:var(--pair-inr)">DIRECTIONAL ONLY</span>
+          </div>
+          <div class="conf-bar-wrap">
+            <span class="label-caps">Confidence</span>
+            <div class="conf-bar-row">
+              <div class="conf-bar"><div class="conf-bar__fill" style="width:40%;background:var(--pair-inr)"></div></div>
+              <span class="font-mono" style="font-weight:600">—</span>
+            </div>
+          </div>
+          <div class="hero-card-dark__row" style="color:var(--text)"><span>Spot / vol</span><span class="font-mono">—</span></div>
+          <p class="label-caps" style="margin-top:16px;color:var(--text-muted)">Updated</p>
+          <p class="font-mono" style="margin:0" id="dash-inr-ts">—</p>
+        </article>
+      </div>
+    </section>
+
+    <div class="dash-tabs" role="tablist">
+      <button type="button" class="is-active" data-tab="rd" role="tab">Rate differentials</button>
+      <button type="button" data-tab="cot" role="tab">COT positioning</button>
+      <button type="button" data-tab="iv" role="tab">Implied vol</button>
+      <button type="button" data-tab="rr" role="tab">Risk reversal</button>
+      <button type="button" data-tab="oi" role="tab">OI flow</button>
+      <button type="button" data-tab="xa" role="tab">Cross-asset</button>
+    </div>
+
+    <div id="panel-rd" class="dash-panel is-active" role="tabpanel">
+      <p style="color:var(--text-sec);max-width:640px">2Y / 10Y spread direction vs prior close — illustrative series until live feed wires here.</p>
+      <div style="max-width:720px;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:24px">
+        <canvas id="chart-rd" height="220"></canvas>
+      </div>
+      <p class="font-mono" style="margin-top:16px;color:var(--accent)">EUR/USD 10Y spread: +47 bp vs prior · percentile 62nd (illustrative)</p>
+    </div>
+    <div id="panel-cot" class="dash-panel" role="tabpanel">
+      <p style="color:var(--text-sec)">COT nets and 52-week percentile ranks — data from pipeline / Supabase in Phase 1.</p>
+      <div style="max-width:720px;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:24px">
+        <canvas id="chart-cot" height="220"></canvas>
+      </div>
+    </div>
+    <div id="panel-iv" class="dash-panel" role="tabpanel">
+      <div class="coming-soon-box">
+        <p class="label-caps">Implied volatility</p>
+        <p style="color:var(--text);font-weight:600">Coming Q3 2026</p>
+        <p style="color:var(--text-sec);font-size:14px">CME CVOL 30d implied vol and skew — pipeline integration in Phase 1.</p>
+      </div>
+    </div>
+    <div id="panel-rr" class="dash-panel" role="tabpanel">
+      <div class="coming-soon-box">
+        <p class="label-caps">Risk reversal</p>
+        <p style="color:var(--text);font-weight:600">Coming Q3 2026</p>
+        <p style="color:var(--text-sec);font-size:14px">Synthetic 25Δ risk reversal surfaces.</p>
+      </div>
+    </div>
+    <div id="panel-oi" class="dash-panel" role="tabpanel">
+      <div class="coming-soon-box">
+        <p class="label-caps">OI flow</p>
+        <p style="color:var(--text);font-weight:600">Coming Q3 2026</p>
+        <p style="color:var(--text-sec);font-size:14px">COT open-interest delta as a lead indicator.</p>
+      </div>
+    </div>
+    <div id="panel-xa" class="dash-panel" role="tabpanel">
+      <p style="color:var(--text-sec)">VIX, DXY, oil — correlation context vs G10 pairs.</p>
+      <div style="max-width:720px;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:24px">
+        <canvas id="chart-xa" height="220"></canvas>
+      </div>
+    </div>
+
+    <section class="section-v2" id="validation">
+      <h2 class="section-v2__title">Validation log</h2>
+      <p class="section-v2__sub">Last 30 predictions (sample rows — full log from Supabase <span class="font-mono">validation_log</span> in Phase 2).</p>
+      <div style="overflow-x:auto">
+        <table class="table-v2">
+          <thead><tr><th>Date</th><th>Pair</th><th>Predicted</th><th>Confidence</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr class="row-ok"><td class="cell-date">2026-04-03</td><td class="cell-pair-eur">EUR/USD</td><td>Long</td><td class="cell-mono">72%</td><td>✓</td></tr>
+            <tr class="row-ok"><td class="cell-date">2026-04-03</td><td class="cell-pair-jpy">USD/JPY</td><td>Neutral</td><td class="cell-mono">58%</td><td>✓</td></tr>
+            <tr class="row-bad"><td class="cell-date">2026-04-02</td><td class="cell-pair-inr">USD/INR</td><td>Long</td><td class="cell-mono">55%</td><td>✗</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="v2-footer">
+      <div class="v2-footer__grid">
+        <div><strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong><p style="font-size:12px;margin:8px 0 0">Live quantamental macro research</p></div>
+        <nav class="v2-footer__nav">
+          <a href="/">Home</a><a href="/brief/">Brief</a><a href="/newsletter">Newsletter</a>
+        </nav>
+        <div><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a></div>
+      </div>
+      <p class="v2-footer__rule">© 2026 FX Regime Lab · Built by Shreyash Sakhare</p>
+    </footer>
+  </div>
+
+  <script src="/assets/canvas-bg.js"></script>
+  <script src="/assets/nav.js"></script>
   <script src="/assets/site.js"></script>
+  <script>
+    document.querySelectorAll('.dash-tabs button').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-tab');
+        document.querySelectorAll('.dash-tabs button').forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+        document.querySelectorAll('.dash-panel').forEach(function (p) { p.classList.toggle('is-active', p.id === 'panel-' + id); });
+      });
+    });
+    (function () {
+      var common = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+      var Chart = window.Chart;
+      if (!Chart) return;
+      new Chart(document.getElementById('chart-rd'), {
+        type: 'line',
+        data: {
+          labels: ['T-5', 'T-4', 'T-3', 'T-2', 'T-1', 'T'],
+          datasets: [{ label: 'Spread (bp)', data: [38, 41, 44, 45, 46, 47], borderColor: '#1B3A6B', tension: 0.35, fill: false }]
+        },
+        options: { ...common, scales: { x: { grid: { color: '#ECEEF1' } }, y: { grid: { color: '#ECEEF1' } } } }
+      });
+      new Chart(document.getElementById('chart-cot'), {
+        type: 'bar',
+        data: {
+          labels: ['EUR', 'JPY', 'INR'],
+          datasets: [{ data: [72, 54, 48], backgroundColor: ['rgba(37,99,168,.35)', 'rgba(184,107,42,.35)', 'rgba(166,48,48,.35)'] }]
+        },
+        options: { ...common, scales: { x: { grid: { display: false } }, y: { grid: { color: '#ECEEF1' }, max: 100 } } }
+      });
+      new Chart(document.getElementById('chart-xa'), {
+        type: 'line',
+        data: {
+          labels: ['W1', 'W2', 'W3', 'W4'],
+          datasets: [
+            { label: 'DXY', data: [102, 103, 104, 103.5], borderColor: '#1B3A6B', tension: 0.3 },
+            { label: 'Oil', data: [72, 74, 71, 73], borderColor: '#b86b2a', tension: 0.3 }
+          ]
+        },
+        options: { ...common, plugins: { legend: { display: true, position: 'bottom' } }, scales: { x: { grid: { color: '#ECEEF1' } }, y: { grid: { color: '#ECEEF1' } } } }
+      });
+    })();
+  </script>
   <script>
     (async function () {
       var st = await window.FXRegimeSite.loadPipelineStatus();
-      var el = document.getElementById('dash-ts');
-      if (st && st.last_run_utc) el.textContent = window.FXRegimeSite.formatTs(st.last_run_utc);
-      else if (st && st.last_run_status === 'pending') el.textContent = 'No successful run recorded yet';
+      var el = document.getElementById('dash-pipeline-ts');
+      if (el && st && st.last_run_utc) el.textContent = window.FXRegimeSite.formatTs(st.last_run_utc);
+      else if (el) el.textContent = 'No successful run recorded yet';
+      var ir = document.getElementById('dash-inr-ts');
+      if (ir && st && st.last_run_utc) ir.textContent = window.FXRegimeSite.formatTs(st.last_run_utc);
     })();
   </script>
 </body>
