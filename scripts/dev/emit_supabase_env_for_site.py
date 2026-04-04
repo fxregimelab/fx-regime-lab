@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-Emit site/assets/supabase-env.js from SUPABASE_URL + SUPABASE_ANON_KEY (build-time only).
-Run on Cloudflare before wrangler deploy; keys stay out of git.
+Emit site/assets/supabase-env.js from env (optional / legacy).
+
+Cloudflare: prefer workers/site-entry.js + dashboard Variables (no build step).
+Use this only for hosts that inject at build time and cannot run a Worker.
 """
 from __future__ import annotations
 

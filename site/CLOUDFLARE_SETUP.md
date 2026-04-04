@@ -4,10 +4,9 @@ These steps complete **todo `phase0-dns-cloudflare`** outside the repo.
 
 ## Workers & Pages (Git + `wrangler deploy`)
 
-If the project uses **Deploy command** `npx wrangler deploy` (Workers static assets), the repo must include **`wrangler.toml`** at the root with `[assets] directory = "./site"`. Otherwise Wrangler defaults to **`.`** and uploads the whole repository (including `.git`), which breaks routing and UI.
+**Asset-only** Workers cannot have dashboard **Variables and secrets**. This repo uses a tiny **`workers/site-entry.js`** plus **`[assets] directory = "./site"`** so env vars are allowed and `/assets/supabase-env.js` is generated at the edge from secrets.
 
-- **Build command:** `python3 scripts/dev/emit_supabase_env_for_site.py`  
-  (Requires **Variables and secrets** below so the browser gets `window.__SUPABASE_*` without committing keys. No `pip install` needed.)
+- **Build command:** leave **empty** (no `pip install`).
 - **Deploy command:** `npx wrangler deploy`
 
 ### Variables and secrets (Phase 0B — browser reads)
@@ -16,12 +15,16 @@ In **Workers & Pages** → your project → **Settings** → **Variables and sec
 
 | Name | Type | Value source |
 |------|------|----------------|
-| `SUPABASE_URL` | Secret or plain text | Supabase → **Project Settings** → **API** → **Project URL** |
+| `SUPABASE_URL` | Plain text or secret | Supabase → **Project Settings** → **API** → **Project URL** |
 | `SUPABASE_ANON_KEY` | **Secret** | Supabase → **Project Settings** → **API** → **anon public** key |
 
-Use the **same names** so the build step can read them. Do **not** put the **service_role** key here (browser-visible bundle).
+Names must match exactly (`SUPABASE_URL`, `SUPABASE_ANON_KEY`). Do **not** add **service_role** here (browser-visible in the JS response).
 
-After saving, trigger a new deployment (push to `main` or **Retry deployment**).
+After saving, redeploy (push to `main` or **Retry deployment**). Verify: open `/assets/supabase-env.js` on your domain — you should see `window.__SUPABASE_URL__` set (not empty strings).
+
+### Local preview (`wrangler dev`)
+
+Copy `.dev.vars.example` → **`.dev.vars`** in the repo root (gitignored), same keys as above. Run `npx wrangler dev` from the repo root.
 
 ## Classic Pages (upload `site/` only)
 

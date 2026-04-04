@@ -2,13 +2,4 @@
 
 - **Publish directory:** `site/` (root = `index.html`).
 - **Newsletter:** `_redirects` sends `/newsletter` → Substack (301).
-- **Supabase in browser (Phase 0B):** inject before other scripts on pages that need live data, e.g. in Cloudflare **Custom code** or an HTML transform:
-
-```html
-<script>
-  window.__SUPABASE_URL__ = 'https://YOUR_PROJECT.supabase.co';
-  window.__SUPABASE_ANON_KEY__ = 'YOUR_ANON_KEY';
-</script>
-```
-
-Never put the **service role** key in Pages. See `CLOUDFLARE_SETUP.md` for DNS and project wiring.
+- **Supabase in browser (Phase 0B):** pages load `/assets/supabase-env.js` before the Supabase client. On Cloudflare, `workers/site-entry.js` builds that response from **Variables and secrets** (`CLOUDFLARE_SETUP.md`). For other hosts, you can inline the same `window.__SUPABASE_*` assignments (anon only; never **service_role**).
