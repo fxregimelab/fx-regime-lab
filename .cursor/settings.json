@@ -1,0 +1,10 @@
+{
+  "plugins": {
+    "firebase": {
+      "enabled": true
+    },
+    "cloudflare": {
+      "enabled": true
+    }
+  }
+}

@@ -4,7 +4,7 @@ This file is the canonical map of the repository. Read it before large edits, re
 
 ## Purpose
 
-Daily **G10 FX regime** research pipeline: pull public market data (FX, yields, COT, INR-related series), merge into a master dataset, render a **morning brief** (text + interactive HTML with Plotly/iframes), optionally **deploy** to GitHub Pages as `index.html`.
+Daily **G10 FX regime** research pipeline: pull public market data (FX, yields, COT, INR-related series), merge into a master dataset, render a **morning brief** (text + interactive HTML with Plotly/iframes), optionally **deploy** to GitHub Pages as `index.html`. **Public product URL:** [fxregimelab.com](https://fxregimelab.com) on **Cloudflare Pages** (live dashboard + site); GitHub Pages remains a static brief channel until cutover (see [contaxt files/PLAN.md](contaxt%20files/PLAN.md) Phase 0).
 
 Nothing here is investment advice; research and learning only.
 
@@ -25,12 +25,13 @@ Nothing here is investment advice; research and learning only.
 | `create_charts_plotly.py` | Plotly chart builders used by the HTML pipeline. |
 | `check_latest.py` | Data freshness / sanity checks. |
 | `core/` | `paths.py` (`ROOT`, `DATA_DIR`, `BRIEFS_DIR`, `CHARTS_DIR`, `PAGES_DIR`, helpers), `utils.py`. |
+| `site/` | **(Phase 0A)** Static Cloudflare Pages site for **fxregimelab.com** — landing, dashboard shell, redirects; see `contaxt files/PLAN.md` Phase 0A. |
 | `charts/` | Generated interactive HTML fragments + `registry.py`, `base.py`, `workspace.py` (tracked for GitHub Pages). |
 | `static/` | CSS/assets referenced by briefs (`static/styles.css` after deploy patch). |
 | `logos/` | Brand PNGs (some gitignored exceptions reversed in `.gitignore` for CI). |
 | `pages/` | **Standalone** narrative/export HTML cards (Chart.js “FX Regime Lab” style), *not* the daily brief. Built by `scripts/dev/build_*.py`. |
 | `scripts/dev/` | One-off builders, phase checks, stress tests, verification scripts (all `os.chdir` to repo root). |
-| `docs/` | Long-form planning (e.g. `G10_FX_FRAMEWORK_MASTER_PLAN.md`). |
+| `docs/` | Long-form planning (`G10_FX_FRAMEWORK_MASTER_PLAN.md`, `FX_REGIME_ROADMAP.md`, `PHASE0_CHECKLIST.md`, `IMPLEMENTATION_PLAN_PHASE0.md`). |
 | `.github/workflows/` | e.g. `daily_brief.yml` — CI pipeline (needs `FRED_API_KEY` secret). |
 
 ## Generated / local-only (usually not in git)
@@ -41,11 +42,14 @@ Per `.gitignore`: `data/`, `briefs/`, `runs/`, `.venv/`, `__pycache__/`, `.env`.
 
 Use `core.paths` for anything that needs `ROOT` or standard folders — avoids hard-coding and survives moves of this file’s documented layout.
 
-## Deploy & GitHub Pages
+## Deploy, GitHub Pages, and fxregimelab.com
 
-- **Live site** (from `deploy.py` messages): `https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/`
-- **Source of truth for “live” HTML**: repo-root `index.html` (copy of latest brief with path fixes).
+- **Canonical public site (target):** [https://fxregimelab.com](https://fxregimelab.com) — **Cloudflare Pages** (dashboard `/dashboard`, brief `/brief`, etc.; see PLAN Phase 0).
+- **GitHub Pages** (current `deploy.py` output): `https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/` — keep as static brief fallback until Cloudflare is verified (PLAN Phase 0.8).
+- **Source of truth for repo-root HTML:** `index.html` (copy of latest brief with path fixes after `deploy.py`).
 - **Brief originals**: `briefs/brief_YYYYMMDD.html` use `../charts/` and `../static/` because they live one level down.
+
+**Orchestrator (`run.py` `STEPS`):** `fx` → `cot` → `inr` → `merge` → `text` → `macro` → `ai` → `html` → `deploy`. There is no `create_dashboards.py`; charts are produced via `create_html_brief.py` / `create_charts_plotly.py`.
 
 ## Standalone pages (`pages/`)
 

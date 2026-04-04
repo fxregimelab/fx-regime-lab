@@ -1,0 +1,12 @@
+﻿---
+alwaysApply: true
+---
+
+At the start of every session:
+1. Confirm which phase from PLAN.md is being built
+2. State the session deliverable explicitly before writing code
+3. Check that no existing pipeline script is being duplicated or broken
+4. Confirm GitHub Actions secrets required for any new API calls
+
+The pipeline execution order is fixed by **run.py** `STEPS`: fx → cot → inr → merge → text → macro → ai → html → deploy (see AGENTS.md). There is no `create_dashboards.py`.
+Only extend this sequence. Never restructure it without explicit instruction.

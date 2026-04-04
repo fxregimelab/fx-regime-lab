@@ -6,6 +6,9 @@ venv/
 # IDE
 .vscode/
 .idea/
+
+# Accidental PowerShell / editor artifacts
+UTF8
 *.swp
 *.swo
 *~

@@ -1,0 +1,19 @@
+---
+alwaysApply: true
+---
+
+You are building the FX Regime Lab — a live quantamental macro intelligence platform. 
+
+Read CONTEXT.md and CURSOR_RULES.md before every session (under contaxt files/ in-repo). Read PLAN.md when starting any new phase. Orchestration truth: **run.py** (see AGENTS.md).
+
+Hard rules:
+- Python only. pandas, numpy, requests, supabase-py, yfinance, scipy. No new dependencies without asking.
+- Every signal must pass: institutional validity, independence, data availability, regime relevance. If it fails any test, stop and say why.
+- All persistent data writes to Supabase first, CSV fallback second. Never write-only to CSV.
+- Use upsert with on_conflict='date,pair' for all daily signal tables. Never plain insert.
+- All environment variables from GitHub Actions secrets. Never hardcode API keys, URLs, or dates.
+- Wrap every API call in try/except. Pipeline never dies because one source fails.
+- Dark theme always: bg #0a0e1a, cards #111827, EUR/USD #4da6ff, USD/JPY #ff9944, USD/INR #e74c3c.
+- No ML models, no FinBERT, no social media sentiment until explicitly instructed.
+- Before writing code, state: what you're building, what Supabase tables it writes to, what the output looks like.
+- If a request would break existing pipeline execution sequence, stop and flag it before proceeding.
