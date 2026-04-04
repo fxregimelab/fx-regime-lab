@@ -48,3 +48,9 @@ prototype_*
 temp_*
 debug_*
 
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
