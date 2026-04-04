@@ -1,0 +1,200 @@
+/* FX Regime Lab — fxregimelab.com (Bloomberg-inspired, PLAN Phase 0A) */
+:root {
+  --bg-primary: #0a0e1a;
+  --bg-card: #0d1117;
+  --bg-elevated: #111827;
+  --border: #1e293b;
+  --border-subtle: #161e2e;
+  --eur: #4da6ff;
+  --jpy: #ff9944;
+  --inr: #e74c3c;
+  --gbp: #10b981;
+  --gold: #f0a500;
+  --pos: #10b981;
+  --neg: #ef4444;
+  --neutral: #6b7280;
+  --text: #f9fafb;
+  --text-sec: #9ca3af;
+  --text-muted: #6b7280;
+  --text-label: #4b5563;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg-primary);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  min-height: 100%;
+}
+
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1.5rem;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header img { height: 28px; width: auto; }
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.nav a {
+  color: var(--text-sec);
+  text-decoration: none;
+}
+.nav a:hover { color: var(--text); }
+
+main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+
+.hero h1 {
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+
+.hero p.sub {
+  color: var(--text-sec);
+  max-width: 52rem;
+  margin-bottom: 1.25rem;
+}
+
+.hero a.cta {
+  color: var(--eur);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.hero a.cta:hover { text-decoration: underline; }
+
+.cards-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.card-regime {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 1rem 1.1rem;
+}
+
+.card-regime .pair {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+.card-regime .pair.eur { color: var(--eur); }
+.card-regime .pair.jpy { color: var(--jpy); }
+.card-regime .pair.inr { color: var(--inr); }
+
+.card-regime hr {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: 0.5rem 0;
+}
+
+.regime-line { font-size: 0.95rem; font-weight: 600; }
+.conf-line { color: var(--text-sec); font-size: 0.85rem; }
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  margin-top: 0.65rem;
+  color: var(--text-sec);
+}
+.stat-grid .mono { color: var(--text); }
+
+.strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.strip h3 {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-label);
+  margin-bottom: 0.35rem;
+}
+.strip p { font-size: 0.82rem; color: var(--text-sec); }
+
+.brief-preview {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 1rem 1.25rem;
+  margin: 2rem 0;
+}
+.brief-preview h2 { font-size: 0.85rem; margin-bottom: 0.5rem; }
+.brief-preview p { color: var(--text-sec); font-size: 0.88rem; margin-bottom: 0.5rem; }
+
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  max-width: 640px;
+  margin: 1rem auto;
+}
+
+.panel h1 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-label);
+  margin-bottom: 1rem;
+}
+
+.status-list { list-style: none; font-size: 0.88rem; color: var(--text-sec); }
+.status-list li { margin: 0.4rem 0; padding-left: 0; }
+.status-list .ok { color: var(--pos); }
+.status-list .soon { color: var(--neutral); }
+
+.site-footer {
+  margin-top: 3rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.site-footer .row {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+}
+.site-footer a { color: var(--text-sec); }
+
+@media (max-width: 640px) {
+  .site-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+}

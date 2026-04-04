@@ -753,6 +753,16 @@ def main():
             print(f"  FPI data:         unavailable")
     print("\n" + "=" * 62)
 
+    try:
+        from core.signal_write import sync_signals_from_master_csv
+        from core.paper_export import write_signals_latest_json
+
+        if sync_signals_from_master_csv():
+            print("  Supabase: signals upsert OK (if configured)")
+        write_signals_latest_json()
+    except Exception as e:
+        print(f"  WARN: Supabase signals sync / paper export skipped: {e}")
+
 
 if __name__ == "__main__":
     main()

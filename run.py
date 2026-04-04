@@ -9,7 +9,7 @@
 #   python run.py --only cot inr merge    # refresh COT + INR data, rebuild merge
 #   python run.py --skip cot inr          # skip slow network steps
 #
-# Step names: fx  yields  cot  inr  merge  text  ai  html  deploy
+# Step names: fx cot inr vol oi rr merge text macro ai html validate deploy
 
 import sys
 import os
@@ -19,6 +19,8 @@ import subprocess
 import argparse
 import time
 from datetime import datetime
+
+from core.pipeline_status import write_pipeline_status
 
 
 class _Tee:
@@ -52,11 +54,15 @@ STEPS = [
     ("fx",      "pipeline.py"),           # fetch FX prices + yields → data/latest.csv
     ("cot",     "cot_pipeline.py"),       # fetch CFTC COT data → data/cot_latest.csv
     ("inr",     "inr_pipeline.py"),       # fetch USD/INR + IN yields → data/inr_latest.csv
+    ("vol",     "vol_pipeline.py"),       # Phase 1: CME CVOL (stub until API wired)
+    ("oi",      "oi_pipeline.py"),        # Phase 1: CME OI delta (stub)
+    ("rr",      "rr_pipeline.py"),        # Phase 1: synthetic RR proxy (yfinance)
     ("merge",   "pipeline.py"),           # NOTE: merge is part of pipeline.py (same script)
     ("text",    "morning_brief.py"),      # generate text brief → briefs/brief_YYYYMMDD.txt
     ("macro",   "macro_pipeline.py"),      # Phase 10 Stage 2: fetch economic calendar → data/macro_cal.json
     ("ai",      "ai_brief.py"),           # Phase 13: AI regime reads → data/ai_regime_read.json
     ("html",    "create_html_brief.py"),  # generate HTML brief → briefs/brief_YYYYMMDD.html
+    ("validate", "validation_regime.py"), # Phase 2: out-of-sample validation (stub)
     ("deploy",  "deploy.py"),             # copy to index.html and push to GitHub
 ]
 
@@ -67,7 +73,7 @@ _STEP_NAMES = [name for name, _ in STEPS]
 # Steps that are non-blocking: pipeline continues even if they fail.
 # ai_brief.py has no ANTHROPIC_API_KEY on CI → always exits 0, but guard
 # here ensures a true failure (import error, crash) is still non-fatal.
-NON_BLOCKING_STEPS = {"ai", "macro"}  # macro: TE API may be rate-limited on CI
+NON_BLOCKING_STEPS = {"ai", "macro", "validate"}  # macro: TE API; validate: Phase 2 stub
 
 
 def _run_step(name, script, python_exe):
@@ -160,6 +166,7 @@ def main():
         # Deduplicate: pipeline.py appears as both "fx" and "merge"
         # — if both are in the run set, only run pipeline.py once.
         seen_scripts = set()
+        completed_steps: list[str] = []
         total_start = time.perf_counter()
 
         print(f'\n{"="*50}')
@@ -184,6 +191,7 @@ def main():
             ok, elapsed = _run_step(name, script, python_exe)
             if ok:
                 print(f'OK  {name}  -- {elapsed:.1f}s')
+                completed_steps.append(name)
             else:
                 print(f'FAIL  {name} after {elapsed:.1f}s')
                 if name in NON_BLOCKING_STEPS:
@@ -191,6 +199,14 @@ def main():
                 else:
                     print(f'   Fix {script} and re-run:  python run.py --only {name}')
                     failed = True
+                    try:
+                        write_pipeline_status(
+                            ok=False,
+                            steps_completed=completed_steps,
+                            error_message=f"step:{name}",
+                        )
+                    except OSError as e:
+                        print(f"  WARN: could not write pipeline_status.json: {e}")
                     break
 
         total = time.perf_counter() - total_start
@@ -214,6 +230,10 @@ def main():
             print()
             print('  live at: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/')
             print(f'{"="*50}\n')
+            try:
+                write_pipeline_status(ok=True, steps_completed=completed_steps)
+            except OSError as e:
+                print(f"  WARN: could not write pipeline_status.json: {e}")
         else:
             print(f'\n  pipeline stopped after {total:.1f}s -- fix the error above and retry.\n')
 

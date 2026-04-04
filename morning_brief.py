@@ -6,6 +6,7 @@
 # run every morning after run_all.py
 # target: readable in 60 seconds by someone on an FX desk
 
+import json
 import os
 import sys
 import pandas as pd
@@ -250,6 +251,20 @@ def build_brief(df):
     lines.append(f"  {TODAY_FMT}")
     lines.append(f"  FX as of: {as_of}  |  IN 10Y as of: {in10y_date}  |  COT cutoff: {cot_cutoff} (pub'd: {cot_published})")
     lines.append("=" * W)
+
+    acc_path = "data/validation_accuracy.json"
+    if os.path.exists(acc_path):
+        try:
+            with open(acc_path, encoding="utf-8") as af:
+                acc = json.load(af)
+            lines.append("")
+            w = acc.get("window_days", 20)
+            lines.append(f"  REGIME CALL ACCURACY (last {w} days)")
+            lines.append(
+                f"  EUR/USD: {acc.get('EURUSD', '—')}% | USD/JPY: {acc.get('USDJPY', '—')}% | USD/INR: {acc.get('USDINR', '—')}%"
+            )
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            pass
 
     # ── MACRO CALENDAR ALERT ─────────────────────────────────────────────────
     if upcoming_event is not None:
@@ -527,6 +542,13 @@ def main():
         f.write(brief)
 
     print(f"  saved: {filepath}")
+
+    try:
+        from core.regime_persist import persist_regime_calls_and_brief
+
+        persist_regime_calls_and_brief(df, brief)
+    except Exception as e:
+        print(f"  WARN: Supabase regime/brief persist skipped: {e}")
 
 
 if __name__ == "__main__":

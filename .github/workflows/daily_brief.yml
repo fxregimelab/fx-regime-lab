@@ -46,6 +46,18 @@ jobs:
           if [ -n "${{ secrets.NOTION_TOKEN }}" ]; then
             echo "NOTION_TOKEN=${{ secrets.NOTION_TOKEN }}" >> .env
           fi
+          if [ -n "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
+          fi
+          if [ -n "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
+          fi
+          if [ -n "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+            echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
+          fi
+          if [ -n "${{ secrets.CME_API_KEY }}" ]; then
+            echo "CME_API_KEY=${{ secrets.CME_API_KEY }}" >> .env
+          fi
 
       - name: Configure git identity
         run: |

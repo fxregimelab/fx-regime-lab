@@ -17,6 +17,9 @@ BRIEFS_DIR = os.path.join(ROOT, 'briefs')
 RUNS_DIR   = os.path.join(ROOT, 'runs')
 CHARTS_DIR = os.path.join(ROOT, 'charts')
 PAGES_DIR  = os.path.join(ROOT, 'pages')
+SITE_DIR   = os.path.join(ROOT, 'site')
+# Written each successful pipeline run; deployed with `deploy.py` for Cloudflare Pages
+PIPELINE_STATUS_JSON = os.path.join(SITE_DIR, 'data', 'pipeline_status.json')
 
 # ── key data files ───────────────────────────────────────────────────────────
 LATEST_CSV         = os.path.join(DATA_DIR, 'latest.csv')

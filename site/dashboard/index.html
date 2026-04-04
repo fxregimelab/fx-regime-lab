@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — FX Regime Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/site.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a href="/" style="text-decoration:none;color:inherit;font-weight:700;letter-spacing:0.06em;font-size:0.9rem;">FX REGIME LAB</a>
+    <nav class="nav">
+      <a href="/dashboard/">Dashboard</a>
+      <a href="/brief/">Brief</a>
+      <a href="/performance/">Performance</a>
+      <a href="/about/">About</a>
+      <a href="/newsletter">Newsletter</a>
+    </nav>
+  </header>
+  <main>
+    <div class="panel">
+      <h1>Live dashboard</h1>
+      <p style="color:var(--text-sec);font-size:0.88rem;margin-bottom:1rem;">
+        Live data integration status. Signal rows load from Supabase when <span class="mono">SUPABASE_*</span> env vars are injected on Cloudflare Pages.
+      </p>
+      <ul class="status-list" id="dash-status">
+        <li class="ok">✓ EUR/USD · USD/JPY · USD/INR — framework pairs</li>
+        <li class="ok">✓ Rate differentials — pipeline</li>
+        <li class="ok">✓ COT positioning — pipeline</li>
+        <li class="soon">○ Implied volatility (CVOL) — Phase 1</li>
+        <li class="soon">○ Risk reversals (synthetic) — Phase 1</li>
+      </ul>
+      <p style="margin-top:1.25rem;font-size:0.85rem;color:var(--text-sec);">
+        Pipeline last run: <span class="mono" id="dash-ts">—</span>
+      </p>
+      <p style="margin-top:0.75rem;">
+        <a class="cta" href="/brief/">View morning brief →</a>
+      </p>
+      <p style="margin-top:1.5rem;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-label);">Regime accuracy (Phase 2)</p>
+      <p style="font-size:0.85rem;color:var(--text-sec);">Rolling 20d hit rates will appear here once <span class="mono">validation_log</span> is populated.</p>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="row" style="justify-content:center">
+      <a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a>
+    </div>
+  </footer>
+  <script src="/assets/site.js"></script>
+  <script>
+    (async function () {
+      var st = await window.FXRegimeSite.loadPipelineStatus();
+      var el = document.getElementById('dash-ts');
+      if (st && st.last_run_utc) el.textContent = window.FXRegimeSite.formatTs(st.last_run_utc);
+      else if (st && st.last_run_status === 'pending') el.textContent = 'No successful run recorded yet';
+    })();
+  </script>
+</body>
+</html>

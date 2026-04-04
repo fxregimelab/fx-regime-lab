@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FX Regime Lab — G10 FX Regime Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/site.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a href="/" style="text-decoration:none;color:inherit;font-weight:700;letter-spacing:0.06em;font-size:0.9rem;">FX REGIME LAB</a>
+    <nav class="nav" aria-label="Main">
+      <a href="/dashboard/">Dashboard</a>
+      <a href="/brief/">Brief</a>
+      <a href="/performance/">Performance</a>
+      <a href="/about/">About</a>
+      <a href="/newsletter">Newsletter</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>G10 FX Regime Detection</h1>
+      <p class="sub">Live daily signals across EUR/USD, USD/JPY, and USD/INR — rate differentials, COT positioning, implied volatility, and cross-asset correlations.</p>
+      <a class="cta" href="/dashboard/">View Live Dashboard →</a>
+    </section>
+
+    <section class="cards-row" id="regime-cards" aria-label="Regime summary">
+      <article class="card-regime" data-pair="EURUSD">
+        <div class="pair eur">EUR/USD</div>
+        <hr />
+        <div class="regime-line" id="card-eur-regime">TRENDING LONG</div>
+        <div class="conf-line">Confidence <span class="mono" id="card-eur-conf">72</span>%</div>
+        <hr />
+        <div class="stat-grid">
+          <span>Rate diff</span><span class="mono" id="card-eur-rd">+47 bp</span>
+          <span>COT</span><span class="mono" id="card-eur-cot">72nd pct</span>
+          <span>Realized vol</span><span class="mono" id="card-eur-vol">8.4%</span>
+          <span>Updated</span><span class="mono" id="card-eur-upd">Today 23:14 UTC</span>
+        </div>
+      </article>
+      <article class="card-regime" data-pair="USDJPY">
+        <div class="pair jpy">USD/JPY</div>
+        <hr />
+        <div class="regime-line" id="card-jpy-regime">NEUTRAL</div>
+        <div class="conf-line">Confidence <span class="mono" id="card-jpy-conf">58</span>%</div>
+        <hr />
+        <div class="stat-grid">
+          <span>Rate diff</span><span class="mono" id="card-jpy-rd">—</span>
+          <span>COT</span><span class="mono" id="card-jpy-cot">—</span>
+          <span>Realized vol</span><span class="mono" id="card-jpy-vol">—</span>
+          <span>Updated</span><span class="mono" id="card-jpy-upd">—</span>
+        </div>
+      </article>
+      <article class="card-regime" data-pair="USDINR">
+        <div class="pair inr">USD/INR</div>
+        <hr />
+        <div class="regime-line" id="card-inr-regime">DIRECTIONAL ONLY</div>
+        <div class="conf-line">Confidence <span class="mono" id="card-inr-conf">—</span>%</div>
+        <hr />
+        <div class="stat-grid">
+          <span>Spot</span><span class="mono" id="card-inr-spot">—</span>
+          <span>Realized vol</span><span class="mono" id="card-inr-vol">—</span>
+          <span>Updated</span><span class="mono" id="card-inr-upd">—</span>
+          <span></span><span></span>
+        </div>
+      </article>
+    </section>
+
+    <section class="strip" aria-label="Signal methodology">
+      <div>
+        <h3>Rate differentials</h3>
+        <p>2Y and 10Y yield spreads vs major peers — carry and policy divergence backbone.</p>
+      </div>
+      <div>
+        <h3>COT positioning</h3>
+        <p>Leveraged money and asset manager nets with rolling percentiles for crowding.</p>
+      </div>
+      <div>
+        <h3>Implied volatility</h3>
+        <p>CVOL-style implied vol and skew (pipeline integration in Phase 1).</p>
+      </div>
+      <div>
+        <h3>Cross-asset</h3>
+        <p>DXY, oil, gold correlations vs pairs for regime context.</p>
+      </div>
+    </section>
+
+    <section class="brief-preview">
+      <h2>Latest morning brief</h2>
+      <p id="brief-preview-meta">Read the full institutional brief after each pipeline run (23:00 UTC).</p>
+      <p><a class="cta" href="/brief/">Read full brief →</a> · <a class="cta" href="https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/" style="margin-left:0.5rem">GitHub Pages mirror →</a></p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="row">
+      <span>FX Regime Lab · Live quantamental macro research</span>
+      <nav class="nav">
+        <a href="/dashboard/">Dashboard</a>
+        <a href="/brief/">Brief</a>
+        <a href="/newsletter">Newsletter</a>
+      </nav>
+      <span><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a> · <a href="https://fxregimelab.substack.com">fxregimelab.substack.com</a></span>
+    </div>
+    <div class="row" style="margin-top:0.75rem;justify-content:center">
+      Built by Shreyash Sakhare · fxregimelab.com
+    </div>
+  </footer>
+
+  <script src="/assets/site.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+  <script>
+    (async function () {
+      const st = await window.FXRegimeSite.loadPipelineStatus();
+      if (st && st.last_run_utc) {
+        const ts = window.FXRegimeSite.formatTs(st.last_run_utc);
+        document.querySelectorAll('#card-eur-upd, #card-jpy-upd, #card-inr-upd').forEach(function (el) { el.textContent = ts; });
+      }
+      var url = window.__SUPABASE_URL__;
+      var key = window.__SUPABASE_ANON_KEY__;
+      var sb = window.supabase;
+      if (!url || !key || !sb || !sb.createClient) return;
+      try {
+        var client = sb.createClient(url, key);
+        var sel = 'date,pair,rate_diff_2y,rate_diff_10y,cot_percentile,realized_vol_20d';
+        var q = await client.from('signals').select(sel).order('date', { ascending: false }).limit(9);
+        if (q.error) return;
+        var byPair = {};
+        (q.data || []).forEach(function (row) {
+          if (!byPair[row.pair]) byPair[row.pair] = row;
+        });
+        function fmtPct(x) { return x == null ? '—' : (Math.round(x) + 'th pct'); }
+        function fmtVol(x) { return x == null ? '—' : (Number(x).toFixed(1) + '%'); }
+        function fmtBp(x) { return x == null ? '—' : (x >= 0 ? '+' : '') + Math.round(x) + ' bp'; }
+        if (byPair.EURUSD) {
+          document.getElementById('card-eur-rd').textContent = fmtBp(byPair.EURUSD.rate_diff_10y != null ? byPair.EURUSD.rate_diff_10y : byPair.EURUSD.rate_diff_2y);
+          document.getElementById('card-eur-cot').textContent = fmtPct(byPair.EURUSD.cot_percentile);
+          document.getElementById('card-eur-vol').textContent = fmtVol(byPair.EURUSD.realized_vol_20d);
+        }
+        if (byPair.USDJPY) {
+          document.getElementById('card-jpy-rd').textContent = fmtBp(byPair.USDJPY.rate_diff_10y != null ? byPair.USDJPY.rate_diff_10y : byPair.USDJPY.rate_diff_2y);
+          document.getElementById('card-jpy-cot').textContent = fmtPct(byPair.USDJPY.cot_percentile);
+          document.getElementById('card-jpy-vol').textContent = fmtVol(byPair.USDJPY.realized_vol_20d);
+        }
+        if (byPair.USDINR) {
+          document.getElementById('card-inr-vol').textContent = fmtVol(byPair.USDINR.realized_vol_20d);
+        }
+      } catch (e) { /* keep placeholders */ }
+    })();
+  </script>
+</body>
+</html>

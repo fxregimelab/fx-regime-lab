@@ -220,6 +220,7 @@ CREATE UNIQUE INDEX idx_signals_unique ON signals(date, pair);
 CREATE UNIQUE INDEX idx_regime_unique ON regime_calls(date, pair);
 CREATE UNIQUE INDEX idx_validation_unique ON validation_log(date, pair);
 CREATE INDEX idx_pipeline_errors_date_source ON pipeline_errors(date, source);
+CREATE UNIQUE INDEX idx_brief_log_date ON brief_log(date);
 ```
 
 **Row Level Security (before public dashboard exposure):**

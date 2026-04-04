@@ -12,7 +12,7 @@ Nothing here is investment advice; research and learning only.
 
 | Path | Role |
 |------|------|
-| `run.py` | Preferred orchestrator: steps, logging, `--only` / `--skip` (see docstring). |
+| `run.py` | Preferred orchestrator: `fx`→`cot`→`inr`→`vol`→`oi`→`rr`→`merge`→`text`→`macro`→`ai`→`html`→`validate`→`deploy`. |
 | `run_all.py` | Simpler orchestrator: runs core scripts then `deploy.py`, then archives to `runs/`. |
 | `pipeline.py` | Layer 1: FX + yield ETL, spreads, writes `data/`. |
 | `cot_pipeline.py` | Layer 2: CFTC COT positioning → `data/`. |
