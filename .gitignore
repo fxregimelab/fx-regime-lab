@@ -40,6 +40,9 @@ briefs/
 # Local logs
 run_log.txt
 
+# Cloudflare Wrangler (local cache; wrangler.toml is committed)
+.wrangler/
+
 # Temporary files
 tmpclaude-*
 test_*.py

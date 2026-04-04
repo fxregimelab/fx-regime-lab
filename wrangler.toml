@@ -1,0 +1,8 @@
+# Cloudflare Workers static assets — publish only site/ (not repo root).
+# Dashboard: deploy command `npx wrangler deploy`; build command should be empty
+# (do not run pip install for this project — it is static HTML/CSS/JS).
+name = "fx-regime-lab"
+compatibility_date = "2026-04-04"
+
+[assets]
+directory = "./site"
