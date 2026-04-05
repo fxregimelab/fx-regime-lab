@@ -253,14 +253,6 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
         border-left: none; border-right: none;
         display: flex; flex-direction: column; }
 .card-body { flex: 1; min-height: 0; }
-.workspace-snap { height: 100vh; scroll-snap-align: start;
-  display: flex; flex-direction: column; background: #0d0d0d; }
-.ws-header { height: 36px; display: flex; align-items: center;
-  padding: 0 20px; background: #1a1a1a; border-top: 1px solid #2a2a2a;
-  font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #555;
-  text-transform: uppercase; flex-shrink: 0; }
-.ws-iframe-wrap { flex: 1; min-height: 0; overflow: hidden; }
-.ws-iframe-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
 .footer {
     background: #0d0d0d;
     border-top: 1px solid #1e1e1e;
@@ -309,9 +301,8 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
       <div class="lp-framework-label">G10 FX Regime Detection Framework</div>
       <div class="lp-morning-brief">Morning Brief</div>
       <div class="lp-date">Sunday, 05 April 2026</div>
-      <div class="lp-meta">FX as of: 03 Apr 2026 &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: 03 Apr 2026 &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: 31 Mar 2026 (pub&apos;d: 03 Apr 2026) &nbsp;&nbsp;|&nbsp;&nbsp; run: 05 Apr 2026 15:34 IST</div>
+      <div class="lp-meta">FX as of: 03 Apr 2026 &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: 03 Apr 2026 &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: 31 Mar 2026 (pub&apos;d: 03 Apr 2026) &nbsp;&nbsp;|&nbsp;&nbsp; run: 05 Apr 2026 17:11 IST</div>
     </div>
-    <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
   </div>
   <div class="lp-macro-strip" style="background:#f0a50011;border:1px solid #f0a50044;border-radius:4px;padding:6px 14px;margin-bottom:8px;font-size:0.75rem;color:#f0a500;letter-spacing:0.04em;text-align:center;">&#9888; MACRO EVENT in 4 days: RBI MPC &nbsp;&mdash;&nbsp; 2026-04-09</div><details class="macro-cal"><summary>MACRO CALENDAR &#9660;&nbsp;(4 events)</summary><div class="macro-cal-grid"><div class="macro-cal-date">Apr 09</div><div class="macro-cal-event" style="color:#ff6666">RBI MPC</div><div class="macro-cal-days">4d</div><div class="macro-cal-date">Apr 17</div><div class="macro-cal-event" style="color:#ff6666">ECB Meeting</div><div class="macro-cal-days">12d</div><div class="macro-cal-date">May 01</div><div class="macro-cal-event" style="color:#ff6666">BoJ Policy</div><div class="macro-cal-days">26d</div><div class="macro-cal-date">May 07</div><div class="macro-cal-event" style="color:#ff6666">Fed FOMC</div><div class="macro-cal-days">32d</div></div></details><div class="lp-ticker-bar"><div class="lp-ticker-item"><span class="lp-ticker-label">DXY</span><span class="lp-ticker-price">100.03</span><span style="color:#00d4aa;font-size:11px">+0.00%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">EUR/USD</span><span class="lp-ticker-price" style="color:#4da6ff">1.1522</span><span style="color:#ff4444;font-size:11px">-0.59%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">USD/JPY</span><span class="lp-ticker-price" style="color:#ff9944">159.63</span><span style="color:#00d4aa;font-size:11px">+0.59%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">USD/INR</span><span class="lp-ticker-price" style="color:#e74c3c">92.97</span><span style="color:#00d4aa;font-size:11px">+0.36%</span></div><div class="lp-ticker-item lp-ticker-item--cross"><span class="lp-ticker-label">Brent</span><span class="lp-ticker-price">$109.05</span><span style="color:#00d4aa;font-size:11px">+0.00%</span></div><div class="lp-ticker-item lp-ticker-item--cross"><span class="lp-ticker-label">Gold</span><span class="lp-ticker-price">$4,703</span><span style="color:#00d4aa;font-size:11px">+0.00%</span></div></div>
   <div class="lp-grid">
@@ -418,7 +409,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
 
         <div class="brief-section regime-read">
           <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
-          <div class="brief-text">spread compression supports EUR strength; positioning neutral — no crowding distortion. vol elevated — positioning signals less reliable.</div>
+          <div class="brief-text">EUR/USD holds NEUTRAL with 5% confidence. US-DE 10Y spread at +1.26pp with positioning at 35.3th percentile.</div>
         </div>
       </div>
 
@@ -494,7 +485,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
 
         <div class="brief-section regime-read">
           <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
-          <div class="brief-text">spread compression favors lower USD/JPY; Leveraged Money 42nd pct and Asset Manager 45th pct both neutral — carry partially intact, BoJ path is key variable.</div>
+          <div class="brief-text">USD/JPY tracks NEUTRAL with 15% confidence. US-JP 10Y spread at +1.92pp with positioning at 42.9th percentile.</div>
         </div>
       </div>
 
@@ -581,7 +572,7 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
 
         <div class="brief-section regime-read">
           <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
-          <div class="brief-text">US-IN spread at -2.32%. India yield premium intact at 2.32pp. Rate differential favors INR strength. FPI positioning data pending.</div>
+          <div class="brief-text">USD/INR is NEUTRAL in a directional-only frame. US-IN 10Y spread at -2.32pp with positioning at N/A.</div>
         </div>
       </div>
 
@@ -616,14 +607,6 @@ html { scroll-snap-type: y mandatory; overflow-y: scroll; }
 
 </div>
 
-<!-- GLOBAL ANALYSIS WORKSPACE -->
-<div class="workspace-snap" id="workspace-snap">
-  <div class="ws-header">ANALYSIS WORKSPACE &mdash; ALL PAIRS</div>
-  <div class="ws-iframe-wrap">
-    <div class="chart-pane" data-pair="global" data-pane="0" style="visibility:visible;position:relative;pointer-events:auto;width:100%;height:100%;">
-<iframe src="charts/global_workspace.html" style="width:100%;height:calc(100vh - 36px);border:none;display:block;" loading="eager" scrolling="no"></iframe>
-    </div>
-  </div>
 </div>
 
 <!-- FOOTER -->
@@ -667,7 +650,7 @@ document.querySelectorAll('.regime-toggle').forEach(function(lbl) {
 // Bottom nav active state via IntersectionObserver
 (function() {
   var navLinks = document.querySelectorAll('#pair-nav a');
-  var targets  = ['landing', 'card-eurusd', 'card-usdjpy', 'card-usdinr', 'workspace-snap'];
+  var targets  = ['landing', 'card-eurusd', 'card-usdjpy', 'card-usdinr'];
   var io = new IntersectionObserver(function(entries) {
     entries.forEach(function(e) {
       if (e.isIntersecting && e.intersectionRatio >= 0.5) {
@@ -689,7 +672,6 @@ document.querySelectorAll('.regime-toggle').forEach(function(lbl) {
   <a href="#card-eurusd" class="pnav-btn" data-target="card-eurusd">EUR/USD</a>
   <a href="#card-usdjpy" class="pnav-btn" data-target="card-usdjpy">USD/JPY</a>
   <a href="#card-usdinr" class="pnav-btn" data-target="card-usdinr">USD/INR</a>
-  <a href="#workspace-snap" class="pnav-btn" data-target="workspace-snap">WS</a>
 </nav>
 </body>
 </html>
