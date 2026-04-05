@@ -361,7 +361,7 @@ All posts free to read.</p>
         <a class="newsletter-hero-cta" href="https://fxregimelab.substack.com" target="_blank" rel="noopener">Subscribe on Substack →</a>
       </section>
 
-      <section class="newsletter-list" id="newsletter-list" aria-live="polite"></section>
+      <section class="newsletter-list" id="posts-container" aria-live="polite"></section>
     </main>
   </div>
 
@@ -396,8 +396,12 @@ All posts free to read.</p>
   <script src="/assets/site.js"></script>
   <script>
     const RSS_URL = "https://fxregimelab.substack.com/feed";
-    const PROXY = "https://api.allorigins.win/get?url=";
     const SUBSTACK_ROOT = "https://fxregimelab.substack.com";
+    const PROXIES = [
+      (url) => "/api/substack-rss",
+      (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    ];
 
     function stripHTML(html) {
       const div = document.createElement("div");
@@ -427,72 +431,118 @@ All posts free to read.</p>
       return SUBSTACK_ROOT + (link.startsWith("/") ? link : "/" + link);
     }
 
-    function parseRSSItems(xml) {
-      const items = xml.querySelectorAll("item");
-      const contentNodes = xml.getElementsByTagNameNS("http://purl.org/rss/1.0/modules/content/", "encoded");
-      return Array.from(items).map((item, index) => ({
-        title: item.querySelector("title")?.textContent || "",
-        link: item.querySelector("link")?.textContent || "",
-        pubDate: item.querySelector("pubDate")?.textContent || "",
-        description: item.querySelector("description")?.textContent || "",
-        content: contentNodes[index]?.textContent || "",
-        category: item.querySelector("category")?.textContent || "",
-      }));
+    async function fetchWithProxy(proxyFn, rssUrl) {
+      const endpoint = proxyFn(rssUrl);
+      const resp = await fetch(endpoint, { signal: AbortSignal.timeout(6000) });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const text = await resp.text();
+      if (!text.includes("<rss") && !text.includes("<feed")) {
+        throw new Error("Not valid RSS");
+      }
+      return text;
     }
 
-    async function fetchSubstackPosts() {
-      try {
-        const resp = await fetch(
-          PROXY + encodeURIComponent(RSS_URL),
-          { signal: AbortSignal.timeout(8000) }
-        );
-        const json = await resp.json();
-        const xml = new DOMParser().parseFromString(json.contents || "", "text/xml");
-        return parseRSSItems(xml);
-      } catch (e) {
-        console.error("[Newsletter] RSS fetch failed:", e);
-        return [];
+    async function fetchSubstackRSS() {
+      for (const proxyFn of PROXIES) {
+        try {
+          const text = await fetchWithProxy(proxyFn, RSS_URL);
+          return text;
+        } catch (e) {
+          console.warn("[Newsletter] Proxy failed:", e.message);
+        }
+      }
+      return null;
+    }
+
+    function showLoadingSkeletons() {
+      const container = document.getElementById("posts-container");
+      if (!container) return;
+      container.innerHTML = [1, 2, 3].map(() => `
+        <div class="post-skeleton" style="
+          background: #fff;
+          border: 1px solid #E2E4E8;
+          border-left: 4px solid #E2E4E8;
+          border-radius: 10px;
+          padding: 28px 32px;
+          margin-bottom: 24px;
+        ">
+          <div style="
+            height: 12px; width: 100px;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px; margin-bottom: 12px;
+          "></div>
+          <div style="
+            height: 24px; width: 70%;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px; margin-bottom: 12px;
+          "></div>
+          <div style="
+            height: 14px; width: 90%;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+          "></div>
+        </div>
+      `).join("");
+
+      if (!document.getElementById("shimmer-style")) {
+        const style = document.createElement("style");
+        style.id = "shimmer-style";
+        style.textContent = `
+          @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        `;
+        document.head.appendChild(style);
       }
     }
 
-    function renderSkeletons(container) {
-      const skeleton = Array.from({ length: 3 }).map(() => `
-        <article class="skeleton-card" aria-hidden="true">
-          <div class="skeleton-line w-20"></div>
-          <div class="skeleton-space"></div>
-          <div class="skeleton-line w-95"></div>
-          <div class="skeleton-line w-80"></div>
-          <div class="skeleton-space"></div>
-          <div class="skeleton-line w-95"></div>
-          <div class="skeleton-line w-95"></div>
-          <div class="skeleton-line w-60"></div>
-          <div class="skeleton-space"></div>
-          <div class="skeleton-line w-35"></div>
-        </article>
-      `).join("");
-      container.innerHTML = skeleton;
-    }
-
-    function renderEmpty(container) {
+    function showStaticFallback() {
+      const container = document.getElementById("posts-container");
+      if (!container) return;
       container.innerHTML = `
-        <div class="empty-state">
-          <h3>Posts loading...</h3>
-          <p>
-            Check <a href="https://fxregimelab.substack.com" target="_blank" rel="noopener">fxregimelab.substack.com</a> directly
-          </p>
+        <div style="text-align: center; padding: 40px 0;">
+          <p style="
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            color: #4B5563;
+            margin-bottom: 20px;
+          ">Posts are live on Substack.</p>
+          <a href="https://fxregimelab.substack.com"
+            target="_blank"
+            rel="noopener"
+            style="
+              display: inline-block;
+              padding: 12px 28px;
+              border: 2px solid #1B3A6B;
+              color: #1B3A6B;
+              font-family: 'DM Sans', sans-serif;
+              font-size: 14px;
+              font-weight: 600;
+              border-radius: 6px;
+              text-decoration: none;
+            ">
+            Read on Substack →
+          </a>
         </div>
       `;
     }
 
-    function renderPosts(container, posts) {
+    function renderPosts(posts) {
+      const container = document.getElementById("posts-container");
+      if (!container) return;
       const html = posts.map((post, i) => {
         const link = normalizeLink(post.link);
-        const title = stripHTML(post.title || "Untitled post");
+        const title = stripHTML(post.title || "Untitled");
         const excerpt = truncate(post.description || post.content || "");
         const category = stripHTML(post.category || "").trim();
-        const categoryTag = category
-          ? `<span class="post-category">${category}</span>`
-          : "";
+        const categoryTag = category ? `<span class="post-category">${category}</span>` : "";
         return `
           <a class="post-card" href="${link}" target="_blank" rel="noopener" style="animation-delay:${i * 100}ms">
             <div class="post-date-row">
@@ -511,19 +561,43 @@ All posts free to read.</p>
       container.innerHTML = html;
     }
 
-    async function initNewsletter() {
-      const list = document.getElementById("newsletter-list");
-      if (!list) return;
-      renderSkeletons(list);
-      const posts = await fetchSubstackPosts();
-      if (!posts.length) {
-        renderEmpty(list);
+    async function fetchSubstackPosts() {
+      showLoadingSkeletons();
+
+      const rssText = await fetchSubstackRSS();
+      if (!rssText) {
+        showStaticFallback();
         return;
       }
-      renderPosts(list, posts);
+
+      try {
+        const xml = new DOMParser().parseFromString(rssText, "text/xml");
+        const parseError = xml.querySelector("parsererror");
+        if (parseError) throw new Error("Invalid XML");
+
+        const items = xml.querySelectorAll("item");
+        if (items.length === 0) {
+          showStaticFallback();
+          return;
+        }
+
+        const posts = Array.from(items).map((item) => ({
+          title: item.querySelector("title")?.textContent?.trim() || "Untitled",
+          link: item.querySelector("link")?.textContent?.trim() || "#",
+          pubDate: item.querySelector("pubDate")?.textContent || "",
+          description: item.querySelector("description")?.textContent || "",
+          content: item.querySelector("content\\:encoded, encoded")?.textContent || "",
+          category: item.querySelector("category")?.textContent || "",
+        }));
+
+        renderPosts(posts);
+      } catch (e) {
+        console.error("[Newsletter] XML parse failed:", e);
+        showStaticFallback();
+      }
     }
 
-    initNewsletter();
+    fetchSubstackPosts();
   </script>
 </body>
 </html>

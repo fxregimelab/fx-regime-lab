@@ -11,6 +11,28 @@
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/substack-rss") {
+      try {
+        const rssResp = await fetch("https://fxregimelab.substack.com/feed", {
+          headers: {
+            "User-Agent": "FXRegimeLab/1.0",
+            "Accept": "application/rss+xml, application/xml",
+          },
+          cf: { cacheTtl: 3600 },
+        });
+        const rssText = await rssResp.text();
+        return new Response(rssText, {
+          headers: {
+            "Content-Type": "application/xml",
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "public, max-age=3600",
+          },
+        });
+      } catch (e) {
+        return new Response("RSS fetch failed", { status: 502 });
+      }
+    }
+
     const path = url.pathname.replace(/\/+$/, "") || "/";
     if (path === "/assets/supabase-env.js") {
       const supabaseUrl = env.SUPABASE_URL ?? "";
