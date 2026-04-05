@@ -250,7 +250,8 @@
 
   var rafId = null;
   function introActive() {
-    return document.documentElement.classList.contains('landing-intro-active');
+    var body = document.body;
+    return !!(body && body.classList.contains('intro-active'));
   }
 
   function frame(now) {
@@ -347,6 +348,9 @@
 
   var introObserver = new MutationObserver(syncIntroPause);
   introObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  if (document.body) {
+    introObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
 
   if (reduceMotion) {
     drawStaticGrid();
