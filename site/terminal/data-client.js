@@ -49,9 +49,23 @@
     },
   };
 
+  var _supabaseClient = null;
+
   function metaContent(name) {
     var m = document.querySelector('meta[name="' + name + '"]');
     return m && m.getAttribute('content') ? String(m.getAttribute('content')).trim() : '';
+  }
+
+  function isLocalDev() {
+    var h = (global.location && global.location.hostname) || '';
+    return h === 'localhost' || h === '127.0.0.1' || (h.indexOf && h.indexOf('.local') !== -1);
+  }
+
+  function normalisePair(pair) {
+    return String(pair || '')
+      .trim()
+      .toUpperCase()
+      .replace(/\//g, '');
   }
 
   function getSupabaseClient() {
@@ -63,12 +77,19 @@
       metaContent('supabase-anon-key');
     if (!url || !key || !global.supabase || typeof global.supabase.createClient !== 'function') {
       if (typeof console !== 'undefined' && console.warn) {
-        console.warn('[DataClient] Supabase not available — using CSV fallback where applicable');
+        console.warn('[DataClient] Supabase credentials not available');
       }
       return null;
     }
+    if (_supabaseClient) return _supabaseClient;
     try {
-      return global.supabase.createClient(url, key);
+      _supabaseClient = global.supabase.createClient(url, key, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      });
+      return _supabaseClient;
     } catch (e) {
       if (typeof console !== 'undefined' && console.error) console.error('FXRLData: createClient failed', e);
       return null;
@@ -84,6 +105,45 @@
     }
     var t1 = new Date(iso).getTime();
     return isFinite(t1) ? t1 : NaN;
+  }
+
+  function buildTimeSeriesResult(data, columns) {
+    var result = {};
+    var cols = columns || [];
+    cols.forEach(function (col) {
+      result[col] = [];
+    });
+    for (var i = 0; i < (data || []).length; i++) {
+      var row = data[i];
+      var tx = tsFromDate(row.date);
+      if (!isFinite(tx)) continue;
+      cols.forEach(function (col) {
+        var v = row[col];
+        if (v == null || v === '') return;
+        var n = typeof v === 'number' ? v : parseFloat(v);
+        if (isFinite(n)) result[col].push([tx, n]);
+      });
+    }
+    return result;
+  }
+
+  function buildMasterRowsFromSignals(sbRows, pair) {
+    var p = normalisePair(pair);
+    var cmap = SIGNAL_TO_CSV[p];
+    if (!cmap || !sbRows || !sbRows.length) return [];
+    var out = [];
+    for (var i = 0; i < sbRows.length; i++) {
+      var r = sbRows[i];
+      var row = { date: String(r.date || '').slice(0, 10) };
+      Object.keys(cmap).forEach(function (dbKey) {
+        var csvKey = cmap[dbKey];
+        var v = r[dbKey];
+        if (v == null || v === '') return;
+        row[csvKey] = typeof v === 'number' ? String(v) : String(v);
+      });
+      out.push(row);
+    }
+    return out;
   }
 
   function num(x) {
@@ -194,6 +254,12 @@
    * @returns {Promise<Record<string, [number, number][]>>}
    */
   function fetchSignalsFromCSV(pair, dbColumns, startDate) {
+    if (!isLocalDev()) {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[DataClient] CSV not available on production');
+      }
+      return Promise.resolve(null);
+    }
     var start = startDate || '2020-01-01';
     var map = SIGNAL_TO_CSV[pair] || {};
     return fetchTextCached(MASTER_CSV).then(function (text) {
@@ -220,6 +286,27 @@
     });
   }
 
+  function emptyColsObject(cols) {
+    var empty = {};
+    cols.forEach(function (c) {
+      empty[c] = [];
+    });
+    return empty;
+  }
+
+  function tryCsvFallback(np, cols, start, cacheKey) {
+    if (!isLocalDev()) {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[DataClient] No data source available (CSV disabled on production)');
+      }
+      return Promise.resolve(emptyColsObject(cols));
+    }
+    return fetchSignalsFromCSV(np, cols, start).then(function (csvOut) {
+      if (csvOut) setCached(cacheKey, csvOut);
+      return csvOut || emptyColsObject(cols);
+    });
+  }
+
   /**
    * @param {string} pair
    * @param {string[]} dbColumns
@@ -230,7 +317,8 @@
     var cols = (dbColumns || []).filter(function (c, i, a) {
       return c && a.indexOf(c) === i;
     });
-    var cacheKey = 'fxrl:signals:' + pair + ':' + cols.join(',') + ':' + start;
+    var np = normalisePair(pair);
+    var cacheKey = 'fxrl:signals:' + np + ':' + cols.join(',') + ':' + start;
     var cached = getCached(cacheKey);
     if (cached) {
       return Promise.resolve(cached);
@@ -245,43 +333,36 @@
       return client
         .from('signals')
         .select(sel.join(','))
-        .eq('pair', pair)
+        .eq('pair', np)
         .gte('date', start)
         .order('date', { ascending: true })
         .then(function (res) {
-          if (res.error) throw res.error;
-          var data = res.data || [];
-          if (!data.length) return fetchSignalsFromCSV(pair, cols, start);
-          var out = {};
-          cols.forEach(function (col) {
-            out[col] = [];
-          });
-          for (var i = 0; i < data.length; i++) {
-            var r = data[i];
-            var tx = tsFromDate(r.date);
-            if (!isFinite(tx)) continue;
-            cols.forEach(function (col) {
-              var v = r[col];
-              if (v == null || v === '') return;
-              var n = typeof v === 'number' ? v : parseFloat(v);
-              if (!isFinite(n)) return;
-              out[col].push([tx, n]);
-            });
+          if (res.error) {
+            if (typeof console !== 'undefined' && console.error) {
+              console.error('[DataClient] Supabase error:', res.error.message || String(res.error));
+            }
+            return tryCsvFallback(np, cols, start, cacheKey);
           }
-          setCached(cacheKey, out);
-          return out;
+          var data = res.data || [];
+          if (data.length > 0) {
+            var out = buildTimeSeriesResult(data, cols);
+            setCached(cacheKey, out);
+            return out;
+          }
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[DataClient] No data for ' + np);
+          }
+          return tryCsvFallback(np, cols, start, cacheKey);
         })
         .catch(function (e) {
-          if (typeof console !== 'undefined' && console.error) console.error('[DataClient] Supabase fetch failed:', e);
-          return fetchSignalsFromCSV(pair, cols, start);
+          if (typeof console !== 'undefined' && console.error) {
+            console.error('[DataClient] Supabase fetch threw:', e && e.message ? e.message : e);
+          }
+          return tryCsvFallback(np, cols, start, cacheKey);
         });
     }
-    return fetchSignalsFromCSV(pair, cols, start).catch(function () {
-      var empty = {};
-      cols.forEach(function (c) {
-        empty[c] = [];
-      });
-      return empty;
+    return tryCsvFallback(np, cols, start, cacheKey).catch(function () {
+      return emptyColsObject(cols);
     });
   }
 
@@ -295,7 +376,8 @@
     var cols = (dbColumns || []).filter(function (c, i, a) {
       return c && a.indexOf(c) === i;
     });
-    var key = pair + ':' + cols.join(',') + ':' + start;
+    var np = normalisePair(pair);
+    var key = np + ':' + cols.join(',') + ':' + start;
     if (_inFlightSignals.has(key)) return _inFlightSignals.get(key);
 
     var promise = _fetchSignalsImpl(pair, cols, start).finally(function () {
@@ -313,10 +395,11 @@
   function fetchSignalRows(pair, startDate) {
     var client = getSupabaseClient();
     if (!client) return Promise.resolve(null);
+    var np = normalisePair(pair);
     return client
       .from('signals')
       .select('*')
-      .eq('pair', pair)
+      .eq('pair', np)
       .gte('date', startDate || '2020-01-01')
       .order('date', { ascending: true })
       .then(function (res) {
@@ -330,10 +413,11 @@
   }
 
   function fetchFromSupabase(pair, client, startDate) {
+    var np = normalisePair(pair);
     return client
       .from('signals')
       .select('*')
-      .eq('pair', pair)
+      .eq('pair', np)
       .gte('date', startDate || '2020-01-01')
       .order('date', { ascending: true })
       .then(function (res) {
@@ -343,7 +427,9 @@
   }
 
   function fetchFromCSV(pair, startDate) {
+    if (!isLocalDev()) return Promise.resolve(null);
     var start = startDate || '2020-01-01';
+    var np = normalisePair(pair);
     return fetchTextCached(MASTER_CSV).then(function (text) {
       var parsed = parseMasterCsv(text);
       return (parsed.rows || []).filter(function (row) {
@@ -354,12 +440,13 @@
   }
 
   function loadData(pair, startDate) {
+    var np = normalisePair(pair);
     var client = getSupabaseClient();
     if (client) {
-      return fetchFromSupabase(pair, client, startDate)
+      return fetchFromSupabase(np, client, startDate)
         .then(function (data) {
           if (data && data.length) return data;
-          return fetchFromCSV(pair, startDate)
+          return fetchFromCSV(np, startDate)
             .then(function (csvRows) {
               return csvRows && csvRows.length ? csvRows : null;
             })
@@ -374,7 +461,7 @@
           if (typeof console !== 'undefined' && console.warn) {
             console.warn('[DataClient] Supabase failed, trying CSV:', e);
           }
-          return fetchFromCSV(pair, startDate)
+          return fetchFromCSV(np, startDate)
             .then(function (csvRows) {
               return csvRows && csvRows.length ? csvRows : null;
             })
@@ -386,7 +473,7 @@
             });
         });
     }
-    return fetchFromCSV(pair, startDate)
+    return fetchFromCSV(np, startDate)
       .then(function (csvRows) {
         return csvRows && csvRows.length ? csvRows : null;
       })
@@ -400,30 +487,33 @@
 
   function loadPairDataset(pair, startDate) {
     var start = startDate || '2020-01-01';
+    var np = normalisePair(pair);
     var client = getSupabaseClient();
     var supabaseRowsP = client
-      ? fetchFromSupabase(pair, client, start).catch(function (e) {
+      ? fetchFromSupabase(np, client, start).catch(function (e) {
           if (typeof console !== 'undefined' && console.warn) {
-            console.warn('[DataClient] Supabase failed, trying CSV:', e);
+            console.warn('[DataClient] Supabase failed:', e);
           }
           return null;
         })
       : Promise.resolve(null);
-    return Promise.all([
-      supabaseRowsP,
-      fetchTextCached(MASTER_CSV).catch(function (e) {
-        if (typeof console !== 'undefined' && console.warn) {
-          console.warn('[DataClient] CSV failed:', e && e.message ? e.message : e);
-        }
-        return null;
-      }),
-      fetchTextCached(COT_CSV).catch(function (e) {
-        if (typeof console !== 'undefined' && console.warn) {
-          console.warn('[DataClient] CSV failed:', e && e.message ? e.message : e);
-        }
-        return null;
-      }),
-    ]).then(function (pack) {
+    var masterP = isLocalDev()
+      ? fetchTextCached(MASTER_CSV).catch(function (e) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[DataClient] CSV failed:', e && e.message ? e.message : e);
+          }
+          return null;
+        })
+      : Promise.resolve(null);
+    var cotP = isLocalDev()
+      ? fetchTextCached(COT_CSV).catch(function (e) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[DataClient] CSV failed:', e && e.message ? e.message : e);
+          }
+          return null;
+        })
+      : Promise.resolve(null);
+    return Promise.all([supabaseRowsP, masterP, cotP]).then(function (pack) {
       var sbRows = pack[0];
       var masterText = pack[1];
       var cotText = pack[2];
@@ -439,11 +529,15 @@
         }
       }
       if (latestDate) setDataDate(latestDate);
+      var dataSource = 'none';
+      if (masterText) dataSource = 'csv';
+      if (sbRows && sbRows.length) dataSource = masterText ? 'hybrid' : 'supabase';
       return {
         sbRows: sbRows && sbRows.length ? sbRows : null,
         masterText: masterText,
         cotText: cotText,
         latestDate: latestDate,
+        dataSource: dataSource,
       };
     });
   }
@@ -479,13 +573,14 @@
     var n = Math.max(1, Math.min(500, days || 30));
     var client = getSupabaseClient();
     if (!client) return Promise.resolve([]);
+    var np = normalisePair(pair);
     var start = new Date();
     start.setDate(start.getDate() - n);
     var startStr = start.toISOString().split('T')[0];
     return client
       .from('regime_calls')
       .select('date, regime, confidence, primary_driver')
-      .eq('pair', pair)
+      .eq('pair', np)
       .gte('date', startStr)
       .order('date', { ascending: false })
       .limit(n)
@@ -539,6 +634,7 @@
   function fetchValidationLog(pair, days) {
     var client = getSupabaseClient();
     if (!client) return Promise.resolve([]);
+    var np = normalisePair(pair);
     var n = Math.max(1, Math.min(500, days || 30));
     var start = new Date();
     start.setDate(start.getDate() - n);
@@ -548,7 +644,7 @@
       .select(
         'date,pair,predicted_direction,predicted_regime,confidence,actual_direction,actual_return_1d,correct_1d'
       )
-      .eq('pair', pair)
+      .eq('pair', np)
       .gte('date', startStr)
       .order('date', { ascending: false })
       .then(function (res) {
@@ -582,6 +678,7 @@
   }
 
   function latestMasterRow() {
+    if (!isLocalDev()) return Promise.resolve(null);
     return fetchTextCached(MASTER_CSV)
       .then(parseMasterCsv)
       .then(function (p) {
@@ -941,6 +1038,9 @@
 
   global.FXRLData = {
     getSupabaseClient: getSupabaseClient,
+    isLocalDev: isLocalDev,
+    normalisePair: normalisePair,
+    buildMasterRowsFromSignals: buildMasterRowsFromSignals,
     fetchSignals: fetchSignals,
     fetchSignalsFromCSV: fetchSignalsFromCSV,
     fetchRegimeCalls: fetchRegimeCalls,
@@ -989,9 +1089,20 @@
       }
 
       try {
-        var csvResp = await fetch('/data/latest_with_cot.csv');
-        var len = csvResp.headers.get('content-length');
-        console.info('CSV fallback /data/latest_with_cot.csv:', csvResp.ok ? 'OK (' + (len || 'unknown') + ' bytes)' : 'FAIL (' + csvResp.status + ')');
+        var isLoc =
+          global.FXRLData && typeof global.FXRLData.isLocalDev === 'function' && global.FXRLData.isLocalDev();
+        if (!isLoc) {
+          console.info(
+            'CSV fallback /data/latest_with_cot.csv: SKIP (production — CSV not in repo deploy; use Supabase)'
+          );
+        } else {
+          var csvResp = await fetch('/data/latest_with_cot.csv');
+          var len = csvResp.headers.get('content-length');
+          console.info(
+            'CSV fallback /data/latest_with_cot.csv:',
+            csvResp.ok ? 'OK (' + (len || 'unknown') + ' bytes)' : 'FAIL (' + csvResp.status + ')'
+          );
+        }
       } catch (e2) {
         console.info('CSV fallback: FAILED -', e2 && e2.message ? e2.message : e2);
       }

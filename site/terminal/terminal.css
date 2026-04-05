@@ -1505,6 +1505,13 @@ body.theme-terminal a:hover {
   flex-shrink: 0;
 }
 
+.pair-data-status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .term-pair-head__badge {
   font-size: 11px;
   font-weight: 700;

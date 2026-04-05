@@ -29,19 +29,22 @@ export default {
       });
     }
 
-    if (
-      (path.startsWith("/data/") && path.endsWith(".csv")) ||
-      (path.startsWith("/static/") && path.endsWith(".json"))
-    ) {
+    if (path.startsWith("/data/") || path.startsWith("/static/")) {
       const response = await env.ASSETS.fetch(request);
-      const headers = new Headers(response.headers);
-      headers.set("Access-Control-Allow-Origin", "*");
-      headers.set("Cache-Control", "public, max-age=3600");
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers,
-      });
+      if (
+        (path.startsWith("/data/") && path.endsWith(".csv")) ||
+        (path.startsWith("/static/") && path.endsWith(".json"))
+      ) {
+        const headers = new Headers(response.headers);
+        headers.set("Access-Control-Allow-Origin", "*");
+        headers.set("Cache-Control", "public, max-age=3600");
+        return new Response(response.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers,
+        });
+      }
+      return response;
     }
 
     return env.ASSETS.fetch(request);

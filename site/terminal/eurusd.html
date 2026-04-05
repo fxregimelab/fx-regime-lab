@@ -74,6 +74,7 @@
         <span class="term-pair-head__12m" id="hdr-12m">12M —</span>
       </div>
       <div class="term-pair-head__right">
+        <span class="pair-data-status" aria-live="polite"></span>
         <span class="term-pair-head__badge term-pair-head__badge--neutral" id="hdr-regime-badge">—</span>
         <span class="term-pair-head__score" id="hdr-score">—</span>
         <span class="term-pair-head__updated" id="hdr-updated">Last updated —</span>
@@ -1217,6 +1218,19 @@
     );
   }
 
+  function showDataStatus(source, latestDate) {
+    var statusEl = document.querySelector('.pair-data-status');
+    if (!statusEl) return;
+    var s =
+      source === 'csv'
+        ? 'CSV (local)'
+        : source === 'supabase' || source === 'hybrid'
+          ? 'Supabase'
+          : '—';
+    statusEl.textContent = latestDate ? s + ' · ' + latestDate : s;
+    statusEl.style.color = source === 'csv' ? 'var(--text-muted)' : 'var(--bullish)';
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     var PAIR = 'EURUSD';
     var START = '2020-01-01';
@@ -1226,18 +1240,31 @@
         : Promise.resolve(null);
     datasetP
       .then(function (payload) {
-        if (!payload || !payload.masterText || !payload.cotText) {
+        if (!payload) {
           throw new Error('pair dataset unavailable');
         }
-        var masterParsed = parseCsv(payload.masterText);
-        if (payload.sbRows && payload.sbRows.length && window.FXRLData && window.FXRLData.patchMasterRowsFromSignals) {
-          window.FXRLData.patchMasterRowsFromSignals(masterParsed.rows, payload.sbRows, PAIR);
+        var masterParsed = null;
+        var cotParsed = { rows: [] };
+        if (payload.masterText) {
+          masterParsed = parseCsv(payload.masterText);
+          if (payload.sbRows && payload.sbRows.length && window.FXRLData && window.FXRLData.patchMasterRowsFromSignals) {
+            window.FXRLData.patchMasterRowsFromSignals(masterParsed.rows, payload.sbRows, PAIR);
+          }
+        } else if (payload.sbRows && payload.sbRows.length && window.FXRLData && window.FXRLData.buildMasterRowsFromSignals) {
+          masterParsed = { rows: window.FXRLData.buildMasterRowsFromSignals(payload.sbRows, PAIR) };
+        }
+        if (!masterParsed || !masterParsed.rows || !masterParsed.rows.length) {
+          throw new Error('pair dataset unavailable');
+        }
+        if (payload.cotText) {
+          cotParsed = parseCsv(payload.cotText);
         }
         if (payload.latestDate && window.FXRLData && typeof window.FXRLData.setDataDate === 'function') {
           window.FXRLData.setDataDate(payload.latestDate);
         }
-        hydrateData(masterParsed, parseCsv(payload.cotText));
+        hydrateData(masterParsed, cotParsed);
         populateDom();
+        showDataStatus(payload.dataSource || 'none', (masterParsed.rows[masterParsed.rows.length - 1] || {}).date);
         if (window.FXRLTerminalMotion && typeof window.FXRLTerminalMotion.initPageMotion === 'function') {
           window.FXRLTerminalMotion.initPageMotion(document.getElementById('term-pair-main'));
         }
