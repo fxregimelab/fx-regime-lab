@@ -687,7 +687,7 @@
           d2.setUTCMonth(d2.getUTCMonth() - 6);
           dateFromB = d2.toISOString().slice(0, 10);
           if (opts.tsEl) {
-            opts.tsEl.textContent = latestDateStr ? 'As of ' + latestDateStr + ' · CSV' : 'Pipeline —';
+            opts.tsEl.textContent = latestDateStr ? 'As of ' + latestDateStr : 'Pipeline —';
           }
           if (opts.onDatesChange) opts.onDatesChange();
         }

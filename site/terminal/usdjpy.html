@@ -49,6 +49,7 @@
       <a class="term-nav__tab" href="/terminal/usdjpy.html" data-path="/terminal/usdjpy">USD/JPY</a>
       <a class="term-nav__tab" href="/terminal/usdinr.html" data-path="/terminal/usdinr">USD/INR</a>
       <a class="term-nav__tab" href="/terminal/chartbuilder.html" data-path="/terminal/chartbuilder">Chart builder</a>
+      <a class="term-nav__tab" href="/terminal/overview.html" data-path="/terminal/overview">Overview</a>
     </nav>
     <div class="term-nav__right">
       <div class="term-nav__live">
@@ -1136,7 +1137,7 @@
     var rg = regimeFromLabel(label);
     rb.className += rg === 'bull' ? 'term-pair-head__badge--bull' : rg === 'bear' ? 'term-pair-head__badge--bear' : 'term-pair-head__badge--neutral';
 
-    document.getElementById('term-pipeline-ts').textContent = LATEST.date ? 'As of ' + LATEST.date + ' · CSV' : 'Pipeline —';
+    document.getElementById('term-pipeline-ts').textContent = LATEST.date ? 'As of ' + LATEST.date : 'Pipeline —';
     var updatedText = LATEST.date ? 'Last updated ' + LATEST.date : 'Last updated —';
     var hdrUpdated = document.getElementById('hdr-updated');
     if (hdrUpdated) hdrUpdated.textContent = updatedText;
@@ -1421,7 +1422,10 @@
           }
           populateDom();
           if (window.FXRLData && typeof window.FXRLData.showPairDataStatus === 'function') {
-            window.FXRLData.showPairDataStatus(payload.dataSource || 'none', payload.latestDate);
+            window.FXRLData.showPairDataStatus(payload.dataSource || 'none', payload.latestDate, null, {
+              supabaseFetchFailed: !!payload.supabaseFetchFailed,
+              supabaseClientMissing: !!payload.supabaseClientMissing,
+            });
           }
           if (window.FXRLTerminalMotion && typeof window.FXRLTerminalMotion.initPageMotion === 'function') {
             window.FXRLTerminalMotion.initPageMotion(document.getElementById('term-pair-main'));

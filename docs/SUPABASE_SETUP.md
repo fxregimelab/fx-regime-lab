@@ -7,6 +7,7 @@ This project expects browser-side read access (anon key) for:
 - `validation_log`
 - `paper_positions`
 - `brief_log`
+- `pipeline_errors` (optional; terminal `checkPipelineErrors` skips quietly if RLS blocks anon)
 
 Run the following SQL manually in the Supabase SQL Editor, **or** run the same query from Cursor using the **Supabase MCP** (`plugin-supabase-supabase`): `list_projects` to resolve `project_id`, then `execute_sql` with the query below. Use `apply_migration` from that MCP for new DDL migrations; ad-hoc checks use `execute_sql`.
 
@@ -17,7 +18,7 @@ SELECT schemaname, tablename, policyname, permissive, roles, cmd
 FROM pg_policies
 WHERE tablename IN (
   'signals', 'regime_calls', 'validation_log',
-  'paper_positions', 'brief_log'
+  'paper_positions', 'brief_log', 'pipeline_errors'
 );
 ```
 
@@ -51,6 +52,12 @@ CREATE POLICY "anon_read_paper_positions"
 ALTER TABLE brief_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anon_read_brief_log"
   ON brief_log FOR SELECT
+  TO anon
+  USING (true);
+
+ALTER TABLE pipeline_errors ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anon_read_pipeline_errors"
+  ON pipeline_errors FOR SELECT
   TO anon
   USING (true);
 ```

@@ -10,6 +10,43 @@
     options = options || {};
     var chartInits = options.chartInits || {};
     var sections = root.querySelectorAll('[data-row-key]');
+    function seriesHasPoints(data) {
+      return !!(data && data.length);
+    }
+
+    function markChartEmptyState(chart, mount) {
+      if (!chart || !mount) return;
+      var opt;
+      try {
+        opt = chart.getOption();
+      } catch (_e) {
+        return;
+      }
+      var series = opt && opt.series;
+      if (!series || !series.length) return;
+      var hasPoints = false;
+      for (var i = 0; i < series.length; i++) {
+        if (seriesHasPoints(series[i].data)) {
+          hasPoints = true;
+          break;
+        }
+      }
+      var prev = mount.querySelector('.term-chart-empty-msg');
+      if (hasPoints) {
+        if (prev) prev.remove();
+        mount.classList.remove('is-chart-empty');
+        return;
+      }
+      mount.classList.add('is-chart-empty');
+      if (prev) return;
+      var p = document.createElement('p');
+      p.className = 'term-chart-empty-msg';
+      p.setAttribute('role', 'status');
+      p.textContent =
+        'No series in this range. Data follows the daily pipeline (~23:00 UTC); see methodology for definitions.';
+      mount.appendChild(p);
+    }
+
     function initChart(section) {
       if (!section || section._chart) return;
       var key = section.getAttribute('data-row-key') || '';
@@ -22,6 +59,7 @@
       try {
         var chart = factory(mount, section);
         if (!chart) return;
+        markChartEmptyState(chart, mount);
         section._chart = chart;
         if (
           global.TerminalCharts &&
@@ -39,8 +77,13 @@
     function disposeChart(section) {
       if (!section || !section._chart) return;
       try {
-        if (section._chartResizeObserver && typeof section._chartResizeObserver.disconnect === 'function') {
-          section._chartResizeObserver.disconnect();
+        if (section._chartResizeObserver) {
+          if (typeof section._chartResizeObserver._cancelFxrlResize === 'function') {
+            section._chartResizeObserver._cancelFxrlResize();
+          }
+          if (typeof section._chartResizeObserver.disconnect === 'function') {
+            section._chartResizeObserver.disconnect();
+          }
         }
       } catch (_e) {
         /* ignore */
@@ -69,8 +112,8 @@
       });
     }, {
       root: null,
-      threshold: 0,
-      rootMargin: '-50% 0px -50% 0px',
+      threshold: 0.1,
+      rootMargin: '-15% 0px -15% 0px',
     });
 
     forEachNode(sections, function (section) {

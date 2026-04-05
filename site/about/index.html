@@ -15,49 +15,78 @@
     <header class="v2-nav" data-nav-root>
       <a class="v2-nav__brand" href="/">FX Regime Lab</a>
       <ul class="v2-nav__links">
+        <li><a href="/" data-path="/">Home</a></li>
         <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
-        <li><a href="/terminal/" data-path="/terminal/">Terminal</a></li>
-        <li><a href="/brief/" data-path="/brief">Brief</a></li>
+        <li><a href="/terminal/overview.html" data-path="/terminal/overview">Terminal</a></li>
         <li><a href="/performance/" data-path="/performance">Performance</a></li>
-        <li><a href="/about/" data-path="/about">About</a></li>
-        <li><a href="/methodology/" data-path="/methodology">Methodology</a></li>
+        <li><a href="/brief/" data-path="/brief">Brief</a></li>
         <li><a href="/newsletter/" data-path="/newsletter">Newsletter</a></li>
+        <li><a href="/methodology/" data-path="/methodology">Methodology</a></li>
+        <li><a href="/about/" data-path="/about">About</a></li>
       </ul>
       <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu"><span></span><span></span><span></span></button>
     </header>
     <div class="v2-nav__overlay" data-nav-overlay>
+      <a href="/">Home</a>
       <a href="/dashboard/">Dashboard</a>
-      <a href="/terminal/">Terminal</a>
-      <a href="/brief/">Brief</a>
+      <a href="/terminal/overview.html">Terminal</a>
       <a href="/performance/">Performance</a>
-      <a href="/about/">About</a>
-      <a href="/methodology/">Methodology</a>
+      <a href="/brief/">Brief</a>
       <a href="/newsletter/">Newsletter</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/about/">About</a>
     </div>
 
     <main class="page-centered">
       <div data-reveal-stagger="cards" style="width:100%">
-        <p class="label-caps" style="color:var(--text-muted)">About</p>
-        <h1>A public, daily G10 FX regime lab</h1>
+        <p class="label-caps" style="color:var(--text-muted)">About the author</p>
+        <h1>Shreyash Sakhare</h1>
         <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
-          FX Regime Lab publishes a structured read on major dollar pairs and INR: rates, positioning,
-          volatility, and cross-asset context, merged into one dated dataset and a morning brief. The goal
-          is institutional-grade discipline with full transparency—signals you can trace, challenge, and
-          validate yourself.
+          I am an electrical engineering graduate (B.Tech, Pune) building toward a career in <strong style="color:var(--text)">quantamental macro</strong>—the overlap between
+          disciplined, data-backed signals and human judgment about regimes, policy, and risk. FX Regime Lab is my public research stack: a daily pipeline that ingests
+          public market data, merges it into one dated dataset, and publishes regime reads with transparent validation—not as a product pitch, but as a living notebook
+          anyone can inspect and challenge.
         </p>
+
+        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">Mission</h2>
         <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
-          The <a href="/terminal/">terminal</a> is the interactive surface; the <a href="/brief/">HTML brief</a>
-          is the narrative export. Neither output is investment advice or a solicitation. It is research and
-          education only.
+          The mission is simple: <strong style="color:var(--text)">institutional-grade discipline with zero gatekeeping</strong>. Major dollar pairs and INR, rates, positioning,
+          volatility, and cross-asset context—documented sources, logged calls, rolling accuracy. If the framework is wrong, the record should show it. If it is useful,
+          it should be reproducible from the same public inputs.
         </p>
-        <a class="link-primary" href="/methodology/">Read the methodology →</a>
+
+        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">What ships on this site</h2>
+        <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
+          The <a href="/terminal/overview.html">terminal</a> is the interactive surface for depth; the <a href="/brief/">brief</a> and AI article view are narrative exports for a linear read;
+          the <a href="/dashboard/">dashboard</a> is the high-level live snapshot. Together they are research and education only—not investment advice, not a solicitation,
+          and not a promise of performance.
+        </p>
+
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-top:2rem;max-width:42rem;line-height:1.6">
+          For how signals are built and ordered, read the <a href="/methodology/">methodology</a>. For notes and essays, see the <a href="/newsletter/">newsletter</a> and
+          <a href="https://fxregimelab.substack.com" target="_blank" rel="noopener">Substack</a>.
+        </p>
+        <p style="margin-top:1.25rem">
+          <a class="link-primary" href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a>
+          <span style="display:inline-block;width:1.25rem"></span>
+          <a class="link-sec" href="https://linkedin.com/in/shreyash045" target="_blank" rel="noopener">LinkedIn ↗</a>
+        </p>
       </div>
     </main>
 
     <footer class="v2-footer">
       <div class="v2-footer__grid">
         <div><strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong></div>
-        <nav class="v2-footer__nav"><a href="/">Home</a><a href="/dashboard/">Dashboard</a><a href="/terminal/">Terminal</a></nav>
+        <nav class="v2-footer__nav">
+          <a href="/">Home</a>
+          <a href="/dashboard/">Dashboard</a>
+          <a href="/terminal/overview.html">Terminal</a>
+          <a href="/performance/">Performance</a>
+          <a href="/brief/">Brief</a>
+          <a href="/newsletter/">Newsletter</a>
+          <a href="/methodology/">Methodology</a>
+          <a href="/about/">About</a>
+        </nav>
         <div><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a></div>
       </div>
       <p class="v2-footer__rule">© 2026 FX Regime Lab</p>

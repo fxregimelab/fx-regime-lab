@@ -126,12 +126,25 @@
 
   function observeChartResize(container, chart) {
     if (!container || !chart || typeof ResizeObserver !== 'function') return null;
+    var t = 0;
     var ro = new ResizeObserver(function () {
-      if (chart && typeof chart.resize === 'function') {
-        chart.resize();
-      }
+      if (t) global.clearTimeout(t);
+      t = global.setTimeout(function () {
+        t = 0;
+        if (chart && typeof chart.resize === 'function') {
+          try {
+            chart.resize();
+          } catch (_e) {
+            /* disposed */
+          }
+        }
+      }, 120);
     });
     ro.observe(container);
+    ro._cancelFxrlResize = function () {
+      if (t) global.clearTimeout(t);
+      t = 0;
+    };
     return ro;
   }
 
