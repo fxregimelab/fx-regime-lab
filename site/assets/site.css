@@ -155,10 +155,23 @@ body.nav-open {
   letter-spacing: -0.02em;
 }
 
-.v2-nav__brand img {
-  height: 32px;
-  width: auto;
+.v2-nav__mark-slot {
+  width: 30px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.v2-nav__mark-slot svg {
+  width: 30px;
+  height: auto;
   display: block;
+}
+
+.v2-nav__word {
+  line-height: 1;
 }
 
 .v2-nav__links {
