@@ -182,9 +182,13 @@
       font-family: "JetBrains Mono", monospace;
     }
 
-    .chart-canvas {
+    .chart-canvas-host {
+      position: relative;
       width: 100%;
       height: 200px;
+    }
+
+    .chart-canvas-host canvas {
       display: block;
     }
 
@@ -314,24 +318,26 @@
     <header class="v2-nav" data-nav-root>
       <a class="v2-nav__brand" href="/">FX Regime Lab</a>
       <ul class="v2-nav__links">
+        <li><a href="/" data-path="/">Home</a></li>
         <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
-        <li><a href="/terminal/" data-path="/terminal/">Terminal</a></li>
-        <li><a href="/brief/" data-path="/brief">Brief</a></li>
+        <li><a href="/terminal/overview.html" data-path="/terminal/overview">Terminal</a></li>
         <li><a href="/performance/" data-path="/performance">Performance</a></li>
-        <li><a href="/about/" data-path="/about">About</a></li>
+        <li><a href="/brief/" data-path="/brief">Brief</a></li>
+        <li><a href="/newsletter/" data-path="/newsletter">Newsletter</a></li>
         <li><a href="/methodology/" data-path="/methodology">Methodology</a></li>
-        <li><a href="/newsletter" data-path="/newsletter">Newsletter</a></li>
+        <li><a href="/about/" data-path="/about">About</a></li>
       </ul>
       <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu"><span></span><span></span><span></span></button>
     </header>
     <div class="v2-nav__overlay" data-nav-overlay>
+      <a href="/">Home</a>
       <a href="/dashboard/">Dashboard</a>
-      <a href="/terminal/">Terminal</a>
-      <a href="/brief/">Brief</a>
+      <a href="/terminal/overview.html">Terminal</a>
       <a href="/performance/">Performance</a>
-      <a href="/about/">About</a>
+      <a href="/brief/">Brief</a>
+      <a href="/newsletter/">Newsletter</a>
       <a href="/methodology/">Methodology</a>
-      <a href="/newsletter">Newsletter</a>
+      <a href="/about/">About</a>
     </div>
 
     <main class="brief-grid">
@@ -411,12 +417,12 @@
       <nav class="v2-footer__nav">
         <a href="/">Home</a>
         <a href="/dashboard/">Dashboard</a>
-        <a href="/terminal/">Terminal</a>
-        <a href="/brief/">Brief</a>
+        <a href="/terminal/overview.html">Terminal</a>
         <a href="/performance/">Performance</a>
-        <a href="/about/">About</a>
+        <a href="/brief/">Brief</a>
+        <a href="/newsletter/">Newsletter</a>
         <a href="/methodology/">Methodology</a>
-        <a href="/newsletter">Newsletter</a>
+        <a href="/about/">About</a>
       </nav>
     </div>
     <p class="v2-footer__rule">© 2026 FX Regime Lab · Built by Shreyash Sakhare</p>
@@ -537,10 +543,12 @@
       const title = document.createElement("p");
       title.className = "chart-title";
       title.textContent = data.title;
+      const host = document.createElement("div");
+      host.className = "chart-canvas-host";
       const canvas = document.createElement("canvas");
-      canvas.className = "chart-canvas";
+      host.appendChild(canvas);
       card.appendChild(title);
-      card.appendChild(canvas);
+      card.appendChild(host);
       container.appendChild(card);
 
       const datasets = [
@@ -570,6 +578,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          resizeDelay: 50,
           plugins: {
             legend: { display: false },
             tooltip: { mode: "index", intersect: false },
@@ -651,6 +660,12 @@
       return response.json();
     }
 
+    async function fetchJsonOptional(url) {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) return null;
+      return response.json();
+    }
+
     async function fetchCsvRows() {
       try {
         const response = await fetch("/data/latest_with_cot.csv", { cache: "no-store" });
@@ -662,23 +677,24 @@
       }
     }
 
-    function ymdFromDate(date) {
-      return date.toISOString().slice(0, 10).replace(/-/g, "");
+    function slugFromArticleDate(latestArticle) {
+      if (!latestArticle || !latestArticle.date) return "";
+      return String(latestArticle.date).replace(/-/g, "");
     }
 
-    async function loadArchiveEntries() {
+    async function loadArchiveEntries(latestArticle) {
+      const manifest = await fetchJsonOptional("/data/ai_article_archives.json");
+      if (!manifest || !Array.isArray(manifest.slugs)) return [];
+      const latestSlug = slugFromArticleDate(latestArticle);
       const entries = [];
-      const today = new Date();
-      today.setUTCHours(0, 0, 0, 0);
-      for (let i = 0; i < 7; i += 1) {
-        const d = new Date(today);
-        d.setUTCDate(today.getUTCDate() - i);
-        const slug = ymdFromDate(d);
+      for (let i = 0; i < manifest.slugs.length; i += 1) {
+        const slug = manifest.slugs[i];
+        if (slug === latestSlug) continue;
         try {
           const data = await fetchJson("/data/ai_article_" + slug + ".json");
           entries.push({ slug, data });
         } catch (_error) {
-          // skip missing archive files
+          // stale manifest entry or deploy gap
         }
       }
       return entries;
@@ -710,7 +726,7 @@
         csvRows = await fetchCsvRows();
         const latestArticle = await fetchJson("/data/ai_article.json");
         renderArticle(latestArticle);
-        const archiveEntries = await loadArchiveEntries();
+        const archiveEntries = await loadArchiveEntries(latestArticle);
         renderArchive(archiveEntries, latestArticle);
         loading.style.display = "none";
       } catch (_error) {

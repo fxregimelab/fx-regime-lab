@@ -38,6 +38,7 @@ _DATA_FILES = (
 _AI_ARCHIVE_PREFIX = "ai_article_"
 _AI_ARCHIVE_SUFFIX = ".json"
 _AI_ARCHIVE_KEEP = 30
+_AI_ARCHIVES_MANIFEST = "ai_article_archives.json"
 
 def _latest_brief_path() -> str | None:
     if not os.path.isdir(BRIEFS):
@@ -141,6 +142,26 @@ def _sync_ai_article_archive() -> None:
         print(f"Pruned old archive file: {path}")
 
 
+def _write_ai_article_archives_manifest() -> None:
+    """List dated ai_article_YYYYMMDD.json files for the brief page (no blind 404 probes)."""
+    os.makedirs(OUT_DATA, exist_ok=True)
+    slugs: list[str] = []
+    for name in os.listdir(OUT_DATA):
+        if not name.startswith(_AI_ARCHIVE_PREFIX) or not name.endswith(_AI_ARCHIVE_SUFFIX):
+            continue
+        token = name[len(_AI_ARCHIVE_PREFIX):-len(_AI_ARCHIVE_SUFFIX)]
+        if len(token) == 8 and token.isdigit():
+            slugs.append(token)
+    slugs.sort(reverse=True)
+    slugs = slugs[:_AI_ARCHIVE_KEEP]
+    manifest_path = os.path.join(OUT_DATA, _AI_ARCHIVES_MANIFEST)
+    payload = {"slugs": slugs}
+    with open(manifest_path, "w", encoding="utf-8") as fh:
+        json.dump(payload, fh, indent=2)
+        fh.write("\n")
+    print(f"Wrote {manifest_path} ({len(slugs)} archive slug(s))")
+
+
 def main() -> int:
     os.chdir(ROOT)
     brief_path = _latest_brief_path()
@@ -181,6 +202,7 @@ def main() -> int:
         else:
             print(f"WARN: skip data/{name} (not found — run pipeline first)")
     _sync_ai_article_archive()
+    _write_ai_article_archives_manifest()
     return 0
 
 

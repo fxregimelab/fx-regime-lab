@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Terminal — FX Regime Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/site.css" />
+</head>
+<body class="theme-light">
+  <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
+  <div class="v2-wrap">
+    <header class="v2-nav" data-nav-root>
+      <a class="v2-nav__brand" href="/">FX Regime Lab</a>
+      <ul class="v2-nav__links">
+        <li><a href="/" data-path="/">Home</a></li>
+        <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
+        <li><a href="/terminal/overview.html" data-path="/terminal/overview">Terminal</a></li>
+        <li><a href="/performance/" data-path="/performance">Performance</a></li>
+        <li><a href="/brief/" data-path="/brief">Brief</a></li>
+        <li><a href="/newsletter/" data-path="/newsletter">Newsletter</a></li>
+        <li><a href="/methodology/" data-path="/methodology">Methodology</a></li>
+        <li><a href="/about/" data-path="/about">About</a></li>
+      </ul>
+      <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu"><span></span><span></span><span></span></button>
+    </header>
+    <div class="v2-nav__overlay" data-nav-overlay>
+      <a href="/">Home</a>
+      <a href="/dashboard/">Dashboard</a>
+      <a href="/terminal/overview.html">Terminal</a>
+      <a href="/performance/">Performance</a>
+      <a href="/brief/">Brief</a>
+      <a href="/newsletter/">Newsletter</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/about/">About</a>
+    </div>
+
+    <main class="page-centered">
+      <div data-reveal-stagger="cards" style="width:100%">
+        <p class="label-caps" style="color:var(--text-muted)">Research terminal</p>
+        <h1>Interactive regime depth for every pair</h1>
+        <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
+          The terminal is the live workspace on top of the same daily dataset as the morning brief: rate differentials,
+          CFTC positioning, implied volatility, correlations, and cross-asset context — organised by pair with expandable
+          sections and charts. Use it when you want to drill past the headline narrative and inspect the signals directly.
+        </p>
+
+        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">What you can do</h2>
+        <ul style="color:var(--text-sec);max-width:42rem;line-height:1.7;margin:0;padding-left:1.25rem">
+          <li><strong style="color:var(--text)">Pair desks</strong> — EUR/USD, USD/JPY, and USD/INR pages with regime, drivers, and invalidation-style context.</li>
+          <li><strong style="color:var(--text)">Live charts</strong> — ECharts-backed series aligned to the merged pipeline output (where data is available).</li>
+          <li><strong style="color:var(--text)">Home hub</strong> — snapshot cards, accuracy readouts, and quick jumps into full pair analysis.</li>
+          <li><strong style="color:var(--text)">Chart builder</strong> — experiment with series from the published data slice.</li>
+        </ul>
+
+        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">How it fits the site</h2>
+        <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
+          The <a href="/brief/">HTML brief</a> and AI article view are narrative exports for a linear read. The terminal is for
+          exploration and verification. Neither is investment advice or a solicitation — research and education only.
+        </p>
+
+        <a class="link-primary" href="/terminal/" style="display:inline-block;margin-top:1.5rem">Open Terminal →</a>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-top:1.25rem;max-width:42rem;line-height:1.6">
+          Tip: the <a href="/dashboard/">dashboard</a> uses the same “Open Terminal” entry point once you are ready to leave the high-level overview.
+        </p>
+      </div>
+    </main>
+
+    <footer class="v2-footer">
+      <div class="v2-footer__grid">
+        <div><strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong></div>
+        <nav class="v2-footer__nav">
+          <a href="/">Home</a>
+          <a href="/dashboard/">Dashboard</a>
+          <a href="/terminal/overview.html">Terminal</a>
+          <a href="/performance/">Performance</a>
+          <a href="/brief/">Brief</a>
+          <a href="/newsletter/">Newsletter</a>
+          <a href="/methodology/">Methodology</a>
+          <a href="/about/">About</a>
+        </nav>
+        <div><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a></div>
+      </div>
+      <p class="v2-footer__rule">© 2026 FX Regime Lab</p>
+    </footer>
+  </div>
+  <script src="/assets/theme-switch.js"></script>
+  <script src="/assets/canvas-bg.js"></script>
+  <script src="/assets/nav.js"></script>
+  <script src="/assets/section-reveal.js"></script>
+</body>
+</html>

@@ -11,6 +11,7 @@
     var p = (value || '/').replace(/\/+$/, '') || '/';
     if (p === '/brief/index.html' || p === '/brief/latest.html') return '/brief';
     if (p === '/terminal/index.html') return '/terminal';
+    if (p === '/terminal/overview.html') return '/terminal/overview';
     if (p === '/newsletter/index.html') return '/newsletter';
     return p;
   }
