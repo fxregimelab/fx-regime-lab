@@ -24,6 +24,7 @@
   };
 
   var priceInterval = null;
+  var firstPollTimeout = null;
   var tickerObserver = null;
   var MIN_INTERVAL = 30000; // 30 seconds
   var lastFetch = 0;
@@ -49,6 +50,25 @@
     return d.toISOString().slice(0, 10);
   }
 
+  function fetchJsonWithTimeout(url, timeoutMs) {
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = setTimeout(function () {
+      if (controller) controller.abort();
+    }, timeoutMs || 4000);
+    var options = {
+      headers: { Accept: 'application/json' },
+    };
+    if (controller) options.signal = controller.signal;
+    return fetch(url, options)
+      .then(function (resp) {
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return resp.json();
+      })
+      .finally(function () {
+        clearTimeout(timer);
+      });
+  }
+
   function fetchFrankfurterPair(name) {
     var map = FX_FALLBACK[name];
     if (!map) return Promise.resolve(null);
@@ -57,16 +77,13 @@
     var latestUrl = 'https://api.frankfurter.app/latest?from=' + map.from + '&to=' + map.to;
     var prevUrl = 'https://api.frankfurter.app/' + ymd(yday) + '?from=' + map.from + '&to=' + map.to;
     return Promise.all([
-      fetch(latestUrl, { headers: { Accept: 'application/json' } }),
-      fetch(prevUrl, { headers: { Accept: 'application/json' } }),
+      fetchJsonWithTimeout(latestUrl, 4000).catch(function () {
+        return null;
+      }),
+      fetchJsonWithTimeout(prevUrl, 4000).catch(function () {
+        return null;
+      }),
     ])
-      .then(function (resps) {
-        return Promise.all(
-          resps.map(function (r) {
-            return r.ok ? r.json() : null;
-          })
-        );
-      })
       .then(function (rows) {
         var latest = rows[0];
         var prev = rows[1];
@@ -98,13 +115,7 @@
   }
 
   function fetchYahoo(base, symbol) {
-    return fetch(base + symbol + '?interval=1m&range=1d', {
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(5000),
-    }).then(function (resp) {
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      return resp.json();
-    }).then(parseYahooPrice);
+    return fetchJsonWithTimeout(base + symbol + '?interval=1m&range=1d', 4000).then(parseYahooPrice);
   }
 
   async function fetchPrice(name, symbol) {
@@ -209,12 +220,18 @@
   }
 
   function startPolling() {
+    if (firstPollTimeout) {
+      clearTimeout(firstPollTimeout);
+      firstPollTimeout = null;
+    }
     if (priceInterval) {
       clearInterval(priceInterval);
       priceInterval = null;
     }
     if (document.hidden) return;
-    updateAllPrices();
+    firstPollTimeout = setTimeout(function () {
+      updateAllPrices();
+    }, 2000);
     priceInterval = setInterval(updateAllPrices, 30000);
   }
 

@@ -4,8 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>EUR/USD — Terminal · FX Regime Lab</title>
+  <link rel="preconnect" href="https://weaaacohvzzgkgxzpaee.supabase.co" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://query1.finance.yahoo.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/terminal/terminal.css" />
   <meta name="supabase-url" content="" />
@@ -28,14 +32,14 @@
       DATA.masterRows  = parsed row objects (latest = last)
       DATA.cotRows     = COT weekly rows
   -->
-  <script src="/terminal/utils.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous"></script>
-  <script src="/terminal/echarts-config.js"></script>
-  <script src="/terminal/data-client.js"></script>
-  <script src="/assets/theme-switch.js" defer></script>
+  <script src="/terminal/utils.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous" defer></script>
+  <script src="/terminal/echarts-config.js" defer></script>
+  <script src="/terminal/data-client.js" defer></script>
   <script src="/terminal/terminal-nav.js" defer></script>
-  <script src="/terminal/terminal-lazy-charts.js"></script>
-  <script src="/terminal/terminal-motion.js"></script>
+  <script src="/terminal/terminal-lazy-charts.js" defer></script>
+  <script src="/terminal/terminal-motion.js" defer></script>
+  <script src="/assets/theme-switch.js" defer></script>
 </head>
 <body class="theme-terminal">
   <a href="#term-pair-main" class="term-sr-only">Skip to content</a>
@@ -1287,14 +1291,31 @@
     statusEl.style.color = source === 'csv' ? 'var(--text-muted)' : 'var(--bullish)';
   }
 
+  function showPairInitError() {
+    var main = document.getElementById('term-pair-main');
+    if (!main) return;
+    main.innerHTML =
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;color:var(--text-secondary);font-family:var(--font-mono);text-align:center;gap:16px;">' +
+      '<div style="font-size:14px;">Terminal initialisation failed.</div>' +
+      '<div style="font-size:12px;color:var(--text-muted);">Check connection and reload.</div>' +
+      '<button onclick="window.location.reload()" style="margin-top:8px;padding:8px 16px;background:transparent;border:1px solid var(--border-default);color:var(--text-primary);cursor:pointer;font-family:var(--font-mono);font-size:12px;border-radius:4px;">Reload</button>' +
+      '</div>';
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    var initTimeout = setTimeout(function () {
+      console.error('[EURUSD] Init timeout - aborting');
+      document.body.classList.add('init-failed');
+      showPairInitError();
+    }, 10000);
     var PAIR = 'EURUSD';
     var START = '2020-01-01';
-    var datasetP =
-      window.FXRLData && typeof window.FXRLData.loadPairDataset === 'function'
-        ? window.FXRLData.loadPairDataset(PAIR, START)
-        : Promise.resolve(null);
-    datasetP
+    setTimeout(function () {
+      var datasetP =
+        window.FXRLData && typeof window.FXRLData.loadPairDataset === 'function'
+          ? window.FXRLData.loadPairDataset(PAIR, START)
+          : Promise.resolve(null);
+      datasetP
       .then(function (payload) {
         if (!payload) {
           throw new Error('pair dataset unavailable');
@@ -1346,9 +1367,12 @@
           if (window.FXRLTerminalMotion && typeof window.FXRLTerminalMotion.initPageMotion === 'function') {
             window.FXRLTerminalMotion.initPageMotion(document.getElementById('term-pair-main'));
           }
-          window.FXRLTerminalLazy.init(document.getElementById('term-sections-root'), {
-            chartInits: chartInits()
-          });
+          setTimeout(function () {
+            window.FXRLTerminalLazy.init(document.getElementById('term-sections-root'), {
+              chartInits: chartInits()
+            });
+          }, 500);
+          clearTimeout(initTimeout);
         });
       })
       .catch(function (e) {
@@ -1359,7 +1383,10 @@
         document.getElementById('hdr-d1').textContent =
           (window.FXRLData && window.FXRLData.DATA_UPDATING_MESSAGE) ||
           'Data updating — pipeline runs daily at 23:00 UTC';
+        clearTimeout(initTimeout);
+        showPairInitError();
       });
+    }, 100);
   });
 })();
   </script>

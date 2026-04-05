@@ -4,8 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Workspace — Terminal · FX Regime Lab</title>
+  <link rel="preconnect" href="https://weaaacohvzzgkgxzpaee.supabase.co" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://query1.finance.yahoo.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/terminal/terminal.css" />
   <style>
@@ -213,14 +217,14 @@
   </style>
   <script src="/assets/supabase-env.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="/terminal/utils.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous"></script>
-  <script src="/assets/theme-switch.js" defer></script>
+  <script src="/terminal/utils.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous" defer></script>
+  <script src="/terminal/echarts-config.js" defer></script>
+  <script src="/terminal/data-client.js" defer></script>
   <script src="/terminal/terminal-nav.js" defer></script>
-  <script src="/terminal/echarts-config.js"></script>
-  <script src="/terminal/data-client.js"></script>
-  <script src="/terminal/chart-builder.js"></script>
-  <script src="/terminal/workspace.js"></script>
+  <script src="/terminal/chart-builder.js" defer></script>
+  <script src="/terminal/workspace.js" defer></script>
+  <script src="/assets/theme-switch.js" defer></script>
 </head>
 <body class="theme-terminal">
   <a href="#ws-app" class="term-sr-only">Skip to workspace</a>

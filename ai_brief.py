@@ -295,6 +295,9 @@ Rules:
 - Maximum 600 words total
 - Never mention "AI" or "generated"
 - Tone: calm, precise, confident
+
+CRITICAL: Respond with a single JSON object only. No markdown fences, no
+preamble or explanation before or after the JSON.
 """
 
 
@@ -388,6 +391,33 @@ def _fallback_article(signal_data, pair_signals):
     }
 
 
+def _parse_claude_json_response(raw_text: str) -> dict:
+    """Parse JSON from model output; tolerate markdown fences and leading prose."""
+    text = (raw_text or "").strip()
+    if not text:
+        raise ValueError("empty model response")
+
+    if text.startswith("```"):
+        lines = text.split("\n")
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+
+    decoder = json.JSONDecoder()
+    start = text.find("{")
+    if start == -1:
+        raise ValueError("no JSON object start in model response")
+    try:
+        parsed, _ = decoder.raw_decode(text, start)
+    except json.JSONDecodeError:
+        raise
+    if not isinstance(parsed, dict):
+        raise ValueError("model JSON root must be an object")
+    return parsed
+
+
 def generate_brief_article(signal_data: dict) -> dict:
     """
     Takes structured signal data and returns
@@ -402,12 +432,12 @@ def generate_brief_article(signal_data: dict) -> dict:
     prompt = build_narrative_prompt(signal_data)
     message = client.messages.create(
         model=_MODEL,
-        max_tokens=2000,
+        max_tokens=4096,
         messages=[{"role": "user", "content": prompt}],
     )
 
     raw_text = message.content[0].text
-    parsed = json.loads(raw_text)
+    parsed = _parse_claude_json_response(raw_text)
     return {
         "date": signal_data.get("date"),
         "headline": _safe_str(parsed.get("headline"), "FX regime briefing"),

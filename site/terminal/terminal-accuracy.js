@@ -87,9 +87,7 @@
       });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAccuracyStrip);
-  } else {
-    initAccuracyStrip();
-  }
+  global.FXRLTerminalAccuracy = {
+    init: initAccuracyStrip,
+  };
 })(typeof window !== 'undefined' ? window : this);

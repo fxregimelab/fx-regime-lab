@@ -4,8 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Terminal — FX Regime Lab</title>
+  <link rel="preconnect" href="https://weaaacohvzzgkgxzpaee.supabase.co" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://query1.finance.yahoo.com" />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/terminal/terminal.css" />
   <meta name="supabase-url" content="" />
@@ -38,17 +42,17 @@
       background: #f59e0b;
     }
   </style>
-  <script src="/assets/theme-switch.js" defer></script>
-  <script src="/terminal/terminal-nav.js" defer></script>
-  <script src="/terminal/utils.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous"></script>
+  <script src="/terminal/utils.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous" defer></script>
   <script src="/terminal/echarts-config.js" defer></script>
-  <script src="/terminal/data-client.js"></script>
+  <script src="/terminal/data-client.js" defer></script>
+  <script src="/terminal/terminal-nav.js" defer></script>
   <script src="/terminal/terminal-motion.js" defer></script>
   <script src="/terminal/home-terminal.js" defer></script>
   <script src="/terminal/live-prices.js" defer></script>
   <script src="/terminal/terminal-accuracy.js" defer></script>
   <script src="/terminal/panel.js" defer></script>
+  <script src="/assets/theme-switch.js" defer></script>
 </head>
 <body class="theme-terminal">
   <a href="#term-main" class="term-sr-only">Skip to content</a>
@@ -267,9 +271,44 @@
     </footer>
   </aside>
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      if (window.FXRLData && typeof window.FXRLData.initTerminalHome === 'function') {
-        window.FXRLData.initTerminalHome();
+    function showInitError() {
+      var main = document.querySelector('.term-main');
+      if (!main) return;
+      main.innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;color:var(--text-secondary);font-family:var(--font-mono);text-align:center;gap:16px;">' +
+        '<div style="font-size:14px;">Terminal initialisation failed.</div>' +
+        '<div style="font-size:12px;color:var(--text-muted);">Check connection and reload.</div>' +
+        '<button onclick="window.location.reload()" style="margin-top:8px;padding:8px 16px;background:transparent;border:1px solid var(--border-default);color:var(--text-primary);cursor:pointer;font-family:var(--font-mono);font-size:12px;border-radius:4px;">Reload</button>' +
+        '</div>';
+    }
+
+    document.addEventListener('DOMContentLoaded', async function () {
+      var initTimeout = setTimeout(function () {
+        console.error('[Terminal] Init timeout - aborting');
+        document.body.classList.add('init-failed');
+        showInitError();
+      }, 10000);
+
+      try {
+        await new Promise(function (resolve) {
+          setTimeout(resolve, 100);
+        });
+        if (window.FXRLData && typeof window.FXRLData.initTerminalHome === 'function') {
+          await window.FXRLData.initTerminalHome();
+        }
+        setTimeout(function () {
+          if (window.FXRLData && typeof window.FXRLData.checkPipelineErrors === 'function') {
+            window.FXRLData.checkPipelineErrors();
+          }
+          if (window.FXRLTerminalAccuracy && typeof window.FXRLTerminalAccuracy.init === 'function') {
+            window.FXRLTerminalAccuracy.init();
+          }
+        }, 500);
+        clearTimeout(initTimeout);
+      } catch (e) {
+        clearTimeout(initTimeout);
+        console.error('[Terminal] Init error:', e);
+        showInitError();
       }
     });
   </script>
