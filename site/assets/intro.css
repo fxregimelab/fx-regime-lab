@@ -1,0 +1,109 @@
+#fxrl-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000000;
+  overflow: hidden;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.08) 0%, transparent 100%),
+    radial-gradient(1px 1px at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 70%, rgba(255,255,255,0.05) 0%, transparent 100%),
+    radial-gradient(1px 1px at 10% 80%, rgba(255,255,255,0.07) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 60%, rgba(255,255,255,0.05) 0%, transparent 100%),
+    radial-gradient(1px 1px at 35% 55%, rgba(255,255,255,0.04) 0%, transparent 100%),
+    radial-gradient(1px 1px at 65% 45%, rgba(255,255,255,0.06) 0%, transparent 100%);
+  background-color: #000000;
+}
+
+#intro-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#intro-brand-text {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 50%;
+  display: flex;
+  gap: 0.5em;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(28px, 4vw, 56px);
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: #F5F0E8;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#intro-brand-text .word {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 400ms ease,
+    transform 400ms ease;
+  display: inline-block;
+}
+
+#intro-brand-text .word.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#intro-skip {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 300ms ease,
+    color 200ms ease,
+    border-color 200ms ease;
+  z-index: 10000;
+}
+
+#intro-skip.visible {
+  opacity: 1;
+}
+
+#intro-skip:hover {
+  color: rgba(255,255,255,0.7);
+  border-color: rgba(255,255,255,0.4);
+}
+
+/* Website content hidden during intro */
+body.intro-active > *:not(#fxrl-intro) {
+  opacity: 0;
+  transition: opacity 800ms ease;
+}
+
+body.intro-complete > *:not(#fxrl-intro) {
+  opacity: 1;
+}
+
+#fxrl-intro.dissolving {
+  pointer-events: none;
+}
+
+/* Reduced motion: skip intro entirely */
+@media (prefers-reduced-motion: reduce) {
+  #fxrl-intro { display: none !important; }
+  body.intro-active > *:not(#fxrl-intro) {
+    opacity: 1 !important;
+  }
+}
