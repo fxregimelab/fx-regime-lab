@@ -73,7 +73,34 @@ def deploy():
         subprocess.run(["git", "commit", "-m",
                        f"brief update {TODAY} {datetime.now().strftime('%H:%M')} IST"],
                       check=True)
-        subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=True)
+        # Sync with origin without manual conflict resolution: the deploy commit
+        # regenerates index.html, charts/*.html, site/charts, pipeline_status, etc.
+        # If main moved (e.g. site/terminal edits), plain rebase stops on conflicts.
+        # - rebase -X theirs: on conflict, keep the replayed deploy commit's hunks.
+        # - if rebase still fails, abort and merge preferring current branch (-X ours).
+        subprocess.run(["git", "fetch", "origin", "main"], check=True)
+        rb = subprocess.run(
+            ["git", "rebase", "-X", "theirs", "origin/main"],
+            capture_output=True,
+            text=True,
+        )
+        if rb.returncode != 0:
+            print("WARN: rebase with -X theirs failed; trying merge origin/main (-X ours)")
+            if rb.stderr:
+                print(rb.stderr.strip())
+            subprocess.run(["git", "rebase", "--abort"], check=False)
+            subprocess.run(
+                [
+                    "git",
+                    "merge",
+                    "origin/main",
+                    "-m",
+                    "Merge origin/main before deploy push",
+                    "-X",
+                    "ours",
+                ],
+                check=True,
+            )
         subprocess.run(["git", "push", "origin", "main"], check=True)
         print(f"pushed to GitHub at {datetime.now().strftime('%H:%M')} IST")
         print(f"live at: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/")
