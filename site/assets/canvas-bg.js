@@ -249,6 +249,9 @@
   }
 
   var rafId = null;
+  function introActive() {
+    return document.documentElement.classList.contains('landing-intro-active');
+  }
 
   function frame(now) {
     ctx.clearRect(0, 0, w, h);
@@ -265,8 +268,18 @@
   }
 
   function startLoop() {
-    if (reduceMotion || rafId != null) return;
+    if (reduceMotion || rafId != null || introActive()) return;
     rafId = requestAnimationFrame(frame);
+  }
+
+  function syncIntroPause() {
+    if (introActive()) {
+      stopLoop();
+      ctx.clearRect(0, 0, w, h);
+      drawStaticGrid();
+      return;
+    }
+    if (!document.hidden && !reduceMotion) startLoop();
   }
 
   function wireSectionOpacity() {
@@ -327,15 +340,18 @@
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
       stopLoop();
-    } else if (!reduceMotion) {
+    } else if (!reduceMotion && !introActive()) {
       startLoop();
     }
   });
+
+  var introObserver = new MutationObserver(syncIntroPause);
+  introObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
   if (reduceMotion) {
     drawStaticGrid();
     return;
   }
 
-  startLoop();
+  syncIntroPause();
 })();

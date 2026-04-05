@@ -343,6 +343,8 @@ Documented keys for the public site and terminal (do not rename without updating
 - `fxrl_chartbuilder_theme`: localStorage (`chart-builder.js` — dark/light export theme preference).
 - `fxrl_workspace_markers`, `fxrl_workspace_reflines`: localStorage (`workspace.js`).
 - `fxrl_quickcharts`: localStorage (`chart-builder.js` — user quick-chart presets).
+- `fxrl_intro_ymd`: localStorage (`landing-intro.js` — local calendar date `YYYY-MM-DD` when the `/` cinematic intro last completed; same-day visits skip the intro).
+- `fxrl_intro_sound_off`: localStorage (`landing-intro.js` — `"1"` mutes the optional intro whoosh until toggled back on).
 
 ---
 

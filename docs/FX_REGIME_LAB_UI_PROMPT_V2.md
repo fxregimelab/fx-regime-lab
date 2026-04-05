@@ -30,7 +30,7 @@ Canonical **public site** design for `site/` on **fxregimelab.com**. Supersedes 
 
 **Nav:** Sticky 68px, `backdrop-filter: blur(12px)` on **nav only** (not cards). Centered links on desktop; hamburger + full-screen overlay on mobile.
 
-**Motion allowed:** Canvas; count-up on hero / scroll; fade+translate on scroll; card hover ≤2px lift; pipeline dot pulse. **Not allowed:** parallax (beyond canvas), 3D, gradient animations, scroll hijack, confetti, hero skeletons.
+**Motion allowed:** Canvas; count-up on hero / scroll; fade+translate on scroll; card hover ≤2px lift; pipeline dot pulse. **Not allowed:** parallax (beyond canvas), 3D, gradient animations, scroll hijack, confetti, hero skeletons. **Approved exception:** one-shot cinematic intro overlay on `/` only (daily-first-visit gate), with skip control and no reuse on `/dashboard`, `/brief`, or `/terminal`.
 
 **Components:** Ghost buttons only; regime badges; light + dark signal cards; validation table styling per CSS in `site/assets/site.css`.
 
