@@ -3,15 +3,314 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Morning brief archive — FX Regime Lab</title>
+  <title>Morning Brief — FX Regime Lab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/site.css" />
+  <style>
+    :root {
+      --paper-bg: #FAFAF5;
+      --paper-card: #FFFFFF;
+      --paper-accent: #1B3A6B;
+      --paper-text: #374151;
+      --paper-muted: #9CA3AF;
+      --paper-border: #E2E4E8;
+      --paper-grid: #E8E4DC;
+      --paper-highlight: #F4F5F3;
+      --paper-chart-bg: #FAFAF8;
+      --paper-green: #2d9e6b;
+    }
+
+    body.theme-light {
+      background-color: var(--paper-bg);
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      color: var(--paper-text);
+      font-family: "DM Sans", sans-serif;
+    }
+
+    .brief-shell {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px 48px;
+    }
+
+    .brief-grid {
+      display: grid;
+      gap: 36px;
+      grid-template-columns: minmax(0, 760px) minmax(260px, 320px);
+      align-items: start;
+    }
+
+    @media (max-width: 1080px) {
+      .brief-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .article-header {
+      max-width: 720px;
+      margin-bottom: 22px;
+    }
+
+    .article-date {
+      margin: 0 0 12px;
+      color: var(--paper-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      font-size: 12px;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .article-headline {
+      margin: 0 0 12px;
+      color: #111827;
+      font-size: clamp(2rem, 4.5vw, 2.5rem);
+      line-height: 1.2;
+      font-weight: 700;
+      font-family: "Playfair Display", serif;
+    }
+
+    .article-byline {
+      margin: 0;
+      color: var(--paper-muted);
+      font-size: 13px;
+    }
+
+    .macro-context {
+      max-width: 720px;
+      margin: 24px 0 34px;
+      background: var(--paper-card);
+      border-left: 3px solid var(--paper-accent);
+      border-radius: 8px;
+      padding: 24px 32px;
+      font-size: 16px;
+      line-height: 1.9;
+      color: var(--paper-text);
+    }
+
+    .pair-section {
+      max-width: 720px;
+      margin: 0 0 42px;
+      padding-bottom: 42px;
+      border-bottom: 1px solid var(--paper-border);
+    }
+
+    .pair-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .pair-title {
+      margin: 0;
+      font-family: "Playfair Display", serif;
+      font-size: 28px;
+      color: #111827;
+      font-weight: 700;
+    }
+
+    .pair-meta {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .regime-badge {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: #E5E7EB;
+      color: #374151;
+    }
+
+    .regime-badge.bullish {
+      background: #DCFCE7;
+      color: #065F46;
+    }
+
+    .regime-badge.bearish {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .regime-badge.neutral {
+      background: #E5E7EB;
+      color: #374151;
+    }
+
+    .confidence {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 18px;
+      color: #1F2937;
+      font-weight: 600;
+    }
+
+    .pair-narrative {
+      margin: 0 0 18px;
+      color: var(--paper-text);
+      line-height: 1.85;
+      font-size: 15px;
+    }
+
+    .chart-wrap {
+      margin: 0 0 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .chart-card {
+      background: var(--paper-card);
+      border: 1px solid var(--paper-border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .chart-title {
+      margin: 0 0 10px;
+      color: #4B5563;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .chart-canvas {
+      width: 100%;
+      height: 200px;
+      display: block;
+    }
+
+    .driver-line {
+      margin: 0 0 8px;
+      color: #4B5563;
+      font-style: italic;
+      font-size: 14px;
+    }
+
+    .watch-line {
+      margin: 0;
+      color: var(--paper-muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .signal-changes {
+      max-width: 720px;
+      background: var(--paper-highlight);
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    .signal-changes h3 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      font-family: "Playfair Display", serif;
+      color: #111827;
+    }
+
+    .signal-changes ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+      color: var(--paper-text);
+      font-size: 14px;
+    }
+
+    .signal-changes li::before {
+      content: "→ ";
+      color: var(--paper-accent);
+      font-weight: 600;
+    }
+
+    .archive-sidebar {
+      background: var(--paper-card);
+      border: 1px solid var(--paper-border);
+      border-radius: 10px;
+      padding: 18px;
+      position: sticky;
+      top: 90px;
+    }
+
+    .archive-title {
+      margin: 0 0 14px;
+      font-family: "JetBrains Mono", monospace;
+      color: var(--paper-muted);
+      font-size: 12px;
+      letter-spacing: 0.07em;
+    }
+
+    .archive-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .archive-item {
+      border: 1px solid var(--paper-border);
+      background: #FCFCF9;
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+
+    .archive-item.active {
+      border-color: var(--paper-accent);
+      background: #F6F8FC;
+    }
+
+    .archive-date {
+      margin: 0 0 4px;
+      font-family: "JetBrains Mono", monospace;
+      color: var(--paper-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .archive-headline {
+      margin: 0;
+      color: #1F2937;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .loading-skeleton,
+    .error-banner {
+      max-width: 720px;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .loading-skeleton {
+      border: 1px solid var(--paper-border);
+      background: var(--paper-card);
+      color: #6B7280;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+    }
+
+    .error-banner {
+      border: 1px solid #FECACA;
+      background: #FEF2F2;
+      color: #991B1B;
+      display: none;
+    }
+  </style>
 </head>
 <body class="theme-light">
-  <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
-  <div class="v2-wrap">
+  <div class="brief-shell">
     <header class="v2-nav" data-nav-root>
       <a class="v2-nav__brand" href="/">FX Regime Lab</a>
       <ul class="v2-nav__links">
@@ -33,86 +332,389 @@
       <a href="/newsletter">Newsletter</a>
     </div>
 
-    <header class="brief-hub-header">
-      <h1 class="section-v2__title mt-0" style="font-size:clamp(2rem,4vw,2.5rem)">Morning brief archive</h1>
-      <p style="color:var(--text-sec);font-size:15px;margin:0;max-width:560px">Daily regime intelligence updated after market close. Latest HTML brief is published to this site on each pipeline run (same-origin, no external embed).</p>
-    </header>
+    <main class="brief-grid">
+      <article>
+        <div class="loading-skeleton" id="loading-box">Loading article brief…</div>
+        <div class="error-banner" id="error-box">Brief updating — check back after 23:00 UTC.</div>
 
-    <div class="brief-hub-layout">
-      <div>
-        <div class="card-light" style="margin-bottom:24px">
-          <p class="label-caps" style="color:var(--text-muted)">Latest</p>
-          <h2 class="section-v2__title mt-0" style="font-size:24px">Today&rsquo;s brief</h2>
-          <p style="color:var(--text-sec)">Full interactive brief with Plotly charts (iframes) lives at a dedicated URL generated by the pipeline.</p>
-          <p style="margin-top:20px">
-            <a class="ghost-btn" href="/brief/latest.html">Open latest brief →</a>
-          </p>
-        </div>
-        <p style="color:var(--text-muted);font-size:13px">Tip: bookmark <span class="font-mono">/brief/latest.html</span> for the always-current build.</p>
-      </div>
-      <aside>
-        <p class="label-caps" style="color:var(--text-muted);margin-bottom:12px">Recent briefs</p>
-        <ul class="brief-archive-list" id="brief-archive">
-          <li data-href="/brief/latest.html">
-            <div class="d">Latest</div>
-            <div class="t">Current HTML brief</div>
-            <div class="c">Served from this deployment</div>
-          </li>
-        </ul>
-        <p id="brief-archive-empty" style="display:none;color:var(--text-muted);font-size:13px">Connect Supabase to list dates from <span class="font-mono">brief_log</span>.</p>
+        <header class="article-header">
+          <p class="article-date" id="article-date">--</p>
+          <h1 class="article-headline" id="article-headline">Morning Brief</h1>
+          <p class="article-byline" id="article-byline">FX Regime Lab · Published -- UTC</p>
+        </header>
+
+        <section class="macro-context" id="macro-context"></section>
+
+        <section class="pair-section" data-pair="eurusd">
+          <div class="pair-header">
+            <h2 class="pair-title">EUR/USD</h2>
+            <div class="pair-meta">
+              <span class="regime-badge neutral" id="eurusd-regime">NEUTRAL</span>
+              <span class="confidence" id="eurusd-confidence">--%</span>
+            </div>
+          </div>
+          <p class="pair-narrative" id="eurusd-narrative"></p>
+          <div class="chart-wrap" id="eurusd-charts"></div>
+          <p class="driver-line" id="eurusd-driver"></p>
+          <p class="watch-line" id="eurusd-watch"></p>
+        </section>
+
+        <section class="pair-section" data-pair="usdjpy">
+          <div class="pair-header">
+            <h2 class="pair-title">USD/JPY</h2>
+            <div class="pair-meta">
+              <span class="regime-badge neutral" id="usdjpy-regime">NEUTRAL</span>
+              <span class="confidence" id="usdjpy-confidence">--%</span>
+            </div>
+          </div>
+          <p class="pair-narrative" id="usdjpy-narrative"></p>
+          <div class="chart-wrap" id="usdjpy-charts"></div>
+          <p class="driver-line" id="usdjpy-driver"></p>
+          <p class="watch-line" id="usdjpy-watch"></p>
+        </section>
+
+        <section class="pair-section" data-pair="usdinr">
+          <div class="pair-header">
+            <h2 class="pair-title">USD/INR</h2>
+            <div class="pair-meta">
+              <span class="regime-badge neutral" id="usdinr-regime">NEUTRAL</span>
+              <span class="confidence" id="usdinr-confidence">--%</span>
+            </div>
+          </div>
+          <p class="pair-narrative" id="usdinr-narrative"></p>
+          <div class="chart-wrap" id="usdinr-charts"></div>
+          <p class="driver-line" id="usdinr-driver"></p>
+          <p class="watch-line" id="usdinr-watch"></p>
+        </section>
+
+        <section class="signal-changes">
+          <h3>Signal Changes</h3>
+          <ul id="signal-changes-list"></ul>
+        </section>
+      </article>
+
+      <aside class="archive-sidebar">
+        <h3 class="archive-title">Recent Briefs</h3>
+        <ul class="archive-list" id="archive-list"></ul>
       </aside>
-    </div>
-
-    <footer class="v2-footer">
-      <div class="v2-footer__grid">
-        <div><strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong></div>
-        <nav class="v2-footer__nav"><a href="/">Home</a><a href="/dashboard/">Dashboard</a><a href="/terminal/">Terminal</a></nav>
-        <div><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a></div>
-      </div>
-      <p class="v2-footer__rule">© 2026 FX Regime Lab</p>
-    </footer>
+    </main>
   </div>
 
+  <footer class="v2-footer">
+    <div class="v2-footer__grid">
+      <div>
+        <strong>FX Regime Lab</strong>
+        <p>Live quantamental macro regime intelligence for G10 FX.</p>
+      </div>
+      <nav class="v2-footer__nav">
+        <a href="/">Home</a>
+        <a href="/dashboard/">Dashboard</a>
+        <a href="/terminal/">Terminal</a>
+        <a href="/brief/">Brief</a>
+        <a href="/performance/">Performance</a>
+        <a href="/about/">About</a>
+        <a href="/newsletter">Newsletter</a>
+      </nav>
+    </div>
+    <p class="v2-footer__rule">© 2026 FX Regime Lab · Built by Shreyash Sakhare</p>
+  </footer>
+
   <script src="/assets/theme-switch.js"></script>
-  <script src="/assets/canvas-bg.js"></script>
   <script src="/assets/nav.js"></script>
   <script src="/assets/site.js"></script>
-  <script src="/assets/supabase-env.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script>
-    document.querySelectorAll('.brief-archive-list li[data-href]').forEach(function (li) {
-      li.addEventListener('click', function () {
-        window.location.href = li.getAttribute('data-href');
-      });
-    });
-    (async function () {
-      var url = window.__SUPABASE_URL__;
-      var key = window.__SUPABASE_ANON_KEY__;
-      var S = window.supabase;
-      var list = document.getElementById('brief-archive');
-      var empty = document.getElementById('brief-archive-empty');
-      if (!url || !key || !S || !S.createClient) {
-        if (empty) empty.style.display = 'block';
-        return;
-      }
-      try {
-        var client = S.createClient(url, key);
-        var q = await client.from('brief_log').select('date,macro_context').order('date', { ascending: false }).limit(30);
-        if (q.error || !q.data || !q.data.length) {
-          if (empty) empty.style.display = 'block';
-          return;
-        }
-        q.data.forEach(function (row) {
-          var li = document.createElement('li');
-          li.setAttribute('data-href', '/brief/latest.html');
-          li.innerHTML = '<div class="d">' + row.date + '</div><div class="t">Regime brief</div><div class="c">' + (row.macro_context || '—') + '</div>';
-          li.addEventListener('click', function () { window.location.href = '/brief/latest.html'; });
-          list.appendChild(li);
+    const PAIRS = ["eurusd", "usdjpy", "usdinr"];
+    const CHART_COLUMN_MAP = {
+      eurusd: {
+        rate_differentials: { primary: "US_DE_10Y_spread", secondary: null, title: "Rate differential" },
+        vol_correlation: { primary: "EURUSD_vol_pct", secondary: "EURUSD_corr_20d", title: "Volatility and correlation" },
+        cot_positioning: { primary: "EUR_lev_percentile", secondary: null, title: "COT positioning percentile" },
+      },
+      usdjpy: {
+        rate_differentials: { primary: "US_JP_10Y_spread", secondary: null, title: "Rate differential" },
+        vol_correlation: { primary: "USDJPY_vol_pct", secondary: "USDJPY_corr_20d", title: "Volatility and correlation" },
+        cot_positioning: { primary: "JPY_lev_percentile", secondary: null, title: "COT positioning percentile" },
+      },
+      usdinr: {
+        rate_differentials: { primary: "US_IN_10Y_spread", secondary: null, title: "Rate differential" },
+        vol_correlation: { primary: "USDINR_vol_pct", secondary: "dxy_inr_corr_60d", title: "Volatility and correlation" },
+        cot_positioning: { primary: "FPI_20D_percentile", secondary: null, title: "Positioning proxy percentile" },
+      },
+    };
+
+    const chartInstances = [];
+    let csvRows = [];
+
+    const lineShadowPlugin = {
+      id: "lineShadowPlugin",
+      beforeDatasetDraw(chart) {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.08)";
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetY = 2;
+      },
+      afterDatasetDraw(chart) {
+        chart.ctx.restore();
+      },
+    };
+
+    function getRegimeClass(regimeText) {
+      const label = String(regimeText || "").toLowerCase();
+      if (label.includes("long") || label.includes("bull")) return "bullish";
+      if (label.includes("short") || label.includes("bear")) return "bearish";
+      return "neutral";
+    }
+
+    function parseCsv(text) {
+      const lines = text.trim().split(/\r?\n/);
+      if (!lines.length) return [];
+      const rawHeaders = lines[0].split(",");
+      const headers = rawHeaders.map((h, i) => (i === 0 && h.trim() === "" ? "__date" : h.trim()));
+      const rows = [];
+      for (let i = 1; i < lines.length; i += 1) {
+        const cols = lines[i].split(",");
+        if (!cols.length) continue;
+        const row = {};
+        headers.forEach((header, idx) => {
+          row[header] = cols[idx];
         });
-      } catch (e) {
-        if (empty) empty.style.display = 'block';
+        rows.push(row);
       }
-    })();
+      return rows;
+    }
+
+    function asNumber(value) {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function toUtcTime(isoText) {
+      if (!isoText) return "--";
+      const date = new Date(isoText);
+      if (Number.isNaN(date.getTime())) return "--";
+      return date.toISOString().slice(11, 16);
+    }
+
+    function formatDisplayDate(dateText) {
+      if (!dateText) return "--";
+      const normalized = new Date(dateText + "T00:00:00Z");
+      if (Number.isNaN(normalized.getTime())) return dateText;
+      return normalized.toLocaleDateString("en-GB", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        timeZone: "UTC",
+      });
+    }
+
+    function destroyCharts() {
+      while (chartInstances.length) {
+        const chart = chartInstances.pop();
+        chart.destroy();
+      }
+    }
+
+    function seriesForChart(pair, chartType) {
+      const config = CHART_COLUMN_MAP[pair] && CHART_COLUMN_MAP[pair][chartType];
+      if (!config || !csvRows.length) return null;
+      const rows = csvRows.slice(-120);
+      const labels = rows.map((row) => (row.__date || "").slice(5, 10));
+      const primary = rows.map((row) => asNumber(row[config.primary]));
+      const secondary = config.secondary ? rows.map((row) => asNumber(row[config.secondary])) : null;
+      return { labels, primary, secondary, title: config.title };
+    }
+
+    function createChart(container, pair, chartType) {
+      const data = seriesForChart(pair, chartType);
+      if (!data) return;
+      const card = document.createElement("div");
+      card.className = "chart-card";
+      const title = document.createElement("p");
+      title.className = "chart-title";
+      title.textContent = data.title;
+      const canvas = document.createElement("canvas");
+      canvas.className = "chart-canvas";
+      card.appendChild(title);
+      card.appendChild(canvas);
+      container.appendChild(card);
+
+      const datasets = [
+        {
+          label: chartType,
+          data: data.primary,
+          borderColor: "#1B3A6B",
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.3,
+        },
+      ];
+      if (data.secondary && data.secondary.some((value) => value !== null)) {
+        datasets.push({
+          label: "secondary",
+          data: data.secondary,
+          borderColor: "#2d9e6b",
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.3,
+        });
+      }
+
+      const chart = new Chart(canvas.getContext("2d"), {
+        type: "line",
+        data: { labels: data.labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { mode: "index", intersect: false },
+          },
+          interaction: { mode: "nearest", intersect: false },
+          scales: {
+            x: {
+              grid: { color: "#E8E4DC" },
+              ticks: { color: "#6B7280", font: { family: "JetBrains Mono", size: 10 } },
+            },
+            y: {
+              grid: { color: "#E8E4DC" },
+              ticks: { color: "#6B7280", font: { family: "JetBrains Mono", size: 10 } },
+            },
+          },
+        },
+        plugins: [lineShadowPlugin, {
+          id: "paperBackground",
+          beforeDraw(chartInstance) {
+            const { ctx, chartArea } = chartInstance;
+            if (!chartArea) return;
+            ctx.save();
+            ctx.fillStyle = "#FAFAF8";
+            ctx.fillRect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+            ctx.restore();
+          },
+        }],
+      });
+      chartInstances.push(chart);
+    }
+
+    function renderPair(pair, section, chartsToShow) {
+      document.getElementById(pair + "-narrative").textContent = section.narrative || "Narrative unavailable.";
+      document.getElementById(pair + "-driver").textContent = "→ Primary driver: " + (section.key_driver || "N/A");
+      document.getElementById(pair + "-watch").textContent = "Watch: " + (section.watch_for || "N/A");
+      document.getElementById(pair + "-confidence").textContent = Math.round((Number(section.confidence || 0) * 100)) + "%";
+
+      const regimeEl = document.getElementById(pair + "-regime");
+      regimeEl.textContent = section.regime || "NEUTRAL";
+      regimeEl.className = "regime-badge " + getRegimeClass(section.regime);
+
+      const chartWrap = document.getElementById(pair + "-charts");
+      chartWrap.innerHTML = "";
+      (chartsToShow || []).forEach((chartType) => {
+        createChart(chartWrap, pair, chartType);
+      });
+    }
+
+    function renderArticle(article) {
+      destroyCharts();
+      document.getElementById("article-date").textContent = formatDisplayDate(article.date);
+      document.getElementById("article-headline").textContent = article.headline || "Morning Brief";
+      document.getElementById("article-byline").textContent = "FX Regime Lab · Published " + toUtcTime(article.generated_at) + " UTC";
+      document.getElementById("macro-context").textContent = article.sections && article.sections.macro_context
+        ? article.sections.macro_context
+        : "Macro context unavailable.";
+
+      const charts = article.charts_to_show || {};
+      PAIRS.forEach((pair) => {
+        const section = article.sections && article.sections[pair] ? article.sections[pair] : {};
+        renderPair(pair, section, charts[pair] || []);
+      });
+
+      const list = document.getElementById("signal-changes-list");
+      list.innerHTML = "";
+      const changes = article.sections && Array.isArray(article.sections.signal_changes)
+        ? article.sections.signal_changes
+        : ["No material signal changes."];
+      changes.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        list.appendChild(li);
+      });
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to fetch " + url);
+      return response.json();
+    }
+
+    async function fetchCsvRows() {
+      try {
+        const response = await fetch("/data/latest_with_cot.csv", { cache: "no-store" });
+        if (!response.ok) return [];
+        const text = await response.text();
+        return parseCsv(text);
+      } catch (_error) {
+        return [];
+      }
+    }
+
+    function ymdFromDate(date) {
+      return date.toISOString().slice(0, 10).replace(/-/g, "");
+    }
+
+    async function loadArchiveEntries() {
+      const entries = [];
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      for (let i = 0; i < 7; i += 1) {
+        const d = new Date(today);
+        d.setUTCDate(today.getUTCDate() - i);
+        const slug = ymdFromDate(d);
+        try {
+          const data = await fetchJson("/data/ai_article_" + slug + ".json");
+          entries.push({ slug, data });
+        } catch (_error) {
+          // skip missing archive files
+        }
+      }
+      return entries;
+    }
+
+    function renderArchive(entries, latest) {
+      const list = document.getElementById("archive-list");
+      list.innerHTML = "";
+      const merged = [{ slug: "latest", data: latest }, ...entries];
+      merged.forEach((entry, idx) => {
+        const li = document.createElement("li");
+        li.className = "archive-item" + (idx === 0 ? " active" : "");
+        li.dataset.slug = entry.slug;
+        li.innerHTML = "<p class='archive-date'>" + formatDisplayDate(entry.data.date) + "</p>"
+          + "<p class='archive-headline'>" + (entry.data.headline || "FX regime brief") + "</p>";
+        li.addEventListener("click", () => {
+          document.querySelectorAll(".archive-item").forEach((item) => item.classList.remove("active"));
+          li.classList.add("active");
+          renderArticle(entry.data);
+        });
+        list.appendChild(li);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const loading = document.getElementById("loading-box");
+      const errorBox = document.getElementById("error-box");
+      try {
+        csvRows = await fetchCsvRows();
+        const latestArticle = await fetchJson("/data/ai_article.json");
+        renderArticle(latestArticle);
+        const archiveEntries = await loadArchiveEntries();
+        renderArchive(archiveEntries, latestArticle);
+        loading.style.display = "none";
+      } catch (_error) {
+        loading.style.display = "none";
+        errorBox.style.display = "block";
+      }
+    });
   </script>
 </body>
 </html>

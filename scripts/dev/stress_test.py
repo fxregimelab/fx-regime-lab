@@ -80,23 +80,12 @@ for c in expected_charts:
     r = check(exists, f"charts/{c}.html exists")
     all_pass = all_pass and r
 
-print("\n--- Phase 7: Workspace controls ---")
-ws = open("charts/global_workspace.html", encoding="utf-8").read()
-r = check("period-btn" in ws, "Period quick-pick buttons present in workspace")
+print("\n--- Phase 7: Workspace deprecation ---")
+r = check(not os.path.exists("charts/global_workspace.html"), "charts/global_workspace.html removed")
 all_pass = all_pass and r
-r = check('id="norm-mode"' in ws, "Normalization mode selector present")
+r = check("workspace-snap" not in brief, "Legacy workspace snap section removed from brief")
 all_pass = all_pass and r
-r = check('id="corr-window"' in ws, "Rolling corr window selector present")
-all_pass = all_pass and r
-r = check('id="btn-csv"' in ws, "CSV export button present")
-all_pass = all_pass and r
-r = check("composite" in ws, "SCORES preset in workspace")
-all_pass = all_pass and r
-r = check("eurusd_composite_score" in ws, "Composite score series in workspace data")
-all_pass = all_pass and r
-r = check("US_curve" in ws, "US Yield Curve series in workspace")
-all_pass = all_pass and r
-r = check("BTP_Bund_spread" in ws, "BTP-Bund series in workspace")
+r = check('href="#workspace-snap"' not in brief, "Legacy workspace anchors removed from brief nav")
 all_pass = all_pass and r
 
 print("\n--- Phase 6B: Formula correctness ---")

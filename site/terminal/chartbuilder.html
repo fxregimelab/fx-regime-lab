@@ -6,326 +6,123 @@
   <title>Chart builder — Terminal · FX Regime Lab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/terminal/terminal.css" />
   <style>
-    :root {
-      --cb-accent-hover: #5a8fff;
-      --cb-text-accent: #6b9fff;
-    }
-    .cb-app {
-      display: flex;
-      height: calc(100vh - var(--term-nav-h, 48px));
-      overflow: hidden;
-    }
-    .cb-sidebar {
-      width: 240px;
-      flex-shrink: 0;
-      background: var(--surface-primary);
-      border-right: 1px solid var(--border-default);
-      padding: 16px 0;
-      overflow-y: auto;
-    }
-    .cb-sidebar__head {
-      font-family: var(--font-ui);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      padding: 0 16px 12px;
-    }
-    .cb-cat {
-      border-bottom: 1px solid var(--border-subtle);
-    }
-    .cb-cat__bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      cursor: pointer;
-      font-family: var(--font-ui);
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-    }
-    .cb-cat__bar:hover { background: var(--surface-elevated); }
-    .cb-cat__chev {
-      display: inline-block;
-      transition: transform 0.2s ease;
-      font-size: 10px;
-      color: var(--text-muted);
-    }
-    .cb-cat.is-open .cb-cat__chev { transform: rotate(90deg); }
-    .cb-cat__list { display: none; padding-bottom: 6px; }
-    .cb-cat.is-open .cb-cat__list { display: block; }
-    .cb-series {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 6px 16px 6px 32px;
-      cursor: pointer;
-      font-family: var(--font-ui);
-      font-size: 12px;
-      color: var(--text-primary);
-    }
-    .cb-series:hover { background: var(--surface-elevated); }
-    .cb-series input { accent-color: var(--accent); width: 14px; height: 14px; }
-    .cb-series__pending { color: var(--text-muted); font-size: 11px; font-weight: 400; }
-    .cb-series__dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .cb-main {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      background: var(--surface-primary);
-      padding: 16px;
-    }
-    .cb-main__toolbar {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 4px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-    }
-    .cb-range {
-      font-family: var(--font-ui);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      padding: 6px 10px;
-      cursor: pointer;
-    }
-    .cb-range:hover { color: var(--text-secondary); }
-    .cb-range.is-active {
-      color: var(--accent);
-      border-bottom-color: var(--accent);
-    }
-    .cb-chart-wrap {
-      flex: 1;
-      min-height: 280px;
-      width: 100%;
-      border: 1px solid var(--border-default);
-      border-radius: var(--term-radius-sm);
-      background: var(--bg-chart);
-    }
-    .cb-chart-wrap.cb-chart-wrap--light { background: #ffffff; }
-    #cb-chart { width: 100%; height: 100%; min-height: 280px; }
-    .cb-legend {
-      margin-top: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px 16px;
-    }
-    .cb-legend__item {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--font-ui);
-      font-size: 11px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
-    }
-    .cb-legend__item:hover { background: var(--surface-elevated); }
-    .cb-legend__dot { width: 10px; height: 10px; border-radius: 50%; }
-    .cb-panel {
-      width: 280px;
-      flex-shrink: 0;
-      background: var(--surface-primary);
-      border-left: 1px solid var(--border-default);
-      padding: 16px;
-      overflow-y: auto;
-    }
-    .cb-field { margin-bottom: 18px; }
-    .cb-field__label {
-      font-family: var(--font-ui);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-    .cb-input {
-      width: 100%;
-      box-sizing: border-box;
-      background: var(--surface-elevated);
-      border: 1px solid var(--border-default);
-      border-radius: 4px;
-      padding: 8px 12px;
-      font-family: var(--font-ui);
-      font-size: 13px;
-      color: var(--text-primary);
-    }
-    .cb-input:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-    .cb-radio-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-      font-family: var(--font-ui);
-      font-size: 12px;
-      color: var(--text-primary);
-      cursor: pointer;
-    }
-    .cb-radio-row input { accent-color: var(--accent); }
-    .cb-brand-info {
-      font-family: var(--font-ui);
-      font-size: 11px;
-      color: var(--text-muted);
-      line-height: 1.5;
-    }
-    .cb-export {
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-      width: 100%;
-      margin-top: 8px;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
-      background: var(--accent);
-      color: #ffffff;
-      font-family: var(--font-ui);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .cb-export:hover { background: var(--cb-accent-hover); }
-    .cb-export:disabled { opacity: 0.65; cursor: wait; }
-    .cb-quick {
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border-default);
-    }
-    .cb-quick__item {
-      padding: 10px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .cb-quick__item:hover { background: var(--surface-elevated); }
-    .cb-quick__title { font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--text-primary); }
-    .cb-quick__desc { font-family: var(--font-ui); font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-    .cb-quick__row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-    .cb-quick__del {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 14px;
-      padding: 4px;
-    }
-    .cb-quick__del:hover { color: var(--bearish); }
-    .cb-save-link {
-      display: inline-block;
-      margin-top: 12px;
-      font-family: var(--font-ui);
-      font-size: 12px;
-      color: var(--cb-text-accent);
-      background: none;
-      border: none;
-      padding: 0;
-      cursor: pointer;
-    }
-    .cb-save-link:hover { color: var(--accent); }
-    .cb-colour-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 8px;
-      font-family: var(--font-ui);
-      font-size: 11px;
-      color: var(--text-secondary);
-    }
-    .cb-colour-row input[type="color"] {
-      width: 36px;
-      height: 28px;
-      border: 1px solid var(--border-default);
-      border-radius: 4px;
-      padding: 0;
-      cursor: pointer;
-      background: var(--surface-elevated);
-    }
-    .cb-ctx {
-      display: none;
-      position: fixed;
-      z-index: 2000;
-      min-width: 160px;
-      background: var(--surface-elevated);
-      border: 1px solid var(--border-emphasis);
-      border-radius: 6px;
-      padding: 8px 0;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-    }
-    .cb-ctx--open { display: block; }
-    .cb-ctx__title {
-      font-family: var(--font-ui);
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      padding: 6px 12px 4px;
-    }
-    .cb-ctx__item {
-      display: block;
-      width: 100%;
-      text-align: left;
-      padding: 8px 14px;
-      border: none;
-      background: none;
-      font-family: var(--font-ui);
-      font-size: 12px;
-      color: var(--text-primary);
-      cursor: pointer;
-    }
-    .cb-ctx__item:hover { background: var(--surface-primary); }
-    .cb-spinner {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border: 2px solid rgba(255,255,255,0.35);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: cb-spin 0.7s linear infinite;
-      vertical-align: middle;
-      margin-right: 6px;
-    }
+    .cb-app { display: grid; grid-template-columns: 320px 1fr 320px; height: calc(100vh - var(--term-nav-h, 48px)); overflow: hidden; }
+    .cb-sidebar, .cb-panel { background: var(--surface-primary); overflow-y: auto; }
+    .cb-sidebar { border-right: 1px solid var(--border-default); padding: 14px 12px 16px; }
+    .cb-panel { border-left: 1px solid var(--border-default); padding: 16px; }
+    .cb-main { min-width: 0; display: flex; flex-direction: column; background: var(--depth-1); padding: 16px; }
+    .cb-search { width: 100%; height: 38px; border: 1px solid var(--border-default); border-radius: 8px; padding: 0 12px; background: var(--depth-2); color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 13px; }
+    .cb-search:focus { outline: none; border-color: var(--accent); }
+    .cb-series-list { margin-top: 14px; }
+    .cb-cat-label { position: sticky; top: 0; z-index: 2; background: var(--surface-primary); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding: 8px 8px 6px; border-bottom: 1px solid var(--border-subtle); margin-top: 8px; }
+    .cb-series-row { display: grid; grid-template-columns: 18px 8px 1fr 8px auto; align-items: center; gap: 10px; min-height: 36px; padding: 0 8px; border-radius: 6px; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 12px; color: var(--text-primary); }
+    .cb-series-row:hover { background: var(--depth-2); }
+    .cb-series-row.unavailable { opacity: 0.58; }
+    .cb-series-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); margin: 0; }
+    .cb-series-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .cb-series-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cb-series-state { width: 8px; height: 8px; border-radius: 50%; background: #31d187; box-shadow: 0 0 8px rgba(49, 209, 135, 0.7); }
+    .cb-series-row.unavailable .cb-series-state { background: #6b7280; box-shadow: none; }
+    .cb-series-type { height: 24px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--depth-2); color: var(--text-secondary); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11px; padding: 0 8px; display: none; }
+    .cb-series-row.checked .cb-series-type { display: inline-flex; }
+    .cb-series-row.unavailable .cb-series-type { display: none; }
+    .cb-series-pending { color: var(--text-muted); font-size: 11px; margin-left: 6px; }
+    .cb-chart-shell { position: relative; flex: 1; border: 1px solid var(--border-default); border-radius: 8px; background: var(--depth-1); overflow: hidden; }
+    .cb-main__toolbar { position: absolute; top: 10px; right: 12px; z-index: 3; display: inline-flex; gap: 4px; background: color-mix(in srgb, var(--depth-1) 86%, transparent); border: 1px solid var(--border-default); border-radius: 8px; padding: 4px; }
+    .cb-range { border: none; background: transparent; color: var(--text-muted); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+    .cb-range:hover { color: var(--text-primary); background: var(--depth-2); }
+    .cb-range.is-active { background: var(--accent); color: #fff; }
+    #cb-chart { width: 100%; height: 100%; min-height: 340px; }
+    .cb-empty { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; z-index: 2; pointer-events: none; }
+    .cb-empty.is-visible { display: flex; }
+    .cb-empty__inner { pointer-events: auto; }
+    .cb-empty svg { width: 56px; height: 56px; opacity: 0.5; }
+    .cb-empty__text { margin-top: 12px; color: var(--text-muted); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px; }
+    .cb-empty__link { margin-top: 8px; border: none; background: transparent; color: var(--accent); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 13px; cursor: pointer; }
+    .cb-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-height: 26px; }
+    .cb-legend__item { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border-default); border-radius: 999px; padding: 4px 10px; background: var(--depth-2); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11px; color: var(--text-secondary); }
+    .cb-legend__swatch { width: 10px; height: 10px; border-radius: 50%; }
+    .cb-legend__remove { border: none; background: transparent; color: var(--text-muted); font-size: 14px; line-height: 1; cursor: pointer; padding: 0; }
+    .cb-legend__remove:hover { color: var(--text-primary); }
+    .cb-field { margin-bottom: 16px; }
+    .cb-field__label { font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+    .cb-input { width: 100%; box-sizing: border-box; border: 1px solid var(--border-default); border-radius: 8px; background: var(--depth-2); color: var(--text-primary); padding: 9px 10px; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 13px; }
+    .cb-input:focus { outline: none; border-color: var(--accent); }
+    .cb-theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .cb-theme-card { border: 1px solid var(--border-default); border-radius: 10px; background: var(--depth-2); padding: 10px; cursor: pointer; text-align: left; }
+    .cb-theme-card.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+    .cb-theme-title { color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 12px; font-weight: 600; }
+    .cb-theme-sub { color: var(--text-muted); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11px; margin-top: 2px; }
+    .cb-theme-preview { margin-top: 8px; height: 36px; border-radius: 6px; border: 1px solid var(--border-default); }
+    .cb-theme-preview.dark { background: linear-gradient(180deg, #0b0e14 0%, #151b25 100%); }
+    .cb-theme-preview.light { background: linear-gradient(180deg, #fafaf8 0%, #f3efe5 100%); }
+    .cb-size-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .cb-size-btn { border: 1px solid var(--border-default); border-radius: 8px; background: var(--depth-2); color: var(--text-secondary); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 12px; min-height: 38px; cursor: pointer; }
+    .cb-size-btn.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .cb-custom-size { display: none; gap: 8px; margin-top: 8px; }
+    .cb-custom-size.is-visible { display: grid; grid-template-columns: 1fr 1fr; }
+    .cb-export { margin-top: 10px; width: 100%; border: none; border-radius: 10px; background: var(--accent); color: #fff; padding: 13px 12px; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .cb-export:hover { filter: brightness(1.04); }
+    .cb-export:disabled { opacity: 0.7; cursor: wait; }
+    .cb-export-meta { margin-top: 6px; color: var(--text-muted); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11px; text-align: center; }
+    .cb-check { margin-top: 10px; display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 12px; }
+    .cb-quick { margin-top: 18px; border-top: 1px solid var(--border-default); padding-top: 12px; }
+    .cb-quick__head { width: 100%; border: none; background: transparent; display: flex; justify-content: space-between; align-items: center; color: var(--text-secondary); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; padding: 0 0 10px; }
+    .cb-quick__body { display: none; }
+    .cb-quick.is-open .cb-quick__body { display: block; }
+    .cb-quick__item { border: 1px solid var(--border-default); border-radius: 8px; background: var(--depth-2); padding: 10px; margin-bottom: 8px; cursor: pointer; }
+    .cb-quick__item:hover { border-color: var(--accent); }
+    .cb-quick__title { color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 13px; font-weight: 600; }
+    .cb-quick__desc { color: var(--text-muted); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 11px; margin-top: 2px; }
+    .cb-save-link { border: none; background: none; color: var(--accent); font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 12px; cursor: pointer; margin-top: 6px; }
+    .cb-toast { position: fixed; left: 50%; bottom: -80px; transform: translateX(-50%); background: var(--depth-2); color: var(--text-primary); padding: 11px 14px; border: 1px solid var(--border-default); border-radius: 999px; font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 12px; z-index: 2200; transition: bottom 0.24s ease; }
+    .cb-toast.is-visible { bottom: 22px; }
+    .cb-spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: cb-spin 0.7s linear infinite; margin-right: 6px; vertical-align: middle; }
+    .cb-series-toggle { display: none; }
     @keyframes cb-spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1380px) { .cb-app { grid-template-columns: 280px 1fr 300px; } }
+    @media (max-width: 1160px) {
+      .cb-app { grid-template-columns: 1fr; height: auto; }
+      .cb-sidebar, .cb-panel, .cb-main { border: none; }
+      .cb-main { min-height: 66vh; }
+      .cb-series-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        background: var(--depth-2);
+        color: var(--text-secondary);
+        font-family: "IBM Plex Sans", system-ui, sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 10px 12px;
+        margin: 12px 16px 0;
+      }
+      .cb-sidebar { display: none; }
+      .cb-sidebar.is-open { display: block; }
+    }
   </style>
   <script src="/assets/supabase-env.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="/terminal/data-client.js"></script>
   <script src="/terminal/utils.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous"></script>
   <script src="/assets/theme-switch.js" defer></script>
   <script src="/terminal/terminal-nav.js" defer></script>
   <script src="/terminal/echarts-config.js"></script>
+  <script src="/terminal/data-client.js"></script>
   <script src="/terminal/chart-builder.js"></script>
 </head>
 <body class="theme-terminal">
   <a href="#cb-app" class="term-sr-only">Skip to chart builder</a>
-
   <header class="term-nav" role="banner">
     <div class="term-nav__left">
-      <a class="term-nav__brand" href="/terminal/">FX Regime Lab</a>
+      <a class="term-nav__brand" href="/terminal/">
+        <img src="/assets/images/wordmark_without_bg.png" alt="FX Regime Lab" class="term-nav__wordmark" width="160" height="22" loading="eager" onerror="this.onerror=null;this.src='data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22210%22%20height%3D%2222%22%3E%3Ctext%20x%3D%220%22%20y%3D%2216%22%20fill%3D%22%23e8ede8%22%20font-family%3D%22IBM%20Plex%20Sans%2Csystem-ui%2Csans-serif%22%20font-size%3D%2213%22%20font-weight%3D%22600%22%3EFX%20Regime%20Lab%3C/text%3E%3C/svg%3E';" />
+      </a>
       <span class="term-nav__pipe" aria-hidden="true">|</span>
       <span class="term-nav__product">Terminal</span>
     </div>
@@ -347,320 +144,403 @@
   </header>
 
   <div id="cb-app" class="cb-app">
+    <button type="button" class="cb-series-toggle" id="cb-series-toggle">Series list</button>
     <aside class="cb-sidebar" aria-label="Data series">
-      <div class="cb-sidebar__head">Data series</div>
-      <div id="cb-sidebar-cats"></div>
+      <input type="search" id="cb-series-search" class="cb-search" placeholder="Search series..." />
+      <div id="cb-series-list" class="cb-series-list"></div>
     </aside>
 
     <section class="cb-main" aria-label="Chart preview">
-      <div class="cb-main__toolbar" role="tablist" aria-label="Time range">
-        <button type="button" class="cb-range" data-ms="2592000000">1M</button>
-        <button type="button" class="cb-range is-active" data-ms="7776000000">3M</button>
-        <button type="button" class="cb-range" data-ms="15552000000">6M</button>
-        <button type="button" class="cb-range" data-ms="31536000000">1Y</button>
-        <button type="button" class="cb-range" data-ms="63072000000">2Y</button>
-      </div>
-      <div class="cb-chart-wrap" id="cb-chart-wrap">
+      <div class="cb-chart-shell" id="cb-chart-wrap">
+        <div class="cb-main__toolbar" role="tablist" aria-label="Time range">
+          <button type="button" class="cb-range" data-ms="2592000000">1M</button>
+          <button type="button" class="cb-range is-active" data-ms="7776000000">3M</button>
+          <button type="button" class="cb-range" data-ms="15552000000">6M</button>
+          <button type="button" class="cb-range" data-ms="31536000000">1Y</button>
+          <button type="button" class="cb-range" data-ms="63072000000">2Y</button>
+        </div>
+        <div id="cb-empty" class="cb-empty is-visible">
+          <div class="cb-empty__inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="color:var(--text-muted)">
+              <path d="M3 17l5-5 4 4 7-8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M3 21h18" stroke-width="1.8" stroke-linecap="round"></path>
+            </svg>
+            <div class="cb-empty__text">Select a data series from the left to begin</div>
+            <button type="button" class="cb-empty__link" id="cb-empty-quick">Or load a Quick Chart →</button>
+          </div>
+        </div>
         <div id="cb-chart" role="img" aria-label="Chart preview"></div>
       </div>
-      <div class="cb-legend" id="cb-legend" aria-label="Series legend"></div>
+      <div id="cb-legend" class="cb-legend" aria-label="Series legend"></div>
     </section>
 
     <aside class="cb-panel" aria-label="Chart options">
       <div class="cb-field">
-        <div class="cb-field__label">Chart title</div>
+        <div class="cb-field__label">Chart details</div>
         <input type="text" class="cb-input" id="cb-title" placeholder="EUR/USD rate differential — Apr 2026" />
-      </div>
-      <div class="cb-field">
-        <div class="cb-field__label">Subtitle</div>
+        <div style="height:8px"></div>
         <input type="text" class="cb-input" id="cb-subtitle" placeholder="Source: FX Regime Lab pipeline" />
       </div>
+
       <div class="cb-field">
-        <div class="cb-field__label">Series colours</div>
-        <div id="cb-colours"></div>
-      </div>
-      <div class="cb-field">
-        <div class="cb-field__label">Chart theme</div>
-        <label class="cb-radio-row"><input type="radio" name="cb-theme" value="dark" checked /> Dark (framework)</label>
-        <label class="cb-radio-row"><input type="radio" name="cb-theme" value="light" /> Light (website)</label>
-      </div>
-      <div class="cb-field">
-        <div class="cb-field__label">Export size</div>
-        <label class="cb-radio-row"><input type="radio" name="cb-size" value="1080x1080" /> LinkedIn square (1080×1080)</label>
-        <label class="cb-radio-row"><input type="radio" name="cb-size" value="1200x627" checked /> LinkedIn landscape (1200×627)</label>
-        <label class="cb-radio-row"><input type="radio" name="cb-size" value="1080x1350" /> LinkedIn portrait (1080×1350)</label>
-        <label class="cb-radio-row"><input type="radio" name="cb-size" value="custom" /> Custom</label>
-        <div id="cb-custom-size" class="cb-custom-wrap" style="display:none;margin-top:8px;gap:8px;">
-          <input type="number" class="cb-input" id="cb-w" placeholder="Width" style="width:48%;display:inline-block;box-sizing:border-box;" min="400" max="4000" value="1200" />
-          <input type="number" class="cb-input" id="cb-h" placeholder="Height" style="width:48%;display:inline-block;box-sizing:border-box;" min="400" max="4000" value="627" />
+        <div class="cb-field__label">Theme</div>
+        <div class="cb-theme-grid">
+          <button type="button" class="cb-theme-card" data-theme="dark">
+            <div class="cb-theme-title">Dark</div>
+            <div class="cb-theme-sub">framework</div>
+            <div class="cb-theme-preview dark"></div>
+          </button>
+          <button type="button" class="cb-theme-card" data-theme="light">
+            <div class="cb-theme-title">Light</div>
+            <div class="cb-theme-sub">website</div>
+            <div class="cb-theme-preview light"></div>
+          </button>
         </div>
       </div>
-      <div class="cb-field">
-        <div class="cb-field__label">Branding</div>
-        <p class="cb-brand-info">✓ FX Regime Lab wordmark<br />✓ fxregimelab.com</p>
-        <label class="cb-radio-row" style="margin-top:10px;">
-          <input type="checkbox" id="cb-timestamp" checked />
-          Include data timestamp
-        </label>
-      </div>
-      <button type="button" class="cb-export" id="cb-export">Export as PNG</button>
 
-      <div class="cb-quick">
-        <div class="cb-field__label">Quick charts</div>
-        <div id="cb-presets-built"></div>
-        <div id="cb-presets-user"></div>
-        <button type="button" class="cb-save-link" id="cb-save-preset">Save current as Quick Chart</button>
+      <div class="cb-field">
+        <div class="cb-field__label">Export size</div>
+        <div class="cb-size-grid">
+          <button type="button" class="cb-size-btn" data-size="1080x1080">Square</button>
+          <button type="button" class="cb-size-btn is-active" data-size="1200x627">Landscape</button>
+          <button type="button" class="cb-size-btn" data-size="1080x1350">Portrait</button>
+          <button type="button" class="cb-size-btn" data-size="custom">Custom</button>
+        </div>
+        <div id="cb-custom-size" class="cb-custom-size">
+          <input type="number" class="cb-input" id="cb-w" min="400" max="4000" value="1200" />
+          <input type="number" class="cb-input" id="cb-h" min="400" max="4000" value="627" />
+        </div>
       </div>
+
+      <label class="cb-check">
+        <input type="checkbox" id="cb-timestamp" checked />
+        Include data timestamp
+      </label>
+      <button type="button" class="cb-export" id="cb-export">EXPORT AS PNG</button>
+      <div class="cb-export-meta" id="cb-export-meta">1200 × 627px · @3x</div>
+
+      <section class="cb-quick is-open" id="cb-quick">
+        <button type="button" class="cb-quick__head" id="cb-quick-toggle">
+          <span>Quick Charts</span>
+          <span id="cb-quick-chevron">▾</span>
+        </button>
+        <div class="cb-quick__body" id="cb-quick-body">
+          <div id="cb-presets-built"></div>
+          <div id="cb-presets-user"></div>
+          <button type="button" class="cb-save-link" id="cb-save-preset">Save current as Quick Chart</button>
+        </div>
+      </section>
     </aside>
   </div>
 
-  <div id="cb-ctx-menu" class="cb-ctx" role="menu" aria-hidden="true"></div>
+  <div id="cb-toast" class="cb-toast" role="status" aria-live="polite"></div>
 
   <script>
-(function () {
-  var CB = window.FXRLChartBuilder;
-  if (!CB) return;
+  (function () {
+    var CB = window.FXRLChartBuilder;
+    if (!CB) return;
 
-  var sidebar = document.getElementById('cb-sidebar-cats');
-  var catTpl = CB.DATA_CATALOG.categories.map(function (cat) {
-    var items = cat.series.map(function (s) {
-      var pending = s.available === false;
-      return (
-        '<label class="cb-series" data-series-id="' + s.id + '">' +
-        '<input type="checkbox" data-series-id="' + s.id + '"' +
-        (pending ? ' disabled' : '') +
-        ' />' +
-        '<span class="cb-series__dot" style="background:' + s.colour + '"></span>' +
-        '<span>' +
-        s.label +
-        (pending ? ' <span class="cb-series__pending">(data pending)</span>' : '') +
-        '</span></label>'
-      );
-    }).join('');
-    return (
-      '<div class="cb-cat is-open" data-cat-id="' + cat.id + '">' +
-      '<div class="cb-cat__bar" role="button" tabindex="0">' +
-      '<span class="cb-cat__chev" aria-hidden="true">▸</span>' +
-      '<span>' + cat.label + '</span></div>' +
-      '<div class="cb-cat__list">' + items + '</div></div>'
-    );
-  }).join('');
-  sidebar.innerHTML = catTpl;
+    var state = {
+      search: '',
+      availability: {},
+      theme: CB.ThemeManager.current === 'light' ? 'light' : 'dark',
+      exportSize: '1200x627',
+      rangeMs: 7776000000,
+      app: null,
+    };
 
-  sidebar.querySelectorAll('.cb-cat__bar').forEach(function (bar) {
-    bar.addEventListener('click', function () {
-      bar.closest('.cb-cat').classList.toggle('is-open');
-    });
-    bar.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        bar.closest('.cb-cat').classList.toggle('is-open');
+    var sidebarHost = document.getElementById('cb-series-list');
+    var legendHost = document.getElementById('cb-legend');
+    var chartWrap = document.getElementById('cb-chart-wrap');
+    var emptyEl = document.getElementById('cb-empty');
+    var toastEl = document.getElementById('cb-toast');
+    var exportMeta = document.getElementById('cb-export-meta');
+    var quickBox = document.getElementById('cb-quick');
+
+    function showToast(message) {
+      toastEl.textContent = message;
+      toastEl.classList.add('is-visible');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(function () {
+        toastEl.classList.remove('is-visible');
+      }, 3000);
+    }
+
+    function getExportSize() {
+      if (state.exportSize === 'custom') {
+        return {
+          width: parseInt(document.getElementById('cb-w').value, 10) || 1200,
+          height: parseInt(document.getElementById('cb-h').value, 10) || 627,
+        };
       }
-    });
-  });
+      var p = state.exportSize.split('x');
+      return { width: parseInt(p[0], 10), height: parseInt(p[1], 10) };
+    }
 
-  function syncCheckboxes() {
-    sidebar.querySelectorAll('input[type="checkbox"][data-series-id]').forEach(function (inp) {
-      var id = inp.getAttribute('data-series-id');
-      inp.checked = CB.SeriesManager.active.has(id);
-    });
-  }
+    function updateExportMeta() {
+      var sz = getExportSize();
+      exportMeta.textContent = sz.width + ' × ' + sz.height + 'px · @3x';
+    }
 
-  function syncColours() {
-    var host = document.getElementById('cb-colours');
-    host.innerHTML = '';
-    CB.SeriesManager.active.forEach(function (entry, id) {
-      var row = document.createElement('div');
-      row.className = 'cb-colour-row';
-      var lab = document.createElement('span');
-      lab.textContent = entry.meta.label;
-      var col = document.createElement('input');
-      col.type = 'color';
-      col.value = normalizeHex(entry.colour);
-      col.addEventListener('input', function () {
-        CB.SeriesManager.setColour(id, col.value);
+    function renderLegend() {
+      legendHost.innerHTML = '';
+      CB.SeriesManager.active.forEach(function (entry, id) {
+        var row = document.createElement('div');
+        row.className = 'cb-legend__item';
+        row.innerHTML =
+          '<span class="cb-legend__swatch" style="background:' + entry.colour + '"></span>' +
+          '<span>' + entry.meta.label + '</span>';
+        var remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'cb-legend__remove';
+        remove.innerHTML = '&times;';
+        remove.addEventListener('click', function () {
+          CB.SeriesManager.removeSeries(id);
+          syncSidebarCheckedState();
+        });
+        row.appendChild(remove);
+        legendHost.appendChild(row);
       });
-      row.appendChild(lab);
-      row.appendChild(col);
-      host.appendChild(row);
-    });
-  }
-
-  function normalizeHex(c) {
-    if (!c || typeof c !== 'string') return '#4d8eff';
-    if (c.charAt(0) !== '#') return '#4d8eff';
-    if (c.length === 7) return c.toLowerCase();
-    if (c.length === 4) {
-      return ('#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3] + c[4] + c[4]).toLowerCase();
     }
-    return '#4d8eff';
-  }
 
-  sidebar.addEventListener('change', function (e) {
-    var t = e.target;
-    if (t.type !== 'checkbox' || !t.getAttribute('data-series-id')) return;
-    if (t.disabled) return;
-    var id = t.getAttribute('data-series-id');
-    if (t.checked) CB.SeriesManager.addSeries(id);
-    else CB.SeriesManager.removeSeries(id);
-  });
-
-  var rangeMs = 7776000000;
-  document.querySelectorAll('.cb-range').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      document.querySelectorAll('.cb-range').forEach(function (b) { b.classList.remove('is-active'); });
-      btn.classList.add('is-active');
-      rangeMs = parseInt(btn.getAttribute('data-ms'), 10);
-      app.setRange(rangeMs);
-    });
-  });
-
-  var app = CB.init({
-    chartEl: document.getElementById('cb-chart'),
-    legendEl: document.getElementById('cb-legend'),
-    menuEl: document.getElementById('cb-ctx-menu'),
-    tsEl: document.getElementById('term-pipeline-ts'),
-    defaultRangeMs: rangeMs,
-    onSeriesChange: function () {
-      syncCheckboxes();
-      syncColours();
-    },
-  });
-
-  function applyChartTheme() {
-    var light = document.querySelector('input[name="cb-theme"]:checked').value === 'light';
-    CB.ThemeManager.applyTheme(light ? 'light' : 'dark');
-    document.getElementById('cb-chart-wrap').classList.toggle('cb-chart-wrap--light', light);
-    app.redraw();
-  }
-
-  document.querySelectorAll('input[name="cb-theme"]').forEach(function (r) {
-    r.addEventListener('change', applyChartTheme);
-  });
-  var saved = CB.ThemeManager.current;
-  if (saved === 'light') {
-    var lr = document.querySelector('input[name="cb-theme"][value="light"]');
-    if (lr) lr.checked = true;
-    document.getElementById('cb-chart-wrap').classList.add('cb-chart-wrap--light');
-    app.redraw();
-  }
-
-  function getExportSize() {
-    var v = document.querySelector('input[name="cb-size"]:checked').value;
-    if (v === 'custom') {
-      return {
-        width: parseInt(document.getElementById('cb-w').value, 10) || 1200,
-        height: parseInt(document.getElementById('cb-h').value, 10) || 627,
-      };
+    function syncSidebarCheckedState() {
+      sidebarHost.querySelectorAll('[data-series-id]').forEach(function (row) {
+        var id = row.getAttribute('data-series-id');
+        var input = row.querySelector('input[type="checkbox"]');
+        var select = row.querySelector('.cb-series-type');
+        var active = CB.SeriesManager.active.get(id);
+        input.checked = !!active;
+        row.classList.toggle('checked', !!active);
+        if (active && select) select.value = active.chartType || 'line';
+      });
+      renderLegend();
     }
-    var p = v.split('x');
-    return { width: parseInt(p[0], 10), height: parseInt(p[1], 10) };
-  }
 
-  document.querySelectorAll('input[name="cb-size"]').forEach(function (r) {
-    r.addEventListener('change', function () {
-      var show = document.querySelector('input[name="cb-size"]:checked').value === 'custom';
-      var el = document.getElementById('cb-custom-size');
-      el.style.display = show ? 'flex' : 'none';
-      if (show) {
-        el.style.flexWrap = 'wrap';
+    function buildSeriesRow(series) {
+      var status = state.availability[series.id];
+      var available = !status || status.available !== false;
+      var active = CB.SeriesManager.active.get(series.id);
+      var row = document.createElement('label');
+      row.className = 'cb-series-row' + (available ? '' : ' unavailable') + (active ? ' checked' : '');
+      row.setAttribute('data-series-id', series.id);
+      row.innerHTML =
+        '<input type="checkbox" data-series-id="' + series.id + '"' + (available ? '' : ' disabled') + (active ? ' checked' : '') + ' />' +
+        '<span class="cb-series-dot" style="background:' + series.colour + '"></span>' +
+        '<span class="cb-series-name">' + series.label + (available ? '' : '<span class="cb-series-pending">(pending)</span>') + '</span>' +
+        '<span class="cb-series-state"></span>' +
+        '<select class="cb-series-type" data-series-type="' + series.id + '">' +
+        '<option value="line">Line</option>' +
+        '<option value="area">Area</option>' +
+        '<option value="bar">Bar</option>' +
+        '<option value="scatter">Scatter</option>' +
+        '</select>';
+      if (active) {
+        row.querySelector('.cb-series-type').value = active.chartType || 'line';
+      }
+      return row;
+    }
+
+    function renderSidebar() {
+      var q = state.search.trim().toLowerCase();
+      sidebarHost.innerHTML = '';
+      CB.DATA_CATALOG.categories.forEach(function (cat) {
+        var matching = cat.series.filter(function (s) {
+          return !q || s.label.toLowerCase().indexOf(q) !== -1 || cat.label.toLowerCase().indexOf(q) !== -1;
+        });
+        if (!matching.length) return;
+        var catHead = document.createElement('div');
+        catHead.className = 'cb-cat-label';
+        catHead.textContent = cat.label;
+        sidebarHost.appendChild(catHead);
+        matching.forEach(function (series) {
+          sidebarHost.appendChild(buildSeriesRow(series));
+        });
+      });
+      syncSidebarCheckedState();
+    }
+
+    function setTheme(theme) {
+      state.theme = theme === 'light' ? 'light' : 'dark';
+      CB.ThemeManager.applyTheme(state.theme);
+      chartWrap.style.background = state.theme === 'light' ? '#FAFAF8' : 'var(--depth-1)';
+      document.querySelectorAll('.cb-theme-card').forEach(function (card) {
+        card.classList.toggle('is-active', card.getAttribute('data-theme') === state.theme);
+      });
+      if (state.app) state.app.redraw();
+    }
+
+    function renderQuick() {
+      var built = document.getElementById('cb-presets-built');
+      built.innerHTML = CB.QuickCharts.BUILT_IN_PRESETS.map(function (p) {
+        return '<div class="cb-quick__item" data-preset-id="' + p.id + '">' +
+          '<div class="cb-quick__title">' + p.label + '</div>' +
+          '<div class="cb-quick__desc">' + p.description + '</div></div>';
+      }).join('');
+
+      var userHost = document.getElementById('cb-presets-user');
+      var user = CB.QuickCharts.loadUserPresets();
+      userHost.innerHTML = user.map(function (p) {
+        return '<div class="cb-quick__item" data-preset-id="' + p.id + '">' +
+          '<div class="cb-quick__title">' + p.label + '</div>' +
+          '<div class="cb-quick__desc">' + (p.description || '') + '</div></div>';
+      }).join('');
+
+      document.querySelectorAll('#cb-presets-built .cb-quick__item, #cb-presets-user .cb-quick__item').forEach(function (el) {
+        el.addEventListener('click', function () {
+          CB.QuickCharts.loadPreset(el.getAttribute('data-preset-id')).then(function () {
+            syncSidebarCheckedState();
+            if (state.app) state.app.redraw();
+          });
+        });
+      });
+    }
+
+    state.app = CB.init({
+      chartEl: document.getElementById('cb-chart'),
+      legendEl: document.getElementById('cb-legend'),
+      tsEl: document.getElementById('term-pipeline-ts'),
+      defaultRangeMs: state.rangeMs,
+      onSeriesChange: function () {
+        syncSidebarCheckedState();
+      },
+      onDataPrefetched: function (availability) {
+        state.availability = availability || {};
+        renderSidebar();
+      },
+      onEmptyState: function (show) {
+        emptyEl.classList.toggle('is-visible', !!show);
+      },
+    });
+
+    renderSidebar();
+    renderQuick();
+    setTheme(state.theme);
+    updateExportMeta();
+
+    document.getElementById('cb-series-search').addEventListener('input', function (e) {
+      state.search = e.target.value || '';
+      renderSidebar();
+    });
+
+    sidebarHost.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t.matches('input[type="checkbox"][data-series-id]')) {
+        var id = t.getAttribute('data-series-id');
+        if (t.checked) {
+          CB.SeriesManager.addSeries(id).then(function (added) {
+            if (!added) {
+              t.checked = false;
+              showToast('Series data pending. Try another signal.');
+            }
+            syncSidebarCheckedState();
+          });
+        } else {
+          CB.SeriesManager.removeSeries(id);
+        }
+      } else if (t.matches('select[data-series-type]')) {
+        CB.SeriesManager.setChartType(t.getAttribute('data-series-type'), t.value);
       }
     });
-  });
 
-  var exportBtn = document.getElementById('cb-export');
-  exportBtn.addEventListener('click', function () {
-    var sz = getExportSize();
-    var title = document.getElementById('cb-title').value.trim();
-    var subtitle = document.getElementById('cb-subtitle').value.trim();
-    var theme = document.querySelector('input[name="cb-theme"]:checked').value;
-    var showTs = document.getElementById('cb-timestamp').checked;
-    var d = app.getLatestDate() || '';
-    var fileDate = d.replace(/-/g, '') || 'chart';
+    document.querySelectorAll('.cb-range').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.cb-range').forEach(function (b) { b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        state.rangeMs = parseInt(btn.getAttribute('data-ms'), 10);
+        state.app.setRange(state.rangeMs);
+      });
+    });
 
-    exportBtn.disabled = true;
-    exportBtn.innerHTML = '<span class="cb-spinner"></span> Generating...';
+    document.querySelectorAll('.cb-theme-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        setTheme(card.getAttribute('data-theme'));
+      });
+    });
 
-    CB.ExportManager.exportPNG(app.chart, {
-      width: sz.width,
-      height: sz.height,
-      title: title,
-      subtitle: subtitle,
-      showTimestamp: showTs,
-      theme: theme,
-      asOfDate: d,
-      fileDate: fileDate,
-    })
-      .then(function () {
+    document.querySelectorAll('.cb-size-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.exportSize = btn.getAttribute('data-size');
+        document.querySelectorAll('.cb-size-btn').forEach(function (b) { b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        document.getElementById('cb-custom-size').classList.toggle('is-visible', state.exportSize === 'custom');
+        updateExportMeta();
+      });
+    });
+    document.getElementById('cb-w').addEventListener('input', updateExportMeta);
+    document.getElementById('cb-h').addEventListener('input', updateExportMeta);
+
+    document.getElementById('cb-export').addEventListener('click', function () {
+      var exportBtn = this;
+      var sz = getExportSize();
+      var title = document.getElementById('cb-title').value.trim();
+      var subtitle = document.getElementById('cb-subtitle').value.trim();
+      var date = state.app.getLatestDate() || '';
+
+      if (!CB.SeriesManager.hasDataSeries()) {
+        showToast('Add at least one data series before exporting');
+        return;
+      }
+
+      exportBtn.disabled = true;
+      exportBtn.innerHTML = '<span class="cb-spinner"></span>Exporting...';
+      CB.ExportManager.exportPNG(state.app.chart, {
+        width: sz.width,
+        height: sz.height,
+        title: title,
+        subtitle: subtitle,
+        showTimestamp: document.getElementById('cb-timestamp').checked,
+        theme: state.theme,
+        asOfDate: date,
+        fileDate: date || 'chart',
+      }).then(function () {
         exportBtn.textContent = 'Exported ✓';
         setTimeout(function () {
           exportBtn.disabled = false;
-          exportBtn.textContent = 'Export as PNG';
-        }, 2000);
-      })
-      .catch(function () {
+          exportBtn.textContent = 'Export PNG';
+        }, 1800);
+      }).catch(function (err) {
+        if (err && err.message === 'NO_DATA_SERIES') {
+          showToast('Add at least one data series before exporting');
+        } else {
+          showToast('Export failed. Please try again.');
+        }
         exportBtn.disabled = false;
-        exportBtn.textContent = 'Export as PNG';
-      });
-  });
-
-  function renderQuick() {
-    var built = document.getElementById('cb-presets-built');
-    built.innerHTML = CB.QuickCharts.BUILT_IN_PRESETS.map(function (p) {
-      return (
-        '<div class="cb-quick__item" data-preset-id="' + p.id + '" role="button" tabindex="0">' +
-        '<div class="cb-quick__title">' + p.label + '</div>' +
-        '<div class="cb-quick__desc">' + p.description + '</div></div>'
-      );
-    }).join('');
-
-    var userHost = document.getElementById('cb-presets-user');
-    var user = CB.QuickCharts.loadUserPresets();
-    userHost.innerHTML = user.length
-      ? '<div class="cb-field__label" style="margin-top:12px;">Your charts</div>' +
-        user.map(function (p) {
-          return (
-            '<div class="cb-quick__row">' +
-            '<div class="cb-quick__item" style="flex:1" data-preset-id="' + p.id + '" data-user="1" role="button" tabindex="0">' +
-            '<div class="cb-quick__title">' + p.label + '</div>' +
-            '<div class="cb-quick__desc">' + (p.description || '') + '</div></div>' +
-            '<button type="button" class="cb-quick__del" data-del-preset="' + p.id + '" aria-label="Delete">🗑</button></div>'
-          );
-        }).join('')
-      : '';
-
-    built.querySelectorAll('.cb-quick__item').forEach(function (el) {
-      el.addEventListener('click', function () {
-        CB.QuickCharts.loadPreset(el.getAttribute('data-preset-id'));
+        exportBtn.textContent = 'Export PNG';
       });
     });
-    userHost.querySelectorAll('.cb-quick__item').forEach(function (el) {
-      el.addEventListener('click', function () {
-        CB.QuickCharts.loadPreset(el.getAttribute('data-preset-id'));
-      });
+
+    document.getElementById('cb-save-preset').addEventListener('click', function () {
+      var name = window.prompt('Name this Quick Chart');
+      if (!name || !name.trim()) return;
+      CB.QuickCharts.saveCurrentAsPreset(name.trim());
+      renderQuick();
     });
-    userHost.querySelectorAll('[data-del-preset]').forEach(function (b) {
-      b.addEventListener('click', function (e) {
-        e.stopPropagation();
-        CB.QuickCharts.deleteUserPreset(b.getAttribute('data-del-preset'));
-        renderQuick();
-      });
+
+    document.getElementById('cb-quick-toggle').addEventListener('click', function () {
+      quickBox.classList.toggle('is-open');
+      document.getElementById('cb-quick-chevron').textContent = quickBox.classList.contains('is-open') ? '▾' : '▸';
     });
-  }
 
-  document.getElementById('cb-save-preset').addEventListener('click', function () {
-    var name = window.prompt('Name this Quick Chart');
-    if (!name || !name.trim()) return;
-    CB.QuickCharts.saveCurrentAsPreset(name.trim());
-    renderQuick();
-  });
+    document.getElementById('cb-empty-quick').addEventListener('click', function () {
+      if (!quickBox.classList.contains('is-open')) {
+        quickBox.classList.add('is-open');
+        document.getElementById('cb-quick-chevron').textContent = '▾';
+      }
+      quickBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
 
-  renderQuick();
+    var seriesToggle = document.getElementById('cb-series-toggle');
+    var sidebar = document.querySelector('.cb-sidebar');
+    if (seriesToggle && sidebar) {
+      seriesToggle.addEventListener('click', function () {
+        sidebar.classList.toggle('is-open');
+      });
+    }
 
-  window.addEventListener('resize', function () {
-    app.chart.resize();
-  });
-})();
+    window.addEventListener('resize', function () {
+      if (state.app && state.app.chart) state.app.chart.resize();
+    });
+  })();
   </script>
 </body>
 </html>

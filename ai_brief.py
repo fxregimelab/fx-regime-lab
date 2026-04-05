@@ -1,22 +1,21 @@
-# ai_brief.py
-# Phase 13 — AI regime reads via Claude 3.5 Haiku
-#
-# Reads the latest data snapshot, sends concise numeric context to Claude,
-# and writes data/ai_regime_read.json.  Fails gracefully (exit 0) if
-# ANTHROPIC_API_KEY is absent or the API is unreachable.
-#
-# Output JSON format:
-# {
-#   "generated_at": "2026-03-11T07:00:00Z",
-#   "data_date":    "2026-03-10",
-#   "eurusd":       "<2-3 sentence regime read>",
-#   "usdjpy":       "<2-3 sentence regime read>",
-#   "usdinr":       "<2-3 sentence regime read>"
-# }
+"""Generate article-style FX morning brief narratives.
 
-import os
+Primary output:
+  data/ai_article.json
+
+Compatibility output used by create_html_brief.py:
+  data/ai_regime_read.json
+
+The "rate differential z-score" material-change rule is computed locally as the
+rolling 60-day z-score of first differences in spread series:
+  EUR/USD -> US_DE_10Y_spread
+  USD/JPY -> US_JP_10Y_spread
+  USD/INR -> US_IN_10Y_spread
+"""
+
 import json
 import math
+import os
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -24,186 +23,483 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
-_MODEL         = "claude-3-5-haiku-20241022"
-_OUTPUT        = os.path.join("data", "ai_regime_read.json")
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+_MODEL = "claude-haiku-4-5-20251001"
+_AI_ARTICLE_OUTPUT = os.path.join("data", "ai_article.json")
+_AI_READ_OUTPUT = os.path.join("data", "ai_regime_read.json")
 
-def _f(v, fmt=".2f", suffix=""):
-    """Format a numeric value; return '—' on NaN/missing."""
+PAIR_CONFIG = {
+    "eurusd": {
+        "label": "EUR/USD",
+        "spread_col": "US_DE_10Y_spread",
+        "spread_name": "US-DE 10Y spread",
+        "vol_pct_col": "EURUSD_vol_pct",
+        "cot_pct_col": "EUR_lev_percentile",
+        "regime_col": "eurusd_composite_label",
+        "score_col": "eurusd_composite_score",
+        "chart_map": {
+            "rate_diff": "rate_differentials",
+            "vol": "vol_correlation",
+            "cot": "cot_positioning",
+            "regime": "rate_differentials",
+        },
+    },
+    "usdjpy": {
+        "label": "USD/JPY",
+        "spread_col": "US_JP_10Y_spread",
+        "spread_name": "US-JP 10Y spread",
+        "vol_pct_col": "USDJPY_vol_pct",
+        "cot_pct_col": "JPY_lev_percentile",
+        "regime_col": "usdjpy_composite_label",
+        "score_col": "usdjpy_composite_score",
+        "chart_map": {
+            "rate_diff": "rate_differentials",
+            "vol": "vol_correlation",
+            "cot": "cot_positioning",
+            "regime": "rate_differentials",
+        },
+    },
+    "usdinr": {
+        "label": "USD/INR",
+        "spread_col": "US_IN_10Y_spread",
+        "spread_name": "US-IN 10Y spread",
+        "vol_pct_col": "USDINR_vol_pct",
+        # USD/INR has no COT dataset in the current pipeline. We use
+        # FPI percentile as the positioning proxy for "material change".
+        "cot_pct_col": "FPI_20D_percentile",
+        "regime_col": "inr_composite_label",
+        "score_col": "inr_composite_score",
+        "chart_map": {
+            "rate_diff": "rate_differentials",
+            "vol": "vol_correlation",
+            "cot": "cot_positioning",
+            "regime": "rate_differentials",
+        },
+    },
+}
+
+TEMPLATE = """
+{date} — G10 FX Regime Brief
+
+EUR/USD is in a {eurusd_regime} regime with {eurusd_confidence}% confidence.
+The primary driver is {eurusd_driver}. Rate differential at {eurusd_rate_diff}
+on {eurusd_cot_percentile} percentile COT positioning.
+
+USD/JPY shows {usdjpy_regime} conditions at {usdjpy_confidence}% confidence.
+{usdjpy_driver} remains the dominant signal.
+
+USD/INR is {usdinr_regime} — directional read only.
+RBI intervention active. {usdinr_driver}.
+
+Signal changes today: {signal_changes}
+""".strip()
+
+
+def _safe_float(value):
     try:
-        x = float(v)
-        if math.isnan(x):
-            return "—"
-        return f"{x:{fmt}}{suffix}"
+        parsed = float(value)
+        return None if math.isnan(parsed) else parsed
     except (TypeError, ValueError):
-        return "—"
+        return None
 
 
-def _s(v):
-    """Safe string for flag/label columns."""
-    if v is None:
-        return "—"
-    sv = str(v)
-    return "—" if sv in ("nan", "None", "", "NaN") else sv
+def _safe_str(value, default="N/A"):
+    if value is None:
+        return default
+    text = str(value).strip()
+    return default if text in {"", "nan", "NaN", "None"} else text
 
 
-# ── data context builders ─────────────────────────────────────────────────────
+def _iso_utc_now():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-def _eur_context(m_row):
-    return (
-        f"EUR/USD {_f(m_row.get('EURUSD'), '.4f')}  "
-        f"1D {_f(m_row.get('EURUSD_chg_1D'), '+.2f', '%')}  "
-        f"1M {_f(m_row.get('EURUSD_chg_1M'), '+.2f', '%')}  "
-        f"12M {_f(m_row.get('EURUSD_chg_12M'), '+.2f', '%')}\n"
-        f"US-DE 10Y spread: {_f(m_row.get('US_DE_10Y_spread'), '+.2f', 'pp')}  "
-        f"12M chg: {_f(m_row.get('US_DE_10Y_spread_chg_12M'), '+.2f', 'pp')}\n"
-        f"BTP-Bund: {_f(m_row.get('BTP_Bund_spread'), '.2f', 'pp')} [{_s(m_row.get('BTP_Bund_flag'))}]\n"
-        f"EURUSD vol: {_f(m_row.get('EURUSD_vol30'), '.1f', '% ann')} "
-        f"({_f(m_row.get('EURUSD_vol_pct'), '.0f', 'th pct')})\n"
-        f"COT EUR leveraged net: {_f(m_row.get('EUR_lev_net'), '.0f')} contracts "
-        f"({_f(m_row.get('EUR_lev_percentile'), '.0f', 'th pct')})\n"
-        f"COT EUR assetmgr net: {_f(m_row.get('EUR_assetmgr_net'), '.0f')} "
-        f"({_f(m_row.get('EUR_assetmgr_percentile'), '.0f', 'th pct')})\n"
-        f"G10 composite: {_f(m_row.get('eurusd_composite_score'), '.1f')} "
-        f"[{_s(m_row.get('eurusd_composite_label'))}]\n"
-        f"Support: {_s(m_row.get('EURUSD_S1'))} / {_s(m_row.get('EURUSD_S2'))}  "
-        f"Resistance: {_s(m_row.get('EURUSD_R1'))} / {_s(m_row.get('EURUSD_R2'))}"
+
+def _confidence_from_score(score):
+    f_score = _safe_float(score)
+    if f_score is None:
+        return 0.5
+    conf = min(abs(f_score) / 100.0, 0.95)
+    return round(max(conf, 0.05), 2)
+
+
+def _rate_diff_zcross(series):
+    if series is None or len(series) < 3:
+        return False
+    diffs = series.diff()
+    rolling_mean = diffs.rolling(60, min_periods=20).mean()
+    rolling_std = diffs.rolling(60, min_periods=20).std()
+    z = (diffs - rolling_mean) / rolling_std
+    z = z.replace([float("inf"), float("-inf")], pd.NA).dropna()
+    if len(z) < 2:
+        return False
+    prev_val = abs(float(z.iloc[-2]))
+    curr_val = abs(float(z.iloc[-1]))
+    crossed_up = prev_val <= 1.5 < curr_val
+    crossed_down = prev_val > 1.5 >= curr_val
+    return crossed_up or crossed_down
+
+
+def _build_pair_signal(master_df, pair, cfg):
+    current = master_df.iloc[-1]
+    previous = master_df.iloc[-2] if len(master_df) > 1 else current
+
+    spread = _safe_float(current.get(cfg["spread_col"]))
+    spread_prev = _safe_float(previous.get(cfg["spread_col"]))
+    vol_pct = _safe_float(current.get(cfg["vol_pct_col"]))
+    vol_pct_prev = _safe_float(previous.get(cfg["vol_pct_col"]))
+    cot_pct = _safe_float(current.get(cfg["cot_pct_col"]))
+    cot_pct_prev = _safe_float(previous.get(cfg["cot_pct_col"]))
+
+    regime = _safe_str(current.get(cfg["regime_col"]), "NEUTRAL")
+    regime_prev = _safe_str(previous.get(cfg["regime_col"]), regime)
+    confidence = _confidence_from_score(current.get(cfg["score_col"]))
+
+    spread_series = (
+        master_df[cfg["spread_col"]]
+        if cfg["spread_col"] in master_df.columns
+        else pd.Series(dtype="float64")
+    )
+    z_cross = _rate_diff_zcross(spread_series)
+
+    material = {
+        "cot": (
+            cot_pct is not None
+            and cot_pct_prev is not None
+            and abs(cot_pct - cot_pct_prev) > 5.0
+        ),
+        "rate_diff": z_cross,
+        "vol": (
+            vol_pct is not None
+            and vol_pct_prev is not None
+            and abs(vol_pct - vol_pct_prev) > 8.0
+        ),
+        "regime": regime != regime_prev,
+    }
+
+    signal_changes = []
+    if material["cot"]:
+        signal_changes.append(
+            f"{cfg['label']} positioning percentile moved "
+            f"{cot_pct_prev:.1f} -> {cot_pct:.1f}."
+        )
+    if material["rate_diff"]:
+        signal_changes.append(
+            f"{cfg['label']} {cfg['spread_name']} daily-change z-score crossed "
+            "the 1.5 threshold."
+        )
+    if material["vol"]:
+        signal_changes.append(
+            f"{cfg['label']} volatility percentile moved "
+            f"{vol_pct_prev:.1f} -> {vol_pct:.1f}."
+        )
+    if material["regime"]:
+        signal_changes.append(
+            f"{cfg['label']} regime changed from {regime_prev} to {regime}."
+        )
+
+    chart_types = []
+    for key, changed in material.items():
+        if changed:
+            mapped = cfg["chart_map"].get(key)
+            if mapped and mapped not in chart_types:
+                chart_types.append(mapped)
+
+    if spread is None:
+        spread_text = "N/A"
+    else:
+        spread_text = f"{spread:+.2f}pp"
+
+    if cot_pct is None:
+        cot_text = "N/A"
+    else:
+        cot_text = f"{cot_pct:.1f}th percentile"
+
+    driver = (
+        f"{cfg['spread_name']} at {spread_text} with positioning at {cot_text}."
     )
 
+    return {
+        "pair": pair,
+        "label": cfg["label"],
+        "regime": regime,
+        "confidence": confidence,
+        "spread": spread,
+        "cot_percentile": cot_pct,
+        "vol_percentile": vol_pct,
+        "driver": driver,
+        "watch_for": f"{cfg['spread_name']} momentum reversal or regime flip.",
+        "chart_types": chart_types,
+        "signal_changes": signal_changes,
+        "material_flags": material,
+    }
 
-def _jpy_context(m_row):
-    return (
-        f"USD/JPY {_f(m_row.get('USDJPY'), '.2f')}  "
-        f"1D {_f(m_row.get('USDJPY_chg_1D'), '+.2f', '%')}  "
-        f"1M {_f(m_row.get('USDJPY_chg_1M'), '+.2f', '%')}  "
-        f"12M {_f(m_row.get('USDJPY_chg_12M'), '+.2f', '%')}\n"
-        f"US-JP 10Y spread: {_f(m_row.get('US_JP_10Y_spread'), '+.2f', 'pp')}  "
-        f"12M chg: {_f(m_row.get('US_JP_10Y_spread_chg_12M'), '+.2f', 'pp')}\n"
-        f"USDJPY vol: {_f(m_row.get('USDJPY_vol30'), '.1f', '% ann')} "
-        f"({_f(m_row.get('USDJPY_vol_pct'), '.0f', 'th pct')})\n"
-        f"COT JPY leveraged net: {_f(m_row.get('JPY_lev_net'), '.0f')} contracts "
-        f"({_f(m_row.get('JPY_lev_percentile'), '.0f', 'th pct')})\n"
-        f"COT JPY assetmgr net: {_f(m_row.get('JPY_assetmgr_net'), '.0f')} "
-        f"({_f(m_row.get('JPY_assetmgr_percentile'), '.0f', 'th pct')})\n"
-        f"G10 composite: {_f(m_row.get('usdjpy_composite_score'), '.1f')} "
-        f"[{_s(m_row.get('usdjpy_composite_label'))}]\n"
-        f"Support: {_s(m_row.get('USDJPY_S1'))} / {_s(m_row.get('USDJPY_S2'))}  "
-        f"Resistance: {_s(m_row.get('USDJPY_R1'))} / {_s(m_row.get('USDJPY_R2'))}"
+
+def build_narrative_prompt(signal_data: dict) -> str:
+    """Build the prompt for Claude from signal data."""
+    return f"""You are writing a daily FX regime intelligence
+brief for institutional macro researchers.
+
+Today's signal data:
+{json.dumps(signal_data, indent=2)}
+
+Return valid JSON only with this schema:
+{{
+  "headline": "string",
+  "sections": {{
+    "macro_context": "string",
+    "eurusd": {{
+      "narrative": "string",
+      "key_driver": "string",
+      "watch_for": "string"
+    }},
+    "usdjpy": {{
+      "narrative": "string",
+      "key_driver": "string",
+      "watch_for": "string"
+    }},
+    "usdinr": {{
+      "narrative": "string",
+      "key_driver": "string",
+      "watch_for": "string"
+    }}
+  }}
+}}
+
+Write a concise research article with these sections:
+
+## Macro Context
+One paragraph: what is the dominant macro theme today
+and how it affects G10 FX regimes.
+
+## EUR/USD
+Regime: [state regime and confidence]
+Two paragraphs: what the signals say and why it matters.
+Key driver: [primary driver in one sentence]
+Watch for: [what would change the call]
+
+## USD/JPY
+Same structure as EUR/USD.
+
+## USD/INR
+Same structure. Note: directional only due to RBI
+intervention. No precision entries.
+
+Rules:
+- Write like a senior FX researcher, not a student
+- No hedging language ("may", "might", "could")
+- Data-grounded: cite the actual numbers
+- Maximum 600 words total
+- Never mention "AI" or "generated"
+- Tone: calm, precise, confident
+"""
+
+
+def _build_signal_data(master_df):
+    payload = {
+        "date": str(master_df.index[-1].date()),
+        "pairs": {},
+        "signal_changes": [],
+    }
+    charts_to_show = {}
+    pair_signals = {}
+
+    for pair, cfg in PAIR_CONFIG.items():
+        pair_data = _build_pair_signal(master_df, pair, cfg)
+        pair_signals[pair] = pair_data
+        payload["pairs"][pair] = {
+            "regime": pair_data["regime"],
+            "confidence": pair_data["confidence"],
+            "spread": pair_data["spread"],
+            "cot_percentile": pair_data["cot_percentile"],
+            "vol_percentile": pair_data["vol_percentile"],
+            "driver": pair_data["driver"],
+            "watch_for": pair_data["watch_for"],
+        }
+        payload["signal_changes"].extend(pair_data["signal_changes"])
+        charts_to_show[pair] = pair_data["chart_types"]
+
+    payload["charts_to_show"] = charts_to_show
+    return payload, pair_signals
+
+
+def _fallback_article(signal_data, pair_signals):
+    eur = pair_signals["eurusd"]
+    jpy = pair_signals["usdjpy"]
+    inr = pair_signals["usdinr"]
+    changes = signal_data["signal_changes"] or ["No material signal changes."]
+    signal_changes_text = "; ".join(changes)
+
+    rendered = TEMPLATE.format(
+        date=signal_data["date"],
+        eurusd_regime=eur["regime"],
+        eurusd_confidence=round(eur["confidence"] * 100),
+        eurusd_driver=eur["driver"],
+        eurusd_rate_diff=f"{eur['spread']:+.2f}pp" if eur["spread"] is not None else "N/A",
+        eurusd_cot_percentile=(
+            f"{eur['cot_percentile']:.1f}th"
+            if eur["cot_percentile"] is not None
+            else "N/A"
+        ),
+        usdjpy_regime=jpy["regime"],
+        usdjpy_confidence=round(jpy["confidence"] * 100),
+        usdjpy_driver=jpy["driver"],
+        usdinr_regime=inr["regime"],
+        usdinr_driver=inr["driver"],
+        signal_changes=signal_changes_text,
     )
 
+    return {
+        "headline": (
+            "Rate differential momentum drives the latest "
+            "G10 FX regime configuration"
+        ),
+        "sections": {
+            "macro_context": rendered.split("\n\n")[0],
+            "eurusd": {
+                "narrative": (
+                    f"EUR/USD holds {eur['regime']} with "
+                    f"{round(eur['confidence'] * 100)}% confidence. {eur['driver']}"
+                ),
+                "key_driver": eur["driver"],
+                "watch_for": eur["watch_for"],
+            },
+            "usdjpy": {
+                "narrative": (
+                    f"USD/JPY tracks {jpy['regime']} with "
+                    f"{round(jpy['confidence'] * 100)}% confidence. {jpy['driver']}"
+                ),
+                "key_driver": jpy["driver"],
+                "watch_for": jpy["watch_for"],
+            },
+            "usdinr": {
+                "narrative": (
+                    f"USD/INR is {inr['regime']} in a directional-only frame. "
+                    f"{inr['driver']}"
+                ),
+                "key_driver": inr["driver"],
+                "watch_for": inr["watch_for"],
+            },
+            "signal_changes": changes,
+        },
+    }
 
-def _inr_context(m_row, i_row):
-    inr_row = i_row if i_row is not None else {}
-    return (
-        f"USD/INR {_f(m_row.get('USDINR', inr_row.get('USDINR')), '.4f')}  "
-        f"1D {_f(m_row.get('USDINR_chg_1D', inr_row.get('USDINR_chg_1D')), '+.2f', '%')}  "
-        f"1M {_f(m_row.get('USDINR_chg_1M', inr_row.get('USDINR_chg_1M')), '+.2f', '%')}  "
-        f"12M {_f(m_row.get('USDINR_chg_12M', inr_row.get('USDINR_chg_12M')), '+.2f', '%')}\n"
-        f"US-IN 10Y spread: {_f(i_row.get('US_IN_10Y_spread') if i_row else None, '+.2f', 'pp')}\n"
-        f"USDINR vol: {_f(i_row.get('USDINR_vol30') if i_row else None, '.1f', '% ann')} "
-        f"({_f(i_row.get('USDINR_vol_pct') if i_row else None, '.0f', 'th pct')})\n"
-        f"FPI 20D equity flow: {_f(i_row.get('FPI_20D_flow') if i_row else None, '+,.0f', ' Cr INR')} "
-        f"({_f(i_row.get('FPI_20D_percentile') if i_row else None, '.0f', 'th pct')})\n"
-        f"RBI intervention flag: {_s(i_row.get('rbi_intervention_flag') if i_row else None)}\n"
-        f"INR composite: {_f(i_row.get('inr_composite_score') if i_row else None, '.1f')} "
-        f"[{_s(i_row.get('inr_composite_label') if i_row else None)}]"
+
+def generate_brief_article(signal_data: dict) -> dict:
+    """
+    Takes structured signal data and returns
+    a formatted article with sections per pair.
+    Uses Claude Haiku for cost efficiency (~$0.003/call).
+    """
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not api_key or anthropic is None:
+        raise RuntimeError("Anthropic API unavailable.")
+
+    client = anthropic.Anthropic(api_key=api_key, timeout=30.0)
+    prompt = build_narrative_prompt(signal_data)
+    message = client.messages.create(
+        model=_MODEL,
+        max_tokens=2000,
+        messages=[{"role": "user", "content": prompt}],
     )
 
-
-# ── prompt builder ────────────────────────────────────────────────────────────
-
-_SYSTEM = (
-    "You are a professional G10 FX and EM FX analyst writing a concise morning brief entry. "
-    "Given quantitative data for a currency pair, write exactly 2-3 sentences describing "
-    "the current regime, key driver, and near-term directional bias. "
-    "Be specific and data-driven. No hedging phrases like 'could potentially'. "
-    "Match the tone of a Bloomberg or RBC Capital Markets morning note. "
-    "Do not use bullet points. Do not repeat the exact numbers provided — synthesise them."
-)
+    raw_text = message.content[0].text
+    parsed = json.loads(raw_text)
+    return {
+        "date": signal_data.get("date"),
+        "headline": _safe_str(parsed.get("headline"), "FX regime briefing"),
+        "sections": parsed.get("sections", {}),
+        "generated_at": _iso_utc_now(),
+    }
 
 
-def _make_prompt(pair_label, context):
-    return (
-        f"Data for {pair_label} as of today:\n\n"
-        f"{context}\n\n"
-        f"Write the regime read paragraph (2-3 sentences)."
-    )
+def _merge_article(model_article, signal_data, pair_signals):
+    sections = model_article.get("sections", {})
+
+    merged_pairs = {}
+    for pair in ("eurusd", "usdjpy", "usdinr"):
+        pair_section = sections.get(pair, {})
+        pair_signal = pair_signals[pair]
+        merged_pairs[pair] = {
+            "regime": pair_signal["regime"],
+            "confidence": pair_signal["confidence"],
+            "narrative": _safe_str(pair_section.get("narrative"), pair_signal["driver"]),
+            "key_driver": _safe_str(pair_section.get("key_driver"), pair_signal["driver"]),
+            "watch_for": _safe_str(pair_section.get("watch_for"), pair_signal["watch_for"]),
+        }
+
+    merged = {
+        "date": signal_data["date"],
+        "headline": _safe_str(
+            model_article.get("headline"),
+            "Rate differential momentum drives G10 FX regime direction",
+        ),
+        "sections": {
+            "macro_context": _safe_str(
+                sections.get("macro_context"),
+                "Macro regime remains dominated by rates and positioning.",
+            ),
+            "eurusd": merged_pairs["eurusd"],
+            "usdjpy": merged_pairs["usdjpy"],
+            "usdinr": merged_pairs["usdinr"],
+            "signal_changes": signal_data["signal_changes"]
+            if signal_data["signal_changes"]
+            else ["No material signal changes."],
+        },
+        "charts_to_show": signal_data["charts_to_show"],
+        "generated_at": model_article.get("generated_at", _iso_utc_now()),
+    }
+    return merged
 
 
-# ── main ──────────────────────────────────────────────────────────────────────
+def _write_outputs(article):
+    os.makedirs("data", exist_ok=True)
+    with open(_AI_ARTICLE_OUTPUT, "w", encoding="utf-8") as file_handle:
+        json.dump(article, file_handle, indent=2)
+
+    compatible_read = {
+        "generated_at": article["generated_at"],
+        "data_date": article["date"],
+        "eurusd": article["sections"]["eurusd"]["narrative"],
+        "usdjpy": article["sections"]["usdjpy"]["narrative"],
+        "usdinr": article["sections"]["usdinr"]["narrative"],
+    }
+    with open(_AI_READ_OUTPUT, "w", encoding="utf-8") as file_handle:
+        json.dump(compatible_read, file_handle, indent=2)
+
+    print(f"[AI] wrote {_AI_ARTICLE_OUTPUT}")
+    print(f"[AI] wrote {_AI_READ_OUTPUT}")
+
 
 def run():
-    if not _ANTHROPIC_KEY:
-        print("[AI] ANTHROPIC_API_KEY not set — skipping AI regime reads.")
-        return
-
-    try:
-        import anthropic as _anthropic
-    except ImportError:
-        print("[AI] anthropic library not installed — skipping AI regime reads.")
-        return
-
-    # Load latest master data
-    master_path = "data/latest_with_cot.csv"
-    inr_path    = "data/inr_latest.csv"
-
+    master_path = os.path.join("data", "latest_with_cot.csv")
     if not os.path.exists(master_path):
         print(f"[AI] {master_path} not found — skipping.")
         return
 
     master_df = pd.read_csv(master_path, index_col=0, parse_dates=True)
     if len(master_df) == 0:
-        print("[AI] master CSV is empty — skipping.")
+        print("[AI] latest_with_cot.csv empty — skipping.")
         return
 
-    m_row = master_df.iloc[-1].to_dict()
-    data_date = str(master_df.index[-1].date())
+    signal_data, pair_signals = _build_signal_data(master_df)
 
-    i_row = None
-    if os.path.exists(inr_path):
-        inr_df = pd.read_csv(inr_path, index_col=0, parse_dates=True)
-        if len(inr_df) > 0:
-            i_row = inr_df.iloc[-1].to_dict()
+    try:
+        model_article = generate_brief_article(signal_data)
+        article = _merge_article(model_article, signal_data, pair_signals)
+        print("[AI] Claude narrative generation OK")
+    except Exception as exc:
+        print(f"[AI] fallback narrative template used: {exc}")
+        fallback = _fallback_article(signal_data, pair_signals)
+        fallback["date"] = signal_data["date"]
+        fallback["charts_to_show"] = signal_data["charts_to_show"]
+        fallback["generated_at"] = _iso_utc_now()
+        article = _merge_article(fallback, signal_data, pair_signals)
 
-    client = _anthropic.Anthropic(api_key=_ANTHROPIC_KEY)
-
-    results = {}
-    for pair_label, ctx in [
-        ("EUR/USD", _eur_context(m_row)),
-        ("USD/JPY", _jpy_context(m_row)),
-        ("USD/INR", _inr_context(m_row, i_row)),
-    ]:
-        slug = pair_label.lower().replace("/", "")
-        try:
-            msg = client.messages.create(
-                model=_MODEL,
-                max_tokens=220,
-                system=_SYSTEM,
-                messages=[{"role": "user", "content": _make_prompt(pair_label, ctx)}],
-            )
-            results[slug] = msg.content[0].text.strip()
-            print(f"[AI] {pair_label} OK")
-        except Exception as e:
-            print(f"[AI] {pair_label} failed: {e}")
-            results[slug] = None
-
-    # Only write if at least one result came back
-    if any(v is not None for v in results.values()):
-        output = {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "data_date":    data_date,
-            "eurusd":       results.get("eurusd"),
-            "usdjpy":       results.get("usdjpy"),
-            "usdinr":       results.get("usdinr"),
-        }
-        os.makedirs("data", exist_ok=True)
-        with open(_OUTPUT, "w", encoding="utf-8") as fh:
-            json.dump(output, fh, indent=2)
-        print(f"[AI] wrote {_OUTPUT}")
-    else:
-        print("[AI] all calls failed — output file not updated.")
+    _write_outputs(article)
 
 
 if __name__ == "__main__":

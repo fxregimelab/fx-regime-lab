@@ -71,7 +71,7 @@ Examples:
 
 - `check_phase1.py`, `check_phase23.py`, `check_phase3.py` — HTML/CSS idempotency and marker checks (invoke `create_html_brief.py`).
 - `check_brand_v2.py` — regenerates brief and asserts brand-v2 HTML/CSS markers.
-- `stress_test.py` — multi-phase presence checks on latest `briefs/brief_*.html` and `charts/global_workspace.html`.
+- `stress_test.py` — multi-phase presence checks on latest `briefs/brief_*.html`, generated pair chart files, and retired-workspace guards.
 - `verify_html.py`, `verify_full.py` — content checks against **latest** brief (and CSV for `verify_full`).
 - `check_counts.py`, `idempotency_diff.py` — legacy/debug helpers (some hardcoded brief dates inside).
 

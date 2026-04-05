@@ -6,10 +6,10 @@
   'use strict';
 
   var COL = {
-    bg: 'transparent',
+    bg: '#0f1318',
     grid: '#1c1f18',
     axis: '#252820',
-    label: '#8a9485',
+    label: '#4a5245',
     text: '#e8ede8',
     surface: '#191c15',
     border: '#2e3228',
@@ -34,13 +34,15 @@
       color: COL.label,
     },
     animation: true,
-    animationDuration: 400,
+    animationDuration: 600,
     animationEasing: 'cubicOut',
+    animationDurationUpdate: 300,
+    lazyUpdate: true,
     grid: {
-      left: 52,
-      right: 20,
-      top: 32,
-      bottom: 40,
+      left: 48,
+      right: 16,
+      top: 24,
+      bottom: 32,
       containLabel: true,
     },
     tooltip: {
@@ -122,6 +124,17 @@
     return global.echarts.init(dom, null, { renderer: 'canvas' });
   }
 
+  function observeChartResize(container, chart) {
+    if (!container || !chart || typeof ResizeObserver !== 'function') return null;
+    var ro = new ResizeObserver(function () {
+      if (chart && typeof chart.resize === 'function') {
+        chart.resize();
+      }
+    });
+    ro.observe(container);
+    return ro;
+  }
+
   /**
    * Two line series on one grid (e.g. spread vs spot).
    * @param {HTMLElement} dom
@@ -154,7 +167,7 @@
         textStyle: { color: COL.label, fontSize: 10, fontFamily: '"JetBrains Mono", ui-monospace, monospace' },
       },
     });
-    chart.setOption(opt, true);
+    chart.setOption(opt, { notMerge: true, lazyUpdate: true });
     return chart;
   }
 
@@ -203,7 +216,7 @@
         textStyle: { color: COL.label, fontSize: 10, fontFamily: '"JetBrains Mono", ui-monospace, monospace' },
       },
     });
-    chart.setOption(opt, true);
+    chart.setOption(opt, { notMerge: true, lazyUpdate: true });
     return chart;
   }
 
@@ -223,7 +236,9 @@
       color: TERMINAL_CHART_BASE.color,
       textStyle: TERMINAL_CHART_BASE.textStyle,
       animation: true,
-      animationDuration: 400,
+      animationDuration: 600,
+      animationDurationUpdate: 300,
+      lazyUpdate: true,
       grid: [
         { left: 52, right: 20, top: 40, height: '32%' },
         { left: 52, right: 20, top: '58%', height: '32%' },
@@ -263,7 +278,7 @@
         itemStyle: { color: bot.series[0].color || COL.jpy },
       });
     }
-    chart.setOption(opt, true);
+    chart.setOption(opt, { notMerge: true, lazyUpdate: true });
     return chart;
   }
 
@@ -299,7 +314,7 @@
       },
       series: series,
     };
-    chart.setOption(opt, true);
+    chart.setOption(opt, { notMerge: true, lazyUpdate: true });
     return chart;
   }
 
@@ -326,7 +341,7 @@
       ],
       tooltip: { trigger: 'axis' },
     });
-    chart.setOption(opt, true);
+    chart.setOption(opt, { notMerge: true, lazyUpdate: true });
     return chart;
   }
 
@@ -339,5 +354,6 @@
     createHistogram: createTerminalHistogramChart,
     deepMerge: deepMerge,
     init: initChart,
+    observeChartResize: observeChartResize,
   };
 })(typeof window !== 'undefined' ? window : this);

@@ -6,27 +6,30 @@
   <title>USD/INR — Terminal · FX Regime Lab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/terminal/terminal.css" />
   <meta name="supabase-url" content="" />
   <meta name="supabase-anon-key" content="" />
-  <script src="/assets/theme-switch.js" defer></script>
-  <script src="/terminal/terminal-nav.js" defer></script>
   <script src="/assets/supabase-env.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="/terminal/data-client.js"></script>
-  <!-- DATA: US_IN spreads, USDINR vol/spot, dxy_inr / gold_inr corrs, FPI_20D, rbi_reserves -->
   <script src="/terminal/utils.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous"></script>
   <script src="/terminal/echarts-config.js"></script>
-  <script src="/terminal/expandable-rows.js"></script>
+  <script src="/terminal/data-client.js"></script>
+  <script src="/assets/theme-switch.js" defer></script>
+  <script src="/terminal/terminal-nav.js" defer></script>
+  <!-- DATA: US_IN spreads, USDINR vol/spot, dxy_inr / gold_inr corrs, FPI_20D, rbi_reserves -->
+  <script src="/terminal/terminal-lazy-charts.js"></script>
+  <script src="/terminal/terminal-motion.js"></script>
 </head>
 <body class="theme-terminal">
   <a href="#term-pair-main" class="term-sr-only">Skip to content</a>
 
   <header class="term-nav" role="banner">
     <div class="term-nav__left">
-      <a class="term-nav__brand" href="/terminal/">FX Regime Lab</a>
+      <a class="term-nav__brand" href="/terminal/">
+        <img src="/assets/images/wordmark_without_bg.png" alt="FX Regime Lab" class="term-nav__wordmark" width="160" height="22" loading="eager" onerror="this.onerror=null;this.src='data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22210%22%20height%3D%2222%22%3E%3Ctext%20x%3D%220%22%20y%3D%2216%22%20fill%3D%22%23e8ede8%22%20font-family%3D%22IBM%20Plex%20Sans%2Csystem-ui%2Csans-serif%22%20font-size%3D%2213%22%20font-weight%3D%22600%22%3EFX%20Regime%20Lab%3C/text%3E%3C/svg%3E';" />
+      </a>
       <span class="term-nav__pipe" aria-hidden="true">|</span>
       <span class="term-nav__product">Terminal</span>
     </div>
@@ -58,22 +61,43 @@
       <div class="term-pair-head__right">
         <span class="term-pair-head__badge term-pair-head__badge--neutral" id="hdr-regime-badge">—</span>
         <span class="term-pair-head__score" id="hdr-score">—</span>
+        <span class="term-pair-head__updated" id="hdr-updated">Last updated —</span>
       </div>
     </header>
 
+    <section class="term-pair-hero" id="pair-hero">
+      <div class="term-pair-hero__left">
+        <h1 class="term-pair-hero__name">USD/INR</h1>
+        <div class="term-pair-hero__spot" id="hero-spot">—</div>
+        <div class="term-pair-hero__change" id="hero-d1">—</div>
+        <div class="term-pair-hero__regime">
+          <div class="term-pair-hero__label">Regime</div>
+          <div class="term-pair-hero__value" id="hero-regime">—</div>
+          <div class="term-pair-hero__confidence" id="hero-confidence">—</div>
+        </div>
+        <p class="term-pair-hero__driver" id="hero-driver">→ Driver loading…</p>
+        <p class="term-pair-hero__watch" id="hero-watch">Watch: data refresh in progress.</p>
+        <div class="term-pair-scrollcue">↓ Signal analysis</div>
+      </div>
+      <div class="term-pair-hero__right">
+        <div class="term-pair-hero__chart" id="hero-chart-placeholder"></div>
+      </div>
+    </section>
+
     <nav class="term-pair-tabs" aria-label="Section shortcuts">
-      <a class="term-pair-tabs__link is-active" href="#acc-rate-diff" data-tab>Fundamentals</a>
-      <a class="term-pair-tabs__link" href="#acc-cot" data-tab>Positioning</a>
-      <a class="term-pair-tabs__link" href="#acc-vol" data-tab>Vol &amp; correlation</a>
-      <a class="term-pair-tabs__link" href="#acc-cross" data-tab>Cross asset</a>
-      <a class="term-pair-tabs__link" href="#acc-momentum" data-tab>Momentum</a>
-      <a class="term-pair-tabs__link" href="#acc-fpi-flows" data-tab>FPI flows</a>
-      <a class="term-pair-tabs__link" href="#acc-rbi-activity" data-tab>RBI activity</a>
+      <a class="term-pair-tabs__link is-active" href="#rate-differentials" data-tab="fundamentals">Fundamentals</a>
+      <a class="term-pair-tabs__link" href="#cot-positioning" data-tab="positioning">Positioning</a>
+      <a class="term-pair-tabs__link" href="#vol-correlation" data-tab="vol">Vol &amp; correlation</a>
+      <a class="term-pair-tabs__link" href="#cross-asset" data-tab="cross">Cross asset</a>
+      <a class="term-pair-tabs__link" href="#momentum" data-tab="momentum">Momentum</a>
+      <a class="term-pair-tabs__link" href="#fpi-flows" data-tab="fpi">FPI flows</a>
+      <a class="term-pair-tabs__link" href="#rbi-activity" data-tab="rbi">RBI activity</a>
+      <span class="term-pair-tabs__underline" aria-hidden="true"></span>
     </nav>
 
-    <div id="term-accordion-root">
+    <div id="term-sections-root">
 
-      <div class="term-acc" id="acc-rate-diff" data-term-acc-row data-row-key="rate-diff">
+      <section class="term-magazine-section" id="rate-differentials" data-row-key="rate-diff">
         <div class="term-acc__shell">
           <div class="term-acc__bar" role="button" tabindex="0" aria-expanded="false">
             <span class="term-acc__cat">Rate differentials</span>
@@ -108,9 +132,9 @@
             <p class="term-acc__interpret">Negative US–IN spreads reflect INR yield premium — a structural INR strength factor when sustained. Directional read only; RBI can gap the spot tape.</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="term-acc" id="acc-cot" data-term-acc-row data-no-chart="true">
+      <section class="term-magazine-section" id="cot-positioning" data-no-chart="true">
         <div class="term-acc__shell">
           <div class="term-acc__bar" role="button" tabindex="0">
             <span class="term-acc__cat">Positioning (FPI proxy)</span>
@@ -128,9 +152,9 @@
             <p class="term-acc__interpret">FPI data is the institutional positioning proxy for USD/INR. See FPI Flows row for full positioning analysis.</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="term-acc" id="acc-vol" data-term-acc-row data-row-key="vol">
+      <section class="term-magazine-section" id="vol-correlation" data-row-key="vol">
         <div class="term-acc__shell">
           <div class="term-acc__bar" role="button" tabindex="0">
             <span class="term-acc__cat">Volatility &amp; correlation</span>
@@ -161,9 +185,9 @@
             <p class="term-acc__interpret">Gold divergence and India-specific DXY beta flag policy and import channels. Extreme realized vol raises odds of RBI smoothing — not a clean vol surface for tight execution.</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="term-acc" id="acc-iv" data-term-acc-row data-no-chart="true">
+      <section class="term-magazine-section" id="implied-volatility" data-no-chart="true">
         <div class="term-acc__shell">
           <div class="term-acc__bar" role="button" tabindex="0">
             <span class="term-acc__cat">Implied volatility</span>
@@ -181,9 +205,9 @@
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="term-acc" id="acc-cross" data-term-acc-row data-row-key="cross">
+      <section class="term-magazine-section" id="cross-asset" data-row-key="cross">
         <div class="term-acc__shell">
           <div class="term-acc__bar" role="button" tabindex="0">
             <span class="term-acc__cat">Cross asset</span>
@@ -212,9 +236,9 @@
             <p class="term-acc__interpret">Cross-asset mix for INR emphasises gold import channel and idiosyncratic dollar beta — not a pure G10 USD read.</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="term-acc" id="acc-regime" data-term-acc-row data-row-key="regime" data-no-chart="true">
+      <section class="term-magazine-section term-magazine-section--regime" id="regime-read" data-row-key="regime" data-no-chart="true">
         <div class="term-acc__shell">
           <div class="term-acc__bar" role="button" tabindex="0">
             <span class="term-acc__cat">Regime read</span>
@@ -236,9 +260,9 @@
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="term-acc" id="acc-momentum" data-term-acc-row data-row-key="momentum">
+      <section class="term-magazine-section" id="momentum" data-row-key="momentum">
         <div class="term-acc__shell">
           <div class="term-acc__bar" role="button" tabindex="0">
             <span class="term-acc__cat">Momentum</span>
@@ -268,9 +292,9 @@
             <p class="term-acc__interpret">Momentum frames near-term drift in spot; pair colour highlights direction while RBI intervention risk caps precision timing.</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="term-acc" id="acc-fpi-flows" data-term-acc-row data-row-key="fpi-flows">
+      <section class="term-magazine-section" id="fpi-flows" data-row-key="fpi-flows">
         <div class="term-acc__shell">
           <div class="term-acc__bar" role="button" tabindex="0">
             <span class="term-acc__cat">FPI flows</span>
@@ -298,9 +322,9 @@
             <p class="term-acc__interpret">FPI outflow pressure shows up in spot with a lag; combine with RBI reserve burn for a fuller intervention picture.</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="term-acc" id="acc-rbi-activity" data-term-acc-row data-row-key="rbi-activity">
+      <section class="term-magazine-section" id="rbi-activity" data-row-key="rbi-activity">
         <div class="term-acc__shell">
           <div class="term-acc__bar" role="button" tabindex="0">
             <span class="term-acc__cat">RBI activity</span>
@@ -328,13 +352,11 @@
             <p class="term-acc__interpret">RBI actively defending INR through reserves; forward book colour matters but is not tradable here — directional context only.</p>
           </div>
         </div>
-      </div>
+      </section>
 
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="/terminal/data-client.js"></script>
   <script>
 (function () {
   'use strict';
@@ -612,10 +634,10 @@
           var d2 = filterByRange(DATA.rateDiff2Y, ms);
           var last = d10.length ? d10[d10.length - 1][1] : null;
           chart.setOption({
-            backgroundColor: base.backgroundColor || 'transparent',
+            backgroundColor: '#0f1318',
             color: base.color,
             textStyle: base.textStyle || { fontFamily: 'JetBrains Mono,monospace', fontSize: 11, color: '#8a9485' },
-            grid: { left: 52, right: 24, top: 36, bottom: 44 },
+            grid: { left: 48, right: 16, top: 24, bottom: 32 },
             legend: {
               top: 4,
               right: 8,
@@ -681,12 +703,12 @@
           var v60 = filterByRange(DATA.vol60Roll, ms);
           var gold = filterByRange(DATA.goldCorrProxy, ms);
           chart.setOption({
-            backgroundColor: 'transparent',
+            backgroundColor: '#0f1318',
             textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
             axisPointer: { link: [{ xAxisIndex: 'all' }] },
             grid: [
-              { left: 52, right: 20, top: 32, height: '52%' },
-              { left: 52, right: 20, top: '72%', height: '22%' }
+              { left: 48, right: 16, top: 24, height: '52%' },
+              { left: 48, right: 16, top: '72%', height: '22%' }
             ],
             xAxis: [
               { type: 'time', gridIndex: 0, axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { show: false } },
@@ -780,7 +802,7 @@
             meanAbsOverRange(DATA.ratesProxy, ms * 2) || ratesM
           ];
           chart.setOption({
-            backgroundColor: 'transparent',
+            backgroundColor: '#0f1318',
             animation: false,
             textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
             tooltip: {},
@@ -877,10 +899,10 @@
               : { data: [] };
 
           chart.setOption({
-            backgroundColor: 'transparent',
+            backgroundColor: '#0f1318',
             textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
             grid: [
-              { left: 48, right: 52, top: 28, height: '54%' },
+              { left: 48, right: 16, top: 24, height: '54%' },
               { left: 48, right: 16, top: '74%', height: '20%' }
             ],
             xAxis: [
@@ -936,8 +958,8 @@
 
         draw(rangeMs);
 
-        if (toolbar && window.TerminalExpandableRows) {
-          window.TerminalExpandableRows.attachRegimeZoneToggle(toolbar, chart, {
+        if (toolbar && window.FXRLTerminalLazy) {
+          window.FXRLTerminalLazy.attachRegimeZoneToggle(toolbar, chart, {
             storageKey: 'fxrl_regime_zone_usdinr',
             apply: function () {
               draw(wireActiveRange(row) || 15552000000);
@@ -964,9 +986,9 @@
           });
           var cum = DATA.fpiWeekCum;
           chart.setOption({
-            backgroundColor: 'transparent',
+            backgroundColor: '#0f1318',
             textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
-            grid: { left: 56, right: 56, top: 32, bottom: 48 },
+            grid: { left: 48, right: 16, top: 24, bottom: 32 },
             tooltip: { trigger: 'axis' },
             legend: { top: 4, textStyle: { color: '#8a9485', fontSize: 10 } },
             xAxis: { type: 'category', data: cats, axisLabel: { color: '#8a9485', fontSize: 8, rotate: 55 } },
@@ -1016,9 +1038,9 @@
           var flags = filterByRange(DATA.rbiIntervention, ms);
           var shade = interventionShade(line, flags);
           chart.setOption({
-            backgroundColor: 'transparent',
+            backgroundColor: '#0f1318',
             textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
-            grid: { left: 56, right: 24, top: 32, bottom: 40 },
+            grid: { left: 48, right: 16, top: 24, bottom: 32 },
             xAxis: { type: 'time', axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { color: '#8a9485', fontSize: 9 } },
             yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { color: '#8a9485' } },
             tooltip: { trigger: 'axis' },
@@ -1111,6 +1133,17 @@
     rb.className += rg === 'bull' ? 'term-pair-head__badge--bull' : rg === 'bear' ? 'term-pair-head__badge--bear' : 'term-pair-head__badge--neutral';
 
     document.getElementById('term-pipeline-ts').textContent = LATEST.date ? 'As of ' + LATEST.date + ' · CSV' : 'Pipeline —';
+    var updatedText = LATEST.date ? 'Last updated ' + LATEST.date : 'Last updated —';
+    var hdrUpdated = document.getElementById('hdr-updated');
+    if (hdrUpdated) hdrUpdated.textContent = updatedText;
+    var heroSpot = document.getElementById('hero-spot');
+    if (heroSpot) heroSpot.textContent = isFinite(spot) ? spot.toFixed(2) : '—';
+    var heroD1 = document.getElementById('hero-d1');
+    if (heroD1) heroD1.textContent = isFinite(d1) ? fmtPct(d1, 2) : '—';
+    var heroRegime = document.getElementById('hero-regime');
+    if (heroRegime) heroRegime.textContent = label;
+    var heroConf = document.getElementById('hero-confidence');
+    if (heroConf) heroConf.textContent = isFinite(score) ? 'Confidence ' + Math.round(score) + '%' : 'Confidence —';
 
     var u10 = num(LATEST.US_IN_10Y_spread);
     var u2 = num(LATEST.US_IN_policy_spread);
@@ -1382,51 +1415,41 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.term-pair-tabs__link[data-tab]').forEach(function (a) {
-      a.addEventListener('click', function (e) {
-        var h = a.getAttribute('href');
-        if (h && h.charAt(0) === '#') {
-          e.preventDefault();
-          var el = document.querySelector(h);
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          document.querySelectorAll('.term-pair-tabs__link').forEach(function (x) {
-            x.classList.remove('is-active');
-          });
-          a.classList.add('is-active');
-        }
-      });
-    });
-
     var PAIR = 'USDINR';
     var START = '2020-01-01';
-    Promise.all([
-      fetch('/data/latest_with_cot.csv').then(function (r) {
-        if (!r.ok) throw new Error('master csv');
-        return r.text();
-      }),
-      fetch('/data/cot_latest.csv').then(function (r) {
-        if (!r.ok) throw new Error('cot csv');
-        return r.text();
-      }),
-      window.FXRLData && typeof window.FXRLData.fetchSignalRows === 'function'
-        ? window.FXRLData.fetchSignalRows(PAIR, START)
-        : Promise.resolve(null),
-    ])
-      .then(function (texts) {
-        var masterParsed = parseCsv(texts[0]);
-        if (texts[2] && texts[2].length && window.FXRLData && window.FXRLData.patchMasterRowsFromSignals) {
-          window.FXRLData.patchMasterRowsFromSignals(masterParsed.rows, texts[2], PAIR);
+    var datasetP =
+      window.FXRLData && typeof window.FXRLData.loadPairDataset === 'function'
+        ? window.FXRLData.loadPairDataset(PAIR, START)
+        : Promise.resolve(null);
+    datasetP
+      .then(function (payload) {
+        if (!payload || !payload.masterText || !payload.cotText) {
+          throw new Error('pair dataset unavailable');
         }
-        hydrateData(masterParsed, parseCsv(texts[1]));
+        var masterParsed = parseCsv(payload.masterText);
+        if (payload.sbRows && payload.sbRows.length && window.FXRLData && window.FXRLData.patchMasterRowsFromSignals) {
+          window.FXRLData.patchMasterRowsFromSignals(masterParsed.rows, payload.sbRows, PAIR);
+        }
+        if (payload.latestDate && window.FXRLData && typeof window.FXRLData.setDataDate === 'function') {
+          window.FXRLData.setDataDate(payload.latestDate);
+        }
+        hydrateData(masterParsed, parseCsv(payload.cotText));
         populateDom();
-        window.TerminalExpandableRows.init(document.getElementById('term-accordion-root'), {
+        if (window.FXRLTerminalMotion && typeof window.FXRLTerminalMotion.initPageMotion === 'function') {
+          window.FXRLTerminalMotion.initPageMotion(document.getElementById('term-pair-main'));
+        }
+        window.FXRLTerminalLazy.init(document.getElementById('term-sections-root'), {
           chartInits: chartInits()
         });
       })
-      .catch(function () {
+      .catch(function (e) {
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[USDINR] Data load failed:', e);
+        }
         document.getElementById('hdr-spot').textContent = 'No data';
         document.getElementById('hdr-d1').textContent =
-          'Run pipeline locally — /data/*.csv not available on this host';
+          (window.FXRLData && window.FXRLData.DATA_UPDATING_MESSAGE) ||
+          'Data updating — pipeline runs daily at 23:00 UTC';
       });
   });
 })();

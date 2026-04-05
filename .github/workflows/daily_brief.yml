@@ -58,6 +58,12 @@ jobs:
           if [ -n "${{ secrets.CME_API_KEY }}" ]; then
             echo "CME_API_KEY=${{ secrets.CME_API_KEY }}" >> .env
           fi
+          # ANTHROPIC_API_KEY: used by ai_brief.py for
+          # narrative generation. Add to GitHub repo secrets.
+          # Cost: ~$0.003 per run (Claude Haiku).
+          if [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> .env
+          fi
 
       - name: Configure git identity
         run: |

@@ -6,12 +6,20 @@
 
   var toggle = document.querySelector('[data-nav-toggle]');
   var overlay = document.querySelector('[data-nav-overlay]');
-  var path = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+
+  function normalizePath(value) {
+    var p = (value || '/').replace(/\/+$/, '') || '/';
+    if (p === '/brief/index.html' || p === '/brief/latest.html') return '/brief';
+    if (p === '/terminal/index.html') return '/terminal';
+    return p;
+  }
+
+  var path = normalizePath(window.location.pathname || '/');
 
   document.querySelectorAll('[data-nav-root] a[data-path]').forEach(function (a) {
     var p = a.getAttribute('data-path');
     if (!p) return;
-    var pNorm = p.replace(/\/+$/, '') || '/';
+    var pNorm = normalizePath(p);
     var active = path === pNorm || (pNorm !== '/' && path.indexOf(pNorm + '/') === 0);
     if (active) a.classList.add('is-active');
   });

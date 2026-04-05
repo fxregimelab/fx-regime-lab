@@ -11,6 +11,8 @@ import os
 import re
 import shutil
 import sys
+import json
+from datetime import datetime, timezone
 
 # Repo root
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,14 +25,19 @@ OUT_BRIEF = os.path.join(SITE, "brief", "latest.html")
 OUT_CHARTS = os.path.join(SITE, "charts")
 OUT_STATIC = os.path.join(SITE, "static")
 OUT_DATA = os.path.join(SITE, "data")
+AI_ARTICLE_SRC = os.path.join(DATA_SRC, "ai_article.json")
 
 # Terminal + static mirrors: ship merged master + COT/INR slices for /data/*.csv on Cloudflare.
 _DATA_FILES = (
     "latest_with_cot.csv",
     "cot_latest.csv",
     "inr_latest.csv",
+    "macro_cal.json",
 )
 
+_AI_ARCHIVE_PREFIX = "ai_article_"
+_AI_ARCHIVE_SUFFIX = ".json"
+_AI_ARCHIVE_KEEP = 30
 
 def _latest_brief_path() -> str | None:
     if not os.path.isdir(BRIEFS):
@@ -87,9 +94,51 @@ def _sync_charts_html_only(src: str, dst: str) -> None:
     for name in os.listdir(src):
         if not name.lower().endswith(".html"):
             continue
+        if name.lower() == "global_workspace.html":
+            continue
         sp = os.path.join(src, name)
         if os.path.isfile(sp):
             shutil.copy2(sp, os.path.join(dst, name))
+
+
+def _sync_ai_article_archive() -> None:
+    os.makedirs(OUT_DATA, exist_ok=True)
+    if not os.path.isfile(AI_ARTICLE_SRC):
+        print("WARN: skip data/ai_article.json (not found — run ai_brief.py first)")
+        return
+
+    try:
+        with open(AI_ARTICLE_SRC, encoding="utf-8") as fh:
+            article = json.load(fh)
+    except Exception as exc:
+        print(f"WARN: failed to read data/ai_article.json: {exc}")
+        return
+
+    article_date = article.get("date", "")
+    try:
+        date_slug = datetime.strptime(article_date, "%Y-%m-%d").strftime("%Y%m%d")
+    except ValueError:
+        date_slug = datetime.now(timezone.utc).strftime("%Y%m%d")
+
+    latest_dst = os.path.join(OUT_DATA, "ai_article.json")
+    dated_dst = os.path.join(OUT_DATA, f"{_AI_ARCHIVE_PREFIX}{date_slug}{_AI_ARCHIVE_SUFFIX}")
+    shutil.copy2(AI_ARTICLE_SRC, latest_dst)
+    shutil.copy2(AI_ARTICLE_SRC, dated_dst)
+    print(f"Copied data/ai_article.json -> {latest_dst}")
+    print(f"Archived data/ai_article.json -> {dated_dst}")
+
+    archive_candidates = []
+    for name in os.listdir(OUT_DATA):
+        if not name.startswith(_AI_ARCHIVE_PREFIX) or not name.endswith(_AI_ARCHIVE_SUFFIX):
+            continue
+        date_token = name[len(_AI_ARCHIVE_PREFIX):-len(_AI_ARCHIVE_SUFFIX)]
+        if len(date_token) == 8 and date_token.isdigit():
+            archive_candidates.append((date_token, os.path.join(OUT_DATA, name)))
+
+    archive_candidates.sort(reverse=True)
+    for _, path in archive_candidates[_AI_ARCHIVE_KEEP:]:
+        os.remove(path)
+        print(f"Pruned old archive file: {path}")
 
 
 def main() -> int:
@@ -112,11 +161,16 @@ def main() -> int:
     _sync_dir(STATIC_SRC, OUT_STATIC)
     print(f"Synced static -> {OUT_STATIC}")
 
-    _pipe_status = os.path.join(SITE, "data", "pipeline_status.json")
-    if os.path.isfile(_pipe_status):
-        os.makedirs(OUT_STATIC, exist_ok=True)
-        shutil.copy2(_pipe_status, os.path.join(OUT_STATIC, "pipeline_status.json"))
+    _pipe_status_site_data = os.path.join(SITE, "data", "pipeline_status.json")
+    _pipe_status_static = os.path.join(STATIC_SRC, "pipeline_status.json")
+    os.makedirs(OUT_STATIC, exist_ok=True)
+    # Precedence: site/data/pipeline_status.json (run.py merge output) wins over static/.
+    if os.path.isfile(_pipe_status_site_data):
+        shutil.copy2(_pipe_status_site_data, os.path.join(OUT_STATIC, "pipeline_status.json"))
         print("Copied site/data/pipeline_status.json -> site/static/ (terminal HOME fetch)")
+    elif os.path.isfile(_pipe_status_static):
+        shutil.copy2(_pipe_status_static, os.path.join(OUT_STATIC, "pipeline_status.json"))
+        print("Copied static/pipeline_status.json -> site/static/ (terminal HOME fetch)")
 
     os.makedirs(OUT_DATA, exist_ok=True)
     for name in _DATA_FILES:
@@ -126,6 +180,7 @@ def main() -> int:
             print(f"Copied data/{name} -> {OUT_DATA}/")
         else:
             print(f"WARN: skip data/{name} (not found — run pipeline first)")
+    _sync_ai_article_archive()
     return 0
 
 

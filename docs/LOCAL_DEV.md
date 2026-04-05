@@ -38,7 +38,43 @@ Production deploys to Cloudflare Pages run automatically from GitHub Actions aft
 Manual deploy from repo root:
 
 ```bash
-npx wrangler pages deploy site/ --project-name fx-regime-lab
+npx wrangler deploy
 ```
 
 Ensure the Worker has `SUPABASE_URL` and `SUPABASE_ANON_KEY` configured so `/assets/supabase-env.js` is non-empty.
+
+## Testing the connection
+
+Run from repo root with `.venv` activated:
+
+```bash
+python scripts/dev/test_connection.py
+```
+
+Expected output:
+
+- `OK: signals table has data`
+- `OK: regime_calls table has data`
+- `OK: write permission confirmed (service role)`
+- `SUPABASE: All tests passed`
+
+If you see `FAIL`, check `.env` has correct values for:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+## Testing the browser data path
+
+Open any terminal page, open browser console, run:
+
+```js
+window.FXRLTest.testDataPath()
+```
+
+Expected output shows Supabase env injection, Supabase query, CSV fallback, and `pipeline_status.json` checks as `OK` when data path is healthy.
+
+## Verifying live prices
+
+Open `site/terminal/index.html` in browser.
+Prices in the ticker should update every 30 seconds.
+Check browser console for `[LivePrices]` warnings.

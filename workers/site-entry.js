@@ -28,6 +28,22 @@ export default {
         },
       });
     }
+
+    if (
+      (path.startsWith("/data/") && path.endsWith(".csv")) ||
+      (path.startsWith("/static/") && path.endsWith(".json"))
+    ) {
+      const response = await env.ASSETS.fetch(request);
+      const headers = new Headers(response.headers);
+      headers.set("Access-Control-Allow-Origin", "*");
+      headers.set("Cache-Control", "public, max-age=3600");
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
+    }
+
     return env.ASSETS.fetch(request);
   },
 };

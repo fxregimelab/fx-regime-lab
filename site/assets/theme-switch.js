@@ -34,8 +34,13 @@
     return p.indexOf('/terminal/') !== -1 || p === '/terminal';
   }
 
+  function getThemeForPath(pathname) {
+    return isTerminalPath(pathname) ? 'terminal' : 'light';
+  }
+
   function applyFromUrl() {
-    if (isTerminalPath(global.location.pathname)) {
+    var theme = getThemeForPath(global.location.pathname);
+    if (theme === 'terminal') {
       enterTerminal();
     } else {
       document.body.classList.remove('theme-terminal');
@@ -63,6 +68,7 @@
     exitTerminal: exitTerminal,
     applyFromUrl: applyFromUrl,
     isTerminalPath: isTerminalPath,
+    getThemeForPath: getThemeForPath,
   };
 
   global.enterTerminal = enterTerminal;

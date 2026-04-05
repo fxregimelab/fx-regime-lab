@@ -20,7 +20,6 @@ from morning_brief import _oil_corr_label, _dxy_corr_label, _gold_corr_label, _r
 # ============================================================================
 
 from charts.registry import CHART_REGISTRY
-from charts.workspace import build_global_workspace_html
 from charts.base import set_chart_months
 import plotly.io as pio
 
@@ -1132,7 +1131,6 @@ def inject_landing_page(html_content, _re, df=None):
       <div class="lp-date">{today_fmt_ist}</div>
       <div class="lp-meta">FX as of: {date_str} &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: {in10y_date_str} &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: {cot_cutoff_str} (pub&apos;d: {cot_published_str}) &nbsp;&nbsp;|&nbsp;&nbsp; run: {_now_ist.strftime("%d %b %Y %H:%M")} IST</div>
     </div>
-    <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
   </div>
   {macro_strip_html}{macro_cal_html}<div class="lp-ticker-bar">{ticker_html}</div>
   <div class="lp-grid">
@@ -1186,6 +1184,7 @@ def inject_bottom_nav(html_content):
     """Inject fixed bottom navigation strip (idempotent — HTML only; CSS is in static/styles.css)."""
     # Always fix stale HOME href from prior sessions
     html_content = html_content.replace('href="#landing-page"', 'href="#landing"')
+    html_content = html_content.replace('<a href="#workspace-snap">WORKSPACE</a>', '')
     if 'id="pair-nav"' in html_content:
         return html_content
     nav_html = '''<nav id="pair-nav">
@@ -1193,7 +1192,6 @@ def inject_bottom_nav(html_content):
   <a href="#card-eurusd">EUR/USD</a>
   <a href="#card-usdjpy">USD/JPY</a>
   <a href="#card-usdinr">USD/INR</a>
-  <a href="#workspace-snap">WORKSPACE</a>
 </nav>'''
     html_content = html_content.replace('</body>\n</html>', nav_html + '\n</body>\n</html>')
     return html_content
@@ -1284,10 +1282,6 @@ def _build_chart_divs(months: int = 12) -> dict:
         (pair, pane): _builder_to_iframe(builder, pair, pane, height)
         for (pair, pane), (builder, pair, height) in CHART_REGISTRY.items()
     }
-    _gw_html = build_global_workspace_html()
-    with open(f'{CHARTS_DIR}/global_workspace.html', 'w', encoding='utf-8') as _fh:
-        _fh.write(_gw_html)
-    print('Generated: charts/global_workspace.html')
     return chart_divs
 
 # ============================================================================
@@ -1446,17 +1440,17 @@ def generate_html_brief(months: int = 12):
         f'<span class="period-btn{" period-btn--active" if m == months else ""}">{label}</span>'
         for label, m in _periods
     ) + '</div>'
-    # Replace stale period-selector (any prior run) or inject fresh after .lp-ws-btn
+    # Replace stale period-selector (any prior run) or inject before ticker bar.
     if 'class="period-selector"' in html_content:
         html_content = _re.sub(
             r'<div class="period-selector">.*?</div>',
             _sel_html, html_content, count=1, flags=_re.DOTALL,
         )
     else:
-        html_content = _re.sub(
-            r'(<a[^>]+class="lp-ws-btn"[^>]*>[^<]*</a>)',
-            r'\1' + _sel_html,
-            html_content, count=1,
+        html_content = html_content.replace(
+            '<div class="lp-ticker-bar">',
+            _sel_html + '<div class="lp-ticker-bar">',
+            1,
         )
 
     # ------------------------------------------------------------------
@@ -1502,6 +1496,32 @@ def generate_html_brief(months: int = 12):
         r'(<!-- HEADER \(superseded by landing page\) -->)\s*[\s\S]*?(<!-- LANDING PAGE -->)',
         r'\1\n\2',
         html_content,
+    )
+    # Remove legacy workspace blocks and CTAs from old templates.
+    html_content = _re.sub(
+        r'\n?\s*<a href="#workspace-snap" class="lp-ws-btn">[\s\S]*?</a>\s*\n?',
+        '\n',
+        html_content,
+        count=1,
+    )
+    html_content = _re.sub(
+        r'\n?\s*<a href="#workspace-snap" class="pnav-btn"[^>]*>[\s\S]*?</a>\s*\n?',
+        '\n',
+        html_content,
+    )
+    html_content = _re.sub(
+        r'<!-- GLOBAL ANALYSIS WORKSPACE -->[\s\S]*?</div>\s*</div>\s*',
+        '',
+        html_content,
+    )
+    html_content = _re.sub(
+        r'\.workspace-snap\s*\{[\s\S]*?\.ws-iframe-wrap iframe\s*\{[^}]*\}\n?',
+        '',
+        html_content,
+    )
+    html_content = html_content.replace(
+        "var targets  = ['landing', 'card-eurusd', 'card-usdjpy', 'card-usdinr', 'workspace-snap'];",
+        "var targets  = ['landing', 'card-eurusd', 'card-usdjpy', 'card-usdinr'];",
     )
 
     # ------------------------------------------------------------------
@@ -1661,39 +1681,10 @@ def generate_html_brief(months: int = 12):
             '        border-left: none; border-right: none;\n'
             '        display: flex; flex-direction: column; }\n'
             '.card-body { flex: 1; min-height: 0; }\n'
-            '.workspace-snap { height: 100vh; scroll-snap-align: start;\n'
-            '  display: flex; flex-direction: column; background: #0d0d0d; }\n'
-            '.ws-header { height: 36px; display: flex; align-items: center;\n'
-            '  padding: 0 20px; background: #1a1a1a; border-top: 1px solid #2a2a2a;\n'
-            '  font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #555;\n'
-            '  text-transform: uppercase; flex-shrink: 0; }\n'
-            '.ws-iframe-wrap { flex: 1; min-height: 0; overflow: hidden; }\n'
-            '.ws-iframe-wrap iframe { width: 100%; height: 100%; border: none; display: block; }'
         )
         html_content = html_content.replace(
             '.footer {\n    background: #0d0d0d;\n',
             _snap_css + '\n.footer {\n    background: #0d0d0d;\n',
-        )
-
-    # workspace section: upgrade old static div to snap-page (idempotent)
-    if 'class="workspace-snap"' not in html_content:
-        html_content = _re.sub(
-            r'<!-- GLOBAL ANALYSIS WORKSPACE -->[\s\S]*?</div>\s*</div>',
-            (
-                '<!-- GLOBAL ANALYSIS WORKSPACE -->\n'
-                '<div class="workspace-snap">\n'
-                '  <div class="ws-header">ANALYSIS WORKSPACE &mdash; ALL PAIRS</div>\n'
-                '  <div class="ws-iframe-wrap">\n'
-                '    <div class="chart-pane" data-pair="global" data-pane="0" '
-                'style="visibility:visible;position:relative;pointer-events:auto;width:100%;height:100%;">\n'
-                '<iframe src="../charts/global_workspace.html" '
-                'style="width:100%;height:calc(100vh - 36px);border:none;display:block;" '
-                'loading="eager" scrolling="no"></iframe>\n'
-                '    </div>\n'
-                '  </div>\n'
-                '</div>'
-            ),
-            html_content,
         )
 
     # collapsible REGIME READ — inject CSS after .brief-section:first-child (idempotent)
@@ -1788,7 +1779,7 @@ document.querySelectorAll('.regime-toggle').forEach(function(lbl) {
 // Bottom nav active state via IntersectionObserver
 (function() {
   var navLinks = document.querySelectorAll('#pair-nav a');
-  var targets  = ['landing', 'card-eurusd', 'card-usdjpy', 'card-usdinr', 'workspace-snap'];
+  var targets  = ['landing', 'card-eurusd', 'card-usdjpy', 'card-usdinr'];
   var io = new IntersectionObserver(function(entries) {
     entries.forEach(function(e) {
       if (e.isIntersecting && e.intersectionRatio >= 0.5) {

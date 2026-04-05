@@ -8,6 +8,77 @@
   var MASTER_CSV = '/data/latest_with_cot.csv';
   var LS_QUICK = 'fxrl_quickcharts';
   var LS_THEME = 'fxrl_chartbuilder_theme';
+  var LIGHT_BG = '#FAFAF8';
+  var DARK_BG = '#0b0e14';
+  var PREFETCH_PAIRS = ['EURUSD', 'USDJPY', 'USDINR'];
+  var PREFETCH_COLUMNS = [
+    'rate_diff_2y',
+    'rate_diff_10y',
+    'cot_lev_money_net',
+    'cot_asset_mgr_net',
+    'cot_percentile',
+    'realized_vol_5d',
+    'cross_asset_dxy',
+    'cross_asset_oil',
+  ];
+  var DATA = {
+    EURUSD: null,
+    USDJPY: null,
+    USDINR: null,
+  };
+  var MASTER_ROWS = null;
+  var SERIES_AVAILABILITY = {};
+  var PREFETCH_DONE = false;
+  var _paperTextureCanvas = null;
+
+  // Mirror of data-client.js mapping; used only for local column lookup.
+  var SIGNAL_TO_CSV = {
+    EURUSD: {
+      rate_diff_2y: 'US_DE_2Y_spread',
+      rate_diff_10y: 'US_DE_10Y_spread',
+      rate_diff_zscore: 'US_DE_2Y_spread_zscore',
+      cot_lev_money_net: 'EUR_lev_net',
+      cot_asset_mgr_net: 'EUR_assetmgr_net',
+      cot_percentile: 'EUR_lev_percentile',
+      realized_vol_5d: 'EURUSD_vol5',
+      realized_vol_20d: 'EURUSD_vol30',
+      cross_asset_dxy: 'DXY',
+      cross_asset_oil: 'Brent',
+      cross_asset_vix: 'VIX',
+    },
+    USDJPY: {
+      rate_diff_2y: 'US_JP_2Y_spread',
+      rate_diff_10y: 'US_JP_10Y_spread',
+      rate_diff_zscore: 'US_JP_2Y_spread_zscore',
+      cot_lev_money_net: 'JPY_lev_net',
+      cot_asset_mgr_net: 'JPY_assetmgr_net',
+      cot_percentile: 'JPY_lev_percentile',
+      realized_vol_5d: 'USDJPY_vol5',
+      realized_vol_20d: 'USDJPY_vol30',
+      cross_asset_dxy: 'DXY',
+      cross_asset_oil: 'Brent',
+      cross_asset_vix: 'VIX',
+    },
+    USDINR: {
+      rate_diff_2y: 'US_IN_policy_spread',
+      rate_diff_10y: 'US_IN_10Y_spread',
+      rate_diff_zscore: 'US_IN_policy_spread_zscore',
+      realized_vol_5d: 'USDINR_vol5',
+      realized_vol_20d: 'USDINR_vol30',
+      cross_asset_dxy: 'DXY',
+      cross_asset_oil: 'Brent',
+      cross_asset_vix: 'VIX',
+    },
+  };
+  var CSV_TO_SIGNAL = {};
+  Object.keys(SIGNAL_TO_CSV).forEach(function (pair) {
+    var m = SIGNAL_TO_CSV[pair];
+    Object.keys(m).forEach(function (dbCol) {
+      var csvCol = m[dbCol];
+      if (!CSV_TO_SIGNAL[csvCol]) CSV_TO_SIGNAL[csvCol] = [];
+      CSV_TO_SIGNAL[csvCol].push({ pair: pair, dbCol: dbCol });
+    });
+  });
 
   function splitCsvLine(line) {
     var out = [];
@@ -131,6 +202,21 @@
 
   function deepClone(o) {
     return JSON.parse(JSON.stringify(o));
+  }
+
+  function hasFinitePoints(pts) {
+    if (!Array.isArray(pts) || !pts.length) return false;
+    for (var i = 0; i < pts.length; i++) {
+      if (isFinite(pts[i][0]) && isFinite(pts[i][1])) return true;
+    }
+    return false;
+  }
+
+  function clonePoints(pts) {
+    if (!Array.isArray(pts)) return [];
+    return pts.map(function (p) {
+      return [p[0], p[1]];
+    });
   }
 
   var DATA_CATALOG = {
@@ -290,11 +376,131 @@
     return rowsToSeries(rows, meta.csvColumn);
   }
 
+  function createPaperTexture(ctx) {
+    var patternCanvas = document.createElement('canvas');
+    patternCanvas.width = 200;
+    patternCanvas.height = 200;
+    var pCtx = patternCanvas.getContext('2d');
+    pCtx.fillStyle = LIGHT_BG;
+    pCtx.fillRect(0, 0, 200, 200);
+    for (var i = 0; i < 800; i++) {
+      var x = Math.random() * 200;
+      var y = Math.random() * 200;
+      var opacity = Math.random() * 0.04;
+      pCtx.fillStyle = 'rgba(100, 90, 60, ' + opacity.toFixed(4) + ')';
+      pCtx.fillRect(x, y, 1, 1);
+    }
+    return ctx.createPattern(patternCanvas, 'repeat');
+  }
+
+  function getPaperTextureBackground() {
+    if (_paperTextureCanvas) {
+      return { image: _paperTextureCanvas, repeat: 'repeat' };
+    }
+    _paperTextureCanvas = document.createElement('canvas');
+    _paperTextureCanvas.width = 200;
+    _paperTextureCanvas.height = 200;
+    var ctx = _paperTextureCanvas.getContext('2d');
+    if (!ctx) return LIGHT_BG;
+    ctx.fillStyle = LIGHT_BG;
+    ctx.fillRect(0, 0, 200, 200);
+    for (var i = 0; i < 800; i++) {
+      var x = Math.random() * 200;
+      var y = Math.random() * 200;
+      var opacity = Math.random() * 0.04;
+      ctx.fillStyle = 'rgba(100, 90, 60, ' + opacity.toFixed(4) + ')';
+      ctx.fillRect(x, y, 1, 1);
+    }
+    return { image: _paperTextureCanvas, repeat: 'repeat' };
+  }
+
+  function resolveFromSignalCache(csvColumn) {
+    var refs = CSV_TO_SIGNAL[csvColumn] || [];
+    for (var i = 0; i < refs.length; i++) {
+      var ref = refs[i];
+      var pairData = DATA[ref.pair];
+      var pts = pairData && pairData[ref.dbCol];
+      if (hasFinitePoints(pts)) return clonePoints(pts);
+    }
+    return [];
+  }
+
+  function resolveSeriesRaw(meta) {
+    if (!meta) return [];
+    if (meta.computed === 'vol60_from_price') {
+      var spot = resolveFromSignalCache(meta.csvColumn);
+      if (!hasFinitePoints(spot) && Array.isArray(MASTER_ROWS)) {
+        spot = rowsToSeries(MASTER_ROWS, meta.csvColumn);
+      }
+      return hasFinitePoints(spot) ? rollingVol60FromSpot(spot) : [];
+    }
+    var fromSignals = resolveFromSignalCache(meta.csvColumn);
+    if (hasFinitePoints(fromSignals)) return fromSignals;
+    if (Array.isArray(MASTER_ROWS)) {
+      var fromCsv = rowsToSeries(MASTER_ROWS, meta.csvColumn);
+      return hasFinitePoints(fromCsv) ? fromCsv : [];
+    }
+    return [];
+  }
+
+  function updateSidebarAvailability() {
+    DATA_CATALOG.categories.forEach(function (cat) {
+      cat.series.forEach(function (meta) {
+        var raw = resolveSeriesRaw(meta);
+        var available = hasFinitePoints(raw);
+        meta.available = available;
+        SERIES_AVAILABILITY[meta.id] = {
+          available: available,
+          pending: !available,
+        };
+      });
+    });
+    return SERIES_AVAILABILITY;
+  }
+
+  function prefetchAllData() {
+    var DC = global.FXRLData;
+    var fetchSignals = DC && typeof DC.fetchSignals === 'function' ? DC.fetchSignals : null;
+    var csvPromise = fetchCsv(MASTER_CSV)
+      .then(function (text) {
+        var parsed = parseCsv(text);
+        MASTER_ROWS = parsed.rows || [];
+      })
+      .catch(function () {
+        MASTER_ROWS = null;
+      });
+
+    var signalsPromise;
+    if (!fetchSignals) {
+      signalsPromise = Promise.resolve();
+    } else {
+      signalsPromise = Promise.allSettled(
+        PREFETCH_PAIRS.map(function (pair) {
+          return fetchSignals(pair, PREFETCH_COLUMNS, '2024-01-01').then(function (data) {
+            return { pair: pair, data: data };
+          });
+        })
+      ).then(function (results) {
+        results.forEach(function (result) {
+          if (result.status === 'fulfilled') {
+            var value = result.value || {};
+            DATA[value.pair] = value.data || null;
+          }
+        });
+      });
+    }
+
+    return Promise.all([csvPromise, signalsPromise]).then(function () {
+      PREFETCH_DONE = true;
+      return updateSidebarAvailability();
+    });
+  }
+
   var ThemeManager = {
     current: 'dark',
     themes: {
       dark: {
-        bg: '#0f1209',
+        bg: DARK_BG,
         text: '#8a9485',
         textStrong: '#e8ede8',
         axis: '#252820',
@@ -307,16 +513,16 @@
         wordmarkDataUri: null,
       },
       light: {
-        bg: '#ffffff',
-        text: '#6b7280',
-        textStrong: '#111827',
-        axis: '#E2E4E8',
-        grid: '#E2E4E8',
-        splitLine: '#E2E4E8',
-        tooltipBg: '#ffffff',
-        tooltipBorder: '#E2E4E8',
-        exportFooter: '#F9FAFB',
-        exportUrl: '#374151',
+        bg: LIGHT_BG,
+        text: '#6B6355',
+        textStrong: '#1E1A12',
+        axis: '#E8E4DC',
+        grid: '#E8E4DC',
+        splitLine: '#E8E4DC',
+        tooltipBg: '#FFFEF8',
+        tooltipBorder: '#E0D8C8',
+        exportFooter: LIGHT_BG,
+        exportUrl: 'rgba(80,70,50,0.5)',
         wordmarkDataUri: null,
       },
     },
@@ -383,29 +589,21 @@
     _baselineTs: null,
 
     addSeries: function (id) {
-      var self = this;
       var meta = this.catalogMap[id];
       if (!meta || this.active.has(id)) return Promise.resolve();
-      if (meta.available === false) return Promise.resolve();
-      return fetchCsv(meta.csvFile)
-        .then(function (text) {
-          var parsed = parseCsv(text);
-          var raw = loadSeriesPoints(meta, parsed.rows);
-          self.active.set(id, {
-            meta: meta,
-            raw: raw,
-            chartType: meta.defaultType || 'line',
-            yAxis: meta.yAxis || 'left',
-            lineStyle: 'solid',
-            colour: meta.colour,
-          });
-          if (typeof self.onChange === 'function') self.onChange();
-        })
-        .catch(function () {
-          if (typeof global.console !== 'undefined' && global.console.error) {
-            global.console.error('Chart builder: could not load series', id);
-          }
-        });
+      if (meta.available === false) return Promise.resolve(false);
+      var raw = resolveSeriesRaw(meta);
+      if (!hasFinitePoints(raw)) return Promise.resolve(false);
+      this.active.set(id, {
+        meta: meta,
+        raw: raw,
+        chartType: meta.defaultType || 'line',
+        yAxis: meta.yAxis || 'left',
+        lineStyle: 'solid',
+        colour: meta.colour,
+      });
+      if (typeof this.onChange === 'function') this.onChange();
+      return Promise.resolve(true);
     },
 
     removeSeries: function (id) {
@@ -446,6 +644,14 @@
       this.indexedMode = false;
       this._baselineTs = null;
       if (typeof this.onChange === 'function') this.onChange();
+    },
+    hasDataSeries: function () {
+      if (!this.active.size) return false;
+      var hasData = false;
+      this.active.forEach(function (entry) {
+        if (hasFinitePoints(entry.raw)) hasData = true;
+      });
+      return hasData;
     },
 
     snapshotForPreset: function () {
@@ -499,6 +705,7 @@
   var ChartComposer = {
     buildOption: function (rangeMs, themeName) {
       var T = ThemeManager.themes[themeName] || ThemeManager.themes.dark;
+      var isLight = themeName === 'light';
       var reduceMotion =
         typeof global.matchMedia === 'function' &&
         global.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -513,8 +720,19 @@
           scale: true,
           position: 'left',
           axisLine: { lineStyle: { color: T.axis } },
-          axisLabel: { color: T.text, fontSize: 10 },
-          splitLine: { lineStyle: { color: T.splitLine } },
+          axisLabel: {
+            color: T.text,
+            fontSize: 10,
+            fontFamily: isLight ? '"IBM Plex Sans", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
+          },
+          splitLine: {
+            lineStyle: {
+              color: T.splitLine,
+              type: isLight ? [4, 3] : 'solid',
+              dashOffset: 0,
+              width: 1,
+            },
+          },
         },
       ];
       if (hasRight) {
@@ -523,7 +741,11 @@
           scale: true,
           position: 'right',
           axisLine: { lineStyle: { color: T.axis } },
-          axisLabel: { color: T.text, fontSize: 10 },
+          axisLabel: {
+            color: T.text,
+            fontSize: 10,
+            fontFamily: isLight ? '"IBM Plex Sans", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
+          },
           splitLine: { show: false },
         });
       }
@@ -545,7 +767,11 @@
             yAxisIndex: yi,
             data: data,
             symbolSize: 6,
-            itemStyle: { color: c },
+            itemStyle: {
+              color: c,
+              shadowBlur: isLight ? 3 : 0,
+              shadowColor: isLight ? 'rgba(0,0,0,0.12)' : 'transparent',
+            },
             emphasis: { focus: 'series' },
           });
         } else if (t === 'bar') {
@@ -555,7 +781,11 @@
             yAxisIndex: yi,
             data: data,
             barMaxWidth: 14,
-            itemStyle: { color: c },
+            itemStyle: {
+              color: c,
+              shadowBlur: isLight ? 3 : 0,
+              shadowColor: isLight ? 'rgba(0,0,0,0.12)' : 'transparent',
+            },
             emphasis: { focus: 'series' },
           });
         } else if (t === 'area') {
@@ -564,9 +794,16 @@
             name: name,
             yAxisIndex: yi,
             data: data,
-            smooth: 0.35,
+            smooth: isLight ? true : 0.35,
+            smoothMonotone: isLight ? 'x' : undefined,
             showSymbol: false,
-            lineStyle: { width: 1.5, color: c, type: dash },
+            lineStyle: {
+              width: 1.5,
+              color: c,
+              type: dash,
+              shadowBlur: isLight ? 3 : 0,
+              shadowColor: isLight ? 'rgba(0,0,0,0.12)' : 'transparent',
+            },
             areaStyle: { color: c, opacity: 0.12 },
             emphasis: { focus: 'series' },
           });
@@ -576,9 +813,16 @@
             name: name,
             yAxisIndex: yi,
             data: data,
-            smooth: 0.35,
+            smooth: isLight ? true : 0.35,
+            smoothMonotone: isLight ? 'x' : undefined,
             showSymbol: false,
-            lineStyle: { width: 1.5, color: c, type: dash },
+            lineStyle: {
+              width: 1.5,
+              color: c,
+              type: dash,
+              shadowBlur: isLight ? 3 : 0,
+              shadowColor: isLight ? 'rgba(0,0,0,0.12)' : 'transparent',
+            },
             emphasis: { focus: 'series' },
           });
         }
@@ -587,7 +831,7 @@
 
       return Object.assign(
         {
-          backgroundColor: T.bg,
+          backgroundColor: isLight ? getPaperTextureBackground() : T.bg,
           animation: !reduceMotion,
           animationDuration: reduceMotion ? 0 : 400,
           animationEasing: 'cubicOut',
@@ -595,7 +839,7 @@
         chartBaseAnimation(),
         {
           textStyle: {
-            fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+            fontFamily: isLight ? '"IBM Plex Sans", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
             fontSize: 11,
             color: T.text,
           },
@@ -604,14 +848,22 @@
             backgroundColor: T.tooltipBg,
             borderColor: T.tooltipBorder,
             borderWidth: 1,
-            textStyle: { color: T.textStrong, fontSize: 11 },
+            textStyle: {
+              color: T.textStrong,
+              fontSize: 11,
+              fontFamily: isLight ? '"IBM Plex Sans", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
+            },
           },
           legend: { show: false },
           grid: { left: 56, right: hasRight ? 56 : 24, top: 40, bottom: 48, containLabel: true },
           xAxis: {
             type: 'time',
             axisLine: { lineStyle: { color: T.axis } },
-            axisLabel: { color: T.text, fontSize: 10 },
+            axisLabel: {
+              color: T.text,
+              fontSize: 10,
+              fontFamily: isLight ? '"IBM Plex Sans", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
+            },
             splitLine: { show: false },
           },
           yAxis: yAxis,
@@ -622,11 +874,104 @@
   };
 
   var ExportManager = {
+    deriveExportPair: function () {
+      var pairs = {};
+      SeriesManager.active.forEach(function (entry) {
+        var c = entry.meta.csvColumn || '';
+        if (/USDJPY|JPY_|US_JP_/i.test(c)) pairs.USDJPY = true;
+        else if (/USDINR|INR_|US_IN_/i.test(c)) pairs.USDINR = true;
+        else pairs.EURUSD = true;
+      });
+      var keys = Object.keys(pairs);
+      if (!keys.length) return 'chart';
+      if (keys.length > 1) return 'multi';
+      return keys[0].toLowerCase();
+    },
+    loadImage: function (src) {
+      return new Promise(function (resolve, reject) {
+        var img = new global.Image();
+        img.onload = function () { resolve(img); };
+        img.onerror = reject;
+        img.src = src;
+      });
+    },
+    drawWordmark: function (ctx, theme, w, h) {
+      var self = this;
+      var x = w - 180;
+      var y = h - 44;
+      var targetW = 160;
+      var opacity = theme === 'dark' ? 0.85 : 0.7;
+      var usedFallbackForLight = false;
+      return (theme === 'light'
+        ? this.loadImage('/assets/images/wordmark_dark.png').catch(function () {
+          usedFallbackForLight = true;
+          return self.loadImage('/assets/images/wordmark_without_bg.png');
+        })
+        : this.loadImage('/assets/images/wordmark_without_bg.png').catch(function () {
+          return self.loadImage(makeWordmarkSvgDataUri(theme));
+        }))
+        .then(function (wm) {
+          var wmH = (wm.height / wm.width) * targetW;
+          ctx.save();
+          ctx.globalAlpha = opacity;
+          if (theme === 'light' && usedFallbackForLight) {
+            ctx.filter = 'invert(1)';
+          }
+          ctx.drawImage(wm, x, y, targetW, wmH);
+          ctx.restore();
+        }).catch(function () {
+          ctx.save();
+          ctx.globalAlpha = opacity;
+          ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.78)' : 'rgba(30,25,15,0.7)';
+          ctx.font = '600 14px "IBM Plex Sans", system-ui, sans-serif';
+          ctx.fillText('FX REGIME LAB', x, y + 18);
+          ctx.restore();
+        });
+    },
+    addBranding: function (ctx, config, w, h) {
+      var theme = config.theme === 'light' ? 'light' : 'dark';
+      var title = config.title || '';
+      var subtitle = config.subtitle || '';
+      ctx.save();
+      ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.4)' : 'rgba(80,70,50,0.5)';
+      ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('fxregimelab.com', 16, h - 16);
+
+      if (title) {
+        ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(30,25,15,0.7)';
+        ctx.font = '600 13px "IBM Plex Sans", system-ui, sans-serif';
+        ctx.fillText(title, 16, 24);
+      }
+      if (subtitle) {
+        ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(30,25,15,0.55)';
+        ctx.font = '11px "IBM Plex Sans", system-ui, sans-serif';
+        ctx.fillText(subtitle, 16, 42);
+      }
+      if (config.showTimestamp && config.asOfDate) {
+        ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.42)' : 'rgba(80,70,50,0.5)';
+        ctx.font = '10px "IBM Plex Sans", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Data as of ' + config.asOfDate, w / 2, h - 16);
+      }
+      ctx.restore();
+      return this.drawWordmark(ctx, theme, w, h);
+    },
+    triggerDownload: function (canvas, pair, dateStr) {
+      var link = document.createElement('a');
+      var safeDate = (dateStr || '').replace(/-/g, '') || 'chart';
+      link.download = 'fxregimelab_' + pair + '_' + safeDate + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    },
     exportPNG: function (chart, config) {
       var theme = config.theme === 'light' ? 'light' : 'dark';
-      var T = ThemeManager.themes[theme];
       var w = config.width || 1200;
       var h = config.height || 627;
+      if (!SeriesManager.hasDataSeries()) {
+        return Promise.reject(new Error('NO_DATA_SERIES'));
+      }
       if (w < 100 || h < 100) {
         if (global.console && global.console.error) {
           global.console.error('[ExportManager] Invalid export dimensions');
@@ -639,109 +984,43 @@
         }
         return Promise.reject(new Error('dimensions too large'));
       }
-      var footerH = 56;
-      var chartAreaH = h - footerH;
-
       var prevBg = chart.getOption().backgroundColor;
-      chart.setOption({ backgroundColor: T.bg }, false);
-      var url = chart.getDataURL({
+      chart.setOption({ backgroundColor: theme === 'dark' ? DARK_BG : LIGHT_BG }, false);
+      var dataURL = chart.getDataURL({
         type: 'png',
-        pixelRatio: 2,
-        backgroundColor: T.bg,
+        pixelRatio: 3,
+        backgroundColor: theme === 'dark' ? DARK_BG : LIGHT_BG,
       });
       chart.setOption({ backgroundColor: prevBg }, false);
-
-      var img = new global.Image();
       var self = this;
       return new Promise(function (resolve, reject) {
-        img.onerror = reject;
-        img.onload = function () {
-          try {
-            var canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            var ctx = canvas.getContext('2d');
-            ctx.fillStyle = T.bg;
-            ctx.fillRect(0, 0, w, chartAreaH);
-            ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, w, chartAreaH);
-
-            ctx.fillStyle = T.exportFooter;
-            ctx.fillRect(0, chartAreaH, w, footerH);
-
-            var urlFill = T.exportUrl;
-            ctx.fillStyle = urlFill;
-            ctx.font = '11px "IBM Plex Sans", system-ui, sans-serif';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('fxregimelab.com', 16, chartAreaH + footerH / 2 - 6);
-
-            var wm = new global.Image();
-            wm.onload = function () {
-              var wmW = Math.min(180, w * 0.35);
-              var wmH = (wm.height / wm.width) * wmW;
-              ctx.drawImage(wm, w - wmW - 16, chartAreaH + 8, wmW, wmH);
-
-              if (config.title) {
-                ctx.fillStyle = T.textStrong;
-                ctx.font = '600 11px "IBM Plex Sans", system-ui, sans-serif';
-                ctx.textAlign = 'right';
-                ctx.fillText(config.title, w - 16, chartAreaH + 8 + wmH + 12);
-                ctx.textAlign = 'left';
-              }
-              if (config.subtitle) {
-                ctx.fillStyle = T.text;
-                ctx.font = '10px "IBM Plex Sans", system-ui, sans-serif';
-                ctx.textAlign = 'right';
-                ctx.fillText(config.subtitle, w - 16, chartAreaH + 8 + wmH + 26);
-                ctx.textAlign = 'left';
-              }
-
-              if (config.showTimestamp && config.asOfDate) {
-                ctx.fillStyle = T.text;
-                ctx.font = '10px "IBM Plex Sans", system-ui, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText('Data as of ' + config.asOfDate, w / 2, chartAreaH + footerH - 10);
-                ctx.textAlign = 'left';
-              }
-
-              canvas.toBlob(function (blob) {
-                if (!blob) {
-                  reject(new Error('toBlob'));
-                  return;
-                }
-                var a = document.createElement('a');
-                var fname = 'fxregimelab_' + (config.fileDate || 'chart') + '.png';
-                a.href = URL.createObjectURL(blob);
-                a.download = fname;
-                a.click();
-                URL.revokeObjectURL(a.href);
-                resolve();
-              });
-            };
-            wm.onerror = function () {
-              ctx.fillStyle = T.textStrong;
-              ctx.font = '600 12px "IBM Plex Sans", system-ui, sans-serif';
-              ctx.textAlign = 'right';
-              ctx.fillText('FX REGIME LAB', w - 16, chartAreaH + 22);
-              ctx.textAlign = 'left';
-              canvas.toBlob(function (blob) {
-                if (!blob) {
-                  reject(new Error('toBlob'));
-                  return;
-                }
-                var a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = 'fxregimelab_' + (config.fileDate || 'chart') + '.png';
-                a.click();
-                URL.revokeObjectURL(a.href);
-                resolve();
-              });
-            };
-            wm.src = makeWordmarkSvgDataUri(theme);
-          } catch (err) {
-            reject(err);
+        self.loadImage(dataURL).then(function (img) {
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('canvas context unavailable'));
+            return;
           }
-        };
-        img.src = url;
+          if (theme === 'light') {
+            var pattern = createPaperTexture(ctx);
+            ctx.fillStyle = pattern || LIGHT_BG;
+            ctx.fillRect(0, 0, w, h);
+          } else {
+            ctx.fillStyle = DARK_BG;
+            ctx.fillRect(0, 0, w, h);
+          }
+          ctx.drawImage(img, 0, 0, w, h);
+          self.addBranding(ctx, config, w, h).then(function () {
+            self.triggerDownload(canvas, config.pair || self.deriveExportPair(), config.fileDate || config.asOfDate || '');
+            resolve();
+          }).catch(function (err) {
+            reject(err);
+          });
+        }).catch(function (err) {
+          reject(err);
+        });
       });
     },
   };
@@ -954,6 +1233,9 @@
       var opt = ChartComposer.buildOption(rangeMs, ThemeManager.current);
       chart.setOption(opt, true);
       refreshLegend();
+      if (typeof opts.onEmptyState === 'function') {
+        opts.onEmptyState(!SeriesManager.hasDataSeries());
+      }
     }
 
     SeriesManager.onChange = function () {
@@ -961,16 +1243,23 @@
       redraw();
     };
 
-    fetchCsv(MASTER_CSV)
-      .then(function (text) {
-        var p = parseCsv(text);
-        if (p.rows.length) {
-          latestDateStr = p.rows[p.rows.length - 1].date || '';
-          if (opts.tsEl) opts.tsEl.textContent = latestDateStr ? 'As of ' + latestDateStr + ' · CSV' : 'Pipeline —';
+    prefetchAllData()
+      .then(function () {
+        if (MASTER_ROWS && MASTER_ROWS.length) {
+          latestDateStr = MASTER_ROWS[MASTER_ROWS.length - 1].date || '';
+          if (opts.tsEl) opts.tsEl.textContent = latestDateStr ? 'As of ' + latestDateStr + ' · data loaded' : 'Pipeline —';
+        } else if (opts.tsEl) {
+          opts.tsEl.textContent = 'Data pending — pipeline refresh';
+        }
+        if (typeof opts.onDataPrefetched === 'function') {
+          opts.onDataPrefetched(deepClone(SERIES_AVAILABILITY));
         }
       })
       .catch(function () {
-        if (opts.tsEl) opts.tsEl.textContent = 'No CSV — run pipeline locally';
+        if (opts.tsEl) opts.tsEl.textContent = 'Data pending — pipeline refresh';
+      })
+      .finally(function () {
+        redraw();
       });
 
     redraw();
@@ -989,6 +1278,9 @@
       getLatestDate: function () {
         return latestDateStr;
       },
+      getAvailability: function () {
+        return deepClone(SERIES_AVAILABILITY);
+      },
     };
   }
 
@@ -999,6 +1291,16 @@
     ExportManager: ExportManager,
     QuickCharts: QuickCharts,
     ThemeManager: ThemeManager,
+    prefetchAllData: prefetchAllData,
+    updateSidebarAvailability: updateSidebarAvailability,
+    createPaperTexture: createPaperTexture,
+    getDataStore: function () {
+      return {
+        signals: deepClone(DATA),
+        masterRows: MASTER_ROWS ? MASTER_ROWS.length : 0,
+        prefetched: PREFETCH_DONE,
+      };
+    },
     init: init,
   };
 })(typeof window !== 'undefined' ? window : this);
