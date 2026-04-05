@@ -156,6 +156,76 @@
   var _lastPipelineStatus = null;
   var _inFlightSignals = new Map();
   var CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  var SUPABASE_QUERY_TIMEOUT_MS = 8000;
+  var FETCH_TIMEOUT_MS = 12000;
+  var _fetchQueue = {
+    running: 0,
+    maxConcurrent: 3,
+    queue: [],
+    add: function (fn) {
+      var self = this;
+      if (self.running < self.maxConcurrent) {
+        self.running += 1;
+        return Promise.resolve()
+          .then(fn)
+          .finally(function () {
+            self.running -= 1;
+            if (self.queue.length > 0) {
+              var next = self.queue.shift();
+              self.add(next.fn).then(next.resolve, next.reject);
+            }
+          });
+      }
+      return new Promise(function (resolve, reject) {
+        self.queue.push({ fn: fn, resolve: resolve, reject: reject });
+      });
+    },
+  };
+
+  function fetchWithTimeout(promise, ms) {
+    var timeoutMs = ms || SUPABASE_QUERY_TIMEOUT_MS;
+    var timer = null;
+    var timeout = new Promise(function (_resolve, reject) {
+      timer = setTimeout(function () {
+        reject(new Error('Query timeout'));
+      }, timeoutMs);
+    });
+    return Promise.race([promise, timeout]).finally(function () {
+      if (timer) clearTimeout(timer);
+    });
+  }
+
+  function fetchTextWithTimeout(url, timeoutMs) {
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = setTimeout(function () {
+      if (controller) controller.abort();
+    }, timeoutMs || FETCH_TIMEOUT_MS);
+    var options = controller ? { signal: controller.signal } : {};
+    return fetch(url, options)
+      .then(function (r) {
+        if (!r.ok) throw new Error('fetch ' + url);
+        return r.text();
+      })
+      .finally(function () {
+        clearTimeout(timer);
+      });
+  }
+
+  function fetchJsonWithTimeout(url, timeoutMs) {
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = setTimeout(function () {
+      if (controller) controller.abort();
+    }, timeoutMs || FETCH_TIMEOUT_MS);
+    var options = controller ? { signal: controller.signal } : {};
+    return fetch(url, options)
+      .then(function (r) {
+        if (!r.ok) throw new Error('fetch ' + url);
+        return r.json();
+      })
+      .finally(function () {
+        clearTimeout(timer);
+      });
+  }
 
   function getCached(key) {
     try {
@@ -330,12 +400,15 @@
         .filter(function (c, i, a) {
           return c && a.indexOf(c) === i;
         });
-      return client
-        .from('signals')
-        .select(sel.join(','))
-        .eq('pair', np)
-        .gte('date', start)
-        .order('date', { ascending: true })
+      return fetchWithTimeout(
+        client
+          .from('signals')
+          .select(sel.join(','))
+          .eq('pair', np)
+          .gte('date', start)
+          .order('date', { ascending: true }),
+        SUPABASE_QUERY_TIMEOUT_MS
+      )
         .then(function (res) {
           if (res.error) {
             if (typeof console !== 'undefined' && console.error) {
@@ -380,9 +453,16 @@
     var key = np + ':' + cols.join(',') + ':' + start;
     if (_inFlightSignals.has(key)) return _inFlightSignals.get(key);
 
-    var promise = _fetchSignalsImpl(np, cols, start).finally(function () {
-      _inFlightSignals.delete(key);
-    });
+    var promise = _fetchQueue
+      .add(function () {
+        return fetchWithTimeout(
+          _fetchSignalsImpl(np, cols, start),
+          SUPABASE_QUERY_TIMEOUT_MS + 1000
+        );
+      })
+      .finally(function () {
+        _inFlightSignals.delete(key);
+      });
     _inFlightSignals.set(key, promise);
     return promise;
   }
@@ -396,12 +476,15 @@
     var client = getSupabaseClient();
     if (!client) return Promise.resolve(null);
     var np = normalisePair(pair);
-    return client
-      .from('signals')
-      .select('*')
-      .eq('pair', np)
-      .gte('date', startDate || '2020-01-01')
-      .order('date', { ascending: true })
+    return fetchWithTimeout(
+      client
+        .from('signals')
+        .select('*')
+        .eq('pair', np)
+        .gte('date', startDate || '2020-01-01')
+        .order('date', { ascending: true }),
+      SUPABASE_QUERY_TIMEOUT_MS
+    )
       .then(function (res) {
         if (res.error) throw res.error;
         return res.data || [];
@@ -414,12 +497,15 @@
 
   function fetchFromSupabase(pair, client, startDate) {
     var np = normalisePair(pair);
-    return client
-      .from('signals')
-      .select('*')
-      .eq('pair', np)
-      .gte('date', startDate || '2020-01-01')
-      .order('date', { ascending: true })
+    return fetchWithTimeout(
+      client
+        .from('signals')
+        .select('*')
+        .eq('pair', np)
+        .gte('date', startDate || '2020-01-01')
+        .order('date', { ascending: true }),
+      SUPABASE_QUERY_TIMEOUT_MS
+    )
       .then(function (res) {
         if (res.error) throw res.error;
         return res.data || [];
@@ -577,13 +663,16 @@
     var start = new Date();
     start.setDate(start.getDate() - n);
     var startStr = start.toISOString().split('T')[0];
-    return client
-      .from('regime_calls')
-      .select('date, regime, confidence, primary_driver')
-      .eq('pair', np)
-      .gte('date', startStr)
-      .order('date', { ascending: false })
-      .limit(n)
+    return fetchWithTimeout(
+      client
+        .from('regime_calls')
+        .select('date, regime, confidence, primary_driver')
+        .eq('pair', np)
+        .gte('date', startStr)
+        .order('date', { ascending: false })
+        .limit(n),
+      SUPABASE_QUERY_TIMEOUT_MS
+    )
       .then(function (res) {
         if (res.error) throw res.error;
         var rows = res.data || [];
@@ -611,11 +700,14 @@
   function fetchBriefPreview() {
     var client = getSupabaseClient();
     if (!client) return Promise.resolve(null);
-    return client
-      .from('brief_log')
-      .select('date, brief_text, eurusd_regime, usdjpy_regime, usdinr_regime, macro_context')
-      .order('date', { ascending: false })
-      .limit(1)
+    return fetchWithTimeout(
+      client
+        .from('brief_log')
+        .select('date, brief_text, eurusd_regime, usdjpy_regime, usdinr_regime, macro_context')
+        .order('date', { ascending: false })
+        .limit(1),
+      SUPABASE_QUERY_TIMEOUT_MS
+    )
       .then(function (res) {
         if (res.error) throw res.error;
         var rows = res.data || [];
@@ -639,14 +731,17 @@
     var start = new Date();
     start.setDate(start.getDate() - n);
     var startStr = start.toISOString().split('T')[0];
-    return client
-      .from('validation_log')
-      .select(
-        'date,pair,predicted_direction,predicted_regime,confidence,actual_direction,actual_return_1d,correct_1d'
-      )
-      .eq('pair', np)
-      .gte('date', startStr)
-      .order('date', { ascending: false })
+    return fetchWithTimeout(
+      client
+        .from('validation_log')
+        .select(
+          'date,pair,predicted_direction,predicted_regime,confidence,actual_direction,actual_return_1d,correct_1d'
+        )
+        .eq('pair', np)
+        .gte('date', startStr)
+        .order('date', { ascending: false }),
+      SUPABASE_QUERY_TIMEOUT_MS
+    )
       .then(function (res) {
         if (res.error) throw res.error;
         return res.data || [];
@@ -661,11 +756,14 @@
     var client = getSupabaseClient();
     if (!client) return Promise.resolve();
     var today = new Date().toISOString().split('T')[0];
-    return client
-      .from('pipeline_errors')
-      .select('source,error_message')
-      .eq('date', today)
-      .limit(5)
+    return fetchWithTimeout(
+      client
+        .from('pipeline_errors')
+        .select('source,error_message')
+        .eq('date', today)
+        .limit(5),
+      SUPABASE_QUERY_TIMEOUT_MS
+    )
       .then(function (res) {
         var data = res.data;
         if (data && data.length && typeof console !== 'undefined' && console.warn) {
@@ -692,12 +790,15 @@
   function fetchLatestPrices() {
     var client = getSupabaseClient();
     if (!client) return Promise.resolve(null);
-    return client
-      .from('signals')
-      .select('date,pair,cross_asset_dxy,cross_asset_oil,cross_asset_vix,realized_vol_5d')
-      .in('pair', ['EURUSD', 'USDJPY', 'USDINR'])
-      .order('date', { ascending: false })
-      .limit(90)
+    return fetchWithTimeout(
+      client
+        .from('signals')
+        .select('date,pair,cross_asset_dxy,cross_asset_oil,cross_asset_vix,realized_vol_5d')
+        .in('pair', ['EURUSD', 'USDJPY', 'USDINR'])
+        .order('date', { ascending: false })
+        .limit(90),
+      SUPABASE_QUERY_TIMEOUT_MS
+    )
       .then(function (res) {
         if (res.error) throw res.error;
         var data = res.data || [];
@@ -901,7 +1002,7 @@
 
   function initTerminalHome() {
     var root = document.querySelector('.term-main');
-    if (!root) return;
+    if (!root) return Promise.resolve();
     setSkel(root, true);
     setStale(false);
 
@@ -911,10 +1012,7 @@
 
     checkPipelineErrors();
 
-    fetch('/static/pipeline_status.json')
-      .then(function (r) {
-        return r.ok ? r.json() : null;
-      })
+    fetchJsonWithTimeout('/static/pipeline_status.json', FETCH_TIMEOUT_MS)
       .then(applyPipelineNavStatus)
       .catch(function () {
         applyPipelineNavStatus(null);
@@ -936,7 +1034,7 @@
 
     var pBrief = fetchBriefPreview();
 
-    Promise.all([Promise.all(pRegime), pLatest, pBrief])
+    return Promise.all([Promise.all(pRegime), pLatest, pBrief])
       .then(function (all) {
         var regimeResults = all[0];
         var lastBundle = all[1];

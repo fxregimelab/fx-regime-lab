@@ -26,6 +26,7 @@
   var priceInterval = null;
   var firstPollTimeout = null;
   var tickerObserver = null;
+  var lastObserverKick = 0;
   var MIN_INTERVAL = 30000; // 30 seconds
   var lastFetch = 0;
 
@@ -242,7 +243,13 @@
     tickerObserver = new MutationObserver(function () {
       if (!ticker.querySelector('[data-ticker]')) {
         ensureTickerStructure();
-        updateAllPrices();
+        var now = Date.now();
+        if (!document.hidden && now - lastObserverKick > 10000) {
+          lastObserverKick = now;
+          setTimeout(function () {
+            updateAllPrices();
+          }, 250);
+        }
       }
     });
     tickerObserver.observe(ticker, { childList: true, subtree: true });

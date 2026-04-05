@@ -7,6 +7,18 @@
     USDINR: { key: 'usdinr', label: 'USD/INR' },
   };
 
+  function setNodeText(node, value) {
+    if (!node) return;
+    var next = value == null ? '' : String(value);
+    if (node.textContent !== next) node.textContent = next;
+  }
+
+  function setAttr(el, name, value) {
+    if (!el) return;
+    var next = value == null ? '' : String(value);
+    if (el.getAttribute(name) !== next) el.setAttribute(name, next);
+  }
+
   function todayUtc() {
     return new Date().toISOString().slice(0, 10);
   }
@@ -37,30 +49,52 @@
     var regime = card.querySelector('[data-card-regime]');
 
     if (pct && confidence) {
-      confidence.textContent = String(pct.textContent || '').replace('%', '').trim() || '—';
-      card.setAttribute('data-panel-confidence', String(pct.textContent || '').trim());
+      var confidenceText = String(pct.textContent || '').replace('%', '').trim() || '—';
+      setNodeText(confidence, confidenceText);
+      setAttr(card, 'data-panel-confidence', String(pct.textContent || '').trim());
     }
     if (badge && regime) {
-      regime.textContent = String(badge.textContent || '').trim() || '—';
-      card.setAttribute('data-panel-regime', String(badge.textContent || '').trim());
+      var regimeText = String(badge.textContent || '').trim() || '—';
+      setNodeText(regime, regimeText);
+      setAttr(card, 'data-panel-regime', regimeText);
     }
     var spot = card.querySelector('.term-card__spot');
-    if (spot) card.setAttribute('data-panel-spot', String(spot.textContent || '').trim());
+    if (spot) setAttr(card, 'data-panel-spot', String(spot.textContent || '').trim());
     var driver = card.querySelector('.term-card__driver');
-    if (driver) card.setAttribute('data-panel-driver', String(driver.textContent || '').trim());
+    if (driver) setAttr(card, 'data-panel-driver', String(driver.textContent || '').trim());
     var foot = card.querySelector('.term-card__foot');
-    if (foot) card.setAttribute('data-panel-updated', String(foot.textContent || '').trim());
-    if (global.FXRLTerminalMotion && typeof global.FXRLTerminalMotion.animateNumbers === 'function') {
-      global.FXRLTerminalMotion.animateNumbers(card);
-    }
+    if (foot) setAttr(card, 'data-panel-updated', String(foot.textContent || '').trim());
   }
 
   function observeCards() {
     var cards = document.querySelectorAll('.term-card');
     cards.forEach(function (card) {
-      syncCard(card);
-      var observer = new MutationObserver(function () {
+      var syncing = false;
+      var scheduled = false;
+      var suppressUntil = 0;
+
+      function runSync() {
+        if (syncing) return;
+        syncing = true;
         syncCard(card);
+        suppressUntil = Date.now() + 48;
+        syncing = false;
+      }
+
+      function scheduleSync() {
+        if (scheduled || syncing) return;
+        scheduled = true;
+        requestAnimationFrame(function () {
+          scheduled = false;
+          runSync();
+        });
+      }
+
+      runSync();
+      var observer = new MutationObserver(function () {
+        if (syncing) return;
+        if (Date.now() < suppressUntil) return;
+        scheduleSync();
       });
       observer.observe(card, { subtree: true, childList: true, characterData: true });
     });
