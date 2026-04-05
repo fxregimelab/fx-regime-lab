@@ -6,14 +6,771 @@
   <title>About — FX Regime Lab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/assets/site.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --cream: #FAFAF5;
+      --dark: #0d1424;
+      --navy: #1B3A6B;
+      --text: #1a1a2e;
+      --muted: #5a5670;
+      --border: #E8E4DD;
+      --card: #FFFFFF;
+      --display: "Playfair Display", Georgia, serif;
+      --body: "DM Sans", sans-serif;
+      --mono: "JetBrains Mono", monospace;
+      --font-display: var(--display);
+      --font-body: var(--body);
+      --font-mono: var(--mono);
+      --text-primary: var(--text);
+      --text-sec: var(--muted);
+      --bg-page: var(--cream);
+      --footer-bg: #111827;
+      --nav-h: 68px;
+      --max-w: 1120px;
+      --section-y: 120px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--body);
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 1.8;
+      color: var(--text);
+      background: var(--cream);
+      min-height: 100vh;
+    }
+
+    body.nav-open {
+      overflow: hidden;
+    }
+
+    .v2-wrap {
+      position: relative;
+      z-index: 1;
+    }
+
+    .v2-nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: var(--nav-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      max-width: 100%;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-bottom: 1px solid transparent;
+      box-shadow: none;
+      transition:
+        background-color 300ms ease,
+        backdrop-filter 300ms ease,
+        -webkit-backdrop-filter 300ms ease,
+        border-color 300ms ease,
+        box-shadow 300ms ease;
+    }
+
+    .v2-nav.nav-scrolled {
+      background: rgba(250, 250, 245, 0.97);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom-color: var(--border);
+      box-shadow: 0 1px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .v2-nav__brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+
+    .v2-nav__mark-slot {
+      width: 30px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+
+    .v2-nav__mark-slot svg {
+      width: 30px;
+      height: auto;
+      display: block;
+    }
+
+    .v2-nav__word {
+      line-height: 1;
+    }
+
+    .v2-nav__links {
+      display: none;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .v2-nav__links a {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-sec);
+      text-decoration: none;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .v2-nav__links a:hover {
+      color: var(--text-primary);
+    }
+
+    .v2-nav__links a.is-active {
+      color: var(--text);
+      border-bottom: 2px solid #1b3a6b;
+      padding-bottom: 4px;
+      box-shadow: none;
+      background: none;
+    }
+
+    .v2-nav__toggle {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .v2-nav__toggle span {
+      display: block;
+      height: 2px;
+      width: 22px;
+      background: var(--text);
+      border-radius: 1px;
+    }
+
+    .v2-nav__overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: var(--bg-page);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+    }
+
+    body.nav-open .v2-nav__overlay {
+      display: flex;
+    }
+
+    .v2-nav__overlay a {
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    @media (min-width: 900px) {
+      .v2-nav__links {
+        display: flex;
+      }
+      .v2-nav__toggle {
+        display: none;
+      }
+    }
+
+    .about-hero {
+      display: grid;
+      grid-template-columns: 45% 55%;
+      gap: 0;
+      min-height: 100vh;
+    }
+
+    .about-hero__photo {
+      position: relative;
+      overflow: hidden;
+      background: var(--navy);
+    }
+
+    .about-hero__photo-fallback {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--display);
+      font-size: 72px;
+      font-weight: 700;
+      color: #fff;
+      z-index: 0;
+    }
+
+    .about-hero__photo img {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      display: block;
+      min-height: 100%;
+    }
+
+    .about-hero__photo-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 220px;
+      background: linear-gradient(to top, rgba(13, 20, 36, 0.82) 0%, rgba(13, 20, 36, 0) 55%);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .about-hero__photo-meta {
+      position: absolute;
+      bottom: 36px;
+      left: 40px;
+      z-index: 3;
+    }
+
+    .about-hero__photo-meta .name {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      color: rgba(255, 255, 255, 0.65);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .about-hero__photo-meta .loc {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      color: rgba(255, 255, 255, 0.35);
+      display: block;
+    }
+
+    .about-hero__copy {
+      background: var(--cream);
+      display: flex;
+      align-items: center;
+      padding: 0 80px 0 72px;
+    }
+
+    .about-hero__inner {
+      max-width: 560px;
+    }
+
+    .about-hero__label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      color: var(--navy);
+      margin-bottom: 36px;
+      display: block;
+    }
+
+    .about-hero__headline span {
+      font-family: var(--display);
+      font-size: 46px;
+      display: block;
+      line-height: 1.15;
+    }
+
+    .about-hero__headline .hl1 {
+      font-weight: 400;
+      color: var(--text);
+    }
+
+    .about-hero__headline .hl2 {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .about-hero__headline .hl3 {
+      font-weight: 900;
+      font-style: italic;
+      color: var(--navy);
+    }
+
+    .about-hero__rule {
+      width: 64px;
+      height: 0;
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 36px 0;
+      display: block;
+    }
+
+    .about-hero__body {
+      font-family: var(--body);
+      font-size: 16.5px;
+      line-height: 1.78;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0;
+    }
+
+    .about-hero__cta {
+      margin-top: 40px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .about-cta-primary {
+      font-family: var(--body);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      padding: 12px 26px;
+      border-radius: 3px;
+      border: none;
+      background: var(--navy);
+      color: #fff;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .about-cta-primary:hover {
+      opacity: 0.85;
+    }
+
+    .about-cta-secondary {
+      font-family: var(--body);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      padding: 12px 26px;
+      border-radius: 3px;
+      border: 1.5px solid var(--navy);
+      background: transparent;
+      color: var(--navy);
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .about-cta-secondary:hover {
+      background: var(--navy);
+      color: #fff;
+    }
+
+    .about-framework {
+      background: var(--cream);
+      padding: 110px 0;
+    }
+
+    .about-framework__contain {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding-left: 40px;
+      padding-right: 40px;
+    }
+
+    .about-framework__top {
+      display: flex;
+      align-items: flex-start;
+      gap: 80px;
+    }
+
+    .about-framework__sticky {
+      position: sticky;
+      top: 40px;
+      flex: 0 0 auto;
+      max-width: 320px;
+    }
+
+    .about-framework__sticky .label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      color: var(--navy);
+      display: block;
+      margin-bottom: 16px;
+    }
+
+    .about-framework__sticky h2 {
+      font-family: var(--display);
+      font-size: 38px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+      white-space: pre-line;
+      margin: 0;
+    }
+
+    .about-framework__sticky .sub {
+      font-family: var(--body);
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.65;
+      max-width: 280px;
+      margin: 20px 0 0;
+    }
+
+    .about-framework__cards {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .about-signal-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 32px 36px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .about-signal-card:hover {
+      border-color: rgba(27, 58, 107, 0.3);
+      background: rgba(27, 58, 107, 0.02);
+    }
+
+    .about-signal-card__row {
+      display: flex;
+      align-items: baseline;
+      gap: 20px;
+    }
+
+    .about-signal-card__num {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--navy);
+      opacity: 0.6;
+    }
+
+    .about-signal-card__title {
+      font-family: var(--display);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .about-signal-card p {
+      font-family: var(--body);
+      font-size: 14.5px;
+      line-height: 1.7;
+      color: var(--muted);
+      margin: 12px 0 0;
+    }
+
+    .about-quote {
+      background: var(--dark);
+      padding: 96px 40px;
+      text-align: center;
+    }
+
+    .about-quote__inner {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    .about-quote__mark {
+      font-family: var(--display);
+      font-size: 96px;
+      font-weight: 900;
+      color: rgba(77, 142, 255, 0.2);
+      line-height: 0;
+      display: block;
+      margin-bottom: -16px;
+    }
+
+    .about-quote__text {
+      font-family: var(--display);
+      font-size: 28px;
+      font-weight: 400;
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.88);
+      line-height: 1.72;
+      margin: 0;
+    }
+
+    .about-quote__attr {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      color: rgba(255, 255, 255, 0.28);
+      margin-top: 36px;
+      display: block;
+    }
+
+    .about-creds {
+      background: var(--cream);
+      padding: 96px 40px;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    .about-creds .label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      color: var(--navy);
+      margin-bottom: 56px;
+      display: block;
+      text-align: center;
+    }
+
+    .about-creds__row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+    }
+
+    .about-creds__item {
+      flex: 1 1 160px;
+      text-align: center;
+      padding: 32px 20px;
+      border-right: 1px solid var(--border);
+    }
+
+    .about-creds__item:last-child {
+      border-right: none;
+    }
+
+    .about-creds__tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--navy);
+      opacity: 0.5;
+      letter-spacing: 0.15em;
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    .about-creds__value {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .about-creds__lbl {
+      font-family: var(--body);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .about-contact {
+      background: #f2efe9;
+      padding: 80px 40px;
+      text-align: center;
+    }
+
+    .about-contact h2 {
+      font-family: var(--display);
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .about-contact .sub {
+      font-family: var(--body);
+      font-size: 16px;
+      color: var(--muted);
+      margin-top: 14px;
+      line-height: 1.65;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .about-contact a.email {
+      display: block;
+      margin-top: 28px;
+      font-family: var(--body);
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--navy);
+      text-decoration: none;
+      border-bottom: 1px solid var(--navy);
+      padding-bottom: 2px;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+      transition: opacity 0.2s;
+    }
+
+    .about-contact a.email:hover {
+      opacity: 0.7;
+    }
+
+    .about-contact a.linkedin {
+      display: block;
+      margin-top: 16px;
+      font-family: var(--body);
+      font-size: 14px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .about-contact a.linkedin:hover {
+      color: var(--navy);
+    }
+
+    .v2-footer {
+      background: var(--footer-bg);
+      color: #6b7280;
+      padding: 48px 24px 32px;
+      margin-top: var(--section-y);
+    }
+
+    .v2-footer__grid {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+      text-align: center;
+    }
+
+    @media (min-width: 900px) {
+      .v2-footer__grid {
+        grid-template-columns: 1fr 1fr 1fr;
+        text-align: left;
+        align-items: start;
+      }
+    }
+
+    .v2-footer a {
+      color: #6b7280;
+      text-decoration: none;
+      font-size: 12px;
+    }
+
+    .v2-footer a:hover {
+      color: #f9fafb;
+    }
+
+    .v2-footer__nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    @media (min-width: 900px) {
+      .v2-footer__nav {
+        justify-content: center;
+      }
+    }
+
+    .v2-footer__rule {
+      max-width: var(--max-w);
+      margin: 32px auto 0;
+      padding-top: 24px;
+      border-top: 1px solid #374151;
+      text-align: center;
+      font-size: 11px;
+      color: #4b5563;
+    }
+
+    @media (max-width: 768px) {
+      .about-hero {
+        grid-template-columns: 1fr;
+        min-height: 0;
+      }
+
+      .about-hero__photo {
+        height: 380px;
+        width: 100%;
+      }
+
+      .about-hero__photo img {
+        min-height: 380px;
+      }
+
+      .about-hero__copy {
+        padding: 52px 32px;
+      }
+
+      .about-hero__headline span {
+        font-size: 34px;
+      }
+
+      .about-framework__top {
+        flex-direction: column;
+      }
+
+      .about-framework__sticky {
+        position: static;
+        margin-bottom: 48px;
+        max-width: none;
+      }
+
+      .about-framework__cards {
+        width: 100%;
+      }
+
+      .about-creds__item {
+        flex: 1 1 45%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .about-creds__item:nth-last-child(-n + 2) {
+        border-bottom: none;
+      }
+    }
+  </style>
 </head>
 <body class="theme-light">
-  <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
   <div class="v2-wrap">
-    <header class="v2-nav" data-nav-root>
-      <a class="v2-nav__brand" href="/">FX Regime Lab</a>
+    <header class="v2-nav nav-scrolled" data-nav-root>
+      <a class="v2-nav__brand" href="/">
+        <span id="nav-mark-slot" class="v2-nav__mark-slot" aria-hidden="true">
+          <svg id="nav-mark" class="v2-nav__mark-static" viewBox="0 0 240 135" xmlns="http://www.w3.org/2000/svg">
+            <path d="M82 12 L212 12 L227 40 L97 40 Z" fill="#2563A8"></path>
+            <path d="M65 52 L180 52 L195 80 L80 80 Z" fill="#B86B2A"></path>
+            <path d="M48 92 L148 92 L163 120 L63 120 Z" fill="#A63030"></path>
+          </svg>
+        </span>
+        <span class="v2-nav__word">FX Regime Lab</span>
+      </a>
       <ul class="v2-nav__links">
         <li><a href="/" data-path="/">Home</a></li>
         <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
@@ -22,9 +779,11 @@
         <li><a href="/brief/" data-path="/brief">Brief</a></li>
         <li><a href="/newsletter/" data-path="/newsletter">Newsletter</a></li>
         <li><a href="/methodology/" data-path="/methodology">Methodology</a></li>
-        <li><a href="/about/" data-path="/about">About</a></li>
+        <li><a href="/about/" class="is-active" data-path="/about">About</a></li>
       </ul>
-      <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
     </header>
     <div class="v2-nav__overlay" data-nav-overlay>
       <a href="/">Home</a>
@@ -37,46 +796,149 @@
       <a href="/about/">About</a>
     </div>
 
-    <main class="page-centered">
-      <div data-reveal-stagger="cards" style="width:100%">
-        <p class="label-caps" style="color:var(--text-muted)">About the author</p>
-        <h1>Shreyash Sakhare</h1>
-        <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
-          I am an electrical engineering graduate (B.Tech, Pune) building toward a career in <strong style="color:var(--text)">quantamental macro</strong>—the overlap between
-          disciplined, data-backed signals and human judgment about regimes, policy, and risk. FX Regime Lab is my public research stack: a daily pipeline that ingests
-          public market data, merges it into one dated dataset, and publishes regime reads with transparent validation—not as a product pitch, but as a living notebook
-          anyone can inspect and challenge.
-        </p>
+    <main>
+      <section class="about-hero" aria-label="About">
+        <div class="about-hero__photo">
+          <div class="about-hero__photo-fallback" aria-hidden="true">SS</div>
+          <img src="/assets/images/shreyash.jpg" alt="Shreyash Sakhare" width="1200" height="1500" />
+          <div class="about-hero__photo-overlay"></div>
+          <div class="about-hero__photo-meta">
+            <span class="name">SHREYASH SAKHARE</span>
+            <span class="loc">Pune · India</span>
+          </div>
+        </div>
+        <div class="about-hero__copy">
+          <div class="about-hero__inner">
+            <span class="about-hero__label">ABOUT</span>
+            <h1 class="about-hero__headline">
+              <span class="hl1">Electrical engineering</span>
+              <span class="hl2">student building</span>
+              <span class="hl3">institutional FX research.</span>
+            </h1>
+            <hr class="about-hero__rule" />
+            <p class="about-hero__body">
+              I study electrical engineering at AISSMS Institute, Pune. Outside class, I build quantamental macro research infrastructure. FX Regime Lab is a daily automated pipeline — rate differentials, COT positioning, realized volatility, and cross-asset context — producing regime calls across EUR/USD, USD/JPY, and USD/INR, logged and validated publicly against actual outcomes.
+            </p>
+            <div class="about-hero__cta">
+              <a class="about-cta-primary" href="/terminal/">View Terminal →</a>
+              <a class="about-cta-secondary" href="/methodology/">Read Methodology →</a>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">Mission</h2>
-        <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
-          The mission is simple: <strong style="color:var(--text)">institutional-grade discipline with zero gatekeeping</strong>. Major dollar pairs and INR, rates, positioning,
-          volatility, and cross-asset context—documented sources, logged calls, rolling accuracy. If the framework is wrong, the record should show it. If it is useful,
-          it should be reproducible from the same public inputs.
-        </p>
+      <section class="about-framework" aria-labelledby="framework-heading">
+        <div class="about-framework__contain">
+          <div class="about-framework__top">
+            <div class="about-framework__sticky">
+              <span class="label">THE FRAMEWORK</span>
+              <h2 id="framework-heading">Four signals.
+One regime call.
+Daily.</h2>
+              <p class="sub">
+                Each signal layer is sourced from public data, processed daily, and stored with timestamps. No black box. No manual override.
+              </p>
+            </div>
+            <div class="about-framework__cards">
+              <article class="about-signal-card">
+                <div class="about-signal-card__row">
+                  <span class="about-signal-card__num">01</span>
+                  <h3 class="about-signal-card__title">Rate Differentials</h3>
+                </div>
+                <p>
+                  2Y and 10Y spreads sourced from FRED. Direction and momentum, not level. The carry thesis originates here.
+                </p>
+              </article>
+              <article class="about-signal-card">
+                <div class="about-signal-card__row">
+                  <span class="about-signal-card__num">02</span>
+                  <h3 class="about-signal-card__title">COT Positioning</h3>
+                </div>
+                <p>
+                  CFTC weekly reports converted to percentile rank. Crowded positioning above the 90th percentile is treated as reversal risk, not confirmation.
+                </p>
+              </article>
+              <article class="about-signal-card">
+                <div class="about-signal-card__row">
+                  <span class="about-signal-card__num">03</span>
+                  <h3 class="about-signal-card__title">Realized Volatility</h3>
+                </div>
+                <p>
+                  21-day rolling volatility normalized to 52-week range. Classified as LOW, NORMAL, HIGH, or EXTREME. Regime classification changes what every other signal means.
+                </p>
+              </article>
+              <article class="about-signal-card">
+                <div class="about-signal-card__row">
+                  <span class="about-signal-card__num">04</span>
+                  <h3 class="about-signal-card__title">Cross-Asset Context</h3>
+                </div>
+                <p>DXY, VIX, and oil read as USD regime inputs. Not equity analysis — macro backdrop only.</p>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">What ships on this site</h2>
-        <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
-          The <a href="/terminal/overview.html">terminal</a> is the interactive surface for depth; the <a href="/brief/">brief</a> and AI article view are narrative exports for a linear read;
-          the <a href="/dashboard/">dashboard</a> is the high-level live snapshot. Together they are research and education only—not investment advice, not a solicitation,
-          and not a promise of performance.
-        </p>
+      <section class="about-quote" aria-label="Build principle">
+        <div class="about-quote__inner">
+          <span class="about-quote__mark" aria-hidden="true">"</span>
+          <p class="about-quote__text">
+            The framework demonstrates two things simultaneously: deep macro judgment and systematic engineering. The code executes what the macro thinking designs. Never the reverse.
+          </p>
+          <span class="about-quote__attr">FX REGIME LAB — BUILD PRINCIPLE</span>
+        </div>
+      </section>
 
-        <p style="color:var(--text-muted);font-size:0.9rem;margin-top:2rem;max-width:42rem;line-height:1.6">
-          For how signals are built and ordered, read the <a href="/methodology/">methodology</a>. For notes and essays, see the <a href="/newsletter/">newsletter</a> and
-          <a href="https://fxregimelab.substack.com" target="_blank" rel="noopener">Substack</a>.
-        </p>
-        <p style="margin-top:1.25rem">
-          <a class="link-primary" href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a>
-          <span style="display:inline-block;width:1.25rem"></span>
-          <a class="link-sec" href="https://linkedin.com/in/shreyash045" target="_blank" rel="noopener">LinkedIn ↗</a>
-        </p>
-      </div>
+      <section class="about-creds" aria-labelledby="creds-label">
+        <span class="label" id="creds-label">CREDENTIALS &amp; STACK</span>
+        <div class="about-creds__row">
+          <div class="about-creds__item">
+            <span class="about-creds__tag">CERT</span>
+            <span class="about-creds__value">CFA L1</span>
+            <span class="about-creds__lbl">Cleared</span>
+          </div>
+          <div class="about-creds__item">
+            <span class="about-creds__tag">LANG</span>
+            <span class="about-creds__value">Python</span>
+            <span class="about-creds__lbl">Primary language</span>
+          </div>
+          <div class="about-creds__item">
+            <span class="about-creds__tag">DATA</span>
+            <span class="about-creds__value">FRED · CFTC</span>
+            <span class="about-creds__lbl">Signal sources</span>
+          </div>
+          <div class="about-creds__item">
+            <span class="about-creds__tag">INFRA</span>
+            <span class="about-creds__value">GitHub Actions</span>
+            <span class="about-creds__lbl">Pipeline automation</span>
+          </div>
+          <div class="about-creds__item">
+            <span class="about-creds__tag">DB</span>
+            <span class="about-creds__value">Supabase</span>
+            <span class="about-creds__lbl">Time-series storage</span>
+          </div>
+          <div class="about-creds__item">
+            <span class="about-creds__tag">DEPLOY</span>
+            <span class="about-creds__value">Cloudflare</span>
+            <span class="about-creds__lbl">Live deployment</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="about-contact" aria-labelledby="contact-heading">
+        <h2 id="contact-heading">Get in touch.</h2>
+        <p class="sub">Research questions, framework discussion, or institutional inquiries.</p>
+        <a class="email" href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a>
+        <a class="linkedin" href="#">LinkedIn ↗</a>
+      </section>
     </main>
 
     <footer class="v2-footer">
       <div class="v2-footer__grid">
-        <div><strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong></div>
+        <div>
+          <strong style="color: #e5e7eb; font-family: var(--font-display)">FX Regime Lab</strong>
+          <p style="font-size: 12px; margin: 8px 0 0">Live quantamental macro research · fxregimelab.com</p>
+        </div>
         <nav class="v2-footer__nav">
           <a href="/">Home</a>
           <a href="/dashboard/">Dashboard</a>
@@ -89,12 +951,8 @@
         </nav>
         <div><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a></div>
       </div>
-      <p class="v2-footer__rule">© 2026 FX Regime Lab</p>
+      <p class="v2-footer__rule">© 2026 FX Regime Lab · Built by Shreyash Sakhare</p>
     </footer>
   </div>
-  <script src="/assets/theme-switch.js"></script>
-  <script src="/assets/canvas-bg.js"></script>
-  <script src="/assets/nav.js"></script>
-  <script src="/assets/section-reveal.js"></script>
 </body>
 </html>
