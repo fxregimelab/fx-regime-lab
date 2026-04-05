@@ -56,8 +56,16 @@
   }
 
   function initSectionEntrance() {
-    var sections = document.querySelectorAll('.term-magazine-section');
+    var sections = document.querySelectorAll('.term-magazine-section, .signal-section, .term-main .term-brief');
     if (!sections.length) return;
+    var reduce =
+      global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+      sections.forEach(function (section) {
+        section.classList.add('is-inview');
+      });
+      return;
+    }
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         if (!entry.isIntersecting) return;
@@ -93,6 +101,7 @@
         target.classList.contains('term-panel') ||
         target.classList.contains('term-slide-panel') ||
         target.classList.contains('term-magazine-section') ||
+        target.classList.contains('term-brief') ||
         target.classList.contains('term-section')
       ) {
         target.style.willChange = 'auto';

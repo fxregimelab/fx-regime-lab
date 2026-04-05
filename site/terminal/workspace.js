@@ -446,7 +446,7 @@
             formatter: m.label || '',
             color: COL,
             fontSize: 10,
-            fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+            fontFamily: '"Inter", system-ui, sans-serif',
           },
         });
       });
@@ -487,7 +487,7 @@
               formatter: m.label || '',
               color: COL,
               fontSize: 10,
-              fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+              fontFamily: '"Inter", system-ui, sans-serif',
             },
           });
         });
@@ -504,7 +504,7 @@
           position: 'end',
           color: r.colour || '#94a3b8',
           fontSize: 10,
-          fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+          fontFamily: '"Inter", system-ui, sans-serif',
         },
       });
     });

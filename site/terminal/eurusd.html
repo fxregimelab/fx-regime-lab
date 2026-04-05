@@ -10,12 +10,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://query1.finance.yahoo.com" />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/terminal/terminal.css" />
   <meta name="supabase-url" content="" />
   <meta name="supabase-anon-key" content="" />
   <script src="/assets/supabase-env.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="document.dispatchEvent(new CustomEvent('supabase-ready'));"></script>
   <!--
     DATA object (filled after CSV fetch):
       DATA.rateDiff10Y = [[ts_ms, US_DE_10Y_spread], ...]
@@ -33,6 +33,7 @@
       DATA.cotRows     = COT weekly rows
   -->
   <script src="/terminal/utils.js" defer></script>
+  <script src="/terminal/page-init.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous" defer></script>
   <script src="/terminal/echarts-config.js" defer></script>
   <script src="/terminal/data-client.js" defer></script>
@@ -46,10 +47,11 @@
 
   <header class="term-nav" role="banner">
     <div class="term-nav__left">
-      <a class="term-nav__brand" href="/terminal/">
-        <img src="/assets/images/wordmark_without_bg.png" alt="FX Regime Lab" class="term-nav__wordmark" width="160" height="22" loading="eager" onerror="this.onerror=null;this.src='data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22210%22%20height%3D%2222%22%3E%3Ctext%20x%3D%220%22%20y%3D%2216%22%20fill%3D%22%23e8ede8%22%20font-family%3D%22IBM%20Plex%20Sans%2Csystem-ui%2Csans-serif%22%20font-size%3D%2213%22%20font-weight%3D%22600%22%3EFX%20Regime%20Lab%3C/text%3E%3C/svg%3E';" />
+      <a class="term-nav__brand term-brand" href="/terminal/">
+        <img class="term-brand__mark" src="/assets/images/logo.png" alt="" width="32" height="32" loading="eager" decoding="async" />
+        <span class="term-brand__word">FX Regime Lab</span>
       </a>
-      <span class="term-nav__pipe" aria-hidden="true">|</span>
+      <span class="term-nav__sep" aria-hidden="true">/</span>
       <span class="term-nav__product">Terminal</span>
     </div>
     <nav class="term-nav__tabs" aria-label="Terminal sections">
@@ -914,7 +916,7 @@
                     rotate: 90,
                     color: '#8a9485',
                     fontSize: 9,
-                    fontFamily: 'IBM Plex Sans, system-ui, sans-serif',
+                    fontFamily: 'Inter, system-ui, sans-serif',
                     formatter: 'REGIME DIRECTION — NOT A PRICE FORECAST'
                   },
                   data: [[{ xAxis: tEnd }, { xAxis: tEnd + 28 * MS_D }]]
@@ -1278,19 +1280,6 @@
     );
   }
 
-  function showDataStatus(source, latestDate) {
-    var statusEl = document.querySelector('.pair-data-status');
-    if (!statusEl) return;
-    var s =
-      source === 'csv'
-        ? 'CSV (local)'
-        : source === 'supabase' || source === 'hybrid'
-          ? 'Supabase'
-          : '—';
-    statusEl.textContent = latestDate ? s + ' · ' + latestDate : s;
-    statusEl.style.color = source === 'csv' ? 'var(--text-muted)' : 'var(--bullish)';
-  }
-
   function showPairInitError() {
     var main = document.getElementById('term-pair-main');
     if (!main) return;
@@ -1363,7 +1352,9 @@
             cotSec.removeAttribute('data-no-chart');
           }
           populateDom();
-          showDataStatus(payload.dataSource || 'none', (masterParsed.rows[masterParsed.rows.length - 1] || {}).date);
+          if (window.FXRLData && typeof window.FXRLData.showPairDataStatus === 'function') {
+            window.FXRLData.showPairDataStatus(payload.dataSource || 'none', payload.latestDate);
+          }
           if (window.FXRLTerminalMotion && typeof window.FXRLTerminalMotion.initPageMotion === 'function') {
             window.FXRLTerminalMotion.initPageMotion(document.getElementById('term-pair-main'));
           }

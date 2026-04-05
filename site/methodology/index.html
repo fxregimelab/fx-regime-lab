@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>About — FX Regime Lab</title>
+  <title>Methodology — FX Regime Lab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
@@ -37,20 +37,43 @@
 
     <main class="page-centered">
       <div data-reveal-stagger="cards" style="width:100%">
-        <p class="label-caps" style="color:var(--text-muted)">About</p>
-        <h1>A public, daily G10 FX regime lab</h1>
+        <p class="label-caps" style="color:var(--text-muted)">Methodology</p>
+        <h1>How the daily pipeline is built</h1>
         <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
-          FX Regime Lab publishes a structured read on major dollar pairs and INR: rates, positioning,
-          volatility, and cross-asset context, merged into one dated dataset and a morning brief. The goal
-          is institutional-grade discipline with full transparency—signals you can trace, challenge, and
-          validate yourself.
+          FX Regime Lab ingests public market data, merges it into a single daily dataset, and publishes
+          regime labels with rolling validation. Nothing here is investment advice; it is a transparent
+          research stack you can reproduce from documented sources.
         </p>
+
+        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">Pipeline order</h2>
         <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
-          The <a href="/terminal/">terminal</a> is the interactive surface; the <a href="/brief/">HTML brief</a>
-          is the narrative export. Neither output is investment advice or a solicitation. It is research and
-          education only.
+          The orchestrated sequence is: FX and yield ETL, CFTC COT positioning, INR-specific metrics,
+          optional volatility and open-interest layers, risk-reversal inputs where configured, merge into
+          a master table, text brief, optional macro helpers, AI-assisted narrative (when enabled), HTML
+          brief with charts, then deploy. Failed upstream fetches are isolated so the rest of the run can
+          complete.
         </p>
-        <a class="link-primary" href="/methodology/">Read the methodology →</a>
+
+        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">Signal families</h2>
+        <ul style="color:var(--text-sec);max-width:42rem;line-height:1.7;margin:0;padding-left:1.25rem">
+          <li><strong style="color:var(--text)">Rates and spreads</strong> — policy and benchmark yield differentials that anchor G10 FX.</li>
+          <li><strong style="color:var(--text)">Positioning</strong> — CFTC Commitments of Traders for liquid futures proxies.</li>
+          <li><strong style="color:var(--text)">Volatility and skew</strong> — realized and implied vol, plus optionality metrics where available.</li>
+          <li><strong style="color:var(--text)">Cross-asset</strong> — DXY, oil, equity vol, and related macro series as context, not standalone alpha.</li>
+          <li><strong style="color:var(--text)">Regime call</strong> — a structured label with confidence and primary driver, logged for next-day checks.</li>
+        </ul>
+
+        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">Validation</h2>
+        <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
+          Calls are compared to realized price behaviour on a defined horizon; rolling accuracy appears in
+          the terminal and brief headers. Gaps or source errors are logged for monitoring.
+        </p>
+
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-top:2rem;max-width:42rem;line-height:1.6">
+          A formal paper-style write-up is planned alongside the public site. Until then, the morning
+          brief and terminal charts remain the live specification of what shipped each day.
+        </p>
+        <a class="link-primary" href="/terminal/" style="display:inline-block;margin-top:1rem">Open the terminal →</a>
       </div>
     </main>
 

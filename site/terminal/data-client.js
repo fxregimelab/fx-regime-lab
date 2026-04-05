@@ -50,10 +50,118 @@
   };
 
   var _supabaseClient = null;
+  var _initPromise = null;
+  var SUPABASE_LIB_WAIT_MS = 15000;
 
   function metaContent(name) {
     var m = document.querySelector('meta[name="' + name + '"]');
     return m && m.getAttribute('content') ? String(m.getAttribute('content')).trim() : '';
+  }
+
+  function getSupabaseUrl() {
+    return (
+      (global.__SUPABASE_URL__ && String(global.__SUPABASE_URL__).trim()) ||
+      metaContent('supabase-url')
+    );
+  }
+
+  function getSupabaseAnonKey() {
+    return (
+      (global.__SUPABASE_ANON_KEY__ && String(global.__SUPABASE_ANON_KEY__).trim()) ||
+      metaContent('supabase-anon-key')
+    );
+  }
+
+  function supabaseLibReady() {
+    return !!(global.supabase && typeof global.supabase.createClient === 'function');
+  }
+
+  function supabaseCredsReady() {
+    return !!(getSupabaseUrl() && getSupabaseAnonKey());
+  }
+
+  function waitForSupabase() {
+    return new Promise(function (resolve, reject) {
+      if (supabaseCredsReady() && supabaseLibReady()) {
+        resolve();
+        return;
+      }
+      var settled = false;
+      var poll = null;
+      var timer = null;
+      function done(ok, err) {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        if (poll) clearInterval(poll);
+        if (ok) resolve();
+        else reject(err || new Error('Supabase unavailable'));
+      }
+      poll = setInterval(function () {
+        if (supabaseCredsReady() && supabaseLibReady()) done(true);
+      }, 50);
+      if (typeof document !== 'undefined') {
+        document.addEventListener(
+          'supabase-ready',
+          function () {
+            if (supabaseCredsReady() && supabaseLibReady()) done(true);
+          },
+          { once: true }
+        );
+      }
+      timer = setTimeout(function () {
+        if (!supabaseCredsReady() || !supabaseLibReady()) {
+          done(false, new Error('Supabase library or credentials timeout'));
+        }
+      }, SUPABASE_LIB_WAIT_MS);
+    });
+  }
+
+  /**
+   * Resolves when the Supabase JS client is created (or null if unavailable).
+   * Safe to call from every data entry point; concurrent calls share one wait.
+   */
+  function initDataClient() {
+    if (_supabaseClient) return Promise.resolve(_supabaseClient);
+    if (_initPromise) return _initPromise;
+    _initPromise = waitForSupabase()
+      .then(function () {
+        var url = getSupabaseUrl();
+        var key = getSupabaseAnonKey();
+        if (!url || !key || !supabaseLibReady()) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[DataClient] Supabase credentials not available');
+          }
+          return null;
+        }
+        if (_supabaseClient) return _supabaseClient;
+        try {
+          _supabaseClient = global.supabase.createClient(url, key, {
+            auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+            },
+          });
+          return _supabaseClient;
+        } catch (e) {
+          if (typeof console !== 'undefined' && console.error) console.error('FXRLData: createClient failed', e);
+          return null;
+        }
+      })
+      .catch(function (e) {
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[DataClient] initDataClient:', e && e.message ? e.message : e);
+        }
+        return null;
+      })
+      .finally(function () {
+        if (!_supabaseClient) _initPromise = null;
+      });
+    return _initPromise;
+  }
+
+  function getSupabaseClient() {
+    return _supabaseClient;
   }
 
   function isLocalDev() {
@@ -66,34 +174,6 @@
       .trim()
       .toUpperCase()
       .replace(/\//g, '');
-  }
-
-  function getSupabaseClient() {
-    var url =
-      (global.__SUPABASE_URL__ && String(global.__SUPABASE_URL__).trim()) ||
-      metaContent('supabase-url');
-    var key =
-      (global.__SUPABASE_ANON_KEY__ && String(global.__SUPABASE_ANON_KEY__).trim()) ||
-      metaContent('supabase-anon-key');
-    if (!url || !key || !global.supabase || typeof global.supabase.createClient !== 'function') {
-      if (typeof console !== 'undefined' && console.warn) {
-        console.warn('[DataClient] Supabase credentials not available');
-      }
-      return null;
-    }
-    if (_supabaseClient) return _supabaseClient;
-    try {
-      _supabaseClient = global.supabase.createClient(url, key, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      });
-      return _supabaseClient;
-    } catch (e) {
-      if (typeof console !== 'undefined' && console.error) console.error('FXRLData: createClient failed', e);
-      return null;
-    }
   }
 
   function tsFromDate(dateStr) {
@@ -193,6 +273,11 @@
     return Promise.race([promise, timeout]).finally(function () {
       if (timer) clearTimeout(timer);
     });
+  }
+
+  /** Postgrest builder (thenable) or Promise — race with timeout */
+  function queryWithTimeout(queryPromise, ms) {
+    return fetchWithTimeout(queryPromise, ms);
   }
 
   function fetchTextWithTimeout(url, timeoutMs) {
@@ -393,14 +478,18 @@
     if (cached) {
       return Promise.resolve(cached);
     }
-    var client = getSupabaseClient();
-    if (client) {
+    return initDataClient().then(function (client) {
+      if (!client) {
+        return tryCsvFallback(np, cols, start, cacheKey).catch(function () {
+          return emptyColsObject(cols);
+        });
+      }
       var sel = ['date']
         .concat(cols)
         .filter(function (c, i, a) {
           return c && a.indexOf(c) === i;
         });
-      return fetchWithTimeout(
+      return queryWithTimeout(
         client
           .from('signals')
           .select(sel.join(','))
@@ -433,9 +522,6 @@
           }
           return tryCsvFallback(np, cols, start, cacheKey);
         });
-    }
-    return tryCsvFallback(np, cols, start, cacheKey).catch(function () {
-      return emptyColsObject(cols);
     });
   }
 
@@ -453,13 +539,9 @@
     var key = np + ':' + cols.join(',') + ':' + start;
     if (_inFlightSignals.has(key)) return _inFlightSignals.get(key);
 
-    var promise = _fetchQueue
-      .add(function () {
-        return fetchWithTimeout(
-          _fetchSignalsImpl(np, cols, start),
-          SUPABASE_QUERY_TIMEOUT_MS + 1000
-        );
-      })
+    var promise = _fetchQueue.add(function () {
+      return _fetchSignalsImpl(np, cols, start);
+    })
       .finally(function () {
         _inFlightSignals.delete(key);
       });
@@ -473,31 +555,32 @@
    * @returns {Promise<object[]|null>}
    */
   function fetchSignalRows(pair, startDate) {
-    var client = getSupabaseClient();
-    if (!client) return Promise.resolve(null);
-    var np = normalisePair(pair);
-    return fetchWithTimeout(
-      client
-        .from('signals')
-        .select('*')
-        .eq('pair', np)
-        .gte('date', startDate || '2020-01-01')
-        .order('date', { ascending: true }),
-      SUPABASE_QUERY_TIMEOUT_MS
-    )
-      .then(function (res) {
-        if (res.error) throw res.error;
-        return res.data || [];
-      })
-      .catch(function (e) {
-        if (typeof console !== 'undefined' && console.error) console.error('FXRLData: signals fetch', e);
-        return null;
-      });
+    return initDataClient().then(function (client) {
+      if (!client) return null;
+      var np = normalisePair(pair);
+      return queryWithTimeout(
+        client
+          .from('signals')
+          .select('*')
+          .eq('pair', np)
+          .gte('date', startDate || '2020-01-01')
+          .order('date', { ascending: true }),
+        SUPABASE_QUERY_TIMEOUT_MS
+      )
+        .then(function (res) {
+          if (res.error) throw res.error;
+          return res.data || [];
+        })
+        .catch(function (e) {
+          if (typeof console !== 'undefined' && console.error) console.error('FXRLData: signals fetch', e);
+          return null;
+        });
+    });
   }
 
   function fetchFromSupabase(pair, client, startDate) {
     var np = normalisePair(pair);
-    return fetchWithTimeout(
+    return queryWithTimeout(
       client
         .from('signals')
         .select('*')
@@ -527,63 +610,64 @@
 
   function loadData(pair, startDate) {
     var np = normalisePair(pair);
-    var client = getSupabaseClient();
-    if (client) {
-      return fetchFromSupabase(np, client, startDate)
-        .then(function (data) {
-          if (data && data.length) return data;
-          return fetchFromCSV(np, startDate)
-            .then(function (csvRows) {
-              return csvRows && csvRows.length ? csvRows : null;
-            })
-            .catch(function (e) {
-              if (typeof console !== 'undefined' && console.warn) {
-                console.warn('[DataClient] CSV failed:', e && e.message ? e.message : e);
-              }
-              return null;
-            });
+    return initDataClient().then(function (client) {
+      if (client) {
+        return fetchFromSupabase(np, client, startDate)
+          .then(function (data) {
+            if (data && data.length) return data;
+            return fetchFromCSV(np, startDate)
+              .then(function (csvRows) {
+                return csvRows && csvRows.length ? csvRows : null;
+              })
+              .catch(function (e) {
+                if (typeof console !== 'undefined' && console.warn) {
+                  console.warn('[DataClient] CSV failed:', e && e.message ? e.message : e);
+                }
+                return null;
+              });
+          })
+          .catch(function (e) {
+            if (typeof console !== 'undefined' && console.warn) {
+              console.warn('[DataClient] Supabase failed, trying CSV:', e);
+            }
+            return fetchFromCSV(np, startDate)
+              .then(function (csvRows) {
+                return csvRows && csvRows.length ? csvRows : null;
+              })
+              .catch(function (csvErr) {
+                if (typeof console !== 'undefined' && console.warn) {
+                  console.warn('[DataClient] CSV failed:', csvErr && csvErr.message ? csvErr.message : csvErr);
+                }
+                return null;
+              });
+          });
+      }
+      return fetchFromCSV(np, startDate)
+        .then(function (csvRows) {
+          return csvRows && csvRows.length ? csvRows : null;
         })
         .catch(function (e) {
           if (typeof console !== 'undefined' && console.warn) {
-            console.warn('[DataClient] Supabase failed, trying CSV:', e);
+            console.warn('[DataClient] CSV failed:', e && e.message ? e.message : e);
           }
-          return fetchFromCSV(np, startDate)
-            .then(function (csvRows) {
-              return csvRows && csvRows.length ? csvRows : null;
-            })
-            .catch(function (csvErr) {
-              if (typeof console !== 'undefined' && console.warn) {
-                console.warn('[DataClient] CSV failed:', csvErr && csvErr.message ? csvErr.message : csvErr);
-              }
-              return null;
-            });
+          return null;
         });
-    }
-    return fetchFromCSV(np, startDate)
-      .then(function (csvRows) {
-        return csvRows && csvRows.length ? csvRows : null;
-      })
-      .catch(function (e) {
-        if (typeof console !== 'undefined' && console.warn) {
-          console.warn('[DataClient] CSV failed:', e && e.message ? e.message : e);
-        }
-        return null;
-      });
+    });
   }
 
   function loadPairDataset(pair, startDate) {
     var start = startDate || '2020-01-01';
     var np = normalisePair(pair);
-    var client = getSupabaseClient();
-    var supabaseRowsP = client
-      ? fetchFromSupabase(np, client, start).catch(function (e) {
-          if (typeof console !== 'undefined' && console.warn) {
-            console.warn('[DataClient] Supabase failed:', e);
-          }
-          return null;
-        })
-      : Promise.resolve(null);
-    var masterP = isLocalDev()
+    return initDataClient().then(function (client) {
+      var supabaseRowsP = client
+        ? fetchFromSupabase(np, client, start).catch(function (e) {
+            if (typeof console !== 'undefined' && console.warn) {
+              console.warn('[DataClient] Supabase failed:', e);
+            }
+            return null;
+          })
+        : Promise.resolve(null);
+      var masterP = isLocalDev()
       ? fetchTextCached(MASTER_CSV).catch(function (e) {
           if (typeof console !== 'undefined' && console.warn) {
             console.warn('[DataClient] CSV failed:', e && e.message ? e.message : e);
@@ -626,6 +710,7 @@
         dataSource: dataSource,
       };
     });
+    });
   }
 
   function patchMasterRowsFromSignals(masterRows, sbRows, pair) {
@@ -657,40 +742,41 @@
    */
   function fetchRegimeCalls(pair, days) {
     var n = Math.max(1, Math.min(500, days || 30));
-    var client = getSupabaseClient();
-    if (!client) return Promise.resolve([]);
-    var np = normalisePair(pair);
-    var start = new Date();
-    start.setDate(start.getDate() - n);
-    var startStr = start.toISOString().split('T')[0];
-    return fetchWithTimeout(
-      client
-        .from('regime_calls')
-        .select('date, regime, confidence, primary_driver')
-        .eq('pair', np)
-        .gte('date', startStr)
-        .order('date', { ascending: false })
-        .limit(n),
-      SUPABASE_QUERY_TIMEOUT_MS
-    )
-      .then(function (res) {
-        if (res.error) throw res.error;
-        var rows = res.data || [];
-        return rows
-          .map(function (r) {
-            return {
-              date: String(r.date || '').slice(0, 10),
-              regime: r.regime || '',
-              confidence: r.confidence != null ? Number(r.confidence) : NaN,
-              primary_driver: r.primary_driver || '',
-            };
-          })
-          .reverse();
-      })
-      .catch(function (e) {
-        if (typeof console !== 'undefined' && console.error) console.error('FXRLData: regime_calls', e);
-        return [];
-      });
+    return initDataClient().then(function (client) {
+      if (!client) return [];
+      var np = normalisePair(pair);
+      var start = new Date();
+      start.setDate(start.getDate() - n);
+      var startStr = start.toISOString().split('T')[0];
+      return queryWithTimeout(
+        client
+          .from('regime_calls')
+          .select('date, regime, confidence, primary_driver')
+          .eq('pair', np)
+          .gte('date', startStr)
+          .order('date', { ascending: false })
+          .limit(n),
+        SUPABASE_QUERY_TIMEOUT_MS
+      )
+        .then(function (res) {
+          if (res.error) throw res.error;
+          var rows = res.data || [];
+          return rows
+            .map(function (r) {
+              return {
+                date: String(r.date || '').slice(0, 10),
+                regime: r.regime || '',
+                confidence: r.confidence != null ? Number(r.confidence) : NaN,
+                primary_driver: r.primary_driver || '',
+              };
+            })
+            .reverse();
+        })
+        .catch(function (e) {
+          if (typeof console !== 'undefined' && console.error) console.error('FXRLData: regime_calls', e);
+          return [];
+        });
+    });
   }
 
   function fetchLatestBrief() {
@@ -698,25 +784,26 @@
   }
 
   function fetchBriefPreview() {
-    var client = getSupabaseClient();
-    if (!client) return Promise.resolve(null);
-    return fetchWithTimeout(
-      client
-        .from('brief_log')
-        .select('date, brief_text, eurusd_regime, usdjpy_regime, usdinr_regime, macro_context')
-        .order('date', { ascending: false })
-        .limit(1),
-      SUPABASE_QUERY_TIMEOUT_MS
-    )
-      .then(function (res) {
-        if (res.error) throw res.error;
-        var rows = res.data || [];
-        return rows[0] || null;
-      })
-      .catch(function (e) {
-        if (typeof console !== 'undefined' && console.error) console.error('FXRLData: brief_log', e);
-        return null;
-      });
+    return initDataClient().then(function (client) {
+      if (!client) return null;
+      return queryWithTimeout(
+        client
+          .from('brief_log')
+          .select('date, brief_text, eurusd_regime, usdjpy_regime, usdinr_regime, macro_context')
+          .order('date', { ascending: false })
+          .limit(1),
+        SUPABASE_QUERY_TIMEOUT_MS
+      )
+        .then(function (res) {
+          if (res.error) throw res.error;
+          var rows = res.data || [];
+          return rows[0] || null;
+        })
+        .catch(function (e) {
+          if (typeof console !== 'undefined' && console.error) console.error('FXRLData: brief_log', e);
+          return null;
+        });
+    });
   }
 
   /**
@@ -724,55 +811,57 @@
    * @param {number} days
    */
   function fetchValidationLog(pair, days) {
-    var client = getSupabaseClient();
-    if (!client) return Promise.resolve([]);
-    var np = normalisePair(pair);
-    var n = Math.max(1, Math.min(500, days || 30));
-    var start = new Date();
-    start.setDate(start.getDate() - n);
-    var startStr = start.toISOString().split('T')[0];
-    return fetchWithTimeout(
-      client
-        .from('validation_log')
-        .select(
-          'date,pair,predicted_direction,predicted_regime,confidence,actual_direction,actual_return_1d,correct_1d'
-        )
-        .eq('pair', np)
-        .gte('date', startStr)
-        .order('date', { ascending: false }),
-      SUPABASE_QUERY_TIMEOUT_MS
-    )
-      .then(function (res) {
-        if (res.error) throw res.error;
-        return res.data || [];
-      })
-      .catch(function (e) {
-        if (typeof console !== 'undefined' && console.error) console.error('[DataClient] Validation log fetch failed:', e);
-        return [];
-      });
+    return initDataClient().then(function (client) {
+      if (!client) return [];
+      var np = normalisePair(pair);
+      var n = Math.max(1, Math.min(500, days || 30));
+      var start = new Date();
+      start.setDate(start.getDate() - n);
+      var startStr = start.toISOString().split('T')[0];
+      return queryWithTimeout(
+        client
+          .from('validation_log')
+          .select(
+            'date,pair,predicted_direction,predicted_regime,confidence,actual_direction,actual_return_1d,correct_1d'
+          )
+          .eq('pair', np)
+          .gte('date', startStr)
+          .order('date', { ascending: false }),
+        SUPABASE_QUERY_TIMEOUT_MS
+      )
+        .then(function (res) {
+          if (res.error) throw res.error;
+          return res.data || [];
+        })
+        .catch(function (e) {
+          if (typeof console !== 'undefined' && console.error) console.error('[DataClient] Validation log fetch failed:', e);
+          return [];
+        });
+    });
   }
 
   function checkPipelineErrors() {
-    var client = getSupabaseClient();
-    if (!client) return Promise.resolve();
-    var today = new Date().toISOString().split('T')[0];
-    return fetchWithTimeout(
-      client
-        .from('pipeline_errors')
-        .select('source,error_message')
-        .eq('date', today)
-        .limit(5),
-      SUPABASE_QUERY_TIMEOUT_MS
-    )
-      .then(function (res) {
-        var data = res.data;
-        if (data && data.length && typeof console !== 'undefined' && console.warn) {
-          console.warn('[Pipeline] Errors today:', data);
-        }
-      })
-      .catch(function () {
-        /* monitoring only */
-      });
+    return initDataClient().then(function (client) {
+      if (!client) return;
+      var today = new Date().toISOString().split('T')[0];
+      return queryWithTimeout(
+        client
+          .from('pipeline_errors')
+          .select('source,error_message')
+          .eq('date', today)
+          .limit(5),
+        SUPABASE_QUERY_TIMEOUT_MS
+      )
+        .then(function (res) {
+          var data = res.data;
+          if (data && data.length && typeof console !== 'undefined' && console.warn) {
+            console.warn('[Pipeline] Errors today:', data);
+          }
+        })
+        .catch(function () {
+          /* monitoring only */
+        });
+    });
   }
 
   function latestMasterRow() {
@@ -788,45 +877,46 @@
   }
 
   function fetchLatestPrices() {
-    var client = getSupabaseClient();
-    if (!client) return Promise.resolve(null);
-    return fetchWithTimeout(
-      client
-        .from('signals')
-        .select('date,pair,cross_asset_dxy,cross_asset_oil,cross_asset_vix,realized_vol_5d')
-        .in('pair', ['EURUSD', 'USDJPY', 'USDINR'])
-        .order('date', { ascending: false })
-        .limit(90),
-      SUPABASE_QUERY_TIMEOUT_MS
-    )
-      .then(function (res) {
-        if (res.error) throw res.error;
-        var data = res.data || [];
-        var byPair = {};
-        for (var i = 0; i < data.length; i++) {
-          var row = data[i];
-          var pr = row.pair;
-          if (!pr) continue;
-          var pNorm = String(pr).toUpperCase();
-          if (!byPair[pNorm]) byPair[pNorm] = row;
-        }
-        var want = ['EURUSD', 'USDJPY', 'USDINR'];
-        var latestDate = '';
-        for (var w = 0; w < want.length; w++) {
-          var r = byPair[want[w]];
-          if (r && r.date) {
-            var ds = String(r.date).slice(0, 10);
-            if (ds > latestDate) latestDate = ds;
+    return initDataClient().then(function (client) {
+      if (!client) return null;
+      return queryWithTimeout(
+        client
+          .from('signals')
+          .select('date,pair,cross_asset_dxy,cross_asset_oil,cross_asset_vix,realized_vol_5d')
+          .in('pair', ['EURUSD', 'USDJPY', 'USDINR'])
+          .order('date', { ascending: false })
+          .limit(90),
+        SUPABASE_QUERY_TIMEOUT_MS
+      )
+        .then(function (res) {
+          if (res.error) throw res.error;
+          var data = res.data || [];
+          var byPair = {};
+          for (var i = 0; i < data.length; i++) {
+            var row = data[i];
+            var pr = row.pair;
+            if (!pr) continue;
+            var pNorm = String(pr).toUpperCase();
+            if (!byPair[pNorm]) byPair[pNorm] = row;
           }
-        }
-        return { byPair: byPair, latestDate: latestDate };
-      })
-      .catch(function (e) {
-        if (typeof console !== 'undefined' && console.error) {
-          console.error('[Home] Failed to fetch latest prices:', e);
-        }
-        return null;
-      });
+          var want = ['EURUSD', 'USDJPY', 'USDINR'];
+          var latestDate = '';
+          for (var w = 0; w < want.length; w++) {
+            var r = byPair[want[w]];
+            if (r && r.date) {
+              var ds = String(r.date).slice(0, 10);
+              if (ds > latestDate) latestDate = ds;
+            }
+          }
+          return { byPair: byPair, latestDate: latestDate };
+        })
+        .catch(function (e) {
+          if (typeof console !== 'undefined' && console.error) {
+            console.error('[Home] Failed to fetch latest prices:', e);
+          }
+          return null;
+        });
+    });
   }
 
   function buildCotArraysFromSignals(pair, startDate) {
@@ -894,6 +984,86 @@
       });
   }
 
+  /** Canonical labels for regime_calls.primary_driver-style tokens */
+  var DRIVER_LABELS = {
+    rate_differential: 'Rate differential',
+    rate_spread: 'Rate spread',
+    yield_differential: 'Yield differential',
+    cot_positioning: 'COT positioning',
+    policy_divergence: 'Policy divergence',
+    risk_sentiment: 'Risk sentiment',
+    carry: 'Carry',
+    liquidity: 'Liquidity',
+    intervention: 'Intervention',
+    oil: 'Oil / commodities',
+    volatility: 'Volatility',
+    real_rates: 'Real rates',
+    terms_of_trade: 'Terms of trade',
+    positioning: 'Positioning',
+    flow: 'Flow',
+  };
+
+  function normaliseDriverKey(raw) {
+    return String(raw || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '');
+  }
+
+  /**
+   * Human-readable driver for UI (HOME cards, panel). Keeps free-text sentences as-is.
+   * @param {string} raw
+   * @returns {string}
+   */
+  function formatDriverLabel(raw) {
+    var t = String(raw || '').trim();
+    if (!t) return '';
+    if (t.indexOf(' ') >= 0 && t.indexOf('_') < 0) return t;
+    var nk = normaliseDriverKey(t);
+    if (DRIVER_LABELS[nk]) return DRIVER_LABELS[nk];
+    if (t.indexOf('_') >= 0 || nk === t) return formatRegimeLabel(t);
+    return t;
+  }
+
+  /**
+   * regime_calls.confidence may be 0–1 or already 0–100.
+   * @returns {number} NaN if missing
+   */
+  function confidenceToPercent(raw) {
+    var c = raw == null ? NaN : Number(raw);
+    if (!isFinite(c)) return NaN;
+    if (c >= 0 && c <= 1) return Math.round(c * 100);
+    if (c > 1 && c <= 100) return Math.round(c);
+    if (c > 100) return 100;
+    return NaN;
+  }
+
+  /**
+   * Pair terminal strip: "Live · 5 Apr 2026" (Supabase) or "Local · …" (CSV / dev).
+   * @param {string} source loadPairDataset dataSource
+   * @param {string} latestDate YYYY-MM-DD
+   * @param {ParentNode} [root] default document
+   */
+  function showPairDataStatus(source, latestDate, root) {
+    var doc = root && root.querySelector ? root : document;
+    var statusEl = doc.querySelector ? doc.querySelector('.pair-data-status') : null;
+    if (!statusEl) return;
+    var ymd = String(latestDate || '').slice(0, 10);
+    var dateFmt = _fmtDataDate(ymd);
+    var prefix = '—';
+    if (source === 'csv') prefix = 'Local';
+    else if (source === 'supabase' || source === 'hybrid') prefix = 'Live';
+    statusEl.textContent = dateFmt ? prefix + ' · ' + dateFmt : prefix;
+    if (source === 'csv') {
+      statusEl.style.color = 'var(--text-muted)';
+    } else if (source === 'supabase' || source === 'hybrid') {
+      statusEl.style.color = 'var(--bullish)';
+    } else {
+      statusEl.style.color = 'var(--text-muted)';
+    }
+  }
+
   function setStale(show) {
     var el = document.getElementById('term-data-stale');
     if (!el) return;
@@ -937,6 +1107,96 @@
     var hh = String(dt.getUTCHours()).padStart(2, '0');
     var mm = String(dt.getUTCMinutes()).padStart(2, '0');
     return 'Pipeline ' + hh + ':' + mm + ' UTC';
+  }
+
+  /**
+   * Strip common markdown from brief_log / AI snippets for plain-text HOME preview.
+   * @param {string} raw
+   * @returns {string}
+   */
+  function cleanBriefText(raw) {
+    var t = String(raw || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n');
+    t = t.replace(/\*\*([^*]+)\*\*/g, '$1');
+    t = t.replace(/__([^_]+)__/g, '$1');
+    t = t.replace(/#{1,6}\s*/gm, '');
+    t = t.replace(/[ \t]+/g, ' ');
+    t = t.replace(/\n{3,}/g, '\n\n');
+    return t.trim();
+  }
+
+  function fetchAiArticleJson() {
+    return fetchJsonWithTimeout('/data/ai_article.json', FETCH_TIMEOUT_MS)
+      .then(function (j) {
+        return j && typeof j === 'object' ? j : null;
+      })
+      .catch(function () {
+        return null;
+      });
+  }
+
+  /**
+   * HOME brief card: brief_log → /data/ai_article.json → placeholder.
+   * @param {object|null} brief from fetchBriefPreview
+   * @param {object|null} aiArticle from fetchAiArticleJson
+   */
+  function applyHomeBrief(brief, aiArticle) {
+    var briefSec = document.querySelector('.term-brief');
+    var body = document.querySelector('.term-brief__body');
+    var title = document.querySelector('.term-brief__title');
+    var fromSb = brief && String(brief.brief_text || '').trim();
+    var sec = aiArticle && aiArticle.sections && typeof aiArticle.sections === 'object' ? aiArticle.sections : null;
+    var macro = sec && sec.macro_context != null ? String(sec.macro_context).trim() : '';
+    var headline = aiArticle && aiArticle.headline != null ? String(aiArticle.headline).trim() : '';
+    var maxBody = 420;
+
+    if (briefSec) {
+      briefSec.classList.remove('term-brief--from-db', 'term-brief--from-ai');
+      if (fromSb) briefSec.classList.add('term-brief--from-db');
+      else if (macro || headline) briefSec.classList.add('term-brief--from-ai');
+    }
+
+    if (fromSb) {
+      var t = cleanBriefText(brief.brief_text);
+      if (body) {
+        body.textContent = t.length > maxBody ? t.slice(0, maxBody - 3) + '…' : t;
+        body.style.color = '';
+      }
+      if (title && brief.date) {
+        title.textContent = 'Regime read — ' + String(brief.date).slice(0, 10);
+      }
+      return;
+    }
+
+    var rawBody = macro || headline;
+    var snippet = rawBody ? cleanBriefText(rawBody) : '';
+    if (snippet) {
+      if (body) {
+        body.textContent = snippet.length > maxBody ? snippet.slice(0, maxBody - 3) + '…' : snippet;
+        body.style.color = '';
+      }
+      if (title) {
+        var ht = headline ? cleanBriefText(headline) : '';
+        if (ht) {
+          title.textContent = ht.length > 120 ? ht.slice(0, 117) + '…' : ht;
+        } else {
+          var ad =
+            (aiArticle.date && String(aiArticle.date).slice(0, 10)) ||
+            (aiArticle.generated_at && String(aiArticle.generated_at).slice(0, 10)) ||
+            '';
+          title.textContent = ad ? 'Morning read — ' + ad : 'Morning brief';
+        }
+      }
+      return;
+    }
+
+    if (body) {
+      body.textContent =
+        'Brief preview updates after the daily pipeline. Open the full brief for tables and charts.';
+      body.style.color = 'var(--text-muted)';
+    }
+    if (title) title.textContent = 'Regime read — G10 snapshot';
   }
 
   function getDataDate() {
@@ -1033,12 +1293,14 @@
     var pLatest = fetchLatestPrices();
 
     var pBrief = fetchBriefPreview();
+    var pAi = fetchAiArticleJson();
 
-    return Promise.all([Promise.all(pRegime), pLatest, pBrief])
+    return Promise.all([Promise.all(pRegime), pLatest, pBrief, pAi])
       .then(function (all) {
         var regimeResults = all[0];
         var lastBundle = all[1];
         var brief = all[2];
+        var aiArticle = all[3];
         var stale = false;
         var hasSb = !!getSupabaseClient();
 
@@ -1058,15 +1320,28 @@
           var pctEl = card.querySelector('.term-card__conf-pct');
           var fill = card.querySelector('.term-card__conf-fill');
           var driver = card.querySelector('.term-card__driver');
+          var confCenter = card.querySelector('.term-card__confidence');
+          var lowNote = card.querySelector('.term-card__conf-note');
           if (badge) badge.textContent = latest ? formatRegimeLabel(latest.regime) : '—';
+          var cPct = latest ? confidenceToPercent(latest.confidence) : NaN;
           if (pctEl) {
-            var c = latest && isFinite(latest.confidence) ? Math.round(latest.confidence * 100) : NaN;
-            pctEl.textContent = isFinite(c) ? c + '%' : '—';
-            if (!isFinite(c)) pctEl.style.color = 'var(--text-muted)';
+            pctEl.textContent = isFinite(cPct) ? cPct + '%' : '—';
+            if (!isFinite(cPct)) pctEl.style.color = 'var(--text-muted)';
+            else pctEl.style.color = '';
+          }
+          if (confCenter) {
+            confCenter.textContent = isFinite(cPct) ? String(cPct) : '—';
           }
           if (fill) {
-            var w = latest && isFinite(latest.confidence) ? Math.max(0, Math.min(100, latest.confidence * 100)) : 0;
+            var w = isFinite(cPct) ? Math.max(0, Math.min(100, cPct)) : 0;
             fill.style.width = w + '%';
+          }
+          if (lowNote) {
+            var showLow = isFinite(cPct) && cPct < 35;
+            lowNote.hidden = !showLow;
+            if (showLow) {
+              lowNote.textContent = 'Low confidence — interpret as context, not a hard signal.';
+            }
           }
           if (driver) {
             var pd = latest && latest.primary_driver ? String(latest.primary_driver).trim() : '';
@@ -1074,10 +1349,11 @@
               driver.textContent = 'Driver: —';
               driver.style.color = 'var(--text-muted)';
             } else if (pd.indexOf('Driver:') === 0) {
-              driver.textContent = pd;
-              driver.style.color = '';
+              var rest = pd.slice(7).trim();
+              driver.textContent = rest ? 'Driver: ' + formatDriverLabel(rest) : 'Driver: —';
+              driver.style.color = rest ? '' : 'var(--text-muted)';
             } else {
-              driver.textContent = 'Driver: ' + pd;
+              driver.textContent = 'Driver: ' + formatDriverLabel(pd);
               driver.style.color = '';
             }
           }
@@ -1098,7 +1374,16 @@
           var card = document.querySelector(x.card);
           if (!card) return;
           var foot = card.querySelector('.term-card__foot');
-          if (foot) foot.textContent = footDate ? 'As of ' + footDate + ' · data' : 'Updated —';
+          if (foot) {
+            if (!footDate) {
+              foot.textContent = 'Updated —';
+            } else {
+              var pretty = _fmtDataDate(footDate);
+              foot.textContent = pretty
+                ? 'As of ' + pretty + (hasSb ? ' · Live' : isLocalDev() ? ' · Local' : '')
+                : 'Updated —';
+            }
+          }
         });
 
         var ref =
@@ -1127,24 +1412,7 @@
           setCrossItem(3, 'Gold', '—');
         }
 
-        if (hasSb && brief && brief.brief_text) {
-          var body = document.querySelector('.term-brief__body');
-          var title = document.querySelector('.term-brief__title');
-          if (body) {
-            var t = brief.brief_text.trim();
-            body.textContent = t.length > 400 ? t.slice(0, 397) + '…' : t;
-            body.style.color = '';
-          }
-          if (title && brief.date) {
-            title.textContent = 'Regime read — ' + String(brief.date).slice(0, 10);
-          }
-        } else if (hasSb) {
-          var body2 = document.querySelector('.term-brief__body');
-          if (body2) {
-            body2.textContent = '—';
-            body2.style.color = 'var(--text-muted)';
-          }
-        }
+        applyHomeBrief(brief, aiArticle);
 
         if (footDate) {
           setDataDate(footDate);
@@ -1161,6 +1429,7 @@
           var c = document.querySelector(x.card);
           if (c) c.classList.remove('loading');
         });
+        applyHomeBrief(null, null);
         updatePipelineTimestamp(_lastPipelineStatus);
         setStale(true);
         setSkel(root, false);
@@ -1168,6 +1437,7 @@
   }
 
   global.FXRLData = {
+    initDataClient: initDataClient,
     getSupabaseClient: getSupabaseClient,
     isLocalDev: isLocalDev,
     normalisePair: normalisePair,
@@ -1195,7 +1465,24 @@
     buildCotArraysFromSignals: buildCotArraysFromSignals,
     MASTER_CSV: MASTER_CSV,
     COT_CSV: COT_CSV,
+    DRIVER_LABELS: DRIVER_LABELS,
+    formatDriverLabel: formatDriverLabel,
+    confidenceToPercent: confidenceToPercent,
+    showPairDataStatus: showPairDataStatus,
+    fmtDataDate: function (ymd) {
+      return _fmtDataDate(String(ymd || '').slice(0, 10));
+    },
+    cleanBriefText: cleanBriefText,
   };
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', function () {
+      void initDataClient();
+    });
+    document.addEventListener('supabase-ready', function () {
+      void initDataClient();
+    });
+  }
 
   global.FXRLTest = {
     testDataPath: async function () {
@@ -1206,6 +1493,10 @@
       console.info('SUPABASE_URL set:', !!supabaseUrl);
       console.info('SUPABASE_ANON_KEY set:', !!supabaseKey);
 
+      if (global.FXRLData && typeof global.FXRLData.initDataClient === 'function') {
+        await global.FXRLData.initDataClient();
+      }
+
       var client = global.FXRLData && typeof global.FXRLData.getSupabaseClient === 'function'
         ? global.FXRLData.getSupabaseClient()
         : null;
@@ -1213,7 +1504,10 @@
 
       if (client) {
         try {
-          var q = await client.from('signals').select('date,pair,rate_diff_2y').order('date', { ascending: false }).limit(1);
+          var q = await queryWithTimeout(
+            client.from('signals').select('date,pair,rate_diff_2y').order('date', { ascending: false }).limit(1),
+            SUPABASE_QUERY_TIMEOUT_MS
+          );
           if (q.error) throw q.error;
           console.info('Supabase signals query:', q.data && q.data.length > 0 ? 'OK - latest: ' + q.data[0].date : 'EMPTY');
         } catch (e) {

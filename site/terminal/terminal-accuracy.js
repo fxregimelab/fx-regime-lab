@@ -55,21 +55,22 @@
       return;
     }
 
-    if (typeof api.getSupabaseClient === 'function' && !api.getSupabaseClient()) {
-      setTotal('No validation data');
-      return;
-    }
+    var boot =
+      typeof api.initDataClient === 'function' ? api.initDataClient() : Promise.resolve(null);
 
-    Promise.all(
-      PAIRS.map(function (pair) {
-        return Promise.all([
-          api.fetchValidationLog(pair.code, 20),
-          api.fetchValidationLog(pair.code, 500),
-        ]).then(function (payload) {
-          return { pair: pair, rows20: payload[0] || [], rows500: payload[1] || [] };
-        });
+    boot
+      .then(function () {
+        return Promise.all(
+          PAIRS.map(function (pair) {
+            return Promise.all([
+              api.fetchValidationLog(pair.code, 20),
+              api.fetchValidationLog(pair.code, 500),
+            ]).then(function (payload) {
+              return { pair: pair, rows20: payload[0] || [], rows500: payload[1] || [] };
+            });
+          })
+        );
       })
-    )
       .then(function (packs) {
         var totalLogged = 0;
         packs.forEach(function (pack) {

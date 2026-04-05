@@ -1,14 +1,10 @@
 /**
  * FX Regime Lab — internal terminal (Part C)
- * Warm dark palette, IBM Plex Sans + JetBrains Mono.
+ * Dark brief palette (#0a0e1a / #111827), Inter + Playfair Display + JetBrains Mono.
  * No glassmorphism, no backdrop-blur, radius ≤ 8px.
  */
 
-/* Contrast ratios (WCAG AA verified, Apr 2026 audit):
-   --text-primary #e8ede8 on --bg-terminal #0d0f0a: ~16.3:1 ✓ (AA normal)
-   --text-secondary #8a9485 on --surface-primary #131510: ~5.8:1 ✓ (AA normal)
-   --text-muted #5d6858 on --surface-primary #131510: ~3.2:1 ✓ (AA large / non-body labels)
-*/
+/* Contrast: primary text on bg-terminal and secondary on surfaces meet AA for UI copy. */
 
 /* BOUNDARY: Terminal uses ECharts 5.4.3 only.
    Chart.js must never be imported in terminal pages.
@@ -17,37 +13,37 @@
 
 /* —— Design tokens (terminal pages only) —— */
 body.theme-terminal {
-  --depth-0: #0b0e14;
-  --depth-1: #0f1318;
-  --depth-2: #141820;
-  --depth-3: #191e28;
+  --depth-0: #0a0e1a;
+  --depth-1: #111827;
+  --depth-2: #151c2c;
+  --depth-3: #1e293b;
   --bg-terminal: var(--depth-0);
   --surface-primary: var(--depth-1);
   --surface-elevated: var(--depth-2);
   --surface-accent: var(--depth-3);
-  --border-default: #252820;
-  --border-subtle: #1c1f18;
-  --border-emphasis: #2e3228;
-  --accent: #3d7eff;
-  --accent-hover: #5b91ff;
-  --bullish: #2d9e6b;
-  --bearish: #c94040;
-  --neutral: #6b7280;
-  --anomaly: #d4890a;
-  --eurusd: #4d8eff;
-  --usdjpy: #d4890a;
-  --usdinr: #c94040;
+  --border-default: #1f2937;
+  --border-subtle: #0f1419;
+  --border-emphasis: #374151;
+  --accent: #4da6ff;
+  --accent-hover: #6eb8ff;
+  --bullish: #34d399;
+  --bearish: #f87171;
+  --neutral: #64748b;
+  --anomaly: #fbbf24;
+  --eurusd: #4da6ff;
+  --usdjpy: #ff9944;
+  --usdinr: #e74c3c;
   --text-primary: #e8ede8;
-  --text-secondary: #8a9485;
-  --text-muted: #5d6858;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
   --signal-strong: #e8ede8;
-  --signal-medium: #8a9485;
-  --signal-weak: #4a5245;
-  --text-accent: #3d7eff;
-  --text-bullish: #2d9e6b;
-  --text-bearish: #c94040;
-  --text-amber: #d4890a;
-  --bg-chart: #0f1209;
+  --signal-medium: #94a3b8;
+  --signal-weak: #475569;
+  --text-accent: #4da6ff;
+  --text-bullish: #34d399;
+  --text-bearish: #f87171;
+  --text-amber: #fbbf24;
+  --bg-chart: #0c1018;
   --text-display: 2.5rem;
   --text-hero: 1.75rem;
   --text-stat: 1.25rem;
@@ -60,9 +56,10 @@ body.theme-terminal {
   --duration-med: 300ms;
   --duration-slow: 600ms;
 
-  --font-ui: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-ui: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --term-nav-h: 48px;
+  --term-nav-h: 52px;
   --term-radius: 8px;
   --term-radius-sm: 4px;
 }
@@ -101,19 +98,19 @@ body.theme-terminal a:hover {
   text-decoration: underline;
 }
 
-/* —— Top navigation (48px) —— */
+/* —— Top navigation: command bar —— */
 .term-nav {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  height: var(--term-nav-h);
+  min-height: var(--term-nav-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 0 16px 0 20px;
+  gap: 12px;
+  padding: 0 16px 0 18px;
   background: var(--surface-primary);
   border-bottom: 1px solid var(--border-default);
 }
@@ -121,24 +118,66 @@ body.theme-terminal a:hover {
 .term-nav__left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
+  min-width: 0;
 }
 
+/* Brand: logo mark + Playfair word (see .term-brand) */
 .term-nav__brand {
-  font-family: var(--font-ui);
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
   text-decoration: none;
+  color: inherit;
+  min-width: 0;
 }
 
 .term-nav__brand:hover {
-  color: var(--text-primary);
   text-decoration: none;
 }
 
+.term-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.term-brand__mark {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+}
+
+.term-brand__mark--wide {
+  width: auto;
+  max-width: 158px;
+  height: 22px;
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+
+.term-brand__mark--fallback.term-brand__mark--wide {
+  max-width: 200px;
+}
+
+.term-brand__word {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.term-nav__brand:hover .term-brand__word {
+  color: var(--text-primary);
+}
+
+/* Legacy wordmark-only header */
 .term-nav__wordmark {
   height: 22px;
   width: auto;
@@ -151,6 +190,14 @@ body.theme-terminal a:hover {
   opacity: 1;
 }
 
+.term-nav__sep {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 14px;
+  user-select: none;
+  opacity: 0.65;
+}
+
 .term-nav__pipe {
   color: var(--border-emphasis);
   font-weight: 400;
@@ -158,13 +205,16 @@ body.theme-terminal a:hover {
 }
 
 .term-nav__product {
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--accent);
+  flex-shrink: 0;
 }
 
+/* Command tray: segmented controls */
 .term-nav__tabs {
   display: flex;
   align-items: center;
@@ -172,6 +222,10 @@ body.theme-terminal a:hover {
   gap: 2px;
   flex: 1;
   min-width: 0;
+  padding: 4px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--term-radius-sm);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -180,7 +234,10 @@ body.theme-terminal a:hover {
 @media (min-width: 900px) {
   .term-nav__tabs {
     justify-content: center;
-    overflow-x: visible;
+    flex: 1;
+    max-width: min(720px, 56vw);
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 
@@ -189,28 +246,96 @@ body.theme-terminal a:hover {
 }
 
 .term-nav__tab {
-  padding: 0 10px;
-  height: var(--term-nav-h);
+  padding: 0 12px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-secondary);
-  border-bottom: 2px solid transparent;
+  border-radius: 3px;
+  border: none;
+  border-bottom: none;
   text-decoration: none;
   white-space: nowrap;
+  transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
 
 .term-nav__tab:hover {
   color: var(--text-primary);
   text-decoration: none;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .term-nav__tab.is-active {
   color: var(--text-primary);
-  border-bottom-color: var(--accent);
+  background: var(--surface-accent);
+  box-shadow: 0 0 0 1px var(--border-emphasis);
+}
+
+@media (max-width: 768px) {
+  .term-nav {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    padding: 10px 12px 12px;
+    gap: 10px 12px;
+    align-items: center;
+  }
+
+  .term-nav__left {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .term-nav__right {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .term-nav__tabs {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    max-width: 100%;
+    margin: 0;
+    justify-content: flex-start;
+  }
+
+  .term-nav__tab {
+    height: 36px;
+    padding: 0 10px;
+    font-size: 9px;
+  }
+
+  .term-brand__word {
+    max-width: 42vw;
+  }
+
+  /* Stacked nav is taller than --term-nav-h */
+  body.theme-terminal .term-main {
+    padding-top: 108px;
+  }
+
+  body.theme-terminal .term-pair-page {
+    padding-top: 118px;
+  }
+
+  body.theme-terminal .term-pair-head {
+    top: 108px;
+  }
+
+  body.theme-terminal .cb-app {
+    height: calc(100vh - 108px);
+  }
+
+  body.theme-terminal .ws-app {
+    height: calc(100vh - 108px);
+  }
 }
 
 .term-nav__right {
@@ -247,11 +372,11 @@ body.theme-terminal a:hover {
   0%,
   100% {
     opacity: 1;
-    box-shadow: 0 0 0 0 rgba(45, 158, 107, 0.45);
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.45);
   }
   50% {
     opacity: 0.75;
-    box-shadow: 0 0 0 6px rgba(45, 158, 107, 0);
+    box-shadow: 0 0 0 6px rgba(52, 211, 153, 0);
   }
 }
 
@@ -540,7 +665,18 @@ body.theme-terminal a:hover {
   font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.45;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+}
+
+.term-card__conf-note {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+.term-card__conf-note[hidden] {
+  display: none !important;
 }
 
 .term-card__foot {
@@ -602,13 +738,39 @@ body.theme-terminal a:hover {
 }
 
 /* —— Brief preview —— */
+.term-main .term-brief {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+  will-change: opacity, transform;
+}
+
+.term-main .term-brief.is-inview {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .term-brief {
   background: var(--surface-elevated);
   border: 1px solid var(--border-default);
   border-radius: var(--term-radius);
   border-left: 3px solid var(--accent);
-  padding: 20px 20px 18px;
+  padding: 22px 22px 18px;
   max-width: 720px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.theme-terminal.theme-dark .term-brief,
+body.theme-terminal:not(.theme-light) .term-brief {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.term-brief--from-db {
+  border-left-color: var(--eurusd);
+}
+
+.term-brief--from-ai {
+  border-left-color: var(--anomaly);
 }
 
 .term-brief__label {
@@ -621,8 +783,8 @@ body.theme-terminal a:hover {
 }
 
 .term-brief__title {
-  font-family: var(--font-ui);
-  font-size: 18px;
+  font-family: var(--font-display), var(--font-ui), system-ui, sans-serif;
+  font-size: 19px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 12px;
@@ -643,6 +805,36 @@ body.theme-terminal a:hover {
 }
 
 .term-brief__link:hover {
+  text-decoration: underline;
+}
+
+.term-brief__notes-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.term-brief__notes-link:hover {
+  color: var(--text-secondary);
+}
+
+.term-brief__how {
+  margin: 14px 0 0;
+}
+
+.term-brief__how-link {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.term-brief__how-link:hover {
+  color: var(--accent);
   text-decoration: underline;
 }
 
@@ -1146,6 +1338,7 @@ body.theme-terminal a:hover {
 }
 
 .term-pair-hero__name {
+  font-family: var(--font-display);
   font-size: clamp(2.2rem, 5vw, 3rem);
   line-height: 1.05;
   font-weight: 700;
@@ -1262,6 +1455,20 @@ body.theme-terminal a:hover {
   transform: translateY(0);
 }
 
+/* Alias for templates that use .signal-section instead of .term-magazine-section */
+.signal-section {
+  border-top: 1px solid var(--border-subtle);
+  padding: 60px 0;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+  will-change: opacity, transform;
+}
+
+.signal-section.is-inview {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 .term-magazine-section__grid {
   display: grid;
@@ -1298,11 +1505,23 @@ body.theme-terminal a:hover {
 }
 
 .term-magazine-section--regime {
-  background: var(--depth-2);
+  position: relative;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--surface-elevated) 88%, var(--accent) 12%) 0%,
+    var(--depth-2) 55%
+  );
+  border: 1px solid var(--border-emphasis, var(--border-default));
   border-left: 4px solid var(--accent);
   border-radius: 8px;
   margin: 40px 0;
   padding: 40px 48px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.theme-terminal.theme-dark .term-magazine-section--regime,
+body.theme-terminal:not(.theme-light) .term-magazine-section--regime {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
 }
 
 .term-magazine-section.section-highlight {
@@ -2090,5 +2309,13 @@ body.theme-terminal a:hover {
   .term-card.loading .term-card__driver {
     animation: none;
     opacity: 0.7;
+  }
+
+  .term-main .term-brief,
+  .term-magazine-section,
+  .signal-section {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }

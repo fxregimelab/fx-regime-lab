@@ -80,6 +80,24 @@
     return document.getElementById(id);
   }
 
+  function stripDriverPrefix(s) {
+    var t = String(s || '').trim();
+    if (t.indexOf('Driver:') === 0) return t.slice(7).trim();
+    return t;
+  }
+
+  function prettyDriverLine(raw) {
+    var api = global.FXRLData;
+    var inner = stripDriverPrefix(raw);
+    if (!inner) return '—';
+    if (api && typeof api.formatDriverLabel === 'function') {
+      var lab = api.formatDriverLabel(inner);
+      return lab ? 'Driver: ' + lab : '—';
+    }
+    var full = String(raw || '').trim();
+    return full.indexOf('Driver:') === 0 ? full : 'Driver: ' + inner;
+  }
+
   function setText(id, value) {
     var node = byId(id);
     if (node) node.textContent = value;
@@ -92,7 +110,11 @@
     html.push('<table class="term-panel-table">');
     html.push('<tr><td>Regime</td><td>' + (card.getAttribute('data-panel-regime') || article.regime || '—') + '</td></tr>');
     html.push('<tr><td>Confidence</td><td>' + (card.getAttribute('data-panel-confidence') || '—') + '</td></tr>');
-    html.push('<tr><td>Primary driver</td><td>' + (article.key_driver || '—') + '</td></tr>');
+    html.push(
+      '<tr><td>Primary driver</td><td>' +
+        (article.key_driver ? prettyDriverLine(article.key_driver) : '—') +
+        '</td></tr>'
+    );
     html.push('<tr><td>Watch for</td><td>' + (article.watch_for || '—') + '</td></tr>');
     html.push('</table>');
     target.innerHTML = html.join('');
@@ -166,7 +188,8 @@
     var pairLabel = PAIR_LABEL[activePair] || activePair;
     var pairUrl = card.getAttribute('data-panel-url') || '/terminal/';
     var spot = card.getAttribute('data-panel-spot') || '—';
-    var driver = card.getAttribute('data-panel-driver') || article.key_driver || '—';
+    var driverRaw = card.getAttribute('data-panel-driver') || article.key_driver || '—';
+    var driver = driverRaw === '—' ? '—' : prettyDriverLine(driverRaw);
     var confidence = card.getAttribute('data-panel-confidence') || '—';
 
     setText('term-panel-pair', pairLabel);

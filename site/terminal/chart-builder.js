@@ -461,38 +461,43 @@
   function prefetchAllData() {
     var DC = global.FXRLData;
     var fetchSignals = DC && typeof DC.fetchSignals === 'function' ? DC.fetchSignals : null;
-    var csvPromise = fetchCsv(MASTER_CSV)
-      .then(function (text) {
-        var parsed = parseCsv(text);
-        MASTER_ROWS = parsed.rows || [];
-      })
-      .catch(function () {
-        MASTER_ROWS = null;
-      });
+    var boot =
+      DC && typeof DC.initDataClient === 'function' ? DC.initDataClient() : Promise.resolve(null);
 
-    var signalsPromise;
-    if (!fetchSignals) {
-      signalsPromise = Promise.resolve();
-    } else {
-      signalsPromise = Promise.allSettled(
-        PREFETCH_PAIRS.map(function (pair) {
-          return fetchSignals(pair, PREFETCH_COLUMNS, '2024-01-01').then(function (data) {
-            return { pair: pair, data: data };
-          });
+    return boot.then(function () {
+      var csvPromise = fetchCsv(MASTER_CSV)
+        .then(function (text) {
+          var parsed = parseCsv(text);
+          MASTER_ROWS = parsed.rows || [];
         })
-      ).then(function (results) {
-        results.forEach(function (result) {
-          if (result.status === 'fulfilled') {
-            var value = result.value || {};
-            DATA[value.pair] = value.data || null;
-          }
+        .catch(function () {
+          MASTER_ROWS = null;
         });
-      });
-    }
 
-    return Promise.all([csvPromise, signalsPromise]).then(function () {
-      PREFETCH_DONE = true;
-      return updateSidebarAvailability();
+      var signalsPromise;
+      if (!fetchSignals) {
+        signalsPromise = Promise.resolve();
+      } else {
+        signalsPromise = Promise.allSettled(
+          PREFETCH_PAIRS.map(function (pair) {
+            return fetchSignals(pair, PREFETCH_COLUMNS, '2024-01-01').then(function (data) {
+              return { pair: pair, data: data };
+            });
+          })
+        ).then(function (results) {
+          results.forEach(function (result) {
+            if (result.status === 'fulfilled') {
+              var value = result.value || {};
+              DATA[value.pair] = value.data || null;
+            }
+          });
+        });
+      }
+
+      return Promise.all([csvPromise, signalsPromise]).then(function () {
+        PREFETCH_DONE = true;
+        return updateSidebarAvailability();
+      });
     });
   }
 
@@ -550,7 +555,7 @@
       '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="22">' +
       '<text x="0" y="16" fill="' +
       fill +
-      '" font-family="IBM Plex Sans,system-ui,sans-serif" font-size="13" font-weight="600">FX Regime Lab</text></svg>';
+      '" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="600">FX Regime Lab</text></svg>';
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
 
@@ -723,7 +728,7 @@
           axisLabel: {
             color: T.text,
             fontSize: 10,
-            fontFamily: isLight ? '"IBM Plex Sans", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
+            fontFamily: isLight ? '"Inter", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
           },
           splitLine: {
             lineStyle: {
@@ -744,7 +749,7 @@
           axisLabel: {
             color: T.text,
             fontSize: 10,
-            fontFamily: isLight ? '"IBM Plex Sans", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
+            fontFamily: isLight ? '"Inter", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
           },
           splitLine: { show: false },
         });
@@ -839,7 +844,7 @@
         chartBaseAnimation(),
         {
           textStyle: {
-            fontFamily: isLight ? '"IBM Plex Sans", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
+            fontFamily: isLight ? '"Inter", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
             fontSize: 11,
             color: T.text,
           },
@@ -851,7 +856,7 @@
             textStyle: {
               color: T.textStrong,
               fontSize: 11,
-              fontFamily: isLight ? '"IBM Plex Sans", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
+              fontFamily: isLight ? '"Inter", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
             },
           },
           legend: { show: false },
@@ -862,7 +867,7 @@
             axisLabel: {
               color: T.text,
               fontSize: 10,
-              fontFamily: isLight ? '"IBM Plex Sans", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
+              fontFamily: isLight ? '"Inter", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
             },
             splitLine: { show: false },
           },
@@ -923,7 +928,7 @@
           ctx.save();
           ctx.globalAlpha = opacity;
           ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.78)' : 'rgba(30,25,15,0.7)';
-          ctx.font = '600 14px "IBM Plex Sans", system-ui, sans-serif';
+          ctx.font = '600 14px "Inter", system-ui, sans-serif';
           ctx.fillText('FX REGIME LAB', x, y + 18);
           ctx.restore();
         });
@@ -941,17 +946,17 @@
 
       if (title) {
         ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(30,25,15,0.7)';
-        ctx.font = '600 13px "IBM Plex Sans", system-ui, sans-serif';
+        ctx.font = '600 13px "Inter", system-ui, sans-serif';
         ctx.fillText(title, 16, 24);
       }
       if (subtitle) {
         ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(30,25,15,0.55)';
-        ctx.font = '11px "IBM Plex Sans", system-ui, sans-serif';
+        ctx.font = '11px "Inter", system-ui, sans-serif';
         ctx.fillText(subtitle, 16, 42);
       }
       if (config.showTimestamp && config.asOfDate) {
         ctx.fillStyle = theme === 'dark' ? 'rgba(255,255,255,0.42)' : 'rgba(80,70,50,0.5)';
-        ctx.font = '10px "IBM Plex Sans", system-ui, sans-serif';
+        ctx.font = '10px "Inter", system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('Data as of ' + config.asOfDate, w / 2, h - 16);
       }

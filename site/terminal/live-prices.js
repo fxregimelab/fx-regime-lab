@@ -220,7 +220,7 @@
     });
   }
 
-  function startPolling() {
+  function stopPolling() {
     if (firstPollTimeout) {
       clearTimeout(firstPollTimeout);
       firstPollTimeout = null;
@@ -229,11 +229,24 @@
       clearInterval(priceInterval);
       priceInterval = null;
     }
+  }
+
+  function startPolling() {
+    stopPolling();
     if (document.hidden) return;
     firstPollTimeout = setTimeout(function () {
       updateAllPrices();
     }, 2000);
     priceInterval = setInterval(updateAllPrices, 30000);
+  }
+
+  function onVisibilityChange() {
+    if (document.hidden) {
+      stopPolling();
+    } else {
+      lastFetch = 0;
+      startPolling();
+    }
   }
 
   function initObserver() {
@@ -255,11 +268,17 @@
     tickerObserver.observe(ticker, { childList: true, subtree: true });
   }
 
+  var visibilityHooked = false;
+
   function init() {
     ensureTickerStructure();
     initObserver();
-    startPolling();
-    document.addEventListener('visibilitychange', startPolling);
+    if (!visibilityHooked) {
+      visibilityHooked = true;
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+    if (!document.hidden) startPolling();
+    else stopPolling();
   }
 
   if (document.readyState === 'loading') {

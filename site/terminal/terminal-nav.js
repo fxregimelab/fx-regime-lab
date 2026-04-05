@@ -6,8 +6,10 @@
   'use strict';
 
   var g = typeof window !== 'undefined' ? window : this;
+  var LOGO_URL = '/assets/images/logo.png';
+  var WORDMARK_URL = '/assets/images/wordmark_without_bg.png';
   var WORDMARK_FALLBACK =
-    "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22210%22%20height%3D%2222%22%3E%3Ctext%20x%3D%220%22%20y%3D%2216%22%20fill%3D%22%23e8ede8%22%20font-family%3D%22IBM%20Plex%20Sans%2Csystem-ui%2Csans-serif%22%20font-size%3D%2213%22%20font-weight%3D%22600%22%3EFX%20Regime%20Lab%3C/text%3E%3C/svg%3E";
+    "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22210%22%20height%3D%2222%22%3E%3Ctext%20x%3D%220%22%20y%3D%2216%22%20fill%3D%22%23e8ede8%22%20font-family%3D%22Inter%2Csystem-ui%2Csans-serif%22%20font-size%3D%2213%22%20font-weight%3D%22600%22%3EFX%20Regime%20Lab%3C/text%3E%3C/svg%3E";
 
   function leaveTerminal() {
     if (g.FXRLThemeSwitch && typeof g.FXRLThemeSwitch.exitTerminal === 'function') {
@@ -54,7 +56,9 @@
     var underline = subNav.querySelector('.term-pair-tabs__underline');
 
     function setActive(tab) {
-      tabs.forEach(function (x) { x.classList.remove('is-active'); });
+      tabs.forEach(function (x) {
+        x.classList.remove('is-active');
+      });
       if (!tab) return;
       tab.classList.add('is-active');
       if (!underline) return;
@@ -94,24 +98,31 @@
     });
 
     var sectionIds = Object.keys(byId);
-    var sections = sectionIds.map(function (id) {
-      return document.getElementById(id);
-    }).filter(Boolean);
+    var sections = sectionIds
+      .map(function (id) {
+        return document.getElementById(id);
+      })
+      .filter(Boolean);
 
     if (sections.length) {
-      var io = new IntersectionObserver(function (entries) {
-        var winner = null;
-        entries.forEach(function (entry) {
-          if (!entry.isIntersecting) return;
-          if (!winner || entry.intersectionRatio > winner.intersectionRatio) {
-            winner = entry;
-          }
-        });
-        if (!winner) return;
-        var id = winner.target.getAttribute('id');
-        if (id && byId[id]) setActive(byId[id]);
-      }, { threshold: [0.2, 0.4, 0.6], rootMargin: '-25% 0px -55% 0px' });
-      sections.forEach(function (section) { io.observe(section); });
+      var io = new IntersectionObserver(
+        function (entries) {
+          var winner = null;
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            if (!winner || entry.intersectionRatio > winner.intersectionRatio) {
+              winner = entry;
+            }
+          });
+          if (!winner) return;
+          var id = winner.target.getAttribute('id');
+          if (id && byId[id]) setActive(byId[id]);
+        },
+        { threshold: [0.2, 0.4, 0.6], rootMargin: '-25% 0px -55% 0px' }
+      );
+      sections.forEach(function (section) {
+        io.observe(section);
+      });
     }
 
     g.addEventListener('resize', function () {
@@ -122,9 +133,10 @@
     setActive(subNav.querySelector('.term-pair-tabs__link.is-active') || tabs[0]);
   }
 
-  function hydrateBrandWordmark() {
-    var brand = document.querySelector('.term-nav__brand');
-    if (!brand) return;
+  function hydrateLegacyWordmark() {
+    var brand = document.querySelector('.term-nav__brand:not(.term-brand)');
+    if (!brand) brand = document.querySelector('.term-nav__brand');
+    if (!brand || brand.classList.contains('term-brand')) return;
     var img = brand.querySelector('img.term-nav__wordmark');
     if (!img) {
       img = document.createElement('img');
@@ -138,12 +150,33 @@
       img.src = WORDMARK_FALLBACK;
     };
     if (!img.getAttribute('src')) {
-      img.src = '/assets/images/wordmark_without_bg.png';
+      img.src = WORDMARK_URL;
     }
   }
 
+  function hydrateTerminalBrand() {
+    var brand = document.querySelector('.term-brand');
+    if (!brand) {
+      hydrateLegacyWordmark();
+      return;
+    }
+    var mark = brand.querySelector('.term-brand__mark');
+    if (!mark) return;
+    mark.onerror = function () {
+      mark.onerror = function () {
+        mark.onerror = null;
+        mark.src = WORDMARK_FALLBACK;
+        mark.classList.add('term-brand__mark--wide', 'term-brand__mark--fallback');
+      };
+      mark.src = WORDMARK_URL;
+      mark.classList.add('term-brand__mark--wide');
+    };
+    var src = mark.getAttribute('src') || LOGO_URL;
+    mark.src = src;
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
-    hydrateBrandWordmark();
+    hydrateTerminalBrand();
     syncTabActive();
     initPairSubNav();
     document.querySelectorAll('a.term-nav__exit, a[data-term-exit]').forEach(function (a) {
