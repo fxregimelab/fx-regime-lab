@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Newsletter — FX Regime Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <style>
+    :root {
+      --paper-bg: #FAFAF5;
+      --paper-card: #FFFFFF;
+      --paper-accent: #1B3A6B;
+      --paper-text: #111827;
+      --paper-secondary: #4B5563;
+      --paper-muted: #9CA3AF;
+      --paper-border: #E2E4E8;
+    }
+
+    body.theme-light {
+      background-color: var(--paper-bg);
+      color: var(--paper-text);
+      font-family: "DM Sans", sans-serif;
+    }
+
+    .newsletter-shell {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px 70px;
+    }
+
+    .newsletter-main {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .newsletter-hero {
+      margin: 34px 0 46px;
+    }
+
+    .newsletter-label {
+      margin: 0 0 14px;
+      font-family: "DM Sans", sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--paper-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .newsletter-headline {
+      margin: 0 0 18px;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 5vw, 2.5rem);
+      line-height: 1.2;
+      font-weight: 700;
+      color: var(--paper-text);
+      white-space: pre-line;
+    }
+
+    .newsletter-subtext {
+      margin: 0 0 24px;
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--paper-secondary);
+      white-space: pre-line;
+      max-width: 620px;
+    }
+
+    .newsletter-hero-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 28px;
+      border-radius: 6px;
+      border: 2px solid #1B3A6B;
+      color: #1B3A6B;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background-color 200ms ease, color 200ms ease;
+    }
+
+    .newsletter-hero-cta:hover {
+      background: #1B3A6B;
+      color: #FFFFFF;
+    }
+
+    .newsletter-list {
+      margin-bottom: 12px;
+    }
+
+    .post-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E4E8;
+      border-left: 4px solid #1B3A6B;
+      border-radius: 10px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+      color: inherit;
+      transition: box-shadow 200ms ease, transform 200ms ease;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: fadeInPost 300ms ease forwards;
+    }
+
+    .post-card:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+    }
+
+    .post-date-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .post-date {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      color: #9CA3AF;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .post-category {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #1B3A6B;
+      background: rgba(27, 58, 107, 0.08);
+    }
+
+    .post-title {
+      margin: 0 0 12px;
+      font-family: "Playfair Display", serif;
+      font-size: clamp(1.5rem, 3.5vw, 1.375rem);
+      font-weight: 700;
+      line-height: 1.35;
+      color: #111827;
+      transition: color 200ms ease;
+    }
+
+    .post-card:hover .post-title {
+      color: #1B3A6B;
+    }
+
+    .post-excerpt {
+      margin: 0 0 16px;
+      font-size: 14px;
+      color: #4B5563;
+      line-height: 1.7;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .post-bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-family: "DM Sans", sans-serif;
+    }
+
+    .post-link-primary {
+      font-size: 13px;
+      color: #1B3A6B;
+      font-weight: 500;
+    }
+
+    .post-link-secondary {
+      font-size: 12px;
+      color: #9CA3AF;
+      text-decoration: none;
+      transition: color 200ms ease;
+      position: relative;
+      z-index: 2;
+    }
+
+    .post-link-secondary:hover {
+      color: #1B3A6B;
+    }
+
+    .skeleton-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E4E8;
+      border-left: 4px solid #1B3A6B;
+      border-radius: 10px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+
+    .skeleton-line {
+      height: 12px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #ECEFF3 0%, #F6F7F9 50%, #ECEFF3 100%);
+      background-size: 200% 100%;
+      animation: pulse 1.4s ease-in-out infinite;
+      margin-bottom: 12px;
+    }
+
+    .skeleton-line:last-child {
+      margin-bottom: 0;
+    }
+
+    .skeleton-line.w-20 { width: 20%; }
+    .skeleton-line.w-35 { width: 35%; }
+    .skeleton-line.w-45 { width: 45%; }
+    .skeleton-line.w-60 { width: 60%; }
+    .skeleton-line.w-80 { width: 80%; }
+    .skeleton-line.w-95 { width: 95%; }
+    .skeleton-space { height: 16px; }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 16px 28px;
+      margin-bottom: 28px;
+    }
+
+    .empty-state h3 {
+      margin: 0 0 10px;
+      font-family: "Playfair Display", serif;
+      font-size: 20px;
+      color: #111827;
+      font-weight: 700;
+    }
+
+    .empty-state p {
+      margin: 0;
+      font-size: 14px;
+      color: #4B5563;
+    }
+
+    .empty-state a {
+      color: #1B3A6B;
+      text-decoration: none;
+    }
+
+    .subscribe-band {
+      background: #111827;
+      padding: 60px 24px;
+      text-align: center;
+      margin-top: 26px;
+    }
+
+    .subscribe-band h2 {
+      margin: 0 0 12px;
+      color: #F9FAFB;
+      font-family: "Playfair Display", serif;
+      font-size: 28px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    .subscribe-band p {
+      margin: 0 0 22px;
+      color: #9CA3AF;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .subscribe-band .cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 32px;
+      border-radius: 6px;
+      border: none;
+      background: #4d8eff;
+      color: #FFFFFF;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 600;
+      transition: background-color 200ms ease;
+    }
+
+    .subscribe-band .cta:hover {
+      background: #3b8fe8;
+    }
+
+    .subscribe-band .note {
+      margin: 14px 0 0;
+      color: #4B5563;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    @keyframes pulse {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @keyframes fadeInPost {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .newsletter-shell {
+        padding: 0 16px 60px;
+      }
+
+      .post-card,
+      .skeleton-card {
+        padding: 22px 20px;
+      }
+    }
+  </style>
+</head>
+<body class="theme-light">
+  <div class="newsletter-shell">
+    <header class="v2-nav" data-nav-root>
+      <a class="v2-nav__brand" href="/">FX Regime Lab</a>
+      <ul class="v2-nav__links">
+        <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
+        <li><a href="/terminal/" data-path="/terminal/">Terminal</a></li>
+        <li><a href="/brief/" data-path="/brief">Brief</a></li>
+        <li><a href="/performance/" data-path="/performance">Performance</a></li>
+        <li><a href="/about/" data-path="/about">About</a></li>
+        <li><a href="/newsletter/" data-path="/newsletter">Newsletter</a></li>
+      </ul>
+      <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu"><span></span><span></span><span></span></button>
+    </header>
+    <div class="v2-nav__overlay" data-nav-overlay>
+      <a href="/dashboard/">Dashboard</a>
+      <a href="/terminal/">Terminal</a>
+      <a href="/brief/">Brief</a>
+      <a href="/performance/">Performance</a>
+      <a href="/about/">About</a>
+      <a href="/newsletter/">Newsletter</a>
+    </div>
+
+    <main class="newsletter-main">
+      <section class="newsletter-hero" aria-labelledby="newsletter-title">
+        <p class="newsletter-label">Newsletter</p>
+        <h1 id="newsletter-title" class="newsletter-headline">Research notes.
+Published on Substack.</h1>
+        <p class="newsletter-subtext">Regime reads, macro observations, and signal
+analysis published as they happen.
+All posts free to read.</p>
+        <a class="newsletter-hero-cta" href="https://fxregimelab.substack.com" target="_blank" rel="noopener">Subscribe on Substack →</a>
+      </section>
+
+      <section class="newsletter-list" id="newsletter-list" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <section class="subscribe-band" aria-label="Subscribe">
+    <h2>Get every post in your inbox.</h2>
+    <p>Free. Published when something worth saying happens.</p>
+    <a class="cta" href="https://fxregimelab.substack.com" target="_blank" rel="noopener">Subscribe on Substack →</a>
+    <p class="note">No spam. Unsubscribe anytime.</p>
+  </section>
+
+  <footer class="v2-footer">
+    <div class="v2-footer__grid">
+      <div>
+        <strong>FX Regime Lab</strong>
+        <p>Live quantamental macro regime intelligence for G10 FX.</p>
+      </div>
+      <nav class="v2-footer__nav">
+        <a href="/">Home</a>
+        <a href="/dashboard/">Dashboard</a>
+        <a href="/terminal/">Terminal</a>
+        <a href="/brief/">Brief</a>
+        <a href="/performance/">Performance</a>
+        <a href="/about/">About</a>
+        <a href="/newsletter/">Newsletter</a>
+      </nav>
+    </div>
+    <p class="v2-footer__rule">© 2026 FX Regime Lab · Built by Shreyash Sakhare</p>
+  </footer>
+
+  <script src="/assets/theme-switch.js"></script>
+  <script src="/assets/nav.js"></script>
+  <script src="/assets/site.js"></script>
+  <script>
+    const RSS_URL = "https://fxregimelab.substack.com/feed";
+    const PROXY = "https://api.allorigins.win/get?url=";
+    const SUBSTACK_ROOT = "https://fxregimelab.substack.com";
+
+    function stripHTML(html) {
+      const div = document.createElement("div");
+      div.innerHTML = html;
+      return div.textContent || div.innerText || "";
+    }
+
+    function truncate(text, maxChars = 200) {
+      const clean = stripHTML(text).trim();
+      if (clean.length <= maxChars) return clean;
+      return clean.substring(0, maxChars).trimEnd() + "...";
+    }
+
+    function formatDate(pubDate) {
+      const d = new Date(pubDate);
+      if (Number.isNaN(d.getTime())) return "DATE UNAVAILABLE";
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      }).toUpperCase();
+    }
+
+    function normalizeLink(link) {
+      if (!link) return SUBSTACK_ROOT;
+      if (link.startsWith("http://") || link.startsWith("https://")) return link;
+      return SUBSTACK_ROOT + (link.startsWith("/") ? link : "/" + link);
+    }
+
+    function parseRSSItems(xml) {
+      const items = xml.querySelectorAll("item");
+      const contentNodes = xml.getElementsByTagNameNS("http://purl.org/rss/1.0/modules/content/", "encoded");
+      return Array.from(items).map((item, index) => ({
+        title: item.querySelector("title")?.textContent || "",
+        link: item.querySelector("link")?.textContent || "",
+        pubDate: item.querySelector("pubDate")?.textContent || "",
+        description: item.querySelector("description")?.textContent || "",
+        content: contentNodes[index]?.textContent || "",
+        category: item.querySelector("category")?.textContent || "",
+      }));
+    }
+
+    async function fetchSubstackPosts() {
+      try {
+        const resp = await fetch(
+          PROXY + encodeURIComponent(RSS_URL),
+          { signal: AbortSignal.timeout(8000) }
+        );
+        const json = await resp.json();
+        const xml = new DOMParser().parseFromString(json.contents || "", "text/xml");
+        return parseRSSItems(xml);
+      } catch (e) {
+        console.error("[Newsletter] RSS fetch failed:", e);
+        return [];
+      }
+    }
+
+    function renderSkeletons(container) {
+      const skeleton = Array.from({ length: 3 }).map(() => `
+        <article class="skeleton-card" aria-hidden="true">
+          <div class="skeleton-line w-20"></div>
+          <div class="skeleton-space"></div>
+          <div class="skeleton-line w-95"></div>
+          <div class="skeleton-line w-80"></div>
+          <div class="skeleton-space"></div>
+          <div class="skeleton-line w-95"></div>
+          <div class="skeleton-line w-95"></div>
+          <div class="skeleton-line w-60"></div>
+          <div class="skeleton-space"></div>
+          <div class="skeleton-line w-35"></div>
+        </article>
+      `).join("");
+      container.innerHTML = skeleton;
+    }
+
+    function renderEmpty(container) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <h3>Posts loading...</h3>
+          <p>
+            Check <a href="https://fxregimelab.substack.com" target="_blank" rel="noopener">fxregimelab.substack.com</a> directly
+          </p>
+        </div>
+      `;
+    }
+
+    function renderPosts(container, posts) {
+      const html = posts.map((post, i) => {
+        const link = normalizeLink(post.link);
+        const title = stripHTML(post.title || "Untitled post");
+        const excerpt = truncate(post.description || post.content || "");
+        const category = stripHTML(post.category || "").trim();
+        const categoryTag = category
+          ? `<span class="post-category">${category}</span>`
+          : "";
+        return `
+          <a class="post-card" href="${link}" target="_blank" rel="noopener" style="animation-delay:${i * 100}ms">
+            <div class="post-date-row">
+              <span class="post-date">${formatDate(post.pubDate)}</span>
+              ${categoryTag}
+            </div>
+            <h2 class="post-title">${title}</h2>
+            <p class="post-excerpt">${excerpt}</p>
+            <div class="post-bottom-row">
+              <span class="post-link-primary">Read on Substack →</span>
+              <span class="post-link-secondary">Subscribe</span>
+            </div>
+          </a>
+        `;
+      }).join("");
+      container.innerHTML = html;
+    }
+
+    async function initNewsletter() {
+      const list = document.getElementById("newsletter-list");
+      if (!list) return;
+      renderSkeletons(list);
+      const posts = await fetchSubstackPosts();
+      if (!posts.length) {
+        renderEmpty(list);
+        return;
+      }
+      renderPosts(list, posts);
+    }
+
+    initNewsletter();
+  </script>
+</body>
+</html>

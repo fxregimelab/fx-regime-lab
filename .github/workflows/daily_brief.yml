@@ -64,6 +64,17 @@ jobs:
           if [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
             echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> .env
           fi
+          # SUBSTACK_EMAIL + SUBSTACK_PASSWORD: used by
+          # scripts/substack_publish.py to create daily
+          # brief draft on Substack. Add to GitHub secrets.
+          # Draft requires manual review before publishing.
+          # Set draft=False and should_send_email=True to auto-send.
+          if [ -n "${{ secrets.SUBSTACK_EMAIL }}" ]; then
+            echo "SUBSTACK_EMAIL=${{ secrets.SUBSTACK_EMAIL }}" >> .env
+          fi
+          if [ -n "${{ secrets.SUBSTACK_PASSWORD }}" ]; then
+            echo "SUBSTACK_PASSWORD=${{ secrets.SUBSTACK_PASSWORD }}" >> .env
+          fi
 
       - name: Configure git identity
         run: |

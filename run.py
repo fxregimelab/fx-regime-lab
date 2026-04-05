@@ -9,7 +9,7 @@
 #   python run.py --only cot inr merge    # refresh COT + INR data, rebuild merge
 #   python run.py --skip cot inr          # skip slow network steps
 #
-# Step names: fx cot inr vol oi rr merge text macro ai html validate deploy
+# Step names: fx cot inr vol oi rr merge text macro ai substack html validate deploy
 
 import sys
 import os
@@ -61,6 +61,7 @@ STEPS = [
     ("text",    "morning_brief.py"),      # generate text brief → briefs/brief_YYYYMMDD.txt
     ("macro",   "macro_pipeline.py"),      # Phase 10 Stage 2: fetch economic calendar → data/macro_cal.json
     ("ai",      "ai_brief.py"),           # Phase 13: AI regime reads → data/ai_regime_read.json
+    ("substack", "scripts/substack_publish.py"),  # Create Substack draft from ai_article.json
     ("html",    "create_html_brief.py"),  # generate HTML brief → briefs/brief_YYYYMMDD.html
     ("validate", "validation_regime.py"), # Phase 2: out-of-sample validation (stub)
     ("deploy",  "deploy.py"),             # copy to index.html and push to GitHub
@@ -73,7 +74,7 @@ _STEP_NAMES = [name for name, _ in STEPS]
 # Steps that are non-blocking: pipeline continues even if they fail.
 # ai_brief.py has no ANTHROPIC_API_KEY on CI → always exits 0, but guard
 # here ensures a true failure (import error, crash) is still non-fatal.
-NON_BLOCKING_STEPS = {"ai", "macro", "validate"}  # macro: TE API; validate: Phase 2 stub
+NON_BLOCKING_STEPS = {"ai", "macro", "validate", "substack"}  # substack: optional draft publish
 
 
 def _run_step(name, script, python_exe):
