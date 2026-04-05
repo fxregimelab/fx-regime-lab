@@ -360,6 +360,13 @@ def main():
     print("  run create_dashboards.py for charts")
     print("=" * 62)
 
+    try:
+        from core.signal_write import sync_all_signals_from_master_csv
+
+        sync_all_signals_from_master_csv()
+    except Exception as e:
+        print(f"  WARN: Supabase signals sync after COT merge: {e}")
+
 
 if __name__ == "__main__":
     main()

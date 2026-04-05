@@ -44,12 +44,12 @@ body{background:#0a0e1a;color:#cccccc;font-family:'Inter',system-ui,sans-serif;f
   <span style="color:#555;font-size:10px">To</span>
   <input type="date" id="dt-to" value="2026-04-03">
   <div class="ctrl-sep"></div>
-  <button class="ctrl-btn period-btn" data-months="1">1M</button>
-  <button class="ctrl-btn period-btn" data-months="3">3M</button>
-  <button class="ctrl-btn period-btn" data-months="6">6M</button>
-  <button class="ctrl-btn period-btn" data-months="12">1Y</button>
-  <button class="ctrl-btn period-btn" data-months="24">2Y</button>
-  <button class="ctrl-btn period-btn" data-months="0">ALL</button>
+  <button type="button" class="ctrl-btn period-btn" data-months="1">1M</button>
+  <button type="button" class="ctrl-btn period-btn" data-months="3">3M</button>
+  <button type="button" class="ctrl-btn period-btn" data-months="6">6M</button>
+  <button type="button" class="ctrl-btn period-btn" data-months="12">1Y</button>
+  <button type="button" class="ctrl-btn period-btn" data-months="24">2Y</button>
+  <button type="button" class="ctrl-btn period-btn" data-months="0">ALL</button>
   <div class="ctrl-sep"></div>
   <select id="norm-mode" class="ctrl-btn" style="cursor:pointer">
     <option value="raw">Raw</option>
@@ -57,18 +57,18 @@ body{background:#0a0e1a;color:#cccccc;font-family:'Inter',system-ui,sans-serif;f
     <option value="zscore">Z-Score</option>
     <option value="idx100">Index 100</option>
   </select>
-  <button class="ctrl-btn" id="btn-reset">Reset</button>
+  <button type="button" class="ctrl-btn" id="btn-reset">Reset</button>
   <div class="ctrl-sep"></div>
   <span style="color:#444;font-size:9px;letter-spacing:1px;text-transform:uppercase">Presets</span>
-  <button class="ctrl-btn preset-btn" data-preset="carry" title="EUR/USD, USD/JPY + rate spreads">CARRY</button>
-  <button class="ctrl-btn preset-btn" data-preset="em" title="USD/INR, USD/JPY + EM correlations">EM CROSS</button>
-  <button class="ctrl-btn preset-btn" data-preset="rates" title="All rate spread series">RATES</button>
-  <button class="ctrl-btn preset-btn" data-preset="composite" title="Composite regime scores">SCORES</button>
-  <button class="ctrl-btn preset-btn" data-preset="riskoff" title="All 3 FX pairs + oil correlations">RISK-OFF</button>
-  <button class="ctrl-btn preset-btn" data-preset="commodity" title="Brent, Gold + oil correlations">COMMODITY</button>
+  <button type="button" class="ctrl-btn preset-btn" data-preset="carry" title="EUR/USD, USD/JPY + rate spreads">CARRY</button>
+  <button type="button" class="ctrl-btn preset-btn" data-preset="em" title="USD/INR, USD/JPY + EM correlations">EM CROSS</button>
+  <button type="button" class="ctrl-btn preset-btn" data-preset="rates" title="All rate spread series">RATES</button>
+  <button type="button" class="ctrl-btn preset-btn" data-preset="composite" title="Composite regime scores">SCORES</button>
+  <button type="button" class="ctrl-btn preset-btn" data-preset="riskoff" title="All 3 FX pairs + oil correlations">RISK-OFF</button>
+  <button type="button" class="ctrl-btn preset-btn" data-preset="commodity" title="Brent, Gold + oil correlations">COMMODITY</button>
   <div class="ctrl-sep"></div>
-  <button class="ctrl-btn" id="btn-csv" title="Export visible data as CSV">&#8595; CSV</button>
-  <button class="ctrl-btn" id="btn-sidebar">&#9664; Hide</button>
+  <button type="button" class="ctrl-btn" id="btn-csv" title="Export visible data as CSV">&#8595; CSV</button>
+  <button type="button" class="ctrl-btn" id="btn-sidebar">&#9664; Hide</button>
   <span id="ctrl-hint">scroll=zoom · drag=pan · click legend=toggle</span>
 </div>
 <div id="main">

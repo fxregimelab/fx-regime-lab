@@ -27,6 +27,7 @@ build/
 
 # Data & Output (generated, not needed in repo)
 data/
+site/data/*.csv
 runs/
 briefs/
 *.png

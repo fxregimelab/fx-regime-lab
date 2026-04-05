@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FX Regime Lab — Regime detection. Publicly proven.</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Work+Sans:ital,wght@0,100..900;1,100..900&amp;family=JetBrains+Mono:wght@100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#d9dad8",
+                        "on-secondary-container": "#00447f",
+                        "outline": "#747780",
+                        "primary-fixed": "#d7e2ff",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#ffb782",
+                        "outline-variant": "#c4c6d0",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#a5c8ff",
+                        "surface": "#f9faf8",
+                        "secondary-container": "#7db3fd",
+                        "surface-container": "#edeeec",
+                        "primary-container": "#1b3a6b",
+                        "on-tertiary-fixed": "#301400",
+                        "secondary-fixed": "#d4e3ff",
+                        "primary-fixed-dim": "#acc7ff",
+                        "on-error-container": "#93000a",
+                        "background": "#f9faf8",
+                        "tertiary-container": "#5e2e00",
+                        "error": "#ba1a1a",
+                        "surface-variant": "#e2e3e1",
+                        "tertiary": "#3e1c00",
+                        "surface-bright": "#f9faf8",
+                        "on-primary-fixed": "#001a40",
+                        "on-tertiary-fixed-variant": "#703800",
+                        "inverse-on-surface": "#f0f1ef",
+                        "inverse-primary": "#acc7ff",
+                        "on-primary-container": "#89a5dd",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f3f4f2",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#001c3a",
+                        "on-surface-variant": "#44474f",
+                        "tertiary-fixed": "#ffdcc5",
+                        "primary": "#002452",
+                        "on-secondary-fixed-variant": "#004785",
+                        "surface-container-highest": "#e2e3e1",
+                        "surface-container-high": "#e7e8e6",
+                        "inverse-surface": "#2e3130",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#191c1b",
+                        "on-tertiary": "#ffffff",
+                        "surface-tint": "#425e91",
+                        "on-tertiary-container": "#e6914c",
+                        "secondary": "#205fa4",
+                        "on-surface": "#191c1b",
+                        "on-primary-fixed-variant": "#294678"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Newsreader", "serif"],
+                        "body": ["Work Sans", "sans-serif"],
+                        "label": ["Work Sans", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Work Sans', sans-serif; background-color: #f9faf8; }
+        .font-serif { font-family: 'Newsreader', serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .canvas-bg {
+            background-image: radial-gradient(circle at 2px 2px, rgba(27, 58, 107, 0.05) 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+    </style>
+</head>
+<body class="text-on-surface antialiased">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full h-[68px] z-50 bg-[#F4F5F3]/95 backdrop-blur-md dark:bg-slate-900/95 flex justify-between items-center px-8 max-w-[1440px] left-1/2 -translate-x-1/2">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-[#1B3A6B] dark:text-white">FX Regime Lab</span>
+<div class="hidden md:flex gap-6 items-center">
+<a class="text-[13px] font-semibold border-b-2 border-[#1B3A6B] pb-1 text-[#1B3A6B]" href="#">Dashboard</a>
+<a class="text-[13px] font-medium tracking-tight text-gray-600 dark:text-gray-400 hover:text-[#1B3A6B] transition-colors duration-200" href="#">Brief</a>
+<a class="text-[13px] font-medium tracking-tight text-gray-600 dark:text-gray-400 hover:text-[#1B3A6B] transition-colors duration-200" href="#">Performance</a>
+<a class="text-[13px] font-medium tracking-tight text-gray-600 dark:text-gray-400 hover:text-[#1B3A6B] transition-colors duration-200" href="#">About</a>
+<a class="text-[13px] font-medium tracking-tight text-gray-600 dark:text-gray-400 hover:text-[#1B3A6B] transition-colors duration-200" href="#">Newsletter</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-[13px] font-medium text-[#1B3A6B] px-4 py-2 rounded-lg hover:bg-[#1B3A6B]/5 transition-colors">Sign In</button>
+</div>
+</nav>
+<main class="pt-[68px]">
+<!-- Section 1: Hero -->
+<section class="relative min-h-[870px] flex items-center px-8 max-w-[1440px] mx-auto overflow-hidden canvas-bg">
+<div class="grid md:grid-cols-10 gap-12 items-center w-full relative z-10">
+<!-- Left: Content -->
+<div class="md:col-span-6 space-y-8">
+<h1 class="text-[64px] font-serif font-medium leading-[1.1] tracking-tight text-primary">
+                        Regime detection.<br/><span class="italic">Publicly proven.</span>
+</h1>
+<p class="text-lg text-on-surface-variant max-w-xl font-body leading-relaxed">
+                        An institutional-grade research laboratory tracking structural FX regimes. Using rate differentials, CoT positioning, and volatility surfaces to isolate high-conviction market environments.
+                    </p>
+<div class="flex items-center gap-8">
+<a class="text-sm font-medium text-primary border-b-2 border-primary pb-1 hover:text-secondary transition-colors" href="#">Latest Research Brief</a>
+<a class="text-sm font-medium text-primary border-b-2 border-primary pb-1 hover:text-secondary transition-colors" href="#">Validation Track</a>
+</div>
+</div>
+<!-- Right: Contrast Island (EUR/USD Data) -->
+<div class="md:col-span-4">
+<div class="bg-[#0f1420] p-8 rounded-xl shadow-2xl relative">
+<div class="flex justify-between items-start mb-12">
+<div>
+<span class="text-xs font-mono uppercase tracking-widest text-[#d7e2ff]/60">Active Asset</span>
+<h3 class="text-2xl font-serif text-white mt-1">EUR / USD</h3>
+</div>
+<div class="bg-[#2563A8]/20 px-3 py-1 rounded text-[#d7e2ff] text-[10px] font-mono border border-[#2563A8]/30">EUR-DOMINATED</div>
+</div>
+<div class="space-y-8">
+<div>
+<div class="flex justify-between items-end mb-2">
+<span class="text-xs font-mono text-[#d7e2ff]/40 uppercase tracking-widest">Model Confidence</span>
+<span class="text-xl font-mono text-white">72%</span>
+</div>
+<div class="h-1 w-full bg-[#1b3a6b] rounded-full overflow-hidden">
+<div class="h-full bg-[#d7e2ff]" style="width: 72%"></div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-white/5 p-4 rounded border border-white/10">
+<span class="block text-[10px] font-mono text-[#d7e2ff]/40 uppercase mb-1">Regime</span>
+<span class="text-[#d7e2ff] font-serif text-lg italic">Trending Long</span>
+</div>
+<div class="bg-white/5 p-4 rounded border border-white/10">
+<span class="block text-[10px] font-mono text-[#d7e2ff]/40 uppercase mb-1">Rate Diff</span>
+<span class="text-[#d7e2ff] font-mono text-lg">▲ +47bp</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-white/5">
+<span class="text-[10px] font-mono text-[#d7e2ff]/40 uppercase">COT Percentile</span>
+<span class="text-[11px] font-mono text-white">72nd PCT</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Three Pairs -->
+<section class="py-24 px-8 max-w-[1440px] mx-auto bg-surface-container-low">
+<div class="grid md:grid-cols-3 gap-8">
+<!-- EUR/USD -->
+<div class="bg-surface-container-lowest p-8 rounded-none border-t-4 border-[#2563a8] transition-all hover:translate-y-[-4px]">
+<span class="text-[10px] font-mono text-outline uppercase tracking-widest">European / US Dollar</span>
+<h4 class="text-2xl font-serif text-primary mt-2 mb-6">EUR/USD</h4>
+<div class="flex items-center gap-2 mb-8">
+<span class="inline-block w-2 h-2 rounded-full bg-[#2563a8]"></span>
+<span class="text-xs font-mono font-medium text-primary uppercase">Trending Long</span>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center text-xs">
+<span class="text-outline uppercase">Confidence</span>
+<span class="font-mono text-primary">84%</span>
+</div>
+<div class="h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#2563a8]" style="width: 84%"></div>
+</div>
+</div>
+<ul class="mt-12 space-y-3">
+<li class="flex items-center gap-3 text-xs text-on-surface-variant font-body">
+<span class="material-symbols-outlined text-[14px] text-primary">check_circle</span> ECB Hawkish Pivot
+                        </li>
+<li class="flex items-center gap-3 text-xs text-on-surface-variant font-body">
+<span class="material-symbols-outlined text-[14px] text-primary">check_circle</span> Real Yield Spread +12bp
+                        </li>
+</ul>
+</div>
+<!-- USD/JPY -->
+<div class="bg-surface-container-lowest p-8 rounded-none border-t-4 border-[#b86b2a] transition-all hover:translate-y-[-4px]">
+<span class="text-[10px] font-mono text-outline uppercase tracking-widest">US Dollar / Japanese Yen</span>
+<h4 class="text-2xl font-serif text-primary mt-2 mb-6">USD/JPY</h4>
+<div class="flex items-center gap-2 mb-8">
+<span class="inline-block w-2 h-2 rounded-full bg-[#b86b2a]"></span>
+<span class="text-xs font-mono font-medium text-primary uppercase">Range Bound</span>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center text-xs">
+<span class="text-outline uppercase">Confidence</span>
+<span class="font-mono text-primary">42%</span>
+</div>
+<div class="h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#b86b2a]" style="width: 42%"></div>
+</div>
+</div>
+<ul class="mt-12 space-y-3">
+<li class="flex items-center gap-3 text-xs text-on-surface-variant font-body">
+<span class="material-symbols-outlined text-[14px] text-primary">radio_button_checked</span> BoJ Policy Inertia
+                        </li>
+<li class="flex items-center gap-3 text-xs text-on-surface-variant font-body">
+<span class="material-symbols-outlined text-[14px] text-primary">radio_button_checked</span> 148.50 Support Intact
+                        </li>
+</ul>
+</div>
+<!-- USD/INR -->
+<div class="bg-surface-container-lowest p-8 rounded-none border-t-4 border-[#a63030] transition-all hover:translate-y-[-4px]">
+<span class="text-[10px] font-mono text-outline uppercase tracking-widest">US Dollar / Indian Rupee</span>
+<h4 class="text-2xl font-serif text-primary mt-2 mb-6">USD/INR</h4>
+<div class="flex items-center gap-2 mb-8">
+<span class="inline-block w-2 h-2 rounded-full bg-[#a63030]"></span>
+<span class="text-xs font-mono font-medium text-primary uppercase">Structural Long</span>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center text-xs">
+<span class="text-outline uppercase">Confidence</span>
+<span class="font-mono text-primary">91%</span>
+</div>
+<div class="h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#a63030]" style="width: 91%"></div>
+</div>
+</div>
+<ul class="mt-12 space-y-3">
+<li class="flex items-center gap-3 text-xs text-on-surface-variant font-body">
+<span class="material-symbols-outlined text-[14px] text-primary">arrow_upward</span> Managed Depreciation
+                        </li>
+<li class="flex items-center gap-3 text-xs text-on-surface-variant font-body">
+<span class="material-symbols-outlined text-[14px] text-primary">arrow_upward</span> FPI Outflows Peak
+                        </li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Section 3: Methodology -->
+<section class="py-24 bg-[#EDEEF0]">
+<div class="max-w-[1440px] mx-auto px-8">
+<div class="mb-16 max-w-2xl">
+<h2 class="text-3xl font-serif text-primary mb-4">The Quant Archive Framework</h2>
+<p class="text-on-surface-variant leading-relaxed">Our regime detection is built on four non-correlated pillars of macro data, synthesized to eliminate market noise.</p>
+</div>
+<div class="grid md:grid-cols-4 gap-px bg-outline/10">
+<div class="bg-surface p-8 border-t-4 border-[#2563a8]">
+<span class="font-mono text-[10px] text-outline uppercase tracking-widest">Pillar 01</span>
+<h5 class="text-lg font-serif text-primary mt-4 mb-3">Rate Differentials</h5>
+<p class="text-xs text-on-surface-variant leading-relaxed">Tracking 2Y and 10Y real yield spreads across the G10 universe to find the path of least resistance.</p>
+</div>
+<div class="bg-surface p-8 border-t-4 border-[#b86b2a]">
+<span class="font-mono text-[10px] text-outline uppercase tracking-widest">Pillar 02</span>
+<h5 class="text-lg font-serif text-primary mt-4 mb-3">COT Positioning</h5>
+<p class="text-xs text-on-surface-variant leading-relaxed">Institutional sentiment analysis using CFTC reports to identify crowded trades and reversal triggers.</p>
+</div>
+<div class="bg-surface p-8 border-t-4 border-primary">
+<span class="font-mono text-[10px] text-outline uppercase tracking-widest">Pillar 03</span>
+<h5 class="text-lg font-serif text-primary mt-4 mb-3">Implied Volatility</h5>
+<p class="text-xs text-on-surface-variant leading-relaxed">Deconstructing the vol surface to differentiate between trending markets and mean-reverting ranges.</p>
+</div>
+<div class="bg-surface p-8 border-t-4 border-on-primary-container">
+<span class="font-mono text-[10px] text-outline uppercase tracking-widest">Pillar 04</span>
+<h5 class="text-lg font-serif text-primary mt-4 mb-3">Cross-Asset</h5>
+<p class="text-xs text-on-surface-variant leading-relaxed">Synthesizing commodity flows and equity risk premiums to validate the fundamental FX narrative.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 4: Daily Brief -->
+<section class="py-32 px-8 max-w-[1440px] mx-auto grid md:grid-cols-2 gap-24 items-center">
+<div class="order-2 md:order-1">
+<div class="bg-[#0f1420] p-12 rounded-none relative overflow-hidden">
+<div class="absolute top-0 right-0 p-8">
+<span class="text-[#d7e2ff]/20 font-serif italic text-8xl pointer-events-none select-none">"</span>
+</div>
+<div class="relative z-10">
+<div class="flex items-center gap-4 mb-8">
+<div class="w-12 h-[1px] bg-[#d7e2ff]/30"></div>
+<span class="font-mono text-[10px] text-[#d7e2ff]/60 uppercase tracking-[0.2em]">Institutional Brief Preview</span>
+</div>
+<h3 class="text-4xl font-serif text-white mb-6 leading-tight">EUR/USD: Structural <span class="italic text-[#d7e2ff]">Trending Long</span> confirmed.</h3>
+<p class="text-[#d7e2ff]/70 text-sm leading-relaxed mb-8 font-body">
+                            The ECB’s recent shift in tone, combined with the Fed’s dovish pivot at the March meeting, has created a definitive policy divergence. COT data indicates asset managers are still underweight EUR, suggesting further fuel for the current regime...
+                        </p>
+<div class="flex items-center gap-12">
+<div>
+<span class="block text-[10px] font-mono text-[#d7e2ff]/40 uppercase mb-1">Status</span>
+<span class="text-[#d7e2ff] font-mono text-xs">LIVE SIGNAL</span>
+</div>
+<div>
+<span class="block text-[10px] font-mono text-[#d7e2ff]/40 uppercase mb-1">Publication</span>
+<span class="text-[#d7e2ff] font-mono text-xs">DAILY 08:00 GMT</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="order-1 md:order-2 space-y-8">
+<h2 class="text-5xl font-serif text-primary leading-tight">Editorial precision for the institutional mind.</h2>
+<p class="text-lg text-on-surface-variant leading-relaxed font-body">
+                    Our Daily Brief is not news—it is a directive. We strip away the noise of financial media to provide a cold, calculated view of the currency markets based on regime-shift methodology.
+                </p>
+<div class="pt-4">
+<button class="px-8 py-3 border border-primary/20 text-primary font-medium hover:bg-primary/5 transition-all">Subscribe to Researcher Tier</button>
+</div>
+</div>
+</section>
+<!-- Section 5: Validation -->
+<section class="py-24 bg-surface-container">
+<div class="max-w-[1440px] mx-auto px-8">
+<div class="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
+<div class="max-w-xl">
+<h2 class="text-4xl font-serif text-primary mb-4">Verified Historical Accuracy</h2>
+<p class="text-on-surface-variant leading-relaxed">We maintain a public log of every regime call made since inception. Transparency is our only marketing tool.</p>
+</div>
+<div class="grid grid-cols-3 gap-12 text-center">
+<div>
+<span class="block text-4xl font-mono text-primary font-bold">68%</span>
+<span class="text-[10px] font-mono text-outline uppercase tracking-widest mt-2">Accuracy</span>
+</div>
+<div>
+<span class="block text-4xl font-mono text-primary font-bold">247</span>
+<span class="text-[10px] font-mono text-outline uppercase tracking-widest mt-2">Logged</span>
+</div>
+<div>
+<span class="block text-4xl font-mono text-primary font-bold">2026</span>
+<span class="text-[10px] font-mono text-outline uppercase tracking-widest mt-2">Tracking</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest overflow-hidden shadow-sm">
+<table class="w-full text-left border-collapse">
+<thead class="bg-primary text-white font-mono text-[10px] uppercase tracking-[0.1em]">
+<tr>
+<th class="px-8 py-4 font-normal">Date</th>
+<th class="px-8 py-4 font-normal">Pair</th>
+<th class="px-8 py-4 font-normal">Regime Call</th>
+<th class="px-8 py-4 font-normal">Model Conf.</th>
+<th class="px-8 py-4 font-normal text-right">Outcome</th>
+</tr>
+</thead>
+<tbody class="text-xs font-body text-on-surface-variant divide-y divide-surface-container">
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="px-8 py-5 font-mono">14 APR 2026</td>
+<td class="px-8 py-5 font-semibold text-primary">EUR/USD</td>
+<td class="px-8 py-5">Trending Long</td>
+<td class="px-8 py-5 font-mono">84%</td>
+<td class="px-8 py-5 text-right font-mono text-secondary">SUCCESSFUL</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="px-8 py-5 font-mono">12 APR 2026</td>
+<td class="px-8 py-5 font-semibold text-primary">USD/JPY</td>
+<td class="px-8 py-5">Range Bound</td>
+<td class="px-8 py-5 font-mono">42%</td>
+<td class="px-8 py-5 text-right font-mono text-secondary">SUCCESSFUL</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="px-8 py-5 font-mono">10 APR 2026</td>
+<td class="px-8 py-5 font-semibold text-primary">AUD/USD</td>
+<td class="px-8 py-5">Trending Short</td>
+<td class="px-8 py-5 font-mono">71%</td>
+<td class="px-8 py-5 text-right font-mono text-error">NEUTRAL</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="px-8 py-5 font-mono">08 APR 2026</td>
+<td class="px-8 py-5 font-semibold text-primary">GBP/USD</td>
+<td class="px-8 py-5">Structural Long</td>
+<td class="px-8 py-5 font-mono">92%</td>
+<td class="px-8 py-5 text-right font-mono text-secondary">SUCCESSFUL</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- Section 6: The Researcher -->
+<section class="py-32 px-8 max-w-[1440px] mx-auto">
+<div class="flex flex-col md:flex-row gap-16 items-start">
+<div class="w-[200px] h-[250px] shrink-0 bg-surface-container rounded-lg overflow-hidden grayscale">
+<img class="w-full h-full object-cover" data-alt="Professional portrait of a male quantitative analyst in a dark suit, minimalist grey studio background, institutional and serious mood" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRfgVzyDZRg_Axs4gkPrg96XJM8LszsAnWBpZXKT-uTVBXHq_Qxg8V1FGUriLREm8TmAWv0xg-NcByM717oq5qgYRrg6uwe1v9buTcxkP10IOTfoCv1QIFf4vQdCBT1NDODJONSZU_MtM3eUrCLslQ2GIlmEn0Kz4HCRScDk3EDJf0X_M3SLJeGFfU-kZewGzJM8vg58ci-ZmWodv-Y6HJ4ZQT_UY1JTDSzRTJhpc7hcZKd3GqdUnJlGGuI2QN41L1E-t4S_8Nu5c"/>
+</div>
+<div class="max-w-2xl">
+<span class="font-mono text-[10px] text-outline uppercase tracking-widest block mb-4">Lead Investigator</span>
+<h2 class="text-4xl font-serif text-primary mb-6">Shreyash Sakhare</h2>
+<div class="space-y-6 text-on-surface-variant font-body leading-relaxed">
+<p>With a background in quantitative finance and a specialization in macro-economic regime modeling, Shreyash founded FX Regime Lab to bridge the gap between academic research and actionable institutional insights.</p>
+<p>His work focuses on the intersection of central bank policy divergence and capital flow cycles. He is a frequent contributor to major financial research portals and maintains a strict public tracking record of all market hypotheses.</p>
+<div class="pt-4 flex gap-6">
+<a class="text-primary hover:text-secondary" href="#"><span class="material-symbols-outlined">link</span></a>
+<a class="text-primary hover:text-secondary" href="#"><span class="material-symbols-outlined">alternate_email</span></a>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Section 7: Footer -->
+<footer class="bg-[#111827] dark:bg-black py-16">
+<div class="max-w-[1440px] mx-auto px-8 flex flex-col md:flex-row justify-between items-start gap-12">
+<div class="space-y-6">
+<span class="text-lg font-serif text-white italic">FX Regime Lab</span>
+<p class="font-sans text-xs uppercase tracking-widest text-gray-400 max-w-xs">
+                    Institutional Research Division. Specialized in structural regime detection.
+                </p>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-12">
+<div class="flex flex-col gap-3">
+<span class="text-[10px] font-mono text-gray-600 uppercase mb-2">Platform</span>
+<a class="font-sans text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors" href="#">Dashboard</a>
+<a class="font-sans text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors" href="#">Brief</a>
+</div>
+<div class="flex flex-col gap-3">
+<span class="text-[10px] font-mono text-gray-600 uppercase mb-2">Legal</span>
+<a class="font-sans text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors" href="#">Terms of Service</a>
+<a class="font-sans text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors" href="#">Privacy Policy</a>
+<a class="font-sans text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors" href="#">Regulatory Disclosure</a>
+</div>
+<div class="flex flex-col gap-3">
+<span class="text-[10px] font-mono text-gray-600 uppercase mb-2">Support</span>
+<a class="font-sans text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors" href="#">Contact Us</a>
+</div>
+</div>
+</div>
+<div class="max-w-[1440px] mx-auto px-8 mt-16 pt-8 border-t border-white/5">
+<p class="font-sans text-[10px] uppercase tracking-[0.2em] text-gray-500">
+                © 2024 FX Regime Lab. All rights reserved. Institutional Research Division.
+            </p>
+</div>
+</footer>
+</body></html>

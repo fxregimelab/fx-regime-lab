@@ -316,6 +316,17 @@ Session deliverable must be stated explicitly before any code is written:
 
 ---
 
+## Browser storage keys (frontend)
+
+Documented keys for the public site and terminal (do not rename without updating this list):
+
+- `fxrl_theme`: **sessionStorage only** (tab-scoped) — not localStorage. Each new tab starts on the public light theme; only the current tab remembers terminal on refresh.
+- `fxrl_chartbuilder_theme`: localStorage (`chart-builder.js` — dark/light export theme preference).
+- `fxrl_workspace_markers`, `fxrl_workspace_reflines`: localStorage (`workspace.js`).
+- `fxrl_quickcharts`: localStorage (`chart-builder.js` — user quick-chart presets).
+
+---
+
 ## EXTENSION OF STRATEGY CHATS
 
 This file and the project it governs are an extension of two ongoing strategic conversations:

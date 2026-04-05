@@ -8,7 +8,18 @@ import os
 from datetime import datetime, timezone
 from typing import Any, List, Optional
 
-from core.paths import PIPELINE_STATUS_JSON
+from core.paths import PIPELINE_STATUS_JSON, SUPABASE_SYNC_SIDECAR
+
+
+def _read_supabase_sidecar() -> dict[str, Any]:
+    if not os.path.isfile(SUPABASE_SYNC_SIDECAR):
+        return {}
+    try:
+        with open(SUPABASE_SYNC_SIDECAR, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
 
 
 def write_pipeline_status(
@@ -26,6 +37,11 @@ def write_pipeline_status(
     }
     if error_message:
         payload["error_message"] = error_message[:500]
+
+    sb = _read_supabase_sidecar()
+    payload["supabase_write_status"] = sb.get("supabase_write_status", "skipped")
+    payload["supabase_rows_written"] = int(sb.get("supabase_rows_written", 0))
+    payload["last_supabase_write"] = sb.get("last_supabase_write")
 
     os.makedirs(os.path.dirname(PIPELINE_STATUS_JSON), exist_ok=True)
     tmp = PIPELINE_STATUS_JSON + ".tmp"

@@ -1,6 +1,12 @@
 /**
  * Minimal Worker + static assets: enables Cloudflare dashboard Variables/Secrets
  * (asset-only Workers cannot have env vars). Serves /assets/supabase-env.js from env.
+ *
+ * REQUIRED Worker env vars (set in Cloudflare dashboard → Workers → Settings → Variables):
+ *   SUPABASE_URL — project URL (https://xxx.supabase.co)
+ *   SUPABASE_ANON_KEY — public anon key (RLS enforced; browser reads only)
+ *
+ * If either is empty, terminal falls back to local CSV under /data/ when published.
  */
 export default {
   async fetch(request, env, ctx) {

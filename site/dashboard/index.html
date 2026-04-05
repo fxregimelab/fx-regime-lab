@@ -10,13 +10,14 @@
   <link rel="stylesheet" href="/assets/site.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
-<body>
+<body class="theme-light">
   <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
   <div class="v2-wrap">
     <header class="v2-nav" data-nav-root>
       <a class="v2-nav__brand" href="/">FX Regime Lab</a>
       <ul class="v2-nav__links">
         <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
+        <li><a href="/terminal/" data-path="/terminal/">Terminal</a></li>
         <li><a href="/brief/" data-path="/brief">Brief</a></li>
         <li><a href="/performance/" data-path="/performance">Performance</a></li>
         <li><a href="/about/" data-path="/about">About</a></li>
@@ -26,6 +27,7 @@
     </header>
     <div class="v2-nav__overlay" data-nav-overlay>
       <a href="/dashboard/">Dashboard</a>
+      <a href="/terminal/">Terminal</a>
       <a href="/brief/">Brief</a>
       <a href="/performance/">Performance</a>
       <a href="/about/">About</a>
@@ -40,7 +42,7 @@
 
     <section class="section-v2">
       <div class="grid-pairs">
-        <article class="card-light card-light--eur">
+        <article class="card-light card-light--eur dash-pair-card">
           <div class="pair-card__head">
             <span class="pair-card__name">EUR/USD</span>
             <span class="badge-regime" style="background:rgba(37,99,168,.1);border-color:rgba(37,99,168,.25);color:var(--pair-eur)">TRENDING LONG</span>
@@ -52,13 +54,13 @@
               <span class="font-mono" style="font-weight:600">72%</span>
             </div>
           </div>
-          <div class="hero-card-dark__row" style="color:var(--text)"><span>Rate differential</span><span class="font-mono">+47 bp</span></div>
-          <div class="hero-card-dark__row" style="color:var(--text)"><span>COT percentile</span><span class="font-mono">72nd</span></div>
-          <div class="hero-card-dark__row" style="color:var(--text)"><span>Realized vol</span><span class="font-mono">8.4%</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Rate differential</span><span class="font-mono">+47 bp</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>COT percentile</span><span class="font-mono">72nd</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Realized vol</span><span class="font-mono">8.4%</span></div>
           <p class="label-caps" style="margin-top:16px;color:var(--text-muted)">Change from yesterday</p>
           <p class="font-mono" style="margin:0;color:var(--positive)">▲ Strengthening</p>
         </article>
-        <article class="card-light card-light--jpy">
+        <article class="card-light card-light--jpy dash-pair-card">
           <div class="pair-card__head">
             <span class="pair-card__name">USD/JPY</span>
             <span class="badge-regime" style="background:rgba(184,107,42,.1);border-color:rgba(184,107,42,.25);color:var(--pair-jpy)">NEUTRAL</span>
@@ -70,13 +72,13 @@
               <span class="font-mono" style="font-weight:600">58%</span>
             </div>
           </div>
-          <div class="hero-card-dark__row" style="color:var(--text)"><span>Rate differential</span><span class="font-mono">—</span></div>
-          <div class="hero-card-dark__row" style="color:var(--text)"><span>COT percentile</span><span class="font-mono">—</span></div>
-          <div class="hero-card-dark__row" style="color:var(--text)"><span>Realized vol</span><span class="font-mono">—</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Rate differential</span><span class="font-mono">—</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>COT percentile</span><span class="font-mono">—</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Realized vol</span><span class="font-mono">—</span></div>
           <p class="label-caps" style="margin-top:16px;color:var(--text-muted)">Change from yesterday</p>
           <p class="font-mono" style="margin:0;color:var(--text-muted)">Flat</p>
         </article>
-        <article class="card-light card-light--inr">
+        <article class="card-light card-light--inr dash-pair-card">
           <div class="pair-card__head">
             <span class="pair-card__name">USD/INR</span>
             <span class="badge-regime" style="background:rgba(166,48,48,.1);border-color:rgba(166,48,48,.25);color:var(--pair-inr)">DIRECTIONAL ONLY</span>
@@ -88,10 +90,20 @@
               <span class="font-mono" style="font-weight:600">—</span>
             </div>
           </div>
-          <div class="hero-card-dark__row" style="color:var(--text)"><span>Spot / vol</span><span class="font-mono">—</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Spot / vol</span><span class="font-mono">—</span></div>
           <p class="label-caps" style="margin-top:16px;color:var(--text-muted)">Updated</p>
           <p class="font-mono" style="margin:0" id="dash-inr-ts">—</p>
         </article>
+      </div>
+      <div class="dash-terminal-cta">
+        <div>
+          <p class="dash-terminal-cta__label">Research terminal</p>
+          <h2 class="dash-terminal-cta__title">Full signal depth. Live.</h2>
+          <p class="dash-terminal-cta__body">Rate differentials, COT positioning, vol &amp; correlation, cross-asset signals — all pairs, expandable, with live charts.</p>
+        </div>
+        <div class="dash-terminal-cta__btn-wrap">
+          <a class="dash-terminal-cta__btn" href="/terminal/">Open Terminal →</a>
+        </div>
       </div>
     </section>
 
@@ -146,12 +158,12 @@
     </div>
 
     <section class="section-v2" id="validation">
-      <h2 class="section-v2__title">Validation log</h2>
-      <p class="section-v2__sub">Last 30 predictions (sample rows — full log from Supabase <span class="font-mono">validation_log</span> in Phase 2).</p>
+      <h2 class="section-v2__title" data-reveal="headline">Validation log</h2>
+      <p class="section-v2__sub" data-reveal="sub">Last 30 predictions (sample rows — full log from Supabase <span class="font-mono">validation_log</span> in Phase 2).</p>
       <div style="overflow-x:auto">
         <table class="table-v2">
           <thead><tr><th>Date</th><th>Pair</th><th>Predicted</th><th>Confidence</th><th>Outcome</th></tr></thead>
-          <tbody>
+          <tbody data-reveal-stagger="rows">
             <tr class="row-ok"><td class="cell-date">2026-04-03</td><td class="cell-pair-eur">EUR/USD</td><td>Long</td><td class="cell-mono">72%</td><td>✓</td></tr>
             <tr class="row-ok"><td class="cell-date">2026-04-03</td><td class="cell-pair-jpy">USD/JPY</td><td>Neutral</td><td class="cell-mono">58%</td><td>✓</td></tr>
             <tr class="row-bad"><td class="cell-date">2026-04-02</td><td class="cell-pair-inr">USD/INR</td><td>Long</td><td class="cell-mono">55%</td><td>✗</td></tr>
@@ -164,7 +176,7 @@
       <div class="v2-footer__grid">
         <div><strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong><p style="font-size:12px;margin:8px 0 0">Live quantamental macro research</p></div>
         <nav class="v2-footer__nav">
-          <a href="/">Home</a><a href="/brief/">Brief</a><a href="/newsletter">Newsletter</a>
+          <a href="/">Home</a><a href="/terminal/">Terminal</a><a href="/brief/">Brief</a><a href="/newsletter">Newsletter</a>
         </nav>
         <div><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a></div>
       </div>
@@ -172,8 +184,10 @@
     </footer>
   </div>
 
+  <script src="/assets/theme-switch.js"></script>
   <script src="/assets/canvas-bg.js"></script>
   <script src="/assets/nav.js"></script>
+  <script src="/assets/section-reveal.js"></script>
   <script src="/assets/site.js"></script>
   <script>
     document.querySelectorAll('.dash-tabs button').forEach(function (btn) {
@@ -224,6 +238,38 @@
       else if (el) el.textContent = 'No successful run recorded yet';
       var ir = document.getElementById('dash-inr-ts');
       if (ir && st && st.last_run_utc) ir.textContent = window.FXRegimeSite.formatTs(st.last_run_utc);
+    })();
+  </script>
+  <script>
+    (function () {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var rows = document.querySelectorAll('.grid-pairs .dash-pair-card .dash-data-row');
+      if (!rows.length) return;
+      var idx = 0;
+      var dashPulseTimer = null;
+      function pulseOnce() {
+        rows.forEach(function (r) {
+          r.classList.remove('dash-pulse-active');
+        });
+        var row = rows[idx % rows.length];
+        row.classList.add('dash-pulse-active');
+        setTimeout(function () {
+          row.classList.remove('dash-pulse-active');
+        }, 800);
+        idx += 1;
+      }
+      setTimeout(pulseOnce, 1200);
+      dashPulseTimer = setInterval(pulseOnce, 10000);
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+          if (dashPulseTimer) {
+            clearInterval(dashPulseTimer);
+            dashPulseTimer = null;
+          }
+        } else if (!dashPulseTimer) {
+          dashPulseTimer = setInterval(pulseOnce, 10000);
+        }
+      });
     })();
   </script>
 </body>

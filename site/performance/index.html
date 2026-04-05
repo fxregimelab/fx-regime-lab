@@ -6,16 +6,262 @@
   <title>Performance — FX Regime Lab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/site.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    .perf-v3 {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 48px 24px 100px;
+    }
+    .perf-v3__label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: center;
+      margin: 0 0 16px;
+    }
+    .perf-v3__headline {
+      font-family: var(--font-display);
+      font-size: 52px;
+      font-weight: 700;
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+      text-align: center;
+      margin: 0 0 24px;
+      color: var(--text);
+    }
+    @media (max-width: 640px) {
+      .perf-v3__headline {
+        font-size: clamp(2rem, 9vw, 2.75rem);
+      }
+    }
+    .perf-v3__sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--text-sec);
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto 32px;
+    }
+    .perf-v3__stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px 28px;
+      margin-bottom: 28px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-sec);
+      text-align: center;
+    }
+    .perf-v3__stats span {
+      white-space: nowrap;
+    }
+    .perf-v3__cta {
+      display: block;
+      width: fit-content;
+      margin: 0 auto 40px;
+      padding: 12px 24px;
+      border: 1px solid #e2e4e8;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: border-color 0.2s ease, color 0.2s ease;
+    }
+    .perf-v3__cta:hover {
+      border-color: #1b3a6b;
+      color: #1b3a6b;
+    }
+    .perf-v3__metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    @media (max-width: 600px) {
+      .perf-v3__metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+    .perf-v3__metric-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin: 0 0 8px;
+    }
+    .perf-v3__metric-val {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      animation: perfV3MetricPulse 2s ease-in-out infinite;
+    }
+    .perf-v3__metric:nth-child(1) .perf-v3__metric-val {
+      animation-delay: 0s;
+    }
+    .perf-v3__metric:nth-child(2) .perf-v3__metric-val {
+      animation-delay: 0.2s;
+    }
+    .perf-v3__metric:nth-child(3) .perf-v3__metric-val {
+      animation-delay: 0.4s;
+    }
+    @keyframes perfV3MetricPulse {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.3;
+      }
+    }
+    .perf-v3__chart-shell {
+      position: relative;
+      height: 280px;
+      margin-bottom: 40px;
+    }
+    .perf-v3__chart-shell #perf-equity-chart {
+      display: block;
+      width: 100%;
+      height: 280px;
+      box-sizing: border-box;
+    }
+    .perf-v3__dot-layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+    .perf-v3__frontier-dot {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      margin: -4px 0 0 -4px;
+      border-radius: 50%;
+      background: rgba(27, 58, 107, 0.6);
+      box-shadow: 0 0 14px rgba(27, 58, 107, 0.45);
+      animation: perfV3DotPulse 2.2s ease-in-out infinite;
+      opacity: 0;
+    }
+    .perf-v3__frontier-dot.is-on {
+      opacity: 1;
+    }
+    @keyframes perfV3DotPulse {
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 0.85;
+      }
+      50% {
+        transform: scale(1.15);
+        opacity: 1;
+      }
+    }
+    .perf-v3__validating {
+      position: absolute;
+      right: 12px;
+      bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .perf-v3__validating-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: perfV3GreenPulse 1.6s ease-in-out infinite;
+    }
+    @keyframes perfV3GreenPulse {
+      0%,
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+      }
+      50% {
+        opacity: 0.65;
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+    }
+    .perf-v3__expect {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 640px) {
+      .perf-v3__expect {
+        grid-template-columns: 1fr;
+      }
+    }
+    .perf-v3__expect-card {
+      background: #ffffff;
+      border: 1px solid #e2e4e8;
+      border-top: 3px solid #1b3a6b;
+      border-radius: 8px;
+      padding: 22px 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .perf-v3__expect-card h3 {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin: 0 0 10px;
+    }
+    .perf-v3__expect-card p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-sec);
+    }
+    html.perf-equity-paused .perf-v3__frontier-dot,
+    html.perf-equity-paused .perf-v3__validating-dot {
+      animation-play-state: paused;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .perf-v3__metric-val,
+      .perf-v3__frontier-dot,
+      .perf-v3__validating-dot {
+        animation: none;
+      }
+      .perf-v3__metric-val {
+        opacity: 1;
+      }
+    }
+  </style>
 </head>
-<body>
+<body class="theme-light">
   <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
   <div class="v2-wrap">
     <header class="v2-nav" data-nav-root>
       <a class="v2-nav__brand" href="/">FX Regime Lab</a>
       <ul class="v2-nav__links">
         <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
+        <li><a href="/terminal/" data-path="/terminal/">Terminal</a></li>
         <li><a href="/brief/" data-path="/brief">Brief</a></li>
         <li><a href="/performance/" data-path="/performance">Performance</a></li>
         <li><a href="/about/" data-path="/about">About</a></li>
@@ -25,30 +271,260 @@
     </header>
     <div class="v2-nav__overlay" data-nav-overlay>
       <a href="/dashboard/">Dashboard</a>
+      <a href="/terminal/">Terminal</a>
       <a href="/brief/">Brief</a>
       <a href="/performance/">Performance</a>
       <a href="/about/">About</a>
       <a href="/newsletter">Newsletter</a>
     </div>
 
-    <main class="page-centered">
-      <p class="label-caps" style="color:var(--text-muted)">Performance track record</p>
-      <h1>Paper trading begins when the signal stack is fully validated.</h1>
-      <p>Every position will be timestamped at entry — before the outcome is known. No backdating. No selection. The record will be what it is.</p>
-      <p><strong style="color:var(--text)">Strategy:</strong> Regime-conditional entries across EUR/USD and USD/JPY.<br /><strong style="color:var(--text)">Launch target:</strong> Q3 2026.</p>
-      <a class="ghost-btn" href="/newsletter">Subscribe for launch update →</a>
+    <main class="perf-v3">
+      <p class="perf-v3__label" data-reveal="headline">Performance track record</p>
+      <h1 class="perf-v3__headline" data-reveal="headline">The record starts when the signal is ready.</h1>
+      <p class="perf-v3__sub" data-reveal="sub">
+        Paper trading begins once the full signal stack is validated out-of-sample. Every position will be logged at entry — before the outcome is known. No selection. No backdating. The record will be what it is.
+      </p>
+      <div class="perf-v3__stats" data-reveal="sub">
+        <span>Target launch Q3 2026</span>
+        <span>Strategy EUR/USD + USD/JPY</span>
+        <span>Transparency 100%</span>
+      </div>
+      <a class="perf-v3__cta" href="/newsletter" data-reveal="sub">Notify me when live →</a>
+
+      <div class="perf-v3__metrics" data-reveal-stagger="cards">
+        <div class="perf-v3__metric">
+          <p class="perf-v3__metric-label">Total trades</p>
+          <p class="perf-v3__metric-val" aria-hidden="true">—</p>
+        </div>
+        <div class="perf-v3__metric">
+          <p class="perf-v3__metric-label">Win rate</p>
+          <p class="perf-v3__metric-val" aria-hidden="true">—</p>
+        </div>
+        <div class="perf-v3__metric">
+          <p class="perf-v3__metric-label">Avg R-factor</p>
+          <p class="perf-v3__metric-val" aria-hidden="true">—</p>
+        </div>
+      </div>
+
+      <div class="perf-v3__chart-shell" data-reveal="sub">
+        <canvas id="perf-equity-chart" height="280" aria-hidden="true"></canvas>
+        <div class="perf-v3__dot-layer">
+          <div class="perf-v3__frontier-dot" id="perf-frontier-dot"></div>
+          <div class="perf-v3__validating">
+            <span class="perf-v3__validating-dot" aria-hidden="true"></span>
+            <span>System validating</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="perf-v3__expect" data-reveal-stagger="cards">
+        <article class="perf-v3__expect-card">
+          <h3>Entry logging</h3>
+          <p>Each paper trade logged at entry with timestamp, pair, regime context, and conviction — before any outcome is known.</p>
+        </article>
+        <article class="perf-v3__expect-card">
+          <h3>Position sizing</h3>
+          <p>Sizing rules tied to signal stack confidence and pair-specific risk flags; no discretionary size drift without a documented rule change.</p>
+        </article>
+        <article class="perf-v3__expect-card">
+          <h3>Exit rules</h3>
+          <p>Stops, targets, and invalidation criteria defined up front and held constant through the validation window.</p>
+        </article>
+        <article class="perf-v3__expect-card">
+          <h3>Public audit</h3>
+          <p>Summary performance reconstructed from the same public logs readers can inspect — no private adjustments after the fact.</p>
+        </article>
+      </div>
     </main>
 
     <footer class="v2-footer">
       <div class="v2-footer__grid">
         <div><strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong></div>
-        <nav class="v2-footer__nav"><a href="/">Home</a><a href="/brief/">Brief</a></nav>
+        <nav class="v2-footer__nav"><a href="/">Home</a><a href="/terminal/">Terminal</a><a href="/brief/">Brief</a></nav>
         <div><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a></div>
       </div>
       <p class="v2-footer__rule">© 2026 FX Regime Lab</p>
     </footer>
   </div>
+
+  <script src="/assets/theme-switch.js"></script>
   <script src="/assets/canvas-bg.js"></script>
   <script src="/assets/nav.js"></script>
+  <script src="/assets/section-reveal.js"></script>
+  <script>
+    (function () {
+      var Chart = window.Chart;
+      var canvas = document.getElementById('perf-equity-chart');
+      var dot = document.getElementById('perf-frontier-dot');
+      if (!Chart || !canvas) return;
+
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function equitySeries(len) {
+        var d = [];
+        for (var i = 0; i < len; i++) {
+          var t = i / Math.max(1, len - 1);
+          var trend = 100 + t * 24;
+          var cycle = Math.sin(i * 0.38) * 3.2 + Math.cos(i * 0.14) * 2.1;
+          var dd = 0;
+          if (i >= 10 && i <= 19) {
+            dd = -7.2 * Math.pow(Math.sin(((i - 10) / 9) * Math.PI), 1.15);
+          }
+          if (i >= 30 && i <= 35) {
+            dd -= 3.8 * Math.sin(((i - 30) / 5) * Math.PI);
+          }
+          if (i >= 42 && i <= 45) {
+            dd -= 1.9 * Math.sin(((i - 42) / 3) * Math.PI);
+          }
+          d.push(trend + cycle + dd);
+        }
+        return d;
+      }
+
+      var data = equitySeries(52);
+      var labels = data.map(function (_, i) {
+        return String(i);
+      });
+
+      var prog = { v: reduce ? 1 : 0 };
+      var phaseStart = performance.now();
+      var curveInterval = null;
+
+      var clipPlugin = {
+        id: 'perfEquityClip',
+        beforeDatasetsDraw: function (chart) {
+          var p = prog.v;
+          var ctx = chart.ctx;
+          var a = chart.chartArea;
+          var w = Math.max(0, a.width * p);
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(a.left, a.top, w, a.height);
+          ctx.clip();
+        },
+        afterDatasetsDraw: function (chart) {
+          chart.ctx.restore();
+        },
+      };
+
+      var chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              data: data,
+              borderColor: 'rgba(27, 58, 107, 0.25)',
+              borderWidth: 2,
+              tension: 0.35,
+              fill: true,
+              backgroundColor: 'rgba(27, 58, 107, 0.05)',
+              pointRadius: 0,
+              pointHoverRadius: 0,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          interaction: { mode: 'nearest', intersect: false },
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: {
+            x: { display: false, grid: { display: false } },
+            y: { display: false, grid: { display: false } },
+          },
+        },
+        plugins: [clipPlugin],
+      });
+
+      function syncDot() {
+        if (!dot) return;
+        var meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data || !meta.data.length) return;
+        var n = data.length;
+        var p = prog.v;
+        var idx = Math.max(0, Math.min(n - 1, Math.round(p * (n - 1))));
+        var pt = meta.data[idx];
+        if (!pt) return;
+        var shell = canvas.parentElement;
+        if (!shell) return;
+        var x = canvas.offsetLeft + pt.x;
+        var y = canvas.offsetTop + pt.y;
+        dot.style.left = x + 'px';
+        dot.style.top = y + 'px';
+        dot.classList.toggle('is-on', p > 0.02);
+      }
+
+      function tickCurve() {
+        var now = performance.now();
+        if (reduce) {
+          prog.v = 1;
+          chart.update('none');
+          syncDot();
+          return;
+        }
+        var elapsed = (now - phaseStart) / 1000;
+        if (elapsed < 4) {
+          prog.v = elapsed / 4;
+        } else if (elapsed < 5) {
+          prog.v = 1;
+        } else {
+          phaseStart = now;
+          prog.v = 0;
+        }
+        chart.update('none');
+        syncDot();
+      }
+
+      function startCurveLoop() {
+        stopCurveLoop();
+        if (reduce) {
+          tickCurve();
+          return;
+        }
+        curveInterval = setInterval(tickCurve, 33);
+      }
+
+      function stopCurveLoop() {
+        if (curveInterval != null) {
+          clearInterval(curveInterval);
+          curveInterval = null;
+        }
+      }
+
+      function pausePerfEquityMotion() {
+        document.documentElement.classList.add('perf-equity-paused');
+      }
+
+      function resumePerfEquityMotion() {
+        document.documentElement.classList.remove('perf-equity-paused');
+      }
+
+      chart.update('none');
+      syncDot();
+      window.addEventListener('resize', function () {
+        chart.resize();
+        syncDot();
+      });
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+          stopCurveLoop();
+          pausePerfEquityMotion();
+        } else {
+          resumePerfEquityMotion();
+          startCurveLoop();
+        }
+      });
+
+      if (!reduce) {
+        resumePerfEquityMotion();
+        startCurveLoop();
+      } else {
+        tickCurve();
+      }
+    })();
+  </script>
 </body>
 </html>

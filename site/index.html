@@ -8,14 +8,214 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/site.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    .hero-v2--v3 {
+      display: flex;
+      flex-direction: column;
+      min-height: calc(100vh - var(--nav-h));
+      position: relative;
+      padding: 0 0 24px;
+      max-width: none;
+      margin: 0;
+    }
+    .hero-v3-maincols {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 48px;
+      align-items: center;
+      flex: 1;
+      width: 100%;
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 48px 24px 0;
+    }
+    @media (min-width: 960px) {
+      .hero-v3-maincols {
+        grid-template-columns: 1.1fr 0.9fr;
+      }
+    }
+    .hero-v2--v3 .hero-v2__col-left,
+    .hero-v2--v3 .hero-v2__col-right {
+      margin: 0;
+      padding: 0;
+      max-width: none;
+    }
+    .hero-v2--v3 .hero-v2__col-right {
+      animation: none;
+    }
+    .hero-v3-accuracy {
+      margin-bottom: 14px;
+    }
+    .hero-v3-accuracy__track {
+      width: 120px;
+      height: 3px;
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    .hero-v3-accuracy__fill {
+      height: 100%;
+      width: 0%;
+      background: #2d9e6b;
+      border-radius: 1px;
+    }
+    .hero-v3-accuracy__lbl {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text);
+      margin: 8px 0 0;
+      line-height: 1.3;
+    }
+    .hero-v3-scrollcue {
+      text-align: center;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 11px;
+      color: #9ca3af;
+      margin: 20px auto 12px;
+      transition: opacity 0.35s ease;
+    }
+    .hero-v3-scrollcue.is-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .hero-v3-scrollcue__arrow {
+      display: inline-block;
+      margin-right: 4px;
+      animation: heroV3ScrollBounce 2s ease-in-out infinite;
+    }
+    @keyframes heroV3ScrollBounce {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(6px);
+      }
+    }
+    .hero-v3-ticker {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      overflow: hidden;
+      padding: 8px 0;
+      background: rgba(27, 58, 107, 0.06);
+      border-top: 1px solid rgba(27, 58, 107, 0.15);
+      border-bottom: 1px solid rgba(27, 58, 107, 0.15);
+    }
+    .hero-v3-ticker__inner {
+      display: inline-flex;
+      width: max-content;
+      animation: heroV3Ticker 40s linear infinite;
+    }
+    @keyframes heroV3Ticker {
+      from {
+        transform: translateX(0);
+      }
+      to {
+        transform: translateX(-50%);
+      }
+    }
+    .hero-v3-ticker__segment {
+      flex-shrink: 0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: rgba(27, 58, 107, 0.7);
+      padding: 0 48px 0 0;
+      white-space: nowrap;
+    }
+    #hero-card-eur {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+    #hero-card-eur.hero-v3-card-ready {
+      opacity: 1;
+      transform: translateX(0);
+      transition: opacity 700ms ease-out, transform 700ms ease-out;
+    }
+    .hero-v3-confbar {
+      margin-bottom: 14px;
+    }
+    .hero-v3-confbar__track {
+      position: relative;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .hero-v3-confbar__fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 2px;
+      background: var(--pair-eur);
+    }
+    .hero-v3-confbar__shimmer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 45%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+      pointer-events: none;
+      animation: heroV3Shimmer 12s ease-in-out infinite;
+    }
+    @keyframes heroV3Shimmer {
+      0%,
+      92% {
+        transform: translateX(-120%);
+        opacity: 0;
+      }
+      92.5% {
+        opacity: 1;
+      }
+      97.5% {
+        transform: translateX(380%);
+        opacity: 0;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+    .hero-v2--v3 .pulse-dot {
+      animation: heroV3PulseDot 3s ease-in-out infinite;
+    }
+    @keyframes heroV3PulseDot {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.3;
+      }
+    }
+    html.hero-site-anim-paused .hero-v3-ticker__inner,
+    html.hero-site-anim-paused .hero-v2--v3 .pulse-dot,
+    html.hero-site-anim-paused .hero-v3-confbar__shimmer {
+      animation-play-state: paused !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-v3-ticker__inner {
+        animation: none;
+        transform: translateX(0);
+      }
+      .hero-v3-scrollcue__arrow {
+        animation: none;
+      }
+      .hero-v3-confbar__shimmer {
+        animation: none;
+        opacity: 0;
+      }
+    }
+  </style>
 </head>
-<body>
+<body class="theme-light">
   <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
   <div class="v2-wrap">
     <header class="v2-nav" data-nav-root>
       <a class="v2-nav__brand" href="/">FX Regime Lab</a>
       <ul class="v2-nav__links">
         <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
+        <li><a href="/terminal/" data-path="/terminal/">Terminal</a></li>
         <li><a href="/brief/" data-path="/brief">Brief</a></li>
         <li><a href="/performance/" data-path="/performance">Performance</a></li>
         <li><a href="/about/" data-path="/about">About</a></li>
@@ -27,6 +227,7 @@
     </header>
     <div class="v2-nav__overlay" data-nav-overlay>
       <a href="/dashboard/">Dashboard</a>
+      <a href="/terminal/">Terminal</a>
       <a href="/brief/">Brief</a>
       <a href="/performance/">Performance</a>
       <a href="/about/">About</a>
@@ -34,45 +235,70 @@
     </div>
 
     <main>
-      <section class="hero-v2">
-        <div class="hero-v2__col-left">
-          <p class="label-caps hero-v2__label">Live · Daily · Verified</p>
-          <h1 class="hero-v2__title">Regime detection.<br />Publicly proven.</h1>
-          <p class="hero-v2__sub">Live daily signals across EUR/USD, USD/JPY, and USD/INR — built on rate differentials, COT positioning, implied volatility, and cross-asset correlations. Every call logged. Every outcome tracked.</p>
-          <div class="hero-v2__links">
-            <a class="link-primary" href="/dashboard/">View live dashboard →</a>
-            <a class="link-sec" href="/brief/">Read today's brief →</a>
+      <section class="hero-v2 hero-v2--v3" data-canvas-opacity="1">
+        <div class="hero-v3-maincols">
+          <div class="hero-v2__col-left">
+            <div class="hero-v3-accuracy" aria-hidden="true">
+              <div class="hero-v3-accuracy__track">
+                <div class="hero-v3-accuracy__fill" id="hero-accuracy-fill"></div>
+              </div>
+              <p class="hero-v3-accuracy__lbl">68% — Regime accuracy, last 20 days</p>
+            </div>
+            <p class="label-caps hero-v2__label">Live · Daily · Verified</p>
+            <h1 class="hero-v2__title">Regime detection.<br />Publicly proven.</h1>
+            <p class="hero-v2__sub">Live daily signals across EUR/USD, USD/JPY, and USD/INR — built on rate differentials, COT positioning, implied volatility, and cross-asset correlations. Every call logged. Every outcome tracked.</p>
+            <div class="hero-v2__links">
+              <a class="link-primary" href="/dashboard/">View live dashboard →</a>
+              <a class="link-sec" href="/brief/latest.html">Read today's brief →</a>
+            </div>
+            <p class="hero-v2__attr">Built by Shreyash Sakhare · fxregimelab.com</p>
           </div>
-          <p class="hero-v2__attr">Built by Shreyash Sakhare · fxregimelab.com</p>
+          <div class="hero-v2__col-right">
+            <div class="card-dark card-dark--eur" id="hero-card-eur">
+              <div class="hero-card-dark__top">
+                <span class="hero-card-dark__pair">EUR / USD</span>
+                <span class="badge-regime" id="hero-eur-badge">TRENDING LONG</span>
+              </div>
+              <div class="hero-card-dark__conf">
+                <span class="hero-card-dark__conf-num" id="hero-eur-conf">0</span><span class="hero-card-dark__conf-num" style="font-size:28px">%</span>
+                <span class="hero-card-dark__conf-lbl">Confidence</span>
+              </div>
+              <div class="hero-v3-confbar">
+                <div class="hero-v3-confbar__track">
+                  <div class="hero-v3-confbar__fill" id="hero-eur-confbar-fill"></div>
+                  <div class="hero-v3-confbar__shimmer" aria-hidden="true"></div>
+                </div>
+              </div>
+              <div class="hero-card-dark__divider"></div>
+              <div class="hero-card-dark__row" data-hero-v3-row><span>Rate Differential</span><span class="hero-card-dark__pos" id="hero-eur-rd">▲ +0bp</span></div>
+              <div class="hero-card-dark__row" data-hero-v3-row><span>COT Position</span><span id="hero-eur-cot">0th pct</span></div>
+              <div class="hero-card-dark__row" data-hero-v3-row><span>Realized Vol</span><span id="hero-eur-vol">0.0%</span></div>
+              <div class="hero-card-dark__row" data-hero-v3-row><span>Signal composite</span><span id="hero-eur-sc">+0.00</span></div>
+              <div class="hero-card-dark__foot">
+                <span class="pulse-dot" aria-hidden="true"></span>
+                <span id="hero-eur-ts">Updated — UTC</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="hero-v2__col-right">
-          <div class="card-dark card-dark--eur" id="hero-card-eur">
-            <div class="hero-card-dark__top">
-              <span class="hero-card-dark__pair">EUR / USD</span>
-              <span class="badge-regime" id="hero-eur-badge">TRENDING LONG</span>
-            </div>
-            <div class="hero-card-dark__conf">
-              <span class="hero-card-dark__conf-num" id="hero-eur-conf" data-count="72">0</span><span class="hero-card-dark__conf-num" style="font-size:28px">%</span>
-              <span class="hero-card-dark__conf-lbl">Confidence</span>
-            </div>
-            <div class="hero-card-dark__divider"></div>
-            <div class="hero-card-dark__row"><span>Rate Differential</span><span class="hero-card-dark__pos" id="hero-eur-rd">▲ +47bp</span></div>
-            <div class="hero-card-dark__row"><span>COT Position</span><span id="hero-eur-cot">72nd pct</span></div>
-            <div class="hero-card-dark__row"><span>Realized Vol</span><span id="hero-eur-vol">8.4%</span></div>
-            <div class="hero-card-dark__row"><span>Signal composite</span><span id="hero-eur-sc">+0.68</span></div>
-            <div class="hero-card-dark__foot">
-              <span class="pulse-dot" aria-hidden="true"></span>
-              <span id="hero-eur-ts">Updated — UTC</span>
-            </div>
+        <p class="hero-v3-scrollcue" id="hero-scrollcue"><span class="hero-v3-scrollcue__arrow">↓</span> Scroll to explore</p>
+        <div class="hero-v3-ticker" aria-hidden="true">
+          <div class="hero-v3-ticker__inner">
+            <span class="hero-v3-ticker__segment"
+              >EUR/USD · TRENDING LONG · 72% confidence · Rate Diff: +47bp · COT: 72nd pct · USD/JPY · NEUTRAL · 44% confidence · USD/INR · STRUCTURAL LONG · 91% confidence · Pipeline last run: 23:14 UTC · Apr 04 2026 ·
+            </span>
+            <span class="hero-v3-ticker__segment"
+              >EUR/USD · TRENDING LONG · 72% confidence · Rate Diff: +47bp · COT: 72nd pct · USD/JPY · NEUTRAL · 44% confidence · USD/INR · STRUCTURAL LONG · 91% confidence · Pipeline last run: 23:14 UTC · Apr 04 2026 ·
+            </span>
           </div>
         </div>
       </section>
 
       <section class="section-v2">
-        <h2 class="section-v2__title">Three pairs. One framework. Daily.</h2>
-        <p class="section-v2__sub">EUR/USD · USD/JPY · USD/INR — each pair tracked across the same signal stack, updated every trading day after market close.</p>
-        <div class="grid-pairs" id="regime-cards">
-          <article class="card-light card-light--eur">
+        <h2 class="section-v2__title" data-reveal="headline">Three pairs. One framework. Daily.</h2>
+        <p class="section-v2__sub" data-reveal="sub">EUR/USD · USD/JPY · USD/INR — each pair tracked across the same signal stack, updated every trading day after market close.</p>
+        <div class="grid-pairs" id="regime-cards" data-reveal-stagger="cards">
+          <article class="card-light card-light--eur" data-conf-target="72">
             <div class="pair-card__head">
               <span class="pair-card__name">EUR/USD</span>
               <span class="badge-regime" style="background:rgba(37,99,168,.1);border-color:rgba(37,99,168,.25);color:var(--pair-eur)" id="card-eur-regime">TRENDING LONG</span>
@@ -84,6 +310,9 @@
                 <span class="font-mono" style="font-weight:600" id="card-eur-conf">72%</span>
               </div>
             </div>
+            <div class="pair-sparkline-wrap" aria-hidden="true">
+              <canvas class="pair-sparkline" id="spark-eur" width="400" height="40"></canvas>
+            </div>
             <ul class="signal-dots">
               <li><span class="dot dot-ok"></span> Rate stack</li>
               <li><span class="dot dot-ok"></span> COT</li>
@@ -91,7 +320,7 @@
             </ul>
             <a class="link-primary" href="/dashboard/">View in dashboard →</a>
           </article>
-          <article class="card-light card-light--jpy">
+          <article class="card-light card-light--jpy" data-conf-target="58">
             <div class="pair-card__head">
               <span class="pair-card__name">USD/JPY</span>
               <span class="badge-regime" style="background:rgba(184,107,42,.1);border-color:rgba(184,107,42,.25);color:var(--pair-jpy)" id="card-jpy-regime">NEUTRAL</span>
@@ -103,6 +332,9 @@
                 <span class="font-mono" style="font-weight:600" id="card-jpy-conf">58%</span>
               </div>
             </div>
+            <div class="pair-sparkline-wrap" aria-hidden="true">
+              <canvas class="pair-sparkline" id="spark-jpy" width="400" height="40"></canvas>
+            </div>
             <ul class="signal-dots">
               <li><span class="dot dot-miss"></span> Rate stack</li>
               <li><span class="dot dot-miss"></span> COT</li>
@@ -110,7 +342,7 @@
             </ul>
             <a class="link-primary" href="/dashboard/">View in dashboard →</a>
           </article>
-          <article class="card-light card-light--inr">
+          <article class="card-light card-light--inr" data-conf-target="0">
             <div class="pair-card__head">
               <span class="pair-card__name">USD/INR</span>
               <span class="badge-regime" style="background:rgba(166,48,48,.1);border-color:rgba(166,48,48,.25);color:var(--pair-inr)" id="card-inr-regime">DIRECTIONAL ONLY</span>
@@ -121,6 +353,9 @@
                 <div class="conf-bar"><div class="conf-bar__fill" id="card-inr-bar" style="width:0%;background:var(--pair-inr)"></div></div>
                 <span class="font-mono" style="font-weight:600" id="card-inr-conf">—</span>
               </div>
+            </div>
+            <div class="pair-sparkline-wrap" aria-hidden="true">
+              <canvas class="pair-sparkline" id="spark-inr" width="400" height="40"></canvas>
             </div>
             <ul class="signal-dots">
               <li><span class="dot dot-warn"></span> Spot / vol</li>
@@ -134,7 +369,11 @@
 
       <div class="section-bg-subtle">
         <div class="section-v2 section-v2__inner">
-          <div class="meth-grid">
+          <div class="text-center" style="max-width:640px;margin:0 auto 48px">
+            <p class="label-caps" style="color:var(--text-muted)" data-reveal="headline">The signal framework</p>
+            <p class="section-v2__sub" style="margin-top:12px;margin-bottom:0" data-reveal="sub">Four signal layers. Each independent. Each measuring something the others cannot.</p>
+          </div>
+          <div class="meth-grid" data-reveal-stagger="cards">
             <div class="meth-item">
               <p class="label-caps">Rate differentials</p>
               <h3>Yield spreads</h3>
@@ -161,10 +400,11 @@
 
       <div class="section-bg-white section-canvas-dim">
         <div class="section-v2__inner two-col" style="padding-top:var(--section-y);padding-bottom:var(--section-y)">
+          <div data-reveal-stagger="cards" style="display:contents">
           <div>
-            <p class="label-caps" style="color:var(--text-muted)">The daily brief</p>
-            <h2 class="section-v2__title mt-0">Every morning.<br />Before the market opens.</h2>
-            <p class="section-v2__sub">A daily regime brief covering what the signals say, what changed overnight, and what setups are forming. Written for practitioners, not for algorithms.</p>
+            <p class="label-caps" style="color:var(--text-muted)" data-reveal="headline">The daily brief</p>
+            <h2 class="section-v2__title mt-0" data-reveal="headline">Every morning.<br />Before the market opens.</h2>
+            <p class="section-v2__sub" data-reveal="sub">A daily regime brief covering what the signals say, what changed overnight, and what setups are forming. Written for practitioners, not for algorithms.</p>
             <a class="ghost-btn" href="/brief/latest.html">Read this morning's brief →</a>
           </div>
           <div class="card-dark brief-preview-dark" style="border-left:3px solid var(--accent)">
@@ -173,7 +413,7 @@
               <span>QUANTAMENTAL MACRO BRIEF</span>
             </div>
             <div class="bp-head" style="margin-top:4px">
-              <span></span>
+              <span class="label-caps" style="font-size:11px;letter-spacing:0.08em">DAILY 23:00 UTC</span>
               <span class="font-mono" id="brief-preview-date">APR 04 2026 · 23:14 UTC</span>
             </div>
             <div class="bp-divider"></div>
@@ -184,13 +424,14 @@
             <p class="bp-body">Rate differential momentum remains positive with the 2Y spread holding above +45bp. COT positioning at 72nd percentile…</p>
             <p class="bp-link"><a href="/brief/latest.html">Read full brief →</a></p>
           </div>
+          </div>
         </div>
       </div>
 
       <section class="section-v2 text-center">
-        <h2 class="section-v2__title mx-auto">Every call. Every outcome.<br />On the record.</h2>
-        <p class="section-v2__sub mx-auto" style="max-width:560px">Since April 2026, every regime prediction has been logged at the moment of generation and compared against actual next-day price movement. No backdating. No cherry-picking.</p>
-        <div class="stats-row">
+        <h2 class="section-v2__title mx-auto" data-reveal="headline">Every call. Every outcome.<br />On the record.</h2>
+        <p class="section-v2__sub mx-auto" style="max-width:560px" data-reveal="sub">Since April 2026, every regime prediction has been logged at the moment of generation and compared against actual next-day price movement. No backdating. No cherry-picking.</p>
+        <div class="stats-row" data-reveal="stats">
           <div class="stat-block">
             <div class="num" data-count="68" data-suffix="%">0%</div>
             <div class="lbl">20-day accuracy</div>
@@ -210,7 +451,7 @@
         <div style="overflow-x:auto;margin-bottom:24px">
           <table class="table-v2 mx-auto" style="max-width:800px">
             <thead><tr><th>Date</th><th>Pair</th><th>Predicted</th><th>Confidence</th><th>Outcome</th></tr></thead>
-            <tbody>
+            <tbody data-reveal-stagger="rows">
               <tr class="row-ok"><td class="cell-date">Apr 03</td><td class="cell-pair-eur">EUR/USD</td><td>Long</td><td class="cell-mono">72%</td><td>✓</td></tr>
               <tr class="row-ok"><td class="cell-date">Apr 03</td><td class="cell-pair-jpy">USD/JPY</td><td>Neutral</td><td class="cell-mono">58%</td><td>✓</td></tr>
               <tr class="row-bad"><td class="cell-date">Apr 02</td><td class="cell-pair-inr">USD/INR</td><td>Long</td><td class="cell-mono">55%</td><td>✗</td></tr>
@@ -223,10 +464,10 @@
       </section>
 
       <div class="section-bg-white">
-        <div class="section-v2__inner researcher-grid" style="padding:var(--section-y) 24px">
+        <div class="section-v2__inner researcher-grid" style="padding:var(--section-y) 24px" data-reveal-stagger="cards">
           <img class="researcher-photo" src="/assets/researcher-placeholder.svg" alt="Shreyash Sakhare" width="200" height="250" />
           <div>
-            <p class="label-caps" style="color:var(--text-muted)">The researcher</p>
+            <p class="label-caps" style="color:var(--text-muted)">THE RESEARCHER</p>
             <h2 class="section-v2__title mt-0" style="font-size:32px">Shreyash Sakhare</h2>
             <p style="color:var(--text-sec);max-width:520px">B.Tech Electrical Engineering, Pune. Building toward a career in quantamental macro — the intersection of systematic signal engineering and discretionary regime judgment. FX Regime Lab is the work in progress, running live since early 2026.</p>
             <p style="margin-top:20px">
@@ -249,6 +490,7 @@
         </div>
         <nav class="v2-footer__nav">
           <a href="/dashboard/">Dashboard</a>
+          <a href="/terminal/">Terminal</a>
           <a href="/brief/">Brief</a>
           <a href="/performance/">Performance</a>
           <a href="/about/">About</a>
@@ -260,8 +502,10 @@
     </footer>
   </div>
 
+  <script src="/assets/theme-switch.js"></script>
   <script src="/assets/canvas-bg.js"></script>
   <script src="/assets/nav.js"></script>
+  <script src="/assets/section-reveal.js"></script>
   <script src="/assets/site.js"></script>
   <script src="/assets/supabase-env.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
@@ -277,23 +521,369 @@
         }
         requestAnimationFrame(tick);
       }
-      setTimeout(function () {
-        var h = document.getElementById('hero-eur-conf');
-        if (h) countUp(h, 72, '', 1000);
-      }, 400);
-      var obs = new IntersectionObserver(function (ents) {
-        ents.forEach(function (e) {
-          if (!e.isIntersecting) return;
-          e.target.querySelectorAll('.num[data-count]').forEach(function (nel) {
-            var t = parseInt(nel.getAttribute('data-count'), 10);
-            var suf = nel.getAttribute('data-suffix') || '';
-            countUp(nel, t, suf, 800);
+      var reduceMotion =
+        typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3);
+      }
+
+      function runHeroV3() {
+        var card = document.getElementById('hero-card-eur');
+        var accFill = document.getElementById('hero-accuracy-fill');
+        var confEl = document.getElementById('hero-eur-conf');
+        var barFill = document.getElementById('hero-eur-confbar-fill');
+        var rdEl = document.getElementById('hero-eur-rd');
+        var cotEl = document.getElementById('hero-eur-cot');
+        var volEl = document.getElementById('hero-eur-vol');
+        var scEl = document.getElementById('hero-eur-sc');
+        var rows = document.querySelectorAll('#hero-card-eur [data-hero-v3-row]');
+        if (!card || !accFill || !confEl || !barFill || !rdEl || !cotEl || !volEl || !scEl) {
+          window.__heroV3IntroDone = true;
+          return;
+        }
+
+        if (reduceMotion) {
+          accFill.style.width = '68%';
+          card.classList.add('hero-v3-card-ready');
+          confEl.textContent = '72';
+          barFill.style.width = '72%';
+          rdEl.textContent = '▲ +47bp';
+          cotEl.textContent = '72nd pct';
+          volEl.textContent = '8.4%';
+          scEl.textContent = '+0.68';
+          window.__heroV3IntroDone = true;
+          return;
+        }
+
+        var accStart = performance.now();
+        function accTick(now) {
+          var p = Math.min(1, (now - accStart) / 800);
+          var e = easeOutCubic(p);
+          accFill.style.width = 68 * e + '%';
+          if (p < 1) requestAnimationFrame(accTick);
+        }
+        requestAnimationFrame(accTick);
+
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            card.classList.add('hero-v3-card-ready');
           });
-          obs.unobserve(e.target);
         });
-      }, { threshold: 0.3 });
-      var sr = document.querySelector('.stats-row');
-      if (sr) obs.observe(sr.closest('section') || sr);
+
+        var introStart = 700 + 400;
+        setTimeout(function () {
+          var t0 = performance.now();
+          function confTick(now) {
+            var p = Math.min(1, (now - t0) / 800);
+            var e = easeOutCubic(p);
+            var v = Math.round(72 * e);
+            confEl.textContent = String(v);
+            barFill.style.width = 72 * e + '%';
+            if (p < 1) requestAnimationFrame(confTick);
+            else {
+              confEl.textContent = '72';
+              barFill.style.width = '72%';
+              runAfterConf();
+            }
+          }
+          requestAnimationFrame(confTick);
+        }, introStart);
+
+        function ordinalSuffix(n) {
+          var j = n % 10;
+          var k = n % 100;
+          if (j === 1 && k !== 11) return 'st';
+          if (j === 2 && k !== 12) return 'nd';
+          if (j === 3 && k !== 13) return 'rd';
+          return 'th';
+        }
+
+        function runNumberSpan(el, dur, delay, from, to, format) {
+          setTimeout(function () {
+            var start = performance.now();
+            function tick(now) {
+              var p = Math.min(1, (now - start) / dur);
+              var e = easeOutCubic(p);
+              var v = from + (to - from) * e;
+              el.textContent = format(v, p >= 1);
+              if (p < 1) requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+          }, delay);
+        }
+
+        function runAfterConf() {
+          runNumberSpan(
+            rdEl,
+            600,
+            0,
+            0,
+            47,
+            function (v, done) {
+              var n = done ? 47 : Math.round(v);
+              return '▲ +' + n + 'bp';
+            }
+          );
+          runNumberSpan(
+            cotEl,
+            600,
+            100,
+            0,
+            72,
+            function (v, done) {
+              var n = done ? 72 : Math.max(0, Math.round(v));
+              return n + ordinalSuffix(n) + ' pct';
+            }
+          );
+          runNumberSpan(
+            volEl,
+            600,
+            200,
+            0,
+            8.4,
+            function (v, done) {
+              var x = done ? 8.4 : Math.round(v * 10) / 10;
+              return x.toFixed(1) + '%';
+            }
+          );
+          runNumberSpan(
+            scEl,
+            600,
+            300,
+            0,
+            0.68,
+            function (v, done) {
+              var x = done ? 0.68 : Math.round(v * 100) / 100;
+              var s = (x >= 0 ? '+' : '') + x.toFixed(2);
+              return s;
+            }
+          );
+          setTimeout(function () {
+            window.__heroV3IntroDone = true;
+            startRowBreathing(rows);
+          }, 300 + 600 + 300);
+        }
+      }
+
+      var rowBreathInterval = null;
+
+      function startRowBreathing(rows) {
+        if (reduceMotion || !rows || !rows.length) return;
+        if (rowBreathInterval) {
+          clearInterval(rowBreathInterval);
+          rowBreathInterval = null;
+        }
+        var idx = 0;
+        function pulseNext() {
+          rows.forEach(function (r) {
+            r.classList.remove('hero-card-dark__row--highlight');
+          });
+          rows[idx].classList.add('hero-card-dark__row--highlight');
+          var cur = idx;
+          setTimeout(function () {
+            rows[cur].classList.remove('hero-card-dark__row--highlight');
+          }, 1500);
+          idx = (idx + 1) % rows.length;
+        }
+        pulseNext();
+        rowBreathInterval = setInterval(pulseNext, 8000);
+      }
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+          document.documentElement.classList.add('hero-site-anim-paused');
+          if (rowBreathInterval) {
+            clearInterval(rowBreathInterval);
+            rowBreathInterval = null;
+          }
+        } else {
+          document.documentElement.classList.remove('hero-site-anim-paused');
+          if (window.__heroV3IntroDone && !reduceMotion) {
+            var r2 = document.querySelectorAll('#hero-card-eur [data-hero-v3-row]');
+            startRowBreathing(r2);
+          }
+        }
+      });
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runHeroV3);
+      } else {
+        runHeroV3();
+      }
+
+      var cue = document.getElementById('hero-scrollcue');
+      function onScrollCue() {
+        if (!cue) return;
+        if (window.scrollY > 100) cue.classList.add('is-hidden');
+        else cue.classList.remove('is-hidden');
+      }
+      window.addEventListener('scroll', onScrollCue, { passive: true });
+      onScrollCue();
+    })();
+  </script>
+  <script>
+    (function () {
+      var Chart = window.Chart;
+      if (!Chart) return;
+
+      function series14(seed) {
+        var out = [];
+        var v = 0.5;
+        for (var i = 0; i < 14; i++) {
+          v += Math.sin(seed * 0.41 + i * 0.62) * 0.09 + Math.cos(i * 0.35 + seed) * 0.04;
+          v = Math.max(0.08, Math.min(0.92, v));
+          out.push(v);
+        }
+        return out;
+      }
+
+      function makeClipPlugin(getProgress) {
+        return {
+          id: 'fxSparkClip_' + Math.floor(Math.random() * 1e9),
+          beforeDatasetsDraw: function (chart) {
+            var p = getProgress();
+            var ctx = chart.ctx;
+            var a = chart.chartArea;
+            var w = Math.max(0, a.width * p);
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(a.left, a.top, w, a.height);
+            ctx.clip();
+          },
+          afterDatasetsDraw: function (chart) {
+            chart.ctx.restore();
+          },
+        };
+      }
+
+      function buildChart(canvasId, border, fillRgb) {
+        var canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        var full = series14(border.length + canvasId.length);
+        var labels = full.map(function (_, i) {
+          return String(i);
+        });
+        var prog = { v: 0 };
+        var plugin = makeClipPlugin(function () {
+          return prog.v;
+        });
+        var chart = new Chart(canvas, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                data: full,
+                borderColor: border,
+                borderWidth: 1.5,
+                tension: 0.35,
+                fill: true,
+                backgroundColor: fillRgb,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            interaction: { mode: 'nearest', intersect: false },
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: {
+              x: { display: false, grid: { display: false } },
+              y: { display: false, min: 0, max: 1, grid: { display: false } },
+            },
+          },
+          plugins: [plugin],
+        });
+        var start = performance.now();
+        function frame(now) {
+          var t = Math.min(1, (now - start) / 600);
+          prog.v = 1 - Math.pow(1 - t, 3);
+          chart.update('none');
+          if (t < 1) requestAnimationFrame(frame);
+          else prog.v = 1;
+        }
+        requestAnimationFrame(frame);
+      }
+
+      function initSparklinesWhenVisible() {
+        var grid = document.getElementById('regime-cards');
+        if (!grid) return;
+
+        function runSparklines() {
+          buildChart('spark-eur', '#2563a8', 'rgba(37, 99, 168, 0.08)');
+          buildChart('spark-jpy', '#b86b2a', 'rgba(184, 107, 42, 0.08)');
+          buildChart('spark-inr', '#a63030', 'rgba(166, 48, 48, 0.08)');
+        }
+
+        if (!('IntersectionObserver' in window)) {
+          runSparklines();
+        } else {
+          var io = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (en) {
+                if (!en.isIntersecting) return;
+                io.disconnect();
+                runSparklines();
+              });
+            },
+            { root: null, rootMargin: '0px 0px 10% 0px', threshold: 0.05 }
+          );
+          io.observe(grid);
+        }
+      }
+
+      initSparklinesWhenVisible();
+
+      var grid = document.getElementById('regime-cards');
+      if (!grid) return;
+
+      function parseTarget(card) {
+        var v = parseFloat(card.getAttribute('data-conf-target') || '0', 10);
+        return isNaN(v) ? 0 : v;
+      }
+
+      function barFill(card) {
+        return card.querySelector('.conf-bar__fill');
+      }
+
+      grid.querySelectorAll('.card-light').forEach(function (card) {
+        var fill = barFill(card);
+        if (!fill) return;
+        var target = parseTarget(card);
+
+        card.addEventListener('mouseenter', function () {
+          card.classList.add('is-pair-hover');
+          fill.style.transition = 'width 400ms cubic-bezier(0.33, 1, 0.68, 1)';
+          fill.style.width = '0%';
+          var lis = card.querySelectorAll('.signal-dots li');
+          lis.forEach(function (li) {
+            li.classList.remove('signal-dot-in');
+          });
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              fill.style.width = target + '%';
+              lis.forEach(function (li, i) {
+                setTimeout(function () {
+                  li.classList.add('signal-dot-in');
+                }, i * 60);
+              });
+            });
+          });
+        });
+
+        card.addEventListener('mouseleave', function () {
+          card.classList.remove('is-pair-hover');
+          fill.style.transition = 'width 200ms ease';
+          fill.style.width = target + '%';
+          card.querySelectorAll('.signal-dots li').forEach(function (li) {
+            li.classList.remove('signal-dot-in');
+          });
+        });
+      });
     })();
   </script>
   <script>
@@ -315,19 +905,40 @@
         function fmtPct(x) { return x == null ? '—' : Math.round(x) + 'th pct'; }
         function fmtVol(x) { return x == null ? '—' : Number(x).toFixed(1) + '%'; }
         function fmtBp(x) { if (x == null) return '—'; var v = Math.round(x); return (v >= 0 ? '▲ +' : '▼ ') + Math.abs(v) + 'bp'; }
-        if (byPair.EURUSD) {
+        function applyHeroFromSupabase() {
+          if (!byPair.EURUSD) return;
           var rd = document.getElementById('hero-eur-rd');
-          rd.textContent = fmtBp(byPair.EURUSD.rate_diff_10y != null ? byPair.EURUSD.rate_diff_10y : byPair.EURUSD.rate_diff_2y);
-          rd.classList.add('hero-card-dark__pos');
-          document.getElementById('hero-eur-cot').textContent = fmtPct(byPair.EURUSD.cot_percentile);
-          document.getElementById('hero-eur-vol').textContent = fmtVol(byPair.EURUSD.realized_vol_20d);
+          if (rd) {
+            rd.textContent = fmtBp(byPair.EURUSD.rate_diff_10y != null ? byPair.EURUSD.rate_diff_10y : byPair.EURUSD.rate_diff_2y);
+            rd.classList.add('hero-card-dark__pos');
+          }
+          var cot = document.getElementById('hero-eur-cot');
+          if (cot) cot.textContent = fmtPct(byPair.EURUSD.cot_percentile);
+          var vol = document.getElementById('hero-eur-vol');
+          if (vol) vol.textContent = fmtVol(byPair.EURUSD.realized_vol_20d);
         }
+        function whenHeroIntroDone(fn) {
+          if (window.__heroV3IntroDone) {
+            fn();
+            return;
+          }
+          var n = 0;
+          var t = setInterval(function () {
+            if (window.__heroV3IntroDone || n++ > 80) {
+              clearInterval(t);
+              fn();
+            }
+          }, 100);
+        }
+        whenHeroIntroDone(applyHeroFromSupabase);
         if (byPair.USDJPY) {
           document.getElementById('card-jpy-bar').style.width = '58%';
         }
         if (byPair.USDINR) {
           document.getElementById('card-inr-bar').style.width = '45%';
           document.getElementById('card-inr-conf').textContent = '45%';
+          var inrArt = document.querySelector('#regime-cards .card-light--inr');
+          if (inrArt) inrArt.setAttribute('data-conf-target', '45');
         }
       } catch (e) {}
     })();

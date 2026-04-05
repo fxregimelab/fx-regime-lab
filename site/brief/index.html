@@ -9,13 +9,14 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/site.css" />
 </head>
-<body>
+<body class="theme-light">
   <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
   <div class="v2-wrap">
     <header class="v2-nav" data-nav-root>
       <a class="v2-nav__brand" href="/">FX Regime Lab</a>
       <ul class="v2-nav__links">
         <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
+        <li><a href="/terminal/" data-path="/terminal/">Terminal</a></li>
         <li><a href="/brief/" data-path="/brief">Brief</a></li>
         <li><a href="/performance/" data-path="/performance">Performance</a></li>
         <li><a href="/about/" data-path="/about">About</a></li>
@@ -25,6 +26,7 @@
     </header>
     <div class="v2-nav__overlay" data-nav-overlay>
       <a href="/dashboard/">Dashboard</a>
+      <a href="/terminal/">Terminal</a>
       <a href="/brief/">Brief</a>
       <a href="/performance/">Performance</a>
       <a href="/about/">About</a>
@@ -64,13 +66,14 @@
     <footer class="v2-footer">
       <div class="v2-footer__grid">
         <div><strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong></div>
-        <nav class="v2-footer__nav"><a href="/">Home</a><a href="/dashboard/">Dashboard</a></nav>
+        <nav class="v2-footer__nav"><a href="/">Home</a><a href="/dashboard/">Dashboard</a><a href="/terminal/">Terminal</a></nav>
         <div><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a></div>
       </div>
       <p class="v2-footer__rule">© 2026 FX Regime Lab</p>
     </footer>
   </div>
 
+  <script src="/assets/theme-switch.js"></script>
   <script src="/assets/canvas-bg.js"></script>
   <script src="/assets/nav.js"></script>
   <script src="/assets/site.js"></script>

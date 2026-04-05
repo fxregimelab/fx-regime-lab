@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FX Regime Lab | Performance</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Work+Sans:ital,wght@0,100..900;1,100..900&amp;family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#ffdcc5",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-on-surface": "#f0f1ef",
+                    "error": "#ba1a1a",
+                    "on-surface": "#191c1b",
+                    "on-primary": "#ffffff",
+                    "on-secondary-fixed-variant": "#004785",
+                    "primary-fixed": "#d7e2ff",
+                    "tertiary-fixed-dim": "#ffb782",
+                    "background": "#f9faf8",
+                    "on-error": "#ffffff",
+                    "inverse-primary": "#acc7ff",
+                    "surface-variant": "#e2e3e1",
+                    "on-primary-container": "#89a5dd",
+                    "error-container": "#ffdad6",
+                    "surface-container": "#edeeec",
+                    "tertiary-container": "#5e2e00",
+                    "on-primary-fixed-variant": "#294678",
+                    "surface-dim": "#d9dad8",
+                    "outline-variant": "#c4c6d0",
+                    "tertiary": "#3e1c00",
+                    "surface-container-low": "#f3f4f2",
+                    "secondary-fixed": "#d4e3ff",
+                    "primary-fixed-dim": "#acc7ff",
+                    "secondary-container": "#7db3fd",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-high": "#e7e8e6",
+                    "surface": "#f9faf8",
+                    "primary-container": "#1b3a6b",
+                    "on-surface-variant": "#44474f",
+                    "on-secondary-fixed": "#001c3a",
+                    "inverse-surface": "#2e3130",
+                    "surface-tint": "#425e91",
+                    "on-secondary": "#ffffff",
+                    "on-primary-fixed": "#001a40",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed-dim": "#a5c8ff",
+                    "on-tertiary-fixed-variant": "#703800",
+                    "surface-bright": "#f9faf8",
+                    "outline": "#747780",
+                    "on-secondary-container": "#00447f",
+                    "secondary": "#205fa4",
+                    "on-background": "#191c1b",
+                    "surface-container-highest": "#e2e3e1",
+                    "on-tertiary-fixed": "#301400",
+                    "primary": "#002452",
+                    "on-tertiary-container": "#e6914c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Newsreader", "serif"],
+                    "body": ["Work Sans", "sans-serif"],
+                    "label": ["JetBrains Mono", "monospace"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .canvas-grain {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+        }
+        .equity-path {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: draw 8s linear forwards infinite;
+        }
+        @keyframes draw {
+            to { stroke-dashoffset: 0; }
+        }
+        .pulse-soft {
+            animation: pulse-op 2s ease-in-out infinite;
+        }
+        @keyframes pulse-op {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface overflow-x-hidden selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar -->
+<nav class="sticky top-0 w-full bg-slate-50/80 backdrop-blur-md z-50">
+<div class="flex justify-between items-center px-12 py-4 max-w-screen-2xl mx-auto">
+<div class="text-lg font-semibold tracking-tighter uppercase text-blue-900 font-headline">
+                THE QUANT ARCHIVE
+            </div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-slate-500 hover:text-blue-900 transition-colors" href="#">Research</a>
+<a class="text-slate-500 hover:text-blue-900 transition-colors" href="#">Markets</a>
+<a class="text-blue-900 border-b-2 border-blue-900 pb-1 font-medium" href="#">Signals</a>
+<a class="text-slate-500 hover:text-blue-900 transition-colors" href="#">Archive</a>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:block relative">
+<input class="bg-slate-100 dark:bg-slate-900 border-none rounded-none py-1.5 px-4 text-xs font-label w-48 placeholder:text-slate-400 focus:ring-1 focus:ring-primary" placeholder="Search parameters..." type="text"/>
+</div>
+<button class="material-symbols-outlined text-blue-900 text-2xl hover:bg-slate-200/50 p-2 rounded-full transition-all">account_circle</button>
+</div>
+</div>
+</nav>
+<main class="relative min-h-[calc(100vh-140px)] flex flex-col items-center justify-center pt-12">
+<!-- Full Canvas Background Decor -->
+<div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+<div class="canvas-grain absolute inset-0"></div>
+<!-- Ghost Equity Curve -->
+<svg class="absolute bottom-1/4 left-0 w-full h-96 opacity-20" preserveaspectratio="none" viewbox="0 0 1000 200">
+<path class="equity-path" d="M0,180 L50,175 L100,185 L150,160 L200,165 L250,140 L300,150 L350,120 L400,130 L450,100 L500,110 L550,80 L600,90 L650,60 L700,75 L750,40 L800,50 L850,20 L900,30 L1000,5" fill="none" stroke="#1B3A6B" stroke-width="1.5"></path>
+<!-- Frontier Pulse Dot -->
+<circle class="pulse-soft" cx="1000" cy="5" fill="#1B3A6B" r="4">
+<animate attributename="cx" dur="8s" from="0" repeatcount="indefinite" to="1000"></animate>
+<animate attributename="cy" dur="8s" repeatcount="indefinite" values="180;175;185;160;165;140;150;120;130;100;110;80;90;60;75;40;50;20;30;5"></animate>
+</circle>
+</svg>
+</div>
+<!-- Central Anticipation Hero -->
+<div class="relative z-10 text-center max-w-4xl px-6">
+<div class="flex items-center justify-center gap-3 mb-8">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-green-600"></span>
+</span>
+<span class="font-label text-[10px] tracking-[0.2em] text-on-surface-variant uppercase">System Validating</span>
+</div>
+<h1 class="font-headline text-5xl md:text-7xl text-primary font-medium leading-tight mb-12 tracking-tight">
+                The record starts when the <span class="italic">signal is ready.</span>
+</h1>
+<!-- Placeholder Metrics -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-12 max-w-2xl mx-auto border-t border-outline-variant/20 pt-12">
+<div class="flex flex-col gap-1">
+<span class="font-label text-[10px] uppercase tracking-widest text-slate-400">Total Alpha</span>
+<span class="font-label text-2xl text-primary/40">—</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label text-[10px] uppercase tracking-widest text-slate-400">Sharpe Ratio</span>
+<span class="font-label text-2xl text-primary/40">—</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label text-[10px] uppercase tracking-widest text-slate-400">Max Drawdown</span>
+<span class="font-label text-2xl text-primary/40">—</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label text-[10px] uppercase tracking-widest text-slate-400">Active Nodes</span>
+<span class="font-label text-2xl text-primary/40">—</span>
+</div>
+</div>
+</div>
+<!-- Bottom Cards Section -->
+<div class="relative z-10 w-full max-w-screen-2xl mx-auto px-12 mt-24 mb-24">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<!-- Entry Logging -->
+<div class="bg-surface-container-lowest border-t-4 border-primary-container p-8 transition-all hover:-translate-y-1">
+<div class="flex flex-col h-full">
+<span class="font-label text-[10px] text-primary mb-4">01 // PROTOCOL</span>
+<h3 class="font-headline text-xl mb-3">Entry Logging</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed mb-6">Automated capture of price action context, liquidity profiles, and volatility regimes at the micro-second level.</p>
+<div class="mt-auto flex items-center gap-2 group cursor-pointer">
+<span class="text-[10px] font-bold tracking-widest uppercase group-hover:text-primary transition-colors">Configure</span>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</div>
+</div>
+<!-- Position Sizing -->
+<div class="bg-surface-container-lowest border-t-4 border-primary-container p-8 transition-all hover:-translate-y-1">
+<div class="flex flex-col h-full">
+<span class="font-label text-[10px] text-primary mb-4">02 // ALLOCATION</span>
+<h3 class="font-headline text-xl mb-3">Position Sizing</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed mb-6">Dynamic risk weighting based on historical regime confidence and real-time correlation matrices.</p>
+<div class="mt-auto flex items-center gap-2 group cursor-pointer">
+<span class="text-[10px] font-bold tracking-widest uppercase group-hover:text-primary transition-colors">Risk Model</span>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</div>
+</div>
+<!-- Exit Rules -->
+<div class="bg-surface-container-lowest border-t-4 border-primary-container p-8 transition-all hover:-translate-y-1">
+<div class="flex flex-col h-full">
+<span class="font-label text-[10px] text-primary mb-4">03 // LIQUIDATION</span>
+<h3 class="font-headline text-xl mb-3">Exit Rules</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed mb-6">Multi-tiered exit strategies including time-based decay, trailing regime shifts, and hard-stop protocols.</p>
+<div class="mt-auto flex items-center gap-2 group cursor-pointer">
+<span class="text-[10px] font-bold tracking-widest uppercase group-hover:text-primary transition-colors">Parameters</span>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</div>
+</div>
+<!-- Public Audit -->
+<div class="bg-surface-container-lowest border-t-4 border-primary-container p-8 transition-all hover:-translate-y-1">
+<div class="flex flex-col h-full">
+<span class="font-label text-[10px] text-primary mb-4">04 // TRANSPARENCY</span>
+<h3 class="font-headline text-xl mb-3">Public Audit</h3>
+<p class="text-xs text-on-surface-variant leading-relaxed mb-6">Immutable performance logs signed with cryptographic proof of execution to ensure absolute track record integrity.</p>
+<div class="mt-auto flex items-center gap-2 group cursor-pointer">
+<span class="text-[10px] font-bold tracking-widest uppercase group-hover:text-primary transition-colors">View Chain</span>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 bg-slate-950 flex flex-col items-center justify-center border-t border-slate-900">
+<div class="max-w-screen-2xl w-full px-12 flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex gap-8 order-2 md:order-1">
+<a class="font-sans text-xs tracking-widest uppercase text-slate-500 hover:text-white transition-colors" href="#">Terms</a>
+<a class="font-sans text-xs tracking-widest uppercase text-slate-500 hover:text-white transition-colors" href="#">Privacy</a>
+<a class="font-sans text-xs tracking-widest uppercase text-slate-500 hover:text-white transition-colors" href="#">Methodology</a>
+</div>
+<p class="font-sans text-xs tracking-widest uppercase text-slate-400 order-1 md:order-2">
+                © 2026 The Quant Archive. All Rights Reserved.
+            </p>
+<div class="flex gap-4 order-3">
+<span class="material-symbols-outlined text-slate-500 hover:text-white cursor-pointer transition-colors">terminal</span>
+<span class="material-symbols-outlined text-slate-500 hover:text-white cursor-pointer transition-colors">lan</span>
+</div>
+</div>
+</footer>
+<!-- Decorative Canvas Overlay -->
+<div class="fixed top-0 left-0 w-full h-full pointer-events-none mix-blend-overlay opacity-30 z-[100]">
+<div class="w-full h-full" style="background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0) 0%, rgba(244,245,243,0.1) 100%);"></div>
+</div>
+</body></html>

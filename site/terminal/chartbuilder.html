@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chart builder — Terminal · FX Regime Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/terminal/terminal.css" />
+  <style>
+    :root {
+      --cb-accent-hover: #5a8fff;
+      --cb-text-accent: #6b9fff;
+    }
+    .cb-app {
+      display: flex;
+      height: calc(100vh - var(--term-nav-h, 48px));
+      overflow: hidden;
+    }
+    .cb-sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: var(--surface-primary);
+      border-right: 1px solid var(--border-default);
+      padding: 16px 0;
+      overflow-y: auto;
+    }
+    .cb-sidebar__head {
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0 16px 12px;
+    }
+    .cb-cat {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .cb-cat__bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .cb-cat__bar:hover { background: var(--surface-elevated); }
+    .cb-cat__chev {
+      display: inline-block;
+      transition: transform 0.2s ease;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .cb-cat.is-open .cb-cat__chev { transform: rotate(90deg); }
+    .cb-cat__list { display: none; padding-bottom: 6px; }
+    .cb-cat.is-open .cb-cat__list { display: block; }
+    .cb-series {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 16px 6px 32px;
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      color: var(--text-primary);
+    }
+    .cb-series:hover { background: var(--surface-elevated); }
+    .cb-series input { accent-color: var(--accent); width: 14px; height: 14px; }
+    .cb-series__pending { color: var(--text-muted); font-size: 11px; font-weight: 400; }
+    .cb-series__dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cb-main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface-primary);
+      padding: 16px;
+    }
+    .cb-main__toolbar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .cb-range {
+      font-family: var(--font-ui);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    .cb-range:hover { color: var(--text-secondary); }
+    .cb-range.is-active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .cb-chart-wrap {
+      flex: 1;
+      min-height: 280px;
+      width: 100%;
+      border: 1px solid var(--border-default);
+      border-radius: var(--term-radius-sm);
+      background: var(--bg-chart);
+    }
+    .cb-chart-wrap.cb-chart-wrap--light { background: #ffffff; }
+    #cb-chart { width: 100%; height: 100%; min-height: 280px; }
+    .cb-legend {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+    }
+    .cb-legend__item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .cb-legend__item:hover { background: var(--surface-elevated); }
+    .cb-legend__dot { width: 10px; height: 10px; border-radius: 50%; }
+    .cb-panel {
+      width: 280px;
+      flex-shrink: 0;
+      background: var(--surface-primary);
+      border-left: 1px solid var(--border-default);
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .cb-field { margin-bottom: 18px; }
+    .cb-field__label {
+      font-family: var(--font-ui);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .cb-input {
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+    .cb-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .cb-radio-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .cb-radio-row input { accent-color: var(--accent); }
+    .cb-brand-info {
+      font-family: var(--font-ui);
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .cb-export {
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      width: 100%;
+      margin-top: 8px;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #ffffff;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .cb-export:hover { background: var(--cb-accent-hover); }
+    .cb-export:disabled { opacity: 0.65; cursor: wait; }
+    .cb-quick {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-default);
+    }
+    .cb-quick__item {
+      padding: 10px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .cb-quick__item:hover { background: var(--surface-elevated); }
+    .cb-quick__title { font-family: var(--font-ui); font-size: 13px; font-weight: 500; color: var(--text-primary); }
+    .cb-quick__desc { font-family: var(--font-ui); font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .cb-quick__row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .cb-quick__del {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px;
+    }
+    .cb-quick__del:hover { color: var(--bearish); }
+    .cb-save-link {
+      display: inline-block;
+      margin-top: 12px;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      color: var(--cb-text-accent);
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+    }
+    .cb-save-link:hover { color: var(--accent); }
+    .cb-colour-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .cb-colour-row input[type="color"] {
+      width: 36px;
+      height: 28px;
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      padding: 0;
+      cursor: pointer;
+      background: var(--surface-elevated);
+    }
+    .cb-ctx {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      min-width: 160px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-emphasis);
+      border-radius: 6px;
+      padding: 8px 0;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    }
+    .cb-ctx--open { display: block; }
+    .cb-ctx__title {
+      font-family: var(--font-ui);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 6px 12px 4px;
+    }
+    .cb-ctx__item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 14px;
+      border: none;
+      background: none;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .cb-ctx__item:hover { background: var(--surface-primary); }
+    .cb-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: cb-spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes cb-spin { to { transform: rotate(360deg); } }
+  </style>
+  <script src="/assets/supabase-env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="/terminal/data-client.js"></script>
+  <script src="/terminal/utils.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous"></script>
+  <script src="/assets/theme-switch.js" defer></script>
+  <script src="/terminal/terminal-nav.js" defer></script>
+  <script src="/terminal/echarts-config.js"></script>
+  <script src="/terminal/chart-builder.js"></script>
+</head>
+<body class="theme-terminal">
+  <a href="#cb-app" class="term-sr-only">Skip to chart builder</a>
+
+  <header class="term-nav" role="banner">
+    <div class="term-nav__left">
+      <a class="term-nav__brand" href="/terminal/">FX Regime Lab</a>
+      <span class="term-nav__pipe" aria-hidden="true">|</span>
+      <span class="term-nav__product">Terminal</span>
+    </div>
+    <nav class="term-nav__tabs" aria-label="Terminal sections">
+      <a class="term-nav__tab" href="/terminal/" data-path="/terminal/index">Home</a>
+      <a class="term-nav__tab" href="/terminal/eurusd.html" data-path="/terminal/eurusd">EUR/USD</a>
+      <a class="term-nav__tab" href="/terminal/usdjpy.html" data-path="/terminal/usdjpy">USD/JPY</a>
+      <a class="term-nav__tab" href="/terminal/usdinr.html" data-path="/terminal/usdinr">USD/INR</a>
+      <a class="term-nav__tab" href="/terminal/chartbuilder.html" data-path="/terminal/chartbuilder">Chart builder</a>
+    </nav>
+    <div class="term-nav__right">
+      <div class="term-nav__live">
+        <span class="term-nav__live-dot" aria-hidden="true"></span>
+        <span class="term-nav__live-label">Live</span>
+        <span class="term-nav__ts" id="term-pipeline-ts">Pipeline —</span>
+      </div>
+      <a class="term-nav__exit" href="/">← Exit Terminal</a>
+    </div>
+  </header>
+
+  <div id="cb-app" class="cb-app">
+    <aside class="cb-sidebar" aria-label="Data series">
+      <div class="cb-sidebar__head">Data series</div>
+      <div id="cb-sidebar-cats"></div>
+    </aside>
+
+    <section class="cb-main" aria-label="Chart preview">
+      <div class="cb-main__toolbar" role="tablist" aria-label="Time range">
+        <button type="button" class="cb-range" data-ms="2592000000">1M</button>
+        <button type="button" class="cb-range is-active" data-ms="7776000000">3M</button>
+        <button type="button" class="cb-range" data-ms="15552000000">6M</button>
+        <button type="button" class="cb-range" data-ms="31536000000">1Y</button>
+        <button type="button" class="cb-range" data-ms="63072000000">2Y</button>
+      </div>
+      <div class="cb-chart-wrap" id="cb-chart-wrap">
+        <div id="cb-chart" role="img" aria-label="Chart preview"></div>
+      </div>
+      <div class="cb-legend" id="cb-legend" aria-label="Series legend"></div>
+    </section>
+
+    <aside class="cb-panel" aria-label="Chart options">
+      <div class="cb-field">
+        <div class="cb-field__label">Chart title</div>
+        <input type="text" class="cb-input" id="cb-title" placeholder="EUR/USD rate differential — Apr 2026" />
+      </div>
+      <div class="cb-field">
+        <div class="cb-field__label">Subtitle</div>
+        <input type="text" class="cb-input" id="cb-subtitle" placeholder="Source: FX Regime Lab pipeline" />
+      </div>
+      <div class="cb-field">
+        <div class="cb-field__label">Series colours</div>
+        <div id="cb-colours"></div>
+      </div>
+      <div class="cb-field">
+        <div class="cb-field__label">Chart theme</div>
+        <label class="cb-radio-row"><input type="radio" name="cb-theme" value="dark" checked /> Dark (framework)</label>
+        <label class="cb-radio-row"><input type="radio" name="cb-theme" value="light" /> Light (website)</label>
+      </div>
+      <div class="cb-field">
+        <div class="cb-field__label">Export size</div>
+        <label class="cb-radio-row"><input type="radio" name="cb-size" value="1080x1080" /> LinkedIn square (1080×1080)</label>
+        <label class="cb-radio-row"><input type="radio" name="cb-size" value="1200x627" checked /> LinkedIn landscape (1200×627)</label>
+        <label class="cb-radio-row"><input type="radio" name="cb-size" value="1080x1350" /> LinkedIn portrait (1080×1350)</label>
+        <label class="cb-radio-row"><input type="radio" name="cb-size" value="custom" /> Custom</label>
+        <div id="cb-custom-size" class="cb-custom-wrap" style="display:none;margin-top:8px;gap:8px;">
+          <input type="number" class="cb-input" id="cb-w" placeholder="Width" style="width:48%;display:inline-block;box-sizing:border-box;" min="400" max="4000" value="1200" />
+          <input type="number" class="cb-input" id="cb-h" placeholder="Height" style="width:48%;display:inline-block;box-sizing:border-box;" min="400" max="4000" value="627" />
+        </div>
+      </div>
+      <div class="cb-field">
+        <div class="cb-field__label">Branding</div>
+        <p class="cb-brand-info">✓ FX Regime Lab wordmark<br />✓ fxregimelab.com</p>
+        <label class="cb-radio-row" style="margin-top:10px;">
+          <input type="checkbox" id="cb-timestamp" checked />
+          Include data timestamp
+        </label>
+      </div>
+      <button type="button" class="cb-export" id="cb-export">Export as PNG</button>
+
+      <div class="cb-quick">
+        <div class="cb-field__label">Quick charts</div>
+        <div id="cb-presets-built"></div>
+        <div id="cb-presets-user"></div>
+        <button type="button" class="cb-save-link" id="cb-save-preset">Save current as Quick Chart</button>
+      </div>
+    </aside>
+  </div>
+
+  <div id="cb-ctx-menu" class="cb-ctx" role="menu" aria-hidden="true"></div>
+
+  <script>
+(function () {
+  var CB = window.FXRLChartBuilder;
+  if (!CB) return;
+
+  var sidebar = document.getElementById('cb-sidebar-cats');
+  var catTpl = CB.DATA_CATALOG.categories.map(function (cat) {
+    var items = cat.series.map(function (s) {
+      var pending = s.available === false;
+      return (
+        '<label class="cb-series" data-series-id="' + s.id + '">' +
+        '<input type="checkbox" data-series-id="' + s.id + '"' +
+        (pending ? ' disabled' : '') +
+        ' />' +
+        '<span class="cb-series__dot" style="background:' + s.colour + '"></span>' +
+        '<span>' +
+        s.label +
+        (pending ? ' <span class="cb-series__pending">(data pending)</span>' : '') +
+        '</span></label>'
+      );
+    }).join('');
+    return (
+      '<div class="cb-cat is-open" data-cat-id="' + cat.id + '">' +
+      '<div class="cb-cat__bar" role="button" tabindex="0">' +
+      '<span class="cb-cat__chev" aria-hidden="true">▸</span>' +
+      '<span>' + cat.label + '</span></div>' +
+      '<div class="cb-cat__list">' + items + '</div></div>'
+    );
+  }).join('');
+  sidebar.innerHTML = catTpl;
+
+  sidebar.querySelectorAll('.cb-cat__bar').forEach(function (bar) {
+    bar.addEventListener('click', function () {
+      bar.closest('.cb-cat').classList.toggle('is-open');
+    });
+    bar.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        bar.closest('.cb-cat').classList.toggle('is-open');
+      }
+    });
+  });
+
+  function syncCheckboxes() {
+    sidebar.querySelectorAll('input[type="checkbox"][data-series-id]').forEach(function (inp) {
+      var id = inp.getAttribute('data-series-id');
+      inp.checked = CB.SeriesManager.active.has(id);
+    });
+  }
+
+  function syncColours() {
+    var host = document.getElementById('cb-colours');
+    host.innerHTML = '';
+    CB.SeriesManager.active.forEach(function (entry, id) {
+      var row = document.createElement('div');
+      row.className = 'cb-colour-row';
+      var lab = document.createElement('span');
+      lab.textContent = entry.meta.label;
+      var col = document.createElement('input');
+      col.type = 'color';
+      col.value = normalizeHex(entry.colour);
+      col.addEventListener('input', function () {
+        CB.SeriesManager.setColour(id, col.value);
+      });
+      row.appendChild(lab);
+      row.appendChild(col);
+      host.appendChild(row);
+    });
+  }
+
+  function normalizeHex(c) {
+    if (!c || typeof c !== 'string') return '#4d8eff';
+    if (c.charAt(0) !== '#') return '#4d8eff';
+    if (c.length === 7) return c.toLowerCase();
+    if (c.length === 4) {
+      return ('#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3] + c[4] + c[4]).toLowerCase();
+    }
+    return '#4d8eff';
+  }
+
+  sidebar.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.type !== 'checkbox' || !t.getAttribute('data-series-id')) return;
+    if (t.disabled) return;
+    var id = t.getAttribute('data-series-id');
+    if (t.checked) CB.SeriesManager.addSeries(id);
+    else CB.SeriesManager.removeSeries(id);
+  });
+
+  var rangeMs = 7776000000;
+  document.querySelectorAll('.cb-range').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.cb-range').forEach(function (b) { b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      rangeMs = parseInt(btn.getAttribute('data-ms'), 10);
+      app.setRange(rangeMs);
+    });
+  });
+
+  var app = CB.init({
+    chartEl: document.getElementById('cb-chart'),
+    legendEl: document.getElementById('cb-legend'),
+    menuEl: document.getElementById('cb-ctx-menu'),
+    tsEl: document.getElementById('term-pipeline-ts'),
+    defaultRangeMs: rangeMs,
+    onSeriesChange: function () {
+      syncCheckboxes();
+      syncColours();
+    },
+  });
+
+  function applyChartTheme() {
+    var light = document.querySelector('input[name="cb-theme"]:checked').value === 'light';
+    CB.ThemeManager.applyTheme(light ? 'light' : 'dark');
+    document.getElementById('cb-chart-wrap').classList.toggle('cb-chart-wrap--light', light);
+    app.redraw();
+  }
+
+  document.querySelectorAll('input[name="cb-theme"]').forEach(function (r) {
+    r.addEventListener('change', applyChartTheme);
+  });
+  var saved = CB.ThemeManager.current;
+  if (saved === 'light') {
+    var lr = document.querySelector('input[name="cb-theme"][value="light"]');
+    if (lr) lr.checked = true;
+    document.getElementById('cb-chart-wrap').classList.add('cb-chart-wrap--light');
+    app.redraw();
+  }
+
+  function getExportSize() {
+    var v = document.querySelector('input[name="cb-size"]:checked').value;
+    if (v === 'custom') {
+      return {
+        width: parseInt(document.getElementById('cb-w').value, 10) || 1200,
+        height: parseInt(document.getElementById('cb-h').value, 10) || 627,
+      };
+    }
+    var p = v.split('x');
+    return { width: parseInt(p[0], 10), height: parseInt(p[1], 10) };
+  }
+
+  document.querySelectorAll('input[name="cb-size"]').forEach(function (r) {
+    r.addEventListener('change', function () {
+      var show = document.querySelector('input[name="cb-size"]:checked').value === 'custom';
+      var el = document.getElementById('cb-custom-size');
+      el.style.display = show ? 'flex' : 'none';
+      if (show) {
+        el.style.flexWrap = 'wrap';
+      }
+    });
+  });
+
+  var exportBtn = document.getElementById('cb-export');
+  exportBtn.addEventListener('click', function () {
+    var sz = getExportSize();
+    var title = document.getElementById('cb-title').value.trim();
+    var subtitle = document.getElementById('cb-subtitle').value.trim();
+    var theme = document.querySelector('input[name="cb-theme"]:checked').value;
+    var showTs = document.getElementById('cb-timestamp').checked;
+    var d = app.getLatestDate() || '';
+    var fileDate = d.replace(/-/g, '') || 'chart';
+
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = '<span class="cb-spinner"></span> Generating...';
+
+    CB.ExportManager.exportPNG(app.chart, {
+      width: sz.width,
+      height: sz.height,
+      title: title,
+      subtitle: subtitle,
+      showTimestamp: showTs,
+      theme: theme,
+      asOfDate: d,
+      fileDate: fileDate,
+    })
+      .then(function () {
+        exportBtn.textContent = 'Exported ✓';
+        setTimeout(function () {
+          exportBtn.disabled = false;
+          exportBtn.textContent = 'Export as PNG';
+        }, 2000);
+      })
+      .catch(function () {
+        exportBtn.disabled = false;
+        exportBtn.textContent = 'Export as PNG';
+      });
+  });
+
+  function renderQuick() {
+    var built = document.getElementById('cb-presets-built');
+    built.innerHTML = CB.QuickCharts.BUILT_IN_PRESETS.map(function (p) {
+      return (
+        '<div class="cb-quick__item" data-preset-id="' + p.id + '" role="button" tabindex="0">' +
+        '<div class="cb-quick__title">' + p.label + '</div>' +
+        '<div class="cb-quick__desc">' + p.description + '</div></div>'
+      );
+    }).join('');
+
+    var userHost = document.getElementById('cb-presets-user');
+    var user = CB.QuickCharts.loadUserPresets();
+    userHost.innerHTML = user.length
+      ? '<div class="cb-field__label" style="margin-top:12px;">Your charts</div>' +
+        user.map(function (p) {
+          return (
+            '<div class="cb-quick__row">' +
+            '<div class="cb-quick__item" style="flex:1" data-preset-id="' + p.id + '" data-user="1" role="button" tabindex="0">' +
+            '<div class="cb-quick__title">' + p.label + '</div>' +
+            '<div class="cb-quick__desc">' + (p.description || '') + '</div></div>' +
+            '<button type="button" class="cb-quick__del" data-del-preset="' + p.id + '" aria-label="Delete">🗑</button></div>'
+          );
+        }).join('')
+      : '';
+
+    built.querySelectorAll('.cb-quick__item').forEach(function (el) {
+      el.addEventListener('click', function () {
+        CB.QuickCharts.loadPreset(el.getAttribute('data-preset-id'));
+      });
+    });
+    userHost.querySelectorAll('.cb-quick__item').forEach(function (el) {
+      el.addEventListener('click', function () {
+        CB.QuickCharts.loadPreset(el.getAttribute('data-preset-id'));
+      });
+    });
+    userHost.querySelectorAll('[data-del-preset]').forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        CB.QuickCharts.deleteUserPreset(b.getAttribute('data-del-preset'));
+        renderQuick();
+      });
+    });
+  }
+
+  document.getElementById('cb-save-preset').addEventListener('click', function () {
+    var name = window.prompt('Name this Quick Chart');
+    if (!name || !name.trim()) return;
+    CB.QuickCharts.saveCurrentAsPreset(name.trim());
+    renderQuick();
+  });
+
+  renderQuick();
+
+  window.addEventListener('resize', function () {
+    app.chart.resize();
+  });
+})();
+  </script>
+</body>
+</html>

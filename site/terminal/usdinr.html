@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>USD/INR — Terminal · FX Regime Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/terminal/terminal.css" />
+  <meta name="supabase-url" content="" />
+  <meta name="supabase-anon-key" content="" />
+  <script src="/assets/theme-switch.js" defer></script>
+  <script src="/terminal/terminal-nav.js" defer></script>
+  <script src="/assets/supabase-env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="/terminal/data-client.js"></script>
+  <!-- DATA: US_IN spreads, USDINR vol/spot, dxy_inr / gold_inr corrs, FPI_20D, rbi_reserves -->
+  <script src="/terminal/utils.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous"></script>
+  <script src="/terminal/echarts-config.js"></script>
+  <script src="/terminal/expandable-rows.js"></script>
+</head>
+<body class="theme-terminal">
+  <a href="#term-pair-main" class="term-sr-only">Skip to content</a>
+
+  <header class="term-nav" role="banner">
+    <div class="term-nav__left">
+      <a class="term-nav__brand" href="/terminal/">FX Regime Lab</a>
+      <span class="term-nav__pipe" aria-hidden="true">|</span>
+      <span class="term-nav__product">Terminal</span>
+    </div>
+    <nav class="term-nav__tabs" aria-label="Terminal sections">
+      <a class="term-nav__tab" href="/terminal/" data-path="/terminal/index">Home</a>
+      <a class="term-nav__tab" href="/terminal/eurusd.html" data-path="/terminal/eurusd">EUR/USD</a>
+      <a class="term-nav__tab" href="/terminal/usdjpy.html" data-path="/terminal/usdjpy">USD/JPY</a>
+      <a class="term-nav__tab" href="/terminal/usdinr.html" data-path="/terminal/usdinr">USD/INR</a>
+      <a class="term-nav__tab" href="/terminal/chartbuilder.html" data-path="/terminal/chartbuilder">Chart builder</a>
+    </nav>
+    <div class="term-nav__right">
+      <div class="term-nav__live">
+        <span class="term-nav__live-dot" aria-hidden="true"></span>
+        <span class="term-nav__live-label">Live</span>
+        <span class="term-nav__ts" id="term-pipeline-ts">Pipeline —</span>
+      </div>
+      <a class="term-nav__exit" href="/">← Exit Terminal</a>
+    </div>
+  </header>
+
+  <main id="term-pair-main" class="term-pair-page">
+    <header class="term-pair-head">
+      <div class="term-pair-head__left">USD/INR</div>
+      <div class="term-pair-head__mid">
+        <span class="term-pair-head__spot" id="hdr-spot">—</span>
+        <span class="term-pair-head__d1" id="hdr-d1">—</span>
+        <span class="term-pair-head__12m" id="hdr-12m">12M —</span>
+      </div>
+      <div class="term-pair-head__right">
+        <span class="term-pair-head__badge term-pair-head__badge--neutral" id="hdr-regime-badge">—</span>
+        <span class="term-pair-head__score" id="hdr-score">—</span>
+      </div>
+    </header>
+
+    <nav class="term-pair-tabs" aria-label="Section shortcuts">
+      <a class="term-pair-tabs__link is-active" href="#acc-rate-diff" data-tab>Fundamentals</a>
+      <a class="term-pair-tabs__link" href="#acc-cot" data-tab>Positioning</a>
+      <a class="term-pair-tabs__link" href="#acc-vol" data-tab>Vol &amp; correlation</a>
+      <a class="term-pair-tabs__link" href="#acc-cross" data-tab>Cross asset</a>
+      <a class="term-pair-tabs__link" href="#acc-momentum" data-tab>Momentum</a>
+      <a class="term-pair-tabs__link" href="#acc-fpi-flows" data-tab>FPI flows</a>
+      <a class="term-pair-tabs__link" href="#acc-rbi-activity" data-tab>RBI activity</a>
+    </nav>
+
+    <div id="term-accordion-root">
+
+      <div class="term-acc" id="acc-rate-diff" data-term-acc-row data-row-key="rate-diff">
+        <div class="term-acc__shell">
+          <div class="term-acc__bar" role="button" tabindex="0" aria-expanded="false">
+            <span class="term-acc__cat">Rate differentials</span>
+            <span class="term-acc__summary-metric" id="sum-rate">—</span>
+            <div class="term-acc__bar-right">
+              <span class="term-badge term-badge--bull" id="sum-rate-badge">—</span>
+              <svg class="term-acc__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="term-acc__panel">
+            <div class="term-acc__grid">
+              <div class="term-acc__data">
+                <div id="panel-rate-data"></div>
+                <p class="term-rate-footnote" id="panel-rate-note"></p>
+              </div>
+              <div class="term-acc__chart-wrap">
+                <div class="term-chart-panel">
+                  <div class="term-chart-panel__toolbar">
+                    <div class="term-chart-ranges js-range-root" data-row-key="rate-diff">
+                      <button type="button" class="term-chart-ranges__btn" data-range-ms="2592000000">1M</button>
+                      <button type="button" class="term-chart-ranges__btn is-active" data-range-ms="7776000000">3M</button>
+                      <button type="button" class="term-chart-ranges__btn" data-range-ms="15552000000">6M</button>
+                      <button type="button" class="term-chart-ranges__btn" data-range-ms="31536000000">1Y</button>
+                      <button type="button" class="term-chart-ranges__btn" data-range-ms="63072000000">2Y</button>
+                    </div>
+                  </div>
+                  <div class="term-chart-panel__canvas js-term-echart" role="img" aria-label="US–IN 10Y and policy spread chart"></div>
+                </div>
+              </div>
+            </div>
+            <p class="term-row-disclaimer" role="note">DIRECTIONAL ONLY — RBI intervention distorts precision entries. No price targets. No stop levels.</p>
+            <p class="term-acc__interpret">Negative US–IN spreads reflect INR yield premium — a structural INR strength factor when sustained. Directional read only; RBI can gap the spot tape.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="term-acc" id="acc-cot" data-term-acc-row data-no-chart="true">
+        <div class="term-acc__shell">
+          <div class="term-acc__bar" role="button" tabindex="0">
+            <span class="term-acc__cat">Positioning (FPI proxy)</span>
+            <span class="term-acc__summary-metric" id="sum-cot">FPI proxy — see FPI Flows row</span>
+            <div class="term-acc__bar-right">
+              <span class="term-badge term-badge--neutral" id="sum-cot-badge">INFO</span>
+              <svg class="term-acc__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="term-acc__panel">
+            <div class="term-acc__grid term-acc__grid--stack">
+              <div class="term-acc__data" id="panel-cot-data"></div>
+            </div>
+            <p class="term-row-disclaimer" role="note">DIRECTIONAL ONLY — RBI intervention distorts precision entries. No price targets. No stop levels.</p>
+            <p class="term-acc__interpret">FPI data is the institutional positioning proxy for USD/INR. See FPI Flows row for full positioning analysis.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="term-acc" id="acc-vol" data-term-acc-row data-row-key="vol">
+        <div class="term-acc__shell">
+          <div class="term-acc__bar" role="button" tabindex="0">
+            <span class="term-acc__cat">Volatility &amp; correlation</span>
+            <span class="term-acc__summary-metric" id="sum-vol">—</span>
+            <div class="term-acc__bar-right">
+              <span class="term-badge term-badge--neutral" id="sum-vol-badge">NORMAL</span>
+              <svg class="term-acc__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="term-acc__panel">
+            <div class="term-acc__grid">
+              <div class="term-acc__data" id="panel-vol-data"></div>
+              <div class="term-acc__chart-wrap">
+                <div class="term-chart-panel">
+                  <div class="term-chart-panel__toolbar">
+                    <div class="term-chart-ranges js-range-root" data-row-key="vol">
+                      <button type="button" class="term-chart-ranges__btn" data-range-ms="7776000000">3M</button>
+                      <button type="button" class="term-chart-ranges__btn is-active" data-range-ms="15552000000">6M</button>
+                      <button type="button" class="term-chart-ranges__btn" data-range-ms="31536000000">1Y</button>
+                    </div>
+                  </div>
+                  <div class="term-chart-panel__canvas js-term-echart" aria-label="USDINR realized vol and gold correlation"></div>
+                </div>
+              </div>
+            </div>
+            <div id="panel-vol-extra"></div>
+            <p class="term-row-disclaimer" role="note">DIRECTIONAL ONLY — RBI intervention distorts precision entries. No price targets. No stop levels.</p>
+            <p class="term-acc__interpret">Gold divergence and India-specific DXY beta flag policy and import channels. Extreme realized vol raises odds of RBI smoothing — not a clean vol surface for tight execution.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="term-acc" id="acc-iv" data-term-acc-row data-no-chart="true">
+        <div class="term-acc__shell">
+          <div class="term-acc__bar" role="button" tabindex="0">
+            <span class="term-acc__cat">Implied volatility</span>
+            <span class="term-acc__summary-metric">CME CVOL: — · Skew: —</span>
+            <div class="term-acc__bar-right">
+              <svg class="term-acc__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="term-acc__panel">
+            <p class="term-row-disclaimer" role="note">DIRECTIONAL ONLY — RBI intervention distorts precision entries. No price targets. No stop levels.</p>
+            <div class="term-soon">
+              <p class="term-soon__k">Implied volatility layer</p>
+              <p class="term-soon__p">CME CVOL 30-day implied volatility and skew analysis. CME API integration in progress.</p>
+              <p class="term-soon__sub">Expected: Q3 2026</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="term-acc" id="acc-cross" data-term-acc-row data-row-key="cross">
+        <div class="term-acc__shell">
+          <div class="term-acc__bar" role="button" tabindex="0">
+            <span class="term-acc__cat">Cross asset</span>
+            <span class="term-acc__summary-metric" id="sum-cross">—</span>
+            <div class="term-acc__bar-right">
+              <span class="term-badge term-badge--amber" id="sum-cross-badge">INDIA SPECIFIC</span>
+              <svg class="term-acc__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="term-acc__panel">
+            <div class="term-acc__grid">
+              <div class="term-acc__data" id="panel-cross-data"></div>
+              <div class="term-acc__chart-wrap">
+                <div class="term-chart-panel">
+                  <div class="term-chart-panel__toolbar">
+                    <div class="term-chart-ranges js-range-root" data-row-key="cross">
+                      <button type="button" class="term-chart-ranges__btn is-active" data-range-ms="31536000000">1Y</button>
+                      <button type="button" class="term-chart-ranges__btn" data-range-ms="63072000000">2Y</button>
+                    </div>
+                  </div>
+                  <div class="term-chart-panel__canvas js-term-echart" aria-label="Cross-asset radar"></div>
+                </div>
+              </div>
+            </div>
+            <p class="term-row-disclaimer" role="note">DIRECTIONAL ONLY — RBI intervention distorts precision entries. No price targets. No stop levels.</p>
+            <p class="term-acc__interpret">Cross-asset mix for INR emphasises gold import channel and idiosyncratic dollar beta — not a pure G10 USD read.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="term-acc" id="acc-regime" data-term-acc-row data-row-key="regime" data-no-chart="true">
+        <div class="term-acc__shell">
+          <div class="term-acc__bar" role="button" tabindex="0">
+            <span class="term-acc__cat">Regime read</span>
+            <span class="term-acc__summary-metric" id="sum-regime">—</span>
+            <div class="term-acc__bar-right">
+              <span class="term-badge term-badge--neutral" id="sum-regime-badge">—</span>
+              <svg class="term-acc__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="term-acc__panel">
+            <div class="term-regime-hero" id="regime-hero"></div>
+            <table class="term-signal-table" id="regime-table" aria-label="Signal contribution"></table>
+            <div class="term-inr-composite" id="inr-composite-block" aria-label="INR composite breakdown"></div>
+            <p class="term-row-disclaimer" role="note">DIRECTIONAL ONLY — RBI intervention distorts precision entries. No price targets. No stop levels.</p>
+            <p class="term-acc__interpret">Composite blends rates, FPI, RBI activity, and gold seasonality into a single directional pressure score — not a level forecast.</p>
+            <div class="term-invalidation">
+              <div class="term-invalidation__label">Invalidation</div>
+              <p class="term-invalidation__body">Sustained FPI inflow inflection or RBI stepping back from active USD sales would materially ease depreciation pressure.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="term-acc" id="acc-momentum" data-term-acc-row data-row-key="momentum">
+        <div class="term-acc__shell">
+          <div class="term-acc__bar" role="button" tabindex="0">
+            <span class="term-acc__cat">Momentum</span>
+            <span class="term-acc__summary-metric" id="sum-momo">—</span>
+            <div class="term-acc__bar-right">
+              <span class="term-badge term-badge--bull" id="sum-momo-badge">BULLISH</span>
+              <svg class="term-acc__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="term-acc__panel">
+            <div class="term-acc__grid">
+              <div class="term-acc__data" id="panel-momo-data"></div>
+              <div class="term-acc__chart-wrap">
+                <div class="term-chart-panel">
+                  <div class="term-chart-panel__toolbar js-momo-toolbar">
+                    <div class="term-chart-ranges js-range-root" data-row-key="momentum">
+                      <button type="button" class="term-chart-ranges__btn" data-range-ms="7776000000">3M</button>
+                      <button type="button" class="term-chart-ranges__btn is-active" data-range-ms="15552000000">6M</button>
+                      <button type="button" class="term-chart-ranges__btn" data-range-ms="31536000000">1Y</button>
+                    </div>
+                  </div>
+                  <div class="term-chart-panel__canvas js-term-echart" aria-label="Daily returns, momentum, and USD/INR spot"></div>
+                </div>
+              </div>
+            </div>
+            <p class="term-row-disclaimer" role="note">DIRECTIONAL ONLY — RBI intervention distorts precision entries. No price targets. No stop levels.</p>
+            <p class="term-acc__interpret">Momentum frames near-term drift in spot; pair colour highlights direction while RBI intervention risk caps precision timing.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="term-acc" id="acc-fpi-flows" data-term-acc-row data-row-key="fpi-flows">
+        <div class="term-acc__shell">
+          <div class="term-acc__bar" role="button" tabindex="0">
+            <span class="term-acc__cat">FPI flows</span>
+            <span class="term-acc__summary-metric" id="sum-fpi">—</span>
+            <div class="term-acc__bar-right">
+              <span class="term-badge term-badge--bear" id="sum-fpi-badge">OUTFLOW</span>
+              <svg class="term-acc__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="term-acc__panel">
+            <div class="term-acc__grid">
+              <div class="term-acc__data" id="panel-fpi-data"></div>
+              <div class="term-acc__chart-wrap">
+                <div class="term-chart-panel">
+                  <div class="term-chart-panel__toolbar">
+                    <div class="term-chart-ranges js-range-root" data-row-key="fpi-flows">
+                      <button type="button" class="term-chart-ranges__btn is-active" data-range-ms="63072000000">2Y</button>
+                    </div>
+                  </div>
+                  <div class="term-chart-panel__canvas js-term-echart" aria-label="FPI flow bars and cumulative"></div>
+                </div>
+              </div>
+            </div>
+            <p class="term-row-disclaimer" role="note">DIRECTIONAL ONLY — RBI intervention distorts precision entries. No price targets. No stop levels.</p>
+            <p class="term-acc__interpret">FPI outflow pressure shows up in spot with a lag; combine with RBI reserve burn for a fuller intervention picture.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="term-acc" id="acc-rbi-activity" data-term-acc-row data-row-key="rbi-activity">
+        <div class="term-acc__shell">
+          <div class="term-acc__bar" role="button" tabindex="0">
+            <span class="term-acc__cat">RBI activity</span>
+            <span class="term-acc__summary-metric" id="sum-rbi">—</span>
+            <div class="term-acc__bar-right">
+              <span class="term-badge term-badge--bull" id="sum-rbi-badge">ACTIVE</span>
+              <svg class="term-acc__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+          <div class="term-acc__panel">
+            <div class="term-acc__grid">
+              <div class="term-acc__data" id="panel-rbi-data"></div>
+              <div class="term-acc__chart-wrap">
+                <div class="term-chart-panel">
+                  <div class="term-chart-panel__toolbar">
+                    <div class="term-chart-ranges js-range-root" data-row-key="rbi-activity">
+                      <button type="button" class="term-chart-ranges__btn is-active" data-range-ms="63072000000">2Y</button>
+                    </div>
+                  </div>
+                  <div class="term-chart-panel__canvas js-term-echart" aria-label="RBI foreign reserves"></div>
+                </div>
+              </div>
+            </div>
+            <p class="term-row-disclaimer" role="note">DIRECTIONAL ONLY — RBI intervention distorts precision entries. No price targets. No stop levels.</p>
+            <p class="term-acc__interpret">RBI actively defending INR through reserves; forward book colour matters but is not tradable here — directional context only.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="/terminal/data-client.js"></script>
+  <script>
+(function () {
+  'use strict';
+
+  var MS_D = 86400000;
+  var LATEST = {};
+  var DATA = {
+    rateDiff10Y: [],
+    rateDiff2Y: [],
+    vol30: [],
+    vol60Roll: [],
+    dxyCorr: [],
+    oilCorr: [],
+    goldCorrProxy: [],
+    vixProxy: [],
+    ratesProxy: [],
+    spotPx: [],
+    dailyRetPct: [],
+    momo5Roll: [],
+    masterRows: [],
+    btpSpread: [],
+    rbiReserves: [],
+    rbiIntervention: [],
+    fpiWeekLabels: [],
+    fpiWeekBars: [],
+    fpiWeekCum: []
+  };
+
+  function splitCsvLine(line) {
+    var out = [];
+    var cur = '';
+    var inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (inQ) {
+        if (c === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; }
+          else inQ = false;
+        } else cur += c;
+      } else {
+        if (c === '"') inQ = true;
+        else if (c === ',') { out.push(cur); cur = ''; }
+        else cur += c;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function parseCsv(text) {
+    var lines = text.split(/\r?\n/).filter(function (l) { return l.trim().length; });
+    if (!lines.length) return { headers: [], rows: [] };
+    var headers = splitCsvLine(lines[0]).map(function (h, i) {
+      var t = h.trim();
+      if (!t && i === 0) return 'date';
+      return t || 'col_' + i;
+    });
+    var rows = [];
+    for (var r = 1; r < lines.length; r++) {
+      var cells = splitCsvLine(lines[r]);
+      var o = {};
+      for (var c = 0; c < headers.length; c++) {
+        o[headers[c]] = cells[c] != null ? cells[c].trim() : '';
+      }
+      rows.push(o);
+    }
+    return { headers: headers, rows: rows };
+  }
+
+  function num(x) {
+    if (x === '' || x == null) return NaN;
+    var n = parseFloat(String(x).replace(/,/g, ''));
+    return isFinite(n) ? n : NaN;
+  }
+
+  function ts(dateStr) {
+    var t = new Date(dateStr + 'T12:00:00Z').getTime();
+    return isFinite(t) ? t : NaN;
+  }
+
+  function percentileRank(arr, v) {
+    var s = arr.filter(isFinite).sort(function (a, b) { return a - b; });
+    if (!s.length || !isFinite(v)) return NaN;
+    var below = 0;
+    for (var i = 0; i < s.length; i++) if (s[i] < v) below++;
+    return Math.round(100 * below / s.length);
+  }
+
+  function rollingVol60FromSpot(spotSeries) {
+    var out = [];
+    for (var i = 0; i < spotSeries.length; i++) {
+      if (i < 61) { out.push([spotSeries[i][0], NaN]); continue; }
+      var rets = [];
+      for (var j = i - 59; j <= i; j++) {
+        var p0 = spotSeries[j - 1][1];
+        var p1 = spotSeries[j][1];
+        if (!isFinite(p0) || !isFinite(p1) || p0 <= 0) continue;
+        rets.push(Math.log(p1 / p0));
+      }
+      if (rets.length < 50) { out.push([spotSeries[i][0], NaN]); continue; }
+      var m = rets.reduce(function (a, b) { return a + b; }, 0) / rets.length;
+      var v = 0;
+      for (var k = 0; k < rets.length; k++) v += (rets[k] - m) * (rets[k] - m);
+      v = Math.sqrt(v / (rets.length - 1)) * Math.sqrt(252) * 100;
+      out.push([spotSeries[i][0], v]);
+    }
+    return out;
+  }
+
+  function filterByRange(series, rangeMs) {
+    if (!rangeMs) return series;
+    var cut = Date.now() - rangeMs;
+    return series.filter(function (p) { return p[0] >= cut; });
+  }
+
+  function regimeFromLabel(label) {
+    var s = (label || '').toUpperCase();
+    if (s.indexOf('BEAR') >= 0 || s.indexOf('DEPRECIATION') >= 0) return 'bear';
+    if (s.indexOf('BULL') >= 0 || s.indexOf('LONG') >= 0 || s.indexOf('APPRECIATION') >= 0) return 'bull';
+    return 'neutral';
+  }
+
+  function isoWeekKey(tms) {
+    var d = new Date(tms);
+    var day = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - day + 3);
+    var w1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    var n = 1 + Math.round((d - w1) / 604800000);
+    return d.getUTCFullYear() + '-W' + (n < 10 ? '0' : '') + n;
+  }
+
+  function buildFpiWeekly(rows) {
+    var labels = [];
+    var bars = [];
+    var cum = [];
+    var lastW = '';
+    var acc = 0;
+    for (var i = Math.max(0, rows.length - 400); i < rows.length; i++) {
+      var o = rows[i];
+      var tt = ts(o.date);
+      if (!isFinite(tt)) continue;
+      var wk = isoWeekKey(tt);
+      if (wk === lastW) continue;
+      lastW = wk;
+      var v = num(o.FPI_20D_flow);
+      if (!isFinite(v)) continue;
+      labels.push(wk);
+      bars.push(v);
+      acc += v;
+      cum.push(acc);
+    }
+    if (labels.length > 52) {
+      var cut = labels.length - 52;
+      labels = labels.slice(cut);
+      bars = bars.slice(cut);
+      cum = [];
+      var acc2 = 0;
+      for (var z = 0; z < bars.length; z++) {
+        acc2 += bars[z];
+        cum.push(acc2);
+      }
+    }
+    return { labels: labels, bars: bars, cum: cum };
+  }
+
+  function buildInrSeries(rows) {
+    var spot = [];
+    var r10 = [];
+    var r2 = [];
+    var vol30 = [];
+    var dxy = [];
+    var oil = [];
+    var goldInr = [];
+    var spr20 = [];
+    var spr60 = [];
+    var vPct = [];
+    var btp = [];
+    var rbi = [];
+    var rbiFlag = [];
+    for (var i = 0; i < rows.length; i++) {
+      var o = rows[i];
+      var t = ts(o.date);
+      if (!isFinite(t)) continue;
+      var px = num(o.USDINR);
+      var u10 = num(o.US_IN_10Y_spread);
+      var u2 = num(o.US_IN_policy_spread);
+      var v3 = num(o.USDINR_vol30);
+      var dx = num(o.dxy_inr_corr_60d);
+      var oi = num(o.oil_inr_corr_60d);
+      var gj = num(o.gold_inr_corr_60d);
+      var c20 = num(o.USDINR_corr_20d);
+      if (!isFinite(c20)) c20 = NaN;
+      var c60 = num(o.USDINR_spread_corr_60d);
+      if (!isFinite(c60)) c60 = NaN;
+      var vp = num(o.USDINR_vol_pct);
+      var bt = num(o.BTP_Bund_spread);
+      var rb = num(o.rbi_reserves);
+      var fl = (o.rbi_intervention_flag || '').toString();
+      if (isFinite(px)) spot.push([t, px]);
+      if (isFinite(u10)) r10.push([t, u10]);
+      if (isFinite(u2)) r2.push([t, u2]);
+      if (isFinite(v3)) vol30.push([t, v3]);
+      if (isFinite(dx)) dxy.push([t, dx]);
+      if (isFinite(oi)) oil.push([t, oi]);
+      if (isFinite(gj)) goldInr.push([t, gj]);
+      if (isFinite(c20)) spr20.push([t, c20]);
+      if (isFinite(c60)) spr60.push([t, c60]);
+      if (isFinite(vp)) vPct.push([t, vp]);
+      if (isFinite(bt)) btp.push([t, bt]);
+      if (isFinite(rb)) {
+        rbi.push([t, rb]);
+        rbiFlag.push([t, fl]);
+      }
+    }
+    var retPct = [];
+    for (var j = 1; j < spot.length; j++) {
+      var p0 = spot[j - 1][1];
+      var p1 = spot[j][1];
+      var tt2 = spot[j][0];
+      if (isFinite(p0) && isFinite(p1) && p0 > 0) {
+        retPct.push([tt2, ((p1 - p0) / p0) * 100]);
+      }
+    }
+    var mom5 = [];
+    for (var m = 0; m < retPct.length; m++) {
+      var start = m - 4;
+      if (start < 0) continue;
+      var sum = 0;
+      var ok = true;
+      for (var k = start; k <= m; k++) {
+        if (!isFinite(retPct[k][1])) ok = false;
+        else sum += retPct[k][1];
+      }
+      if (ok) mom5.push([retPct[m][0], sum]);
+    }
+    var vol60 = rollingVol60FromSpot(spot);
+    var ratesStress = r10.map(function (p) {
+      return [p[0], isFinite(p[1]) ? Math.abs(p[1]) : NaN];
+    });
+    return {
+      spot: spot, r10: r10, r2: r2, vol30: vol30, dxy: dxy, oil: oil, goldInr: goldInr,
+      spr20: spr20, spr60: spr60, vPct: vPct, btp: btp, retPct: retPct, mom5: mom5, vol60: vol60,
+      ratesStress: ratesStress, rbi: rbi, rbiFlag: rbiFlag
+    };
+  }
+
+  function wireRangeButtons(root, onRange) {
+    var wrap = root.querySelector('.js-range-root');
+    if (!wrap) return;
+    var btns = wrap.querySelectorAll('[data-range-ms]');
+    var activeMs = null;
+    btns.forEach(function (b) {
+      if (b.classList.contains('is-active')) activeMs = parseInt(b.getAttribute('data-range-ms'), 10);
+    });
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        btns.forEach(function (x) { x.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        var ms = parseInt(btn.getAttribute('data-range-ms'), 10);
+        onRange(ms);
+      });
+    });
+    return activeMs;
+  }
+
+  function chartInits() {
+    return {
+      'rate-diff': function (mount, row) {
+        var chart = echarts.init(mount, null, { renderer: 'canvas' });
+        var base = window.TERMINAL_CHART_BASE || {};
+        var rangeMs = wireRangeButtons(row, function (ms) { draw(ms); }) || 7776000000;
+
+        function draw(ms) {
+          var d10 = filterByRange(DATA.rateDiff10Y, ms);
+          var d2 = filterByRange(DATA.rateDiff2Y, ms);
+          var last = d10.length ? d10[d10.length - 1][1] : null;
+          chart.setOption({
+            backgroundColor: base.backgroundColor || 'transparent',
+            color: base.color,
+            textStyle: base.textStyle || { fontFamily: 'JetBrains Mono,monospace', fontSize: 11, color: '#8a9485' },
+            grid: { left: 52, right: 24, top: 36, bottom: 44 },
+            legend: {
+              top: 4,
+              right: 8,
+              textStyle: { color: '#8a9485', fontSize: 10, fontFamily: 'JetBrains Mono,monospace' }
+            },
+            graphic: [
+              {
+                type: 'text',
+                left: 'center',
+                bottom: 6,
+                style: {
+                  text: 'Negative = INR yield premium = INR strength',
+                  fill: '#8a9485',
+                  font: '11px IBM Plex Sans, system-ui, sans-serif'
+                }
+              }
+            ],
+            xAxis: { type: 'time', axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { color: '#8a9485', fontSize: 10 } },
+            yAxis: {
+              type: 'value',
+              scale: true,
+              axisLabel: { formatter: '{value}%', color: '#8a9485', fontSize: 10 },
+              splitLine: { lineStyle: { color: '#1c1f18' } }
+            },
+            tooltip: { trigger: 'axis' },
+            series: [
+              {
+                name: 'US–IN 10Y',
+                type: 'line',
+                showSymbol: false,
+                smooth: 0.35,
+                lineStyle: { width: 1.5, color: '#c94040' },
+                data: d10,
+                markLine: isFinite(last) ? {
+                  silent: true,
+                  symbol: 'none',
+                  lineStyle: { type: 'dashed', color: '#4a5245' },
+                  label: { formatter: 'Current: ' + last.toFixed(2) + '%', color: '#8a9485', fontSize: 10 },
+                  data: [{ yAxis: last }]
+                } : undefined
+              },
+              {
+                name: 'US–IN policy',
+                type: 'line',
+                showSymbol: false,
+                smooth: 0.35,
+                lineStyle: { width: 1.5, type: 'dashed', color: '#e87878' },
+                data: d2
+              }
+            ]
+          }, true);
+        }
+        draw(rangeMs);
+        return chart;
+      },
+
+      'vol': function (mount, row) {
+        var chart = echarts.init(mount, null, { renderer: 'canvas' });
+        var rangeMs = wireRangeButtons(row, function (ms) { draw(ms); }) || 15552000000;
+
+        function draw(ms) {
+          var v30 = filterByRange(DATA.vol30, ms);
+          var v60 = filterByRange(DATA.vol60Roll, ms);
+          var gold = filterByRange(DATA.goldCorrProxy, ms);
+          chart.setOption({
+            backgroundColor: 'transparent',
+            textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
+            axisPointer: { link: [{ xAxisIndex: 'all' }] },
+            grid: [
+              { left: 52, right: 20, top: 32, height: '52%' },
+              { left: 52, right: 20, top: '72%', height: '22%' }
+            ],
+            xAxis: [
+              { type: 'time', gridIndex: 0, axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { show: false } },
+              { type: 'time', gridIndex: 1, axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { color: '#8a9485', fontSize: 9 } }
+            ],
+            yAxis: [
+              { type: 'value', gridIndex: 0, scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { color: '#8a9485', formatter: '{value}%' } },
+              {
+                type: 'value',
+                gridIndex: 1,
+                scale: true,
+                splitLine: { lineStyle: { color: '#1c1f18' } },
+                axisLabel: { color: '#8a9485' }
+              }
+            ],
+            tooltip: { trigger: 'axis' },
+            series: [
+              {
+                name: '30D vol',
+                type: 'line',
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                areaStyle: { color: 'rgba(201,64,64,0.14)' },
+                lineStyle: { color: '#c94040', width: 1.5 },
+                showSymbol: false,
+                data: v30
+              },
+              {
+                name: '60D vol',
+                type: 'line',
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                lineStyle: { color: 'rgba(232,120,120,0.55)', width: 1, type: 'dashed' },
+                showSymbol: false,
+                data: v60
+              },
+              {
+                name: 'Gold corr 60D',
+                type: 'line',
+                xAxisIndex: 1,
+                yAxisIndex: 1,
+                showSymbol: false,
+                lineStyle: { width: 1.2, color: '#e87878' },
+                data: gold,
+                markLine: {
+                  silent: true,
+                  symbol: 'none',
+                  lineStyle: { color: '#2e3228', width: 1 },
+                  data: [{ yAxis: 0 }]
+                }
+              }
+            ]
+          }, true);
+        }
+        draw(rangeMs);
+        return chart;
+      },
+
+      'cross': function (mount, row) {
+        var chart = echarts.init(mount, null, { renderer: 'canvas' });
+        var rangeMs = wireRangeButtons(row, function (ms) { draw(ms); }) || 31536000000;
+
+        function meanAbsOverRange(series, ms) {
+          var cut = Date.now() - ms;
+          var slice = series.filter(function (p) { return p[0] >= cut && isFinite(p[1]); });
+          if (!slice.length) return 0;
+          var s = 0;
+          for (var i = 0; i < slice.length; i++) s += Math.abs(slice[i][1]);
+          return s / slice.length;
+        }
+
+        function draw(ms) {
+          var dxyM = meanAbsOverRange(DATA.dxyCorr, ms);
+          var oilM = meanAbsOverRange(DATA.oilCorr, ms);
+          var goldM = meanAbsOverRange(DATA.goldCorrProxy, ms);
+          var vixP = meanAbsOverRange(DATA.vixProxy, ms);
+          var ratesM = meanAbsOverRange(DATA.ratesProxy, ms);
+          var ind = [
+            { name: 'DXY\n' + dxyM.toFixed(2), max: 1 },
+            { name: 'Oil\n' + oilM.toFixed(2), max: 1 },
+            { name: 'Gold\n' + goldM.toFixed(2), max: 1 },
+            { name: 'Vol pct\n' + (vixP / 100).toFixed(2), max: 1 },
+            { name: 'Rates\n' + ratesM.toFixed(2), max: 1 }
+          ];
+          var cur = [dxyM, oilM, goldM, vixP / 100, ratesM];
+          var hist = [
+            meanAbsOverRange(DATA.dxyCorr, ms * 2) || dxyM,
+            meanAbsOverRange(DATA.oilCorr, ms * 2) || oilM,
+            meanAbsOverRange(DATA.goldCorrProxy, ms * 2) || goldM,
+            (meanAbsOverRange(DATA.vixProxy, ms * 2) || vixP) / 100,
+            meanAbsOverRange(DATA.ratesProxy, ms * 2) || ratesM
+          ];
+          chart.setOption({
+            backgroundColor: 'transparent',
+            animation: false,
+            textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
+            tooltip: {},
+            radar: {
+              indicator: ind,
+              center: ['50%', '52%'],
+              radius: '58%',
+              axisName: { color: '#8a9485', fontSize: 9, lineHeight: 14 },
+              splitLine: { lineStyle: { color: '#1c1f18' } },
+              splitArea: { show: true, areaStyle: { color: ['rgba(25,28,21,0.9)', 'transparent'] } },
+              axisLine: { lineStyle: { color: '#252820' } }
+            },
+            series: [{
+              type: 'radar',
+              data: [
+                {
+                  value: cur,
+                  name: 'Current',
+                  areaStyle: { color: 'rgba(201,64,64,0.2)' },
+                  lineStyle: { color: '#c94040', width: 1.5 }
+                },
+                {
+                  value: hist,
+                  name: 'Longer avg',
+                  areaStyle: { color: 'rgba(107,114,128,0.15)' },
+                  lineStyle: { color: '#6b7280', width: 1, type: 'dashed' }
+                }
+              ]
+            }]
+          }, true);
+        }
+        draw(rangeMs);
+        return chart;
+      },
+
+      'momentum': function (mount, row) {
+        var chart = echarts.init(mount, null, { renderer: 'canvas' });
+        var toolbar = row.querySelector('.js-momo-toolbar');
+        var regime = regimeFromLabel(LATEST.inr_composite_label);
+        var rangeMs = wireRangeButtons(row, function (ms) { draw(ms); }) || 15552000000;
+
+        function zoneEnabled() {
+          var inp = toolbar && toolbar.querySelector('.term-regime-toggle__input');
+          if (inp) return !!inp.checked;
+          try {
+            return window.localStorage.getItem('fxrl_regime_zone_usdinr') === 'true';
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function draw(ms) {
+          var cut = Date.now() - ms;
+          var ret = DATA.dailyRetPct.filter(function (p) { return p[0] >= cut; });
+          var mom = DATA.momo5Roll.filter(function (p) { return p[0] >= cut; });
+          var spot = DATA.spotPx.filter(function (p) { return p[0] >= cut; });
+          var absMax = 0.15;
+          for (var i = 0; i < ret.length; i++) absMax = Math.max(absMax, Math.abs(ret[i][1] || 0));
+          var barData = ret.map(function (p) {
+            var mag = Math.min(1, Math.abs(p[1]) / absMax);
+            var op = 0.35 + mag * 0.45;
+            return {
+              value: p,
+              itemStyle: {
+                color: p[1] >= 0 ? 'rgba(201,64,64,' + op + ')' : 'rgba(45,158,107,' + op + ')'
+              }
+            };
+          });
+          var on = zoneEnabled();
+          var tEnd = spot.length ? spot[spot.length - 1][0] : Date.now();
+          var xPad = 20 * MS_D;
+          var xMax = tEnd + xPad;
+          if (on && regime !== 'neutral') xMax = Math.max(xMax, tEnd + 28 * MS_D);
+          var markArea =
+            on && regime !== 'neutral' && spot.length
+              ? {
+                  itemStyle: {
+                    color: regime === 'bull' ? 'rgba(45,158,107,0.08)' : 'rgba(201,64,64,0.08)'
+                  },
+                  label: {
+                    show: true,
+                    position: 'inside',
+                    rotate: 90,
+                    fontSize: 9,
+                    fontFamily: 'IBM Plex Sans, system-ui, sans-serif',
+                    formatter: '{g|REGIME DIRECTION — NOT A PRICE FORECAST}\n{a|DIRECTIONAL ONLY}',
+                    rich: {
+                      g: { color: '#8a9485', fontSize: 9, lineHeight: 14 },
+                      a: { color: '#d4890a', fontSize: 9, lineHeight: 14 }
+                    }
+                  },
+                  data: [[{ xAxis: tEnd }, { xAxis: tEnd + 28 * MS_D }]]
+                }
+              : { data: [] };
+
+          chart.setOption({
+            backgroundColor: 'transparent',
+            textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
+            grid: [
+              { left: 48, right: 52, top: 28, height: '54%' },
+              { left: 48, right: 16, top: '74%', height: '20%' }
+            ],
+            xAxis: [
+              { type: 'time', gridIndex: 0, max: xMax, axisLabel: { show: false }, axisLine: { lineStyle: { color: '#252820' } } },
+              { type: 'time', gridIndex: 1, max: xMax, axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { fontSize: 9, color: '#8a9485' } }
+            ],
+            yAxis: [
+              { type: 'value', gridIndex: 0, scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { formatter: '{value}%', color: '#8a9485' } },
+              { type: 'value', gridIndex: 0, scale: true, splitLine: { show: false }, axisLabel: { color: '#c94040' } },
+              { type: 'value', gridIndex: 1, scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { color: '#8a9485', fontSize: 9 } }
+            ],
+            axisPointer: { link: [{ xAxisIndex: 'all' }] },
+            tooltip: { trigger: 'axis' },
+            series: [
+              {
+                name: 'Daily %',
+                type: 'bar',
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                barMaxWidth: 10,
+                data: barData,
+                markLine: {
+                  silent: true,
+                  symbol: 'none',
+                  lineStyle: { color: '#2e3228', width: 1 },
+                  data: [{ yAxis: 0 }]
+                }
+              },
+              {
+                name: '5D mom',
+                type: 'line',
+                xAxisIndex: 0,
+                yAxisIndex: 1,
+                showSymbol: false,
+                smooth: 0.25,
+                lineStyle: { width: 1.2, color: '#c94040' },
+                data: mom
+              },
+              {
+                name: 'USD/INR',
+                type: 'line',
+                xAxisIndex: 1,
+                yAxisIndex: 2,
+                showSymbol: false,
+                smooth: 0.2,
+                lineStyle: { width: 1.2, color: '#e8ede8' },
+                data: spot,
+                markArea: markArea
+              }
+            ]
+          }, true);
+        }
+
+        draw(rangeMs);
+
+        if (toolbar && window.TerminalExpandableRows) {
+          window.TerminalExpandableRows.attachRegimeZoneToggle(toolbar, chart, {
+            storageKey: 'fxrl_regime_zone_usdinr',
+            apply: function () {
+              draw(wireActiveRange(row) || 15552000000);
+            }
+          });
+        }
+
+        return chart;
+      },
+
+      'fpi-flows': function (mount, row) {
+        var chart = echarts.init(mount, null, { renderer: 'canvas' });
+        wireRangeButtons(row, function () { draw(); });
+
+        function draw() {
+          var cats = DATA.fpiWeekLabels;
+          var barDat = DATA.fpiWeekBars.map(function (v) {
+            return {
+              value: v,
+              itemStyle: {
+                color: isFinite(v) && v >= 0 ? 'rgba(45,158,107,0.75)' : 'rgba(201,64,64,0.75)'
+              }
+            };
+          });
+          var cum = DATA.fpiWeekCum;
+          chart.setOption({
+            backgroundColor: 'transparent',
+            textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
+            grid: { left: 56, right: 56, top: 32, bottom: 48 },
+            tooltip: { trigger: 'axis' },
+            legend: { top: 4, textStyle: { color: '#8a9485', fontSize: 10 } },
+            xAxis: { type: 'category', data: cats, axisLabel: { color: '#8a9485', fontSize: 8, rotate: 55 } },
+            yAxis: [
+              { type: 'value', scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { color: '#8a9485' } },
+              { type: 'value', scale: true, splitLine: { show: false }, axisLabel: { color: '#c94040' } }
+            ],
+            series: [
+              { name: 'FPI (weekly snap)', type: 'bar', data: barDat, barMaxWidth: 14 },
+              {
+                name: 'Cumulative',
+                type: 'line',
+                yAxisIndex: 1,
+                data: cum,
+                showSymbol: false,
+                smooth: 0.2,
+                lineStyle: { width: 1.5, color: '#c94040' }
+              }
+            ]
+          }, true);
+        }
+
+        draw();
+        return chart;
+      },
+
+      'rbi-activity': function (mount, row) {
+        var chart = echarts.init(mount, null, { renderer: 'canvas' });
+        var rangeMs = wireRangeButtons(row, function (ms) { draw(ms); }) || 63072000000;
+
+        function interventionShade(resPts, flagPts) {
+          if (!resPts.length || resPts.length !== flagPts.length) return [];
+          var i = resPts.length - 1;
+          while (i >= 0 && String(flagPts[i][1]).indexOf('SUPPORT') < 0) i--;
+          if (i < 0) return [];
+          var t1 = resPts[i][0];
+          var t0 = t1;
+          while (i >= 0 && String(flagPts[i][1]).indexOf('SUPPORT') >= 0) {
+            t0 = resPts[i][0];
+            i--;
+          }
+          return [[{ xAxis: t0 }, { xAxis: t1 }]];
+        }
+
+        function draw(ms) {
+          var line = filterByRange(DATA.rbiReserves, ms);
+          var flags = filterByRange(DATA.rbiIntervention, ms);
+          var shade = interventionShade(line, flags);
+          chart.setOption({
+            backgroundColor: 'transparent',
+            textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
+            grid: { left: 56, right: 24, top: 32, bottom: 40 },
+            xAxis: { type: 'time', axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { color: '#8a9485', fontSize: 9 } },
+            yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { color: '#8a9485' } },
+            tooltip: { trigger: 'axis' },
+            series: [
+              {
+                name: 'RBI reserves',
+                type: 'line',
+                showSymbol: false,
+                smooth: 0.25,
+                lineStyle: { width: 1.5, color: '#2d9e6b' },
+                data: line,
+                markArea: shade.length
+                  ? { itemStyle: { color: 'rgba(45,158,107,0.06)' }, data: shade }
+                  : { data: [] }
+              }
+            ]
+          }, true);
+        }
+
+        draw(rangeMs);
+        return chart;
+      }
+    };
+  }
+
+  function wireActiveRange(row) {
+    var wrap = row.querySelector('.js-range-root');
+    if (!wrap) return null;
+    var b = wrap.querySelector('.term-chart-ranges__btn.is-active');
+    return b ? parseInt(b.getAttribute('data-range-ms'), 10) : null;
+  }
+
+  function hydrateData(masterParsed, cotParsed) {
+    DATA.masterRows = masterParsed.rows;
+    var rows = masterParsed.rows;
+    LATEST = rows.length ? rows[rows.length - 1] : {};
+    var s = buildInrSeries(rows);
+    DATA.rateDiff10Y = s.r10;
+    DATA.rateDiff2Y = s.r2;
+    DATA.vol30 = s.vol30;
+    DATA.vol60Roll = s.vol60;
+    DATA.dxyCorr = s.dxy;
+    DATA.oilCorr = s.oil;
+    DATA.goldCorrProxy = s.goldInr;
+    DATA.vixProxy = s.vPct;
+    DATA.ratesProxy = s.ratesStress;
+    DATA.spotPx = s.spot;
+    DATA.dailyRetPct = s.retPct;
+    DATA.momo5Roll = s.mom5;
+    DATA.btpSpread = s.btp;
+    DATA.rbiReserves = s.rbi;
+    DATA.rbiIntervention = s.rbiFlag;
+    var fw = buildFpiWeekly(rows);
+    DATA.fpiWeekLabels = fw.labels;
+    DATA.fpiWeekBars = fw.bars;
+    DATA.fpiWeekCum = fw.cum;
+    void cotParsed;
+  }
+
+  function fmtPct(x, d) {
+    if (!isFinite(x)) return '—';
+    d = d || 2;
+    return (x >= 0 ? '+' : '') + x.toFixed(d) + '%';
+  }
+
+  function fmtNum(x, d) {
+    if (!isFinite(x)) return '—';
+    return x.toFixed(d != null ? d : 2);
+  }
+
+  function populateDom() {
+    var rows = DATA.masterRows;
+    var spot = num(LATEST.USDINR);
+    var d1 = num(LATEST.USDINR_chg_1D);
+    var y12 = num(LATEST.USDINR_chg_12M);
+    var score = num(LATEST.inr_composite_score);
+    var label = (LATEST.inr_composite_label || '—').toString();
+
+    document.getElementById('hdr-spot').textContent = isFinite(spot) ? spot.toFixed(2) : '—';
+    var d1El = document.getElementById('hdr-d1');
+    d1El.textContent = isFinite(d1) ? fmtPct(d1, 2) : '—';
+    d1El.className = 'term-pair-head__d1 ' + (d1 > 0 ? 'term-pair-head__d1--up' : d1 < 0 ? 'term-pair-head__d1--down' : '');
+    document.getElementById('hdr-12m').textContent = isFinite(y12) ? '12M ' + fmtPct(y12, 2) : '12M —';
+    document.getElementById('hdr-score').textContent = isFinite(score) ? String(Math.round(score)) : '—';
+
+    var rb = document.getElementById('hdr-regime-badge');
+    rb.textContent = label;
+    rb.className = 'term-pair-head__badge ';
+    var rg = regimeFromLabel(label);
+    rb.className += rg === 'bull' ? 'term-pair-head__badge--bull' : rg === 'bear' ? 'term-pair-head__badge--bear' : 'term-pair-head__badge--neutral';
+
+    document.getElementById('term-pipeline-ts').textContent = LATEST.date ? 'As of ' + LATEST.date + ' · CSV' : 'Pipeline —';
+
+    var u10 = num(LATEST.US_IN_10Y_spread);
+    var u2 = num(LATEST.US_IN_policy_spread);
+    var u10p = NaN;
+    var u2p = NaN;
+    if (rows.length > 1) {
+      u10p = num(rows[rows.length - 2].US_IN_10Y_spread);
+      u2p = num(rows[rows.length - 2].US_IN_policy_spread);
+    }
+    var ch10 = isFinite(u10) && isFinite(u10p) ? u10 - u10p : NaN;
+    var ch2 = isFinite(u2) && isFinite(u2p) ? u2 - u2p : NaN;
+
+    document.getElementById('sum-rate').textContent =
+      isFinite(u2) && isFinite(u10)
+        ? 'US-IN 10Y: ' + u10.toFixed(2) + '% · Policy: ' + u2.toFixed(2) + '%'
+        : '—';
+
+    document.getElementById('sum-rate-badge').textContent = 'BEARISH';
+    document.getElementById('sum-rate-badge').className = 'term-badge term-badge--bear';
+
+    var hist10 = DATA.rateDiff10Y.map(function (p) { return p[1]; });
+    var pct1y = percentileRank(hist10, u10);
+
+    document.getElementById('panel-rate-data').innerHTML =
+      dataRowHtml('US-IN 10Y spread', fmtNum(u10, 2) + '%', (isFinite(ch10) ? (ch10 >= 0 ? '+' : '') + ch10.toFixed(2) : '—') + 'pp', 'BEARISH', 'bear') +
+      dataRowHtml('US-IN policy rate', fmtNum(u2, 2) + '%', (isFinite(ch2) ? (ch2 >= 0 ? '+' : '') + ch2.toFixed(2) : '—') + 'pp', 'BEARISH', 'bear') +
+      dataRowHtml('1Y percentile (10Y)', isFinite(pct1y) ? pct1y + 'th pct' : '—', '', null, null, true);
+
+    var noteEl = document.getElementById('panel-rate-note');
+    if (noteEl) {
+      noteEl.textContent =
+        'Negative spread = INR yield premium = structural INR strength factor';
+    }
+
+    document.getElementById('panel-cot-data').innerHTML =
+      dataRowHtml('CFTC COT', 'Not used for USD/INR', 'FPI flows row', 'INFO', 'neutral') +
+      dataRowHtml('Institutional proxy', 'FPI 20D / equity-debt series', 'See FPI flows', null, null, true) +
+      dataRowHtml('Coverage', 'SEBI / NSE where available', '', null, null, true, true);
+
+    var v30 = num(LATEST.USDINR_vol30);
+    var v30p = num(LATEST.USDINR_vol_pct);
+    var v60arr = DATA.vol60Roll.filter(function (p) { return isFinite(p[1]); });
+    var v60last = v60arr.length ? v60arr[v60arr.length - 1][1] : NaN;
+    var v60hist = v60arr.map(function (p) { return p[1]; });
+    var v60p = percentileRank(v60hist, v60last);
+    var c20 = num(LATEST.USDINR_corr_20d);
+    var c60 = num(LATEST.USDINR_spread_corr_60d);
+    var broken = isFinite(c20) && isFinite(c60) && Math.abs(c20 - c60) > 0.12;
+    var gld = num(LATEST.gold_inr_corr_60d);
+    var dx = num(LATEST.dxy_inr_corr_60d);
+    var mo = LATEST.date ? parseInt(LATEST.date.slice(5, 7), 10) : NaN;
+    var seasonal = isFinite(mo) && (mo === 4 || mo === 5);
+    var akshaya = seasonal ? 'ACTIVE · AKSHAYA TRITIYA' : 'Off window';
+
+    document.getElementById('sum-vol').textContent =
+      isFinite(v30) && isFinite(v30p)
+        ? '30D: ' + v30.toFixed(1) + '% · 60D pct: ' + (isFinite(v60p) ? Math.round(v60p) : '—')
+        : '—';
+
+    var svb = document.getElementById('sum-vol-badge');
+    svb.textContent = isFinite(v60p) && v60p >= 90 ? 'EXTREME' : isFinite(v30p) && v30p >= 75 ? 'ELEVATED' : 'NORMAL';
+    svb.className =
+      'term-badge ' +
+      (isFinite(v60p) && v60p >= 90 ? 'term-badge--amber' : isFinite(v30p) && v30p >= 75 ? 'term-badge--amber' : 'term-badge--neutral');
+
+    var volExtra = document.getElementById('panel-vol-extra');
+    if (volExtra) {
+      volExtra.innerHTML =
+        isFinite(v60p) && v60p >= 95
+          ? '<p class="term-vol-warning">Volatility at 96th percentile — EXTREME. RBI intervention probability elevated.</p>'
+          : '';
+    }
+
+    document.getElementById('panel-vol-data').innerHTML =
+      dataRowHtml('30D realized vol', isFinite(v30) ? v30.toFixed(1) + '%' : '—', isFinite(v30p) ? Math.round(v30p) + 'th pct' : '—', isFinite(v30p) && v30p >= 75 ? 'ELEVATED' : 'NORMAL', isFinite(v30p) && v30p >= 75 ? 'amber' : 'neutral') +
+      dataRowHtml('60D realized vol', isFinite(v60last) ? v60last.toFixed(1) + '%' : '—', isFinite(v60p) ? Math.round(v60p) + 'th pct' : '—', isFinite(v60p) && v60p >= 90 ? 'ANOMALY' : 'NORMAL', isFinite(v60p) && v60p >= 90 ? 'amber' : 'neutral') +
+      dataRowHtml('Gold corr 60D', isFinite(gld) ? gld.toFixed(3) : '—', 'GOLD DIVERGENCE', 'ANOMALY', 'amber') +
+      dataRowHtml('DXY corr 60D', isFinite(dx) ? dx.toFixed(3) : '—', 'INDIA SPECIFIC', 'ANOMALY', 'amber') +
+      dataRowHtml('Seasonal window', seasonal ? 'ACTIVE' : 'Inactive', akshaya, seasonal ? 'ANOMALY' : 'NORMAL', seasonal ? 'amber' : 'neutral') +
+      (broken
+        ? dataRowHtml('20D–60D corr', 'BROKEN', '', 'BEARISH', 'bear')
+        : dataRowHtml('20D–60D corr', 'N/A', 'series building', null, null, true));
+
+    document.getElementById('sum-cross').textContent =
+      isFinite(dx) && isFinite(gld) ? 'DXY: ' + dx.toFixed(2) + ' · Gold: ' + gld.toFixed(2) : '—';
+
+    document.getElementById('panel-cross-data').innerHTML =
+      dataRowHtml('DXY correlation 60D', isFinite(dx) ? dx.toFixed(3) : '—', 'INDIA SPECIFIC', 'ANOMALY', 'amber') +
+      dataRowHtml('Gold correlation 60D', isFinite(gld) ? gld.toFixed(3) : '—', 'IMPORT CHANNEL', 'ANOMALY', 'amber') +
+      dataRowHtml('Oil correlation 60D', isFinite(num(LATEST.oil_inr_corr_60d)) ? num(LATEST.oil_inr_corr_60d).toFixed(3) : '—', 'COMMODITY', 'NEUTRAL', 'neutral') +
+      dataRowHtml('Rates stress', isFinite(u10) ? Math.abs(u10).toFixed(2) : '—', 'abs spread', null, null, true) +
+      dataRowHtml('Cross-asset read', 'INR-specific', '', null, null, true);
+
+    var mom5 = DATA.momo5Roll.length ? DATA.momo5Roll[DATA.momo5Roll.length - 1][1] : NaN;
+    var ret20 = NaN;
+    if (DATA.dailyRetPct.length > 21) {
+      var s0 = 0;
+      for (var j = DATA.dailyRetPct.length - 20; j < DATA.dailyRetPct.length; j++) s0 += DATA.dailyRetPct[j][1];
+      ret20 = s0;
+    }
+    var acc = isFinite(mom5) && mom5 > 0 ? 'Positive' : isFinite(mom5) && mom5 < 0 ? 'Negative' : 'Flat';
+    var m5b = mom5 > 0 ? 'BEARISH' : mom5 < 0 ? 'BULLISH' : 'NEUTRAL';
+    document.getElementById('sum-momo').textContent =
+      isFinite(mom5)
+        ? '5D: ' + (mom5 > 0 ? 'USDINR ↑' : mom5 < 0 ? 'USDINR ↓' : 'Flat') + ' · ' + fmtNum(mom5, 2) + 'pp'
+        : '—';
+
+    var smb = document.getElementById('sum-momo-badge');
+    smb.textContent = mom5 > 0 ? 'PRESSURE' : mom5 < 0 ? 'EASING' : 'NEUTRAL';
+    smb.className =
+      'term-badge ' + (mom5 > 0 ? 'term-badge--bear' : mom5 < 0 ? 'term-badge--bull' : 'term-badge--neutral');
+
+    document.getElementById('panel-momo-data').innerHTML =
+      dataRowHtml('5D momentum', mom5 > 0 ? 'Bearish INR' : mom5 < 0 ? 'Bullish INR' : 'Neutral', isFinite(mom5) ? (mom5 >= 0 ? '+' : '') + mom5.toFixed(2) + 'pp' : '—', m5b, mom5 > 0 ? 'bear' : mom5 < 0 ? 'bull' : 'neutral') +
+      dataRowHtml('20D momentum', ret20 > 0 ? 'Bearish INR' : ret20 < 0 ? 'Bullish INR' : 'Neutral', isFinite(ret20) ? (ret20 >= 0 ? '+' : '') + ret20.toFixed(2) + 'pp' : '—', 'NEUTRAL', 'neutral') +
+      dataRowHtml('Regime alignment', 'Check composite', '', null, null, true) +
+      dataRowHtml('Acceleration', acc, '', null, null, true);
+
+    var conf = isFinite(v30p) ? Math.max(35, Math.min(85, Math.round(72 - Math.abs(score || 0)))) : 55;
+    document.getElementById('sum-regime').textContent = label + ' · ' + (isFinite(score) ? Math.round(score) : '—') + ' · INR';
+    document.getElementById('sum-regime-badge').textContent = rg === 'bull' ? 'BULLISH INR' : rg === 'bear' ? 'BEARISH INR' : 'NEUTRAL';
+    document.getElementById('sum-regime-badge').className =
+      'term-badge ' + (rg === 'bull' ? 'term-badge--bull' : rg === 'bear' ? 'term-badge--bear' : 'term-badge--neutral');
+
+    var hero = document.getElementById('regime-hero');
+    var barW = isFinite(score) ? Math.min(100, Math.max(8, 50 + Math.abs(score))) : 40;
+    var barCol = rg === 'bull' ? 'var(--bullish)' : rg === 'bear' ? 'var(--bearish)' : 'var(--neutral)';
+    hero.innerHTML =
+      '<span class="term-regime-hero__badge term-regime-hero__badge--' +
+      rg +
+      '">' +
+      label +
+      '</span>' +
+      '<div><div class="term-regime-hero__conf">' +
+      conf +
+      '%</div><div class="term-regime-hero__score" style="color:' +
+      barCol +
+      '">Composite ' +
+      (isFinite(score) ? Math.round(score) : '—') +
+      '</div><div class="term-regime-hero__bar"><i style="width:' +
+      barW +
+      '%;background:' +
+      barCol +
+      '"></i></div></div>';
+
+    var compParts = [
+      { n: 'Oil', v: 4 },
+      { n: 'Dollar', v: 0 },
+      { n: 'FPI', v: isFinite(num(LATEST.FPI_20D_flow)) ? Math.min(40, Math.round(Math.abs(num(LATEST.FPI_20D_flow)) / 2000)) : 25 },
+      { n: 'Other', v: 4 }
+    ];
+    var compHtml = '<div class="term-inr-composite__head">INR composite</div>';
+    compHtml +=
+      '<div class="term-inr-composite__line"><span>Regime score</span><strong>' +
+      (isFinite(score) ? Math.round(score) : '—') +
+      '</strong><span class="term-inr-composite__tag">' +
+      label +
+      '</span></div>';
+    compHtml += '<div class="term-inr-composite__bars">';
+    for (var ci = 0; ci < compParts.length; ci++) {
+      var cp = compParts[ci];
+      var w = Math.min(100, Math.abs(cp.v) * 5);
+      var col = cp.v > 0 ? 'var(--bearish)' : cp.v < 0 ? 'var(--bullish)' : 'var(--border-default)';
+      compHtml +=
+        '<div class="term-inr-composite__row"><span>' +
+        cp.n +
+        '</span><div class="term-inr-composite__track"><i style="width:' +
+        w +
+        '%;background:' +
+        col +
+        '"></i></div><span>' +
+        (cp.v > 0 ? '+' : '') +
+        cp.v +
+        '</span></div>';
+    }
+    compHtml += '</div>';
+    document.getElementById('inr-composite-block').innerHTML = compHtml;
+
+    document.getElementById('regime-table').innerHTML =
+      '<thead><tr><th>Signal</th><th>Direction</th><th>Contribution</th></tr></thead><tbody>' +
+      signalContribRow('Rate differentials', u10 < 0 ? 'INR premium' : 'Mixed', 24, u10 < 0 ? 'bull' : 'neutral') +
+      signalContribRow('FPI flows', '↓ OUTFLOW', 28, 'bear') +
+      signalContribRow('Vol &amp; gold', '⚠ STRESS', 14, 'bear') +
+      signalContribRow('RBI activity', 'Defense', 18, 'bull') +
+      signalContribRow('Momentum', mom5 > 0 ? '↓ INR' : '→', 16, mom5 > 0 ? 'bear' : 'neutral') +
+      '</tbody>';
+
+    var fpi20 = num(LATEST.FPI_20D_flow);
+    var fpi5 = NaN;
+    if (rows.length >= 6) {
+      fpi5 = fpi20 - num(rows[rows.length - 6].FPI_20D_flow);
+    }
+    document.getElementById('sum-fpi').textContent =
+      isFinite(fpi20) ? 'FPI 20D: ' + Math.round(fpi20).toLocaleString() + ' Cr' : '—';
+    var fpiB = document.getElementById('sum-fpi-badge');
+    fpiB.textContent = isFinite(fpi20) && fpi20 < 0 ? 'OUTFLOW' : 'INFLOW';
+    fpiB.className = 'term-badge ' + (isFinite(fpi20) && fpi20 < 0 ? 'term-badge--bear' : 'term-badge--bull');
+
+    document.getElementById('panel-fpi-data').innerHTML =
+      dataRowHtml('FPI 20D flow', isFinite(fpi20) ? Math.round(fpi20).toLocaleString() + ' Cr' : '—', 'BUILDING OUTFLOW', 'BEARISH', 'bear') +
+      dataRowHtml('FPI 5D (proxy)', isFinite(fpi5) ? Math.round(fpi5).toLocaleString() + ' Cr' : '—', 'OUTFLOW', 'BEARISH', 'bear') +
+      dataRowHtml('Cumulative trend', isFinite(fpi20) && fpi20 < 0 ? 'Accelerating outflow' : 'Stabilising', '', null, null, true) +
+      dataRowHtml('Seasonal factor', seasonal ? 'Akshaya Tritiya window' : 'Monitor calendar', seasonal ? 'ANOMALY' : 'NORMAL', seasonal ? 'amber' : 'neutral');
+
+    var rbiw = num(LATEST.rbi_reserve_chg_1w);
+    var rflag = (LATEST.rbi_intervention_flag || '').toString();
+    document.getElementById('sum-rbi').textContent =
+      isFinite(rbiw) ? 'RBI Reserves 1W: ' + (rbiw >= 0 ? '+' : '') + rbiw.toFixed(1) + 'B' : '—';
+    var rbib = document.getElementById('sum-rbi-badge');
+    rbib.textContent = rflag.indexOf('SUPPORT') >= 0 ? 'ACTIVE SUPPORT' : rflag.indexOf('CAPPING') >= 0 ? 'CAPPING' : 'NEUTRAL';
+    rbib.className =
+      'term-badge ' +
+      (rflag.indexOf('SUPPORT') >= 0 ? 'term-badge--bull' : rflag.indexOf('CAPPING') >= 0 ? 'term-badge--amber' : 'term-badge--neutral');
+
+    document.getElementById('panel-rbi-data').innerHTML =
+      dataRowHtml('RBI reserves 1W', isFinite(rbiw) ? (rbiw >= 0 ? '+' : '') + rbiw.toFixed(1) + 'B' : '—', 'ACTIVE SUPPORT', 'BULLISH', 'bull') +
+      dataRowHtml('Intervention freq', 'Elevated', 'Multiple sessions', 'ANOMALY', 'amber') +
+      dataRowHtml('Reserve trend', 'Declining', '3M drawdown', 'BEARISH', 'bear') +
+      dataRowHtml('Managed rate', 'Yes', 'Directional only', null, null, true, true) +
+      dataRowHtml('Forward position', 'Near $100B', 'net dollar sales (approx.)', null, null, true, true);
+  }
+
+  function dataRowHtml(label, v1, v2, badge, badgeKind, textOnly, muted) {
+    var badges = '';
+    if (badge && badgeKind) {
+      var bc =
+        badgeKind === 'bull'
+          ? 'term-badge--bull'
+          : badgeKind === 'bear'
+            ? 'term-badge--bear'
+            : badgeKind === 'amber'
+              ? 'term-badge--amber'
+              : 'term-badge--neutral';
+      badges = '<span class="term-badge ' + bc + '">' + badge + '</span>';
+    }
+    var c2 = muted ? ' style="color:var(--text-muted)"' : '';
+    return (
+      '<div class="term-acc__data-row">' +
+      '<span class="term-acc__data-label">' +
+      label +
+      '</span>' +
+      '<span class="term-acc__data-val">' +
+      v1 +
+      '</span>' +
+      '<span class="term-acc__data-meta"' +
+      c2 +
+      '>' +
+      v2 +
+      '</span>' +
+      (badges ? '<div class="term-acc__data-badges">' + badges + '</div>' : '') +
+      '</div>'
+    );
+  }
+
+  function signalContribRow(name, dir, widthPct, kind) {
+    var col =
+      kind === 'bull' ? 'var(--bullish)' : kind === 'bear' ? 'var(--bearish)' : 'var(--border-default)';
+    return (
+      '<tr><td>' +
+      name +
+      '</td><td class="term-signal-table__dir">' +
+      dir +
+      '</td><td class="term-signal-table__bar-cell"><div class="term-signal-table__bar"><span style="width:' +
+      widthPct +
+      '%;background:' +
+      col +
+      '"></span></div></td></tr>'
+    );
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.term-pair-tabs__link[data-tab]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        var h = a.getAttribute('href');
+        if (h && h.charAt(0) === '#') {
+          e.preventDefault();
+          var el = document.querySelector(h);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          document.querySelectorAll('.term-pair-tabs__link').forEach(function (x) {
+            x.classList.remove('is-active');
+          });
+          a.classList.add('is-active');
+        }
+      });
+    });
+
+    var PAIR = 'USDINR';
+    var START = '2020-01-01';
+    Promise.all([
+      fetch('/data/latest_with_cot.csv').then(function (r) {
+        if (!r.ok) throw new Error('master csv');
+        return r.text();
+      }),
+      fetch('/data/cot_latest.csv').then(function (r) {
+        if (!r.ok) throw new Error('cot csv');
+        return r.text();
+      }),
+      window.FXRLData && typeof window.FXRLData.fetchSignalRows === 'function'
+        ? window.FXRLData.fetchSignalRows(PAIR, START)
+        : Promise.resolve(null),
+    ])
+      .then(function (texts) {
+        var masterParsed = parseCsv(texts[0]);
+        if (texts[2] && texts[2].length && window.FXRLData && window.FXRLData.patchMasterRowsFromSignals) {
+          window.FXRLData.patchMasterRowsFromSignals(masterParsed.rows, texts[2], PAIR);
+        }
+        hydrateData(masterParsed, parseCsv(texts[1]));
+        populateDom();
+        window.TerminalExpandableRows.init(document.getElementById('term-accordion-root'), {
+          chartInits: chartInits()
+        });
+      })
+      .catch(function () {
+        document.getElementById('hdr-spot').textContent = 'No data';
+        document.getElementById('hdr-d1').textContent =
+          'Run pipeline locally — /data/*.csv not available on this host';
+      });
+  });
+})();
+  </script>
+</body>
+</html>

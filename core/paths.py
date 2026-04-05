@@ -20,6 +20,8 @@ PAGES_DIR  = os.path.join(ROOT, 'pages')
 SITE_DIR   = os.path.join(ROOT, 'site')
 # Written each successful pipeline run; deployed with `deploy.py` for Cloudflare Pages
 PIPELINE_STATUS_JSON = os.path.join(SITE_DIR, 'data', 'pipeline_status.json')
+# Written by subprocess steps (inr/cot) so run.py can merge Supabase sync metadata.
+SUPABASE_SYNC_SIDECAR = os.path.join(SITE_DIR, 'data', 'supabase_sync_sidecar.json')
 
 # ── key data files ───────────────────────────────────────────────────────────
 LATEST_CSV         = os.path.join(DATA_DIR, 'latest.csv')

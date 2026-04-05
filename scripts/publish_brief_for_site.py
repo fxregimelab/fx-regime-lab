@@ -16,11 +16,20 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BRIEFS = os.path.join(ROOT, "briefs")
 SITE = os.path.join(ROOT, "site")
+DATA_SRC = os.path.join(ROOT, "data")
 CHARTS_SRC = os.path.join(ROOT, "charts")
 STATIC_SRC = os.path.join(ROOT, "static")
 OUT_BRIEF = os.path.join(SITE, "brief", "latest.html")
 OUT_CHARTS = os.path.join(SITE, "charts")
 OUT_STATIC = os.path.join(SITE, "static")
+OUT_DATA = os.path.join(SITE, "data")
+
+# Terminal + static mirrors: ship merged master + COT/INR slices for /data/*.csv on Cloudflare.
+_DATA_FILES = (
+    "latest_with_cot.csv",
+    "cot_latest.csv",
+    "inr_latest.csv",
+)
 
 
 def _latest_brief_path() -> str | None:
@@ -102,6 +111,21 @@ def main() -> int:
 
     _sync_dir(STATIC_SRC, OUT_STATIC)
     print(f"Synced static -> {OUT_STATIC}")
+
+    _pipe_status = os.path.join(SITE, "data", "pipeline_status.json")
+    if os.path.isfile(_pipe_status):
+        os.makedirs(OUT_STATIC, exist_ok=True)
+        shutil.copy2(_pipe_status, os.path.join(OUT_STATIC, "pipeline_status.json"))
+        print("Copied site/data/pipeline_status.json -> site/static/ (terminal HOME fetch)")
+
+    os.makedirs(OUT_DATA, exist_ok=True)
+    for name in _DATA_FILES:
+        src = os.path.join(DATA_SRC, name)
+        if os.path.isfile(src):
+            shutil.copy2(src, os.path.join(OUT_DATA, name))
+            print(f"Copied data/{name} -> {OUT_DATA}/")
+        else:
+            print(f"WARN: skip data/{name} (not found — run pipeline first)")
     return 0
 
 
