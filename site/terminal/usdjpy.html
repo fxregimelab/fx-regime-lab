@@ -319,6 +319,7 @@
     cotDates: [],
     cotLevNet: [],
     cotAssetNet: [],
+    cotPctArr: [],
     vol30: [],
     vol60Roll: [],
     dxyCorr: [],
@@ -608,12 +609,14 @@
           var cat = [];
           var bars = [];
           var line = [];
+          var pctLine = [];
           for (var i = 0; i < DATA.cotDates.length; i++) {
             var t = ts(DATA.cotDates[i]);
             if (!isFinite(t) || t < cut) continue;
             cat.push(DATA.cotDates[i]);
             var ln = DATA.cotLevNet[i];
             var an = DATA.cotAssetNet[i];
+            var pc = DATA.cotPctArr && DATA.cotPctArr[i];
             bars.push({
               value: isFinite(ln) ? ln : 0,
               itemStyle: {
@@ -621,45 +624,98 @@
               }
             });
             line.push(isFinite(an) ? an : null);
+            pctLine.push(isFinite(pc) ? pc : null);
+          }
+          var lastPctVal = NaN;
+          for (var z = pctLine.length - 1; z >= 0; z--) {
+            if (isFinite(pctLine[z])) {
+              lastPctVal = pctLine[z];
+              break;
+            }
+          }
+          var gridRight = isFinite(lastPctVal) ? 56 : 16;
+          var yAxis = [
+            { type: 'value', scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { color: '#8a9485' } },
+            { type: 'value', scale: true, splitLine: { show: false }, axisLabel: { color: '#8a9485' } }
+          ];
+          var series = [
+            {
+              name: 'Lev money net',
+              type: 'bar',
+              data: bars,
+              barMaxWidth: 16,
+              markLine: {
+                silent: true,
+                symbol: 'none',
+                lineStyle: { type: 'dashed', color: '#d4890a' },
+                label: { show: true, color: '#8a9485', fontSize: 9 },
+                data: [
+                  { yAxis: th80, name: '80th' },
+                  { yAxis: th20, name: '20th' }
+                ]
+              }
+            },
+            {
+              name: 'Asset mgr net',
+              type: 'line',
+              yAxisIndex: 1,
+              data: line,
+              showSymbol: false,
+              smooth: 0.2,
+              lineStyle: { width: 1.5, color: '#6b7280' }
+            }
+          ];
+          if (isFinite(lastPctVal) && cat.length) {
+            yAxis.push({
+              type: 'value',
+              min: 0,
+              max: 100,
+              position: 'right',
+              offset: 48,
+              axisLabel: { show: false },
+              axisLine: { show: false },
+              axisTick: { show: false },
+              splitLine: { show: false }
+            });
+            series.push({
+              name: 'Lev pctile',
+              type: 'line',
+              yAxisIndex: 2,
+              data: cat.map(function () {
+                return lastPctVal;
+              }),
+              showSymbol: false,
+              smooth: 0,
+              lineStyle: { width: 1, type: 'dashed', color: '#8b5cf6' },
+              z: 10
+            });
           }
           chart.setOption({
             backgroundColor: '#0f1318',
             textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 11, color: '#8a9485' },
-            grid: { left: 48, right: 16, top: 24, bottom: 32 },
-            tooltip: { trigger: 'axis' },
+            grid: { left: 48, right: gridRight, top: 24, bottom: 32 },
+            tooltip: {
+              trigger: 'axis',
+              formatter: function (params) {
+                if (!params || !params.length) return '';
+                var di = params[0].dataIndex;
+                var parts = [];
+                for (var pi = 0; pi < params.length; pi++) {
+                  var p = params[pi];
+                  if (p.seriesName === 'Lev pctile') continue;
+                  var val = p.data;
+                  if (p.seriesType === 'bar' && val && typeof val === 'object' && val.value != null) val = val.value;
+                  if (val == null || !isFinite(Number(val))) parts.push(p.seriesName + ': —');
+                  else parts.push(p.seriesName + ': ' + Number(val).toFixed(0));
+                }
+                if (isFinite(pctLine[di])) parts.push('Lev pctile: ' + Math.round(pctLine[di]));
+                return parts.join('<br/>');
+              }
+            },
             legend: { top: 4, textStyle: { color: '#8a9485', fontSize: 10 } },
             xAxis: { type: 'category', data: cat, axisLabel: { color: '#8a9485', fontSize: 9, rotate: 45 } },
-            yAxis: [
-              { type: 'value', scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { color: '#8a9485' } },
-              { type: 'value', scale: true, splitLine: { show: false }, axisLabel: { color: '#8a9485' } }
-            ],
-            series: [
-              {
-                name: 'Lev money net',
-                type: 'bar',
-                data: bars,
-                barMaxWidth: 16,
-                markLine: {
-                  silent: true,
-                  symbol: 'none',
-                  lineStyle: { type: 'dashed', color: '#d4890a' },
-                  label: { show: true, color: '#8a9485', fontSize: 9 },
-                  data: [
-                    { yAxis: th80, name: '80th' },
-                    { yAxis: th20, name: '20th' }
-                  ]
-                }
-              },
-              {
-                name: 'Asset mgr net',
-                type: 'line',
-                yAxisIndex: 1,
-                data: line,
-                showSymbol: false,
-                smooth: 0.2,
-                lineStyle: { width: 1.5, color: '#6b7280' }
-              }
-            ]
+            yAxis: yAxis,
+            series: series
           }, true);
         }
         draw(rangeMs);
@@ -1331,13 +1387,36 @@
           window.FXRLData.setDataDate(payload.latestDate);
         }
         hydrateData(masterParsed, cotParsed);
-        populateDom();
-        showDataStatus(payload.dataSource || 'none', (masterParsed.rows[masterParsed.rows.length - 1] || {}).date);
-        if (window.FXRLTerminalMotion && typeof window.FXRLTerminalMotion.initPageMotion === 'function') {
-          window.FXRLTerminalMotion.initPageMotion(document.getElementById('term-pair-main'));
-        }
-        window.FXRLTerminalLazy.init(document.getElementById('term-sections-root'), {
-          chartInits: chartInits()
+        var cotP =
+          window.FXRLData && typeof window.FXRLData.buildCotArraysFromSignals === 'function'
+            ? window.FXRLData.buildCotArraysFromSignals(PAIR, '2023-01-01')
+            : Promise.resolve(null);
+        return cotP.then(function (cotRes) {
+          if (cotRes && cotRes.ok) {
+            DATA.cotDates = cotRes.cotDates;
+            DATA.cotLevNet = cotRes.cotLevNet;
+            DATA.cotAssetNet = cotRes.cotAssetNet;
+            DATA.cotPctArr = cotRes.cotPctArr || [];
+          }
+          var cotSec = document.getElementById('cot-positioning');
+          if (cotSec && (!DATA.cotDates || !DATA.cotDates.length)) {
+            cotSec.setAttribute('data-no-chart', 'true');
+            var cm = cotSec.querySelector('.js-term-echart');
+            if (cm) {
+              cm.innerHTML =
+                '<p class="term-acc__interpret" style="margin:1rem 0">COT data updating — available after next pipeline run</p>';
+            }
+          } else if (cotSec) {
+            cotSec.removeAttribute('data-no-chart');
+          }
+          populateDom();
+          showDataStatus(payload.dataSource || 'none', (masterParsed.rows[masterParsed.rows.length - 1] || {}).date);
+          if (window.FXRLTerminalMotion && typeof window.FXRLTerminalMotion.initPageMotion === 'function') {
+            window.FXRLTerminalMotion.initPageMotion(document.getElementById('term-pair-main'));
+          }
+          window.FXRLTerminalLazy.init(document.getElementById('term-sections-root'), {
+            chartInits: chartInits()
+          });
         });
       })
       .catch(function (e) {

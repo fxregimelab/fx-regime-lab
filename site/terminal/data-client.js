@@ -380,7 +380,7 @@
     var key = np + ':' + cols.join(',') + ':' + start;
     if (_inFlightSignals.has(key)) return _inFlightSignals.get(key);
 
-    var promise = _fetchSignalsImpl(pair, cols, start).finally(function () {
+    var promise = _fetchSignalsImpl(np, cols, start).finally(function () {
       _inFlightSignals.delete(key);
     });
     _inFlightSignals.set(key, promise);
@@ -689,6 +689,100 @@
       });
   }
 
+  function fetchLatestPrices() {
+    var client = getSupabaseClient();
+    if (!client) return Promise.resolve(null);
+    return client
+      .from('signals')
+      .select('date,pair,cross_asset_dxy,cross_asset_oil,cross_asset_vix,realized_vol_5d')
+      .in('pair', ['EURUSD', 'USDJPY', 'USDINR'])
+      .order('date', { ascending: false })
+      .limit(90)
+      .then(function (res) {
+        if (res.error) throw res.error;
+        var data = res.data || [];
+        var byPair = {};
+        for (var i = 0; i < data.length; i++) {
+          var row = data[i];
+          var pr = row.pair;
+          if (!pr) continue;
+          var pNorm = String(pr).toUpperCase();
+          if (!byPair[pNorm]) byPair[pNorm] = row;
+        }
+        var want = ['EURUSD', 'USDJPY', 'USDINR'];
+        var latestDate = '';
+        for (var w = 0; w < want.length; w++) {
+          var r = byPair[want[w]];
+          if (r && r.date) {
+            var ds = String(r.date).slice(0, 10);
+            if (ds > latestDate) latestDate = ds;
+          }
+        }
+        return { byPair: byPair, latestDate: latestDate };
+      })
+      .catch(function (e) {
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('[Home] Failed to fetch latest prices:', e);
+        }
+        return null;
+      });
+  }
+
+  function buildCotArraysFromSignals(pair, startDate) {
+    var p = normalisePair(pair);
+    return fetchSignals(
+      p,
+      ['cot_lev_money_net', 'cot_asset_mgr_net', 'cot_percentile'],
+      startDate || '2023-01-01'
+    ).then(function (series) {
+      if (!series) return { ok: false };
+      var lev = series.cot_lev_money_net || [];
+      var mgr = series.cot_asset_mgr_net || [];
+      var pct = series.cot_percentile || [];
+      var byDate = {};
+      function ingest(arr, key) {
+        for (var i = 0; i < arr.length; i++) {
+          var pt = arr[i];
+          if (!pt || !isFinite(pt[0])) continue;
+          var d = new Date(pt[0]).toISOString().slice(0, 10);
+          if (!byDate[d]) byDate[d] = {};
+          var v = pt[1];
+          if (v == null || v === '') continue;
+          var n = typeof v === 'number' ? v : parseFloat(String(v));
+          if (isFinite(n)) byDate[d][key] = n;
+        }
+      }
+      ingest(lev, 'lev');
+      ingest(mgr, 'mgr');
+      ingest(pct, 'pct');
+      var dates = Object.keys(byDate).sort();
+      var cotLevNet = [];
+      var cotAssetNet = [];
+      var cotPctArr = [];
+      var hasLev = false;
+      var hasMgr = false;
+      for (var j = 0; j < dates.length; j++) {
+        var o = byDate[dates[j]];
+        var ln = o.lev;
+        var an = o.mgr;
+        var pc = o.pct;
+        if (isFinite(ln)) hasLev = true;
+        if (isFinite(an)) hasMgr = true;
+        cotLevNet.push(isFinite(ln) ? ln : NaN);
+        cotAssetNet.push(isFinite(an) ? an : NaN);
+        cotPctArr.push(isFinite(pc) ? pc : NaN);
+      }
+      if (!hasLev && !hasMgr) return { ok: false };
+      return {
+        ok: true,
+        cotDates: dates,
+        cotLevNet: cotLevNet,
+        cotAssetNet: cotAssetNet,
+        cotPctArr: cotPctArr,
+      };
+    });
+  }
+
   function formatRegimeLabel(raw) {
     if (!raw) return '—';
     return String(raw)
@@ -838,14 +932,14 @@
       });
     });
 
-    var pLatest = latestMasterRow();
+    var pLatest = fetchLatestPrices();
 
     var pBrief = fetchBriefPreview();
 
     Promise.all([Promise.all(pRegime), pLatest, pBrief])
       .then(function (all) {
         var regimeResults = all[0];
-        var lastRow = all[1];
+        var lastBundle = all[1];
         var brief = all[2];
         var stale = false;
         var hasSb = !!getSupabaseClient();
@@ -891,109 +985,48 @@
           }
         });
 
-        if (lastRow) {
-          pairs.forEach(function (x) {
-            var card = document.querySelector(x.card);
-            if (!card) return;
-            var spotEl = card.querySelector('.term-card__spot');
-            var foot = card.querySelector('.term-card__foot');
-            var spotKey = x.pair === 'EURUSD' ? 'EURUSD' : x.pair === 'USDJPY' ? 'USDJPY' : 'USDINR';
-            var sp = num(lastRow[spotKey]);
-            if (spotEl) {
-              spotEl.style.color = '';
-              if (x.pair === 'USDJPY' || x.pair === 'USDINR') {
-                spotEl.textContent = isFinite(sp) ? sp.toFixed(2) : '—';
-              } else {
-                spotEl.textContent = isFinite(sp) ? sp.toFixed(4) : '—';
-              }
-              if (!isFinite(sp)) spotEl.style.color = 'var(--text-muted)';
-            }
-            if (foot) foot.textContent = lastRow.date ? 'As of ' + lastRow.date + ' · data' : 'Updated —';
-          });
+        var footDate =
+          (lastBundle && lastBundle.latestDate) ||
+          (function () {
+            var mx = '';
+            regimeResults.forEach(function (pack) {
+              var r = pack.rows && pack.rows.length ? pack.rows[pack.rows.length - 1] : null;
+              if (r && r.date && String(r.date).slice(0, 10) > mx) mx = String(r.date).slice(0, 10);
+            });
+            return mx;
+          })();
 
-          var ticker = document.querySelector('[data-term-ticker]');
-          if (ticker) {
-            function fmtChg(k) {
-              var v = num(lastRow[k]);
-              if (!isFinite(v)) return { t: '—', cls: 'muted' };
-              var cls = v > 0 ? 'bullish' : v < 0 ? 'bearish' : 'muted';
-              return { t: (v >= 0 ? '+' : '') + v.toFixed(2) + '%', cls: cls };
-            }
-            var dxy = num(lastRow.DXY_chg_1D);
-            var e1 = num(lastRow.EURUSD_chg_1D);
-            var j1 = num(lastRow.USDJPY_chg_1D);
-            var i1 = num(lastRow.USDINR_chg_1D);
-            var b1 = num(lastRow.Brent_chg_1D);
-            var g1 = num(lastRow.Gold_chg_1D);
-            function span(label, v, isPct) {
-              var cls = !isFinite(v) ? 'muted' : v > 0 ? 'bullish' : v < 0 ? 'bearish' : 'muted';
-              var t = !isFinite(v) ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + (isPct ? '%' : '');
-              return (
-                '<span class="muted">' +
-                label +
-                '</span> <span class="' +
-                cls +
-                '">' +
-                t +
-                '</span>'
-              );
-            }
-            ticker.innerHTML =
-              span('DXY', dxy, true) +
-              '<span class="sep">·</span>' +
-              span('EUR/USD', e1, true) +
-              '<span class="sep">·</span>' +
-              span('USD/JPY', j1, true) +
-              '<span class="sep">·</span>' +
-              span('USD/INR', i1, true) +
-              '<span class="sep">·</span>' +
-              span('Brent', b1, true) +
-              '<span class="sep">·</span>' +
-              span('Gold', g1, true);
-          }
+        pairs.forEach(function (x) {
+          var card = document.querySelector(x.card);
+          if (!card) return;
+          var foot = card.querySelector('.term-card__foot');
+          if (foot) foot.textContent = footDate ? 'As of ' + footDate + ' · data' : 'Updated —';
+        });
 
-          var items = document.querySelectorAll('.term-cross .term-cross__item');
-          if (items.length >= 4) {
-            function setItem(idx, label, valStr, chgKey, chgIsPp) {
-              var it = items[idx];
-              if (!it) return;
-              var l = it.querySelector('.term-cross__label');
-              var v = it.querySelector('.term-cross__val');
-              var c = it.querySelector('.term-cross__chg');
-              if (l) l.textContent = label;
-              if (v) v.textContent = valStr != null && valStr !== '' ? valStr : '—';
-              if (c) {
-                var ch = num(lastRow[chgKey]);
-                var suffix = chgIsPp ? 'pp' : '%';
-                c.textContent = isFinite(ch) ? (ch >= 0 ? '+' : '') + ch.toFixed(2) + suffix : '—';
-                c.className =
-                  'term-cross__chg ' +
-                  (isFinite(ch) ? (ch >= 0 ? 'term-cross__chg--up' : 'term-cross__chg--down') : '');
-              }
+        var ref =
+          lastBundle && lastBundle.byPair
+            ? lastBundle.byPair.EURUSD || lastBundle.byPair.USDJPY || lastBundle.byPair.USDINR
+            : null;
+        var items = document.querySelectorAll('.term-cross .term-cross__item');
+        if (items.length >= 4) {
+          function setCrossItem(idx, label, valStr) {
+            var it = items[idx];
+            if (!it) return;
+            var l = it.querySelector('.term-cross__label');
+            var v = it.querySelector('.term-cross__val');
+            var c = it.querySelector('.term-cross__chg');
+            if (l) l.textContent = label;
+            if (v) v.textContent = valStr != null && valStr !== '' ? valStr : '—';
+            if (c) {
+              c.textContent = '—';
+              c.className = 'term-cross__chg';
             }
-            var u10 = num(lastRow.US_10Y);
-            setItem(
-              0,
-              'US 10Y',
-              isFinite(u10) ? u10.toFixed(2) + '%' : '—',
-              'US_10Y_chg_1D',
-              true
-            );
-            var spr = num(lastRow.US_DE_10Y_spread);
-            setItem(
-              1,
-              'US–DE 10Y',
-              isFinite(spr) ? spr.toFixed(2) + '%' : '—',
-              'US_DE_10Y_spread_chg_1D',
-              true
-            );
-            var br = num(lastRow.Brent);
-            setItem(2, 'Brent', isFinite(br) ? br.toFixed(2) : '—', 'Brent_chg_1D', false);
-            var gd = num(lastRow.Gold);
-            setItem(3, 'Gold', isFinite(gd) ? gd.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—', 'Gold_chg_1D', false);
           }
-        } else {
-          stale = true;
+          setCrossItem(0, 'US 10Y', '—');
+          setCrossItem(1, 'US–DE 10Y', '—');
+          var br = ref ? num(ref.cross_asset_oil) : NaN;
+          setCrossItem(2, 'Brent', isFinite(br) ? br.toFixed(2) : '—');
+          setCrossItem(3, 'Gold', '—');
         }
 
         if (hasSb && brief && brief.brief_text) {
@@ -1015,8 +1048,8 @@
           }
         }
 
-        if (lastRow && lastRow.date) {
-          setDataDate(lastRow.date);
+        if (footDate) {
+          setDataDate(footDate);
           applyPipelineNavStatus(_lastPipelineStatus);
         } else {
           updatePipelineTimestamp(_lastPipelineStatus);
@@ -1060,6 +1093,8 @@
     getDataDate: getDataDate,
     DATA_UPDATING_MESSAGE: DATA_UPDATING_MESSAGE,
     initTerminalHome: initTerminalHome,
+    fetchLatestPrices: fetchLatestPrices,
+    buildCotArraysFromSignals: buildCotArraysFromSignals,
     MASTER_CSV: MASTER_CSV,
     COT_CSV: COT_CSV,
   };
