@@ -31,14 +31,15 @@
       }
     ],
 
-    logoWidthFraction: 0.40,
+    logoWidthFraction: 0.45,
     stripeHeightFraction: 0.06,
     stripeGap: 8,
     skewAngle: -12,
+    streakSpeed: 0.0078,
 
     timeline: {
       pointsAppear: 0,
-      streakStart: 200,
+      streakStart: 100,
       streakDuration: 1200,
       barFormDuration: 600,
       tiltDuration: 400,
@@ -61,8 +62,9 @@
   var W, H, dpr, rafId;
   var completed = false;
   var stripeStates = [];
-  // BUG FIX 1: initialize lastTime to -1 so first frame is skipped
   var lastTime = -1;
+  var timelineTimeouts = [];
+  var safetyTimerId = null;
 
   // ─── UTILITY ─────────────────────────────────────
 
@@ -70,7 +72,28 @@
     return a + (b - a) * t;
   }
 
-  // BUG FIX 2: hex → rgba conversion (colors are hex, not rgb())
+  function scheduleT(fn, ms) {
+    var id = setTimeout(function () {
+      var i = timelineTimeouts.indexOf(id);
+      if (i >= 0) timelineTimeouts.splice(i, 1);
+      fn();
+    }, ms);
+    timelineTimeouts.push(id);
+    return id;
+  }
+
+  function clearAllTimers() {
+    timelineTimeouts.forEach(function (tid) {
+      clearTimeout(tid);
+    });
+    timelineTimeouts.length = 0;
+    if (safetyTimerId != null) {
+      clearTimeout(safetyTimerId);
+      safetyTimerId = null;
+    }
+  }
+
+  // hex → rgba (stroke colours are hex)
   function hexToRgba(hex, alpha) {
     var r = parseInt(hex.slice(1, 3), 16);
     var g = parseInt(hex.slice(3, 5), 16);
@@ -86,7 +109,6 @@
       return;
     }
 
-    // BUG FIX 3: same-day skip using fxrl_intro_ymd localStorage key
     try {
       var dayKey = 'fxrl_intro_ymd';
       var todayYmd = new Date().toLocaleDateString('en-CA');
@@ -116,6 +138,10 @@
 
     rafId = requestAnimationFrame(animate);
     runTimeline();
+    safetyTimerId = setTimeout(function () {
+      safetyTimerId = null;
+      if (!completed) completeIntro();
+    }, 12000);
   }
 
   // ─── CANVAS SETUP ────────────────────────────────
@@ -248,7 +274,7 @@
   function runTimeline() {
     var T = CONFIG.timeline;
 
-    setTimeout(function () {
+    scheduleT(function () {
       stripeStates.forEach(function (s) {
         s.phase = 'streak';
         s.pointOpacity = 1;
@@ -256,31 +282,44 @@
       });
     }, T.streakStart);
 
-    setTimeout(function () {
+    scheduleT(function () {
       stripeStates.forEach(function (s) {
-        if (s.phase === 'streak') s.phase = 'forming';
+        if (s.phase === 'streak') {
+          s.formingStart = performance.now();
+          s.formingStartX = s.currentX;
+          s.formingStartY = s.currentY;
+          s.phase = 'forming';
+        }
       });
     }, T.streakStart + T.streakDuration);
 
-    setTimeout(function () {
+    scheduleT(function () {
       stripeStates.forEach(function (s) {
-        if (s.phase === 'forming') s.phase = 'logo';
+        if (s.phase === 'forming') {
+          s.phase = 'logo';
+          s.barProgress = 1;
+          s.skewProgress = 1;
+          s.currentX = s.targetX;
+          s.currentY = s.targetY;
+          s.barWidth = s.targetW;
+          s.barHeight = s.targetH;
+        }
       });
     }, T.streakStart + T.streakDuration + T.barFormDuration);
 
-    setTimeout(function () {
+    scheduleT(function () {
       stripeStates.forEach(function (s) {
         s.phase = 'locking';
       });
       animateLock();
     }, T.logoHoldStart + T.logoLockDelay);
 
-    setTimeout(function () {
+    scheduleT(function () {
       stripeStates.forEach(function (s) {
         s.phase = 'locked';
         s.glowIntensity = 1;
       });
-      setTimeout(function () {
+      scheduleT(function () {
         stripeStates.forEach(function (s) {
           s.glowIntensity = 0;
         });
@@ -289,19 +328,20 @@
 
     var words = brandText ? brandText.querySelectorAll('.word') : [];
     ['FX', 'REGIME', 'LAB'].forEach(function (_, i) {
-      setTimeout(function () {
+      scheduleT(function () {
         if (words[i]) words[i].classList.add('visible');
       }, T.textStart + i * T.textStagger);
     });
 
-    setTimeout(function () {
+    scheduleT(function () {
       stripeStates.forEach(function (s) {
         s.phase = 'dissolving';
       });
       startTravel();
     }, T.travelStart);
 
-    setTimeout(function () {
+    scheduleT(function () {
+      if (!overlay) return;
       overlay.classList.add('dissolving');
       document.body.classList.remove('intro-active');
       document.body.classList.add('intro-complete');
@@ -309,7 +349,7 @@
       overlay.style.opacity = '0';
     }, T.websiteFadeStart);
 
-    setTimeout(function () {
+    scheduleT(function () {
       completeIntro();
     }, T.introRemoveDelay);
   }
@@ -396,7 +436,10 @@
   }
 
   function drawStripe(s, index, t, dt) {
-    if (s.phase === 'hidden') return;
+    if (s.phase === 'hidden') {
+      drawIdlePoint(s);
+      return;
+    }
 
     if (s.phase === 'streak') {
       updateStreak(s, dt);
@@ -422,8 +465,17 @@
 
   // ─── DRAW: STREAK PHASE ──────────────────────────
 
+  function drawIdlePoint(s) {
+    var x = s.currentX;
+    var y = H * s.cfg.startY;
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = hexToRgba(s.cfg.color, 0.45);
+    ctx.fill();
+  }
+
   function updateStreak(s, dt) {
-    var speed = W * 0.0035 * (dt / 16);
+    var speed = W * CONFIG.streakSpeed * (dt / 16);
 
     if (s.cfg.startX === 'right') {
       s.currentX -= speed;
@@ -618,23 +670,26 @@
     if (completed) return;
     completed = true;
 
-    // Record today's date so same-day revisits skip the intro
+    clearAllTimers();
+
     try {
       localStorage.setItem('fxrl_intro_ymd', new Date().toLocaleDateString('en-CA'));
     } catch (e) {}
 
-    cancelAnimationFrame(rafId);
+    if (rafId != null) cancelAnimationFrame(rafId);
 
-    if (overlay) {
-      overlay.style.transition = 'opacity 400ms ease';
-      overlay.style.opacity = '0';
+    var root = overlay || document.getElementById('fxrl-intro');
+    if (root) {
+      root.style.transition = 'opacity 400ms ease';
+      root.style.opacity = '0';
+      root.setAttribute('aria-hidden', 'true');
     }
 
     document.body.classList.remove('intro-active');
     document.body.classList.add('intro-complete');
 
     setTimeout(function () {
-      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      if (root && root.parentNode) root.parentNode.removeChild(root);
     }, 500);
   }
 
