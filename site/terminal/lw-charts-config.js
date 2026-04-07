@@ -120,7 +120,7 @@
   function baseChartOptions(container, themeOpts) {
     var rect = container.getBoundingClientRect();
     var w = rect.width || container.offsetWidth || 600;
-    var h = container.offsetHeight > 50 ? container.offsetHeight : 240;
+    var h = container.offsetHeight > 40 ? container.offsetHeight : 260;
     var th = themeOpts || {};
     var bg = th.bg != null ? th.bg : T.bg;
     var txt = th.text != null ? th.text : T.text;
@@ -301,7 +301,7 @@
   function attachResize(container, chart) {
     var ro = new ResizeObserver(function () {
       try {
-        var ch = container.offsetHeight > 50 ? container.offsetHeight : 240;
+        var ch = container.offsetHeight > 40 ? container.offsetHeight : 260;
         chart.applyOptions({ width: container.offsetWidth || 600, height: ch });
       } catch (e) {}
     });
@@ -315,7 +315,10 @@
     return waitForLWC().then(function (ready) {
       var container =
         typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
-      if (!container) return null;
+      if (!container) {
+        console.warn('FXRLCharts: container not found:', containerId);
+        return null;
+      }
       var cid = ensureContainerId(container);
       if (!ready || !global.LightweightCharts) {
         showChartError(container, 'Chart library unavailable');
@@ -372,7 +375,10 @@
     return waitForLWC().then(function (ready) {
       var container =
         typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
-      if (!container) return null;
+      if (!container) {
+        console.warn('FXRLCharts: container not found:', containerId);
+        return null;
+      }
       var cid = ensureContainerId(container);
       if (!ready || !global.LightweightCharts) {
         showChartError(container, 'Chart library unavailable');
@@ -430,7 +436,10 @@
     return waitForLWC().then(function (ready) {
       var container =
         typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
-      if (!container) return null;
+      if (!container) {
+        console.warn('FXRLCharts: container not found:', containerId);
+        return null;
+      }
       var cid = ensureContainerId(container);
       if (!ready || !global.LightweightCharts) {
         showChartError(container, 'Chart library unavailable');

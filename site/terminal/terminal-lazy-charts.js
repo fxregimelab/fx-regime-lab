@@ -144,6 +144,23 @@
     forEachNode(sections, function (section) {
       io.observe(section);
     });
+
+    /* When an accordion bar is clicked/activated, init the section's chart
+       if it hasn't been created yet (handles the case where the section
+       was already intersecting but the panel was collapsed, giving the
+       js-term-echart container zero dimensions). */
+    forEachNode(root.querySelectorAll('.term-acc__bar'), function (bar) {
+      function tryInit() {
+        var section = bar.closest('[data-row-key]');
+        if (section && !section._chart && !section._chartLoading) {
+          setTimeout(function () { initChart(section); }, 80);
+        }
+      }
+      bar.addEventListener('click', tryInit);
+      bar.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') tryInit();
+      });
+    });
   }
 
   function attachRegimeZoneToggle(toolbarHost, chartWrapper, options) {
