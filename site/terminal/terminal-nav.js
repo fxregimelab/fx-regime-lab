@@ -7,6 +7,14 @@
 
   var g = typeof window !== 'undefined' ? window : this;
   var WORDMARK_URL = '/assets/images/wordmark_without_bg.png';
+  var LOGO_URL = '/assets/images/logo.png';
+  /** Inline SVG if logo.png fails to load (same dimensions as previous placeholder). */
+  var LOGO_SVG_FALLBACK =
+    '<svg class="term-brand__mark" width="28" height="20" viewBox="0 0 28 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<rect x="0" y="0" width="28" height="6" rx="1" fill="#4D8EFF"/>' +
+    '<rect x="3" y="8" width="28" height="6" rx="1" fill="#F59E0B"/>' +
+    '<rect x="6" y="16" width="28" height="4" rx="1" fill="#F87171"/>' +
+    '</svg>';
   var WORDMARK_FALLBACK =
     "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22210%22%20height%3D%2222%22%3E%3Ctext%20x%3D%220%22%20y%3D%2216%22%20fill%3D%22%23e8ede8%22%20font-family%3D%22Inter%2Csystem-ui%2Csans-serif%22%20font-size%3D%2213%22%20font-weight%3D%22600%22%3EFX%20Regime%20Lab%3C/text%3E%3C/svg%3E";
 
@@ -156,11 +164,9 @@
   function renderBrand() {
     return (
       '<div style="display:flex;align-items:center;gap:10px">' +
-      '<svg width="28" height="20" viewBox="0 0 28 20" xmlns="http://www.w3.org/2000/svg">' +
-      '<rect x="0" y="0" width="28" height="6" rx="1" fill="#4D8EFF"/>' +
-      '<rect x="3" y="8" width="28" height="6" rx="1" fill="#F59E0B"/>' +
-      '<rect x="6" y="16" width="28" height="4" rx="1" fill="#F87171"/>' +
-      '</svg>' +
+      '<img class="term-brand__mark" src="' +
+      LOGO_URL +
+      '" alt="" width="28" height="20" loading="lazy" />' +
       '<span style="font-family:\'Inter\',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.12em;color:#E8EDF2">FX REGIME LAB</span>' +
       '</div>'
     );
@@ -173,6 +179,17 @@
       return;
     }
     brand.innerHTML = renderBrand();
+    var mark = brand.querySelector('img.term-brand__mark');
+    if (mark) {
+      mark.addEventListener(
+        'error',
+        function onLogoErr() {
+          mark.removeEventListener('error', onLogoErr);
+          mark.outerHTML = LOGO_SVG_FALLBACK;
+        },
+        false
+      );
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {

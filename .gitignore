@@ -41,6 +41,7 @@ briefs/
 
 # Keep brand logos committed so GitHub Actions can embed them as base64
 !logos/*.png
+!site/assets/images/logo.png
 !site/assets/images/logo_without_bg.png
 !site/assets/images/wordmark_without_bg.png
 !site/assets/images/shreyash_sakhare.png
