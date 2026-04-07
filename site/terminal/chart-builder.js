@@ -5,28 +5,30 @@
 (function (global) {
   'use strict';
 
-  var MASTER_CSV = '/data/latest_with_cot.csv';
+  var DATA_SOURCE = 'supabase';
   var LS_QUICK = 'fxrl_quickcharts';
   var LS_THEME = 'fxrl_chartbuilder_theme';
   var LIGHT_BG = '#FAFAF8';
   var DARK_BG = '#0b0e14';
   var PREFETCH_PAIRS = ['EURUSD', 'USDJPY', 'USDINR'];
   var PREFETCH_COLUMNS = [
+    'spot',
     'rate_diff_2y',
     'rate_diff_10y',
     'cot_lev_money_net',
     'cot_asset_mgr_net',
     'cot_percentile',
     'realized_vol_5d',
+    'realized_vol_20d',
     'cross_asset_dxy',
     'cross_asset_oil',
+    'cross_asset_vix',
   ];
   var DATA = {
     EURUSD: null,
     USDJPY: null,
     USDINR: null,
   };
-  var MASTER_ROWS = null;
   var SERIES_AVAILABILITY = {};
   var PREFETCH_DONE = false;
   var _paperTextureCanvas = null;
@@ -34,6 +36,7 @@
   // Mirror of data-client.js mapping; used only for local column lookup.
   var SIGNAL_TO_CSV = {
     EURUSD: {
+      spot: 'EURUSD',
       rate_diff_2y: 'US_DE_2Y_spread',
       rate_diff_10y: 'US_DE_10Y_spread',
       rate_diff_zscore: 'US_DE_2Y_spread_zscore',
@@ -47,6 +50,7 @@
       cross_asset_vix: 'VIX',
     },
     USDJPY: {
+      spot: 'USDJPY',
       rate_diff_2y: 'US_JP_2Y_spread',
       rate_diff_10y: 'US_JP_10Y_spread',
       rate_diff_zscore: 'US_JP_2Y_spread_zscore',
@@ -60,6 +64,7 @@
       cross_asset_vix: 'VIX',
     },
     USDINR: {
+      spot: 'USDINR',
       rate_diff_2y: 'US_IN_policy_spread',
       rate_diff_10y: 'US_IN_10Y_spread',
       rate_diff_zscore: 'US_IN_policy_spread_zscore',
@@ -79,53 +84,6 @@
       CSV_TO_SIGNAL[csvCol].push({ pair: pair, dbCol: dbCol });
     });
   });
-
-  function splitCsvLine(line) {
-    var out = [];
-    var cur = '';
-    var inQ = false;
-    for (var i = 0; i < line.length; i++) {
-      var c = line[i];
-      if (inQ) {
-        if (c === '"') {
-          if (line[i + 1] === '"') {
-            cur += '"';
-            i++;
-          } else inQ = false;
-        } else cur += c;
-      } else {
-        if (c === '"') inQ = true;
-        else if (c === ',') {
-          out.push(cur);
-          cur = '';
-        } else cur += c;
-      }
-    }
-    out.push(cur);
-    return out;
-  }
-
-  function parseCsv(text) {
-    var lines = text.split(/\r?\n/).filter(function (l) {
-      return l.trim().length;
-    });
-    if (!lines.length) return { headers: [], rows: [] };
-    var headers = splitCsvLine(lines[0]).map(function (h, i) {
-      var t = h.trim();
-      if (!t && i === 0) return 'date';
-      return t || 'col_' + i;
-    });
-    var rows = [];
-    for (var r = 1; r < lines.length; r++) {
-      var cells = splitCsvLine(lines[r]);
-      var o = {};
-      for (var c = 0; c < headers.length; c++) {
-        o[headers[c]] = cells[c] != null ? cells[c].trim() : '';
-      }
-      rows.push(o);
-    }
-    return { headers: headers, rows: rows };
-  }
 
   function num(x) {
     if (x === '' || x == null) return NaN;
@@ -225,77 +183,77 @@
         id: 'fx_prices',
         label: 'FX PRICES',
         series: [
-          { id: 'eurusd_price', label: 'EUR/USD', colour: '#4d8eff', csvColumn: 'EURUSD', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'usdjpy_price', label: 'USD/JPY', colour: '#d4890a', csvColumn: 'USDJPY', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'usdinr_price', label: 'USD/INR', colour: '#c94040', csvColumn: 'USDINR', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'dxy', label: 'DXY', colour: '#9ca3af', csvColumn: 'DXY', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
+          { id: 'eurusd_price', label: 'EUR/USD', colour: '#4d8eff', csvColumn: 'EURUSD', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'usdjpy_price', label: 'USD/JPY', colour: '#d4890a', csvColumn: 'USDJPY', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'usdinr_price', label: 'USD/INR', colour: '#c94040', csvColumn: 'USDINR', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'dxy', label: 'DXY', colour: '#9ca3af', csvColumn: 'DXY', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
         ],
       },
       {
         id: 'commodities',
         label: 'COMMODITIES',
         series: [
-          { id: 'gold', label: 'Gold', colour: '#e8b870', csvColumn: 'Gold', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'brent', label: 'Brent', colour: '#6b7280', csvColumn: 'Brent', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
+          { id: 'gold', label: 'Gold', colour: '#e8b870', csvColumn: 'Gold', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'brent', label: 'Brent', colour: '#6b7280', csvColumn: 'Brent', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
         ],
       },
       {
         id: 'rate_spreads',
         label: 'RATE SPREADS',
         series: [
-          { id: 'us_de_2y', label: 'US–DE 2Y spread', colour: '#4d8eff', csvColumn: 'US_DE_2Y_spread', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'us_de_10y', label: 'US–DE 10Y spread', colour: '#7aaaf0', csvColumn: 'US_DE_10Y_spread', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'us_jp_2y', label: 'US–JP 2Y spread', colour: '#d4890a', csvColumn: 'US_JP_2Y_spread', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'us_jp_10y', label: 'US–JP 10Y spread', colour: '#e8b870', csvColumn: 'US_JP_10Y_spread', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'us_in_10y', label: 'US–IN 10Y spread', colour: '#c94040', csvColumn: 'US_IN_10Y_spread', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'us_in_policy', label: 'US–IN policy spread', colour: '#e87878', csvColumn: 'US_IN_policy_spread', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'us_curve', label: 'US curve (10Y–2Y)', colour: '#7c6bcf', csvColumn: 'US_curve', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'btp_bund', label: 'BTP–Bund', colour: '#a78bfa', csvColumn: 'BTP_Bund_spread', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
+          { id: 'us_de_2y', label: 'US–DE 2Y spread', colour: '#4d8eff', csvColumn: 'US_DE_2Y_spread', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'us_de_10y', label: 'US–DE 10Y spread', colour: '#7aaaf0', csvColumn: 'US_DE_10Y_spread', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'us_jp_2y', label: 'US–JP 2Y spread', colour: '#d4890a', csvColumn: 'US_JP_2Y_spread', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'us_jp_10y', label: 'US–JP 10Y spread', colour: '#e8b870', csvColumn: 'US_JP_10Y_spread', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'us_in_10y', label: 'US–IN 10Y spread', colour: '#c94040', csvColumn: 'US_IN_10Y_spread', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'us_in_policy', label: 'US–IN policy spread', colour: '#e87878', csvColumn: 'US_IN_policy_spread', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'us_curve', label: 'US curve (10Y–2Y)', colour: '#7c6bcf', csvColumn: 'US_curve', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'btp_bund', label: 'BTP–Bund', colour: '#a78bfa', csvColumn: 'BTP_Bund_spread', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
         ],
       },
       {
         id: 'cot_eur',
         label: 'COT — EUR',
         series: [
-          { id: 'eurusd_lev_money', label: 'EUR lev money net', colour: '#4d8eff', csvColumn: 'EUR_lev_net', csvFile: MASTER_CSV, defaultType: 'bar', yAxis: 'left' },
-          { id: 'eurusd_asset_mgr', label: 'EUR asset mgr net', colour: '#6b7280', csvColumn: 'EUR_assetmgr_net', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'right' },
+          { id: 'eurusd_lev_money', label: 'EUR lev money net', colour: '#4d8eff', csvColumn: 'EUR_lev_net', csvFile: DATA_SOURCE, defaultType: 'bar', yAxis: 'left' },
+          { id: 'eurusd_asset_mgr', label: 'EUR asset mgr net', colour: '#6b7280', csvColumn: 'EUR_assetmgr_net', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'right' },
         ],
       },
       {
         id: 'cot_jpy',
         label: 'COT — JPY',
         series: [
-          { id: 'jpy_lev_money', label: 'JPY lev money net', colour: '#d4890a', csvColumn: 'JPY_lev_net', csvFile: MASTER_CSV, defaultType: 'bar', yAxis: 'left' },
-          { id: 'jpy_asset_mgr', label: 'JPY asset mgr net', colour: '#6b7280', csvColumn: 'JPY_assetmgr_net', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'right' },
+          { id: 'jpy_lev_money', label: 'JPY lev money net', colour: '#d4890a', csvColumn: 'JPY_lev_net', csvFile: DATA_SOURCE, defaultType: 'bar', yAxis: 'left' },
+          { id: 'jpy_asset_mgr', label: 'JPY asset mgr net', colour: '#6b7280', csvColumn: 'JPY_assetmgr_net', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'right' },
         ],
       },
       {
         id: 'volatility',
         label: 'REALIZED VOL',
         series: [
-          { id: 'eurusd_vol_30d', label: 'EUR/USD 30D vol', colour: '#4d8eff', csvColumn: 'EURUSD_vol30', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'eurusd_vol_60d', label: 'EUR/USD 60D vol (est.)', colour: '#7aaaf0', csvColumn: 'EURUSD', csvFile: MASTER_CSV, computed: 'vol60_from_price', defaultType: 'line', yAxis: 'left' },
-          { id: 'usdjpy_vol_30d', label: 'USD/JPY 30D vol', colour: '#d4890a', csvColumn: 'USDJPY_vol30', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'usdinr_vol_30d', label: 'USD/INR 30D vol', colour: '#c94040', csvColumn: 'USDINR_vol30', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
+          { id: 'eurusd_vol_30d', label: 'EUR/USD 30D vol', colour: '#4d8eff', csvColumn: 'EURUSD_vol30', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'eurusd_vol_60d', label: 'EUR/USD 60D vol (est.)', colour: '#7aaaf0', csvColumn: 'EURUSD', csvFile: DATA_SOURCE, computed: 'vol60_from_price', defaultType: 'line', yAxis: 'left' },
+          { id: 'usdjpy_vol_30d', label: 'USD/JPY 30D vol', colour: '#d4890a', csvColumn: 'USDJPY_vol30', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'usdinr_vol_30d', label: 'USD/INR 30D vol', colour: '#c94040', csvColumn: 'USDINR_vol30', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
         ],
       },
       {
         id: 'regime',
         label: 'REGIME / COMPOSITE',
         series: [
-          { id: 'eurusd_composite', label: 'EUR/USD composite score', colour: '#4d8eff', csvColumn: 'eurusd_composite_score', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'usdjpy_composite', label: 'USD/JPY composite score', colour: '#d4890a', csvColumn: 'usdjpy_composite_score', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'usdinr_composite', label: 'USD/INR composite (INR score)', colour: '#c94040', csvColumn: 'inr_composite_score', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
+          { id: 'eurusd_composite', label: 'EUR/USD composite score', colour: '#4d8eff', csvColumn: 'eurusd_composite_score', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'usdjpy_composite', label: 'USD/JPY composite score', colour: '#d4890a', csvColumn: 'usdjpy_composite_score', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'usdinr_composite', label: 'USD/INR composite (INR score)', colour: '#c94040', csvColumn: 'inr_composite_score', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
         ],
       },
       {
         id: 'correlations',
         label: 'CORRELATIONS (60D)',
         series: [
-          { id: 'dxy_eurusd_corr', label: 'DXY vs EUR/USD', colour: '#4d8eff', csvColumn: 'dxy_eurusd_corr_60d', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'dxy_usdjpy_corr', label: 'DXY vs USD/JPY', colour: '#d4890a', csvColumn: 'dxy_usdjpy_corr_60d', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'dxy_inr_corr', label: 'DXY vs USD/INR', colour: '#c94040', csvColumn: 'dxy_inr_corr_60d', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
-          { id: 'gold_inr_corr', label: 'Gold vs USD/INR', colour: '#e8b870', csvColumn: 'gold_inr_corr_60d', csvFile: MASTER_CSV, defaultType: 'line', yAxis: 'left' },
+          { id: 'dxy_eurusd_corr', label: 'DXY vs EUR/USD', colour: '#4d8eff', csvColumn: 'dxy_eurusd_corr_60d', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'dxy_usdjpy_corr', label: 'DXY vs USD/JPY', colour: '#d4890a', csvColumn: 'dxy_usdjpy_corr_60d', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'dxy_inr_corr', label: 'DXY vs USD/INR', colour: '#c94040', csvColumn: 'dxy_inr_corr_60d', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
+          { id: 'gold_inr_corr', label: 'Gold vs USD/INR', colour: '#e8b870', csvColumn: 'gold_inr_corr_60d', csvFile: DATA_SOURCE, defaultType: 'line', yAxis: 'left' },
         ],
       },
     ],
@@ -352,21 +310,6 @@
       types: { all: 'line' },
     },
   ];
-
-  var csvTextCache = {};
-
-  function fetchCsv(path) {
-    if (csvTextCache[path]) return Promise.resolve(csvTextCache[path]);
-    return fetch(path)
-      .then(function (r) {
-        if (!r.ok) throw new Error('CSV ' + path);
-        return r.text();
-      })
-      .then(function (t) {
-        csvTextCache[path] = t;
-        return t;
-      });
-  }
 
   function loadSeriesPoints(meta, rows) {
     if (meta.computed === 'vol60_from_price') {
@@ -429,17 +372,10 @@
     if (!meta) return [];
     if (meta.computed === 'vol60_from_price') {
       var spot = resolveFromSignalCache(meta.csvColumn);
-      if (!hasFinitePoints(spot) && Array.isArray(MASTER_ROWS)) {
-        spot = rowsToSeries(MASTER_ROWS, meta.csvColumn);
-      }
       return hasFinitePoints(spot) ? rollingVol60FromSpot(spot) : [];
     }
     var fromSignals = resolveFromSignalCache(meta.csvColumn);
     if (hasFinitePoints(fromSignals)) return fromSignals;
-    if (Array.isArray(MASTER_ROWS)) {
-      var fromCsv = rowsToSeries(MASTER_ROWS, meta.csvColumn);
-      return hasFinitePoints(fromCsv) ? fromCsv : [];
-    }
     return [];
   }
 
@@ -465,36 +401,23 @@
       DC && typeof DC.initDataClient === 'function' ? DC.initDataClient() : Promise.resolve(null);
 
     return boot.then(function () {
-      var csvPromise = fetchCsv(MASTER_CSV)
-        .then(function (text) {
-          var parsed = parseCsv(text);
-          MASTER_ROWS = parsed.rows || [];
-        })
-        .catch(function () {
-          MASTER_ROWS = null;
-        });
-
-      var signalsPromise;
       if (!fetchSignals) {
-        signalsPromise = Promise.resolve();
-      } else {
-        signalsPromise = Promise.allSettled(
-          PREFETCH_PAIRS.map(function (pair) {
-            return fetchSignals(pair, PREFETCH_COLUMNS, '2024-01-01').then(function (data) {
-              return { pair: pair, data: data };
-            });
-          })
-        ).then(function (results) {
-          results.forEach(function (result) {
-            if (result.status === 'fulfilled') {
-              var value = result.value || {};
-              DATA[value.pair] = value.data || null;
-            }
-          });
-        });
+        PREFETCH_DONE = true;
+        return updateSidebarAvailability();
       }
-
-      return Promise.all([csvPromise, signalsPromise]).then(function () {
+      return Promise.allSettled(
+        PREFETCH_PAIRS.map(function (pair) {
+          return fetchSignals(pair, PREFETCH_COLUMNS, '2020-01-01').then(function (data) {
+            return { pair: pair, data: data };
+          });
+        })
+      ).then(function (results) {
+        results.forEach(function (result) {
+          if (result.status === 'fulfilled') {
+            var value = result.value || {};
+            DATA[value.pair] = value.data || null;
+          }
+        });
         PREFETCH_DONE = true;
         return updateSidebarAvailability();
       });
@@ -1250,8 +1173,9 @@
 
     prefetchAllData()
       .then(function () {
-        if (MASTER_ROWS && MASTER_ROWS.length) {
-          latestDateStr = MASTER_ROWS[MASTER_ROWS.length - 1].date || '';
+        var spotPts = DATA.EURUSD && DATA.EURUSD.spot;
+        if (spotPts && spotPts.length) {
+          latestDateStr = new Date(spotPts[spotPts.length - 1][0]).toISOString().slice(0, 10);
           if (opts.tsEl) opts.tsEl.textContent = latestDateStr ? 'As of ' + latestDateStr + ' · data loaded' : 'Pipeline —';
         } else if (opts.tsEl) {
           opts.tsEl.textContent = 'Data pending — pipeline refresh';
@@ -1302,7 +1226,7 @@
     getDataStore: function () {
       return {
         signals: deepClone(DATA),
-        masterRows: MASTER_ROWS ? MASTER_ROWS.length : 0,
+        masterRows: 0,
         prefetched: PREFETCH_DONE,
       };
     },

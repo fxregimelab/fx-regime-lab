@@ -7,65 +7,11 @@
   var activePair = null;
   var chart = null;
 
-  var PAIR_TO_COLUMN = {
-    EURUSD: 'EURUSD',
-    USDJPY: 'USDJPY',
-    USDINR: 'USDINR',
-  };
-
   var PAIR_LABEL = {
     EURUSD: 'EUR/USD',
     USDJPY: 'USD/JPY',
     USDINR: 'USD/INR',
   };
-
-  function splitCsvLine(line) {
-    var out = [];
-    var cur = '';
-    var inQ = false;
-    for (var i = 0; i < line.length; i++) {
-      var c = line[i];
-      if (inQ) {
-        if (c === '"') {
-          if (line[i + 1] === '"') {
-            cur += '"';
-            i++;
-          } else {
-            inQ = false;
-          }
-        } else {
-          cur += c;
-        }
-      } else if (c === '"') {
-        inQ = true;
-      } else if (c === ',') {
-        out.push(cur);
-        cur = '';
-      } else {
-        cur += c;
-      }
-    }
-    out.push(cur);
-    return out;
-  }
-
-  function parseCsv(text) {
-    var lines = String(text || '').split(/\r?\n/).filter(function (line) {
-      return line.trim();
-    });
-    if (!lines.length) return [];
-    var headers = splitCsvLine(lines[0]);
-    var rows = [];
-    for (var i = 1; i < lines.length; i++) {
-      var cells = splitCsvLine(lines[i]);
-      var row = {};
-      for (var j = 0; j < headers.length; j++) {
-        row[headers[j]] = cells[j] != null ? cells[j].trim() : '';
-      }
-      rows.push(row);
-    }
-    return rows;
-  }
 
   function getPairArticle(pair) {
     var intel = global.FXRLHomeIntel || {};
@@ -142,18 +88,23 @@
   }
 
   function renderChart(pair) {
-    var column = PAIR_TO_COLUMN[pair];
     var mount = byId('term-panel-chart');
-    if (!mount || !column || typeof echarts === 'undefined') return;
+    if (!mount || typeof echarts === 'undefined') return;
+    var api = global.FXRLData;
+    if (!api || typeof api.fetchSignalsFromSupabase !== 'function') return;
 
-    fetch('/data/latest_with_cot.csv')
-      .then(function (r) { return r.ok ? r.text() : ''; })
-      .then(function (text) {
-        var rows = parseCsv(text);
-        var points = rows.slice(-30).map(function (row) {
-          var v = parseFloat(String(row[column] || '').replace(/,/g, ''));
-          return isFinite(v) ? v : null;
-        }).filter(function (v) { return v != null; });
+    api
+      .fetchSignalsFromSupabase(pair, 90)
+      .then(function (rows) {
+        var slice = (rows || []).slice(-30);
+        var points = slice
+          .map(function (row) {
+            var v = row && row.spot != null ? parseFloat(String(row.spot).replace(/,/g, '')) : NaN;
+            return isFinite(v) ? v : null;
+          })
+          .filter(function (v) {
+            return v != null;
+          });
 
         if (!points.length) return;
         if (chart) {

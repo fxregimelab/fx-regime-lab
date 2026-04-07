@@ -51,10 +51,7 @@
 
   <header class="term-nav" role="banner">
     <div class="term-nav__left">
-      <a class="term-nav__brand term-brand" href="/terminal/">
-        <img class="term-brand__mark" src="/assets/images/logo.png" alt="" width="32" height="32" loading="eager" decoding="async" />
-        <span class="term-brand__word">FX Regime Lab</span>
-      </a>
+      <a class="term-nav__brand term-brand" href="/terminal/"></a>
       <span class="term-nav__sep" aria-hidden="true">/</span>
       <span class="term-nav__product">Terminal</span>
     </div>
@@ -467,32 +464,17 @@
     var jp2y = [];
     for (var i = 0; i < rows.length; i++) {
       var o = rows[i];
-      var t = ts(o.date);
+      var dstr = String(o.date != null ? o.date : '').slice(0, 10);
+      var t = ts(dstr);
       if (!isFinite(t)) continue;
-      var px = num(o.USDJPY);
-      var u10 = num(o.US_JP_10Y_spread);
-      var u2 = num(o.US_JP_2Y_spread);
-      var v3 = num(o.USDJPY_vol30);
-      var dx = num(o.dxy_usdjpy_corr_60d);
-      var oi = num(o.oil_usdjpy_corr_60d);
-      var gj = num(o.gold_usdjpy_corr_60d);
-      var c20 = num(o.USDJPY_corr_20d);
-      var c60 = num(o.USDJPY_spread_corr_60d);
-      var vp = num(o.USDJPY_vol_pct);
-      var bt = num(o.BTP_Bund_spread);
-      var j2 = num(o.JP_2Y);
+      var px = num(o.spot);
+      var u10 = num(o.rate_diff_10y);
+      var u2 = num(o.rate_diff_2y);
+      var v3 = num(o.realized_vol_20d);
       if (isFinite(px)) spot.push([t, px]);
       if (isFinite(u10)) r10.push([t, u10]);
       if (isFinite(u2)) r2.push([t, u2]);
       if (isFinite(v3)) vol30.push([t, v3]);
-      if (isFinite(dx)) dxy.push([t, dx]);
-      if (isFinite(oi)) oil.push([t, oi]);
-      if (isFinite(gj)) goldJpy.push([t, gj]);
-      if (isFinite(c20)) spr20.push([t, c20]);
-      if (isFinite(c60)) spr60.push([t, c60]);
-      if (isFinite(vp)) vPct.push([t, vp]);
-      if (isFinite(bt)) btp.push([t, bt]);
-      if (isFinite(j2)) jp2y.push([t, j2]);
     }
     var retPct = [];
     for (var j = 1; j < spot.length; j++) {
@@ -1086,10 +1068,53 @@
     return b ? parseInt(b.getAttribute('data-range-ms'), 10) : null;
   }
 
-  function hydrateData(masterParsed, cotParsed) {
-    DATA.masterRows = masterParsed.rows;
-    var rows = masterParsed.rows;
-    LATEST = rows.length ? rows[rows.length - 1] : {};
+  function buildLatestJpyFromSignals(rows) {
+    if (!rows || !rows.length) return {};
+    var last = rows[rows.length - 1];
+    var prev = rows.length > 1 ? rows[rows.length - 2] : null;
+    var ld = String(last.date != null ? last.date : '').slice(0, 10);
+    var spot = num(last.spot);
+    var spotP = prev ? num(prev.spot) : NaN;
+    var d1 = isFinite(spot) && isFinite(spotP) && spotP > 0 ? ((spot - spotP) / spotP) * 100 : NaN;
+    var y12 = NaN;
+    if (rows.length > 263) {
+      var oldSpot = num(rows[rows.length - 264].spot);
+      y12 = isFinite(spot) && isFinite(oldSpot) && oldSpot > 0 ? ((spot - oldSpot) / oldSpot) * 100 : NaN;
+    }
+    var u10 = num(last.rate_diff_10y);
+    var u2 = num(last.rate_diff_2y);
+    var u10p = prev ? num(prev.rate_diff_10y) : NaN;
+    var u2p = prev ? num(prev.rate_diff_2y) : NaN;
+    return {
+      date: ld,
+      USDJPY: spot,
+      USDJPY_chg_1D: d1,
+      USDJPY_chg_12M: y12,
+      US_JP_10Y_spread: u10,
+      US_JP_2Y_spread: u2,
+      US_JP_10Y_spread_chg_1D: isFinite(u10) && isFinite(u10p) ? u10 - u10p : NaN,
+      US_JP_2Y_spread_chg_1D: isFinite(u2) && isFinite(u2p) ? u2 - u2p : NaN,
+      JP_2Y: NaN,
+      JPY_lev_net: num(last.cot_lev_money_net),
+      JPY_assetmgr_net: num(last.cot_asset_mgr_net),
+      JPY_lev_percentile: num(last.cot_percentile),
+      JPY_assetmgr_percentile: NaN,
+      USDJPY_vol30: num(last.realized_vol_20d),
+      USDJPY_vol_pct: NaN,
+      USDJPY_corr_20d: NaN,
+      USDJPY_spread_corr_60d: NaN,
+      oil_usdjpy_corr_60d: NaN,
+      dxy_usdjpy_corr_60d: NaN,
+      gold_usdjpy_corr_60d: NaN,
+      usdjpy_composite_score: NaN,
+      usdjpy_composite_label: '—',
+    };
+  }
+
+  function hydrateData(sbRows) {
+    DATA.masterRows = sbRows;
+    var rows = sbRows;
+    LATEST = buildLatestJpyFromSignals(rows);
     var s = buildJpySeries(rows);
     DATA.rateDiff10Y = s.r10;
     DATA.rateDiff2Y = s.r2;
@@ -1107,17 +1132,10 @@
     DATA.dailyRetPct = s.retPct;
     DATA.momo5Roll = s.mom5;
     DATA.btpSpread = s.btp;
-
-    DATA.cotRows = cotParsed.rows;
+    DATA.cotRows = [];
     DATA.cotDates = [];
     DATA.cotLevNet = [];
     DATA.cotAssetNet = [];
-    for (var i = 0; i < cotParsed.rows.length; i++) {
-      var r = cotParsed.rows[i];
-      DATA.cotDates.push(r.date);
-      DATA.cotLevNet.push(num(r.JPY_lev_net));
-      DATA.cotAssetNet.push(num(r.JPY_assetmgr_net));
-    }
   }
 
   function fmtPct(x, d) {
@@ -1155,7 +1173,14 @@
     document.getElementById('term-pipeline-ts').textContent = LATEST.date ? 'As of ' + LATEST.date : 'Pipeline —';
     var updatedText = LATEST.date ? 'Last updated ' + LATEST.date : 'Last updated —';
     var hdrUpdated = document.getElementById('hdr-updated');
-    if (hdrUpdated) hdrUpdated.textContent = updatedText;
+    if (hdrUpdated) {
+      var staleDays = NaN;
+      if (LATEST.date) {
+        staleDays = (Date.now() - new Date(String(LATEST.date).slice(0, 10) + 'T12:00:00Z').getTime()) / 86400000;
+      }
+      hdrUpdated.textContent =
+        isFinite(staleDays) && staleDays > 7 ? 'STALE — ' + updatedText : updatedText;
+    }
     var heroSpot = document.getElementById('hero-spot');
     if (heroSpot) heroSpot.textContent = isFinite(spot) ? spot.toFixed(2) : '—';
     var heroD1 = document.getElementById('hero-d1');
@@ -1177,7 +1202,7 @@
     var hist10 = DATA.rateDiff10Y.map(function (p) { return p[1]; });
     var pct1y = percentileRank(hist10, u10);
     var idx5 = Math.max(0, rows.length - 6);
-    var u2_5d = num(rows[idx5].US_JP_2Y_spread);
+    var u2_5d = num(rows[idx5].rate_diff_2y);
     var narrow = isFinite(u2) && isFinite(u2_5d) && u2 < u2_5d;
 
     document.getElementById('sum-rate-badge').textContent = narrow ? 'BEARISH' : 'NEUTRAL';
@@ -1390,67 +1415,66 @@
           : Promise.resolve(null);
       datasetP
       .then(function (payload) {
-        if (!payload) {
+        if (!payload || !payload.sbRows || !payload.sbRows.length) {
           throw new Error('pair dataset unavailable');
-        }
-        var masterParsed = null;
-        var cotParsed = { rows: [] };
-        if (payload.masterText) {
-          masterParsed = parseCsv(payload.masterText);
-          if (payload.sbRows && payload.sbRows.length && window.FXRLData && window.FXRLData.patchMasterRowsFromSignals) {
-            window.FXRLData.patchMasterRowsFromSignals(masterParsed.rows, payload.sbRows, PAIR);
-          }
-        } else if (payload.sbRows && payload.sbRows.length && window.FXRLData && window.FXRLData.buildMasterRowsFromSignals) {
-          masterParsed = { rows: window.FXRLData.buildMasterRowsFromSignals(payload.sbRows, PAIR) };
-        }
-        if (!masterParsed || !masterParsed.rows || !masterParsed.rows.length) {
-          throw new Error('pair dataset unavailable');
-        }
-        if (payload.cotText) {
-          cotParsed = parseCsv(payload.cotText);
         }
         if (payload.latestDate && window.FXRLData && typeof window.FXRLData.setDataDate === 'function') {
           window.FXRLData.setDataDate(payload.latestDate);
         }
-        hydrateData(masterParsed, cotParsed);
-        var cotP =
-          window.FXRLData && typeof window.FXRLData.buildCotArraysFromSignals === 'function'
-            ? window.FXRLData.buildCotArraysFromSignals(PAIR, '2023-01-01')
-            : Promise.resolve(null);
-        return cotP.then(function (cotRes) {
-          if (cotRes && cotRes.ok) {
-            DATA.cotDates = cotRes.cotDates;
-            DATA.cotLevNet = cotRes.cotLevNet;
-            DATA.cotAssetNet = cotRes.cotAssetNet;
-            DATA.cotPctArr = cotRes.cotPctArr || [];
+        hydrateData(payload.sbRows);
+        var regimeP =
+          window.FXRLData && typeof window.FXRLData.fetchRegimeCalls === 'function'
+            ? window.FXRLData.fetchRegimeCalls(PAIR, 1)
+            : Promise.resolve([]);
+        return regimeP.then(function (rcRows) {
+          if (rcRows && rcRows.length && window.FXRLData) {
+            var r = rcRows[0];
+            var rl = r.regime || '—';
+            LATEST.usdjpy_composite_label = window.FXRLData.formatRegimeLabel
+              ? window.FXRLData.formatRegimeLabel(rl)
+              : rl;
+            var c0 = window.FXRLData.confidenceToPercent ? window.FXRLData.confidenceToPercent(r.confidence) : NaN;
+            LATEST.usdjpy_composite_score = isFinite(c0) ? c0 : NaN;
           }
-          var cotSec = document.getElementById('cot-positioning');
-          if (cotSec && (!DATA.cotDates || !DATA.cotDates.length)) {
-            cotSec.setAttribute('data-no-chart', 'true');
-            var cm = cotSec.querySelector('.js-term-echart');
-            if (cm) {
-              cm.innerHTML =
-                '<p class="term-acc__interpret" style="margin:1rem 0">COT data updating — available after next pipeline run</p>';
+          var cotP =
+            window.FXRLData && typeof window.FXRLData.buildCotArraysFromSignals === 'function'
+              ? window.FXRLData.buildCotArraysFromSignals(PAIR, '2023-01-01')
+              : Promise.resolve(null);
+          return cotP.then(function (cotRes) {
+            if (cotRes && cotRes.ok) {
+              DATA.cotDates = cotRes.cotDates;
+              DATA.cotLevNet = cotRes.cotLevNet;
+              DATA.cotAssetNet = cotRes.cotAssetNet;
+              DATA.cotPctArr = cotRes.cotPctArr || [];
             }
-          } else if (cotSec) {
-            cotSec.removeAttribute('data-no-chart');
-          }
-          populateDom();
-          if (window.FXRLData && typeof window.FXRLData.showPairDataStatus === 'function') {
-            window.FXRLData.showPairDataStatus(payload.dataSource || 'none', payload.latestDate, null, {
-              supabaseFetchFailed: !!payload.supabaseFetchFailed,
-              supabaseClientMissing: !!payload.supabaseClientMissing,
-            });
-          }
-          if (window.FXRLTerminalMotion && typeof window.FXRLTerminalMotion.initPageMotion === 'function') {
-            window.FXRLTerminalMotion.initPageMotion(document.getElementById('term-pair-main'));
-          }
-          setTimeout(function () {
-            window.FXRLTerminalLazy.init(document.getElementById('term-sections-root'), {
-              chartInits: chartInits()
-            });
-          }, 500);
-          clearTimeout(initTimeout);
+            var cotSec = document.getElementById('cot-positioning');
+            if (cotSec && (!DATA.cotDates || !DATA.cotDates.length)) {
+              cotSec.setAttribute('data-no-chart', 'true');
+              var cm = cotSec.querySelector('.js-term-echart');
+              if (cm) {
+                cm.innerHTML =
+                  '<p class="term-acc__interpret" style="margin:1rem 0">COT data updating — available after next pipeline run</p>';
+              }
+            } else if (cotSec) {
+              cotSec.removeAttribute('data-no-chart');
+            }
+            populateDom();
+            if (window.FXRLData && typeof window.FXRLData.showPairDataStatus === 'function') {
+              window.FXRLData.showPairDataStatus(payload.dataSource || 'none', payload.latestDate, null, {
+                supabaseFetchFailed: !!payload.supabaseFetchFailed,
+                supabaseClientMissing: !!payload.supabaseClientMissing,
+              });
+            }
+            if (window.FXRLTerminalMotion && typeof window.FXRLTerminalMotion.initPageMotion === 'function') {
+              window.FXRLTerminalMotion.initPageMotion(document.getElementById('term-pair-main'));
+            }
+            setTimeout(function () {
+              window.FXRLTerminalLazy.init(document.getElementById('term-sections-root'), {
+                chartInits: chartInits()
+              });
+            }, 500);
+            clearTimeout(initTimeout);
+          });
         });
       })
       .catch(function (e) {

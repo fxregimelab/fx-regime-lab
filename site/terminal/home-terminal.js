@@ -142,8 +142,14 @@
   }
 
   function initAiLayer() {
-    fetch('/data/ai_article.json')
-      .then(function (r) { return r.ok ? r.json() : null; })
+    var opts =
+      typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+        ? { signal: AbortSignal.timeout(4000) }
+        : {};
+    fetch('/static/ai_article.json', opts)
+      .then(function (r) {
+        return r.ok ? r.json() : null;
+      })
       .then(function (json) {
         if (!json) return;
         global.FXRLHomeIntel = json;

@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS signals (
   id SERIAL PRIMARY KEY,
   date DATE NOT NULL,
   pair VARCHAR(10) NOT NULL,
+  spot FLOAT,
   rate_diff_2y FLOAT,
   rate_diff_10y FLOAT,
   rate_diff_zscore FLOAT,

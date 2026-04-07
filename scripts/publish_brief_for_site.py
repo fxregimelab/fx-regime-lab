@@ -127,6 +127,10 @@ def _sync_ai_article_archive() -> None:
     shutil.copy2(AI_ARTICLE_SRC, dated_dst)
     print(f"Copied data/ai_article.json -> {latest_dst}")
     print(f"Archived data/ai_article.json -> {dated_dst}")
+    os.makedirs(OUT_STATIC, exist_ok=True)
+    static_article = os.path.join(OUT_STATIC, "ai_article.json")
+    shutil.copy2(AI_ARTICLE_SRC, static_article)
+    print(f"Copied data/ai_article.json -> {static_article} (terminal /static/)")
 
     archive_candidates = []
     for name in os.listdir(OUT_DATA):

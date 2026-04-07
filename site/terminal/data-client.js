@@ -1,20 +1,6 @@
 /**
- * Terminal data: Supabase (Worker-injected anon key) + published CSV under /data/.
- *
- * TERMINAL_DATA_MAP (signals row ↔ master CSV ↔ UI):
- * Pipeline writes via core/signal_write._row_to_signal → Supabase `signals`; publish copies master to
- * site/data/latest_with_cot.csv. Pair pages need the full CSV for columns not stored on `signals`
- * (e.g. EURUSD_chg_1D, eurusd_composite_*, BTP_Bund_spread, vol/corr series from merge). SIGNAL_TO_CSV
- * projects DB fields that patch into CSV rows. Chart series from fetchSignals use DB column names.
- *
- * | DB column (signals)   | CSV column (master)     | Notes                          |
- * |-----------------------|-------------------------|--------------------------------|
- * | rate_diff_2y          | US_DE_2Y / US_JP / US_IN policy | Pair-specific map   |
- * | rate_diff_10y         | US_*_10Y_spread         |                                |
- * | rate_diff_zscore      | *_zscore                | Single z column per pair       |
- * | cot_*                 | EUR_/JPY_ lev / assetmgr| USDINR: no COT on signals      |
- * | realized_vol_5d/20d   | *_vol5 / *_vol30       |                                |
- * | cross_asset_dxy/oil/vix | DXY, Brent, VIX       |                                |
+ * Terminal data: Supabase `signals` + `regime_calls` (Worker-injected anon key).
+ * Pipeline: core/signal_write._row_to_signal → Supabase. Pair pages use DB column names.
  */
 (function (global) {
   'use strict';
@@ -59,51 +45,10 @@
     return Promise.race([queryBuilder, timeout]);
   }
 
-  var MASTER_CSV = '/data/latest_with_cot.csv';
-  var COT_CSV = '/data/cot_latest.csv';
   var DATA_UPDATING_MESSAGE = 'Data updating — pipeline runs daily at 23:00 UTC';
   /** PostgREST page size (avoid default row cap truncation). */
   var SUPABASE_PAGE_SIZE = 1000;
-
-  /** DB column -> master CSV column per pair (matches core/signal_write._row_to_signal). */
-  var SIGNAL_TO_CSV = {
-    EURUSD: {
-      rate_diff_2y: 'US_DE_2Y_spread',
-      rate_diff_10y: 'US_DE_10Y_spread',
-      rate_diff_zscore: 'US_DE_2Y_spread_zscore',
-      cot_lev_money_net: 'EUR_lev_net',
-      cot_asset_mgr_net: 'EUR_assetmgr_net',
-      cot_percentile: 'EUR_lev_percentile',
-      realized_vol_5d: 'EURUSD_vol5',
-      realized_vol_20d: 'EURUSD_vol30',
-      cross_asset_dxy: 'DXY',
-      cross_asset_oil: 'Brent',
-      cross_asset_vix: 'VIX',
-    },
-    USDJPY: {
-      rate_diff_2y: 'US_JP_2Y_spread',
-      rate_diff_10y: 'US_JP_10Y_spread',
-      rate_diff_zscore: 'US_JP_2Y_spread_zscore',
-      cot_lev_money_net: 'JPY_lev_net',
-      cot_asset_mgr_net: 'JPY_assetmgr_net',
-      cot_percentile: 'JPY_lev_percentile',
-      realized_vol_5d: 'USDJPY_vol5',
-      realized_vol_20d: 'USDJPY_vol30',
-      cross_asset_dxy: 'DXY',
-      cross_asset_oil: 'Brent',
-      cross_asset_vix: 'VIX',
-    },
-    USDINR: {
-      rate_diff_2y: 'US_IN_policy_spread',
-      rate_diff_10y: 'US_IN_10Y_spread',
-      rate_diff_zscore: 'US_IN_policy_spread_zscore',
-      realized_vol_5d: 'USDINR_vol5',
-      realized_vol_20d: 'USDINR_vol30',
-      cross_asset_dxy: 'DXY',
-      cross_asset_oil: 'Brent',
-      cross_asset_vix: 'VIX',
-    },
-  };
+  var _signalsColumnProbeDone = false;
 
   var _supabaseClient = null;
   var _initPromise = null;
@@ -146,7 +91,7 @@
       .then(function (ready) {
         if (!ready) {
           if (typeof console !== 'undefined' && console.warn) {
-            console.warn('Supabase not available, falling back to CSV');
+            console.warn('Supabase client library not ready');
           }
           return null;
         }
@@ -166,6 +111,7 @@
               autoRefreshToken: false,
             },
           });
+          tryProbeSignalsColumns(_supabaseClient);
           return _supabaseClient;
         } catch (e) {
           if (typeof console !== 'undefined' && console.error) console.error('FXRLData: createClient failed', e);
@@ -186,6 +132,79 @@
 
   function getSupabaseClient() {
     return _supabaseClient;
+  }
+
+  function tryProbeSignalsColumns(client) {
+    if (_signalsColumnProbeDone || !client) return;
+    _signalsColumnProbeDone = true;
+    queryWithTimeout(client.from('signals').select('*').limit(1))
+      .then(function (res) {
+        if (res && res.error) return;
+        var row = res.data && res.data[0];
+        if (row && typeof console !== 'undefined' && console.log) {
+          console.log('signals columns:', Object.keys(row));
+        }
+      })
+      .catch(function () {
+        /* ignore */
+      });
+  }
+
+  /**
+   * @param {string} pair
+   * @param {number} [days]
+   * @returns {Promise<object[]>}
+   */
+  function fetchSignalsFromSupabase(pair, days) {
+    var d = days != null ? days : 90;
+    var normPair = normalisePair(pair);
+    var fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - d);
+    var dateStr = fromDate.toISOString().split('T')[0];
+    return initDataClient()
+      .then(function (client) {
+        if (!client) return [];
+        return queryWithTimeout(
+          client
+            .from('signals')
+            .select('*')
+            .eq('pair', normPair)
+            .gte('date', dateStr)
+            .order('date', { ascending: true })
+        ).then(function (result) {
+          if (result.error) throw result.error;
+          return result.data || [];
+        });
+      })
+      .catch(function (err) {
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('fetchSignalsFromSupabase failed:', err && err.message ? err.message : err);
+        }
+        return [];
+      });
+  }
+
+  function fetchPipelineStatus() {
+    return initDataClient()
+      .then(function (client) {
+        if (!client) return { last_run: null, status: 'unknown' };
+        return queryWithTimeout(
+          client.from('signals').select('date, pair').order('date', { ascending: false }).limit(1)
+        ).then(function (result) {
+          if (result.error) throw result.error;
+          var latest = result.data && result.data[0];
+          return {
+            last_run: latest && latest.date ? String(latest.date).slice(0, 10) : null,
+            status: latest ? 'live' : 'unknown',
+          };
+        });
+      })
+      .catch(function (err) {
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('fetchPipelineStatus failed:', err && err.message ? err.message : err);
+        }
+        return { last_run: null, status: 'unknown' };
+      });
   }
 
   function isLocalDev() {
@@ -231,32 +250,12 @@
     return result;
   }
 
-  function buildMasterRowsFromSignals(sbRows, pair) {
-    var p = normalisePair(pair);
-    var cmap = SIGNAL_TO_CSV[p];
-    if (!cmap || !sbRows || !sbRows.length) return [];
-    var out = [];
-    for (var i = 0; i < sbRows.length; i++) {
-      var r = sbRows[i];
-      var row = { date: String(r.date || '').slice(0, 10) };
-      Object.keys(cmap).forEach(function (dbKey) {
-        var csvKey = cmap[dbKey];
-        var v = r[dbKey];
-        if (v == null || v === '') return;
-        row[csvKey] = typeof v === 'number' ? String(v) : String(v);
-      });
-      out.push(row);
-    }
-    return out;
-  }
-
   function num(x) {
     if (x === '' || x == null) return NaN;
     var n = parseFloat(String(x).replace(/,/g, ''));
     return isFinite(n) ? n : NaN;
   }
 
-  var _csvCache = {};
   var _lastPipelineStatus = null;
   var _inFlightSignals = new Map();
   var CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -285,35 +284,26 @@
     },
   };
 
-  function fetchTextWithTimeout(url, timeoutMs) {
-    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timer = setTimeout(function () {
-      if (controller) controller.abort();
-    }, timeoutMs || FETCH_TIMEOUT_MS);
-    var options = controller ? { signal: controller.signal } : {};
-    return fetch(url, options)
-      .then(function (r) {
-        if (!r.ok) throw new Error('fetch ' + url);
-        return r.text();
-      })
-      .finally(function () {
-        clearTimeout(timer);
-      });
-  }
-
   function fetchJsonWithTimeout(url, timeoutMs) {
-    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timer = setTimeout(function () {
-      if (controller) controller.abort();
-    }, timeoutMs || FETCH_TIMEOUT_MS);
-    var options = controller ? { signal: controller.signal } : {};
+    var ms = timeoutMs || FETCH_TIMEOUT_MS;
+    var options = {};
+    var timer = null;
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      options.signal = AbortSignal.timeout(ms);
+    } else {
+      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      timer = setTimeout(function () {
+        if (controller) controller.abort();
+      }, ms);
+      if (controller) options.signal = controller.signal;
+    }
     return fetch(url, options)
       .then(function (r) {
         if (!r.ok) throw new Error('fetch ' + url);
         return r.json();
       })
       .finally(function () {
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
       });
   }
 
@@ -347,108 +337,12 @@
     }
   }
 
-  function fetchTextCached(url) {
-    if (_csvCache[url]) return Promise.resolve(_csvCache[url]);
-    return fetchTextWithTimeout(url, FETCH_TIMEOUT_MS)
-      .then(function (t) {
-        _csvCache[url] = t;
-        return t;
-      });
-  }
-
-  function splitCsvLine(line) {
-    var out = [];
-    var cur = '';
-    var inQ = false;
-    for (var i = 0; i < line.length; i++) {
-      var c = line[i];
-      if (inQ) {
-        if (c === '"') {
-          if (line[i + 1] === '"') {
-            cur += '"';
-            i++;
-          } else inQ = false;
-        } else cur += c;
-      } else {
-        if (c === '"') inQ = true;
-        else if (c === ',') {
-          out.push(cur);
-          cur = '';
-        } else cur += c;
-      }
-    }
-    out.push(cur);
-    return out;
-  }
-
-  function parseMasterCsv(text) {
-    var lines = text.split(/\r?\n/).filter(function (l) {
-      return l.trim().length;
-    });
-    if (!lines.length) return { rows: [] };
-    var headers = splitCsvLine(lines[0]).map(function (h, i) {
-      var t = h.trim();
-      if (!t && i === 0) return 'date';
-      return t || 'col_' + i;
-    });
-    var rows = [];
-    for (var r = 1; r < lines.length; r++) {
-      var cells = splitCsvLine(lines[r]);
-      var o = {};
-      for (var c = 0; c < headers.length; c++) {
-        o[headers[c]] = cells[c] != null ? cells[c].trim() : '';
-      }
-      rows.push(o);
-    }
-    return { rows: rows };
-  }
-
-  /**
-   * @param {string} pair EURUSD | USDJPY | USDINR
-   * @param {string[]} dbColumns signals table column names
-   * @param {string} startDate YYYY-MM-DD
-   * @returns {Promise<Record<string, [number, number][]>>}
-   */
-  function fetchSignalsFromCSV(pair, dbColumns, startDate) {
-    var start = startDate || '2020-01-01';
-    var map = SIGNAL_TO_CSV[pair] || {};
-    return fetchTextCached(MASTER_CSV).then(function (text) {
-      var parsed = parseMasterCsv(text);
-      var rows = parsed.rows.filter(function (row) {
-        return String(row.date || '') >= start;
-      });
-      var out = {};
-      dbColumns.forEach(function (dbCol) {
-        out[dbCol] = [];
-      });
-      for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var t = tsFromDate(row.date);
-        if (!isFinite(t)) continue;
-        dbColumns.forEach(function (dbCol) {
-          var csvKey = map[dbCol];
-          if (!csvKey) return;
-          var v = num(row[csvKey]);
-          if (isFinite(v)) out[dbCol].push([t, v]);
-        });
-      }
-      return out;
-    });
-  }
-
   function emptyColsObject(cols) {
     var empty = {};
     cols.forEach(function (c) {
       empty[c] = [];
     });
     return empty;
-  }
-
-  function tryCsvFallback(np, cols, start, cacheKey) {
-    return fetchSignalsFromCSV(np, cols, start).then(function (csvOut) {
-      if (csvOut) setCached(cacheKey, csvOut);
-      return csvOut || emptyColsObject(cols);
-    });
   }
 
   /**
@@ -469,9 +363,7 @@
     }
     return initDataClient().then(function (client) {
       if (!client) {
-        return tryCsvFallback(np, cols, start, cacheKey).catch(function () {
-          return emptyColsObject(cols);
-        });
+        return emptyColsObject(cols);
       }
       var sel = ['date']
         .concat(cols)
@@ -495,7 +387,7 @@
             if (typeof console !== 'undefined' && console.error) {
               console.error('[DataClient] Supabase error:', res.error.message || String(res.error));
             }
-            return tryCsvFallback(np, cols, start, cacheKey);
+            return emptyColsObject(cols);
           }
           var chunk = res.data || [];
           for (var i = 0; i < chunk.length; i++) allRows.push(chunk[i]);
@@ -508,7 +400,7 @@
             if (typeof console !== 'undefined' && console.warn) {
               console.warn('[DataClient] No data for ' + np);
             }
-            return tryCsvFallback(np, cols, start, cacheKey);
+            return emptyColsObject(cols);
           }
           offset += SUPABASE_PAGE_SIZE;
           return fetchNextPage();
@@ -518,7 +410,7 @@
         if (typeof console !== 'undefined' && console.error) {
           console.error('[DataClient] Supabase fetch threw:', e && e.message ? e.message : e);
         }
-        return tryCsvFallback(np, cols, start, cacheKey);
+        return emptyColsObject(cols);
       });
     });
   }
@@ -589,148 +481,55 @@
     });
   }
 
-  function fetchFromCSV(pair, startDate) {
-    var start = startDate || '2020-01-01';
-    var np = normalisePair(pair);
-    return fetchTextCached(MASTER_CSV).then(function (text) {
-      var parsed = parseMasterCsv(text);
-      return (parsed.rows || []).filter(function (row) {
-        var d = String(row.date || '').slice(0, 10);
-        return d && d >= start;
-      });
-    });
-  }
-
   function loadData(pair, startDate) {
     var np = normalisePair(pair);
     return initDataClient().then(function (client) {
-      if (client) {
-        return fetchFromSupabase(np, client, startDate)
-          .then(function (data) {
-            if (data && data.length) return data;
-            return fetchFromCSV(np, startDate)
-              .then(function (csvRows) {
-                return csvRows && csvRows.length ? csvRows : null;
-              })
-              .catch(function (e) {
-                if (typeof console !== 'undefined' && console.warn) {
-                  console.warn('[DataClient] CSV failed:', e && e.message ? e.message : e);
-                }
-                return null;
-              });
-          })
-          .catch(function (e) {
-            if (typeof console !== 'undefined' && console.warn) {
-              console.warn('[DataClient] Supabase failed, trying CSV:', e);
-            }
-            return fetchFromCSV(np, startDate)
-              .then(function (csvRows) {
-                return csvRows && csvRows.length ? csvRows : null;
-              })
-              .catch(function (csvErr) {
-                if (typeof console !== 'undefined' && console.warn) {
-                  console.warn('[DataClient] CSV failed:', csvErr && csvErr.message ? csvErr.message : csvErr);
-                }
-                return null;
-              });
-          });
-      }
-      return fetchFromCSV(np, startDate)
-        .then(function (csvRows) {
-          return csvRows && csvRows.length ? csvRows : null;
-        })
-        .catch(function (e) {
-          if (typeof console !== 'undefined' && console.warn) {
-            console.warn('[DataClient] CSV failed:', e && e.message ? e.message : e);
-          }
-          return null;
-        });
+      if (!client) return null;
+      return fetchFromSupabase(np, client, startDate || '2020-01-01').catch(function (e) {
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[DataClient] Supabase failed:', e && e.message ? e.message : e);
+        }
+        return null;
+      });
     });
   }
 
+  /** ~3Y window for pair charts (range buttons up to 2Y). */
+  var PAIR_SIGNALS_WINDOW_DAYS = 1095;
+
   function loadPairDataset(pair, startDate) {
-    var start = startDate || '2020-01-01';
+    void startDate;
     var np = normalisePair(pair);
     return initDataClient().then(function (client) {
-      var supabaseFetchFailed = false;
-      var supabaseRowsP = client
-        ? fetchFromSupabase(np, client, start).catch(function (e) {
-            supabaseFetchFailed = true;
-            if (typeof console !== 'undefined' && console.warn) {
-              console.warn('[DataClient] Supabase failed:', e);
-            }
-            return null;
-          })
-        : Promise.resolve(null);
-      var masterP = fetchTextCached(MASTER_CSV).catch(function (e) {
-        if (typeof console !== 'undefined' && console.warn) {
-          console.warn('[DataClient] Master CSV failed:', e && e.message ? e.message : e);
-        }
-        return null;
-      });
-      var cotP = fetchTextCached(COT_CSV).catch(function (e) {
-        if (typeof console !== 'undefined' && console.warn) {
-          console.warn('[DataClient] COT CSV failed:', e && e.message ? e.message : e);
-        }
-        return null;
-      });
-      return Promise.all([supabaseRowsP, masterP, cotP]).then(function (pack) {
-        var sbRows = pack[0];
-        var masterText = pack[1];
-        var cotText = pack[2];
-        if (sbRows && !sbRows.length) sbRows = null;
+      if (!client) {
+        return {
+          sbRows: null,
+          latestDate: null,
+          dataSource: 'none',
+          supabaseFetchFailed: true,
+          supabaseClientMissing: true,
+          masterText: null,
+          cotText: null,
+        };
+      }
+      return fetchSignalsFromSupabase(np, PAIR_SIGNALS_WINDOW_DAYS).then(function (rows) {
+        var sbRows = rows && rows.length ? rows : null;
         var latestDate = null;
         if (sbRows && sbRows.length) {
           latestDate = String(sbRows[sbRows.length - 1].date || '').slice(0, 10);
         }
-        if (!latestDate && masterText) {
-          var parsed = parseMasterCsv(masterText);
-          var rows = parsed.rows || [];
-          if (rows.length) {
-            latestDate = String(rows[rows.length - 1].date || '').slice(0, 10);
-          }
-        }
         if (latestDate) setDataDate(latestDate);
-        var hasSb = sbRows && sbRows.length;
-        var hasMaster = !!masterText;
-        var dataSource = 'none';
-        if (hasSb && hasMaster) dataSource = 'hybrid';
-        else if (hasSb) dataSource = 'supabase';
-        else if (hasMaster) dataSource = 'csv';
         return {
-          sbRows: hasSb ? sbRows : null,
-          masterText: masterText,
-          cotText: cotText,
+          sbRows: sbRows,
+          masterText: null,
+          cotText: null,
           latestDate: latestDate,
-          dataSource: dataSource,
-          supabaseFetchFailed: supabaseFetchFailed,
-          supabaseClientMissing: !client,
+          dataSource: sbRows ? 'supabase' : 'none',
+          supabaseFetchFailed: !sbRows,
+          supabaseClientMissing: false,
         };
       });
     });
-  }
-
-  function patchMasterRowsFromSignals(masterRows, sbRows, pair) {
-    if (!masterRows || !sbRows || !sbRows.length) return;
-    var cmap = SIGNAL_TO_CSV[pair];
-    if (!cmap) return;
-    var byDate = {};
-    for (var i = 0; i < sbRows.length; i++) {
-      var r = sbRows[i];
-      if (r.date) byDate[String(r.date).slice(0, 10)] = r;
-    }
-    for (var j = 0; j < masterRows.length; j++) {
-      var row = masterRows[j];
-      var d = String(row.date || '').slice(0, 10);
-      var sr = byDate[d];
-      if (!sr) continue;
-      Object.keys(cmap).forEach(function (dbKey) {
-        var csvKey = cmap[dbKey];
-        var v = sr[dbKey];
-        if (v == null || v === '') return;
-        row[csvKey] = typeof v === 'number' ? String(v) : String(v);
-      });
-    }
   }
 
   /**
@@ -852,17 +651,6 @@
           /* monitoring only */
         });
     });
-  }
-
-  function latestMasterRow() {
-    return fetchTextCached(MASTER_CSV)
-      .then(parseMasterCsv)
-      .then(function (p) {
-        return p.rows.length ? p.rows[p.rows.length - 1] : null;
-      })
-      .catch(function () {
-        return null;
-      });
   }
 
   function fetchLatestPrices() {
@@ -991,6 +779,7 @@
     carry: 'Carry Signal',
     momentum: 'Momentum',
     mean_reversion: 'Mean Reversion',
+    inr_composite: 'USD/INR Composite',
   };
 
   /**
@@ -1021,6 +810,7 @@
       carry: 'Carry Signal',
       momentum: 'Momentum',
       mean_reversion: 'Mean Reversion',
+      inr_composite: 'USD/INR Composite',
     };
     var key = s0.toLowerCase();
     if (map[key]) return map[key];
@@ -1045,8 +835,8 @@
   }
 
   /**
-   * Pair terminal strip: Live / Published CSV / hybrid + date.
-   * @param {string} source loadPairDataset dataSource: supabase | csv | hybrid | none
+   * Pair terminal strip: Live + date (Supabase-only).
+   * @param {string} source loadPairDataset dataSource: supabase | none
    * @param {string} latestDate YYYY-MM-DD
    * @param {ParentNode} [root] default document
    * @param {{ supabaseFetchFailed?: boolean, supabaseClientMissing?: boolean }} [meta]
@@ -1061,25 +851,17 @@
     var prefix = '—';
     var warnTitle = '';
     var sbDown = !!(meta.supabaseFetchFailed || meta.supabaseClientMissing);
-    if (source === 'csv') {
-      prefix = isLocalDev() ? 'Local' : 'Published';
-      if (sbDown) {
-        warnTitle =
-          'Supabase unavailable — showing published CSV from the daily pipeline. Methodology describes signal definitions.';
-      }
-    } else if (source === 'hybrid') {
+    if (source === 'supabase') {
       prefix = 'Live';
-      warnTitle = 'Supabase signals merged into published master CSV.';
-    } else if (source === 'supabase') {
-      prefix = 'Live';
+    }
+    if (sbDown) {
+      warnTitle = 'Supabase unavailable — check connection and credentials.';
     }
     statusEl.textContent = dateFmt ? prefix + ' · ' + dateFmt : prefix;
     statusEl.setAttribute('title', warnTitle);
     statusEl.setAttribute('data-term-source', source || 'none');
-    if (source === 'csv') {
-      statusEl.style.color = sbDown ? '#f59e0b' : 'var(--text-muted)';
-    } else if (source === 'supabase' || source === 'hybrid') {
-      statusEl.style.color = 'var(--bullish)';
+    if (source === 'supabase') {
+      statusEl.style.color = sbDown ? '#f59e0b' : 'var(--bullish)';
     } else {
       statusEl.style.color = 'var(--text-muted)';
     }
@@ -1148,7 +930,7 @@
   }
 
   function fetchAiArticleJson() {
-    return fetchJsonWithTimeout('/data/ai_article.json', FETCH_TIMEOUT_MS)
+    return fetchJsonWithTimeout('/static/ai_article.json', 4000)
       .then(function (j) {
         return j && typeof j === 'object' ? j : null;
       })
@@ -1158,7 +940,7 @@
   }
 
   /**
-   * HOME brief card: brief_log → /data/ai_article.json → placeholder.
+   * HOME brief card: brief_log → /static/ai_article.json → placeholder.
    * @param {object|null} brief from fetchBriefPreview
    * @param {object|null} aiArticle from fetchAiArticleJson
    */
@@ -1294,9 +1076,35 @@
     checkPipelineErrors();
 
     fetchJsonWithTimeout('/static/pipeline_status.json', FETCH_TIMEOUT_MS)
-      .then(applyPipelineNavStatus)
+      .then(function (j) {
+        if (j && j.last_supabase_write) {
+          applyPipelineNavStatus(j);
+          return;
+        }
+        return fetchPipelineStatus().then(function (sb) {
+          if (sb && sb.last_run) {
+            applyPipelineNavStatus({
+              supabase_write_status: sb.status === 'live' ? 'ok' : 'unknown',
+              last_supabase_write: sb.last_run + 'T12:00:00Z',
+              last_run_utc: sb.last_run + 'T12:00:00Z',
+            });
+          } else {
+            applyPipelineNavStatus(null);
+          }
+        });
+      })
       .catch(function () {
-        applyPipelineNavStatus(null);
+        return fetchPipelineStatus().then(function (sb) {
+          if (sb && sb.last_run) {
+            applyPipelineNavStatus({
+              supabase_write_status: sb.status === 'live' ? 'ok' : 'unknown',
+              last_supabase_write: sb.last_run + 'T12:00:00Z',
+              last_run_utc: sb.last_run + 'T12:00:00Z',
+            });
+          } else {
+            applyPipelineNavStatus(null);
+          }
+        });
       });
 
     var pairs = [
@@ -1465,9 +1273,9 @@
     getSupabaseClient: getSupabaseClient,
     isLocalDev: isLocalDev,
     normalisePair: normalisePair,
-    buildMasterRowsFromSignals: buildMasterRowsFromSignals,
     fetchSignals: fetchSignals,
-    fetchSignalsFromCSV: fetchSignalsFromCSV,
+    fetchSignalsFromSupabase: fetchSignalsFromSupabase,
+    fetchPipelineStatus: fetchPipelineStatus,
     fetchRegimeCalls: fetchRegimeCalls,
     fetchLatestBrief: fetchLatestBrief,
     fetchBriefPreview: fetchBriefPreview,
@@ -1475,22 +1283,17 @@
     checkPipelineErrors: checkPipelineErrors,
     fetchSignalRows: fetchSignalRows,
     fetchFromSupabase: fetchFromSupabase,
-    fetchFromCSV: fetchFromCSV,
     loadData: loadData,
     loadPairDataset: loadPairDataset,
-    patchMasterRowsFromSignals: patchMasterRowsFromSignals,
-    fetchTextCached: fetchTextCached,
-    parseMasterCsv: parseMasterCsv,
     setDataDate: setDataDate,
     getDataDate: getDataDate,
     DATA_UPDATING_MESSAGE: DATA_UPDATING_MESSAGE,
     initTerminalHome: initTerminalHome,
     fetchLatestPrices: fetchLatestPrices,
     buildCotArraysFromSignals: buildCotArraysFromSignals,
-    MASTER_CSV: MASTER_CSV,
-    COT_CSV: COT_CSV,
     DRIVER_LABELS: DRIVER_LABELS,
     formatDriverLabel: formatDriverLabel,
+    formatRegimeLabel: formatRegimeLabel,
     confidenceToPercent: confidenceToPercent,
     showPairDataStatus: showPairDataStatus,
     fmtDataDate: function (ymd) {
@@ -1538,15 +1341,9 @@
         }
       }
 
-      try {
-        var csvResp = await fetch('/data/latest_with_cot.csv');
-        var len = csvResp.headers.get('content-length');
-        console.info(
-          'Published CSV /data/latest_with_cot.csv:',
-          csvResp.ok ? 'OK (' + (len || 'unknown') + ' bytes)' : 'FAIL (' + csvResp.status + ')'
-        );
-      } catch (e2) {
-        console.info('Published CSV: FAILED -', e2 && e2.message ? e2.message : e2);
+      if (global.FXRLData && typeof global.FXRLData.fetchSignalsFromSupabase === 'function') {
+        var rows = await global.FXRLData.fetchSignalsFromSupabase('EURUSD', 30);
+        console.info('fetchSignalsFromSupabase(EURUSD, 30):', rows && rows.length ? rows.length + ' rows' : 'empty');
       }
 
       try {

@@ -6,11 +6,21 @@
  *   SUPABASE_URL — project URL (https://xxx.supabase.co)
  *   SUPABASE_ANON_KEY — public anon key (RLS enforced; browser reads only)
  *
- * If either is empty, terminal falls back to local CSV under /data/ when published.
  */
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/health") {
+      return new Response(
+        JSON.stringify({ status: "ok", timestamp: new Date().toISOString() }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store",
+          },
+        }
+      );
+    }
     if (url.pathname === "/api/substack-rss") {
       try {
         const rssResp = await fetch("https://fxregimelab.substack.com/feed", {
@@ -53,10 +63,7 @@ export default {
 
     if (path.startsWith("/data/") || path.startsWith("/static/")) {
       const response = await env.ASSETS.fetch(request);
-      if (
-        (path.startsWith("/data/") && path.endsWith(".csv")) ||
-        (path.startsWith("/static/") && path.endsWith(".json"))
-      ) {
+      if (path.startsWith("/static/") && path.endsWith(".json")) {
         const headers = new Headers(response.headers);
         headers.set("Access-Control-Allow-Origin", "*");
         headers.set("Cache-Control", "public, max-age=3600");

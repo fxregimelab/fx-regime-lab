@@ -84,6 +84,7 @@ def _ni(row: pd.Series, col: str) -> Optional[int]:
 def _row_to_signal(pair: str, row: pd.Series, as_of: str) -> Dict[str, Any]:
     out: Dict[str, Any] = {"date": as_of, "pair": pair}
     if pair == "EURUSD":
+        out["spot"] = _nf(row, "EURUSD")
         out["rate_diff_2y"] = _nf(row, "US_DE_2Y_spread")
         out["rate_diff_10y"] = _nf(row, "US_DE_10Y_spread")
         out["cot_lev_money_net"] = _ni(row, "EUR_lev_net")
@@ -93,6 +94,7 @@ def _row_to_signal(pair: str, row: pd.Series, as_of: str) -> Dict[str, Any]:
         out["cross_asset_dxy"] = _nf(row, "DXY")
         out["cross_asset_oil"] = _nf(row, "Brent")
     elif pair == "USDJPY":
+        out["spot"] = _nf(row, "USDJPY")
         out["rate_diff_2y"] = _nf(row, "US_JP_2Y_spread")
         out["rate_diff_10y"] = _nf(row, "US_JP_10Y_spread")
         out["cot_lev_money_net"] = _ni(row, "JPY_lev_net")
@@ -102,6 +104,7 @@ def _row_to_signal(pair: str, row: pd.Series, as_of: str) -> Dict[str, Any]:
         out["cross_asset_dxy"] = _nf(row, "DXY")
         out["cross_asset_oil"] = _nf(row, "Brent")
     elif pair == "USDINR":
+        out["spot"] = _nf(row, "USDINR")
         out["rate_diff_2y"] = _nf(row, "US_IN_policy_spread")
         out["rate_diff_10y"] = _nf(row, "US_IN_10Y_spread")
         out["realized_vol_20d"] = _nf(row, "USDINR_vol30")

@@ -6,7 +6,6 @@
   'use strict';
 
   var g = typeof window !== 'undefined' ? window : this;
-  var LOGO_URL = '/assets/images/logo.png';
   var WORDMARK_URL = '/assets/images/wordmark_without_bg.png';
   var WORDMARK_FALLBACK =
     "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22210%22%20height%3D%2222%22%3E%3Ctext%20x%3D%220%22%20y%3D%2216%22%20fill%3D%22%23e8ede8%22%20font-family%3D%22Inter%2Csystem-ui%2Csans-serif%22%20font-size%3D%2213%22%20font-weight%3D%22600%22%3EFX%20Regime%20Lab%3C/text%3E%3C/svg%3E";
@@ -154,12 +153,18 @@
     }
   }
 
-  var SVG_MARK_FALLBACK =
-    '<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
-    '<rect x="0" y="0" width="24" height="8" fill="#4D8EFF" rx="1"/>' +
-    '<rect x="3" y="9" width="24" height="7" fill="#F59E0B" rx="1"/>' +
-    '<rect x="6" y="17" width="24" height="7" fill="#F87171" rx="1"/>' +
-    '</svg>';
+  function renderBrand() {
+    return (
+      '<div style="display:flex;align-items:center;gap:10px">' +
+      '<svg width="28" height="20" viewBox="0 0 28 20" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="0" y="0" width="28" height="6" rx="1" fill="#4D8EFF"/>' +
+      '<rect x="3" y="8" width="28" height="6" rx="1" fill="#F59E0B"/>' +
+      '<rect x="6" y="16" width="28" height="4" rx="1" fill="#F87171"/>' +
+      '</svg>' +
+      '<span style="font-family:\'Inter\',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.12em;color:#E8EDF2">FX REGIME LAB</span>' +
+      '</div>'
+    );
+  }
 
   function hydrateTerminalBrand() {
     var brand = document.querySelector('.term-brand');
@@ -167,36 +172,7 @@
       hydrateLegacyWordmark();
       return;
     }
-    var word = brand.querySelector('.term-brand__word');
-    if (word) {
-      word.textContent = 'FX REGIME LAB';
-      word.style.fontFamily = "'Inter',sans-serif";
-      word.style.fontSize = '13px';
-      word.style.fontWeight = '700';
-      word.style.letterSpacing = '0.12em';
-      word.style.color = '#E8EDF2';
-      word.style.marginLeft = '10px';
-    }
-    var mark = brand.querySelector('.term-brand__mark');
-    if (!mark) return;
-
-    function injectSvgMark() {
-      var wrap = document.createElement('span');
-      wrap.className =
-        (mark.className ? mark.className + ' ' : '') + 'term-brand__mark--svg term-brand__mark--fallback';
-      wrap.setAttribute('aria-hidden', 'true');
-      wrap.innerHTML = SVG_MARK_FALLBACK;
-      if (mark.parentNode) mark.parentNode.replaceChild(wrap, mark);
-    }
-
-    if (mark.tagName && mark.tagName.toUpperCase() !== 'IMG') return;
-
-    mark.onerror = function () {
-      mark.onerror = null;
-      injectSvgMark();
-    };
-    var src = mark.getAttribute('src') || LOGO_URL;
-    mark.src = src;
+    brand.innerHTML = renderBrand();
   }
 
   document.addEventListener('DOMContentLoaded', function () {
