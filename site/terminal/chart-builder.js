@@ -668,14 +668,14 @@
       var t = entry.chartType;
 
       if (t === 'bar') {
-        var hb = chart.addHistogramSeries({
+        var hb = chart.addSeries(LW.HistogramSeries, {
           color: c,
           priceScaleId: priceScaleId,
           priceLineVisible: false,
         });
         hb.setData(normalized);
       } else if (t === 'area') {
-        var ar = chart.addAreaSeries({
+        var ar = chart.addSeries(LW.AreaSeries, {
           lineColor: c,
           topColor: FX.hexToRgba(c, 0.2),
           bottomColor: FX.hexToRgba(c, 0),
@@ -688,7 +688,7 @@
       } else if (t === 'scatter') {
         var sc;
         try {
-          sc = chart.addLineSeries({
+          sc = chart.addSeries(LW.LineSeries, {
             color: c,
             lineWidth: 2,
             priceScaleId: priceScaleId,
@@ -698,7 +698,7 @@
             pointMarkersVisible: true,
           });
         } catch (eSc) {
-          sc = chart.addLineSeries({
+          sc = chart.addSeries(LW.LineSeries, {
             color: c,
             lineWidth: 2,
             priceScaleId: priceScaleId,
@@ -709,7 +709,7 @@
         }
         sc.setData(normalized);
       } else {
-        var ln = chart.addLineSeries({
+        var ln = chart.addSeries(LW.LineSeries, {
           color: c,
           lineWidth: 1.5,
           priceScaleId: priceScaleId,

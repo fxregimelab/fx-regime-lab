@@ -120,7 +120,7 @@
   function baseChartOptions(container, themeOpts) {
     var rect = container.getBoundingClientRect();
     var w = rect.width || container.offsetWidth || 600;
-    var h = rect.height || container.offsetHeight || 240;
+    var h = container.offsetHeight > 50 ? container.offsetHeight : 240;
     var th = themeOpts || {};
     var bg = th.bg != null ? th.bg : T.bg;
     var txt = th.text != null ? th.text : T.text;
@@ -129,6 +129,9 @@
     return {
       width: w,
       height: h,
+      watermark: {
+        visible: false,
+      },
       layout: {
         background: { color: bg },
         textColor: txt,
@@ -298,7 +301,8 @@
   function attachResize(container, chart) {
     var ro = new ResizeObserver(function () {
       try {
-        chart.applyOptions({ width: container.offsetWidth || 600 });
+        var ch = container.offsetHeight > 50 ? container.offsetHeight : 240;
+        chart.applyOptions({ width: container.offsetWidth || 600, height: ch });
       } catch (e) {}
     });
     ro.observe(container);
@@ -326,7 +330,7 @@
       container.innerHTML = '';
       var chart = LW.createChart(container, baseChartOptions(container, opts.theme));
       var color = opts.color || T.eurusd;
-      var series = chart.addLineSeries({
+      var series = chart.addSeries(LW.LineSeries, {
         color: color,
         lineWidth: opts.lineWidth != null ? opts.lineWidth : 2,
         priceLineVisible: false,
@@ -383,7 +387,7 @@
       container.innerHTML = '';
       var chart = LW.createChart(container, baseChartOptions(container, opts.theme));
       var color = opts.color || T.eurusd;
-      var series = chart.addAreaSeries({
+      var series = chart.addSeries(LW.AreaSeries, {
         lineColor: color,
         topColor: hexToRgba(color, 0.2),
         bottomColor: hexToRgba(color, 0),
@@ -441,7 +445,7 @@
       container.innerHTML = '';
       var chart = LW.createChart(container, baseChartOptions(container, opts.theme));
       var defC = opts.color || T.eurusd;
-      var series = chart.addHistogramSeries({
+      var series = chart.addSeries(LW.HistogramSeries, {
         color: defC,
         priceFormat: opts.priceFormat || { type: 'volume' },
         priceLineVisible: false,
@@ -517,7 +521,7 @@
             minMove: spec.minMove != null ? spec.minMove : 0.0001,
           },
         };
-        var s = chart.addLineSeries(lineOpts);
+        var s = chart.addSeries(LW.LineSeries, lineOpts);
         s.setData(pts);
         seriesRefs.push(s);
       }
@@ -594,29 +598,27 @@
       topSpec.forEach(function (spec) {
         var pts = normalizeSeriesData(spec.data);
         if (!pts.length) return;
-        var fn = spec.area ? 'addAreaSeries' : 'addLineSeries';
-        var s =
-          fn === 'addAreaSeries'
-            ? chartTop.addAreaSeries({
-                lineColor: spec.color,
-                topColor: hexToRgba(spec.color, 0.15),
-                bottomColor: hexToRgba(spec.color, 0),
-                lineWidth: spec.lineWidth || 1.5,
-                priceLineVisible: false,
-              })
-            : chartTop.addLineSeries({
-                color: spec.color,
-                lineWidth: spec.lineWidth || 1.5,
-                lineStyle: spec.dashed ? 2 : 0,
-                priceLineVisible: false,
-              });
+        var s = spec.area
+          ? chartTop.addSeries(LW.AreaSeries, {
+              lineColor: spec.color,
+              topColor: hexToRgba(spec.color, 0.15),
+              bottomColor: hexToRgba(spec.color, 0),
+              lineWidth: spec.lineWidth || 1.5,
+              priceLineVisible: false,
+            })
+          : chartTop.addSeries(LW.LineSeries, {
+              color: spec.color,
+              lineWidth: spec.lineWidth || 1.5,
+              lineStyle: spec.dashed ? 2 : 0,
+              priceLineVisible: false,
+            });
         s.setData(pts);
         topSeries.push(s);
       });
       bottomSpec.forEach(function (spec) {
         var pts = normalizeSeriesData(spec.data);
         if (!pts.length) return;
-        var s = chartBot.addLineSeries({
+        var s = chartBot.addSeries(LW.LineSeries, {
           color: spec.color || T.neutral,
           lineWidth: spec.lineWidth || 1.2,
           priceLineVisible: false,
@@ -686,13 +688,13 @@
         showChartEmpty(container, opts.emptyMessage);
         return null;
       }
-      var hist = chart.addHistogramSeries({
+      var hist = chart.addSeries(LW.HistogramSeries, {
         priceScaleId: 'left',
         priceFormat: { type: 'volume' },
         priceLineVisible: false,
       });
       hist.setData(levPts);
-      var line = chart.addLineSeries({
+      var line = chart.addSeries(LW.LineSeries, {
         color: spec.assetColor || '#6b7280',
         lineWidth: 1.5,
         priceScaleId: 'right',
@@ -770,7 +772,7 @@
       var momLn = normalizeSeriesData(spec.momoLine || []);
       var spotLn = normalizeSeriesData(spec.spotLine || []);
       if (retBars.length) {
-        var h = chartTop.addHistogramSeries({
+        var h = chartTop.addSeries(LW.HistogramSeries, {
           priceScaleId: 'left',
           priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
         });
@@ -780,7 +782,7 @@
         } catch (e) {}
       }
       if (momLn.length) {
-        var m = chartTop.addLineSeries({
+        var m = chartTop.addSeries(LW.LineSeries, {
           color: spec.momColor || T.eurusd,
           lineWidth: 1.2,
           priceScaleId: 'right',
@@ -790,7 +792,7 @@
       }
       chartTop.priceScale('right').applyOptions({ visible: momLn.length > 0 });
       if (spotLn.length) {
-        var sp = chartBot.addLineSeries({
+        var sp = chartBot.addSeries(LW.LineSeries, {
           color: spec.spotColor || T.textPrimary,
           lineWidth: 1.2,
           priceLineVisible: false,
@@ -860,11 +862,11 @@
         return null;
       }
       if (bars.length) {
-        var h = chart.addHistogramSeries({ priceScaleId: 'left' });
+        var h = chart.addSeries(LW.HistogramSeries, { priceScaleId: 'left' });
         h.setData(bars);
       }
       if (cum.length) {
-        var ln = chart.addLineSeries({
+        var ln = chart.addSeries(LW.LineSeries, {
           color: spec.cumColor || T.usdinr,
           lineWidth: 1.5,
           priceScaleId: 'right',
@@ -1004,3 +1006,9 @@
     textStyle: { fontFamily: '"JetBrains Mono", monospace', fontSize: 11, color: T.text },
   };
 })(window);
+
+if (typeof window.FXRLCharts === 'undefined') {
+  console.error('FXRLCharts failed to register. Check lw-charts-config.js for syntax errors.');
+} else {
+  console.log('FXRLCharts registered successfully.');
+}

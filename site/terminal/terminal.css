@@ -1497,11 +1497,6 @@ body.theme-terminal:not(.theme-light) .term-brief {
   margin: 0 0 20px;
 }
 
-
-.term-magazine-section .term-chart-panel__canvas {
-  height: 240px;
-}
-
 .term-magazine-section__interpret {
   margin-top: 16px;
   border-left: 3px solid color-mix(in srgb, var(--accent) 40%, transparent);
@@ -1901,9 +1896,25 @@ body.theme-terminal:not(.theme-light) .term-magazine-section--regime {
   border-bottom-color: var(--accent);
 }
 
+[data-chart-container],
+.chart-container,
+.term-chart,
 .term-chart-panel__canvas {
+  height: 240px;
+  min-height: 240px;
+  max-height: 400px;
   width: 100%;
-  height: 260px;
+  position: relative;
+  background: #111827;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Panel modal spark: smaller than pair-page chart mounts */
+.term-panel__chart.chart-container {
+  height: 120px;
+  min-height: 120px;
+  max-height: 160px;
 }
 
 /* Chart mount (legacy class name; Lightweight Charts — not ECharts) */
@@ -1932,9 +1943,13 @@ body.theme-terminal:not(.theme-light) .term-magazine-section--regime {
 }
 
 @media (max-width: 899px) {
+  [data-chart-container],
+  .chart-container,
+  .term-chart,
   .term-chart-panel__canvas {
     min-height: 220px;
     height: 220px;
+    max-height: 400px;
   }
 
   .term-chart-ranges__btn {
