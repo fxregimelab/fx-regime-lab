@@ -1,12 +1,12 @@
 /**
  * Shared terminal utilities (FX Regime Lab).
- * Load before chart-builder.js, echarts-config.js, data-client.js, pair inline scripts.
+ * Load before lw-charts-config.js, chart-builder.js, data-client.js, pair inline scripts.
  */
 (function (global) {
   'use strict';
 
   /**
-   * Parse a CSV text into an ECharts [timestamp_ms, value] array.
+   * Parse a CSV text into [timestamp_ms, value] tuples for chart series.
    * Note: simple comma split — not for quoted fields; use parseMasterCsv in data-client for full master CSV.
    * @param {string} csvText - raw CSV string
    * @param {string} dateCol - column name for the date field

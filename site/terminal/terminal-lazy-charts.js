@@ -5,62 +5,91 @@
     Array.prototype.forEach.call(list || [], fn);
   }
 
-  function init(root, options) {
-    if (!root) return;
-    if (!global.echarts) {
-      if (typeof document !== 'undefined') {
-        document.addEventListener(
-          'echarts-ready',
-          function () {
-            init(root, options);
-          },
-          { once: true }
-        );
-      }
+  function markChartEmptyState(wrapper, mount) {
+    if (!mount) return;
+    var hasPoints = true;
+    if (wrapper && typeof wrapper.getHasData === 'function') {
+      hasPoints = !!wrapper.getHasData();
+    } else if (wrapper && wrapper.hasData === false) {
+      hasPoints = false;
+    }
+    var prev = mount.querySelector('.term-chart-empty-msg');
+    if (hasPoints) {
+      if (prev) prev.remove();
+      mount.classList.remove('is-chart-empty');
       return;
     }
+    mount.classList.add('is-chart-empty');
+    if (prev) return;
+    var p = document.createElement('p');
+    p.className = 'term-chart-empty-msg';
+    p.setAttribute('role', 'status');
+    p.textContent =
+      'No series in this range. Data follows the daily pipeline (~23:00 UTC); see methodology for definitions.';
+    mount.appendChild(p);
+  }
+
+  function disposeWrapper(wrapper) {
+    if (!wrapper) return;
+    try {
+      if (typeof wrapper.dispose === 'function') {
+        wrapper.dispose();
+        return;
+      }
+      if (wrapper.chart && typeof wrapper.chart.remove === 'function') {
+        wrapper.chart.remove();
+      }
+      if (wrapper.chartTop && typeof wrapper.chartTop.remove === 'function') {
+        wrapper.chartTop.remove();
+      }
+      if (wrapper.chartBottom && typeof wrapper.chartBottom.remove === 'function') {
+        wrapper.chartBottom.remove();
+      }
+      if (typeof wrapper.disposeExtra === 'function') {
+        wrapper.disposeExtra();
+      }
+    } catch (_e) {
+      /* ignore */
+    }
+  }
+
+  function init(root, options) {
+    if (!root) return;
     options = options || {};
     var chartInits = options.chartInits || {};
     var sections = root.querySelectorAll('[data-row-key]');
-    function seriesHasPoints(data) {
-      return !!(data && data.length);
-    }
 
-    function markChartEmptyState(chart, mount) {
-      if (!chart || !mount) return;
-      var opt;
+    function runFactory(section, mount, factory) {
+      var result;
       try {
-        opt = chart.getOption();
-      } catch (_e) {
-        return;
-      }
-      var series = opt && opt.series;
-      if (!series || !series.length) return;
-      var hasPoints = false;
-      for (var i = 0; i < series.length; i++) {
-        if (seriesHasPoints(series[i].data)) {
-          hasPoints = true;
-          break;
+        result = factory(mount, section);
+      } catch (err) {
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('FXRLTerminalLazy chart init failed:', section.getAttribute('data-row-key'), err);
         }
-      }
-      var prev = mount.querySelector('.term-chart-empty-msg');
-      if (hasPoints) {
-        if (prev) prev.remove();
-        mount.classList.remove('is-chart-empty');
         return;
       }
-      mount.classList.add('is-chart-empty');
-      if (prev) return;
-      var p = document.createElement('p');
-      p.className = 'term-chart-empty-msg';
-      p.setAttribute('role', 'status');
-      p.textContent =
-        'No series in this range. Data follows the daily pipeline (~23:00 UTC); see methodology for definitions.';
-      mount.appendChild(p);
+      var done = function (wrapper) {
+        if (!section || !mount) return;
+        section._chartLoading = false;
+        markChartEmptyState(wrapper, mount);
+        section._chart = wrapper;
+      };
+      if (result && typeof result.then === 'function') {
+        section._chartLoading = true;
+        result.then(done).catch(function (err) {
+          section._chartLoading = false;
+          if (typeof console !== 'undefined' && console.error) {
+            console.error('FXRLTerminalLazy chart async failed:', section.getAttribute('data-row-key'), err);
+          }
+        });
+      } else {
+        done(result);
+      }
     }
 
     function initChart(section) {
-      if (!section || section._chart) return;
+      if (!section || section._chart || section._chartLoading) return;
       var key = section.getAttribute('data-row-key') || '';
       var mount = section.querySelector('.js-term-echart');
       var noChart = section.getAttribute('data-no-chart') === 'true';
@@ -68,73 +97,57 @@
 
       var factory = chartInits[key];
       if (typeof factory !== 'function') return;
-      try {
-        var chart = factory(mount, section);
-        if (!chart) return;
-        markChartEmptyState(chart, mount);
-        section._chart = chart;
-        if (
-          global.TerminalCharts &&
-          typeof global.TerminalCharts.observeChartResize === 'function'
-        ) {
-          section._chartResizeObserver = global.TerminalCharts.observeChartResize(mount, chart);
+
+      if (!global.LightweightCharts) {
+        if (typeof document !== 'undefined') {
+          document.addEventListener(
+            'lwc-ready',
+            function () {
+              initChart(section);
+            },
+            { once: true }
+          );
         }
-      } catch (err) {
-        if (typeof console !== 'undefined' && console.error) {
-          console.error('FXRLTerminalLazy chart init failed:', key, err);
-        }
+        return;
       }
+
+      runFactory(section, mount, factory);
     }
 
     function disposeChart(section) {
-      if (!section || !section._chart) return;
-      try {
-        if (section._chartResizeObserver) {
-          if (typeof section._chartResizeObserver._cancelFxrlResize === 'function') {
-            section._chartResizeObserver._cancelFxrlResize();
-          }
-          if (typeof section._chartResizeObserver.disconnect === 'function') {
-            section._chartResizeObserver.disconnect();
-          }
-        }
-      } catch (_e) {
-        /* ignore */
-      }
-      section._chartResizeObserver = null;
-      try {
-        if (typeof section._chart.dispose === 'function') {
-          section._chart.dispose();
-        }
-      } catch (_e2) {
-        /* ignore */
-      }
+      if (!section) return;
+      section._chartLoading = false;
+      if (!section._chart) return;
+      disposeWrapper(section._chart);
       section._chart = null;
     }
 
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        var section = entry.target;
-        if (entry.isIntersecting) {
-          section.classList.add('is-inview');
-          initChart(section);
-          return;
-        }
-        // Free memory when the section scrolls far outside viewport.
-        disposeChart(section);
-      });
-    }, {
-      root: null,
-      threshold: 0.1,
-      rootMargin: '-15% 0px -15% 0px',
-    });
+    var io = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          var section = entry.target;
+          if (entry.isIntersecting) {
+            section.classList.add('is-inview');
+            initChart(section);
+            return;
+          }
+          disposeChart(section);
+        });
+      },
+      {
+        root: null,
+        threshold: 0.1,
+        rootMargin: '-15% 0px -15% 0px',
+      }
+    );
 
     forEachNode(sections, function (section) {
       io.observe(section);
     });
   }
 
-  function attachRegimeZoneToggle(toolbarHost, chart, options) {
-    if (!toolbarHost || !chart || !options || !options.storageKey || typeof options.apply !== 'function') return;
+  function attachRegimeZoneToggle(toolbarHost, chartWrapper, options) {
+    if (!toolbarHost || !options || !options.storageKey || typeof options.apply !== 'function') return;
     var key = options.storageKey;
     var checked = global.localStorage.getItem(key) === 'true';
 
@@ -152,7 +165,7 @@
 
     function apply() {
       try {
-        options.apply(chart, input.checked);
+        options.apply(chartWrapper, input.checked);
       } catch (e) {
         /* ignore */
       }

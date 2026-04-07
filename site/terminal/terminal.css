@@ -6,10 +6,10 @@
 
 /* Contrast: primary text on bg-terminal and secondary on surfaces meet AA for UI copy. */
 
-/* BOUNDARY: Terminal uses ECharts 5.4.3 only.
+/* BOUNDARY: Terminal uses TradingView Lightweight Charts (CDN) only.
    Chart.js must never be imported in terminal pages.
    Public site uses Chart.js only.
-   ECharts must never appear in public site pages. */
+   Terminal chart code must not appear in public site pages. */
 
 /* —— Design tokens (terminal pages only) —— */
 body.theme-terminal {
@@ -1307,7 +1307,7 @@ body.theme-terminal:not(.theme-light) .term-brief {
 }
 
 .term-panel__chart {
-  height: 160px;
+  height: 120px;
 }
 
 .term-pair-page {
@@ -1906,6 +1906,7 @@ body.theme-terminal:not(.theme-light) .term-magazine-section--regime {
   height: 260px;
 }
 
+/* Chart mount (legacy class name; Lightweight Charts — not ECharts) */
 .js-term-echart {
   position: relative;
 }

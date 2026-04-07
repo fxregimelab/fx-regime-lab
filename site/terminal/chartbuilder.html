@@ -127,17 +127,17 @@
     document.dispatchEvent(new Event('supabase-ready'))">
   </script>
 
-  <!-- 3. ECharts — async -->
+  <!-- 3. Lightweight Charts — async -->
   <script async
-    src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"
-    onload="window.__echartsReady=true;
-    document.dispatchEvent(new Event('echarts-ready'))">
+    src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"
+    onload="window.__lwcReady=true;
+    document.dispatchEvent(new Event('lwc-ready'))">
   </script>
 
   <!-- 4. Chart builder scripts — defer -->
   <script defer src="/terminal/utils.js"></script>
   <script defer src="/terminal/page-init.js"></script>
-  <script defer src="/terminal/echarts-config.js"></script>
+  <script defer src="/terminal/lw-charts-config.js"></script>
   <script defer src="/terminal/data-client.js"></script>
   <script defer src="/terminal/terminal-nav.js"></script>
   <script defer src="/terminal/chart-builder.js"></script>
@@ -511,6 +511,7 @@
       exportBtn.disabled = true;
       exportBtn.innerHTML = '<span class="cb-spinner"></span>Exporting...';
       CB.ExportManager.exportPNG(state.app.chart, {
+        chartEl: document.getElementById('cb-chart'),
         width: sz.width,
         height: sz.height,
         title: title,
@@ -565,13 +566,22 @@
     }
 
     window.addEventListener('resize', function () {
-      if (state.app && state.app.chart) state.app.chart.resize();
+      var el = document.getElementById('cb-chart');
+      if (state.app && state.app.chart && el) {
+        try {
+          state.app.chart.applyOptions({ width: el.clientWidth || 600, height: el.clientHeight || 340 });
+        } catch (e) {}
+      }
     });
     }
-    if (window.echarts) {
+    function startChartBuilder() {
+      if (!window.FXRLChartBuilder) return;
       boot();
+    }
+    if (window.__lwcReady && window.LightweightCharts) {
+      startChartBuilder();
     } else {
-      document.addEventListener('echarts-ready', boot, { once: true });
+      document.addEventListener('lwc-ready', startChartBuilder, { once: true });
     }
   })();
   </script>

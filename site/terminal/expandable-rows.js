@@ -3,10 +3,49 @@
  * Row IDs differ per pair but accordion behaviour is identical. Do not add
  * pair-specific logic here — put it in the pair HTML instead.
  *
- * Terminal pair pages — single-open accordion + lazy ECharts init.
+ * Terminal pair pages — single-open accordion + lazy Lightweight Charts init.
  */
 (function (global) {
   'use strict';
+
+  function resizeRowChart(wrapper, mount) {
+    if (!wrapper || !mount) return;
+    var w = mount.clientWidth || 600;
+    var h = mount.clientHeight || 260;
+    if (typeof wrapper.resize === 'function') {
+      try {
+        wrapper.resize();
+      } catch (e) {
+        /* ignore */
+      }
+      return;
+    }
+    if (wrapper.chartTop && wrapper.chartBottom && typeof wrapper.chartTop.applyOptions === 'function') {
+      var wrap = mount.firstElementChild;
+      var topEl = wrap && wrap.children[0];
+      var botEl = wrap && wrap.children[1];
+      try {
+        wrapper.chartTop.applyOptions({
+          width: w,
+          height: topEl ? topEl.clientHeight : Math.max(80, Math.floor(h * 0.55)),
+        });
+        wrapper.chartBottom.applyOptions({
+          width: w,
+          height: botEl ? botEl.clientHeight : Math.max(60, Math.floor(h * 0.45)),
+        });
+      } catch (e2) {
+        /* ignore */
+      }
+      return;
+    }
+    if (wrapper.chart && typeof wrapper.chart.applyOptions === 'function') {
+      try {
+        wrapper.chart.applyOptions({ width: w, height: h });
+      } catch (e3) {
+        /* ignore */
+      }
+    }
+  }
 
   var COLLAPSED_PX = 48;
   var EXPANDED_MAX_PX = 800;
@@ -54,10 +93,8 @@
       shell.addEventListener('transitionend', function (e) {
         if (e.propertyName !== 'max-height') return;
         shell.classList.remove('term-acc__shell--will-change');
-        if (row._chart && typeof row._chart.resize === 'function') {
-          try {
-            row._chart.resize();
-          } catch (err) { /* ignore */ }
+        if (row._chart) {
+          resizeRowChart(row._chart, row.querySelector('.js-term-echart'));
         }
       });
 
@@ -67,10 +104,8 @@
         var mount = row.querySelector('.js-term-echart');
         if (noChart || !mount) return;
 
-        if (row._chart && typeof row._chart.resize === 'function') {
-          try {
-            row._chart.resize();
-          } catch (e2) { /* ignore */ }
+        if (row._chart) {
+          resizeRowChart(row._chart, mount);
           return;
         }
 
@@ -123,7 +158,7 @@
   /**
    * Regime direction shading (EUR/USD price context). Checkbox + localStorage.
    * @param {HTMLElement} toolbarHost - where to prepend the control
-   * @param {object} chart - ECharts instance
+   * @param {object} chart - chart wrapper (LWC) or legacy chart handle
    * @param {{ storageKey: string, apply: (chart: object, enabled: boolean) => void }} options
    */
   function attachRegimeZoneToggle(toolbarHost, chart, options) {
@@ -150,7 +185,17 @@
       } catch (e) {
         /* ignore apply errors */
       }
-      if (chart && typeof chart.resize === 'function') chart.resize();
+      if (chart && typeof chart.resize === 'function') {
+        try {
+          chart.resize();
+        } catch (e) {
+          /* ignore */
+        }
+      } else if (chart) {
+        var row = toolbarHost.closest && toolbarHost.closest('[data-term-acc-row]');
+        var m = row && row.querySelector('.js-term-echart');
+        if (m) resizeRowChart(chart, m);
+      }
     }
 
     input.addEventListener('change', function () {

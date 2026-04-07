@@ -24,11 +24,11 @@
     document.dispatchEvent(new Event('supabase-ready'))">
   </script>
 
-  <!-- 3. ECharts — async -->
+  <!-- 3. Lightweight Charts — async -->
   <script async
-    src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"
-    onload="window.__echartsReady=true;
-    document.dispatchEvent(new Event('echarts-ready'))">
+    src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"
+    onload="window.__lwcReady=true;
+    document.dispatchEvent(new Event('lwc-ready'))">
   </script>
 
   <style>
@@ -60,7 +60,7 @@
   <!-- 4. All other terminal scripts — defer -->
   <script defer src="/terminal/utils.js"></script>
   <script defer src="/terminal/page-init.js"></script>
-  <script defer src="/terminal/echarts-config.js"></script>
+  <script defer src="/terminal/lw-charts-config.js"></script>
   <script defer src="/terminal/data-client.js"></script>
   <script defer src="/terminal/terminal-nav.js"></script>
   <script defer src="/terminal/terminal-motion.js"></script>

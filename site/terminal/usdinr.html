@@ -24,17 +24,17 @@
     document.dispatchEvent(new Event('supabase-ready'))">
   </script>
 
-  <!-- 3. ECharts — async -->
+  <!-- 3. Lightweight Charts — async -->
   <script async
-    src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"
-    onload="window.__echartsReady=true;
-    document.dispatchEvent(new Event('echarts-ready'))">
+    src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"
+    onload="window.__lwcReady=true;
+    document.dispatchEvent(new Event('lwc-ready'))">
   </script>
 
   <!-- 4. Pair terminal scripts — defer -->
   <script defer src="/terminal/utils.js"></script>
   <script defer src="/terminal/page-init.js"></script>
-  <script defer src="/terminal/echarts-config.js"></script>
+  <script defer src="/terminal/lw-charts-config.js"></script>
   <script defer src="/terminal/data-client.js"></script>
   <script defer src="/terminal/terminal-nav.js"></script>
   <!-- DATA: US_IN spreads, USDINR vol/spot, dxy_inr / gold_inr corrs, FPI_20D, rbi_reserves -->
@@ -622,157 +622,122 @@
   }
 
   function chartInits() {
+    var FX = window.FXRLCharts;
+    if (!FX) {
+      return {};
+    }
     return {
       'rate-diff': function (mount, row) {
-        var chart = echarts.init(mount, null, { renderer: 'canvas' });
-        var base = window.TERMINAL_CHART_BASE || {};
-        var rangeMs = wireRangeButtons(row, function (ms) { draw(ms); }) || 7776000000;
+        var disposer = { fn: null };
+        var rangeMs =
+          wireRangeButtons(row, function (ms) {
+            draw(ms);
+          }) || 7776000000;
 
         function draw(ms) {
+          if (disposer.fn) {
+            disposer.fn();
+            disposer.fn = null;
+          }
           var d10 = filterByRange(DATA.rateDiff10Y, ms);
           var d2 = filterByRange(DATA.rateDiff2Y, ms);
           var last = d10.length ? d10[d10.length - 1][1] : null;
-          chart.setOption({
-            backgroundColor: '#0f1318',
-            color: base.color,
-            textStyle: base.textStyle || { fontFamily: 'JetBrains Mono,monospace', fontSize: 11, color: '#8a9485' },
-            grid: { left: 48, right: 16, top: 24, bottom: 32 },
-            legend: {
-              top: 4,
-              right: 8,
-              textStyle: { color: '#8a9485', fontSize: 10, fontFamily: 'JetBrains Mono,monospace' }
-            },
-            graphic: [
-              {
-                type: 'text',
-                left: 'center',
-                bottom: 6,
-                style: {
-                  text: 'Negative = INR yield premium = INR strength',
-                  fill: '#8a9485',
-                  font: '11px Inter, system-ui, sans-serif'
-                }
-              }
+          FX.createMultiLineChart(
+            mount,
+            [
+              { data: d10, color: '#c94040', lineWidth: 1.5 },
+              { data: d2, color: '#e87878', dashed: true, lineWidth: 1.5 },
             ],
-            xAxis: { type: 'time', axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { color: '#8a9485', fontSize: 10 } },
-            yAxis: {
-              type: 'value',
-              scale: true,
-              axisLabel: { formatter: '{value}%', color: '#8a9485', fontSize: 10 },
-              splitLine: { lineStyle: { color: '#1c1f18' } }
-            },
-            tooltip: { trigger: 'axis' },
-            series: [
-              {
-                name: 'US–IN 10Y',
-                type: 'line',
-                showSymbol: false,
-                smooth: 0.35,
-                lineStyle: { width: 1.5, color: '#c94040' },
-                data: d10,
-                markLine: isFinite(last) ? {
-                  silent: true,
-                  symbol: 'none',
-                  lineStyle: { type: 'dashed', color: '#4a5245' },
-                  label: { formatter: 'Current: ' + last.toFixed(2) + '%', color: '#8a9485', fontSize: 10 },
-                  data: [{ yAxis: last }]
-                } : undefined
-              },
-              {
-                name: 'US–IN policy',
-                type: 'line',
-                showSymbol: false,
-                smooth: 0.35,
-                lineStyle: { width: 1.5, type: 'dashed', color: '#e87878' },
-                data: d2
-              }
-            ]
-          }, true);
+            { skipRangeButtons: true }
+          ).then(function (inst) {
+            if (!inst || !inst.chart) return;
+            if (isFinite(last) && inst.series[0]) {
+              try {
+                inst.series[0].createPriceLine({
+                  price: last,
+                  color: '#4a5245',
+                  lineWidth: 1,
+                  lineStyle: 2,
+                  axisLabelVisible: true,
+                  title: 'Current',
+                });
+              } catch (e) {}
+            }
+            inst.setRangeMs(ms);
+            disposer.fn = function () {
+              try {
+                inst.chart.remove();
+              } catch (e) {}
+              if (inst.disposeExtra) inst.disposeExtra();
+            };
+          });
         }
+
         draw(rangeMs);
-        return chart;
+        return Promise.resolve({
+          dispose: function () {
+            if (disposer.fn) disposer.fn();
+          },
+          getHasData: function () {
+            return DATA.rateDiff10Y.length > 0 || DATA.rateDiff2Y.length > 0;
+          },
+        });
       },
 
-      'vol': function (mount, row) {
-        var chart = echarts.init(mount, null, { renderer: 'canvas' });
-        var rangeMs = wireRangeButtons(row, function (ms) { draw(ms); }) || 15552000000;
+      vol: function (mount, row) {
+        var disposer = { fn: null };
+        var rangeMs =
+          wireRangeButtons(row, function (ms) {
+            draw(ms);
+          }) || 15552000000;
 
         function draw(ms) {
+          if (disposer.fn) {
+            disposer.fn();
+            disposer.fn = null;
+          }
           var v30 = filterByRange(DATA.vol30, ms);
           var v60 = filterByRange(DATA.vol60Roll, ms);
           var gold = filterByRange(DATA.goldCorrProxy, ms);
-          chart.setOption({
-            backgroundColor: '#0f1318',
-            textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
-            axisPointer: { link: [{ xAxisIndex: 'all' }] },
-            grid: [
-              { left: 48, right: 16, top: 24, height: '52%' },
-              { left: 48, right: 16, top: '72%', height: '22%' }
+          FX.createDualPaneCharts(
+            mount,
+            [
+              { data: v30, color: '#c94040', area: true, lineWidth: 1.5 },
+              { data: v60, color: 'rgba(232,120,120,0.85)', lineWidth: 1, dashed: true },
             ],
-            xAxis: [
-              { type: 'time', gridIndex: 0, axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { show: false } },
-              { type: 'time', gridIndex: 1, axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { color: '#8a9485', fontSize: 9 } }
-            ],
-            yAxis: [
-              { type: 'value', gridIndex: 0, scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { color: '#8a9485', formatter: '{value}%' } },
-              {
-                type: 'value',
-                gridIndex: 1,
-                scale: true,
-                splitLine: { lineStyle: { color: '#1c1f18' } },
-                axisLabel: { color: '#8a9485' }
-              }
-            ],
-            tooltip: { trigger: 'axis' },
-            series: [
-              {
-                name: '30D vol',
-                type: 'line',
-                xAxisIndex: 0,
-                yAxisIndex: 0,
-                areaStyle: { color: 'rgba(201,64,64,0.14)' },
-                lineStyle: { color: '#c94040', width: 1.5 },
-                showSymbol: false,
-                data: v30
-              },
-              {
-                name: '60D vol',
-                type: 'line',
-                xAxisIndex: 0,
-                yAxisIndex: 0,
-                lineStyle: { color: 'rgba(232,120,120,0.55)', width: 1, type: 'dashed' },
-                showSymbol: false,
-                data: v60
-              },
-              {
-                name: 'Gold corr 60D',
-                type: 'line',
-                xAxisIndex: 1,
-                yAxisIndex: 1,
-                showSymbol: false,
-                lineStyle: { width: 1.2, color: '#e87878' },
-                data: gold,
-                markLine: {
-                  silent: true,
-                  symbol: 'none',
-                  lineStyle: { color: '#2e3228', width: 1 },
-                  data: [{ yAxis: 0 }]
-                }
-              }
-            ]
-          }, true);
+            [{ data: gold, color: '#e87878', lineWidth: 1.2, zeroLine: true }],
+            {}
+          ).then(function (inst) {
+            if (!inst) return;
+            inst.setRangeMs(ms);
+            disposer.fn = function () {
+              if (inst.disposeExtra) inst.disposeExtra();
+            };
+          });
         }
+
         draw(rangeMs);
-        return chart;
+        return Promise.resolve({
+          dispose: function () {
+            if (disposer.fn) disposer.fn();
+          },
+          getHasData: function () {
+            return DATA.vol30.length > 0 || DATA.goldCorrProxy.length > 0;
+          },
+        });
       },
 
-      'cross': function (mount, row) {
-        var chart = echarts.init(mount, null, { renderer: 'canvas' });
-        var rangeMs = wireRangeButtons(row, function (ms) { draw(ms); }) || 31536000000;
+      cross: function (mount, row) {
+        var rangeMs =
+          wireRangeButtons(row, function (ms) {
+            draw(ms);
+          }) || 31536000000;
 
         function meanAbsOverRange(series, ms) {
           var cut = Date.now() - ms;
-          var slice = series.filter(function (p) { return p[0] >= cut && isFinite(p[1]); });
+          var slice = series.filter(function (p) {
+            return p[0] >= cut && isFinite(p[1]);
+          });
           if (!slice.length) return 0;
           var s = 0;
           for (var i = 0; i < slice.length; i++) s += Math.abs(slice[i][1]);
@@ -785,63 +750,57 @@
           var goldM = meanAbsOverRange(DATA.goldCorrProxy, ms);
           var vixP = meanAbsOverRange(DATA.vixProxy, ms);
           var ratesM = meanAbsOverRange(DATA.ratesProxy, ms);
-          var ind = [
-            { name: 'DXY\n' + dxyM.toFixed(2), max: 1 },
-            { name: 'Oil\n' + oilM.toFixed(2), max: 1 },
-            { name: 'Gold\n' + goldM.toFixed(2), max: 1 },
-            { name: 'Vol pct\n' + (vixP / 100).toFixed(2), max: 1 },
-            { name: 'Rates\n' + ratesM.toFixed(2), max: 1 }
-          ];
-          var cur = [dxyM, oilM, goldM, vixP / 100, ratesM];
-          var hist = [
-            meanAbsOverRange(DATA.dxyCorr, ms * 2) || dxyM,
-            meanAbsOverRange(DATA.oilCorr, ms * 2) || oilM,
-            meanAbsOverRange(DATA.goldCorrProxy, ms * 2) || goldM,
-            (meanAbsOverRange(DATA.vixProxy, ms * 2) || vixP) / 100,
-            meanAbsOverRange(DATA.ratesProxy, ms * 2) || ratesM
-          ];
-          chart.setOption({
-            backgroundColor: '#0f1318',
-            animation: false,
-            textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
-            tooltip: {},
-            radar: {
-              indicator: ind,
-              center: ['50%', '52%'],
-              radius: '58%',
-              axisName: { color: '#8a9485', fontSize: 9, lineHeight: 14 },
-              splitLine: { lineStyle: { color: '#1c1f18' } },
-              splitArea: { show: true, areaStyle: { color: ['rgba(25,28,21,0.9)', 'transparent'] } },
-              axisLine: { lineStyle: { color: '#252820' } }
+          var axes = [
+            {
+              label: 'DXY',
+              current: Math.min(1, dxyM),
+              longer: Math.min(1, meanAbsOverRange(DATA.dxyCorr, ms * 2) || dxyM),
             },
-            series: [{
-              type: 'radar',
-              data: [
-                {
-                  value: cur,
-                  name: 'Current',
-                  areaStyle: { color: 'rgba(201,64,64,0.2)' },
-                  lineStyle: { color: '#c94040', width: 1.5 }
-                },
-                {
-                  value: hist,
-                  name: 'Longer avg',
-                  areaStyle: { color: 'rgba(107,114,128,0.15)' },
-                  lineStyle: { color: '#6b7280', width: 1, type: 'dashed' }
-                }
-              ]
-            }]
-          }, true);
+            {
+              label: 'Oil',
+              current: Math.min(1, oilM),
+              longer: Math.min(1, meanAbsOverRange(DATA.oilCorr, ms * 2) || oilM),
+            },
+            {
+              label: 'Gold',
+              current: Math.min(1, goldM),
+              longer: Math.min(1, meanAbsOverRange(DATA.goldCorrProxy, ms * 2) || goldM),
+            },
+            {
+              label: 'Vol',
+              current: Math.min(1, vixP / 100),
+              longer: Math.min(1, (meanAbsOverRange(DATA.vixProxy, ms * 2) || vixP) / 100),
+            },
+            {
+              label: 'Rates',
+              current: Math.min(1, ratesM),
+              longer: Math.min(1, meanAbsOverRange(DATA.ratesProxy, ms * 2) || ratesM),
+            },
+          ];
+          FX.renderCrossRadarSvg(mount, { axes: axes, accent: '#c94040' });
         }
+
         draw(rangeMs);
-        return chart;
+        return Promise.resolve({
+          dispose: function () {},
+          getHasData: function () {
+            return (
+              DATA.dxyCorr.length > 0 ||
+              DATA.oilCorr.length > 0 ||
+              DATA.goldCorrProxy.length > 0
+            );
+          },
+        });
       },
 
-      'momentum': function (mount, row) {
-        var chart = echarts.init(mount, null, { renderer: 'canvas' });
+      momentum: function (mount, row) {
         var toolbar = row.querySelector('.js-momo-toolbar');
         var regime = regimeFromLabel(LATEST.inr_composite_label);
-        var rangeMs = wireRangeButtons(row, function (ms) { draw(ms); }) || 15552000000;
+        var disposer = { fn: null };
+        var rangeMs =
+          wireRangeButtons(row, function (ms) {
+            draw(ms);
+          }) || 15552000000;
 
         function zoneEnabled() {
           var inp = toolbar && toolbar.querySelector('.term-regime-toggle__input');
@@ -854,217 +813,167 @@
         }
 
         function draw(ms) {
+          if (disposer.fn) {
+            disposer.fn();
+            disposer.fn = null;
+          }
           var cut = Date.now() - ms;
-          var ret = DATA.dailyRetPct.filter(function (p) { return p[0] >= cut; });
-          var mom = DATA.momo5Roll.filter(function (p) { return p[0] >= cut; });
-          var spot = DATA.spotPx.filter(function (p) { return p[0] >= cut; });
+          var ret = DATA.dailyRetPct.filter(function (p) {
+            return p[0] >= cut;
+          });
+          var mom = DATA.momo5Roll.filter(function (p) {
+            return p[0] >= cut;
+          });
+          var spot = DATA.spotPx.filter(function (p) {
+            return p[0] >= cut;
+          });
+          void regime;
+          void zoneEnabled;
           var absMax = 0.15;
           for (var i = 0; i < ret.length; i++) absMax = Math.max(absMax, Math.abs(ret[i][1] || 0));
-          var barData = ret.map(function (p) {
+          var dailyHist = ret.map(function (p) {
             var mag = Math.min(1, Math.abs(p[1]) / absMax);
             var op = 0.35 + mag * 0.45;
             return {
-              value: p,
-              itemStyle: {
-                color: p[1] >= 0 ? 'rgba(201,64,64,' + op + ')' : 'rgba(45,158,107,' + op + ')'
-              }
+              time: Math.floor(p[0] / 1000),
+              value: p[1],
+              color:
+                p[1] >= 0 ? 'rgba(201,64,64,' + op + ')' : 'rgba(45,158,107,' + op + ')',
             };
           });
-          var on = zoneEnabled();
-          var tEnd = spot.length ? spot[spot.length - 1][0] : Date.now();
-          var xPad = 20 * MS_D;
-          var xMax = tEnd + xPad;
-          if (on && regime !== 'neutral') xMax = Math.max(xMax, tEnd + 28 * MS_D);
-          var markArea =
-            on && regime !== 'neutral' && spot.length
-              ? {
-                  itemStyle: {
-                    color: regime === 'bull' ? 'rgba(45,158,107,0.08)' : 'rgba(201,64,64,0.08)'
-                  },
-                  label: {
-                    show: true,
-                    position: 'inside',
-                    rotate: 90,
-                    fontSize: 9,
-                    fontFamily: 'Inter, system-ui, sans-serif',
-                    formatter: '{g|REGIME DIRECTION — NOT A PRICE FORECAST}\n{a|DIRECTIONAL ONLY}',
-                    rich: {
-                      g: { color: '#8a9485', fontSize: 9, lineHeight: 14 },
-                      a: { color: '#d4890a', fontSize: 9, lineHeight: 14 }
-                    }
-                  },
-                  data: [[{ xAxis: tEnd }, { xAxis: tEnd + 28 * MS_D }]]
-                }
-              : { data: [] };
-
-          chart.setOption({
-            backgroundColor: '#0f1318',
-            textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
-            grid: [
-              { left: 48, right: 16, top: 24, height: '54%' },
-              { left: 48, right: 16, top: '74%', height: '20%' }
-            ],
-            xAxis: [
-              { type: 'time', gridIndex: 0, max: xMax, axisLabel: { show: false }, axisLine: { lineStyle: { color: '#252820' } } },
-              { type: 'time', gridIndex: 1, max: xMax, axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { fontSize: 9, color: '#8a9485' } }
-            ],
-            yAxis: [
-              { type: 'value', gridIndex: 0, scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { formatter: '{value}%', color: '#8a9485' } },
-              { type: 'value', gridIndex: 0, scale: true, splitLine: { show: false }, axisLabel: { color: '#c94040' } },
-              { type: 'value', gridIndex: 1, scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { color: '#8a9485', fontSize: 9 } }
-            ],
-            axisPointer: { link: [{ xAxisIndex: 'all' }] },
-            tooltip: { trigger: 'axis' },
-            series: [
-              {
-                name: 'Daily %',
-                type: 'bar',
-                xAxisIndex: 0,
-                yAxisIndex: 0,
-                barMaxWidth: 10,
-                data: barData,
-                markLine: {
-                  silent: true,
-                  symbol: 'none',
-                  lineStyle: { color: '#2e3228', width: 1 },
-                  data: [{ yAxis: 0 }]
-                }
-              },
-              {
-                name: '5D mom',
-                type: 'line',
-                xAxisIndex: 0,
-                yAxisIndex: 1,
-                showSymbol: false,
-                smooth: 0.25,
-                lineStyle: { width: 1.2, color: '#c94040' },
-                data: mom
-              },
-              {
-                name: 'USD/INR',
-                type: 'line',
-                xAxisIndex: 1,
-                yAxisIndex: 2,
-                showSymbol: false,
-                smooth: 0.2,
-                lineStyle: { width: 1.2, color: '#e8ede8' },
-                data: spot,
-                markArea: markArea
-              }
-            ]
-          }, true);
+          FX.createMomentumDualPane(
+            mount,
+            {
+              dailyHist: dailyHist,
+              momoLine: mom,
+              spotLine: spot,
+              momColor: '#c94040',
+              spotColor: '#e8ede8',
+            },
+            {}
+          ).then(function (inst) {
+            if (!inst) return;
+            inst.setRangeMs(ms);
+            disposer.fn = function () {
+              if (inst.disposeExtra) inst.disposeExtra();
+            };
+          });
         }
 
         draw(rangeMs);
 
         if (toolbar && window.FXRLTerminalLazy) {
-          window.FXRLTerminalLazy.attachRegimeZoneToggle(toolbar, chart, {
+          window.FXRLTerminalLazy.attachRegimeZoneToggle(toolbar, {}, {
             storageKey: 'fxrl_regime_zone_usdinr',
             apply: function () {
               draw(wireActiveRange(row) || 15552000000);
-            }
+            },
           });
         }
 
-        return chart;
+        return Promise.resolve({
+          dispose: function () {
+            if (disposer.fn) disposer.fn();
+          },
+          getHasData: function () {
+            return DATA.dailyRetPct.length > 0;
+          },
+        });
       },
 
       'fpi-flows': function (mount, row) {
-        var chart = echarts.init(mount, null, { renderer: 'canvas' });
-        wireRangeButtons(row, function () { draw(); });
+        var disposer = { fn: null };
+        wireRangeButtons(row, function () {
+          draw();
+        });
 
         function draw() {
-          var cats = DATA.fpiWeekLabels;
-          var barDat = DATA.fpiWeekBars.map(function (v) {
+          if (disposer.fn) {
+            disposer.fn();
+            disposer.fn = null;
+          }
+          var t0 = 1577836800;
+          var bars = (DATA.fpiWeekBars || []).map(function (v, i) {
             return {
+              time: t0 + i * 7 * 86400,
               value: v,
-              itemStyle: {
-                color: isFinite(v) && v >= 0 ? 'rgba(45,158,107,0.75)' : 'rgba(201,64,64,0.75)'
-              }
+              color:
+                isFinite(v) && v >= 0
+                  ? 'rgba(45,158,107,0.75)'
+                  : 'rgba(201,64,64,0.75)',
             };
           });
-          var cum = DATA.fpiWeekCum;
-          chart.setOption({
-            backgroundColor: '#0f1318',
-            textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
-            grid: { left: 48, right: 16, top: 24, bottom: 32 },
-            tooltip: { trigger: 'axis' },
-            legend: { top: 4, textStyle: { color: '#8a9485', fontSize: 10 } },
-            xAxis: { type: 'category', data: cats, axisLabel: { color: '#8a9485', fontSize: 8, rotate: 55 } },
-            yAxis: [
-              { type: 'value', scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { color: '#8a9485' } },
-              { type: 'value', scale: true, splitLine: { show: false }, axisLabel: { color: '#c94040' } }
-            ],
-            series: [
-              { name: 'FPI (weekly snap)', type: 'bar', data: barDat, barMaxWidth: 14 },
-              {
-                name: 'Cumulative',
-                type: 'line',
-                yAxisIndex: 1,
-                data: cum,
-                showSymbol: false,
-                smooth: 0.2,
-                lineStyle: { width: 1.5, color: '#c94040' }
-              }
-            ]
-          }, true);
+          var cum = (DATA.fpiWeekCum || []).map(function (v, i) {
+            return [t0 + i * 7 * 86400, v];
+          });
+          FX.createFpiComboChart(
+            mount,
+            { barData: bars, cumLine: cum, cumColor: '#c94040' },
+            {}
+          ).then(function (inst) {
+            if (!inst) return;
+            disposer.fn = function () {
+              try {
+                inst.chart.remove();
+              } catch (e) {}
+              if (inst.disposeExtra) inst.disposeExtra();
+            };
+          });
         }
 
         draw();
-        return chart;
+        return Promise.resolve({
+          dispose: function () {
+            if (disposer.fn) disposer.fn();
+          },
+          getHasData: function () {
+            return (DATA.fpiWeekBars || []).length > 0;
+          },
+        });
       },
 
       'rbi-activity': function (mount, row) {
-        var chart = echarts.init(mount, null, { renderer: 'canvas' });
-        var rangeMs = wireRangeButtons(row, function (ms) { draw(ms); }) || 63072000000;
-
-        function interventionShade(resPts, flagPts) {
-          if (!resPts.length || resPts.length !== flagPts.length) return [];
-          var i = resPts.length - 1;
-          while (i >= 0 && String(flagPts[i][1]).indexOf('SUPPORT') < 0) i--;
-          if (i < 0) return [];
-          var t1 = resPts[i][0];
-          var t0 = t1;
-          while (i >= 0 && String(flagPts[i][1]).indexOf('SUPPORT') >= 0) {
-            t0 = resPts[i][0];
-            i--;
-          }
-          return [[{ xAxis: t0 }, { xAxis: t1 }]];
-        }
+        var disposer = { fn: null };
+        var rangeMs =
+          wireRangeButtons(row, function (ms) {
+            draw(ms);
+          }) || 63072000000;
 
         function draw(ms) {
+          if (disposer.fn) {
+            disposer.fn();
+            disposer.fn = null;
+          }
           var line = filterByRange(DATA.rbiReserves, ms);
-          var flags = filterByRange(DATA.rbiIntervention, ms);
-          var shade = interventionShade(line, flags);
-          chart.setOption({
-            backgroundColor: '#0f1318',
-            textStyle: { fontFamily: 'JetBrains Mono,monospace', fontSize: 10, color: '#8a9485' },
-            grid: { left: 48, right: 16, top: 24, bottom: 32 },
-            xAxis: { type: 'time', axisLine: { lineStyle: { color: '#252820' } }, axisLabel: { color: '#8a9485', fontSize: 9 } },
-            yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { color: '#1c1f18' } }, axisLabel: { color: '#8a9485' } },
-            tooltip: { trigger: 'axis' },
-            series: [
-              {
-                name: 'RBI reserves',
-                type: 'line',
-                showSymbol: false,
-                smooth: 0.25,
-                lineStyle: { width: 1.5, color: '#2d9e6b' },
-                data: line,
-                markArea: shade.length
-                  ? { itemStyle: { color: 'rgba(45,158,107,0.06)' }, data: shade }
-                  : { data: [] }
-              }
-            ]
-          }, true);
+          FX.createLineChart(mount, line, {
+            skipRangeButtons: true,
+            color: '#2d9e6b',
+            precision: 2,
+            minMove: 0.01,
+          }).then(function (inst) {
+            if (!inst) return;
+            inst.setRangeMs(ms);
+            disposer.fn = function () {
+              try {
+                inst.chart.remove();
+              } catch (e) {}
+              if (inst.disposeExtra) inst.disposeExtra();
+            };
+          });
         }
 
         draw(rangeMs);
-        return chart;
-      }
+        return Promise.resolve({
+          dispose: function () {
+            if (disposer.fn) disposer.fn();
+          },
+          getHasData: function () {
+            return DATA.rbiReserves.length > 0;
+          },
+        });
+      },
     };
   }
-
   function wireActiveRange(row) {
     var wrap = row.querySelector('.js-range-root');
     if (!wrap) return null;

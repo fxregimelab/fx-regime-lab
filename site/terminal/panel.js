@@ -5,7 +5,7 @@
   var panel;
   var closeBtn;
   var activePair = null;
-  var chart = null;
+  var panelChartInst = null;
 
   var PAIR_LABEL = {
     EURUSD: 'EUR/USD',
@@ -87,11 +87,30 @@
     });
   }
 
+  function disposePanelChart() {
+    if (panelChartInst && panelChartInst.chart && typeof panelChartInst.chart.remove === 'function') {
+      try {
+        panelChartInst.chart.remove();
+      } catch (e) {}
+    }
+    if (panelChartInst && typeof panelChartInst.disposeExtra === 'function') {
+      try {
+        panelChartInst.disposeExtra();
+      } catch (e2) {}
+    }
+    panelChartInst = null;
+  }
+
   function renderChart(pair) {
     var mount = byId('term-panel-chart');
-    if (!mount || typeof echarts === 'undefined') return;
+    if (!mount) return;
+    var FX = global.FXRLCharts;
+    if (!FX || typeof FX.waitForLWC !== 'function' || typeof FX.area !== 'function') return;
     var api = global.FXRLData;
     if (!api || typeof api.fetchSignalsFromSupabase !== 'function') return;
+
+    disposePanelChart();
+    mount.innerHTML = '';
 
     api
       .fetchSignalsFromSupabase(pair, 90)
@@ -107,28 +126,29 @@
           });
 
         if (!points.length) return;
-        if (chart) {
-          chart.dispose();
-          chart = null;
-        }
-        chart = echarts.init(mount, null, { renderer: 'canvas' });
         var color = pair === 'EURUSD' ? '#4d8eff' : pair === 'USDJPY' ? '#d4890a' : '#c94040';
-        chart.setOption({
-          animationDuration: 500,
-          grid: { top: 8, right: 4, bottom: 4, left: 4 },
-          xAxis: { type: 'category', data: points.map(function (_, i) { return i + 1; }), show: false },
-          yAxis: { type: 'value', show: false, scale: true },
-          series: [
-            {
-              data: points,
-              type: 'line',
-              smooth: true,
-              symbol: 'none',
-              lineStyle: { width: 2, color: color },
-              areaStyle: { color: 'rgba(0,0,0,0)' },
+        var tuples = [];
+        var dayMs = 86400000;
+        var now = Date.now();
+        for (var i = 0; i < points.length; i++) {
+          tuples.push([now - (points.length - 1 - i) * dayMs, points[i]]);
+        }
+        return FX.waitForLWC().then(function (ready) {
+          if (!ready) return;
+          return FX.area(mount, tuples, {
+            skipRangeButtons: true,
+            color: color,
+            lineWidth: 2,
+            theme: {
+              handleScroll: false,
+              handleScale: false,
+              crosshairMode: 2,
             },
-          ],
+          });
         });
+      })
+      .then(function (inst) {
+        if (inst) panelChartInst = inst;
       })
       .catch(function () {});
   }
@@ -169,6 +189,9 @@
   }
 
   function closePanel() {
+    disposePanelChart();
+    var mount = byId('term-panel-chart');
+    if (mount) mount.innerHTML = '';
     panel.classList.remove('is-open');
     overlay.classList.remove('is-open');
     panel.setAttribute('aria-hidden', 'true');

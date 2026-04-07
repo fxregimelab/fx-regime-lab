@@ -1,6 +1,6 @@
 /**
  * FX Regime Lab — Terminal Chart Builder
- * Series catalog, composer, PNG export, Quick Charts, theme.
+ * Series catalog, Lightweight Charts preview, PNG export, Quick Charts, theme.
  */
 (function (global) {
   'use strict';
@@ -619,187 +619,110 @@
     },
   };
 
-  function chartBaseAnimation() {
-    var b = global.TERMINAL_CHART_BASE;
-    var o = {};
-    if (b && typeof b === 'object') {
-      if (b.animation != null) o.animation = b.animation;
-      if (b.animationDuration != null) o.animationDuration = b.animationDuration;
-      if (b.animationEasing != null) o.animationEasing = b.animationEasing;
-    }
-    return o;
-  }
+  /**
+   * Build / rebuild a Lightweight Charts instance for the chart builder preview.
+   */
+  function buildChartBuilderLwc(chartEl, rangeMs, themeName) {
+    var FX = global.FXRLCharts;
+    var LW = global.LightweightCharts;
+    if (!chartEl || !FX || !LW || typeof FX.normalizeSeriesData !== 'function') return null;
+    var Th = ThemeManager.themes[themeName] || ThemeManager.themes.dark;
+    var isLight = themeName === 'light';
+    var themeOpts = {
+      bg: isLight ? LIGHT_BG : DARK_BG,
+      text: Th.text,
+      grid: Th.grid,
+      border: Th.axis,
+      handleScroll: true,
+      handleScale: true,
+    };
+    var chart = LW.createChart(chartEl, FX.baseChartOptions(chartEl, themeOpts));
+    var hasLeft = false;
+    var hasRight = false;
+    SeriesManager.active.forEach(function (entry) {
+      if (entry.yAxis === 'right') hasRight = true;
+      else hasLeft = true;
+    });
+    chart.applyOptions({
+      leftPriceScale: {
+        visible: hasLeft,
+        borderColor: Th.axis,
+        textColor: Th.text,
+        scaleMargins: { top: 0.08, bottom: 0.12 },
+      },
+      rightPriceScale: {
+        visible: hasRight || !hasLeft,
+        borderColor: Th.axis,
+        textColor: Th.text,
+        scaleMargins: { top: 0.08, bottom: 0.12 },
+      },
+    });
 
-  var ChartComposer = {
-    buildOption: function (rangeMs, themeName) {
-      var T = ThemeManager.themes[themeName] || ThemeManager.themes.dark;
-      var isLight = themeName === 'light';
-      var reduceMotion =
-        typeof global.matchMedia === 'function' &&
-        global.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      var hasRight = false;
-      SeriesManager.active.forEach(function (e) {
-        if (e.yAxis === 'right') hasRight = true;
-      });
+    SeriesManager.active.forEach(function (entry) {
+      var raw = SeriesManager._prepareDisplay(entry, rangeMs);
+      var normalized = FX.normalizeSeriesData(raw);
+      if (!normalized.length) return;
+      var c = entry.colour || entry.meta.colour;
+      var priceScaleId = entry.yAxis === 'right' ? 'right' : 'left';
+      var lineStyle = entry.lineStyle === 'dashed' ? 2 : 0;
+      var t = entry.chartType;
 
-      var yAxis = [
-        {
-          type: 'value',
-          scale: true,
-          position: 'left',
-          axisLine: { lineStyle: { color: T.axis } },
-          axisLabel: {
-            color: T.text,
-            fontSize: 10,
-            fontFamily: isLight ? '"Inter", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
-          },
-          splitLine: {
-            lineStyle: {
-              color: T.splitLine,
-              type: isLight ? [4, 3] : 'solid',
-              dashOffset: 0,
-              width: 1,
-            },
-          },
-        },
-      ];
-      if (hasRight) {
-        yAxis.push({
-          type: 'value',
-          scale: true,
-          position: 'right',
-          axisLine: { lineStyle: { color: T.axis } },
-          axisLabel: {
-            color: T.text,
-            fontSize: 10,
-            fontFamily: isLight ? '"Inter", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
-          },
-          splitLine: { show: false },
+      if (t === 'bar') {
+        var hb = chart.addHistogramSeries({
+          color: c,
+          priceScaleId: priceScaleId,
+          priceLineVisible: false,
         });
+        hb.setData(normalized);
+      } else if (t === 'area') {
+        var ar = chart.addAreaSeries({
+          lineColor: c,
+          topColor: FX.hexToRgba(c, 0.2),
+          bottomColor: FX.hexToRgba(c, 0),
+          lineWidth: 1.5,
+          priceScaleId: priceScaleId,
+          lineStyle: lineStyle,
+          priceLineVisible: false,
+        });
+        ar.setData(normalized);
+      } else if (t === 'scatter') {
+        var sc;
+        try {
+          sc = chart.addLineSeries({
+            color: c,
+            lineWidth: 2,
+            priceScaleId: priceScaleId,
+            lineStyle: lineStyle,
+            priceLineVisible: false,
+            lastValueVisible: false,
+            pointMarkersVisible: true,
+          });
+        } catch (eSc) {
+          sc = chart.addLineSeries({
+            color: c,
+            lineWidth: 2,
+            priceScaleId: priceScaleId,
+            lineStyle: lineStyle,
+            priceLineVisible: false,
+            lastValueVisible: false,
+          });
+        }
+        sc.setData(normalized);
+      } else {
+        var ln = chart.addLineSeries({
+          color: c,
+          lineWidth: 1.5,
+          priceScaleId: priceScaleId,
+          lineStyle: lineStyle,
+          priceLineVisible: false,
+        });
+        ln.setData(normalized);
       }
+    });
 
-      var series = [];
-      var si = 0;
-      SeriesManager.active.forEach(function (entry, id) {
-        var data = SeriesManager._prepareDisplay(entry, rangeMs);
-        var yi = entry.yAxis === 'right' && hasRight ? 1 : 0;
-        var c = entry.colour || entry.meta.colour;
-        var dash = entry.lineStyle === 'dashed' ? [6, 4] : 'solid';
-        var name = entry.meta.label;
-        var t = entry.chartType;
-
-        if (t === 'scatter') {
-          series.push({
-            type: 'scatter',
-            name: name,
-            yAxisIndex: yi,
-            data: data,
-            symbolSize: 6,
-            itemStyle: {
-              color: c,
-              shadowBlur: isLight ? 3 : 0,
-              shadowColor: isLight ? 'rgba(0,0,0,0.12)' : 'transparent',
-            },
-            emphasis: { focus: 'series' },
-          });
-        } else if (t === 'bar') {
-          series.push({
-            type: 'bar',
-            name: name,
-            yAxisIndex: yi,
-            data: data,
-            barMaxWidth: 14,
-            itemStyle: {
-              color: c,
-              shadowBlur: isLight ? 3 : 0,
-              shadowColor: isLight ? 'rgba(0,0,0,0.12)' : 'transparent',
-            },
-            emphasis: { focus: 'series' },
-          });
-        } else if (t === 'area') {
-          series.push({
-            type: 'line',
-            name: name,
-            yAxisIndex: yi,
-            data: data,
-            smooth: isLight ? true : 0.35,
-            smoothMonotone: isLight ? 'x' : undefined,
-            showSymbol: false,
-            lineStyle: {
-              width: 1.5,
-              color: c,
-              type: dash,
-              shadowBlur: isLight ? 3 : 0,
-              shadowColor: isLight ? 'rgba(0,0,0,0.12)' : 'transparent',
-            },
-            areaStyle: { color: c, opacity: 0.12 },
-            emphasis: { focus: 'series' },
-          });
-        } else {
-          series.push({
-            type: 'line',
-            name: name,
-            yAxisIndex: yi,
-            data: data,
-            smooth: isLight ? true : 0.35,
-            smoothMonotone: isLight ? 'x' : undefined,
-            showSymbol: false,
-            lineStyle: {
-              width: 1.5,
-              color: c,
-              type: dash,
-              shadowBlur: isLight ? 3 : 0,
-              shadowColor: isLight ? 'rgba(0,0,0,0.12)' : 'transparent',
-            },
-            emphasis: { focus: 'series' },
-          });
-        }
-        si++;
-      });
-
-      return Object.assign(
-        {
-          backgroundColor: isLight ? getPaperTextureBackground() : T.bg,
-          animation: !reduceMotion,
-          animationDuration: reduceMotion ? 0 : 400,
-          animationEasing: 'cubicOut',
-        },
-        chartBaseAnimation(),
-        {
-          textStyle: {
-            fontFamily: isLight ? '"Inter", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
-            fontSize: 11,
-            color: T.text,
-          },
-          tooltip: {
-            trigger: 'axis',
-            backgroundColor: T.tooltipBg,
-            borderColor: T.tooltipBorder,
-            borderWidth: 1,
-            textStyle: {
-              color: T.textStrong,
-              fontSize: 11,
-              fontFamily: isLight ? '"Inter", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
-            },
-          },
-          legend: { show: false },
-          grid: { left: 56, right: hasRight ? 56 : 24, top: 40, bottom: 48, containLabel: true },
-          xAxis: {
-            type: 'time',
-            axisLine: { lineStyle: { color: T.axis } },
-            axisLabel: {
-              color: T.text,
-              fontSize: 10,
-              fontFamily: isLight ? '"Inter", system-ui, sans-serif' : '"JetBrains Mono", ui-monospace, monospace',
-            },
-            splitLine: { show: false },
-          },
-          yAxis: yAxis,
-          series: series,
-        }
-      );
-    },
-  };
+    FX.applyTimeRangeMs(chart, rangeMs);
+    return chart;
+  }
 
   var ExportManager = {
     deriveExportPair: function () {
@@ -897,8 +820,12 @@
       var theme = config.theme === 'light' ? 'light' : 'dark';
       var w = config.width || 1200;
       var h = config.height || 627;
+      var chartEl = config.chartEl;
       if (!SeriesManager.hasDataSeries()) {
         return Promise.reject(new Error('NO_DATA_SERIES'));
+      }
+      if (!chart || typeof chart.takeScreenshot !== 'function') {
+        return Promise.reject(new Error('NO_CHART'));
       }
       if (w < 100 || h < 100) {
         if (global.console && global.console.error) {
@@ -912,42 +839,83 @@
         }
         return Promise.reject(new Error('dimensions too large'));
       }
-      var prevBg = chart.getOption().backgroundColor;
-      chart.setOption({ backgroundColor: theme === 'dark' ? DARK_BG : LIGHT_BG }, false);
-      var dataURL = chart.getDataURL({
-        type: 'png',
-        pixelRatio: 3,
-        backgroundColor: theme === 'dark' ? DARK_BG : LIGHT_BG,
-      });
-      chart.setOption({ backgroundColor: prevBg }, false);
+      var prevW = chartEl ? chartEl.clientWidth : null;
+      var prevH = chartEl ? chartEl.clientHeight : null;
       var self = this;
+      chart.applyOptions({ width: w, height: h });
       return new Promise(function (resolve, reject) {
-        self.loadImage(dataURL).then(function (img) {
-          var canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
-          var ctx = canvas.getContext('2d');
-          if (!ctx) {
-            reject(new Error('canvas context unavailable'));
-            return;
-          }
-          if (theme === 'light') {
-            var pattern = createPaperTexture(ctx);
-            ctx.fillStyle = pattern || LIGHT_BG;
-            ctx.fillRect(0, 0, w, h);
-          } else {
-            ctx.fillStyle = DARK_BG;
-            ctx.fillRect(0, 0, w, h);
-          }
-          ctx.drawImage(img, 0, 0, w, h);
-          self.addBranding(ctx, config, w, h).then(function () {
-            self.triggerDownload(canvas, config.pair || self.deriveExportPair(), config.fileDate || config.asOfDate || '');
-            resolve();
-          }).catch(function (err) {
-            reject(err);
+        global.requestAnimationFrame(function () {
+          global.requestAnimationFrame(function () {
+            var shot;
+            try {
+              shot = chart.takeScreenshot();
+            } catch (e) {
+              if (chartEl && prevW != null && prevH != null) {
+                chart.applyOptions({ width: prevW, height: prevH });
+              }
+              reject(e);
+              return;
+            }
+            function finishWithCanvas(cv) {
+              if (!cv || typeof cv.toDataURL !== 'function') {
+                if (chartEl && prevW != null && prevH != null) {
+                  chart.applyOptions({ width: prevW, height: prevH });
+                }
+                reject(new Error('SCREENSHOT_FAILED'));
+                return;
+              }
+              var dataURL = cv.toDataURL('image/png');
+              self.loadImage(dataURL).then(function (img) {
+                var canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                var ctx = canvas.getContext('2d');
+                if (!ctx) {
+                  if (chartEl && prevW != null && prevH != null) {
+                    chart.applyOptions({ width: prevW, height: prevH });
+                  }
+                  reject(new Error('canvas context unavailable'));
+                  return;
+                }
+                if (theme === 'light') {
+                  var pattern = createPaperTexture(ctx);
+                  ctx.fillStyle = pattern || LIGHT_BG;
+                  ctx.fillRect(0, 0, w, h);
+                } else {
+                  ctx.fillStyle = DARK_BG;
+                  ctx.fillRect(0, 0, w, h);
+                }
+                ctx.drawImage(img, 0, 0, w, h);
+                self.addBranding(ctx, config, w, h).then(function () {
+                  if (chartEl && prevW != null && prevH != null) {
+                    chart.applyOptions({ width: prevW, height: prevH });
+                  }
+                  self.triggerDownload(canvas, config.pair || self.deriveExportPair(), config.fileDate || config.asOfDate || '');
+                  resolve();
+                }).catch(function (err) {
+                  if (chartEl && prevW != null && prevH != null) {
+                    chart.applyOptions({ width: prevW, height: prevH });
+                  }
+                  reject(err);
+                });
+              }).catch(function (err) {
+                if (chartEl && prevW != null && prevH != null) {
+                  chart.applyOptions({ width: prevW, height: prevH });
+                }
+                reject(err);
+              });
+            }
+            if (shot && typeof shot.then === 'function') {
+              shot.then(finishWithCanvas).catch(function (err) {
+                if (chartEl && prevW != null && prevH != null) {
+                  chart.applyOptions({ width: prevW, height: prevH });
+                }
+                reject(err);
+              });
+            } else {
+              finishWithCanvas(shot);
+            }
           });
-        }).catch(function (err) {
-          reject(err);
         });
       });
     },
@@ -1070,11 +1038,28 @@
 
   function init(opts) {
     ThemeManager.init();
-    var chart = global.echarts.init(opts.chartEl, null, { renderer: 'canvas' });
+    var chart = null;
+    var resizeObs = null;
+    var chartEl = opts.chartEl;
     var rangeMs = opts.defaultRangeMs || 15552000000;
     var legendEl = opts.legendEl;
     var menuEl = opts.menuEl;
     var latestDateStr = '';
+
+    function destroyChart() {
+      if (resizeObs) {
+        try {
+          resizeObs.disconnect();
+        } catch (e) {}
+        resizeObs = null;
+      }
+      if (chart && typeof chart.remove === 'function') {
+        try {
+          chart.remove();
+        } catch (e2) {}
+      }
+      chart = null;
+    }
 
     function refreshLegend() {
       if (!legendEl) return;
@@ -1158,12 +1143,36 @@
     global.document.addEventListener('click', closeMenu);
 
     function redraw() {
-      var opt = ChartComposer.buildOption(rangeMs, ThemeManager.current);
-      chart.setOption(opt, true);
+      destroyChart();
+      if (!chartEl) return;
+      chartEl.innerHTML = '';
       refreshLegend();
-      if (typeof opts.onEmptyState === 'function') {
-        opts.onEmptyState(!SeriesManager.hasDataSeries());
+      if (!SeriesManager.hasDataSeries() || !global.LightweightCharts) {
+        if (typeof opts.onEmptyState === 'function') {
+          opts.onEmptyState(!SeriesManager.hasDataSeries());
+        }
+        return;
       }
+      if (typeof opts.onEmptyState === 'function') {
+        opts.onEmptyState(false);
+      }
+      chart = buildChartBuilderLwc(chartEl, rangeMs, ThemeManager.current);
+      if (!chart) {
+        if (typeof opts.onEmptyState === 'function') {
+          opts.onEmptyState(true);
+        }
+        return;
+      }
+      resizeObs = new ResizeObserver(function () {
+        if (!chart || !chartEl) return;
+        try {
+          chart.applyOptions({
+            width: chartEl.clientWidth || 600,
+            height: chartEl.clientHeight || 340,
+          });
+        } catch (e) {}
+      });
+      resizeObs.observe(chartEl);
     }
 
     SeriesManager.onChange = function () {
@@ -1193,8 +1202,8 @@
 
     redraw();
 
-    return {
-      chart: chart,
+    var app = {
+      chartEl: chartEl,
       setRange: function (ms) {
         rangeMs = ms;
         redraw();
@@ -1211,12 +1220,19 @@
         return deepClone(SERIES_AVAILABILITY);
       },
     };
+    Object.defineProperty(app, 'chart', {
+      configurable: true,
+      enumerable: true,
+      get: function () {
+        return chart;
+      },
+    });
+    return app;
   }
 
   global.FXRLChartBuilder = {
     DATA_CATALOG: DATA_CATALOG,
     SeriesManager: SeriesManager,
-    ChartComposer: ChartComposer,
     ExportManager: ExportManager,
     QuickCharts: QuickCharts,
     ThemeManager: ThemeManager,
