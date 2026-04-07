@@ -1,5 +1,5 @@
 {
-  "last_run_utc": "2026-04-07T00:16:45Z",
+  "last_run_utc": "2026-04-07T19:31:13Z",
   "last_run_status": "ok",
   "steps_completed": [
     "fx",
@@ -15,7 +15,7 @@
     "validate"
   ],
   "source": "fx_regime_pipeline",
-  "supabase_write_status": "ok",
-  "supabase_rows_written": 4887,
-  "last_supabase_write": "2026-04-07T00:16:21Z"
+  "supabase_write_status": "failed",
+  "supabase_rows_written": 0,
+  "last_supabase_write": "2026-04-07T19:30:49Z"
 }
