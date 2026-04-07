@@ -52,22 +52,50 @@
   }
 
   function fetchJsonWithTimeout(url, timeoutMs) {
-    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timer = setTimeout(function () {
-      if (controller) controller.abort();
-    }, timeoutMs || 4000);
+    var ms = timeoutMs || 4000;
+    var timer = null;
+    var signal = null;
+    try {
+      if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+        signal = AbortSignal.timeout(ms);
+      }
+    } catch (_e) {
+      signal = null;
+    }
+    if (!signal && typeof AbortController !== 'undefined') {
+      var controller = new AbortController();
+      signal = controller.signal;
+      timer = setTimeout(function () {
+        try {
+          controller.abort();
+        } catch (_a) {}
+      }, ms);
+    }
     var options = {
       headers: { Accept: 'application/json' },
     };
-    if (controller) options.signal = controller.signal;
-    return fetch(url, options)
-      .then(function (resp) {
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        return resp.json();
-      })
-      .finally(function () {
-        clearTimeout(timer);
-      });
+    if (signal) options.signal = signal;
+    try {
+      return fetch(url, options)
+        .then(function (resp) {
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          return resp.json();
+        })
+        .catch(function (err) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[LivePrices] fetch failed:', err && err.message ? err.message : err);
+          }
+          return null;
+        })
+        .finally(function () {
+          if (timer) clearTimeout(timer);
+        });
+    } catch (err) {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[LivePrices] fetch failed:', err && err.message ? err.message : err);
+      }
+      return Promise.resolve(null);
+    }
   }
 
   function fetchFrankfurterPair(name) {
@@ -116,7 +144,10 @@
   }
 
   function fetchYahoo(base, symbol) {
-    return fetchJsonWithTimeout(base + symbol + '?interval=1m&range=1d', 4000).then(parseYahooPrice);
+    return fetchJsonWithTimeout(base + symbol + '?interval=1m&range=1d', 4000).then(function (data) {
+      if (data == null) throw new Error('no_json');
+      return parseYahooPrice(data);
+    });
   }
 
   async function fetchPrice(name, symbol) {

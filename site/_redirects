@@ -1,4 +1,5 @@
 # Newsletter now served at /newsletter/
 # Substack link appears within that page
 /charts/global_workspace.html /terminal/ 301
+/terminal/workspace /terminal/chartbuilder.html 301
 /terminal/workspace.html /terminal/chartbuilder.html 301

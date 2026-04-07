@@ -14,8 +14,23 @@
   <link rel="stylesheet" href="/terminal/terminal.css" />
   <meta name="supabase-url" content="" />
   <meta name="supabase-anon-key" content="" />
+  <!-- 1. Supabase env — sync, must be first -->
   <script src="/assets/supabase-env.js"></script>
-  <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="document.dispatchEvent(new CustomEvent('supabase-ready'));"></script>
+
+  <!-- 2. Supabase CDN — async -->
+  <script async
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
+    onload="window.__supabaseReady=true;
+    document.dispatchEvent(new Event('supabase-ready'))">
+  </script>
+
+  <!-- 3. ECharts — async -->
+  <script async
+    src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"
+    onload="window.__echartsReady=true;
+    document.dispatchEvent(new Event('echarts-ready'))">
+  </script>
+
   <style>
     .term-skel-pulse {
       animation: term-skel-pulse 1.2s ease-in-out infinite;
@@ -42,18 +57,18 @@
       background: #f59e0b;
     }
   </style>
-  <script src="/terminal/utils.js" defer></script>
-  <script src="/terminal/page-init.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous" defer></script>
-  <script src="/terminal/echarts-config.js" defer></script>
-  <script src="/terminal/data-client.js" defer></script>
-  <script src="/terminal/terminal-nav.js" defer></script>
-  <script src="/terminal/terminal-motion.js" defer></script>
-  <script src="/terminal/home-terminal.js" defer></script>
-  <script src="/terminal/live-prices.js" defer></script>
-  <script src="/terminal/terminal-accuracy.js" defer></script>
-  <script src="/terminal/panel.js" defer></script>
-  <script src="/assets/theme-switch.js" defer></script>
+  <!-- 4. All other terminal scripts — defer -->
+  <script defer src="/terminal/utils.js"></script>
+  <script defer src="/terminal/page-init.js"></script>
+  <script defer src="/terminal/echarts-config.js"></script>
+  <script defer src="/terminal/data-client.js"></script>
+  <script defer src="/terminal/terminal-nav.js"></script>
+  <script defer src="/terminal/terminal-motion.js"></script>
+  <script defer src="/terminal/home-terminal.js"></script>
+  <script defer src="/terminal/live-prices.js"></script>
+  <script defer src="/terminal/terminal-accuracy.js"></script>
+  <script defer src="/terminal/panel.js"></script>
+  <script defer src="/terminal/theme-switch.js"></script>
 </head>
 <body class="theme-terminal">
   <a href="#term-main" class="term-sr-only">Skip to content</a>
@@ -75,6 +90,25 @@
       <a class="term-nav__tab" href="/terminal/chartbuilder.html" data-path="/terminal/chartbuilder">Chart builder</a>
       <a class="term-nav__tab" href="/terminal/overview.html" data-path="/terminal/overview">Overview</a>
     </nav>
+    <script>
+    (function() {
+      const guard = setTimeout(function() {
+        const el = document.getElementById('term-page-error');
+        if (el) {
+          el.style.display = 'flex';
+          el.innerHTML =
+            '<div style="text-align:center;padding:40px">' +
+            '<p style="color:#F87171;font-family:monospace;' +
+            'font-size:14px">Terminal failed to initialise.' +
+            ' <a href="/" style="color:#4D8EFF">Return home</a>' +
+            '</p></div>';
+        }
+      }, 10000);
+      window.__clearInitGuard = function() {
+        clearTimeout(guard);
+      };
+    })();
+    </script>
     <div class="term-nav__right">
       <span id="term-data-stale" class="term-data-stale" hidden>
         <span class="term-data-stale__dot" aria-hidden="true"></span>
@@ -90,6 +124,7 @@
   </header>
 
   <main id="term-main" class="term-main">
+    <div id="term-page-error" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:40vh" aria-live="polite"></div>
     <section class="term-intel-bar" aria-label="What changed today">
       <div class="term-intel-bar__label">WHAT CHANGED TODAY</div>
       <div id="term-intel-list" class="term-intel-bar__list">
@@ -291,12 +326,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-      var initTimeout = setTimeout(function () {
-        console.error('[Terminal] Init timeout - aborting');
-        document.body.classList.add('init-failed');
-        showInitError();
-      }, 10000);
-
       async function bootHome() {
         await new Promise(function (resolve) {
           setTimeout(resolve, 100);
@@ -325,12 +354,13 @@
 
       run()
         .then(function () {
-          clearTimeout(initTimeout);
+          if (window.__clearInitGuard) window.__clearInitGuard();
         })
         .catch(function (e) {
-          clearTimeout(initTimeout);
           console.error('[Terminal] Init error:', e);
+          document.body.classList.add('init-failed');
           showInitError();
+          if (window.__clearInitGuard) window.__clearInitGuard();
         });
     });
   </script>

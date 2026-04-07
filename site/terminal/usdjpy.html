@@ -14,22 +14,37 @@
   <link rel="stylesheet" href="/terminal/terminal.css" />
   <meta name="supabase-url" content="" />
   <meta name="supabase-anon-key" content="" />
+  <!-- 1. Supabase env — sync, must be first -->
   <script src="/assets/supabase-env.js"></script>
-  <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="document.dispatchEvent(new CustomEvent('supabase-ready'));"></script>
+
+  <!-- 2. Supabase CDN — async -->
+  <script async
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
+    onload="window.__supabaseReady=true;
+    document.dispatchEvent(new Event('supabase-ready'))">
+  </script>
+
+  <!-- 3. ECharts — async -->
+  <script async
+    src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"
+    onload="window.__echartsReady=true;
+    document.dispatchEvent(new Event('echarts-ready'))">
+  </script>
+
   <!--
     DATA (filled after CSV fetch):
       rateDiff10Y/2Y: US_JP spreads · vol30/60Roll: USDJPY · dxy/oil: dxy_usdjpy, oil_usdjpy
       goldCorrProxy: gold_usdjpy_corr_60d · spotPx: USDJPY · COT: JPY_lev_net, JPY_assetmgr_net
   -->
-  <script src="/terminal/utils.js" defer></script>
-  <script src="/terminal/page-init.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" crossorigin="anonymous" defer></script>
-  <script src="/terminal/echarts-config.js" defer></script>
-  <script src="/terminal/data-client.js" defer></script>
-  <script src="/terminal/terminal-nav.js" defer></script>
-  <script src="/terminal/terminal-lazy-charts.js" defer></script>
-  <script src="/terminal/terminal-motion.js" defer></script>
-  <script src="/assets/theme-switch.js" defer></script>
+  <!-- 4. Pair terminal scripts — defer -->
+  <script defer src="/terminal/utils.js"></script>
+  <script defer src="/terminal/page-init.js"></script>
+  <script defer src="/terminal/echarts-config.js"></script>
+  <script defer src="/terminal/data-client.js"></script>
+  <script defer src="/terminal/terminal-nav.js"></script>
+  <script defer src="/terminal/terminal-lazy-charts.js"></script>
+  <script defer src="/terminal/terminal-motion.js"></script>
+  <script defer src="/terminal/theme-switch.js"></script>
 </head>
 <body class="theme-terminal">
   <a href="#term-pair-main" class="term-sr-only">Skip to content</a>

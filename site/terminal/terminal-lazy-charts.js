@@ -7,6 +7,18 @@
 
   function init(root, options) {
     if (!root) return;
+    if (!global.echarts) {
+      if (typeof document !== 'undefined') {
+        document.addEventListener(
+          'echarts-ready',
+          function () {
+            init(root, options);
+          },
+          { once: true }
+        );
+      }
+      return;
+    }
     options = options || {};
     var chartInits = options.chartInits || {};
     var sections = root.querySelectorAll('[data-row-key]');

@@ -19,6 +19,46 @@
 (function (global) {
   'use strict';
 
+  var QUERY_TIMEOUT = 8000;
+
+  /**
+   * @param {number} [timeout]
+   * @returns {Promise<boolean>}
+   */
+  function waitForSupabase(timeout) {
+    var ms = timeout != null ? timeout : QUERY_TIMEOUT;
+    if (global.__supabaseReady && supabaseLibReady()) {
+      return Promise.resolve(true);
+    }
+    return new Promise(function (resolve) {
+      var t = setTimeout(function () {
+        resolve(false);
+      }, ms);
+      if (typeof document === 'undefined') {
+        resolve(false);
+        return;
+      }
+      document.addEventListener(
+        'supabase-ready',
+        function () {
+          clearTimeout(t);
+          resolve(true);
+        },
+        { once: true }
+      );
+    });
+  }
+
+  /** PostgREST builder (thenable) — race with timeout. */
+  function queryWithTimeout(queryBuilder) {
+    var timeout = new Promise(function (_resolve, reject) {
+      setTimeout(function () {
+        reject(new Error('Supabase query timeout'));
+      }, QUERY_TIMEOUT);
+    });
+    return Promise.race([queryBuilder, timeout]);
+  }
+
   var MASTER_CSV = '/data/latest_with_cot.csv';
   var COT_CSV = '/data/cot_latest.csv';
   var DATA_UPDATING_MESSAGE = 'Data updating — pipeline runs daily at 23:00 UTC';
@@ -67,7 +107,6 @@
 
   var _supabaseClient = null;
   var _initPromise = null;
-  var SUPABASE_LIB_WAIT_MS = 15000;
 
   function metaContent(name) {
     var m = document.querySelector('meta[name="' + name + '"]');
@@ -96,43 +135,6 @@
     return !!(getSupabaseUrl() && getSupabaseAnonKey());
   }
 
-  function waitForSupabase() {
-    return new Promise(function (resolve, reject) {
-      if (supabaseCredsReady() && supabaseLibReady()) {
-        resolve();
-        return;
-      }
-      var settled = false;
-      var poll = null;
-      var timer = null;
-      function done(ok, err) {
-        if (settled) return;
-        settled = true;
-        if (timer) clearTimeout(timer);
-        if (poll) clearInterval(poll);
-        if (ok) resolve();
-        else reject(err || new Error('Supabase unavailable'));
-      }
-      poll = setInterval(function () {
-        if (supabaseCredsReady() && supabaseLibReady()) done(true);
-      }, 50);
-      if (typeof document !== 'undefined') {
-        document.addEventListener(
-          'supabase-ready',
-          function () {
-            if (supabaseCredsReady() && supabaseLibReady()) done(true);
-          },
-          { once: true }
-        );
-      }
-      timer = setTimeout(function () {
-        if (!supabaseCredsReady() || !supabaseLibReady()) {
-          done(false, new Error('Supabase library or credentials timeout'));
-        }
-      }, SUPABASE_LIB_WAIT_MS);
-    });
-  }
-
   /**
    * Resolves when the Supabase JS client is created (or null if unavailable).
    * Safe to call from every data entry point; concurrent calls share one wait.
@@ -140,8 +142,14 @@
   function initDataClient() {
     if (_supabaseClient) return Promise.resolve(_supabaseClient);
     if (_initPromise) return _initPromise;
-    _initPromise = waitForSupabase()
-      .then(function () {
+    _initPromise = waitForSupabase(8000)
+      .then(function (ready) {
+        if (!ready) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('Supabase not available, falling back to CSV');
+          }
+          return null;
+        }
         var url = getSupabaseUrl();
         var key = getSupabaseAnonKey();
         if (!url || !key || !supabaseLibReady()) {
@@ -252,7 +260,6 @@
   var _lastPipelineStatus = null;
   var _inFlightSignals = new Map();
   var CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-  var SUPABASE_QUERY_TIMEOUT_MS = 8000;
   var FETCH_TIMEOUT_MS = 12000;
   var _fetchQueue = {
     running: 0,
@@ -277,24 +284,6 @@
       });
     },
   };
-
-  function fetchWithTimeout(promise, ms) {
-    var timeoutMs = ms || SUPABASE_QUERY_TIMEOUT_MS;
-    var timer = null;
-    var timeout = new Promise(function (_resolve, reject) {
-      timer = setTimeout(function () {
-        reject(new Error('Query timeout'));
-      }, timeoutMs);
-    });
-    return Promise.race([promise, timeout]).finally(function () {
-      if (timer) clearTimeout(timer);
-    });
-  }
-
-  /** Postgrest builder (thenable) or Promise — race with timeout */
-  function queryWithTimeout(queryPromise, ms) {
-    return fetchWithTimeout(queryPromise, ms);
-  }
 
   function fetchTextWithTimeout(url, timeoutMs) {
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -360,11 +349,7 @@
 
   function fetchTextCached(url) {
     if (_csvCache[url]) return Promise.resolve(_csvCache[url]);
-    return fetch(url)
-      .then(function (r) {
-        if (!r.ok) throw new Error('fetch ' + url);
-        return r.text();
-      })
+    return fetchTextWithTimeout(url, FETCH_TIMEOUT_MS)
       .then(function (t) {
         _csvCache[url] = t;
         return t;
@@ -504,8 +489,7 @@
             .eq('pair', np)
             .gte('date', start)
             .order('date', { ascending: true })
-            .range(offset, offset + SUPABASE_PAGE_SIZE - 1),
-          SUPABASE_QUERY_TIMEOUT_MS
+            .range(offset, offset + SUPABASE_PAGE_SIZE - 1)
         ).then(function (res) {
           if (res.error) {
             if (typeof console !== 'undefined' && console.error) {
@@ -581,8 +565,7 @@
           .eq('pair', np)
           .gte('date', start)
           .order('date', { ascending: true })
-          .range(offset, offset + SUPABASE_PAGE_SIZE - 1),
-        SUPABASE_QUERY_TIMEOUT_MS
+          .range(offset, offset + SUPABASE_PAGE_SIZE - 1)
       ).then(function (res) {
         if (res.error) throw res.error;
         var chunk = res.data || [];
@@ -755,39 +738,34 @@
    * @param {number} days
    */
   function fetchRegimeCalls(pair, days) {
-    var n = Math.max(1, Math.min(500, days || 30));
+    var n = Math.max(1, Math.min(500, days != null ? days : 1));
     return initDataClient().then(function (client) {
       if (!client) return [];
       var np = normalisePair(pair);
-      var start = new Date();
-      start.setDate(start.getDate() - n);
-      var startStr = start.toISOString().split('T')[0];
       return queryWithTimeout(
         client
           .from('regime_calls')
-          .select('date, regime, confidence, primary_driver')
+          .select('pair, date, regime, confidence, primary_driver')
           .eq('pair', np)
-          .gte('date', startStr)
           .order('date', { ascending: false })
-          .limit(n),
-        SUPABASE_QUERY_TIMEOUT_MS
+          .limit(n)
       )
         .then(function (res) {
           if (res.error) throw res.error;
           var rows = res.data || [];
-          return rows
-            .map(function (r) {
-              return {
-                date: String(r.date || '').slice(0, 10),
-                regime: r.regime || '',
-                confidence: r.confidence != null ? Number(r.confidence) : NaN,
-                primary_driver: r.primary_driver || '',
-              };
-            })
-            .reverse();
+          return rows.map(function (r) {
+            return {
+              date: String(r.date || '').slice(0, 10),
+              regime: r.regime || '',
+              confidence: r.confidence != null ? Number(r.confidence) : NaN,
+              primary_driver: r.primary_driver || '',
+            };
+          });
         })
-        .catch(function (e) {
-          if (typeof console !== 'undefined' && console.error) console.error('FXRLData: regime_calls', e);
+        .catch(function (err) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('fetchRegimeCalls failed:', err && err.message ? err.message : err);
+          }
           return [];
         });
     });
@@ -805,8 +783,7 @@
           .from('brief_log')
           .select('date, brief_text, eurusd_regime, usdjpy_regime, usdinr_regime, macro_context')
           .order('date', { ascending: false })
-          .limit(1),
-        SUPABASE_QUERY_TIMEOUT_MS
+          .limit(1)
       )
         .then(function (res) {
           if (res.error) throw res.error;
@@ -840,8 +817,7 @@
           )
           .eq('pair', np)
           .gte('date', startStr)
-          .order('date', { ascending: false }),
-        SUPABASE_QUERY_TIMEOUT_MS
+          .order('date', { ascending: false })
       )
         .then(function (res) {
           if (res.error) throw res.error;
@@ -863,8 +839,7 @@
           .from('pipeline_errors')
           .select('source,error_message')
           .eq('date', today)
-          .limit(5),
-        SUPABASE_QUERY_TIMEOUT_MS
+          .limit(5)
       )
         .then(function (res) {
           if (res && res.error) return;
@@ -899,8 +874,7 @@
           .select('date,pair,cross_asset_dxy,cross_asset_oil,cross_asset_vix,realized_vol_5d')
           .in('pair', ['EURUSD', 'USDJPY', 'USDINR'])
           .order('date', { ascending: false })
-          .limit(90),
-        SUPABASE_QUERY_TIMEOUT_MS
+          .limit(90)
       )
         .then(function (res) {
           if (res.error) throw res.error;
@@ -998,46 +972,63 @@
       });
   }
 
-  /** Canonical labels for regime_calls.primary_driver-style tokens */
+  /** Canonical labels for regime_calls.primary_driver-style tokens (legacy export). */
   var DRIVER_LABELS = {
-    rate_differential: 'Rate differential',
-    rate_spread: 'Rate spread',
-    yield_differential: 'Yield differential',
-    cot_positioning: 'COT positioning',
-    policy_divergence: 'Policy divergence',
-    risk_sentiment: 'Risk sentiment',
-    carry: 'Carry',
-    liquidity: 'Liquidity',
-    intervention: 'Intervention',
-    oil: 'Oil / commodities',
-    volatility: 'Volatility',
-    real_rates: 'Real rates',
-    terms_of_trade: 'Terms of trade',
-    positioning: 'Positioning',
-    flow: 'Flow',
+    eurusd_composite: 'EUR/USD Composite',
+    usdjpy_composite: 'USD/JPY Composite',
+    usdinr_composite: 'USD/INR Composite',
+    rate_differential: 'Rate Differential',
+    rate_diff: 'Rate Differential',
+    cot_positioning: 'COT Positioning',
+    cot_position: 'COT Positioning',
+    realized_vol: 'Realized Volatility',
+    realized_volatility: 'Realized Volatility',
+    vol_regime: 'Vol Regime',
+    cross_asset: 'Cross-Asset Context',
+    cross_asset_correlation: 'Cross-Asset Context',
+    dxy_momentum: 'DXY Momentum',
+    vix_regime: 'VIX Regime',
+    carry: 'Carry Signal',
+    momentum: 'Momentum',
+    mean_reversion: 'Mean Reversion',
   };
 
-  function normaliseDriverKey(raw) {
-    return String(raw || '')
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_]/g, '');
-  }
-
   /**
-   * Human-readable driver for UI (HOME cards, panel). Keeps free-text sentences as-is.
+   * Human-readable driver for UI (HOME cards, panel).
    * @param {string} raw
    * @returns {string}
    */
   function formatDriverLabel(raw) {
-    var t = String(raw || '').trim();
-    if (!t) return '';
-    if (t.indexOf(' ') >= 0 && t.indexOf('_') < 0) return t;
-    var nk = normaliseDriverKey(t);
-    if (DRIVER_LABELS[nk]) return DRIVER_LABELS[nk];
-    if (t.indexOf('_') >= 0 || nk === t) return formatRegimeLabel(t);
-    return t;
+    if (!raw) return '—';
+    var s0 = String(raw).trim();
+    if (!s0) return '—';
+    if (s0.indexOf(' ') >= 0 && s0.indexOf('_') < 0) return s0;
+    var map = {
+      eurusd_composite: 'EUR/USD Composite',
+      usdjpy_composite: 'USD/JPY Composite',
+      usdinr_composite: 'USD/INR Composite',
+      rate_differential: 'Rate Differential',
+      rate_diff: 'Rate Differential',
+      cot_positioning: 'COT Positioning',
+      cot_position: 'COT Positioning',
+      realized_vol: 'Realized Volatility',
+      realized_volatility: 'Realized Volatility',
+      vol_regime: 'Vol Regime',
+      cross_asset: 'Cross-Asset Context',
+      cross_asset_correlation: 'Cross-Asset Context',
+      dxy_momentum: 'DXY Momentum',
+      vix_regime: 'VIX Regime',
+      carry: 'Carry Signal',
+      momentum: 'Momentum',
+      mean_reversion: 'Mean Reversion',
+    };
+    var key = s0.toLowerCase();
+    if (map[key]) return map[key];
+    return s0
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, function (c) {
+        return c.toUpperCase();
+      });
   }
 
   /**
@@ -1315,7 +1306,7 @@
     ];
 
     var pRegime = pairs.map(function (x) {
-      return fetchRegimeCalls(x.pair, 120).then(function (rows) {
+      return fetchRegimeCalls(x.pair, 1).then(function (rows) {
         return { pair: x.pair, card: x.card, rows: rows };
       });
     });
@@ -1342,17 +1333,19 @@
         regimeResults.forEach(function (pack) {
           var card = document.querySelector(pack.card);
           if (!card) return;
-          var latest = pack.rows.length ? pack.rows[pack.rows.length - 1] : null;
+          var latest = pack.rows.length ? pack.rows[0] : null;
           if (hasSb && (!latest || !latest.regime)) stale = true;
           if (!hasSb) return;
 
           var badge = card.querySelector('.term-card__badge');
+          var regimeLine = card.querySelector('[data-card-regime]');
           var pctEl = card.querySelector('.term-card__conf-pct');
           var fill = card.querySelector('.term-card__conf-fill');
           var driver = card.querySelector('.term-card__driver');
           var confCenter = card.querySelector('.term-card__confidence');
           var lowNote = card.querySelector('.term-card__conf-note');
           if (badge) badge.textContent = latest ? formatRegimeLabel(latest.regime) : '—';
+          if (regimeLine) regimeLine.textContent = latest ? formatRegimeLabel(latest.regime) : '—';
           var cPct = latest ? confidenceToPercent(latest.confidence) : NaN;
           if (pctEl) {
             pctEl.textContent = isFinite(cPct) ? cPct + '%' : '—';
@@ -1394,7 +1387,7 @@
           (function () {
             var mx = '';
             regimeResults.forEach(function (pack) {
-              var r = pack.rows && pack.rows.length ? pack.rows[pack.rows.length - 1] : null;
+              var r = pack.rows && pack.rows.length ? pack.rows[0] : null;
               if (r && r.date && String(r.date).slice(0, 10) > mx) mx = String(r.date).slice(0, 10);
             });
             return mx;
@@ -1453,6 +1446,7 @@
 
         setStale(stale);
         setSkel(root, false);
+        if (typeof global.__clearInitGuard === 'function') global.__clearInitGuard();
       })
       .catch(function () {
         pairs.forEach(function (x) {
@@ -1535,8 +1529,7 @@
       if (client) {
         try {
           var q = await queryWithTimeout(
-            client.from('signals').select('date,pair,rate_diff_2y').order('date', { ascending: false }).limit(1),
-            SUPABASE_QUERY_TIMEOUT_MS
+            client.from('signals').select('date,pair,rate_diff_2y').order('date', { ascending: false }).limit(1)
           );
           if (q.error) throw q.error;
           console.info('Supabase signals query:', q.data && q.data.length > 0 ? 'OK - latest: ' + q.data[0].date : 'EMPTY');

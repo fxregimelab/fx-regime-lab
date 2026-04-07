@@ -154,22 +154,46 @@
     }
   }
 
+  var SVG_MARK_FALLBACK =
+    '<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect x="0" y="0" width="24" height="8" fill="#4D8EFF" rx="1"/>' +
+    '<rect x="3" y="9" width="24" height="7" fill="#F59E0B" rx="1"/>' +
+    '<rect x="6" y="17" width="24" height="7" fill="#F87171" rx="1"/>' +
+    '</svg>';
+
   function hydrateTerminalBrand() {
     var brand = document.querySelector('.term-brand');
     if (!brand) {
       hydrateLegacyWordmark();
       return;
     }
+    var word = brand.querySelector('.term-brand__word');
+    if (word) {
+      word.textContent = 'FX REGIME LAB';
+      word.style.fontFamily = "'Inter',sans-serif";
+      word.style.fontSize = '13px';
+      word.style.fontWeight = '700';
+      word.style.letterSpacing = '0.12em';
+      word.style.color = '#E8EDF2';
+      word.style.marginLeft = '10px';
+    }
     var mark = brand.querySelector('.term-brand__mark');
     if (!mark) return;
+
+    function injectSvgMark() {
+      var wrap = document.createElement('span');
+      wrap.className =
+        (mark.className ? mark.className + ' ' : '') + 'term-brand__mark--svg term-brand__mark--fallback';
+      wrap.setAttribute('aria-hidden', 'true');
+      wrap.innerHTML = SVG_MARK_FALLBACK;
+      if (mark.parentNode) mark.parentNode.replaceChild(wrap, mark);
+    }
+
+    if (mark.tagName && mark.tagName.toUpperCase() !== 'IMG') return;
+
     mark.onerror = function () {
-      mark.onerror = function () {
-        mark.onerror = null;
-        mark.src = WORDMARK_FALLBACK;
-        mark.classList.add('term-brand__mark--wide', 'term-brand__mark--fallback');
-      };
-      mark.src = WORDMARK_URL;
-      mark.classList.add('term-brand__mark--wide');
+      mark.onerror = null;
+      injectSvgMark();
     };
     var src = mark.getAttribute('src') || LOGO_URL;
     mark.src = src;
