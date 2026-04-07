@@ -1,0 +1,6 @@
+# https://fxregimelab.com — FX Regime Lab (research; not investment advice)
+User-agent: *
+Allow: /
+
+# JSON/CSV under /data/ are for the app; crawlers may still fetch if linked.
+Sitemap: https://fxregimelab.com/sitemap.xml
