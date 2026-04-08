@@ -1,28 +1,28 @@
 {
-  "date": "2026-04-06",
-  "headline": "G10 FX Regimes Locked in Neutral; Rate Differentials Drive Positioning Without Conviction",
+  "date": "2026-04-07",
+  "headline": "FX Regimes Hold Neutral Across G10 and EM; Rate Spreads Stabilize but Volatility Dynamics Diverge",
   "sections": {
-    "macro_context": "All major dollar pairs remain in neutral regimes with minimal confidence signals, reflecting a market in equilibrium across US-developed economy yield spreads. The absence of regime conviction across EUR/USD, USD/JPY, and USD/INR suggests rate markets have priced in current policy trajectories without catalysts for sustained directional repositioning. Volatility structure is divergent\u2014elevated in EUR/USD and extreme in USD/INR, depressed in USD/JPY\u2014indicating differentiated flows and hedging demand rather than unified G10 momentum.",
+    "macro_context": "Global FX markets are locked in a holding pattern as US-developed market yield spreads stabilize after recent volatility. The US 10Y maintains a structural premium over Germany (+126bp) and Japan (+193bp), anchoring dollar positioning near historical medians. The key macro theme is the absence of fresh directional conviction: positioning sits between 35th\u201343rd percentiles across majors, while volatility regimes fracture\u2014elevated in EUR/USD and USD/INR, subdued in USD/JPY. This suggests market participants are digesting structural rate differentials rather than repricing growth or inflation expectations. Until either the Fed-ECB or Fed-BoJ spread inflects materially, regimes will likely remain rangebound.",
     "eurusd": {
       "regime": "NEUTRAL",
       "confidence": 0.05,
-      "narrative": "EUR/USD sits in NEUTRAL regime with 5% confidence, the lowest signal strength in the dataset. The 127.9bp US-DE 10Y spread remains the mechanical anchor, but positioning at the 35.3rd percentile reveals underweight dollar length relative to historical norms. Critically, volatility is elevated at 75.7th percentile, a classic hallmark of mean-reversion dynamics or positioning churn within range-bound trading. The pair exhibits no conviction either direction; technicals and flows are bidirectional.",
-      "key_driver": "US-DE 10Y spread at +127.9bp with subdued positioning (35.3rd percentile) generating technical neutrality despite elevated implied vol.",
-      "watch_for": "Directional break above 1.0950 or below 1.0650 on close confirmation; alternatively, sharp momentum in the US-German yield spread beyond \u00b120bp would signal regime flip risk."
+      "narrative": "EUR/USD trades in a NEUTRAL regime with minimal conviction (confidence: 0.05), reflecting the absence of conviction despite elevated volatility. The US-Germany 10Y spread sits at +126bp\u2014a level that has historically supported dollar valuation but without sufficient positioning momentum to drive a directional break. At the 35th percentile of speculative positioning, EUR/USD bulls hold modest advantage, yet volatility has spiked to the 76th percentile, indicating price oscillation without trend. This disconnect\u2014high vol, median positioning, stable spreads\u2014defines sideways consolidation. The market is price-sensitive rather than direction-sensitive; tactical flows dominate structural flows.",
+      "key_driver": "US-DE 10Y spread at +126bp with positioning near historical median creates a balanced backdrop absent directional catalysts.",
+      "watch_for": "A break in the US-DE spread beyond \u00b130bp or a repositioning move above the 60th percentile to confirm a directional bias."
     },
     "usdjpy": {
       "regime": "NEUTRAL",
-      "confidence": 0.16,
-      "narrative": "USD/JPY trades NEUTRAL with 16% confidence\u2014the highest among major pairs but still marginal. The 192.1bp spread favoring dollar assets provides structural support, and positioning at 42.9th percentile indicates balanced long-short flows without extreme alignment. Volatility at 23.1th percentile is depressed, consistent with Bank of Japan's continued implicit cap on yen weakness and option market pricing for range-containment. The pair lacks catalysts for breakout on current settings.",
-      "key_driver": "US-JP 10Y spread at +192.1bp with neutral positioning (42.9th percentile) and suppressed volatility reflecting BOJ policy boundary constraints.",
-      "watch_for": "Sharp move in the US-JP spread above 210bp or below 175bp; or a volatility breakout above 30th percentile accompanied by BoJ policy signaling shifts."
+      "confidence": 0.15,
+      "narrative": "USD/JPY registers as NEUTRAL with low confidence (0.15), the most stable regime pair on today's screen. The US-Japan 10Y spread has widened to +193bp\u2014the widest in the major pairs\u2014yet carries minimal speculative positioning at the 42nd percentile. Crucially, volatility here is suppressed at the 23rd percentile, suggesting both carry traders and hedgers accept the current spread as justified and are content to hold. This is the regime most likely to remain stable absent a sharp shift in BoJ policy expectations or a risk-off shock that reverses carry unwinds. Investors are not crowded, positioning is balanced, and the technical setup does not signal mean reversion.",
+      "key_driver": "US-JP 10Y spread at +193bp is the widest major pair differential, supported by low positioning concentration and subdued volatility.",
+      "watch_for": "BoJ communication signaling earlier hawkishness or a spike in JPY-denominated vol that would trigger carry position adjustments."
     },
     "usdinr": {
       "regime": "NEUTRAL",
-      "confidence": 0.17,
-      "narrative": "USD/INR registers NEUTRAL regime with 17% confidence but demands a directional-only treatment given RBI intervention overlay. The -228.3bp spread\u2014India's 10Y rates 228bp above US equivalents\u2014typically anchors rupee strength fundamentally, yet the pair trades with extreme volatility at 95.9th percentile, the highest in the dataset. This volatility extreme reflects RBI's active management of the currency and concentrated stop-loss clustering, not fundamental conviction. Positioning data is unavailable, limiting precision in tactical calls.",
-      "key_driver": "US-IN 10Y spread at -228.3bp (India premium) combined with 95.9th percentile volatility from RBI intervention management.",
-      "watch_for": "RBI daily fixing behavior and cumulative weekly intervention levels; technical move beyond 83.50 (strong resistance) or 82.80 (support) on elevated volume without RBI pushback would signal regime shift risk."
+      "confidence": 0.14,
+      "narrative": "USD/INR shows a NEUTRAL regime (confidence: 0.14) but warrants directional monitoring rather than precision trading given RBI intervention bias. The US-India 10Y spread has compressed to -229bp (inverted), reflecting India's higher nominal yields and RBI's consistent defense of the rupee band. Volatility has exploded to the 96th percentile\u2014an exceptional read\u2014signaling either intervention activity, large spot flows, or both. This extreme volatility in the presence of an inverted spread and unquantified RBI positioning makes mean-reversion calls unreliable. Position data is unavailable, obscuring the true depth of USD longs or RBI shorts. Tactically, this pair requires observation of RBI communication and monthly FX reserve data to assess willingness to defend.",
+      "key_driver": "Inverted US-IN 10Y spread (-229bp) coupled with 96th percentile volatility indicates RBI-driven friction in spot markets.",
+      "watch_for": "RBI guidance on intervention tolerance, monthly FX reserve releases, and signs of rupee volatility normalization below the 80th percentile."
     },
     "signal_changes": [
       "No material signal changes."
@@ -33,5 +33,5 @@
     "usdjpy": [],
     "usdinr": []
   },
-  "generated_at": "2026-04-07T19:31:05Z"
+  "generated_at": "2026-04-08T05:42:19Z"
 }
