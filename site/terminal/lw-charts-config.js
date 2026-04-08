@@ -216,7 +216,9 @@
 
   /* ── Time range buttons UI ──────────────── */
   function renderTimeRangeButtons(container, chart) {
-    if (container.querySelector('.fxrl-range-bar')) return;
+    var parent = container.parentElement;
+    if (!parent) return;
+    if (parent.querySelector('.fxrl-range-bar')) return;
     var ranges = ['1M', '3M', '6M', '1Y', 'All'];
     var bar = document.createElement('div');
     bar.className = 'fxrl-range-bar';
@@ -247,7 +249,9 @@
       }
       bar.appendChild(btn);
     });
-    container.insertBefore(bar, container.firstChild);
+    // Insert bar as a sibling BEFORE the chart container, never inside it.
+    // LWC needs the container completely clear to inject its canvas correctly.
+    parent.insertBefore(bar, container);
   }
 
   /* ── EMPTY / ERROR ──────────────────────── */
