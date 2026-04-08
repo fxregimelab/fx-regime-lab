@@ -1127,3 +1127,11 @@ body.theme-terminal a {
 .term-pair-tabbtn legacy visual blocks from pre-command-bar UI
 .term-card legacy and gradient/glow card variants from previous sessions
 */
+
+/* ── Hide LightweightCharts TradingView watermark ── */
+.tv-lightweight-charts table {
+  display: none !important;
+}
+[class*="tv-lightweight"] a {
+  display: none !important;
+}

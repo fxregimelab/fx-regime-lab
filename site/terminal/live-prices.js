@@ -10,7 +10,7 @@
     Gold: 'GC=F',
   };
 
-  var PRICE_API_PRIMARY = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+  var PRICE_API_PRIMARY = '/api/fx-price?symbol=';
   var PRICE_API_FALLBACK = 'https://query2.finance.yahoo.com/v8/finance/chart/';
   var FX_FALLBACK = {
     'EUR/USD': { from: 'EUR', to: 'USD' },
@@ -144,7 +144,12 @@
   }
 
   function fetchYahoo(base, symbol) {
-    return fetchJsonWithTimeout(base + symbol + '?interval=1m&range=1d', 4000).then(function (data) {
+    // Primary path uses Worker proxy (/api/fx-price?symbol=X) — no extra params needed.
+    // Fallback path uses direct Yahoo URL with query string appended.
+    var url = base === PRICE_API_PRIMARY
+      ? base + encodeURIComponent(symbol)
+      : base + symbol + '?interval=1m&range=1d';
+    return fetchJsonWithTimeout(url, 4000).then(function (data) {
       if (data == null) throw new Error('no_json');
       return parseYahooPrice(data);
     });

@@ -43,6 +43,44 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/fx-price") {
+      const symbol = url.searchParams.get("symbol");
+      if (!symbol) {
+        return new Response(JSON.stringify({ error: "no symbol" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      const yahooUrl =
+        "https://query1.finance.yahoo.com/v8/finance/chart/" +
+        encodeURIComponent(symbol) +
+        "?interval=1m&range=1d";
+      try {
+        const resp = await fetch(yahooUrl, {
+          headers: {
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json",
+          },
+          signal: AbortSignal.timeout(5000),
+        });
+        const data = await resp.json();
+        return new Response(JSON.stringify(data), {
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "public, max-age=30",
+          },
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 502,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        });
+      }
+    }
+
     const path = url.pathname.replace(/\/+$/, "") || "/";
     if (path === "/assets/supabase-env.js") {
       const supabaseUrl = env.SUPABASE_URL ?? "";

@@ -1181,20 +1181,30 @@
    * @returns {string}
    */
   function cleanBriefText(raw) {
-    var t = String(raw || '')
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n');
-    // Remove === separator lines (whole lines of = signs)
-    t = t.replace(/^=+.*$/gm, '');
-    // Remove inline === ... === patterns
-    t = t.replace(/={3,}.*?={3,}/g, '');
-    // Remove pipeline metadata patterns
+    if (!raw || typeof raw !== 'string') return '';
+    var t = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    // Remove === separator lines and inline === patterns
+    t = t.replace(/={3,}[^\n]*={3,}/g, '');
+    t = t.replace(/^=+\s*$/gm, '');
+    // Remove !! markers
+    t = t.replace(/!!/g, '');
+    // Remove ---- separator lines and inline runs
+    t = t.replace(/^-{4,}\s*$/gm, '');
+    t = t.replace(/-{4,}/g, ' ');
+    // Remove pipeline header and metadata lines
+    t = t.replace(/^G10 FX MORNING BRIEF.*$/gm, '');
+    t = t.replace(/^FX as of:.*$/gm, '');
+    t = t.replace(/^IN 10Y as of:.*$/gm, '');
+    t = t.replace(/^COT cutoff:.*$/gm, '');
+    t = t.replace(/^PRICES pair price.*$/gm, '');
+    t = t.replace(/^MACRO EVENT.*$/gm, '');
+    t = t.replace(/^RATE DIFFERENTIALS.*$/gm, '');
+    // Remove inline metadata patterns
     t = t.replace(/FX as of:.*?\|/g, '');
     t = t.replace(/IN 10Y as of:.*?\|/g, '');
-    t = t.replace(/COT cutoff:.*?\n/g, '');
     t = t.replace(/pub'd:.*?\)/g, '');
-    t = t.replace(/PRICES pair price.*?\n/g, '');
-    t = t.replace(/MACRO EVENT.*?\n/g, '');
+    // Remove lines that are just ticker data (e.g. EUR/USD 1.1234...)
+    t = t.replace(/^(?:EUR\/USD|USD\/JPY|USD\/INR|DXY)\s+[\d.]+.*$/gm, '');
     // Strip markdown bold/italic/heading
     t = t.replace(/\*\*([^*]+)\*\*/g, '$1');
     t = t.replace(/__([^_]+)__/g, '$1');
@@ -1320,7 +1330,7 @@
     var st = json.supabase_write_status;
     var lastW = json.last_supabase_write;
     var staleHours = _hoursSinceIso(lastW);
-    if (st === 'failed' || (isFinite(staleHours) && staleHours > 25)) {
+    if (st === 'failed' || (isFinite(staleHours) && staleHours > 36)) {
       label.textContent = 'STALE';
       dot.classList.add('term-nav__live-dot--amber');
     } else if (st === 'ok') {
@@ -1330,7 +1340,7 @@
       dot.classList.add('term-nav__live-dot--grey');
     }
     var dataAgeHours = _hoursSinceDate(getDataDate());
-    if (isFinite(dataAgeHours) && dataAgeHours > 48) {
+    if (isFinite(dataAgeHours) && dataAgeHours > 36) {
       label.textContent = 'STALE';
       dot.classList.remove('term-nav__live-dot--grey');
       dot.classList.add('term-nav__live-dot--amber');

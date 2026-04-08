@@ -1529,19 +1529,38 @@
   }
 
   async function initChartBuilder() {
+    // Wait for LWC
+    var FX = global.FXRLCharts;
+    if (FX && typeof FX.waitForLWC === 'function') {
+      var lwcReady = await FX.waitForLWC(8000);
+      if (!lwcReady) {
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('[ChartBuilder] LWC not available');
+        }
+        return;
+      }
+    }
+
+    // Wait for FXRLData with SIGNAL_CHART_MAP
     var DC = global.FXRLData;
     var attempts = 0;
-    while (!(DC && typeof DC.fetchSignalsFromSupabase === 'function') && attempts < 20) {
+    while (
+      !(DC && typeof DC.fetchSignalsFromSupabase === 'function' && DC.SIGNAL_CHART_MAP) &&
+      attempts < 30
+    ) {
       await new Promise(function (r) { setTimeout(r, 200); });
       attempts++;
       DC = global.FXRLData;
     }
-    if (!DC || typeof DC.fetchSignalsFromSupabase !== 'function') {
+
+    if (!DC || !DC.SIGNAL_CHART_MAP) {
       if (typeof console !== 'undefined' && console.error) {
-        console.error('[ChartBuilder] FXRLData not available after waiting');
+        console.error('[ChartBuilder] FXRLData not ready after 6s');
       }
       return;
     }
+
+    console.log('[ChartBuilder] Ready. Rendering catalog.');
     renderSeriesCatalog();
   }
 
