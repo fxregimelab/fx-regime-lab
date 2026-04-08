@@ -201,6 +201,9 @@
       chartPromise.then(function (instance) {
         if (instance && FX.register) {
           FX.register(containerId, instance);
+          if (FX.addTimeRangeButtons) {
+            FX.addTimeRangeButtons(containerId, instance);
+          }
           var cell = container.parentElement;
           if (cell) cell.classList.add('term-fade-in');
         }

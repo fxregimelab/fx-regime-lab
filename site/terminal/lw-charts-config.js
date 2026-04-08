@@ -335,6 +335,10 @@
         console.warn('FXRLCharts: container not found:', containerId);
         return null;
       }
+      if (!document.body.contains(container)) {
+        console.warn('FXRLCharts: container is detached from DOM:', containerId);
+        return null;
+      }
       var cid = ensureContainerId(container);
       if (!ready || !global.LightweightCharts) {
         showChartError(container, 'Chart library unavailable');
@@ -349,15 +353,61 @@
       container.innerHTML = '';
       void container.offsetHeight;
       void container.offsetWidth;
-      var w = container.offsetWidth || 600;
-      var h = container.offsetHeight || 220;
-      var chartOptions = Object.assign({}, baseChartOptions(container, opts.theme), { width: w, height: h });
-      var chart = LW.createChart(container, chartOptions);
-      var canvas = container.querySelector('canvas');
-      if (!canvas) {
-        console.error('FXRLCharts: canvas not injected for', containerId, 'w:', w, 'h:', h);
+      var w = container.offsetWidth || container.clientWidth || 600;
+      var h = container.offsetHeight || container.clientHeight || 220;
+      if (w === 0 || h === 0) {
+        console.warn('FXRLCharts: container has zero dimensions:', containerId, w, h);
+      }
+      var chart;
+      try {
+        chart = LW.createChart(container, {
+          width: w,
+          height: h,
+          layout: {
+            background: { color: T.bg },
+            textColor: T.text,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
+          },
+          grid: {
+            vertLines: { color: T.grid },
+            horzLines: { color: T.grid },
+          },
+          crosshair: {
+            vertLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
+            horzLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
+          },
+          rightPriceScale: {
+            borderColor: T.border,
+            textColor: T.text,
+            scaleMargins: { top: 0.08, bottom: 0.12 },
+          },
+          leftPriceScale: { visible: false },
+          timeScale: {
+            borderColor: T.border,
+            textColor: T.text,
+            timeVisible: true,
+            secondsVisible: false,
+            fixLeftEdge: true,
+            fixRightEdge: true,
+          },
+          watermark: { visible: false },
+          handleScroll: true,
+          handleScale: true,
+        });
+      } catch (err) {
+        console.error('FXRLCharts: createChart threw:', err, containerId);
         return null;
       }
+      container = document.getElementById(cid);
+      var canvas = container ? container.querySelector('canvas') : null;
+      if (!canvas) {
+        console.error('FXRLCharts: canvas NOT injected into DOM for:', containerId,
+          'container children:', container ? container.children.length : 'N/A');
+        try { chart.remove(); } catch (e) {}
+        return null;
+      }
+      console.log('FXRLCharts: canvas injected for:', containerId, canvas.width, 'x', canvas.height);
       var color = opts.color || T.eurusd;
       var series = chart.addSeries(LW.LineSeries, {
         color: color,
@@ -405,6 +455,10 @@
         console.warn('FXRLCharts: container not found:', containerId);
         return null;
       }
+      if (!document.body.contains(container)) {
+        console.warn('FXRLCharts: container is detached from DOM:', containerId);
+        return null;
+      }
       var cid = ensureContainerId(container);
       if (!ready || !global.LightweightCharts) {
         showChartError(container, 'Chart library unavailable');
@@ -419,15 +473,61 @@
       container.innerHTML = '';
       void container.offsetHeight;
       void container.offsetWidth;
-      var w = container.offsetWidth || 600;
-      var h = container.offsetHeight || 220;
-      var chartOptions = Object.assign({}, baseChartOptions(container, opts.theme), { width: w, height: h });
-      var chart = LW.createChart(container, chartOptions);
-      var canvas = container.querySelector('canvas');
-      if (!canvas) {
-        console.error('FXRLCharts: canvas not injected for', containerId, 'w:', w, 'h:', h);
+      var w = container.offsetWidth || container.clientWidth || 600;
+      var h = container.offsetHeight || container.clientHeight || 220;
+      if (w === 0 || h === 0) {
+        console.warn('FXRLCharts: container has zero dimensions:', containerId, w, h);
+      }
+      var chart;
+      try {
+        chart = LW.createChart(container, {
+          width: w,
+          height: h,
+          layout: {
+            background: { color: T.bg },
+            textColor: T.text,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
+          },
+          grid: {
+            vertLines: { color: T.grid },
+            horzLines: { color: T.grid },
+          },
+          crosshair: {
+            vertLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
+            horzLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
+          },
+          rightPriceScale: {
+            borderColor: T.border,
+            textColor: T.text,
+            scaleMargins: { top: 0.08, bottom: 0.12 },
+          },
+          leftPriceScale: { visible: false },
+          timeScale: {
+            borderColor: T.border,
+            textColor: T.text,
+            timeVisible: true,
+            secondsVisible: false,
+            fixLeftEdge: true,
+            fixRightEdge: true,
+          },
+          watermark: { visible: false },
+          handleScroll: true,
+          handleScale: true,
+        });
+      } catch (err) {
+        console.error('FXRLCharts: createChart threw:', err, containerId);
         return null;
       }
+      container = document.getElementById(cid);
+      var canvas = container ? container.querySelector('canvas') : null;
+      if (!canvas) {
+        console.error('FXRLCharts: canvas NOT injected into DOM for:', containerId,
+          'container children:', container ? container.children.length : 'N/A');
+        try { chart.remove(); } catch (e) {}
+        return null;
+      }
+      console.log('FXRLCharts: canvas injected for:', containerId, canvas.width, 'x', canvas.height);
       var color = opts.color || T.eurusd;
       var series = chart.addSeries(LW.AreaSeries, {
         lineColor: color,
@@ -476,6 +576,10 @@
         console.warn('FXRLCharts: container not found:', containerId);
         return null;
       }
+      if (!document.body.contains(container)) {
+        console.warn('FXRLCharts: container is detached from DOM:', containerId);
+        return null;
+      }
       var cid = ensureContainerId(container);
       if (!ready || !global.LightweightCharts) {
         showChartError(container, 'Chart library unavailable');
@@ -490,15 +594,61 @@
       container.innerHTML = '';
       void container.offsetHeight;
       void container.offsetWidth;
-      var w = container.offsetWidth || 600;
-      var h = container.offsetHeight || 220;
-      var chartOptions = Object.assign({}, baseChartOptions(container, opts.theme), { width: w, height: h });
-      var chart = LW.createChart(container, chartOptions);
-      var canvas = container.querySelector('canvas');
-      if (!canvas) {
-        console.error('FXRLCharts: canvas not injected for', containerId, 'w:', w, 'h:', h);
+      var w = container.offsetWidth || container.clientWidth || 600;
+      var h = container.offsetHeight || container.clientHeight || 220;
+      if (w === 0 || h === 0) {
+        console.warn('FXRLCharts: container has zero dimensions:', containerId, w, h);
+      }
+      var chart;
+      try {
+        chart = LW.createChart(container, {
+          width: w,
+          height: h,
+          layout: {
+            background: { color: T.bg },
+            textColor: T.text,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
+          },
+          grid: {
+            vertLines: { color: T.grid },
+            horzLines: { color: T.grid },
+          },
+          crosshair: {
+            vertLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
+            horzLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
+          },
+          rightPriceScale: {
+            borderColor: T.border,
+            textColor: T.text,
+            scaleMargins: { top: 0.08, bottom: 0.12 },
+          },
+          leftPriceScale: { visible: false },
+          timeScale: {
+            borderColor: T.border,
+            textColor: T.text,
+            timeVisible: true,
+            secondsVisible: false,
+            fixLeftEdge: true,
+            fixRightEdge: true,
+          },
+          watermark: { visible: false },
+          handleScroll: true,
+          handleScale: true,
+        });
+      } catch (err) {
+        console.error('FXRLCharts: createChart threw:', err, containerId);
         return null;
       }
+      container = document.getElementById(cid);
+      var canvas = container ? container.querySelector('canvas') : null;
+      if (!canvas) {
+        console.error('FXRLCharts: canvas NOT injected into DOM for:', containerId,
+          'container children:', container ? container.children.length : 'N/A');
+        try { chart.remove(); } catch (e) {}
+        return null;
+      }
+      console.log('FXRLCharts: canvas injected for:', containerId, canvas.width, 'x', canvas.height);
       var defC = opts.color || T.eurusd;
       var series = chart.addSeries(LW.HistogramSeries, {
         color: defC,
@@ -1044,6 +1194,13 @@
     container.innerHTML = sb.join('');
   }
 
+  function addTimeRangeButtons(containerId, instance) {
+    var container =
+      typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
+    if (!container || !instance || !instance.chart) return;
+    renderTimeRangeButtons(container, instance.chart);
+  }
+
   global.FXRLCharts = {
     line: createLineChart,
     area: createAreaChart,
@@ -1054,6 +1211,7 @@
     createMomentumDualPane: createMomentumDualPane,
     createFpiComboChart: createFpiComboChart,
     renderCrossRadarSvg: renderCrossRadarSvg,
+    addTimeRangeButtons: addTimeRangeButtons,
     pairColor: pairColor,
     applyTimeRange: applyTimeRange,
     applyTimeRangeMs: applyTimeRangeMs,
