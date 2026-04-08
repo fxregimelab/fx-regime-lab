@@ -16,36 +16,36 @@
     .cb-app.term-chartbuilder-layout {
       display: grid;
       grid-template-columns: 320px 1fr 320px;
-      padding-top: 48px;
       box-sizing: border-box;
-      height: calc(100vh - 48px);
+      height: calc(100vh - var(--nav-h));
       overflow: hidden;
     }
-    .cb-sidebar, .cb-panel { background: var(--surface-primary); overflow-y: auto; }
-    .cb-sidebar { border-right: 1px solid var(--border-default); padding: 14px 12px 16px; }
-    .cb-panel { border-left: 1px solid var(--border-default); padding: 16px; }
-    .cb-main { min-width: 0; display: flex; flex-direction: column; background: var(--depth-1); padding: 16px; }
-    .cb-search { width: 100%; height: 38px; border: 1px solid var(--border-default); border-radius: 8px; padding: 0 12px; background: var(--depth-2); color: var(--text-primary); font-family: "Inter", system-ui, sans-serif; font-size: 13px; }
+    .cb-sidebar, .cb-panel { background: var(--bg-surface); overflow-y: auto; }
+    .cb-sidebar { border-right: var(--border); padding: 14px 12px 16px; }
+    .cb-panel { border-left: var(--border); padding: 16px; }
+    .cb-main { min-width: 0; display: flex; flex-direction: column; background: var(--bg-page); padding: 16px; }
+    .cb-search { width: 100%; height: 38px; border: var(--border); border-radius: 4px; padding: 0 12px; background: var(--bg-elevated); color: var(--text-primary); font-family: var(--font-ui); font-size: 12px; }
     .cb-search:focus { outline: none; border-color: var(--accent); }
     .cb-series-list { margin-top: 14px; }
-    .cb-cat-label { position: sticky; top: 0; z-index: 2; background: var(--surface-primary); font-family: "Inter", system-ui, sans-serif; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding: 8px 8px 6px; border-bottom: 1px solid var(--border-subtle); margin-top: 8px; }
-    .cb-series-row { display: grid; grid-template-columns: 18px 8px 1fr 8px auto; align-items: center; gap: 10px; min-height: 36px; padding: 0 8px; border-radius: 6px; font-family: "Inter", system-ui, sans-serif; font-size: 12px; color: var(--text-primary); }
-    .cb-series-row:hover { background: var(--depth-2); }
+    .cb-cat-label { position: sticky; top: 0; z-index: 2; background: var(--bg-surface); font-family: var(--font-data); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); padding: 8px 8px 6px; border-bottom: var(--border); margin-top: 8px; }
+    .cb-series-row { display: grid; grid-template-columns: 18px 8px 1fr 8px auto; align-items: center; gap: 10px; min-height: 36px; padding: 0 8px; border-radius: 4px; font-family: var(--font-ui); font-size: 12px; color: var(--text-secondary); }
+    .cb-series-row:hover { background: var(--bg-hover); }
+    .cb-series-row.checked { color: var(--text-primary); }
     .cb-series-row.unavailable { opacity: 0.58; }
     .cb-series-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); margin: 0; }
     .cb-series-dot { width: 8px; height: 8px; border-radius: 50%; }
     .cb-series-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .cb-series-state { width: 8px; height: 8px; border-radius: 50%; background: #31d187; box-shadow: 0 0 8px rgba(49, 209, 135, 0.7); }
     .cb-series-row.unavailable .cb-series-state { background: #6b7280; box-shadow: none; }
-    .cb-series-type { height: 24px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--depth-2); color: var(--text-secondary); font-family: "Inter", system-ui, sans-serif; font-size: 11px; padding: 0 8px; display: none; }
+    .cb-series-type { height: 24px; border: var(--border); border-radius: 4px; background: var(--bg-elevated); color: var(--text-secondary); font-family: var(--font-ui); font-size: 11px; padding: 0 8px; display: none; }
     .cb-series-row.checked .cb-series-type { display: inline-flex; }
     .cb-series-row.unavailable .cb-series-type { display: none; }
     .cb-series-pending { color: var(--text-muted); font-size: 11px; margin-left: 6px; }
-    .cb-chart-shell { position: relative; flex: 1; border: 1px solid var(--border-default); border-radius: 8px; background: var(--depth-1); overflow: hidden; }
-    .cb-main__toolbar { position: absolute; top: 10px; right: 12px; z-index: 3; display: inline-flex; gap: 4px; background: color-mix(in srgb, var(--depth-1) 86%, transparent); border: 1px solid var(--border-default); border-radius: 8px; padding: 4px; }
-    .cb-range { border: none; background: transparent; color: var(--text-muted); font-family: "Inter", system-ui, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
-    .cb-range:hover { color: var(--text-primary); background: var(--depth-2); }
-    .cb-range.is-active { background: var(--accent); color: #fff; }
+    .cb-chart-shell { position: relative; flex: 1; border: none; border-radius: 0; background: var(--bg-page); overflow: hidden; }
+    .cb-main__toolbar { position: absolute; top: 10px; right: 12px; z-index: 3; display: inline-flex; gap: 6px; background: var(--bg-surface); border: var(--border); border-radius: 4px; padding: 4px; }
+    .cb-range { border: var(--border); background: transparent; color: var(--text-secondary); font-family: var(--font-ui); font-size: 12px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; padding: 6px 8px; border-radius: 4px; cursor: pointer; }
+    .cb-range:hover { color: var(--text-primary); background: var(--bg-hover); }
+    .cb-range.is-active { background: var(--accent-dim); border-color: var(--accent); color: var(--text-primary); }
     /* Reserve space so the floating range toolbar does not cover series lines */
     #chart-builder-preview {
       width: 100%;
@@ -53,67 +53,67 @@
       min-height: 400px;
       padding-top: 46px;
       box-sizing: border-box;
-      background: #111827;
+      background: var(--bg-page);
     }
     .cb-empty { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; z-index: 2; pointer-events: none; }
     .cb-empty.is-visible { display: flex; }
     .cb-empty__inner { pointer-events: auto; }
     .cb-empty svg { width: 56px; height: 56px; opacity: 0.5; }
-    .cb-empty__text { margin-top: 12px; color: var(--text-muted); font-family: "Inter", system-ui, sans-serif; font-size: 14px; }
+    .cb-empty__text { margin-top: 12px; color: var(--text-muted); font-family: var(--font-data); font-size: 12px; }
     .cb-empty__link { margin-top: 8px; border: none; background: transparent; color: var(--accent); font-family: "Inter", system-ui, sans-serif; font-size: 13px; cursor: pointer; }
     .cb-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-height: 26px; }
-    .cb-legend__item { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border-default); border-radius: 999px; padding: 4px 10px; background: var(--depth-2); font-family: "Inter", system-ui, sans-serif; font-size: 11px; color: var(--text-secondary); }
+    .cb-legend__item { display: inline-flex; align-items: center; gap: 8px; border: var(--border); border-radius: 999px; padding: 4px 10px; background: var(--bg-elevated); font-family: var(--font-ui); font-size: 11px; color: var(--text-secondary); }
     .cb-legend__swatch { width: 10px; height: 10px; border-radius: 50%; }
     .cb-legend__remove { border: none; background: transparent; color: var(--text-muted); font-size: 14px; line-height: 1; cursor: pointer; padding: 0; }
     .cb-legend__remove:hover { color: var(--text-primary); }
     .cb-field { margin-bottom: 16px; }
-    .cb-field__label { font-family: "Inter", system-ui, sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
-    .cb-input { width: 100%; box-sizing: border-box; border: 1px solid var(--border-default); border-radius: 8px; background: var(--depth-2); color: var(--text-primary); padding: 9px 10px; font-family: "Inter", system-ui, sans-serif; font-size: 13px; }
+    .cb-field__label { font-family: var(--font-data); font-size: 9px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+    .cb-input { width: 100%; box-sizing: border-box; border: var(--border); border-radius: 4px; background: var(--bg-elevated); color: var(--text-primary); padding: 9px 10px; font-family: var(--font-ui); font-size: 12px; }
     .cb-input:focus { outline: none; border-color: var(--accent); }
     .cb-theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .cb-theme-card { border: 1px solid var(--border-default); border-radius: 10px; background: var(--depth-2); padding: 10px; cursor: pointer; text-align: left; }
+    .cb-theme-card { border: var(--border); border-radius: 4px; background: var(--bg-elevated); padding: 10px; cursor: pointer; text-align: left; }
     .cb-theme-card.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
-    .cb-theme-title { color: var(--text-primary); font-family: "Inter", system-ui, sans-serif; font-size: 12px; font-weight: 600; }
-    .cb-theme-sub { color: var(--text-muted); font-family: "Inter", system-ui, sans-serif; font-size: 11px; margin-top: 2px; }
-    .cb-theme-preview { margin-top: 8px; height: 36px; border-radius: 6px; border: 1px solid var(--border-default); }
-    .cb-theme-preview.dark { background: linear-gradient(180deg, #0b0e14 0%, #151b25 100%); }
-    .cb-theme-preview.light { background: linear-gradient(180deg, #fafaf8 0%, #f3efe5 100%); }
+    .cb-theme-title { color: var(--text-primary); font-family: var(--font-ui); font-size: 12px; font-weight: 600; }
+    .cb-theme-sub { color: var(--text-muted); font-family: var(--font-ui); font-size: 11px; margin-top: 2px; }
+    .cb-theme-preview { margin-top: 8px; height: 36px; border-radius: 4px; border: var(--border); }
+    .cb-theme-preview.dark { background: var(--bg-page); }
+    .cb-theme-preview.light { background: #f3efe5; }
     .cb-size-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .cb-size-btn { border: 1px solid var(--border-default); border-radius: 8px; background: var(--depth-2); color: var(--text-secondary); font-family: "Inter", system-ui, sans-serif; font-size: 12px; min-height: 38px; cursor: pointer; }
-    .cb-size-btn.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .cb-size-btn { border: var(--border); border-radius: 4px; background: transparent; color: var(--text-secondary); font-family: var(--font-ui); font-size: 12px; min-height: 38px; cursor: pointer; }
+    .cb-size-btn.is-active { background: var(--accent-dim); border-color: var(--accent); color: var(--text-primary); }
     .cb-custom-size { display: none; gap: 8px; margin-top: 8px; }
     .cb-custom-size.is-visible { display: grid; grid-template-columns: 1fr 1fr; }
-    .cb-export { margin-top: 10px; width: 100%; border: none; border-radius: 10px; background: var(--accent); color: #fff; padding: 13px 12px; font-family: "Inter", system-ui, sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .cb-export { margin-top: 10px; width: 100%; border: none; border-radius: 4px; background: var(--accent); color: #fff; padding: 13px 12px; font-family: var(--font-ui); font-size: 12px; font-weight: 600; cursor: pointer; }
     .cb-export:hover { filter: brightness(1.04); }
     .cb-export:disabled { opacity: 0.7; cursor: wait; }
     .cb-export-meta { margin-top: 6px; color: var(--text-muted); font-family: "Inter", system-ui, sans-serif; font-size: 11px; text-align: center; }
-    .cb-check { margin-top: 10px; display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-family: "Inter", system-ui, sans-serif; font-size: 12px; }
-    .cb-quick { margin-top: 18px; border-top: 1px solid var(--border-default); padding-top: 12px; }
+    .cb-check { margin-top: 10px; display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-family: var(--font-ui); font-size: 12px; }
+    .cb-quick { margin-top: 18px; border-top: var(--border); padding-top: 12px; }
     .cb-quick__head { width: 100%; border: none; background: transparent; display: flex; justify-content: space-between; align-items: center; color: var(--text-secondary); font-family: "Inter", system-ui, sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; padding: 0 0 10px; }
     .cb-quick__body { display: none; }
     .cb-quick.is-open .cb-quick__body { display: block; }
-    .cb-quick__item { border: 1px solid var(--border-default); border-radius: 8px; background: var(--depth-2); padding: 10px; margin-bottom: 8px; cursor: pointer; }
+    .cb-quick__item { border: var(--border); border-radius: 4px; background: var(--bg-elevated); padding: 10px; margin-bottom: 8px; cursor: pointer; }
     .cb-quick__item:hover { border-color: var(--accent); }
     .cb-quick__title { color: var(--text-primary); font-family: "Inter", system-ui, sans-serif; font-size: 13px; font-weight: 600; }
     .cb-quick__desc { color: var(--text-muted); font-family: "Inter", system-ui, sans-serif; font-size: 11px; margin-top: 2px; }
     .cb-save-link { border: none; background: none; color: var(--accent); font-family: "Inter", system-ui, sans-serif; font-size: 12px; cursor: pointer; margin-top: 6px; }
-    .cb-toast { position: fixed; left: 50%; bottom: -80px; transform: translateX(-50%); background: var(--depth-2); color: var(--text-primary); padding: 11px 14px; border: 1px solid var(--border-default); border-radius: 999px; font-family: "Inter", system-ui, sans-serif; font-size: 12px; z-index: 2200; transition: bottom 0.24s ease; }
+    .cb-toast { position: fixed; left: 50%; bottom: -80px; transform: translateX(-50%); background: var(--bg-elevated); color: var(--text-primary); padding: 11px 14px; border: var(--border); border-radius: 999px; font-family: var(--font-ui); font-size: 12px; z-index: 2200; transition: bottom 0.24s ease; }
     .cb-toast.is-visible { bottom: 22px; }
     .cb-spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: cb-spin 0.7s linear infinite; margin-right: 6px; vertical-align: middle; }
     .cb-series-toggle { display: none; }
     @keyframes cb-spin { to { transform: rotate(360deg); } }
     @media (max-width: 1380px) { .cb-app { grid-template-columns: 280px 1fr 300px; } }
     @media (max-width: 1160px) {
-      .cb-app.term-chartbuilder-layout { grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 48px); }
+      .cb-app.term-chartbuilder-layout { grid-template-columns: 1fr; height: auto; min-height: calc(100vh - var(--nav-h)); }
       .cb-sidebar, .cb-panel, .cb-main { border: none; }
       .cb-main { min-height: 66vh; }
       .cb-series-toggle {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border: 1px solid var(--border-default);
+        border: var(--border);
         border-radius: 8px;
-        background: var(--depth-2);
+        background: var(--bg-elevated);
         color: var(--text-secondary);
         font-family: "Inter", system-ui, sans-serif;
         font-size: 12px;
@@ -153,12 +153,11 @@
 </head>
 <body class="theme-terminal">
   <a href="#cb-app" class="term-sr-only">Skip to chart builder</a>
+  <div class="term-page">
   <header class="term-nav" role="banner">
-    <div class="term-nav__left">
-      <a class="term-nav__brand term-brand" href="/terminal/"></a>
-      <span class="term-nav__sep" aria-hidden="true">/</span>
-      <span class="term-nav__product">Terminal</span>
-    </div>
+    <a class="term-nav__brand term-brand" href="/terminal/"></a>
+    <span class="term-nav__divider" aria-hidden="true">/</span>
+    <span class="term-nav__crumb">Terminal</span>
     <nav class="term-nav__tabs" aria-label="Terminal sections">
       <a class="term-nav__tab" href="/terminal/" data-path="/terminal/index">Home</a>
       <a class="term-nav__tab" href="/terminal/eurusd.html" data-path="/terminal/eurusd">EUR/USD</a>
@@ -168,12 +167,12 @@
       <a class="term-nav__tab" href="/terminal/overview.html" data-path="/terminal/overview">Overview</a>
     </nav>
     <div class="term-nav__right">
-      <div class="term-nav__live">
-        <span class="term-nav__live-dot" aria-hidden="true"></span>
-        <span class="term-nav__live-label">Live</span>
-        <span class="term-nav__ts" id="term-pipeline-ts">Pipeline —</span>
+      <div class="term-nav__pipeline">
+        <span class="term-nav__pipeline-dot" aria-hidden="true"></span>
+        <span>Live</span>
+        <span id="term-pipeline-ts">Pipeline —</span>
       </div>
-      <a class="term-nav__exit" href="/">← Exit Terminal</a>
+      <a class="term-nav__exit" href="/">Exit Terminal</a>
     </div>
   </header>
 
@@ -203,7 +202,7 @@
             <button type="button" class="cb-empty__link" id="cb-empty-quick">Or load a Quick Chart →</button>
           </div>
         </div>
-        <div id="chart-builder-preview" role="img" aria-label="Chart preview" style="height:100%;width:100%;background:#111827;min-height:400px;"></div>
+        <div id="chart-builder-preview" role="img" aria-label="Chart preview" style="height:100%;width:100%;min-height:400px;"></div>
       </div>
       <div id="cb-legend" class="cb-legend" aria-label="Series legend"></div>
     </section>
@@ -268,6 +267,7 @@
   </div>
 
   <div id="cb-toast" class="cb-toast" role="status" aria-live="polite"></div>
+  </div>
 
   <script>
   (function () {
@@ -397,7 +397,7 @@
     function setTheme(theme) {
       state.theme = theme === 'light' ? 'light' : 'dark';
       CB.ThemeManager.applyTheme(state.theme);
-      chartWrap.style.background = state.theme === 'light' ? '#FAFAF8' : 'var(--depth-1)';
+      chartWrap.style.background = state.theme === 'light' ? '#FAFAF8' : 'var(--bg-page)';
       document.querySelectorAll('.cb-theme-card').forEach(function (card) {
         card.classList.toggle('is-active', card.getAttribute('data-theme') === state.theme);
       });

@@ -28,12 +28,19 @@
     }
 
     var regimeBadge = document.querySelector('[data-regime-badge]');
-    if (regimeBadge) {
-      if (regime && regime.regime) {
-        regimeBadge.textContent = D.formatRegimeLabel ? D.formatRegimeLabel(regime.regime) : String(regime.regime);
-      } else {
-        regimeBadge.textContent = '—';
-      }
+    var regimeClass =
+      regime && regime.regime && String(regime.regime).toLowerCase().includes('bull')
+        ? 'bullish'
+        : regime && regime.regime && String(regime.regime).toLowerCase().includes('bear')
+        ? 'bearish'
+        : 'neutral';
+
+    if (regimeBadge && regime && regime.regime) {
+      regimeBadge.className = 'term-cmd-regime ' + regimeClass;
+      regimeBadge.textContent = String(regime.regime).toUpperCase();
+    } else if (regimeBadge) {
+      regimeBadge.className = 'term-cmd-regime neutral';
+      regimeBadge.textContent = '—';
     }
 
     var hdrBadge = document.getElementById('hdr-regime-badge');
@@ -122,6 +129,7 @@
         })
         .join('') +
       '</tbody></table>';
+    container.classList.add('term-fade-in');
   }
 
   function initTabCharts(tabName, rows, pair) {
@@ -196,7 +204,12 @@
         });
 
         var panel = document.querySelector('[data-tab-panel="' + tabName + '"]');
-        if (panel) panel.style.display = 'block';
+        if (panel) {
+          panel.style.display = 'block';
+          panel.classList.remove('term-fade-in');
+          panel.offsetHeight;
+          panel.classList.add('term-fade-in');
+        }
 
         tabs.forEach(function (t) {
           t.classList.remove('tab-active');

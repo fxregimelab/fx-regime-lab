@@ -7,10 +7,8 @@
 
   var g = typeof window !== 'undefined' ? window : this;
   var WORDMARK_URL = '/assets/images/wordmark_without_bg.png';
-  var LOGO_URL = '/assets/images/logo.png';
-  /** Inline SVG if logo.png fails to load (same dimensions as previous placeholder). */
   var LOGO_SVG_FALLBACK =
-    '<svg class="term-brand__mark" width="28" height="20" viewBox="0 0 28 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<svg width="28" height="20" viewBox="0 0 34 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
     '<rect x="0" y="0" width="28" height="6" rx="1" fill="#4D8EFF"/>' +
     '<rect x="3" y="8" width="28" height="6" rx="1" fill="#F59E0B"/>' +
     '<rect x="6" y="16" width="28" height="4" rx="1" fill="#F87171"/>' +
@@ -162,14 +160,7 @@
   }
 
   function renderBrand() {
-    return (
-      '<div style="display:flex;align-items:center;gap:10px">' +
-      '<img class="term-brand__mark" src="' +
-      LOGO_URL +
-      '" alt="" width="28" height="20" loading="lazy" />' +
-      '<span style="font-family:\'Inter\',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.12em;color:#E8EDF2">FX REGIME LAB</span>' +
-      '</div>'
-    );
+    return LOGO_SVG_FALLBACK + '<span class="term-nav__brand-name">FX Regime Lab</span>';
   }
 
   function hydrateTerminalBrand() {
@@ -179,17 +170,6 @@
       return;
     }
     brand.innerHTML = renderBrand();
-    var mark = brand.querySelector('img.term-brand__mark');
-    if (mark) {
-      mark.addEventListener(
-        'error',
-        function onLogoErr() {
-          mark.removeEventListener('error', onLogoErr);
-          mark.outerHTML = LOGO_SVG_FALLBACK;
-        },
-        false
-      );
-    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {

@@ -10,21 +10,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://query1.finance.yahoo.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/terminal/terminal.css" />
   <meta name="supabase-url" content="" />
   <meta name="supabase-anon-key" content="" />
   <script src="/assets/supabase-env.js"></script>
-  <script async
-    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
-    onload="window.__supabaseReady=true;
-    document.dispatchEvent(new Event('supabase-ready'))">
-  </script>
-  <script async
-    src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"
-    onload="window.__lwcReady=true;
-    document.dispatchEvent(new Event('lwc-ready'))">
-  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="window.__supabaseReady=true;document.dispatchEvent(new Event('supabase-ready'))"></script>
+  <script async src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js" onload="window.__lwcReady=true;document.dispatchEvent(new Event('lwc-ready'))"></script>
   <script defer src="/terminal/utils.js"></script>
   <script defer src="/terminal/page-init.js"></script>
   <script defer src="/terminal/lw-charts-config.js"></script>
@@ -38,122 +29,111 @@
 </head>
 <body class="theme-terminal">
   <a href="#term-pair-main" class="term-sr-only">Skip to content</a>
-
-  <header class="term-nav" role="banner">
-    <div class="term-nav__left">
+  <div class="term-page">
+    <header class="term-nav" role="banner">
       <a class="term-nav__brand term-brand" href="/terminal/"></a>
-      <span class="term-nav__sep" aria-hidden="true">/</span>
-      <span class="term-nav__product">Terminal</span>
-    </div>
-    <nav class="term-nav__tabs" aria-label="Terminal sections">
-      <a class="term-nav__tab" href="/terminal/" data-path="/terminal/index">Home</a>
-      <a class="term-nav__tab" href="/terminal/eurusd.html" data-path="/terminal/eurusd">EUR/USD</a>
-      <a class="term-nav__tab" href="/terminal/usdjpy.html" data-path="/terminal/usdjpy">USD/JPY</a>
-      <a class="term-nav__tab" href="/terminal/usdinr.html" data-path="/terminal/usdinr">USD/INR</a>
-      <a class="term-nav__tab" href="/terminal/chartbuilder.html" data-path="/terminal/chartbuilder">Chart builder</a>
-      <a class="term-nav__tab" href="/terminal/overview.html" data-path="/terminal/overview">Overview</a>
-    </nav>
-    <div class="term-nav__right">
-      <div class="term-nav__live">
-        <span class="term-nav__live-dot" aria-hidden="true"></span>
-        <span class="term-nav__live-label">Live</span>
-        <span class="term-nav__ts" id="term-pipeline-ts">Pipeline —</span>
-      </div>
-      <a class="term-nav__exit" href="/">← Exit Terminal</a>
-    </div>
-  </header>
-
-  <main id="term-pair-main" class="term-pair-page" data-pair-page data-live-pair="USD/JPY">
-    <header class="term-pair-head">
-      <div class="term-pair-head__left">USD/JPY</div>
-      <div class="term-pair-head__mid">
-        <span class="term-pair-head__spot" id="hdr-spot">—</span>
-        <span class="term-pair-head__d1" id="hdr-d1">—</span>
-        <span class="term-pair-head__12m" id="hdr-12m">12M —</span>
-      </div>
-      <div class="term-pair-head__right">
-        <span class="pair-data-status" aria-live="polite"></span>
-        <span
-          data-freshness-badge
-          style="display:inline-block;border:1px solid rgba(255,255,255,0.2);color:#8B9BB4;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;letter-spacing:0.12em;padding:2px 8px;border-radius:3px;margin-right:8px;"
-        >—</span>
-        <span class="term-pair-head__badge term-pair-head__badge--neutral" id="hdr-regime-badge">—</span>
-        <span class="term-pair-head__score" id="hdr-score">—</span>
-        <span class="term-pair-head__updated" id="hdr-updated" data-last-updated>Last updated —</span>
+      <span class="term-nav__divider" aria-hidden="true">/</span>
+      <span class="term-nav__crumb">Terminal</span>
+      <nav class="term-nav__tabs" aria-label="Terminal sections">
+        <a class="term-nav__tab" href="/terminal/" data-path="/terminal/index">Home</a>
+        <a class="term-nav__tab" href="/terminal/eurusd.html" data-path="/terminal/eurusd">EUR/USD</a>
+        <a class="term-nav__tab" href="/terminal/usdjpy.html" data-path="/terminal/usdjpy">USD/JPY</a>
+        <a class="term-nav__tab" href="/terminal/usdinr.html" data-path="/terminal/usdinr">USD/INR</a>
+        <a class="term-nav__tab" href="/terminal/chartbuilder.html" data-path="/terminal/chartbuilder">Chart builder</a>
+        <a class="term-nav__tab" href="/terminal/overview.html" data-path="/terminal/overview">Overview</a>
+      </nav>
+      <div class="term-nav__right">
+        <div class="term-nav__pipeline">
+          <span class="term-nav__pipeline-dot" aria-hidden="true"></span>
+          <span>Live</span>
+          <span id="term-pipeline-ts">Pipeline —</span>
+        </div>
+        <a class="term-nav__exit" href="/">Exit Terminal</a>
       </div>
     </header>
 
-    <section class="term-pair-hero" id="pair-hero">
-      <div class="term-pair-hero__left">
-        <h1 class="term-pair-hero__name">USD/JPY</h1>
-        <div class="term-pair-hero__spot" id="hero-spot">—</div>
-        <div class="term-pair-hero__change" id="hero-d1">—</div>
-        <div class="term-pair-hero__regime">
-          <div class="term-pair-hero__label">Regime</div>
-          <div class="term-pair-hero__value" id="hero-regime" data-regime-badge>—</div>
-          <div class="term-pair-hero__confidence" id="hero-confidence" data-confidence>—</div>
-        </div>
-        <p class="term-pair-hero__driver" id="hero-driver" data-driver>→ Driver loading…</p>
-        <p class="term-pair-hero__meta"><span data-vol-regime>—</span> · <span data-signal-date>Signals —</span></p>
-        <p class="term-pair-hero__watch" id="hero-watch">Spot and change from live feed; signals from Supabase.</p>
-        <div class="term-pair-scrollcue">↓ Signal analysis</div>
-      </div>
-      <div class="term-pair-hero__right">
-        <div class="term-pair-hero__chart" id="hero-chart-placeholder" style="height:260px;width:100%;background:#111827;border-radius:4px;overflow:hidden;"></div>
-      </div>
-    </section>
-
-    <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.06);">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;letter-spacing:0.15em;color:#4A5568;margin-bottom:16px;">SIGNAL STACK</div>
-      <div data-signal-stack></div>
-    </div>
-
-    <div class="term-pair-tabstrip" style="display:flex;flex-wrap:wrap;gap:8px;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.06);align-items:center;">
-      <button type="button" data-tab-btn="fundamentals" class="tab-active term-pair-tabbtn">FUNDAMENTALS</button>
-      <button type="button" data-tab-btn="positioning" class="term-pair-tabbtn">POSITIONING</button>
-      <button type="button" data-tab-btn="vol" class="term-pair-tabbtn">VOL &amp; CORRELATION</button>
-      <button type="button" data-tab-btn="cross_asset" class="term-pair-tabbtn">CROSS ASSET</button>
-      <button type="button" data-tab-btn="momentum" class="term-pair-tabbtn">MOMENTUM</button>
-    </div>
-
-    <div class="term-pair-panels" style="padding:24px;">
-      <div data-tab-panel="fundamentals">
-        <div id="chart-rate_diff_2y" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-rate_diff_10y" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-rate_diff_zscore" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-      </div>
-
-      <div data-tab-panel="positioning" style="display:none;">
-        <div id="chart-cot_lev_money_net" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-cot_asset_mgr_net" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-cot_percentile" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-      </div>
-
-      <div data-tab-panel="vol" style="display:none;">
-        <div id="chart-realized_vol_5d" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-realized_vol_20d" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-implied_vol_30d" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-vol_skew" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-atm_vol" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-risk_reversal_25d" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-      </div>
-
-      <div data-tab-panel="cross_asset" style="display:none;">
-        <div id="chart-oi_delta" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-oi_price_alignment" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-cross_asset_vix" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-cross_asset_dxy" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-        <div id="chart-cross_asset_oil" class="chart-container" style="height:260px;width:100%;margin-bottom:24px;background:#111827;border-radius:4px;overflow:hidden;"></div>
-      </div>
-
-      <div data-tab-panel="momentum" style="display:none;">
-        <div style="padding:40px 24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#4A5568;text-align:center;">
-          Momentum signals — coming in next pipeline phase.
+    <main id="term-pair-main" class="term-pair-page" data-pair-page data-live-pair="USD/JPY">
+      <div class="term-cmd-bar">
+        <span class="term-cmd-pair" data-pair-name>USD/JPY</span>
+        <span class="term-cmd-price" id="hdr-spot" data-live-price>—</span>
+        <span class="term-cmd-change" id="hdr-d1" data-live-change>—</span>
+        <div class="term-cmd-sep"></div>
+        <span class="term-cmd-regime neutral" id="hdr-regime-badge" data-regime-badge>—</span>
+        <div class="term-cmd-sep"></div>
+        <span class="term-cmd-meta">Confidence: <span id="hdr-score" data-confidence>—</span></span>
+        <div class="term-cmd-sep"></div>
+        <span class="term-cmd-meta">Vol: <span data-vol-regime>—</span></span>
+        <div class="term-cmd-sep"></div>
+        <span class="term-cmd-freshness" data-freshness-badge>—</span>
+        <div class="term-cmd-sep"></div>
+        <span class="term-cmd-meta" id="hdr-updated" data-last-updated>—</span>
+        <span class="pair-data-status" aria-live="polite"></span>
+        <div class="term-cmd-tabs">
+          <button class="term-cmd-tab tab-active" data-tab-btn="fundamentals">Fundamentals</button>
+          <button class="term-cmd-tab" data-tab-btn="positioning">Positioning</button>
+          <button class="term-cmd-tab" data-tab-btn="vol">Vol &amp; Correlation</button>
+          <button class="term-cmd-tab" data-tab-btn="cross_asset">Cross Asset</button>
+          <button class="term-cmd-tab" data-tab-btn="momentum">Momentum</button>
         </div>
       </div>
-    </div>
-  </main>
 
+      <section class="term-signal-stack">
+        <span class="term-section-label">Signal Stack</span>
+        <div data-signal-stack></div>
+      </section>
+
+      <section class="term-section term-fade-in" data-tab-panel="fundamentals">
+        <span class="term-section-label">Rate Differential 2Y</span>
+        <div id="chart-rate_diff_2y" class="term-chart chart-container"></div>
+        <span class="term-section-label">Rate Differential 10Y</span>
+        <div id="chart-rate_diff_10y" class="term-chart chart-container"></div>
+        <span class="term-section-label">Rate Differential Z-Score</span>
+        <div id="chart-rate_diff_zscore" class="term-chart chart-container"></div>
+      </section>
+
+      <section class="term-section" data-tab-panel="positioning" style="display:none;">
+        <span class="term-section-label">COT Leveraged Money Net</span>
+        <div id="chart-cot_lev_money_net" class="term-chart chart-container"></div>
+        <span class="term-section-label">COT Asset Manager Net</span>
+        <div id="chart-cot_asset_mgr_net" class="term-chart chart-container"></div>
+        <span class="term-section-label">COT Percentile</span>
+        <div id="chart-cot_percentile" class="term-chart chart-container"></div>
+      </section>
+
+      <section class="term-section" data-tab-panel="vol" style="display:none;">
+        <span class="term-section-label">Realized Vol 5D</span>
+        <div id="chart-realized_vol_5d" class="term-chart chart-container"></div>
+        <span class="term-section-label">Realized Vol 20D</span>
+        <div id="chart-realized_vol_20d" class="term-chart chart-container"></div>
+        <span class="term-section-label">Implied Vol 30D</span>
+        <div id="chart-implied_vol_30d" class="term-chart chart-container"></div>
+        <span class="term-section-label">Vol Skew</span>
+        <div id="chart-vol_skew" class="term-chart chart-container"></div>
+        <span class="term-section-label">ATM Vol</span>
+        <div id="chart-atm_vol" class="term-chart chart-container"></div>
+        <span class="term-section-label">Risk Reversal 25D</span>
+        <div id="chart-risk_reversal_25d" class="term-chart chart-container"></div>
+      </section>
+
+      <section class="term-section" data-tab-panel="cross_asset" style="display:none;">
+        <span class="term-section-label">Open Interest Delta</span>
+        <div id="chart-oi_delta" class="term-chart chart-container"></div>
+        <span class="term-section-label">OI Price Alignment</span>
+        <div id="chart-oi_price_alignment" class="term-chart chart-container"></div>
+        <span class="term-section-label">Cross Asset VIX</span>
+        <div id="chart-cross_asset_vix" class="term-chart chart-container"></div>
+        <span class="term-section-label">Cross Asset DXY</span>
+        <div id="chart-cross_asset_dxy" class="term-chart chart-container"></div>
+        <span class="term-section-label">Cross Asset Oil</span>
+        <div id="chart-cross_asset_oil" class="term-chart chart-container"></div>
+      </section>
+
+      <section class="term-section" data-tab-panel="momentum" style="display:none;">
+        <span class="term-section-label">Momentum</span>
+        <div class="term-card">Momentum signals — coming in next pipeline phase.</div>
+      </section>
+    </main>
+  </div>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       void FXRLPairBoot.bootPairPage('USDJPY', { defaultTab: 'fundamentals' });
