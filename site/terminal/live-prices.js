@@ -230,11 +230,35 @@
     }, 650);
   }
 
+  /** Pair terminal pages: [data-pair-page][data-live-pair="EUR/USD"] etc. */
+  function updatePairPageHero(name, data) {
+    var root = document.querySelector('[data-pair-page][data-live-pair="' + name + '"]');
+    if (!root) return;
+    var price = Number(data.price);
+    var changePct = Number(data.changePct);
+    var hdrSpot = root.querySelector('#hdr-spot');
+    var hdrD1 = root.querySelector('#hdr-d1');
+    var heroSpot = root.querySelector('#hero-spot');
+    var heroD1 = root.querySelector('#hero-d1');
+    if (hdrSpot) hdrSpot.textContent = formatPrice(price, name);
+    if (heroSpot) heroSpot.textContent = formatPrice(price, name);
+    if (hdrD1) {
+      hdrD1.textContent = isFinite(changePct) ? fmtPct(changePct) : '—';
+      hdrD1.className =
+        'term-pair-head__d1 ' +
+        (changePct > 0 ? 'term-pair-head__d1--up' : changePct < 0 ? 'term-pair-head__d1--down' : '');
+    }
+    if (heroD1) {
+      heroD1.textContent = isFinite(changePct) ? fmtPct(changePct) : '—';
+    }
+  }
+
   function updateAllPrices() {
     var now = Date.now();
     if (now - lastFetch < MIN_INTERVAL) return;
     lastFetch = now;
-    if (!ensureTickerStructure()) return;
+    var hasTicker = !!document.querySelector('[data-term-ticker]');
+    if (hasTicker) ensureTickerStructure();
     Promise.allSettled(
       Object.keys(SYMBOLS).map(function (name) {
         return fetchPrice(name, SYMBOLS[name]).then(function (data) {
@@ -244,8 +268,11 @@
     ).then(function (updates) {
       updates.forEach(function (result) {
         if (result.status === 'fulfilled' && result.value && result.value.data) {
-          updateTickerItem(result.value.name, result.value.data);
-          updateHomeCard(result.value.name, result.value.data);
+          var n = result.value.name;
+          var d = result.value.data;
+          if (hasTicker) updateTickerItem(n, d);
+          updateHomeCard(n, d);
+          updatePairPageHero(n, d);
         }
       });
     });
@@ -302,8 +329,10 @@
   var visibilityHooked = false;
 
   function init() {
-    ensureTickerStructure();
-    initObserver();
+    if (document.querySelector('[data-term-ticker]')) {
+      ensureTickerStructure();
+      initObserver();
+    }
     if (!visibilityHooked) {
       visibilityHooked = true;
       document.addEventListener('visibilitychange', onVisibilityChange);

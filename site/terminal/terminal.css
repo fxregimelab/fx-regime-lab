@@ -2366,3 +2366,28 @@ body.theme-terminal:not(.theme-light) .term-magazine-section--regime {
     transition: none !important;
   }
 }
+
+/* Pair page tab strip (Supabase signal charts) */
+body.theme-terminal .term-pair-tabbtn {
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  padding: 8px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+body.theme-terminal .term-pair-tabbtn:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-emphasis);
+}
+
+body.theme-terminal .term-pair-tabbtn.tab-active {
+  color: var(--text-primary);
+  border-color: var(--accent);
+  background: rgba(77, 142, 255, 0.08);
+}

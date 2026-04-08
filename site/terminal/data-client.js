@@ -156,7 +156,7 @@
    * @returns {Promise<object[]>}
    */
   function fetchSignalsFromSupabase(pair, days) {
-    var d = days != null ? days : 90;
+    var d = days != null ? days : 365;
     var normPair = normalisePair(pair);
     var fromDate = new Date();
     fromDate.setDate(fromDate.getDate() - d);
@@ -182,6 +182,253 @@
         }
         return [];
       });
+  }
+
+  /**
+   * @param {string} pair
+   * @returns {Promise<object|null>}
+   */
+  function fetchLatestSignalRow(pair) {
+    var normPair = normalisePair(pair);
+    return initDataClient()
+      .then(function (client) {
+        if (!client) return null;
+        return queryWithTimeout(
+          client
+            .from('signals')
+            .select('*')
+            .eq('pair', normPair)
+            .order('date', { ascending: false })
+            .limit(1)
+        ).then(function (result) {
+          if (result.error) throw result.error;
+          return result.data && result.data[0] ? result.data[0] : null;
+        });
+      })
+      .catch(function (err) {
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('fetchLatestSignalRow failed:', err && err.message ? err.message : err);
+        }
+        return null;
+      });
+  }
+
+  function getDataFreshness(dateStr) {
+    if (!dateStr) return 'no-data';
+    var dataDate = new Date(String(dateStr).slice(0, 10) + 'T12:00:00Z');
+    var now = new Date();
+    var diffDays = Math.floor((now - dataDate) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 3) return 'live';
+    if (diffDays <= 7) return 'stale';
+    return 'no-data';
+  }
+
+  function getFreshnessLabel(dateStr) {
+    var status = getDataFreshness(dateStr);
+    var map = {
+      live: { text: 'LIVE', color: '#2DD4A0' },
+      stale: { text: 'STALE', color: '#F59E0B' },
+      'no-data': { text: 'NO DATA', color: '#F87171' },
+    };
+    return map[status];
+  }
+
+  var SIGNAL_CHART_MAP = {
+    rate_diff_2y: {
+      label: '2Y Rate Differential',
+      tab: 'fundamentals',
+      chartType: 'line',
+      unit: '%',
+      precision: 3,
+      description: 'US minus foreign 2Y yield spread',
+      bullishAbove: 0,
+    },
+    rate_diff_10y: {
+      label: '10Y Rate Differential',
+      tab: 'fundamentals',
+      chartType: 'line',
+      unit: '%',
+      precision: 3,
+      description: 'US minus foreign 10Y yield spread',
+      bullishAbove: 0,
+    },
+    rate_diff_zscore: {
+      label: 'Rate Diff Z-Score',
+      tab: 'fundamentals',
+      chartType: 'line',
+      unit: '',
+      precision: 2,
+      description: '52-week normalised z-score of rate diff',
+      bullishAbove: 0,
+    },
+    cot_lev_money_net: {
+      label: 'Leveraged Money Net',
+      tab: 'positioning',
+      chartType: 'histogram',
+      unit: 'contracts',
+      precision: 0,
+      description: 'CFTC leveraged money net position',
+    },
+    cot_asset_mgr_net: {
+      label: 'Asset Manager Net',
+      tab: 'positioning',
+      chartType: 'histogram',
+      unit: 'contracts',
+      precision: 0,
+      description: 'CFTC asset manager net position',
+    },
+    cot_percentile: {
+      label: 'COT Percentile Rank',
+      tab: 'positioning',
+      chartType: 'line',
+      unit: '%',
+      precision: 1,
+      description: '52-week percentile rank of net position',
+      warningAbove: 90,
+      warningBelow: 10,
+    },
+    realized_vol_5d: {
+      label: '5D Realized Vol',
+      tab: 'vol',
+      chartType: 'line',
+      unit: '%',
+      precision: 2,
+      description: '5-day annualised realized volatility',
+    },
+    realized_vol_20d: {
+      label: '20D Realized Vol',
+      tab: 'vol',
+      chartType: 'line',
+      unit: '%',
+      precision: 2,
+      description: '20-day annualised realized volatility',
+    },
+    implied_vol_30d: {
+      label: '30D Implied Vol',
+      tab: 'vol',
+      chartType: 'line',
+      unit: '%',
+      precision: 2,
+      description: '30-day implied volatility from options',
+    },
+    vol_skew: {
+      label: 'Vol Skew',
+      tab: 'vol',
+      chartType: 'line',
+      unit: '%',
+      precision: 2,
+      description: 'Implied vol skew — put vs call premium',
+    },
+    atm_vol: {
+      label: 'ATM Vol',
+      tab: 'vol',
+      chartType: 'line',
+      unit: '%',
+      precision: 2,
+      description: 'At-the-money implied volatility',
+    },
+    risk_reversal_25d: {
+      label: '25D Risk Reversal',
+      tab: 'vol',
+      chartType: 'line',
+      unit: '%',
+      precision: 2,
+      description: '25-delta risk reversal — directional skew',
+    },
+    oi_delta: {
+      label: 'OI Delta',
+      tab: 'cross_asset',
+      chartType: 'histogram',
+      unit: '',
+      precision: 0,
+      description: 'Open interest change — positioning pressure',
+    },
+    oi_price_alignment: {
+      label: 'OI / Price Alignment',
+      tab: 'cross_asset',
+      chartType: 'line',
+      unit: '',
+      precision: 2,
+      description: 'OI and price direction alignment score',
+    },
+    cross_asset_vix: {
+      label: 'VIX',
+      tab: 'cross_asset',
+      chartType: 'area',
+      unit: '',
+      precision: 2,
+      description: 'VIX as USD risk-off regime input',
+      color: '#F59E0B',
+    },
+    cross_asset_dxy: {
+      label: 'DXY',
+      tab: 'cross_asset',
+      chartType: 'area',
+      unit: '',
+      precision: 3,
+      description: 'Dollar index as cross-pair context',
+      color: '#4D8EFF',
+    },
+    cross_asset_oil: {
+      label: 'Brent Oil',
+      tab: 'cross_asset',
+      chartType: 'line',
+      unit: 'USD',
+      precision: 2,
+      description: 'Brent crude as terms-of-trade input',
+      color: '#F59E0B',
+    },
+  };
+
+  function computeSignalStack(latestRow) {
+    if (!latestRow) return null;
+
+    function dir(value, bullishAbove) {
+      var thr = bullishAbove != null ? bullishAbove : 0;
+      if (value === null || value === undefined) return 'neutral';
+      return value > thr ? 'bullish' : 'bearish';
+    }
+
+    var rateScore = latestRow.rate_diff_zscore || 0;
+    var volScore =
+      -((latestRow.realized_vol_20d || 0) - (latestRow.implied_vol_30d || 0));
+    var crossScore = -((latestRow.cross_asset_vix || 20) - 20) / 20;
+
+    return [
+      {
+        label: 'Rate Differentials',
+        direction: dir(rateScore),
+        contribution: Math.min(100, Math.abs(rateScore) * 30),
+        value: latestRow.rate_diff_2y,
+        unit: '%',
+      },
+      {
+        label: 'COT Positioning',
+        direction:
+          (latestRow.cot_percentile || 50) > 75
+            ? 'bullish'
+            : (latestRow.cot_percentile || 50) < 25
+              ? 'bearish'
+              : 'neutral',
+        contribution: Math.abs((latestRow.cot_percentile || 50) - 50) * 2,
+        value: latestRow.cot_percentile,
+        unit: 'th pct',
+      },
+      {
+        label: 'Vol & Correlation',
+        direction: dir(volScore),
+        contribution: Math.min(100, Math.abs(volScore) * 20),
+        value: latestRow.realized_vol_20d,
+        unit: '%',
+      },
+      {
+        label: 'Cross Asset',
+        direction: dir(crossScore),
+        contribution: Math.min(100, Math.abs(crossScore) * 100),
+        value: latestRow.cross_asset_vix,
+        unit: '',
+      },
+    ];
   }
 
   function fetchPipelineStatus() {
@@ -1275,6 +1522,11 @@
     normalisePair: normalisePair,
     fetchSignals: fetchSignals,
     fetchSignalsFromSupabase: fetchSignalsFromSupabase,
+    fetchLatestSignalRow: fetchLatestSignalRow,
+    getDataFreshness: getDataFreshness,
+    getFreshnessLabel: getFreshnessLabel,
+    SIGNAL_CHART_MAP: SIGNAL_CHART_MAP,
+    computeSignalStack: computeSignalStack,
     fetchPipelineStatus: fetchPipelineStatus,
     fetchRegimeCalls: fetchRegimeCalls,
     fetchLatestBrief: fetchLatestBrief,
