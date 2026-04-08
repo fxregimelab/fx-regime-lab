@@ -199,8 +199,10 @@
       }
 
       chartPromise.then(function (instance) {
-        if (instance && FX.register) {
-          FX.register(containerId, instance);
+        if (instance) {
+          // Do NOT call FX.register() here — the factory already registers
+          // internally. A second register() call triggers prev.chart.remove()
+          // on the same chart, wiping the canvas from the DOM.
           if (FX.addTimeRangeButtons) {
             FX.addTimeRangeButtons(containerId, instance);
           }
