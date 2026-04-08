@@ -115,6 +115,14 @@ body.theme-terminal a:hover {
   border-bottom: 1px solid var(--border-default);
 }
 
+/* Chart builder: main grid clears fixed nav (chartbuilder.html also sets grid columns inline) */
+.term-chartbuilder-layout {
+  padding-top: 48px;
+  box-sizing: border-box;
+  height: calc(100vh - 48px);
+  overflow: hidden;
+}
+
 .term-nav__left {
   display: flex;
   align-items: center;

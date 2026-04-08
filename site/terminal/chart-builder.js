@@ -620,6 +620,35 @@
   };
 
   /**
+   * Map catalog series id to Supabase signals (pair, column) for single-series LWC preview.
+   * @returns {{ pair: string, column: string }|null}
+   */
+  function resolvePairColumnForSeries(seriesId) {
+    var meta = SeriesManager.catalogMap[seriesId];
+    if (!meta || meta.computed === 'vol60_from_price') return null;
+    var refs = CSV_TO_SIGNAL[meta.csvColumn] || [];
+    if (refs.length) return { pair: refs[0].pair, column: refs[0].dbCol };
+    var col = meta.csvColumn;
+    if (!col || typeof col !== 'string') return null;
+    var c = col.toLowerCase();
+    if (c.indexOf('eurusd') === 0 || c.indexOf('eur_') === 0 || c === 'dxy_eurusd_corr_60d') {
+      return { pair: 'EURUSD', column: col };
+    }
+    if (c.indexOf('usdjpy') === 0 || c.indexOf('jpy_') === 0 || c === 'dxy_usdjpy_corr_60d') {
+      return { pair: 'USDJPY', column: col };
+    }
+    if (
+      c.indexOf('usdinr') === 0 ||
+      c.indexOf('inr_') === 0 ||
+      c === 'dxy_inr_corr_60d' ||
+      c === 'gold_inr_corr_60d'
+    ) {
+      return { pair: 'USDINR', column: col };
+    }
+    return null;
+  }
+
+  /**
    * Build / rebuild a Lightweight Charts instance for the chart builder preview.
    */
   function buildChartBuilderLwc(chartEl, rangeMs, themeName) {
@@ -1047,6 +1076,10 @@
     var latestDateStr = '';
 
     function destroyChart() {
+      var FX = global.FXRLCharts;
+      if (FX && typeof FX.disposeChart === 'function') {
+        FX.disposeChart('chart-builder-preview');
+      }
       if (resizeObs) {
         try {
           resizeObs.disconnect();
@@ -1059,6 +1092,9 @@
         } catch (e2) {}
       }
       chart = null;
+      try {
+        global.__chartBuilderInstance = null;
+      } catch (e3) { /* ignore */ }
     }
 
     function refreshLegend() {
@@ -1143,19 +1179,140 @@
     global.document.addEventListener('click', closeMenu);
 
     function redraw() {
+      redrawAsync().catch(function (err) {
+        if (global.console && global.console.error) {
+          global.console.error('[ChartBuilder] redraw', err);
+        }
+      });
+    }
+
+    /**
+     * Single-series preview: fetch from Supabase, dispose/recreate via FXRLCharts helpers.
+     * Multi-series and vol60 stay on buildChartBuilderLwc.
+     */
+    async function loadSeriesIntoChartPreview(seriesId, ref, rangeMs, themeName) {
+      var FX = global.FXRLCharts;
+      var DC = global.FXRLData;
+      if (!FX || !DC || typeof DC.fetchSignalsFromSupabase !== 'function') return null;
+      var entry = SeriesManager.active.get(seriesId);
+      if (!entry) return null;
+      var ready = await FX.waitForLWC();
+      if (!ready) return null;
+
+      var days = Math.min(1825, Math.max(365, Math.ceil(rangeMs / 86400000) + 5));
+      var rows = await DC.fetchSignalsFromSupabase(ref.pair, days);
+      if (!rows || !rows.length) return null;
+
+      var col = ref.column;
+      var cutoff = Date.now() - rangeMs;
+      var data = [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var v = r[col];
+        if (v === null || v === undefined || v === '') continue;
+        var ds = String(r.date || '').slice(0, 10);
+        var t = ts(ds);
+        if (!isFinite(t) || t < cutoff) continue;
+        data.push({ date: ds, value: parseFloat(v) });
+      }
+      if (!data.length) return null;
+
+      var cfg = DC.SIGNAL_CHART_MAP && DC.SIGNAL_CHART_MAP[col];
+      var ut = (entry.chartType || 'line').toLowerCase();
+      var chartKind;
+      if (ut === 'bar') chartKind = 'histogram';
+      else if (ut === 'area') chartKind = 'area';
+      else chartKind = 'line';
+
+      var color = entry.colour || (FX.pairColor ? FX.pairColor(ref.pair) : '#4D8EFF');
+      var prec = cfg && cfg.precision != null ? cfg.precision : 2;
+      var Th = ThemeManager.themes[themeName] || ThemeManager.themes.dark;
+      var isLight = themeName === 'light';
+      var themeOpts = {
+        bg: isLight ? LIGHT_BG : DARK_BG,
+        text: Th.text,
+        grid: Th.grid,
+        border: Th.axis,
+      };
+
+      var commonOpts = {
+        color: color,
+        precision: prec,
+        theme: themeOpts,
+        skipRangeButtons: true,
+        dashed: ut === 'scatter',
+      };
+
+      FX.disposeChart('chart-builder-preview');
+      chartEl.innerHTML = '';
+
+      var instance = null;
+      if (chartKind === 'histogram') {
+        instance = await FX.histogram('chart-builder-preview', data, commonOpts);
+      } else if (chartKind === 'area') {
+        instance = await FX.area('chart-builder-preview', data, commonOpts);
+      } else {
+        instance = await FX.line('chart-builder-preview', data, commonOpts);
+      }
+
+      if (instance && instance.chart && typeof FX.applyTimeRangeMs === 'function') {
+        FX.applyTimeRangeMs(instance.chart, rangeMs);
+      }
+      return instance;
+    }
+
+    async function redrawAsync() {
       destroyChart();
       if (!chartEl) return;
       chartEl.innerHTML = '';
       refreshLegend();
-      if (!SeriesManager.hasDataSeries() || !global.LightweightCharts) {
+
+      if (!global.LightweightCharts) {
+        if (typeof opts.onEmptyState === 'function') opts.onEmptyState(true);
+        return;
+      }
+
+      var FX = global.FXRLCharts;
+
+      if (!SeriesManager.hasDataSeries()) {
         if (typeof opts.onEmptyState === 'function') {
-          opts.onEmptyState(!SeriesManager.hasDataSeries());
+          opts.onEmptyState(true);
+        }
+        if (FX && typeof FX.showChartEmpty === 'function') {
+          FX.showChartEmpty(chartEl, 'Select a data series to begin');
         }
         return;
       }
+
       if (typeof opts.onEmptyState === 'function') {
         opts.onEmptyState(false);
       }
+
+      var singleId = null;
+      SeriesManager.active.forEach(function (_, id) {
+        singleId = id;
+      });
+      var metaOne = singleId ? SeriesManager.catalogMap[singleId] : null;
+      var refOne = singleId ? resolvePairColumnForSeries(singleId) : null;
+      if (SeriesManager.active.size === 1 && singleId && refOne && metaOne && metaOne.computed !== 'vol60_from_price') {
+        var instSingle = await loadSeriesIntoChartPreview(singleId, refOne, rangeMs, ThemeManager.current);
+        if (instSingle && instSingle.chart) {
+          chart = instSingle.chart;
+          global.__chartBuilderInstance = instSingle;
+          resizeObs = new ResizeObserver(function () {
+            if (!chart || !chartEl) return;
+            try {
+              chart.applyOptions({
+                width: chartEl.clientWidth || 600,
+                height: chartEl.clientHeight || 340,
+              });
+            } catch (e) {}
+          });
+          resizeObs.observe(chartEl);
+          return;
+        }
+      }
+
       chart = buildChartBuilderLwc(chartEl, rangeMs, ThemeManager.current);
       if (!chart) {
         if (typeof opts.onEmptyState === 'function') {
@@ -1163,6 +1320,15 @@
         }
         return;
       }
+
+      if (FX && typeof FX.register === 'function') {
+        FX.register('chart-builder-preview', {
+          chart: chart,
+          disposeExtra: function () {},
+        });
+      }
+      global.__chartBuilderInstance = { chart: chart };
+
       resizeObs = new ResizeObserver(function () {
         if (!chart || !chartEl) return;
         try {
