@@ -118,9 +118,16 @@
 
   /* ── Base chart options ─────────────────── */
   function baseChartOptions(container, themeOpts) {
-    var rect = container.getBoundingClientRect();
-    var w = rect.width || container.offsetWidth || 600;
-    var h = container.offsetHeight > 40 ? container.offsetHeight : 260;
+    var w = Math.max(
+      container.offsetWidth || 0,
+      container.clientWidth || 0,
+      300
+    );
+    var h = Math.max(
+      container.offsetHeight || 0,
+      container.clientHeight || 0,
+      200
+    );
     var th = themeOpts || {};
     var bg = th.bg != null ? th.bg : T.bg;
     var txt = th.text != null ? th.text : T.text;
@@ -303,11 +310,16 @@
   }
 
   function attachResize(container, chart) {
-    var ro = new ResizeObserver(function () {
-      try {
-        var ch = container.offsetHeight > 40 ? container.offsetHeight : 260;
-        chart.applyOptions({ width: container.offsetWidth || 600, height: ch });
-      } catch (e) {}
+    var ro = new ResizeObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        var w = entries[i].contentRect.width;
+        var h = entries[i].contentRect.height;
+        if (w > 0 && h > 0) {
+          try {
+            chart.resize(w, h);
+          } catch (e) {}
+        }
+      }
     });
     ro.observe(container);
     return ro;
@@ -335,7 +347,17 @@
       }
       var LW = global.LightweightCharts;
       container.innerHTML = '';
-      var chart = LW.createChart(container, baseChartOptions(container, opts.theme));
+      void container.offsetHeight;
+      void container.offsetWidth;
+      var w = container.offsetWidth || 600;
+      var h = container.offsetHeight || 220;
+      var chartOptions = Object.assign({}, baseChartOptions(container, opts.theme), { width: w, height: h });
+      var chart = LW.createChart(container, chartOptions);
+      var canvas = container.querySelector('canvas');
+      if (!canvas) {
+        console.error('FXRLCharts: canvas not injected for', containerId, 'w:', w, 'h:', h);
+        return null;
+      }
       var color = opts.color || T.eurusd;
       var series = chart.addSeries(LW.LineSeries, {
         color: color,
@@ -395,7 +417,17 @@
       }
       var LW = global.LightweightCharts;
       container.innerHTML = '';
-      var chart = LW.createChart(container, baseChartOptions(container, opts.theme));
+      void container.offsetHeight;
+      void container.offsetWidth;
+      var w = container.offsetWidth || 600;
+      var h = container.offsetHeight || 220;
+      var chartOptions = Object.assign({}, baseChartOptions(container, opts.theme), { width: w, height: h });
+      var chart = LW.createChart(container, chartOptions);
+      var canvas = container.querySelector('canvas');
+      if (!canvas) {
+        console.error('FXRLCharts: canvas not injected for', containerId, 'w:', w, 'h:', h);
+        return null;
+      }
       var color = opts.color || T.eurusd;
       var series = chart.addSeries(LW.AreaSeries, {
         lineColor: color,
@@ -456,7 +488,17 @@
       }
       var LW = global.LightweightCharts;
       container.innerHTML = '';
-      var chart = LW.createChart(container, baseChartOptions(container, opts.theme));
+      void container.offsetHeight;
+      void container.offsetWidth;
+      var w = container.offsetWidth || 600;
+      var h = container.offsetHeight || 220;
+      var chartOptions = Object.assign({}, baseChartOptions(container, opts.theme), { width: w, height: h });
+      var chart = LW.createChart(container, chartOptions);
+      var canvas = container.querySelector('canvas');
+      if (!canvas) {
+        console.error('FXRLCharts: canvas not injected for', containerId, 'w:', w, 'h:', h);
+        return null;
+      }
       var defC = opts.color || T.eurusd;
       var series = chart.addSeries(LW.HistogramSeries, {
         color: defC,
