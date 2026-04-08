@@ -1160,7 +1160,7 @@
   }
 
   /**
-   * Strip common markdown from brief_log / AI snippets for plain-text HOME preview.
+   * Strip common markdown and pipeline metadata from brief_log / AI snippets for plain-text HOME preview.
    * @param {string} raw
    * @returns {string}
    */
@@ -1168,6 +1168,18 @@
     var t = String(raw || '')
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n');
+    // Remove === separator lines (whole lines of = signs)
+    t = t.replace(/^=+.*$/gm, '');
+    // Remove inline === ... === patterns
+    t = t.replace(/={3,}.*?={3,}/g, '');
+    // Remove pipeline metadata patterns
+    t = t.replace(/FX as of:.*?\|/g, '');
+    t = t.replace(/IN 10Y as of:.*?\|/g, '');
+    t = t.replace(/COT cutoff:.*?\n/g, '');
+    t = t.replace(/pub'd:.*?\)/g, '');
+    t = t.replace(/PRICES pair price.*?\n/g, '');
+    t = t.replace(/MACRO EVENT.*?\n/g, '');
+    // Strip markdown bold/italic/heading
     t = t.replace(/\*\*([^*]+)\*\*/g, '$1');
     t = t.replace(/__([^_]+)__/g, '$1');
     t = t.replace(/#{1,6}\s*/gm, '');
@@ -1199,7 +1211,7 @@
     var sec = aiArticle && aiArticle.sections && typeof aiArticle.sections === 'object' ? aiArticle.sections : null;
     var macro = sec && sec.macro_context != null ? String(sec.macro_context).trim() : '';
     var headline = aiArticle && aiArticle.headline != null ? String(aiArticle.headline).trim() : '';
-    var maxBody = 420;
+    var maxBody = 300;
 
     if (briefSec) {
       briefSec.classList.remove('term-brief--from-db', 'term-brief--from-ai');

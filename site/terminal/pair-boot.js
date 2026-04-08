@@ -136,6 +136,15 @@
     if (chartInitDone[tabName]) return;
     chartInitDone[tabName] = true;
 
+    // Defer until browser has painted containers so offsetHeight is real
+    requestAnimationFrame(function () {
+      setTimeout(function () {
+        _doInitTabCharts(tabName, rows, pair);
+      }, 50);
+    });
+  }
+
+  function _doInitTabCharts(tabName, rows, pair) {
     var FX = global.FXRLCharts;
     var D = global.FXRLData;
     if (!FX || !D || !D.SIGNAL_CHART_MAP) return;
@@ -150,6 +159,12 @@
       var containerId = 'chart-' + col;
       var container = document.getElementById(containerId);
       if (!container) return;
+
+      // Ensure container has explicit dimensions before LWC init
+      if (!container.style.height) {
+        container.style.height = '220px';
+      }
+      container.style.width = '100%';
 
       var data = [];
       for (var i = 0; i < (rows || []).length; i++) {
@@ -186,6 +201,8 @@
       chartPromise.then(function (instance) {
         if (instance && FX.register) {
           FX.register(containerId, instance);
+          var cell = container.parentElement;
+          if (cell) cell.classList.add('term-fade-in');
         }
       });
     });
@@ -217,6 +234,35 @@
         btn.classList.add('tab-active');
 
         initTabCharts(tabName, rows, pair);
+      });
+    });
+  }
+
+  function initLayoutSwitcher() {
+    var switcher = document.querySelector('[data-layout-switcher]');
+    var grid = document.querySelector('[data-chart-grid]');
+    if (!switcher || !grid) return;
+
+    switcher.querySelectorAll('[data-layout]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var layout = btn.getAttribute('data-layout');
+        grid.className = 'term-chart-grid ' + layout;
+        switcher.querySelectorAll('[data-layout]').forEach(function (b) {
+          b.classList.remove('active');
+        });
+        btn.classList.add('active');
+
+        // Resize all registered charts after layout change
+        var FX = global.FXRLCharts;
+        if (FX && FX.registry) {
+          FX.registry.forEach(function (instance) {
+            if (instance && instance.chart && typeof instance.chart.applyOptions === 'function') {
+              try {
+                instance.chart.applyOptions({ width: instance.chart.options().width });
+              } catch (e) {}
+            }
+          });
+        }
       });
     });
   }
@@ -280,5 +326,6 @@
 
   global.FXRLPairBoot = {
     bootPairPage: bootPairPage,
+    initLayoutSwitcher: initLayoutSwitcher,
   };
 })(window);

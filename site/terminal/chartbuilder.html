@@ -575,6 +575,10 @@
     function startChartBuilder() {
       if (!window.FXRLChartBuilder) return;
       boot();
+      // Also initialise signal-map catalog (waits for FXRLData readiness internally)
+      if (typeof window.FXRLChartBuilder.initChartBuilder === 'function') {
+        window.FXRLChartBuilder.initChartBuilder();
+      }
     }
     if (window.__lwcReady && window.LightweightCharts) {
       startChartBuilder();

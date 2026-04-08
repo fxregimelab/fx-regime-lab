@@ -1396,6 +1396,155 @@
     return app;
   }
 
+  /* ── Signal-map series catalog (uses SIGNAL_CHART_MAP from data-client.js) ── */
+
+  function renderSeriesCatalog() {
+    var container = document.getElementById('cb-series-list');
+    if (!container) return;
+    var FX = global.FXRLCharts;
+    var DC = global.FXRLData;
+    if (!FX || !DC || !DC.SIGNAL_CHART_MAP) return;
+
+    var pairs = ['EURUSD', 'USDJPY', 'USDINR'];
+    var map = DC.SIGNAL_CHART_MAP;
+
+    container.innerHTML = '';
+
+    pairs.forEach(function (pair) {
+      var pairColor = FX.pairColor(pair);
+
+      var pairHeader = document.createElement('div');
+      pairHeader.style.cssText =
+        'font-family:var(--font-data);font-size:9px;font-weight:500;' +
+        'letter-spacing:0.16em;color:var(--text-muted);text-transform:uppercase;' +
+        'padding:16px 16px 8px;';
+      pairHeader.textContent = pair;
+      container.appendChild(pairHeader);
+
+      Object.keys(map).forEach(function (col) {
+        var cfg = map[col];
+        var item = document.createElement('div');
+        item.style.cssText =
+          'padding:8px 16px;cursor:pointer;font-family:var(--font-ui);font-size:12px;' +
+          'color:var(--text-secondary);display:flex;align-items:center;gap:8px;' +
+          'border-radius:3px;margin:1px 8px;transition:background 0.1s,color 0.1s;';
+
+        var dot = document.createElement('span');
+        dot.style.cssText =
+          'width:6px;height:6px;border-radius:50%;flex-shrink:0;background:' + pairColor + ';';
+
+        var label = document.createElement('span');
+        label.textContent = cfg.label || col;
+
+        item.appendChild(dot);
+        item.appendChild(label);
+
+        item.addEventListener('mouseenter', function () {
+          item.style.background = 'var(--bg-hover)';
+          item.style.color = 'var(--text-primary)';
+        });
+        item.addEventListener('mouseleave', function () {
+          if (!item.classList.contains('active')) {
+            item.style.background = '';
+            item.style.color = 'var(--text-secondary)';
+          }
+        });
+
+        item.addEventListener('click', function () {
+          container.querySelectorAll('.active').forEach(function (el) {
+            el.classList.remove('active');
+            el.style.background = '';
+            el.style.color = 'var(--text-secondary)';
+          });
+          item.classList.add('active');
+          item.style.background = 'var(--accent-dim)';
+          item.style.color = 'var(--text-primary)';
+
+          loadSeriesIntoChart(
+            pair, col, cfg.label || col,
+            cfg.color || pairColor,
+            cfg.chartType || 'line',
+            cfg.precision != null ? cfg.precision : 2
+          );
+        });
+
+        container.appendChild(item);
+      });
+    });
+  }
+
+  function loadSeriesIntoChart(pair, col, label, color, chartType, precision) {
+    var FX = global.FXRLCharts;
+    var DC = global.FXRLData;
+    if (!FX || !DC || typeof DC.fetchSignalsFromSupabase !== 'function') return;
+
+    DC.fetchSignalsFromSupabase(pair, 730).then(function (rows) {
+      var data = [];
+      for (var i = 0; i < (rows || []).length; i++) {
+        var r = rows[i];
+        if (r[col] === null || r[col] === undefined) continue;
+        var v = parseFloat(r[col]);
+        if (!isFinite(v)) continue;
+        data.push({ date: r.date, value: v });
+      }
+
+      FX.disposeChart('chart-builder-preview');
+
+      var prec = precision != null ? precision : 2;
+      var opts = {
+        color: color,
+        precision: prec,
+        skipRangeButtons: true,
+        emptyMessage: 'No data for ' + label,
+        priceFormat: {
+          type: 'price',
+          precision: prec,
+          minMove: Math.pow(10, -prec),
+        },
+      };
+
+      var chartPromise;
+      if (chartType === 'histogram') {
+        chartPromise = FX.histogram('chart-builder-preview', data, opts);
+      } else if (chartType === 'area') {
+        chartPromise = FX.area('chart-builder-preview', data, opts);
+      } else {
+        chartPromise = FX.line('chart-builder-preview', data, opts);
+      }
+
+      chartPromise.then(function (instance) {
+        if (instance) {
+          FX.register('chart-builder-preview', instance);
+          global.__chartBuilderInstance = instance;
+
+          var titleEl = document.getElementById('cb-title');
+          if (titleEl && !titleEl.value) {
+            titleEl.value =
+              pair + ' ' + label + ' — ' +
+              new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          }
+        }
+      });
+    });
+  }
+
+  async function initChartBuilder() {
+    var DC = global.FXRLData;
+    var attempts = 0;
+    while (!(DC && typeof DC.fetchSignalsFromSupabase === 'function') && attempts < 20) {
+      await new Promise(function (r) { setTimeout(r, 200); });
+      attempts++;
+      DC = global.FXRLData;
+    }
+    if (!DC || typeof DC.fetchSignalsFromSupabase !== 'function') {
+      if (typeof console !== 'undefined' && console.error) {
+        console.error('[ChartBuilder] FXRLData not available after waiting');
+      }
+      return;
+    }
+    renderSeriesCatalog();
+  }
+
   global.FXRLChartBuilder = {
     DATA_CATALOG: DATA_CATALOG,
     SeriesManager: SeriesManager,
@@ -1413,5 +1562,8 @@
       };
     },
     init: init,
+    renderSeriesCatalog: renderSeriesCatalog,
+    loadSeriesIntoChart: loadSeriesIntoChart,
+    initChartBuilder: initChartBuilder,
   };
 })(typeof window !== 'undefined' ? window : this);

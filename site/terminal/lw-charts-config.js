@@ -1026,6 +1026,7 @@
     showChartError: showChartError,
     ensureContainerId: ensureContainerId,
     baseChartOptions: baseChartOptions,
+    registry: registry,
     T: T,
   };
 
