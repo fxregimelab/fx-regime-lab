@@ -13,7 +13,11 @@
    */
   function waitForSupabase(timeout) {
     var ms = timeout != null ? timeout : QUERY_TIMEOUT;
-    if (global.__supabaseReady && supabaseLibReady()) {
+    if (
+      global.__supabaseReady &&
+      global.supabase &&
+      typeof global.supabase.createClient === 'function'
+    ) {
       return Promise.resolve(true);
     }
     return new Promise(function (resolve) {
@@ -111,6 +115,18 @@
               autoRefreshToken: false,
             },
           });
+          if (typeof (_supabaseClient && _supabaseClient.from) !== 'function') {
+            if (typeof console !== 'undefined' && console.error) {
+              console.error(
+                '[DataClient] Supabase client init failed — client.from is not a function. window.supabase keys:',
+                Object.keys(global.supabase || {})
+              );
+            }
+          } else {
+            if (typeof console !== 'undefined' && console.log) {
+              console.log('[DataClient] Supabase client initialised successfully');
+            }
+          }
           tryProbeSignalsColumns(_supabaseClient);
           return _supabaseClient;
         } catch (e) {
