@@ -312,13 +312,11 @@
   function attachResize(container, chart) {
     var ro = new ResizeObserver(function (entries) {
       for (var i = 0; i < entries.length; i++) {
-        var w = entries[i].contentRect.width;
-        var h = entries[i].contentRect.height;
-        if (w > 0 && h > 0) {
-          try {
-            chart.resize(w, h);
-          } catch (e) {}
-        }
+        var w = Math.max(entries[i].contentRect.width, 100);
+        var h = Math.max(entries[i].contentRect.height, 100);
+        try {
+          chart.resize(w, h);
+        } catch (e) {}
       }
     });
     ro.observe(container);
@@ -351,10 +349,11 @@
       }
       var LW = global.LightweightCharts;
       container.innerHTML = '';
-      void container.offsetHeight;
-      void container.offsetWidth;
-      var w = container.offsetWidth || container.clientWidth || 600;
-      var h = container.offsetHeight || container.clientHeight || 220;
+      container.getBoundingClientRect();
+      var rect = container.getBoundingClientRect();
+      var w = Math.max(rect.width, container.offsetWidth, container.clientWidth, 600);
+      var h = Math.max(rect.height, container.offsetHeight, container.clientHeight, 220);
+      console.log('FXRLCharts dimensions for', containerId, ':', w, 'x', h);
       if (w === 0 || h === 0) {
         console.warn('FXRLCharts: container has zero dimensions:', containerId, w, h);
       }
@@ -471,10 +470,11 @@
       }
       var LW = global.LightweightCharts;
       container.innerHTML = '';
-      void container.offsetHeight;
-      void container.offsetWidth;
-      var w = container.offsetWidth || container.clientWidth || 600;
-      var h = container.offsetHeight || container.clientHeight || 220;
+      container.getBoundingClientRect();
+      var rect = container.getBoundingClientRect();
+      var w = Math.max(rect.width, container.offsetWidth, container.clientWidth, 600);
+      var h = Math.max(rect.height, container.offsetHeight, container.clientHeight, 220);
+      console.log('FXRLCharts dimensions for', containerId, ':', w, 'x', h);
       if (w === 0 || h === 0) {
         console.warn('FXRLCharts: container has zero dimensions:', containerId, w, h);
       }
@@ -592,10 +592,11 @@
       }
       var LW = global.LightweightCharts;
       container.innerHTML = '';
-      void container.offsetHeight;
-      void container.offsetWidth;
-      var w = container.offsetWidth || container.clientWidth || 600;
-      var h = container.offsetHeight || container.clientHeight || 220;
+      container.getBoundingClientRect();
+      var rect = container.getBoundingClientRect();
+      var w = Math.max(rect.width, container.offsetWidth, container.clientWidth, 600);
+      var h = Math.max(rect.height, container.offsetHeight, container.clientHeight, 220);
+      console.log('FXRLCharts dimensions for', containerId, ':', w, 'x', h);
       if (w === 0 || h === 0) {
         console.warn('FXRLCharts: container has zero dimensions:', containerId, w, h);
       }
