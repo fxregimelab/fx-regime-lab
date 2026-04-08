@@ -200,7 +200,11 @@
     if (!chart || !chart.timeScale || !rangeMs) return;
     var now = Math.floor(Date.now() / 1000);
     var from = now - Math.floor(rangeMs / 1000);
-    chart.timeScale().setVisibleRange({ from: from, to: now });
+    try {
+      chart.timeScale().setVisibleRange({ from: from, to: now });
+    } catch (e) {
+      /* LWC v5 throws if chart has no series or scale not ready */
+    }
   }
 
   /* ── Time range buttons UI ──────────────── */
@@ -573,6 +577,20 @@
         showChartError(container, 'Chart library unavailable');
         return null;
       }
+      function paneHasAnySeries(specs) {
+        for (var i = 0; i < (specs || []).length; i++) {
+          var sp = specs[i];
+          if (!sp) continue;
+          if (normalizeSeriesData(sp.data).length) return true;
+        }
+        return false;
+      }
+      var willHaveTop = paneHasAnySeries(topSpec);
+      var willHaveBot = paneHasAnySeries(bottomSpec);
+      if (!willHaveTop && !willHaveBot) {
+        showChartEmpty(container, opts.emptyMessage);
+        return null;
+      }
       container.innerHTML = '';
       var wrap = document.createElement('div');
       wrap.style.display = 'flex';
@@ -658,8 +676,8 @@
         chartTop: chartTop,
         chartBottom: chartBot,
         setRangeMs: function (ms) {
-          applyTimeRangeMs(chartTop, ms);
-          applyTimeRangeMs(chartBot, ms);
+          if (topSeries.length) applyTimeRangeMs(chartTop, ms);
+          if (botSeries.length) applyTimeRangeMs(chartBot, ms);
         },
         hasData: topSeries.length > 0 || botSeries.length > 0,
         disposeExtra: function () {
@@ -780,6 +798,8 @@
       var retBars = spec.dailyHist || [];
       var momLn = normalizeSeriesData(spec.momoLine || []);
       var spotLn = normalizeSeriesData(spec.spotLine || []);
+      var topHas = retBars.length > 0 || momLn.length > 0;
+      var botHas = spotLn.length > 0;
       if (retBars.length) {
         var h = chartTop.addSeries(LW.HistogramSeries, {
           priceScaleId: 'left',
@@ -831,8 +851,8 @@
         chartTop: chartTop,
         chartBottom: chartBot,
         setRangeMs: function (ms) {
-          applyTimeRangeMs(chartTop, ms);
-          applyTimeRangeMs(chartBot, ms);
+          if (topHas) applyTimeRangeMs(chartTop, ms);
+          if (botHas) applyTimeRangeMs(chartBot, ms);
         },
         hasData: retBars.length > 0 || spotLn.length > 0,
         disposeExtra: function () {
