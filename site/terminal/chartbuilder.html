@@ -273,7 +273,7 @@
   (function () {
     function boot() {
     var CB = window.FXRLChartBuilder;
-    if (!CB) return;
+    if (!CB) { console.error('[ChartBuilder] FXRLChartBuilder not available at boot'); return; }
 
     var state = {
       search: '',
@@ -573,17 +573,32 @@
     });
     }
     function startChartBuilder() {
-      if (!window.FXRLChartBuilder) return;
+      if (!window.FXRLChartBuilder) {
+        console.error('[ChartBuilder] FXRLChartBuilder not defined — defer scripts may not have run yet');
+        return;
+      }
       boot();
       // Also initialise signal-map catalog (waits for FXRLData readiness internally)
       if (typeof window.FXRLChartBuilder.initChartBuilder === 'function') {
         window.FXRLChartBuilder.initChartBuilder();
       }
     }
-    if (window.__lwcReady && window.LightweightCharts) {
-      startChartBuilder();
+
+    // Defer scripts run before DOMContentLoaded — wait for it to guarantee all modules are loaded,
+    // then additionally wait for LWC if it hasn't fired yet.
+    function onDOMReady() {
+      if (window.__lwcReady && window.LightweightCharts) {
+        startChartBuilder();
+      } else {
+        document.addEventListener('lwc-ready', startChartBuilder, { once: true });
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', onDOMReady, { once: true });
     } else {
-      document.addEventListener('lwc-ready', startChartBuilder, { once: true });
+      // DOM already ready (e.g. hard refresh with cached HTML) — defer one tick
+      setTimeout(onDOMReady, 0);
     }
   })();
   </script>
