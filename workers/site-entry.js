@@ -7,6 +7,32 @@
  *   SUPABASE_ANON_KEY — public anon key (RLS enforced; browser reads only)
  *
  */
+
+/** Injected on HTML responses so the browser can load Supabase + inline methodology scripts. */
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "img-src 'self' data: https: blob:",
+  "connect-src 'self' https://*.supabase.co https://weaaacohvzzgkgxzpaee.supabase.co",
+  "frame-src 'self' https:",
+].join("; ");
+
+function withHtmlCsp(response) {
+  const ct = response.headers.get("content-type") || "";
+  if (!ct.includes("text/html")) {
+    return response;
+  }
+  const headers = new Headers(response.headers);
+  headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -81,6 +107,73 @@ export default {
       }
     }
 
+    if (url.pathname === "/proxy/yahoo" || url.pathname.startsWith("/proxy/yahoo/")) {
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          status: 200,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Accept, Content-Type",
+            "Access-Control-Max-Age": "86400",
+          },
+        });
+      }
+
+      const rest = url.pathname.slice("/proxy/yahoo".length);
+      const upstreamPath = rest === "" ? "/" : rest;
+      const upstreamUrl = "https://query1.finance.yahoo.com" + upstreamPath + url.search;
+
+      try {
+        const upstreamResp = await fetch(upstreamUrl, {
+          method: request.method,
+          headers: {
+            "User-Agent": "Mozilla/5.0",
+            Accept: "application/json",
+          },
+          signal: AbortSignal.timeout(15000),
+        });
+
+        if (!upstreamResp.ok) {
+          return new Response(
+            JSON.stringify({
+              error: "upstream error",
+              status: upstreamResp.status,
+            }),
+            {
+              status: 502,
+              headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+              },
+            }
+          );
+        }
+
+        const outHeaders = new Headers();
+        outHeaders.set("Access-Control-Allow-Origin", "*");
+        const ct = upstreamResp.headers.get("Content-Type");
+        if (ct) outHeaders.set("Content-Type", ct);
+
+        return new Response(upstreamResp.body, {
+          status: upstreamResp.status,
+          statusText: upstreamResp.statusText,
+          headers: outHeaders,
+        });
+      } catch (e) {
+        return new Response(
+          JSON.stringify({ error: e.message || "upstream fetch failed" }),
+          {
+            status: 502,
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+            },
+          }
+        );
+      }
+    }
+
     const path = url.pathname.replace(/\/+$/, "") || "/";
     if (path === "/assets/supabase-env.js") {
       const supabaseUrl = env.SUPABASE_URL ?? "";
@@ -111,9 +204,9 @@ export default {
           headers,
         });
       }
-      return response;
+      return withHtmlCsp(response);
     }
 
-    return env.ASSETS.fetch(request);
+    return withHtmlCsp(await env.ASSETS.fetch(request));
   },
 };

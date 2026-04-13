@@ -6,8 +6,564 @@
   <title>Methodology — FX Regime Lab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/site.css" />
+  <meta name="supabase-url" content="" />
+  <meta name="supabase-anon-key" content="" />
+  <script defer src="/assets/supabase-env.js"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="window.__supabaseReady=true;document.dispatchEvent(new Event('supabase-ready'))"></script>
+  <style>
+    .meth2-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+    .meth2-hero {
+      background: var(--bg-page);
+      padding: 3rem 0 3.5rem;
+    }
+    .meth2-hero .label-caps {
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+    .meth2-hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 4vw, 2.65rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin: 0 0 1.25rem;
+      color: var(--text);
+      max-width: 42rem;
+    }
+    .meth2-hero-lede {
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.65;
+      max-width: 40rem;
+      margin: 0 0 1.75rem;
+    }
+    .meth2-status-pill {
+      background: var(--bg-dark);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-card-dark);
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem 1.5rem;
+      max-width: 48rem;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    }
+    .meth2-status-pill__ts {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      color: var(--text-on-dark);
+    }
+    .meth2-hero-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      color: var(--text-on-dark);
+    }
+    .meth2-hero-stat__val {
+      font-weight: 600;
+      font-size: 1.125rem;
+    }
+    .meth2-hero-stat__label {
+      font-family: var(--font-body);
+      font-weight: 500;
+      color: rgba(232, 237, 245, 0.75);
+      font-size: 0.75rem;
+    }
+    .meth2-flow {
+      background: var(--bg-page);
+      padding: 2.5rem 0 3.5rem;
+    }
+    .meth2-flow .label-caps {
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .meth2-flow h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 1.5rem;
+      color: var(--text);
+    }
+    .meth2-flow-track {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 0;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    .meth2-node {
+      flex: 0 0 auto;
+      min-width: 11.5rem;
+      max-width: 13rem;
+      background: #1a2035;
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-card-dark);
+      padding: 1rem 1rem 0.75rem;
+      cursor: pointer;
+      text-align: left;
+      position: relative;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .meth2-node:hover {
+      border-color: rgba(61, 126, 255, 0.35);
+    }
+    .meth2-node.is-open {
+      box-shadow: 0 0 0 2px rgba(61, 126, 255, 0.45);
+    }
+    .meth2-node:not(:last-child) {
+      margin-right: 1.75rem;
+    }
+    .meth2-node:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      right: -1.375rem;
+      top: 50%;
+      width: 1.25rem;
+      height: 2px;
+      background: var(--border);
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+    .meth2-node:not(:last-child)::before {
+      content: "";
+      position: absolute;
+      right: -1.5rem;
+      top: 50%;
+      margin-top: -4px;
+      border: 5px solid transparent;
+      border-left-color: var(--text-muted);
+      pointer-events: none;
+    }
+    .meth2-node__step {
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: rgba(232, 237, 245, 0.55);
+      margin-bottom: 0.35rem;
+    }
+    .meth2-node__name {
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--text-on-dark);
+      line-height: 1.3;
+      margin-bottom: 0.35rem;
+    }
+    .meth2-node__desc {
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: rgba(232, 237, 245, 0.72);
+      margin: 0;
+    }
+    .meth2-node-detail {
+      display: none;
+      margin-top: 0.875rem;
+      padding-top: 0.875rem;
+      border-top: 1px solid var(--border-dark);
+      font-size: 0.6875rem;
+      line-height: 1.55;
+      color: rgba(232, 237, 245, 0.85);
+    }
+    .meth2-node.is-open .meth2-node-detail {
+      display: block;
+    }
+    .meth2-node-detail dt {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: rgba(232, 237, 245, 0.5);
+      margin-top: 0.5rem;
+    }
+    .meth2-node-detail dt:first-child {
+      margin-top: 0;
+    }
+    .meth2-node-detail dd {
+      margin: 0.15rem 0 0;
+    }
+    .meth2-signals {
+      background: var(--bg-dark);
+      padding: 3.5rem 0;
+      color: var(--text-on-dark);
+    }
+    .meth2-signals .label-caps {
+      color: rgba(232, 237, 245, 0.45);
+      margin-bottom: 0.5rem;
+    }
+    .meth2-signals h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 2rem;
+      color: var(--text-on-dark);
+    }
+    .meth2-signal-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    @media (min-width: 720px) {
+      .meth2-signal-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .meth2-signal-card {
+      background: #1a2035;
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-card-dark);
+      padding: 1.25rem 1.25rem 1.5rem;
+    }
+    .meth2-signal-card__title {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      margin: 0 0 1rem;
+      color: var(--text-on-dark);
+    }
+    .meth2-signal-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .meth2-signal-tabs button {
+      background: transparent;
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      padding: 0.4rem 0.65rem;
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: rgba(232, 237, 245, 0.55);
+      cursor: pointer;
+    }
+    .meth2-signal-tabs button.is-active {
+      color: var(--text-on-dark);
+      border-color: rgba(61, 126, 255, 0.55);
+      background: rgba(61, 126, 255, 0.12);
+    }
+    .meth2-tab-content--what,
+    .meth2-tab-content--today {
+      font-size: 0.8125rem;
+      line-height: 1.65;
+      color: rgba(232, 237, 245, 0.82);
+    }
+    .meth2-signal-card[data-meth2-active-tab="today"] .meth2-tab-content--what {
+      display: none;
+    }
+    .meth2-signal-card[data-meth2-active-tab="what"] .meth2-tab-content--today {
+      display: none;
+    }
+    .meth2-regime {
+      background: var(--bg-dark);
+      padding: 3rem 0 3.5rem;
+      border-top: 1px solid var(--border-dark);
+    }
+    .meth2-regime .label-caps {
+      color: rgba(232, 237, 245, 0.45);
+      margin-bottom: 0.5rem;
+    }
+    .meth2-regime h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 1rem;
+      color: var(--text-on-dark);
+    }
+    .meth2-regime-lede {
+      color: rgba(232, 237, 245, 0.55);
+      font-size: 0.9375rem;
+      line-height: 1.65;
+      max-width: 40rem;
+      margin: 0 0 1.5rem;
+    }
+    .meth2-regime-placeholder {
+      background: #1a2035;
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-card-dark);
+      padding: 1.5rem 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      color: rgba(232, 237, 245, 0.65);
+      max-width: 36rem;
+    }
+    .meth2-validation {
+      background: var(--bg-page);
+      padding: 3rem 0;
+    }
+    .meth2-validation .label-caps {
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .meth2-validation h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 1.25rem;
+      color: var(--text);
+    }
+    .meth2-validation-placeholder {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 1.5rem 1.25rem;
+      color: var(--text-sec);
+      font-size: 0.9375rem;
+      max-width: 36rem;
+    }
+    .meth2-sources {
+      background: var(--bg-page);
+      padding: 2.5rem 0 3.5rem;
+    }
+    .meth2-sources .label-caps {
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .meth2-sources h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 1.25rem;
+      color: var(--text);
+    }
+    .meth2-sources table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+    }
+    .meth2-sources th,
+    .meth2-sources td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .meth2-sources th {
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: var(--bg-subtle);
+    }
+    .meth2-sources tr:last-child td {
+      border-bottom: none;
+    }
+    .meth2-sources td {
+      color: var(--text-sec);
+    }
+    .meth2-sources td:first-child {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .meth2-cta {
+      background: var(--bg-page);
+      padding: 2.5rem 0 4rem;
+    }
+    .meth2-cta h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 1.5rem;
+      color: var(--text);
+    }
+    .meth2-cta-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .meth2-cta__btn {
+      display: inline-block;
+      padding: 0.75rem 1.375rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 600;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+    .meth2-cta__btn:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      color: #fff;
+    }
+    .meth2-cta__btn--ghost {
+      background: transparent;
+      color: var(--accent);
+    }
+    .meth2-cta__btn--ghost:hover {
+      background: rgba(27, 58, 107, 0.08);
+      color: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+    .meth-footer-brand {
+      color: var(--text-on-dark);
+      font-family: var(--font-display);
+    }
+    .meth2-regime-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+      max-width: 52rem;
+    }
+    @media (min-width: 720px) {
+      .meth2-regime-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .meth2-regime-card {
+      background: #1a2035;
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-card-dark);
+      padding: 1.25rem 1.35rem;
+    }
+    .meth2-regime-card__pair {
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(232, 237, 245, 0.55);
+      margin-bottom: 0.5rem;
+    }
+    .meth2-regime-card__label {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin: 0 0 0.75rem;
+    }
+    .meth2-regime-card__label--long {
+      color: var(--positive);
+    }
+    .meth2-regime-card__label--short {
+      color: var(--negative);
+    }
+    .meth2-regime-card__label--neutral {
+      color: #f59e0b;
+    }
+    .meth2-conf-wrap {
+      margin-bottom: 0.75rem;
+    }
+    .meth2-conf-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(232, 237, 245, 0.12);
+      overflow: hidden;
+    }
+    .meth2-conf-bar__fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--accent);
+      transition: width 0.35s ease;
+    }
+    .meth2-conf-pct {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: rgba(232, 237, 245, 0.75);
+      margin-top: 0.35rem;
+    }
+    .meth2-regime-driver {
+      font-size: 0.8125rem;
+      line-height: 1.55;
+      color: rgba(232, 237, 245, 0.72);
+      margin: 0 0 1rem;
+    }
+    .meth2-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .meth2-signal-pill {
+      font-family: var(--font-mono);
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid rgba(232, 237, 245, 0.15);
+      background: rgba(0, 0, 0, 0.2);
+    }
+    .meth2-signal-pill--bull {
+      color: var(--positive);
+      border-color: rgba(45, 122, 90, 0.45);
+      background: rgba(45, 122, 90, 0.12);
+    }
+    .meth2-signal-pill--bear {
+      color: var(--negative);
+      border-color: rgba(166, 48, 48, 0.45);
+      background: rgba(166, 48, 48, 0.12);
+    }
+    .meth2-signal-pill--neut {
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.1);
+    }
+    .meth2-regime-fallback,
+    .meth2-val-fallback {
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      color: rgba(232, 237, 245, 0.65);
+      max-width: 36rem;
+    }
+    .meth2-validation .meth2-val-fallback {
+      color: var(--text-sec);
+    }
+    .meth2-val-table-wrap {
+      overflow-x: auto;
+      max-width: 100%;
+    }
+    .meth2-val-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+    }
+    .meth2-val-table th,
+    .meth2-val-table td {
+      padding: 0.65rem 0.85rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .meth2-val-table th {
+      font-family: var(--font-mono);
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: var(--bg-subtle);
+    }
+    .meth2-val-table tr:last-child td {
+      border-bottom: none;
+    }
+    .meth2-val-table td {
+      color: var(--text-sec);
+    }
+    .meth2-val-table td.font-mono {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+  </style>
 </head>
 <body class="theme-light">
   <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
@@ -37,51 +593,298 @@
       <a href="/about/">About</a>
     </div>
 
-    <main class="page-centered">
-      <div data-reveal-stagger="cards" style="width:100%">
-        <p class="label-caps" style="color:var(--text-muted)">Methodology</p>
-        <h1>How the daily pipeline is built</h1>
-        <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
-          FX Regime Lab ingests public market data, merges it into a single daily dataset, and publishes
-          regime labels with rolling validation. Nothing here is investment advice; it is a transparent
-          research stack you can reproduce from documented sources.
-        </p>
+    <main>
+      <section class="meth2-hero" data-reveal-stagger="cards">
+        <div class="meth2-inner">
+          <p class="label-caps">METHODOLOGY</p>
+          <h1>The framework runs every morning at 23:00 UTC. Here is exactly how it works.</h1>
+          <p class="meth2-hero-lede">Live automated pipeline. Public data sources. Reproducible methodology. Not investment advice.</p>
+          <div class="meth2-status-pill">
+            <span id="meth2-pipeline-ts" class="meth2-status-pill__ts">Loading pipeline status...</span>
+            <div class="meth2-hero-stat">
+              <span id="meth2-run-count" class="meth2-hero-stat__val">—</span>
+              <span class="meth2-hero-stat__label">consecutive daily runs</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">Pipeline order</h2>
-        <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
-          The orchestrated sequence is: FX and yield ETL, CFTC COT positioning, INR-specific metrics,
-          optional volatility and open-interest layers, risk-reversal inputs where configured, merge into
-          a master table, text brief, optional macro helpers, AI-assisted narrative (when enabled), HTML
-          brief with charts, then deploy. Failed upstream fetches are isolated so the rest of the run can
-          complete.
-        </p>
+      <section class="meth2-flow">
+        <div class="meth2-inner">
+          <p class="label-caps">THE PIPELINE</p>
+          <h2>Eight steps. Every day. Fully automated.</h2>
+          <div class="meth2-flow-track" role="list">
+            <div class="meth2-node" data-step="01" role="listitem" tabindex="0">
+              <div class="meth2-node__step">01</div>
+              <div class="meth2-node__name">FX + Yields</div>
+              <p class="meth2-node__desc">Spot FX and benchmark yields; spreads written to the daily file.</p>
+              <div class="meth2-node-detail">
+                <dl>
+                  <dt>Source</dt>
+                  <dd>FRED + yfinance + ECB + MoF Japan</dd>
+                  <dt>Output</dt>
+                  <dd>data/latest_with_cot.csv</dd>
+                  <dt>Script</dt>
+                  <dd>pipeline.py</dd>
+                </dl>
+              </div>
+            </div>
+            <div class="meth2-node" data-step="02" role="listitem" tabindex="0">
+              <div class="meth2-node__step">02</div>
+              <div class="meth2-node__name">COT</div>
+              <p class="meth2-node__desc">Disaggregated futures positioning merged into the master dataset.</p>
+              <div class="meth2-node-detail">
+                <dl>
+                  <dt>Source</dt>
+                  <dd>CFTC.gov disaggregated futures</dd>
+                  <dt>Output</dt>
+                  <dd>data/cot_latest.csv</dd>
+                  <dt>Script</dt>
+                  <dd>cot_pipeline.py</dd>
+                </dl>
+              </div>
+            </div>
+            <div class="meth2-node" data-step="03" role="listitem" tabindex="0">
+              <div class="meth2-node__step">03</div>
+              <div class="meth2-node__name">INR</div>
+              <p class="meth2-node__desc">RBI and USD/INR series layered for the INR sleeve.</p>
+              <div class="meth2-node-detail">
+                <dl>
+                  <dt>Source</dt>
+                  <dd>RBI + yfinance USD/INR</dd>
+                  <dt>Output</dt>
+                  <dd>data/inr_latest.csv</dd>
+                  <dt>Script</dt>
+                  <dd>inr_pipeline.py</dd>
+                </dl>
+              </div>
+            </div>
+            <div class="meth2-node" data-step="04" role="listitem" tabindex="0">
+              <div class="meth2-node__step">04</div>
+              <div class="meth2-node__name">Merge</div>
+              <p class="meth2-node__desc">All upstream CSVs joined into one merged daily table.</p>
+              <div class="meth2-node-detail">
+                <dl>
+                  <dt>Source</dt>
+                  <dd>All upstream CSVs</dd>
+                  <dt>Output</dt>
+                  <dd>data/latest_with_cot.csv (merged)</dd>
+                  <dt>Script</dt>
+                  <dd>pipeline.py merge step</dd>
+                </dl>
+              </div>
+            </div>
+            <div class="meth2-node" data-step="05" role="listitem" tabindex="0">
+              <div class="meth2-node__step">05</div>
+              <div class="meth2-node__name">Text Brief</div>
+              <p class="meth2-node__desc">Morning text brief generated from the merged dataset.</p>
+              <div class="meth2-node-detail">
+                <dl>
+                  <dt>Source</dt>
+                  <dd>Merged dataset</dd>
+                  <dt>Output</dt>
+                  <dd>briefs/morning_brief.txt</dd>
+                  <dt>Script</dt>
+                  <dd>morning_brief.py</dd>
+                </dl>
+              </div>
+            </div>
+            <div class="meth2-node" data-step="06" role="listitem" tabindex="0">
+              <div class="meth2-node__step">06</div>
+              <div class="meth2-node__name">Macro</div>
+              <p class="meth2-node__desc">Macro calendar and context serialized for the stack.</p>
+              <div class="meth2-node-detail">
+                <dl>
+                  <dt>Source</dt>
+                  <dd>FRED macro calendar</dd>
+                  <dt>Output</dt>
+                  <dd>data/macro_cal.json</dd>
+                  <dt>Script</dt>
+                  <dd>macro_pipeline.py</dd>
+                </dl>
+              </div>
+            </div>
+            <div class="meth2-node" data-step="07" role="listitem" tabindex="0">
+              <div class="meth2-node__step">07</div>
+              <div class="meth2-node__name">AI Brief</div>
+              <p class="meth2-node__desc">Structured article JSON when the AI step is enabled.</p>
+              <div class="meth2-node-detail">
+                <dl>
+                  <dt>Source</dt>
+                  <dd>Merged dataset + OpenAI</dd>
+                  <dt>Output</dt>
+                  <dd>data/ai_article.json</dd>
+                  <dt>Script</dt>
+                  <dd>ai_brief.py</dd>
+                </dl>
+              </div>
+            </div>
+            <div class="meth2-node" data-step="08" role="listitem" tabindex="0">
+              <div class="meth2-node__step">08</div>
+              <div class="meth2-node__name">Deploy</div>
+              <p class="meth2-node__desc">Brief, charts, and static assets published to the live site.</p>
+              <div class="meth2-node-detail">
+                <dl>
+                  <dt>Source</dt>
+                  <dd>All outputs</dd>
+                  <dt>Output</dt>
+                  <dd>Cloudflare Pages deploy</dd>
+                  <dt>Script</dt>
+                  <dd>deploy.py</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">Signal families</h2>
-        <ul style="color:var(--text-sec);max-width:42rem;line-height:1.7;margin:0;padding-left:1.25rem">
-          <li><strong style="color:var(--text)">Rates and spreads</strong> — policy and benchmark yield differentials that anchor G10 FX.</li>
-          <li><strong style="color:var(--text)">Positioning</strong> — CFTC Commitments of Traders for liquid futures proxies.</li>
-          <li><strong style="color:var(--text)">Volatility and skew</strong> — realized and implied vol, plus optionality metrics where available.</li>
-          <li><strong style="color:var(--text)">Cross-asset</strong> — DXY, oil, equity vol, and related macro series as context, not standalone alpha.</li>
-          <li><strong style="color:var(--text)">Regime call</strong> — a structured label with confidence and primary driver, logged for next-day checks.</li>
-        </ul>
+      <section class="meth2-signals">
+        <div class="meth2-inner">
+          <p class="label-caps">SIGNAL STACK</p>
+          <h2>Four signals. One regime call.</h2>
+          <div class="meth2-signal-grid">
+            <div class="meth2-signal-card" data-meth2-active-tab="what">
+              <p class="meth2-signal-card__title">01 Rate Differentials</p>
+              <div class="meth2-signal-tabs">
+                <button type="button" class="is-active" data-meth2-tab="what">What it measures</button>
+                <button type="button" data-meth2-tab="today">Today's reading</button>
+              </div>
+              <div class="meth2-tab-content--what">
+                US-DE and US-JP 2Y and 10Y yield spreads from FRED. Direction and z-score of 60-day change. When spread compresses, carry unwinds.
+              </div>
+              <div class="meth2-tab-content--today">
+                <span class="meth2-live-val" data-signal="rate-diff">Loading...</span>
+              </div>
+            </div>
+            <div class="meth2-signal-card" data-meth2-active-tab="what">
+              <p class="meth2-signal-card__title">02 COT Positioning</p>
+              <div class="meth2-signal-tabs">
+                <button type="button" class="is-active" data-meth2-tab="what">What it measures</button>
+                <button type="button" data-meth2-tab="today">Today's reading</button>
+              </div>
+              <div class="meth2-tab-content--what">
+                CFTC disaggregated futures — Leveraged Money and Asset Manager net contracts. 52-week percentile rank. Crowding above 80th percentile signals reversal risk.
+              </div>
+              <div class="meth2-tab-content--today">
+                <span class="meth2-live-val" data-signal="cot">Loading...</span>
+              </div>
+            </div>
+            <div class="meth2-signal-card" data-meth2-active-tab="what">
+              <p class="meth2-signal-card__title">03 Realized Volatility</p>
+              <div class="meth2-signal-tabs">
+                <button type="button" class="is-active" data-meth2-tab="what">What it measures</button>
+                <button type="button" data-meth2-tab="today">Today's reading</button>
+              </div>
+              <div class="meth2-tab-content--what">
+                5-day and 20-day annualized realized vol from daily returns. Vol regime determines signal reliability — high vol periods override directional signals.
+              </div>
+              <div class="meth2-tab-content--today">
+                <span class="meth2-live-val" data-signal="vol">Loading...</span>
+              </div>
+            </div>
+            <div class="meth2-signal-card" data-meth2-active-tab="what">
+              <p class="meth2-signal-card__title">04 Cross-Asset</p>
+              <div class="meth2-signal-tabs">
+                <button type="button" class="is-active" data-meth2-tab="what">What it measures</button>
+                <button type="button" data-meth2-tab="today">Today's reading</button>
+              </div>
+              <div class="meth2-tab-content--what">
+                DXY, Brent crude, VIX as regime context. 60-day rolling correlations vs each FX pair. Breaks in historical correlation signal regime shifts.
+              </div>
+              <div class="meth2-tab-content--today">
+                <span class="meth2-live-val" data-signal="cross-asset">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        <h2 style="font-family:var(--font-display);font-size:1.35rem;margin:2rem 0 0.75rem">Validation</h2>
-        <p style="color:var(--text-sec);max-width:42rem;line-height:1.65">
-          Calls are compared to realized price behaviour on a defined horizon; rolling accuracy appears in
-          the terminal and brief headers. Gaps or source errors are logged for monitoring.
-        </p>
+      <section class="meth2-regime">
+        <div class="meth2-inner">
+          <p class="label-caps">REGIME DECISION</p>
+          <h2>How four signals become one call.</h2>
+          <p class="meth2-regime-lede">Signal composite calculation and today's regime output — live in Session B.</p>
+          <div class="meth2-regime-placeholder">Live regime calls loading in next build phase</div>
+        </div>
+      </section>
 
-        <p style="color:var(--text-muted);font-size:0.9rem;margin-top:2rem;max-width:42rem;line-height:1.6">
-          A formal paper-style write-up is planned alongside the public site. Until then, the morning
-          brief and terminal charts remain the live specification of what shipped each day.
-        </p>
-        <a class="link-primary" href="/terminal/" style="display:inline-block;margin-top:1rem">Open the terminal →</a>
-      </div>
+      <section class="meth2-validation">
+        <div class="meth2-inner">
+          <p class="label-caps">VALIDATION</p>
+          <h2>Out-of-sample accuracy. Updated daily.</h2>
+          <div class="meth2-validation-placeholder">Validation data loading in next build phase</div>
+        </div>
+      </section>
+
+      <section class="meth2-sources">
+        <div class="meth2-inner">
+          <p class="label-caps">DATA SOURCES</p>
+          <h2>Every input. Fully documented.</h2>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Signal</th>
+                <th scope="col">Source</th>
+                <th scope="col">Frequency</th>
+                <th scope="col">Lag</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Rate Differentials</td>
+                <td>FRED API</td>
+                <td>Daily</td>
+                <td>Same day</td>
+              </tr>
+              <tr>
+                <td>COT Positioning</td>
+                <td>CFTC.gov</td>
+                <td>Weekly</td>
+                <td>3-day lag</td>
+              </tr>
+              <tr>
+                <td>FX Prices</td>
+                <td>Yahoo Finance</td>
+                <td>Daily</td>
+                <td>Same day</td>
+              </tr>
+              <tr>
+                <td>INR Dynamics</td>
+                <td>RBI + yfinance</td>
+                <td>Daily</td>
+                <td>Same day</td>
+              </tr>
+              <tr>
+                <td>Macro Calendar</td>
+                <td>FRED</td>
+                <td>As released</td>
+                <td>Event-driven</td>
+              </tr>
+              <tr>
+                <td>AI Brief</td>
+                <td>OpenAI GPT</td>
+                <td>Daily</td>
+                <td>Same day</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="meth2-cta">
+        <div class="meth2-inner">
+          <h2>See it running.</h2>
+          <div class="meth2-cta-btns">
+            <a class="meth2-cta__btn" href="/terminal/">Open Terminal →</a>
+            <a class="meth2-cta__btn meth2-cta__btn--ghost" href="/brief/">Read the Morning Brief →</a>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="v2-footer">
       <div class="v2-footer__grid">
-        <div><strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong></div>
+        <div><strong class="meth-footer-brand">FX Regime Lab</strong></div>
         <nav class="v2-footer__nav">
           <a href="/">Home</a>
           <a href="/dashboard/">Dashboard</a>
@@ -97,9 +900,609 @@
       <p class="v2-footer__rule">© 2026 FX Regime Lab</p>
     </footer>
   </div>
-  <script src="/assets/theme-switch.js"></script>
-  <script src="/assets/canvas-bg.js"></script>
-  <script src="/assets/nav.js"></script>
-  <script src="/assets/section-reveal.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      function formatLastRunUtc(iso) {
+        if (!iso) return null;
+        try {
+          var d = new Date(iso);
+          if (isNaN(d.getTime())) return null;
+          return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+        } catch (e) {
+          return null;
+        }
+      }
+
+      var tsEl = document.getElementById('meth2-pipeline-ts');
+      if (tsEl) {
+        fetch('/static/pipeline_status.json', { cache: 'no-store' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('bad status');
+            return r.json();
+          })
+          .then(function (data) {
+            var formatted = formatLastRunUtc(data && data.last_run_utc);
+            tsEl.textContent = formatted
+              ? 'Last run: ' + formatted
+              : 'Pipeline status unavailable';
+          })
+          .catch(function () {
+            tsEl.textContent = 'Pipeline status unavailable';
+          });
+      }
+
+      document.querySelectorAll('.meth2-signal-card').forEach(function (card) {
+        card.addEventListener('click', function (e) {
+          var btn = e.target.closest('[data-meth2-tab]');
+          if (!btn || !card.contains(btn)) return;
+          var tab = btn.getAttribute('data-meth2-tab');
+          if (tab !== 'what' && tab !== 'today') return;
+          card.setAttribute('data-meth2-active-tab', tab);
+          card.querySelectorAll('.meth2-signal-tabs button').forEach(function (b) {
+            b.classList.toggle('is-active', b === btn);
+          });
+        });
+      });
+
+      document.querySelectorAll('.meth2-flow-track').forEach(function (track) {
+        track.addEventListener('click', function (e) {
+          var node = e.target.closest('.meth2-node');
+          if (!node || !track.contains(node)) return;
+          var wasOpen = node.classList.contains('is-open');
+          track.querySelectorAll('.meth2-node.is-open').forEach(function (n) {
+            n.classList.remove('is-open');
+          });
+          if (!wasOpen) node.classList.add('is-open');
+        });
+        track.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          var node = e.target.closest('.meth2-node');
+          if (!node || !track.contains(node)) return;
+          e.preventDefault();
+          var wasOpen = node.classList.contains('is-open');
+          track.querySelectorAll('.meth2-node.is-open').forEach(function (n) {
+            n.classList.remove('is-open');
+          });
+          if (!wasOpen) node.classList.add('is-open');
+        });
+      });
+    })();
+  </script>
+  <script>
+    (function () {
+      'use strict';
+
+      var QUERY_MS = 8000;
+
+      function metaContent(name) {
+        var m = document.querySelector('meta[name="' + name + '"]');
+        return m && m.getAttribute('content') ? String(m.getAttribute('content')).trim() : '';
+      }
+
+      function getSupabaseUrl() {
+        return (
+          (window.__SUPABASE_URL__ && String(window.__SUPABASE_URL__).trim()) ||
+          metaContent('supabase-url')
+        );
+      }
+
+      function getSupabaseAnonKey() {
+        return (
+          (window.__SUPABASE_ANON_KEY__ && String(window.__SUPABASE_ANON_KEY__).trim()) ||
+          metaContent('supabase-anon-key')
+        );
+      }
+
+      function queryWithTimeout(builder) {
+        var timeout = new Promise(function (_resolve, reject) {
+          setTimeout(function () {
+            reject(new Error('Supabase query timeout'));
+          }, QUERY_MS);
+        });
+        return Promise.race([builder, timeout]);
+      }
+
+      function ordinal(n) {
+        n = Math.round(Number(n));
+        if (!isFinite(n)) return String(n);
+        var j = n % 10;
+        var k = n % 100;
+        if (j === 1 && k !== 11) return n + 'st';
+        if (j === 2 && k !== 12) return n + 'nd';
+        if (j === 3 && k !== 13) return n + 'rd';
+        return n + 'th';
+      }
+
+      function confidenceToPercent(raw) {
+        var c = raw == null ? NaN : Number(raw);
+        if (!isFinite(c)) return NaN;
+        if (c >= 0 && c <= 1) return Math.round(c * 100);
+        if (c > 1 && c <= 100) return Math.round(c);
+        if (c > 100) return 100;
+        return NaN;
+      }
+
+      function formatRegimeLabel(regime) {
+        return String(regime || '')
+          .split('_')
+          .filter(Boolean)
+          .map(function (w) {
+            return w.charAt(0) + w.slice(1).toLowerCase();
+          })
+          .join(' ');
+      }
+
+      function pairLabel(pair) {
+        var p = String(pair || '').toUpperCase();
+        if (p === 'EURUSD') return 'EUR/USD';
+        if (p === 'USDJPY') return 'USD/JPY';
+        return p;
+      }
+
+      function trunc(s, n) {
+        s = String(s || '');
+        if (s.length <= n) return s;
+        return s.slice(0, n - 1) + '\u2026';
+      }
+
+      function pillClass(sig) {
+        var s = String(sig || '').toUpperCase();
+        if (s === 'BULLISH') return 'meth2-signal-pill meth2-signal-pill--bull';
+        if (s === 'BEARISH') return 'meth2-signal-pill meth2-signal-pill--bear';
+        return 'meth2-signal-pill meth2-signal-pill--neut';
+      }
+
+      function regimeHeadlineClass(regime) {
+        var r = String(regime || '').toUpperCase();
+        if (r === 'TRENDING_LONG') return 'meth2-regime-card__label meth2-regime-card__label--long';
+        if (r === 'TRENDING_SHORT') return 'meth2-regime-card__label meth2-regime-card__label--short';
+        return 'meth2-regime-card__label meth2-regime-card__label--neutral';
+      }
+
+      function fmtVolPct(v) {
+        var x = Number(v);
+        if (!isFinite(x)) return null;
+        if (Math.abs(x) <= 2) x = x * 100;
+        return x.toFixed(1);
+      }
+
+      function fmtCrossNum(v) {
+        var x = Number(v);
+        if (!isFinite(x)) return null;
+        if (Math.abs(x) >= 100) return x.toFixed(2);
+        return x.toFixed(2);
+      }
+
+      function wireRateDiff(client) {
+        var el = document.querySelector('.meth2-live-val[data-signal="rate-diff"]');
+        if (!el) return Promise.resolve();
+        if (!client) {
+          el.textContent = 'Data unavailable';
+          return Promise.resolve();
+        }
+        return queryWithTimeout(
+          client
+            .from('signals')
+            .select('rate_diff_2y,rate_diff_zscore,date')
+            .eq('pair', 'EURUSD')
+            .order('date', { ascending: false })
+            .limit(1)
+        )
+          .then(function (res) {
+            if (res.error) throw res.error;
+            var row = res.data && res.data[0];
+            if (!row || row.rate_diff_2y == null) {
+              el.textContent = 'Data unavailable';
+              return;
+            }
+            var bp = Math.round(Number(row.rate_diff_2y) * 100);
+            var zStr = '\u2014';
+            var dir = '\u2014';
+            if (row.rate_diff_zscore != null) {
+              var z = Number(row.rate_diff_zscore);
+              if (isFinite(z)) {
+                zStr = z.toFixed(2);
+                dir = z > 0 ? 'BULLISH' : z < 0 ? 'BEARISH' : 'NEUTRAL';
+              }
+            }
+            el.textContent = 'US-DE 2Y: ' + bp + 'bp | Z-score: ' + zStr + ' | ' + dir;
+          })
+          .catch(function () {
+            el.textContent = 'Data unavailable';
+          });
+      }
+
+      function wireCot(client) {
+        var el = document.querySelector('.meth2-live-val[data-signal="cot"]');
+        if (!el) return Promise.resolve();
+        if (!client) {
+          el.textContent = 'Data unavailable';
+          return Promise.resolve();
+        }
+        return Promise.all([
+          queryWithTimeout(
+            client
+              .from('signals')
+              .select('cot_percentile,date')
+              .eq('pair', 'EURUSD')
+              .order('date', { ascending: false })
+              .limit(1)
+          ),
+          queryWithTimeout(
+            client
+              .from('regime_calls')
+              .select('cot_signal,date')
+              .eq('pair', 'EURUSD')
+              .order('date', { ascending: false })
+              .limit(1)
+          ),
+        ])
+          .then(function (arr) {
+            var sRes = arr[0];
+            var rRes = arr[1];
+            if (sRes.error || rRes.error) throw new Error('err');
+            var sr = sRes.data && sRes.data[0];
+            var rr = rRes.data && rRes.data[0];
+            var em = '\u2014';
+            var pctStr = em;
+            if (sr && sr.cot_percentile != null) {
+              var p = Number(sr.cot_percentile);
+              if (isFinite(p)) pctStr = ordinal(Math.round(p));
+            }
+            var sigStr = em;
+            if (rr && rr.cot_signal != null && String(rr.cot_signal).trim() !== '') {
+              sigStr = String(rr.cot_signal).toUpperCase();
+            }
+            if (pctStr === em && sigStr === em) {
+              el.textContent = 'Data unavailable';
+              return;
+            }
+            el.textContent = 'Percentile: ' + pctStr + ' | Signal: ' + sigStr;
+          })
+          .catch(function () {
+            el.textContent = 'Data unavailable';
+          });
+      }
+
+      function wireVol(client) {
+        var el = document.querySelector('.meth2-live-val[data-signal="vol"]');
+        if (!el) return Promise.resolve();
+        if (!client) {
+          el.textContent = 'Data unavailable';
+          return Promise.resolve();
+        }
+        return queryWithTimeout(
+          client
+            .from('signals')
+            .select('realized_vol_5d,realized_vol_20d,date')
+            .eq('pair', 'EURUSD')
+            .order('date', { ascending: false })
+            .limit(1)
+        )
+          .then(function (res) {
+            if (res.error) throw res.error;
+            var row = res.data && res.data[0];
+            if (!row) throw new Error('missing');
+            var a = fmtVolPct(row.realized_vol_5d);
+            var b = fmtVolPct(row.realized_vol_20d);
+            var em = '\u2014';
+            var aStr = a == null ? em : a + '%';
+            var bStr = b == null ? em : b + '%';
+            if (a == null && b == null) {
+              el.textContent = 'Data unavailable';
+              return;
+            }
+            el.textContent = '5D Vol: ' + aStr + ' | 20D Vol: ' + bStr;
+          })
+          .catch(function () {
+            el.textContent = 'Data unavailable';
+          });
+      }
+
+      function wireCross(client) {
+        var el = document.querySelector('.meth2-live-val[data-signal="cross-asset"]');
+        if (!el) return Promise.resolve();
+        if (!client) {
+          el.textContent = 'Data unavailable';
+          return Promise.resolve();
+        }
+        return queryWithTimeout(
+          client
+            .from('signals')
+            .select('cross_asset_dxy,cross_asset_oil,cross_asset_vix,date')
+            .eq('pair', 'EURUSD')
+            .order('date', { ascending: false })
+            .limit(1)
+        )
+          .then(function (res) {
+            if (res.error) throw res.error;
+            var row = res.data && res.data[0];
+            if (!row) throw new Error('missing');
+            var dxy = fmtCrossNum(row.cross_asset_dxy);
+            var oil = fmtCrossNum(row.cross_asset_oil);
+            var vix = fmtCrossNum(row.cross_asset_vix);
+            var em = '\u2014';
+            var dxyStr = dxy == null ? em : dxy;
+            var brentStr = oil == null ? em : '$' + oil;
+            var vixStr = vix == null ? em : vix;
+            if (dxy == null && oil == null && vix == null) {
+              el.textContent = 'Data unavailable';
+              return;
+            }
+            el.textContent = 'DXY: ' + dxyStr + ' | Brent: ' + brentStr + ' | VIX: ' + vixStr;
+          })
+          .catch(function () {
+            el.textContent = 'Data unavailable';
+          });
+      }
+
+      function wireSignals(client) {
+        return Promise.allSettled([
+          wireRateDiff(client),
+          wireCot(client),
+          wireVol(client),
+          wireCross(client),
+        ]).then(function () {});
+      }
+
+      function buildRegimeCard(pairKey, row) {
+        var card = document.createElement('div');
+        card.className = 'meth2-regime-card';
+        var pairEl = document.createElement('div');
+        pairEl.className = 'meth2-regime-card__pair';
+        pairEl.textContent = pairLabel(pairKey);
+        card.appendChild(pairEl);
+        if (!row) {
+          var miss = document.createElement('p');
+          miss.className = 'meth2-regime-fallback';
+          miss.style.margin = '0';
+          miss.textContent = 'No regime data for ' + pairLabel(pairKey) + '.';
+          card.appendChild(miss);
+          return card;
+        }
+        var h = document.createElement('h3');
+        h.className = regimeHeadlineClass(row.regime);
+        h.textContent = formatRegimeLabel(row.regime);
+        card.appendChild(h);
+        var pct = confidenceToPercent(row.confidence);
+        var wrap = document.createElement('div');
+        wrap.className = 'meth2-conf-wrap';
+        var bar = document.createElement('div');
+        bar.className = 'meth2-conf-bar';
+        var fill = document.createElement('div');
+        fill.className = 'meth2-conf-bar__fill';
+        fill.style.width = (isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 0) + '%';
+        bar.appendChild(fill);
+        wrap.appendChild(bar);
+        var pctEl = document.createElement('div');
+        pctEl.className = 'meth2-conf-pct';
+        pctEl.textContent = isFinite(pct) ? 'Confidence: ' + pct + '%' : 'Confidence: —';
+        wrap.appendChild(pctEl);
+        card.appendChild(wrap);
+        var drv = document.createElement('p');
+        drv.className = 'meth2-regime-driver';
+        drv.textContent = trunc(row.primary_driver, 80);
+        card.appendChild(drv);
+        var prow = document.createElement('div');
+        prow.className = 'meth2-pill-row';
+        function addPill(label, val) {
+          var sp = document.createElement('span');
+          sp.className = pillClass(val);
+          sp.textContent = label + ': ' + String(val || 'NEUTRAL').toUpperCase();
+          prow.appendChild(sp);
+        }
+        addPill('Rate', row.rate_signal);
+        addPill('COT', row.cot_signal);
+        addPill('Vol', row.vol_signal);
+        card.appendChild(prow);
+        return card;
+      }
+
+      function wireRegime(client) {
+        var host = document.querySelector('.meth2-regime-placeholder');
+        if (!host) return Promise.resolve();
+        if (!client) {
+          host.innerHTML = '<p class="meth2-regime-fallback">Regime data unavailable</p>';
+          return Promise.resolve();
+        }
+        var qEur = queryWithTimeout(
+          client
+            .from('regime_calls')
+            .select('pair,date,regime,confidence,primary_driver,rate_signal,cot_signal,vol_signal')
+            .eq('pair', 'EURUSD')
+            .order('date', { ascending: false })
+            .limit(1)
+        );
+        var qJpy = queryWithTimeout(
+          client
+            .from('regime_calls')
+            .select('pair,date,regime,confidence,primary_driver,rate_signal,cot_signal,vol_signal')
+            .eq('pair', 'USDJPY')
+            .order('date', { ascending: false })
+            .limit(1)
+        );
+        return Promise.allSettled([qEur, qJpy]).then(function (results) {
+          var r0 = results[0].status === 'fulfilled' ? results[0].value : null;
+          var r1 = results[1].status === 'fulfilled' ? results[1].value : null;
+          var ok0 = r0 && !r0.error && r0.data && r0.data[0];
+          var ok1 = r1 && !r1.error && r1.data && r1.data[0];
+          if (!ok0 && !ok1) {
+            host.innerHTML = '<p class="meth2-regime-fallback">Regime data unavailable</p>';
+            return;
+          }
+          host.textContent = '';
+          var grid = document.createElement('div');
+          grid.className = 'meth2-regime-grid';
+          grid.appendChild(buildRegimeCard('EURUSD', ok0 ? r0.data[0] : null));
+          grid.appendChild(buildRegimeCard('USDJPY', ok1 ? r1.data[0] : null));
+          host.appendChild(grid);
+        });
+      }
+
+      function wireValidation(client) {
+        var host = document.querySelector('.meth2-validation-placeholder');
+        if (!host) return Promise.resolve();
+        var start = new Date();
+        start.setDate(start.getDate() - 30);
+        var startStr = start.toISOString().split('T')[0];
+        if (!client) {
+          host.innerHTML = '<p class="meth2-val-fallback">Validation data temporarily unavailable.</p>';
+          return Promise.resolve();
+        }
+        var qEur = queryWithTimeout(
+          client
+            .from('validation_log')
+            .select('date,pair,predicted_direction,actual_direction,correct_1d')
+            .eq('pair', 'EURUSD')
+            .gte('date', startStr)
+            .order('date', { ascending: false })
+        );
+        var qJpy = queryWithTimeout(
+          client
+            .from('validation_log')
+            .select('date,pair,predicted_direction,actual_direction,correct_1d')
+            .eq('pair', 'USDJPY')
+            .gte('date', startStr)
+            .order('date', { ascending: false })
+        );
+        return Promise.allSettled([qEur, qJpy])
+          .then(function (results) {
+            var ok0 =
+              results[0].status === 'fulfilled' && results[0].value && !results[0].value.error;
+            var ok1 =
+              results[1].status === 'fulfilled' && results[1].value && !results[1].value.error;
+            if (!ok0 && !ok1) {
+              host.innerHTML =
+                '<p class="meth2-val-fallback">Validation data temporarily unavailable.</p>';
+              return;
+            }
+            var rows = [];
+            if (ok0) rows = rows.concat(results[0].value.data || []);
+            if (ok1) rows = rows.concat(results[1].value.data || []);
+            if (rows.length === 0) {
+              var d = new Date();
+              d.setDate(d.getDate() + 7);
+              var ds = d.toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              });
+              host.innerHTML =
+                '<p class="meth2-val-fallback">Validation logging active. Results accumulate daily — check back after ' +
+                ds +
+                '.</p>';
+              return;
+            }
+            rows.sort(function (a, b) {
+              var da = String(a.date || '').slice(0, 10);
+              var db = String(b.date || '').slice(0, 10);
+              if (da !== db) return db.localeCompare(da);
+              return String(a.pair || '').localeCompare(String(b.pair || ''));
+            });
+            host.textContent = '';
+            var wrap = document.createElement('div');
+            wrap.className = 'meth2-val-table-wrap';
+            var tbl = document.createElement('table');
+            tbl.className = 'meth2-val-table';
+            var thead = document.createElement('thead');
+            var hr = document.createElement('tr');
+            ['Pair', 'Date', 'Predicted', 'Actual Direction', 'Correct'].forEach(function (h) {
+              var th = document.createElement('th');
+              th.scope = 'col';
+              th.textContent = h;
+              hr.appendChild(th);
+            });
+            thead.appendChild(hr);
+            tbl.appendChild(thead);
+            var tb = document.createElement('tbody');
+            rows.forEach(function (row) {
+              var tr = document.createElement('tr');
+              function td(txt, mono) {
+                var c = document.createElement('td');
+                if (mono) c.className = 'font-mono';
+                c.textContent = txt == null ? '' : String(txt);
+                tr.appendChild(c);
+              }
+              td(pairLabel(row.pair), false);
+              td(String(row.date || '').slice(0, 10), true);
+              td(row.predicted_direction, false);
+              td(row.actual_direction, false);
+              var cor = row.correct_1d;
+              td(cor === true ? 'Yes' : cor === false ? 'No' : '\u2014', false);
+              tb.appendChild(tr);
+            });
+            tbl.appendChild(tb);
+            wrap.appendChild(tbl);
+            host.appendChild(wrap);
+          })
+          .catch(function () {
+            host.innerHTML =
+              '<p class="meth2-val-fallback">Validation data temporarily unavailable.</p>';
+          });
+      }
+
+      function bootMeth2Supabase() {
+        try {
+          var url = getSupabaseUrl();
+          var key = getSupabaseAnonKey();
+          if (!url || !key || !window.supabase || typeof window.supabase.createClient !== 'function') {
+            Promise.allSettled([
+              wireSignals(null),
+              wireRegime(null),
+              wireValidation(null),
+            ]).catch(function () {});
+          } else {
+            const client = window.supabase.createClient(
+              url,
+              key,
+              {auth: {persistSession: false, autoRefreshToken: false}}
+            );
+            Promise.allSettled([
+              wireSignals(client),
+              wireRegime(client),
+              wireValidation(client),
+            ]).catch(function () {});
+          }
+        } catch (e) {
+          var rh = document.querySelector('.meth2-regime-placeholder');
+          var vh = document.querySelector('.meth2-validation-placeholder');
+          if (rh) rh.innerHTML = '<p class="meth2-regime-fallback">Regime data unavailable</p>';
+          if (vh) {
+            vh.innerHTML =
+              '<p class="meth2-val-fallback">Validation data temporarily unavailable.</p>';
+          }
+          document.querySelectorAll('.meth2-live-val').forEach(function (el) {
+            el.textContent = 'Data unavailable';
+          });
+        }
+      }
+
+      function startMeth2() {
+        if (window.__meth2Started) return;
+        window.__meth2Started = true;
+        bootMeth2Supabase();
+      }
+
+      if (window.__supabaseReady) {
+        startMeth2();
+      } else {
+        document.addEventListener('supabase-ready', startMeth2);
+        setTimeout(function() {
+          if (window.supabase &&
+              typeof window.supabase.createClient === 'function' &&
+              window.__SUPABASE_URL__ &&
+              window.__SUPABASE_ANON_KEY__) {
+            startMeth2();
+          }
+        }, 3000);
+      }
+    })();
+  </script>
+  <script defer src="/assets/theme-switch.js"></script>
+  <script defer src="/assets/canvas-bg.js"></script>
+  <script defer src="/assets/nav.js"></script>
+  <script defer src="/assets/section-reveal.js"></script>
 </body>
 </html>
