@@ -1,28 +1,28 @@
 {
   "date": "2026-04-10",
-  "headline": "Volatility Spike in EUR/USD Masks Subdued Positioning; USD/JPY and USD/INR Remain Structurally Bid",
+  "headline": "G10 Neutrality Dominates Amid Rate Spread Volatility; EUR/USD Exhibits Sharp Differential Momentum",
   "sections": {
-    "macro_context": "Rate differentials remain the dominant regime driver across G10 and EM FX. The US-DE 10Y spread sits at +122bp with volatility at the 91st percentile, signaling acute positioning sensitivity in EUR/USD despite neutral regime classification. USD/JPY maintains stability with subdued vol (23rd percentile), while USD/INR trades at extreme vol (96th percentile) but reflects structural carry dynamics rather than directional clarity. Positioning across all three pairs clusters in the 32\u201335th percentile range, indicating underweight USD longs relative to recent history\u2014a setup vulnerable to either rapid repricing or momentum continuation.",
+    "macro_context": "The FX complex is in a holding pattern with three major pairs stuck in neutral regimes, reflecting subdued conviction across rate differentials. The US-Germany 10Y spread sits at +122bp while US-Japan trades at +189bp\u2014both positioned to support dollar demand, yet positioning data shows traders remain undercommitted at the 32.8th and 35.1th percentiles respectively. Volatility tells a different story: EUR/USD and USD/INR are trading in the 88th and 96th volatility percentiles, signaling elevated intraday swings despite directional ambiguity. This is a market oscillating between mean reversion and momentum continuation, with regime confirmation unlikely until positioning or spreads show sustained directional acceleration.",
     "eurusd": {
       "regime": "NEUTRAL",
       "confidence": 0.05,
-      "narrative": "EUR/USD holds a neutral regime with minimal confidence (0.05), but this mask conceals critical fragility. The US-DE spread at +122bp remains supportive of dollar strength, yet the daily-change z-score crossing 1.5 standard deviations signals acute momentum dislocation. Volatility at the 91st percentile paired with COT positioning at the 32.7th percentile reveals a crowded short-dollar setup ready to unwind. This combination\u2014high vol + low positioning + momentum spike\u2014represents a tactical inflection point rather than a regime confirmation. The 122bp spread alone would ordinarily anchor USD strength, but the magnitude of today's spread movement relative to recent history suggests algo flows and stops are driving the action more than fundamental repricing.",
-      "key_driver": "US-DE 10Y spread at +122bp with sharp daily momentum reversal in a low-positioning environment.",
-      "watch_for": "Sustained break above 1.5 sigma in spread momentum or a 50bp mean-reversion move in the US-DE differential; either signals regime flip into bullish USD."
+      "narrative": "EUR/USD remains neutral with minimal conviction (5% confidence), but today's signal shift warrants attention. The US-DE 10Y spread daily-change z-score has crossed the 1.5 standard deviation threshold, indicating a material one-day move in the rate differential. This follows EUR/USD trading in the 88th percentile for volatility\u2014among the highest readings in the sample\u2014yet COT positioning sits at the 32.7th percentile, suggesting spec shorts are neither crowded nor capitulated. The sharp spread volatility without corresponding positioning extremes points to two-way positioning flow rather than directional conviction, typical of consolidation before breakout.",
+      "key_driver": "US-Germany 10Y spread at +122bp with positioning at 32.7th percentile, crossed by elevated daily momentum in the differential.",
+      "watch_for": "Sustained directional move in US-DE spread above 130bp or below 115bp combined with COT percentile movement outside the 25-75 band would signal regime transition."
     },
     "usdjpy": {
       "regime": "NEUTRAL",
       "confidence": 0.15,
-      "narrative": "USD/JPY sits in neutral regime with low-moderate confidence (0.15), anchored by the US-JP 10Y spread at +189bp. This spread represents the widest observed in the dataset's recent history and fully explains structural dollar bid. Critically, volatility trades at the 23rd percentile\u2014the lowest across all three pairs\u2014indicating that while the carry trade remains intact, it is not under acute stress. COT positioning at 35.1th percentile shows moderate unwind from recent longs, but the combination of wide spreads, low vol, and neutral positioning suggests a mature but stable structure. USD/JPY lacks the momentum shock visible in EUR/USD, indicating yen weakness is driven by fundamental rate differentials rather than positioning distress.",
-      "key_driver": "US-JP 10Y spread at +189bp with historically wide differential providing structural USD support.",
-      "watch_for": "Contraction in US-JP spread below 150bp or surprise BoJ hawkish signal; either would trigger derating of carry premium and potential vol expansion."
+      "narrative": "USD/JPY is the most defensive pair on the board, trading neutral with 15% confidence\u2014the highest among the three pairs. The US-JP 10Y spread of +189bp provides structural support for yen weakness, yet positioning remains restrained at the 35.1th percentile. Crucially, USD/JPY exhibits the lowest volatility profile at the 23.2nd percentile, indicating traders are genuinely uncertain about carry trade sustainability despite the spread advantage. This mismatch\u2014a 189bp yield cushion paired with historically low volatility and mid-range positioning\u2014suggests the market is pricing both range-bound behavior and latent intervention risk from Japanese authorities.",
+      "key_driver": "US-Japan 10Y spread at +189bp with positioning at 35.1th percentile and notably subdued volatility.",
+      "watch_for": "Break above 40th percentile positioning or volatility spike above 50th percentile would indicate renewed carry conviction; Bank of Japan communication shifts remain the asymmetric tail risk."
     },
     "usdinr": {
       "regime": "NEUTRAL",
       "confidence": 0.05,
-      "narrative": "USD/INR trades in neutral regime at extreme volatility (96th percentile) with no COT coverage due to RBI intervention regime. The US-IN 10Y spread at -234bp reveals fundamental rupee strength on rate differentials alone, yet the currency remains structurally bid on carry flows and intervention barriers. The 96th percentile vol reading reflects RBI's active management preventing unidirectional moves; this is not directional clarity but rather frictional pricing. The negative spread technically argues for rupee appreciation, but RBI's consistent two-way intervention neutralizes spread momentum as a reliable signal. Traders should treat USD/INR as range-bound with upside capped by intervention, not as a directional opportunity.",
-      "key_driver": "US-IN 10Y spread at -234bp inverted, but RBI intervention regime restricts directional interpretation.",
-      "watch_for": "Sustained move beyond 96th percentile vol threshold or policy shift signaling RBI tolerance for rupee weakness; otherwise, treat as RBI-managed range."
+      "narrative": "USD/INR trades neutral with extreme volatility (96.2nd percentile) against a negative rate differential of -234bp favoring rupee rates. The absence of COT data reflects RBI intervention dynamics that suppress positioning transparency and create directional trading constraints. The spread itself tells a story: India's yield advantage should mechanically weaken the dollar, yet elevated volatility persists, indicating RBI's consistent bid under USD/INR is preventing trend extension. This is a managed float in practice\u2014the pair exhibits the characteristics of intervention caps and floors rather than free-market price discovery.",
+      "key_driver": "US-India 10Y spread at -234bp favoring INR with RBI intervention creating a soft ceiling on USD appreciation.",
+      "watch_for": "Sustained volatility above 95th percentile combined with RBI signaling policy shifts; entries only on directional escalation in EM stress requiring dollar demand override of intervention support."
     },
     "signal_changes": [
       "EUR/USD US-DE 10Y spread daily-change z-score crossed the 1.5 threshold."
@@ -35,5 +35,5 @@
     "usdjpy": [],
     "usdinr": []
   },
-  "generated_at": "2026-04-12T00:13:59Z"
+  "generated_at": "2026-04-13T00:17:22Z"
 }
