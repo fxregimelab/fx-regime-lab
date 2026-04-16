@@ -45,7 +45,7 @@ def _polygon_aggs_to_yf_like_df(
     except ImportError:
         return None
     url = (
-        f"https://api.polygon.io/v2/aggs/ticker/{poly_ticker}"
+        f"https://api.massive.com/v2/aggs/ticker/{poly_ticker}"
         f"/range/1/day/{start_d}/{end_d}"
     )
     try:
