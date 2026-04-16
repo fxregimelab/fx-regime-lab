@@ -136,6 +136,29 @@ def _row_to_signal(pair: str, row: pd.Series, as_of: str) -> Dict[str, Any]:
     rv5 = _nf(row, "EURUSD_vol5") if pair == "EURUSD" else _nf(row, "USDJPY_vol5") if pair == "USDJPY" else _nf(row, "USDINR_vol5")
     if rv5 is not None:
         out["realized_vol_5d"] = rv5
+
+    # ── Layer 3 additions: CME CVOL (Phase 3), CME OI (Phase 4), RR (Phase 5) ──
+    # NaN-safe: column absent until the matching pipeline has run at least once.
+    if pair in ("EURUSD", "USDJPY"):
+        iv30 = _nf(row, f"{pair}_implied_vol_30d")
+        if iv30 is not None:
+            out["implied_vol_30d"] = iv30
+        skew = _nf(row, f"{pair}_vol_skew")
+        if skew is not None:
+            out["vol_skew"] = skew
+        atm = _nf(row, f"{pair}_atm_vol")
+        if atm is not None:
+            out["atm_vol"] = atm
+        oi_d = _nf(row, f"{pair}_oi_delta")
+        if oi_d is not None:
+            out["oi_delta"] = oi_d
+        oi_align = row.get(f"{pair}_oi_price_alignment")
+        if oi_align is not None and not (isinstance(oi_align, float) and pd.isna(oi_align)):
+            out["oi_price_alignment"] = str(oi_align)
+    if pair == "EURUSD":
+        rr = _nf(row, "EURUSD_risk_reversal_25d")
+        if rr is not None:
+            out["risk_reversal_25d"] = rr
     return {k: v for k, v in out.items() if v is not None or k in ("date", "pair")}
 
 

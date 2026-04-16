@@ -198,7 +198,9 @@ def calculate_positioning(raw_df):
         df["lev_pct_oi"] = (
             df["lev_net"] / df["Open_Interest_All"].replace(0, float('nan')) * 100
         )
-        df["lev_percentile"] = df["lev_net"].rank(pct=True) * 100
+        df["lev_percentile"] = (
+            df["lev_net"].rolling(window=52, min_periods=26).rank(pct=True) * 100
+        )
 
         # ──────────────────────────────────────────────────────────────────────
         # CATEGORY 2: ASSET MANAGER
@@ -210,7 +212,9 @@ def calculate_positioning(raw_df):
         df["assetmgr_pct_oi"] = (
             df["assetmgr_net"] / df["Open_Interest_All"].replace(0, float('nan')) * 100
         )
-        df["assetmgr_percentile"] = df["assetmgr_net"].rank(pct=True) * 100
+        df["assetmgr_percentile"] = (
+            df["assetmgr_net"].rolling(window=52, min_periods=26).rank(pct=True) * 100
+        )
 
 
         # Keep leveraged money + asset manager in results

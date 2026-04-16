@@ -102,9 +102,14 @@ def _load_hist(pair: str) -> pd.DataFrame:
         return pd.DataFrame()
     try:
         tk = yf.Ticker(t)
-        hist = tk.history(period="1mo", auto_adjust=True)
+        hist = tk.history(period="1mo", auto_adjust=True, timeout=30)
         return hist if hist is not None else pd.DataFrame()
-    except Exception:
+    except Exception as e:
+        try:
+            from core.signal_write import log_pipeline_error
+            log_pipeline_error("validation_regime", f"{t}: {e}", notes="yf_history")
+        except Exception:
+            pass
         return pd.DataFrame()
 
 

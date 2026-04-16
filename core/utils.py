@@ -3,9 +3,62 @@
 # Import from here instead of defining locally in each module.
 
 import os
+import re
 import base64
 import math
 import pandas as pd
+
+
+# ── yfinance safe wrapper ────────────────────────────────────────────────────
+#
+# Phase 2: every yfinance call in the pipeline must go through this wrapper.
+# Enforces timeout, try/except, non-empty frame, and logs failures to
+# pipeline_errors. NEVER raises — returns an empty DataFrame on any error so
+# callers' existing NaN/ffill paths degrade gracefully.
+
+def _yf_safe_download(tickers, **kw):
+    """Wrap yf.download with timeout + try/except + pipeline_errors logging."""
+    try:
+        import yfinance as yf
+    except ImportError:
+        return pd.DataFrame()
+    kw.setdefault("timeout", 30)
+    kw.setdefault("progress", False)
+    try:
+        df = yf.download(tickers, **kw)
+        if df is None or df.empty:
+            return pd.DataFrame()
+        return df
+    except Exception as e:
+        try:
+            from core.signal_write import log_pipeline_error
+            log_pipeline_error("yfinance", f"{tickers}: {e}", notes="safe_download")
+        except Exception:
+            pass
+        return pd.DataFrame()
+
+
+# ── brief text cleaner (Python port of site/terminal/data-client.js) ─────────
+#
+# Strips markdown syntax before Supabase brief_log.brief_text upsert so the
+# dashboard shows clean prose. Port of cleanBriefText in data-client.js.
+
+_BRIEF_MD_INLINE = re.compile(r"(\*\*|__|\*|_|`|~~)")
+_BRIEF_MD_HEADING = re.compile(r"^#{1,6}\s*", flags=re.MULTILINE)
+_BRIEF_MD_LINK = re.compile(r"\[([^\]]+)\]\([^)]+\)")
+_BRIEF_MD_BLANKS = re.compile(r"\n{3,}")
+
+
+def _clean_brief_text(raw):
+    """Strip markdown (headings, inline emphasis, links) from a brief text blob."""
+    if not raw or not isinstance(raw, str):
+        return ""
+    t = raw.replace("\r\n", "\n").replace("\r", "\n")
+    t = _BRIEF_MD_LINK.sub(r"\1", t)
+    t = _BRIEF_MD_HEADING.sub("", t)
+    t = _BRIEF_MD_INLINE.sub("", t)
+    t = _BRIEF_MD_BLANKS.sub("\n\n", t)
+    return t.strip()
 
 
 # ── number / text formatters ─────────────────────────────────────────────────

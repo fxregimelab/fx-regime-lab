@@ -39,7 +39,7 @@
       <nav class="term-nav__tabs" aria-label="Terminal sections">
         <a class="term-nav__tab" href="/terminal/" data-path="/terminal/index">Home</a>
         <a class="term-nav__tab" href="/terminal/dashboard.html" data-path="/terminal/dashboard">Dashboard</a>
-        <a class="term-nav__tab" href="/">Exit Terminal</a>
+        <a class="term-nav__tab" href="/" data-exit="true">Exit →</a>
       </nav>
       <div class="term-nav__right">
         <span id="term-data-stale" class="term-data-stale" hidden>
@@ -107,42 +107,64 @@
         <section class="term-dash-center">
           <div class="term-dash-headline">
             <div class="term-dash-headline__pair" id="dash-headline-pair">EUR/USD</div>
-            <div class="term-dash-headline__spot" id="dash-headline-spot">1.0854 +0.04%</div>
-            <div class="term-dash-headline__state" id="dash-headline-state">NEUTRAL · CONFIDENCE 2% · VOL NORMAL</div>
+            <div class="term-dash-headline__main">
+              <div class="term-dash-headline__spot" id="dash-headline-spot">1.0854</div>
+              <div class="term-dash-headline__change positive" id="dash-headline-change">+0.04%</div>
+              <span class="term-dash-pill neutral term-dash-headline__regime" id="dash-headline-regime">Neutral</span>
+            </div>
+            <div class="term-dash-headline__state" id="dash-headline-state">Confidence 2% · Vol normal</div>
           </div>
 
           <section class="term-dash-card">
-            <header class="term-dash-card__head term-dash-signals-head">
-              <span>Signal</span>
-              <span>Direction</span>
-              <span>Value</span>
-              <span>Contribution</span>
-            </header>
-            <div class="term-dash-signal-row" data-signal-row="rate">
-              <span>Rate Differentials</span>
-              <span class="term-signal-direction bearish" data-dir="BEARISH" data-signal-direction>Bearish</span>
-              <span data-signal-value>-14.2 bps</span>
-              <span class="term-dash-contrib bearish" data-signal-contrib>65%</span>
-            </div>
-            <div class="term-dash-signal-row" data-signal-row="cot">
-              <span>COT Position</span>
-              <span class="term-signal-direction neutral" data-dir="NEUTRAL" data-signal-direction>Neutral</span>
-              <span data-signal-value>0.42σ</span>
-              <span class="term-dash-contrib neutral" data-signal-contrib>5%</span>
-            </div>
-            <div class="term-dash-signal-row" data-signal-row="vol">
-              <span>Realized Vol</span>
-              <span class="term-signal-direction bearish" data-dir="BEARISH" data-signal-direction>Bearish</span>
-              <span data-signal-value>8.42%</span>
-              <span class="term-dash-contrib bearish" data-signal-contrib>30%</span>
-            </div>
-            <div class="term-dash-signal-row" data-signal-row="cross">
-              <span>Cross Asset Correlation</span>
-              <span class="term-signal-direction bearish" data-dir="BEARISH" data-signal-direction>Bearish</span>
-              <span data-signal-value>-0.12</span>
-              <span class="term-dash-contrib bearish" data-signal-contrib>45%</span>
-            </div>
+            <table class="term-dash-signal-table" aria-label="Signal stack table">
+              <thead>
+                <tr class="term-dash-signals-head">
+                  <th class="term-dash-col-signal">Signal</th>
+                  <th class="term-dash-col-dir">Direction</th>
+                  <th class="term-dash-col-v1">Value 1</th>
+                  <th class="term-dash-col-v2">Value 2</th>
+                  <th class="term-dash-col-pct">Percentile</th>
+                  <th class="term-dash-col-contrib">Contribution</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="term-dash-signal-row" data-signal-row="rate">
+                  <td class="term-dash-col-signal">Rate Differentials</td>
+                  <td class="term-dash-col-dir term-signal-direction bearish" data-dir="BEARISH" data-signal-direction>Bearish</td>
+                  <td class="term-dash-col-v1" data-signal-value1>2Y: —</td>
+                  <td class="term-dash-col-v2" data-signal-value2>10Y: —</td>
+                  <td class="term-dash-col-pct" data-signal-percentile>—</td>
+                  <td class="term-dash-col-contrib term-dash-contrib bearish" data-signal-contrib>65%</td>
+                </tr>
+                <tr class="term-dash-signal-row" data-signal-row="cot">
+                  <td class="term-dash-col-signal">COT Positioning</td>
+                  <td class="term-dash-col-dir term-signal-direction neutral" data-dir="NEUTRAL" data-signal-direction>Neutral</td>
+                  <td class="term-dash-col-v1" data-signal-value1>Net: —</td>
+                  <td class="term-dash-col-v2" data-signal-value2>Mgr: —</td>
+                  <td class="term-dash-col-pct" data-signal-percentile>—</td>
+                  <td class="term-dash-col-contrib term-dash-contrib neutral" data-signal-contrib>5%</td>
+                </tr>
+                <tr class="term-dash-signal-row" data-signal-row="vol">
+                  <td class="term-dash-col-signal">Realized Vol</td>
+                  <td class="term-dash-col-dir term-signal-direction bearish" data-dir="BEARISH" data-signal-direction>Bearish</td>
+                  <td class="term-dash-col-v1" data-signal-value1>5D: —</td>
+                  <td class="term-dash-col-v2" data-signal-value2>20D: —</td>
+                  <td class="term-dash-col-pct" data-signal-percentile>—</td>
+                  <td class="term-dash-col-contrib term-dash-contrib bearish" data-signal-contrib>30%</td>
+                </tr>
+                <tr class="term-dash-signal-row" data-signal-row="cross">
+                  <td class="term-dash-col-signal">Cross Asset</td>
+                  <td class="term-dash-col-dir term-signal-direction bearish" data-dir="BEARISH" data-signal-direction>Bearish</td>
+                  <td class="term-dash-col-v1" data-signal-value1>DXY: —</td>
+                  <td class="term-dash-col-v2" data-signal-value2>Oil: $—</td>
+                  <td class="term-dash-col-pct" data-signal-percentile>VIX: —</td>
+                  <td class="term-dash-col-contrib term-dash-contrib bearish" data-signal-contrib>45%</td>
+                </tr>
+              </tbody>
+            </table>
           </section>
+
+          <div class="term-dash-raw-strip" id="term-dash-raw-strip" aria-label="Raw signal values strip"></div>
 
           <section class="term-dash-card">
             <header class="term-dash-charts-head">
@@ -156,7 +178,8 @@
                 <button class="term-dash-range-btn is-active" type="button">1M</button>
                 <button class="term-dash-range-btn" type="button">3M</button>
                 <button class="term-dash-range-btn" type="button">6M</button>
-                <button class="term-dash-range-btn" type="button">YTD</button>
+                <button class="term-dash-range-btn" type="button">1Y</button>
+                <button class="term-dash-range-btn" type="button">ALL</button>
               </div>
             </header>
             <div class="term-dash-chart-grid">
@@ -183,15 +206,19 @@
             <div class="term-dash-confidence-bar">
               <span id="dash-regime-confidence-bar" style="width: 2%"></span>
             </div>
+            <div class="term-dash-regime-age" id="dash-regime-age">Regime unchanged · —</div>
+            <p class="term-dash-conf-note" id="dash-regime-conf-note">
+              Low confidence reflects signal disagreement or limited history — the framework reports uncertainty rather than forcing a call.
+            </p>
             <div class="term-dash-matrix-row"><span>Primary Driver</span><span id="dash-regime-driver">—</span></div>
           </section>
 
           <section class="term-dash-side-card">
             <h2 class="term-dash-side-card__title">Signal Matrix</h2>
-            <div class="term-dash-matrix-row"><span>Rate Differentials</span><span class="bearish" data-matrix-signal="rate">BEARISH</span></div>
-            <div class="term-dash-matrix-row"><span>COT Positioning</span><span class="neutral" data-matrix-signal="cot">NEUTRAL</span></div>
-            <div class="term-dash-matrix-row"><span>Vol &amp; Correlation</span><span class="bearish" data-matrix-signal="vol">BEARISH</span></div>
-            <div class="term-dash-matrix-row"><span>Cross Asset</span><span class="bearish" data-matrix-signal="cross">BEARISH</span></div>
+            <div class="term-dash-matrix-row"><span>Rate Differentials</span><span class="term-dash-matrix-dir bearish" data-matrix-signal="rate">BEARISH</span></div>
+            <div class="term-dash-matrix-row"><span>COT Positioning</span><span class="term-dash-matrix-dir neutral" data-matrix-signal="cot">NEUTRAL</span></div>
+            <div class="term-dash-matrix-row"><span>Vol &amp; Correlation</span><span class="term-dash-matrix-dir bearish" data-matrix-signal="vol">BEARISH</span></div>
+            <div class="term-dash-matrix-row"><span>Cross Asset</span><span class="term-dash-matrix-dir bearish" data-matrix-signal="cross">BEARISH</span></div>
           </section>
 
           <section class="term-dash-side-card">
@@ -199,7 +226,7 @@
             <h3 class="term-dash-brief-title">Regime read — 13 Apr 2026</h3>
             <p class="term-dash-brief-text">The single currency remains anchored to macro volatility as terminal rates pricing shifts.</p>
             <p class="term-dash-brief-text">Focus remains on 10Y differential widening versus G10 peers.</p>
-            <a class="term-dash-brief-link" href="/brief/">OPEN FULL BRIEF →</a>
+            <a class="term-dash-brief-link" href="/brief/" target="_blank" rel="noopener noreferrer">OPEN FULL BRIEF →</a>
           </section>
 
           <section class="term-dash-side-card">
@@ -330,6 +357,14 @@
         return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
       }
 
+      function isValidRegime(regime) {
+        var valid = [
+          'NEUTRAL', 'TRENDING_LONG', 'TRENDING_SHORT',
+          'MEAN_REVERTING', 'VOL_EXPANDING', 'CRISIS'
+        ];
+        return valid.indexOf((regime || '').toUpperCase()) !== -1;
+      }
+
       function inferDirection(val, neutralBand) {
         if (!isFinite(val)) return 'NEUTRAL';
         var band = neutralBand != null ? neutralBand : 0;
@@ -345,6 +380,12 @@
         return sign + value.toFixed(d) + '%';
       }
 
+      function fmtPctPlain(value, decimals) {
+        if (!isFinite(value)) return '—';
+        var d = decimals != null ? decimals : 2;
+        return value.toFixed(d) + '%';
+      }
+
       function fmtBps(value) {
         if (!isFinite(value)) return '—';
         return (value * 100).toFixed(1) + ' bps';
@@ -353,6 +394,26 @@
       function fmtNum(value, decimals) {
         if (!isFinite(value)) return '—';
         return value.toFixed(decimals != null ? decimals : 2);
+      }
+
+      function fmtInt(value) {
+        if (!isFinite(value)) return '—';
+        return Math.round(value).toLocaleString('en-US');
+      }
+
+      function fmtOrdinal(value) {
+        if (!isFinite(value)) return '—';
+        var n = Math.round(value);
+        var abs = Math.abs(n);
+        var mod100 = abs % 100;
+        var suffix = 'th';
+        if (mod100 < 11 || mod100 > 13) {
+          var mod10 = abs % 10;
+          if (mod10 === 1) suffix = 'st';
+          else if (mod10 === 2) suffix = 'nd';
+          else if (mod10 === 3) suffix = 'rd';
+        }
+        return n + suffix + ' pct';
       }
 
       function applyDirectionClass(el, directionRaw) {
@@ -380,9 +441,56 @@
         return '#3b82f6';
       }
 
+      function setActivePairColor(pair) {
+        var tabs = qs('.term-dash-chart-tabs');
+        if (!tabs) return;
+        var varName = PAIR_COLOR_VARS[pair] || '--pair-eur';
+        tabs.style.setProperty('--active-pair-color', 'var(' + varName + ')');
+      }
+
+      function parseDateValue(dateValue) {
+        if (!dateValue) return NaN;
+        var iso = String(dateValue).slice(0, 10) + 'T00:00:00Z';
+        var ts = Date.parse(iso);
+        return isFinite(ts) ? ts : NaN;
+      }
+
+      function daysBetweenUtc(startTs, endTs) {
+        if (!isFinite(startTs) || !isFinite(endTs)) return NaN;
+        var DAY_MS = 24 * 60 * 60 * 1000;
+        var diff = Math.round((endTs - startTs) / DAY_MS);
+        return diff < 0 ? 0 : diff;
+      }
+
+      function computeRegimeAgeLabel(regimeRows) {
+        if (!Array.isArray(regimeRows) || !regimeRows.length) return 'Regime unchanged · —';
+        var latest = regimeRows[0];
+        if (!latest || !latest.regime) return 'Regime unchanged · —';
+        var latestRegime = String(latest.regime);
+        var latestDateTs = parseDateValue(latest.date);
+        var regimeStartTs = latestDateTs;
+
+        for (var i = 1; i < regimeRows.length; i++) {
+          var row = regimeRows[i];
+          if (!row || !row.regime) continue;
+          if (String(row.regime) !== latestRegime) break;
+          regimeStartTs = parseDateValue(row.date);
+        }
+
+        var days = daysBetweenUtc(regimeStartTs, latestDateTs);
+        if (!isFinite(days)) return 'Regime unchanged · —';
+        if (days <= 2) return 'Regime changed · ' + days + ' day' + (days === 1 ? '' : 's') + ' ago';
+        return 'Regime unchanged · ' + days + ' days';
+      }
+
       function showErrorState(message) {
         var msg = message || 'Data unavailable';
         setText(qs('#dash-headline-state'), msg);
+        setText(qs('#dash-headline-spot'), '—');
+        setText(qs('#dash-headline-change'), '—');
+        setText(qs('#dash-headline-regime'), '—');
+        var centerChange = qs('#dash-headline-change');
+        if (centerChange) centerChange.classList.remove('positive', 'negative');
         PAIRS.forEach(function (pair) {
           var row = getPairRow(pair);
           if (!row) return;
@@ -501,10 +609,19 @@
           if (liveSpot && isFinite(toNumber(liveSpot.price))) px.spot = toNumber(liveSpot.price);
           if (liveSpot && isFinite(toNumber(liveSpot.changePct))) px.changePct = toNumber(liveSpot.changePct);
 
-          var regimeText = regime && regime.regime ? D.formatRegimeLabel(regime.regime) : '—';
+          var regimeValue = regime && typeof regime.regime === 'string'
+            ? regime.regime : '';
+          if (!isValidRegime(regimeValue)) {
+            regimeValue = 'NEUTRAL';
+          }
+          if (pair === 'USDINR') {
+            var usdinrRegimeData = regime || null;
+            console.log('USDINR regime_calls:', JSON.stringify(usdinrRegimeData));
+          }
+          var regimeText = regimeValue ? D.formatRegimeLabel(regimeValue) : '—';
           var confPct = regime ? D.confidenceToPercent(regime.confidence) : NaN;
           setText(qs('[data-row-regime]', row), regimeText);
-          applyDirectionClass(qs('[data-row-regime]', row), regime && regime.regime ? regime.regime : 'neutral');
+          applyDirectionClass(qs('[data-row-regime]', row), regimeValue || 'neutral');
 
           setText(qs('[data-row-spot]', row), isFinite(px.spot) ? fmtNum(px.spot, pair === 'USDJPY' ? 2 : 4) : '—');
           var chgEl = qs('[data-row-change]', row);
@@ -527,11 +644,21 @@
       }
 
       function renderSignalStack(latest, regimeExtended, pair) {
-        var D = getData();
-        var rateVal = pickFirstNumber(latest, ['rate_diff_2y', 'rate_diff_10y']);
-        var cotVal = pickFirstNumber(latest, ['cot_percentile', 'cot_lev_money_net']);
+        var rate2y = pickFirstNumber(latest, ['rate_diff_2y']);
+        var rate10y = pickFirstNumber(latest, ['rate_diff_10y']);
+        var rateZ = pickFirstNumber(latest, ['rate_diff_zscore']);
+        var cotNet = pickFirstNumber(latest, ['cot_lev_money_net']);
+        var cotMgr = pickFirstNumber(latest, ['cot_asset_mgr_net']);
+        var cotPct = pickFirstNumber(latest, ['cot_percentile']);
+        var vol5d = pickFirstNumber(latest, ['realized_vol_5d']);
+        var vol20d = pickFirstNumber(latest, ['realized_vol_20d']);
+        var dxy = pickFirstNumber(latest, ['cross_asset_dxy']);
+        var oil = pickFirstNumber(latest, ['cross_asset_oil']);
+        var vix = pickFirstNumber(latest, ['cross_asset_vix']);
+        var rateVal = isFinite(rate2y) ? rate2y : rate10y;
+        var cotVal = isFinite(cotPct) ? cotPct : cotNet;
         var volVal = pickFirstNumber(latest, ['realized_vol_20d', 'realized_vol_5d']);
-        var crossVal = pickFirstNumber(latest, ['cross_asset_dxy', 'cross_asset_oil']);
+        var crossVal = isFinite(dxy) ? dxy : oil;
 
         var rateDir = regimeExtended && regimeExtended.rate_signal ? regimeExtended.rate_signal : inferDirection(rateVal, 0.0005);
         var cotDir = regimeExtended && regimeExtended.cot_signal ? regimeExtended.cot_signal : (isFinite(cotVal) ? (cotVal > 60 ? 'BULLISH' : cotVal < 40 ? 'BEARISH' : 'NEUTRAL') : 'NEUTRAL');
@@ -539,32 +666,62 @@
         var crossDir = regimeExtended && regimeExtended.cross_signal ? regimeExtended.cross_signal : inferDirection(crossVal, 0.05);
 
         var rows = {
-          rate: { dir: rateDir, value: fmtBps(rateVal), contrib: 35 },
-          cot: { dir: cotDir, value: isFinite(cotVal) ? fmtNum(cotVal, 2) : '—', contrib: 20 },
-          vol: { dir: volDir, value: fmtPct(volVal, 2), contrib: 20 },
-          cross: { dir: crossDir, value: isFinite(crossVal) ? fmtNum(crossVal, 2) : '—', contrib: 25 },
+          rate: {
+            dir: rateDir,
+            value1: '2Y: ' + fmtPctPlain(rate2y, 2),
+            value2: '10Y: ' + fmtPctPlain(rate10y, 2),
+            percentile: isFinite(rateZ) ? rateZ.toFixed(2) + ' σ' : '—',
+            contrib: 35,
+          },
+          cot: {
+            dir: cotDir,
+            value1: 'Net: ' + fmtInt(cotNet),
+            value2: 'Mgr: ' + fmtInt(cotMgr),
+            percentile: fmtOrdinal(cotPct),
+            contrib: 20,
+          },
+          vol: {
+            dir: volDir,
+            value1: '5D: ' + (isFinite(vol5d) ? fmtNum(vol5d, 2) + '%' : '—'),
+            value2: '20D: ' + (isFinite(vol20d) ? fmtNum(vol20d, 2) + '%' : '—'),
+            percentile: '—',
+            contrib: 20,
+          },
+          cross: {
+            dir: crossDir,
+            value1: 'DXY: ' + fmtNum(dxy, 2),
+            value2: 'Oil: $' + fmtNum(oil, 2),
+            percentile: 'VIX: ' + (isFinite(vix) ? fmtNum(vix, 1) : '—'),
+            contrib: 25,
+          },
         };
 
         Object.keys(rows).forEach(function (key) {
           var row = qs('.term-dash-signal-row[data-signal-row="' + key + '"]');
           if (!row) return;
           var directionEl = qs('[data-signal-direction]', row);
-          var valueEl = qs('[data-signal-value]', row);
+          var value1El = qs('[data-signal-value1]', row);
+          var value2El = qs('[data-signal-value2]', row);
+          var percentileEl = qs('[data-signal-percentile]', row);
           var contribEl = qs('[data-signal-contrib]', row);
           directionEl.style.color = '';
           setText(directionEl, formatDirection(rows[key].dir));
           directionEl.setAttribute('data-dir', String(rows[key].dir || 'NEUTRAL').toUpperCase());
           applyDirectionClass(directionEl, rows[key].dir);
 
-          setText(valueEl, rows[key].value);
+          setText(value1El, rows[key].value1);
+          setText(value2El, rows[key].value2);
+          setText(percentileEl, rows[key].percentile);
 
           if (pair === 'USDINR' && key === 'cot') {
             setText(directionEl, 'N/A');
             directionEl.style.color = 'var(--text-muted)';
             directionEl.setAttribute('data-dir', 'N/A');
-            setText(valueEl, '—');
+            setText(value1El, 'N/A');
+            setText(value2El, 'N/A');
+            setText(percentileEl, 'N/A');
             contribEl.classList.remove('bullish', 'bearish', 'neutral');
-            setText(contribEl, '—');
+            setText(contribEl, 'N/A');
           } else {
             var pct = rows[key].contrib;
             contribEl.classList.remove('bullish', 'bearish', 'neutral');
@@ -586,22 +743,70 @@
         setText(matrixVol, String(volDir || 'NEUTRAL').toUpperCase());
         setText(matrixCross, String(crossDir || 'NEUTRAL').toUpperCase());
 
+        matrixRate.classList.add('term-dash-matrix-dir');
+        matrixCot.classList.add('term-dash-matrix-dir');
+        matrixVol.classList.add('term-dash-matrix-dir');
+        matrixCross.classList.add('term-dash-matrix-dir');
         applyDirectionClass(matrixRate, rateDir);
         applyDirectionClass(matrixCot, cotDir);
         applyDirectionClass(matrixVol, volDir);
         applyDirectionClass(matrixCross, crossDir);
       }
 
+      function updateRawStrip(pair, latest) {
+        var strip = qs('#term-dash-raw-strip');
+        if (!strip) return;
+        var sig = latest || {};
+        var rate2y = pickFirstNumber(sig, ['rate_diff_2y']);
+        var rate10y = pickFirstNumber(sig, ['rate_diff_10y']);
+        var rateZ = pickFirstNumber(sig, ['rate_diff_zscore']);
+        var cotNet = pickFirstNumber(sig, ['cot_lev_money_net']);
+        var cotPct = pickFirstNumber(sig, ['cot_percentile']);
+        var vol5d = pickFirstNumber(sig, ['realized_vol_5d']);
+        var vol20d = pickFirstNumber(sig, ['realized_vol_20d']);
+        var dxy = pickFirstNumber(sig, ['cross_asset_dxy']);
+        var oil = pickFirstNumber(sig, ['cross_asset_oil']);
+        var vix = pickFirstNumber(sig, ['cross_asset_vix']);
+        var cotNetText = pair === 'USDINR' ? 'N/A' : fmtInt(cotNet);
+        var cotPctText = pair === 'USDINR' ? 'N/A' : fmtOrdinal(cotPct);
+        var parts = [
+          ['US-DE 2Y', fmtPctPlain(rate2y, 2)],
+          ['US-DE 10Y', fmtPctPlain(rate10y, 2)],
+          ['Z-Score', isFinite(rateZ) ? rateZ.toFixed(2) : '—'],
+          ['COT Net', cotNetText],
+          ['COT Pct', cotPctText],
+          ['Vol 5D', isFinite(vol5d) ? fmtNum(vol5d, 2) + '%' : '—'],
+          ['Vol 20D', isFinite(vol20d) ? fmtNum(vol20d, 2) + '%' : '—'],
+          ['DXY', fmtNum(dxy, 2)],
+          ['Oil', '$' + fmtNum(oil, 2)],
+          ['VIX', isFinite(vix) ? fmtNum(vix, 1) : '—'],
+        ];
+        strip.innerHTML = parts
+          .map(function (part) {
+            return part[0] + ' <span class="term-dash-raw-val">' + part[1] + '</span>';
+          })
+          .join(' <span aria-hidden="true">·</span> ');
+      }
+
       function updateRegimeDetail(regime) {
         var D = getData();
         var regimeLabel = regime && regime.regime ? String(regime.regime).toUpperCase() : '—';
         var confPct = regime ? D.confidenceToPercent(regime.confidence) : NaN;
+        var confRaw = regime && regime.confidence != null ? Number(regime.confidence) : NaN;
+        var confNorm = NaN;
+        if (isFinite(confRaw)) confNorm = confRaw > 1 ? confRaw / 100 : confRaw;
         var driver = regime && regime.primary_driver ? D.formatDriverLabel(regime.primary_driver) : '—';
         setText(qs('#dash-regime-label'), regimeLabel);
         setText(qs('#dash-regime-confidence-text'), isFinite(confPct) ? confPct + '%' : '—');
         setText(qs('#dash-regime-driver'), driver);
         var bar = qs('#dash-regime-confidence-bar');
         if (bar) bar.style.width = (isFinite(confPct) ? confPct : 0) + '%';
+        var confNote = qs('#dash-regime-conf-note');
+        if (confNote) confNote.style.display = isFinite(confNorm) && confNorm < 0.25 ? 'block' : 'none';
+      }
+
+      function updateRegimeAge(ageText) {
+        setText(qs('#dash-regime-age'), ageText || 'Regime unchanged · —');
       }
 
       function updateCenterHeader(pair, latest, regime) {
@@ -612,19 +817,23 @@
         if (liveSpot && isFinite(toNumber(liveSpot.changePct))) px.changePct = toNumber(liveSpot.changePct);
         var confPct = regime ? D.confidenceToPercent(regime.confidence) : NaN;
         var vol = pickFirstNumber(latest, ['realized_vol_20d', 'realized_vol_5d']);
-        var volState = isFinite(vol) ? (vol > 10 ? 'VOL HIGH' : vol < 6 ? 'VOL LOW' : 'VOL NORMAL') : 'VOL —';
-        var regTxt = regime && regime.regime ? String(regime.regime).toUpperCase() : '—';
+        var volState = isFinite(vol) ? (vol > 10 ? 'Vol high' : vol < 6 ? 'Vol low' : 'Vol normal') : 'Vol —';
+        var regTxt = regime && regime.regime ? formatDirection(regime.regime) : '—';
 
         setText(qs('#dash-headline-pair'), pairLabel(pair));
-        setText(
-          qs('#dash-headline-spot'),
-          (isFinite(px.spot) ? fmtNum(px.spot, pair === 'USDJPY' ? 2 : 4) : '—') +
-            ' ' +
-            (isFinite(px.changePct) ? fmtPct(px.changePct, 2) : '—')
-        );
+        setText(qs('#dash-headline-spot'), isFinite(px.spot) ? fmtNum(px.spot, pair === 'USDJPY' ? 2 : 4) : '—');
+        var changeEl = qs('#dash-headline-change');
+        setText(changeEl, isFinite(px.changePct) ? fmtPct(px.changePct, 2) : '—');
+        if (changeEl) {
+          changeEl.classList.remove('positive', 'negative');
+          if (isFinite(px.changePct)) changeEl.classList.add(px.changePct >= 0 ? 'positive' : 'negative');
+        }
+        var regimeEl = qs('#dash-headline-regime');
+        setText(regimeEl, regTxt);
+        applyDirectionClass(regimeEl, regime && regime.regime ? regime.regime : 'neutral');
         setText(
           qs('#dash-headline-state'),
-          regTxt + ' · CONFIDENCE ' + (isFinite(confPct) ? confPct + '%' : '—') + ' · ' + volState
+          'Confidence ' + (isFinite(confPct) ? confPct + '%' : '—') + ' · ' + volState
         );
       }
 
@@ -681,15 +890,8 @@
         if (rangeLabel === '1M') return src.slice(-30);
         if (rangeLabel === '3M') return src.slice(-90);
         if (rangeLabel === '6M') return src.slice(-180);
-        if (rangeLabel === 'YTD') {
-          var y = new Date().getUTCFullYear();
-          var start = new Date(Date.UTC(y, 0, 1));
-          return src.filter(function (r) {
-            if (!r || !r.date) return false;
-            var t = Date.parse(String(r.date).slice(0, 10) + 'T00:00:00Z');
-            return isFinite(t) && t >= start.getTime();
-          });
-        }
+        if (rangeLabel === '1Y') return src.slice(-365);
+        if (rangeLabel === 'ALL') return src;
         return src;
       }
 
@@ -742,7 +944,7 @@
         if (!client) return Promise.resolve(null);
         return client
           .from('regime_calls')
-          .select('pair,date,regime,confidence,primary_driver,rate_signal,cot_signal,vol_signal,cross_signal')
+          .select('pair,date,regime,confidence,primary_driver,rate_signal,cot_signal,vol_signal,oi_signal')
           .eq('pair', pair)
           .order('date', { ascending: false })
           .limit(1)
@@ -759,11 +961,12 @@
         var D = getData();
         state.selectedPair = pair;
         setActivePairRow(pair);
+        setActivePairColor(pair);
 
         return Promise.allSettled([
           D.fetchSignalsFromSupabase(pair, 400),
           D.fetchLatestSignalRow(pair),
-          D.fetchRegimeCalls(pair, 1),
+          D.fetchRegimeCalls(pair, 30),
           fetchRegimeExtended(pair),
           D.fetchLatestPrices(),
           fetchLiveSpots(),
@@ -784,24 +987,26 @@
           }
           if (liveSpots) state.liveSpotByPair = liveSpots;
 
+          regimeRows = regimeRows.map(function (row) {
+            if (!row) return row;
+            var regimeValue = typeof row.regime === 'string' ? row.regime : '';
+            if (!isValidRegime(regimeValue)) row.regime = 'NEUTRAL';
+            return row;
+          });
+          if (regimeExt) {
+            var regimeExtValue = typeof regimeExt.regime === 'string' ? regimeExt.regime : '';
+            if (!isValidRegime(regimeExtValue)) regimeExt.regime = 'NEUTRAL';
+          }
+
           var regimeBasic = regimeRows.length ? regimeRows[0] : null;
           var regime = regimeExt || regimeBasic;
+          var regimeAgeLabel = computeRegimeAgeLabel(regimeRows);
 
           updateCenterHeader(pair, latest, regimeBasic);
           renderSignalStack(latest || {}, regime, pair);
-          if (pair === 'USDINR') {
-            var cotRow = qs('.term-dash-signal-row[data-signal-row="cot"]');
-            var cotDirectionEl = cotRow ? qs('[data-signal-direction]', cotRow) : null;
-            var cotValueEl = cotRow ? qs('[data-signal-value]', cotRow) : null;
-            var cotContribEl = cotRow ? qs('[data-signal-contrib]', cotRow) : null;
-            if (cotDirectionEl) {
-              cotDirectionEl.textContent = 'N/A';
-              cotDirectionEl.style.color = 'var(--text-muted)';
-            }
-            if (cotValueEl) cotValueEl.textContent = '—';
-            if (cotContribEl) cotContribEl.textContent = '—';
-          }
+          updateRawStrip(pair, latest || {});
           updateRegimeDetail(regimeBasic);
+          updateRegimeAge(regimeAgeLabel);
           updateCoverageRows();
 
           return initDashboardCharts(pair);

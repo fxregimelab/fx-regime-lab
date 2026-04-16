@@ -21,7 +21,9 @@ from dotenv import load_dotenv
 from io import StringIO
 from concurrent.futures import ThreadPoolExecutor
 
-from config import TODAY, START_DATE, MAX_FFILL_DAYS, VOL_WINDOW, ROLLING_WINDOW, CORR_WINDOW, PERIODS
+from config import TODAY, START_DATE, MAX_FFILL_DAYS, VOL_WINDOW, ROLLING_WINDOW, CORR_WINDOW, PERIODS, VIX_TICKER
+from core.paths import LATEST_WITH_COT_CSV, DATA_DIR
+from core.utils import _yf_safe_download
 
 """
 G10 FX and yields (fx + merge) Pipeline.
@@ -93,13 +95,12 @@ def fetch_fx_data():
 
     raw = pd.DataFrame()
     for attempt in range(1, 4):
-        raw = yf.download(
-            tickers     = list(FX_TICKERS.values()),
-            start       = START_DATE,
-            end         = TODAY,
-            interval    = "1d",
-            auto_adjust = True,
-            progress    = False
+        raw = _yf_safe_download(
+            list(FX_TICKERS.values()),
+            start=START_DATE,
+            end=TODAY,
+            interval="1d",
+            auto_adjust=True,
         )
         if not raw.empty and "Close" in raw.columns:
             break
@@ -107,7 +108,8 @@ def fetch_fx_data():
         print(f"    yfinance attempt {attempt}/3 returned empty -- retrying in {wait}s...")
         time.sleep(wait)
     else:
-        raise RuntimeError("yfinance failed after 3 attempts -- FX price data unavailable")
+        print("    WARN: yfinance failed after 3 attempts — returning empty frame")
+        return pd.DataFrame()
 
     prices = raw["Close"].copy()
     reverse_map = {v: k for k, v in FX_TICKERS.items()}
@@ -128,9 +130,9 @@ def fetch_fx_data():
     if "DXY" not in prices.columns or prices["DXY"].tail(5).isna().all():
         print("    DXY missing/NaN from batch -- retrying standalone with DX=F...")
         try:
-            _dxy_raw = yf.download(
+            _dxy_raw = _yf_safe_download(
                 "DX=F", start=START_DATE, end=TODAY,
-                interval="1d", auto_adjust=True, progress=False
+                interval="1d", auto_adjust=True,
             )
             if not _dxy_raw.empty:
                 _dxy_series = (_dxy_raw["Close"] if "Close" in _dxy_raw.columns
@@ -164,13 +166,12 @@ def fetch_commodity_data():
 
     raw = pd.DataFrame()
     for attempt in range(1, 4):
-        raw = yf.download(
-            tickers     = list(COMMODITY_TICKERS.values()),
-            start       = START_DATE,
-            end         = TODAY,
-            interval    = "1d",
-            auto_adjust = True,
-            progress    = False
+        raw = _yf_safe_download(
+            list(COMMODITY_TICKERS.values()),
+            start=START_DATE,
+            end=TODAY,
+            interval="1d",
+            auto_adjust=True,
         )
         if not raw.empty:
             break
@@ -178,7 +179,8 @@ def fetch_commodity_data():
         print(f"    yfinance attempt {attempt}/3 returned empty -- retrying in {wait}s...")
         time.sleep(wait)
     else:
-        raise RuntimeError("yfinance failed after 3 attempts -- commodity price data unavailable")
+        print("    WARN: commodity yfinance failed after 3 attempts — returning empty frame")
+        return pd.DataFrame()
 
     # yfinance returns multi-level columns when fetching multiple tickers
     if isinstance(raw.columns, pd.MultiIndex):
@@ -1220,6 +1222,304 @@ def main():
     print("\n  run cot_pipeline.py next")
     print("  then create_dashboards.py for charts")
     print("=" * 70)
+
+
+# ── Phase 1 foundation merge ─────────────────────────────────────────────────
+#
+# merge_main() is the re-entrant merge step invoked by the "merge" pipeline
+# stage (via scripts/pipeline_merge.py). It runs AFTER fx/cot/inr/vol/oi/rr
+# have written their latest CSV sidecars. Its job is to:
+#   1. Re-read data/latest_with_cot.csv (already contains fx+cot+inr output)
+#   2. Join data/{vol,oi,rr}_latest.csv (Layer 3 signals) as pair-indexed cols
+#   3. Compute realized_vol_5d, VIX column, rate_diff_zscore (5d / 60d z-score)
+#   4. Apply iv_gate / oi_norm / rr_modifier composite wiring when the columns
+#      are present (partial rollout → NaN-safe defaults)
+#   5. Compute per-pair primary_driver from normalised signal contributions
+#   6. Persist updated master and Supabase upsert the latest rows
+#
+# Never raises — every external step is wrapped. Failure logs pipeline_errors
+# and leaves the master untouched on disk.
+
+_PAIR_COT = {"eur": "EUR", "jpy": "JPY", "inr": None}
+_PAIR_ID  = {"eur": "EURUSD", "jpy": "USDJPY", "inr": "USDINR"}
+_PAIR_SPREAD_PREFIX = {
+    "eur": "US_DE_10Y_spread",
+    "jpy": "US_JP_10Y_spread",
+    "inr": "US_IN_10Y_spread",
+}
+
+
+def _merge_compute_vol5(m):
+    """Annualised 5-day realised vol for every covered pair."""
+    for pair in ("EURUSD", "USDJPY", "USDINR"):
+        if pair not in m.columns:
+            continue
+        px = pd.to_numeric(m[pair], errors="coerce")
+        lr = np.log(px / px.shift(1))
+        m[f"{pair}_vol5"] = lr.rolling(5).std() * np.sqrt(252) * 100
+    return m
+
+
+def _merge_fetch_vix(m):
+    """Fetch VIX close series and align to master index. NaN-safe on failure."""
+    from core.signal_write import log_pipeline_error
+    try:
+        from core.utils import _yf_safe_download
+        raw = _yf_safe_download(VIX_TICKER, start=START_DATE, end=TODAY, interval="1d", auto_adjust=True)
+        if raw is None or raw.empty:
+            log_pipeline_error("merge_main", "VIX fetch empty", notes="vix")
+            return m
+        if isinstance(raw.columns, pd.MultiIndex):
+            vix = raw["Close"].iloc[:, 0]
+        elif "Close" in raw.columns:
+            vix = raw["Close"]
+        else:
+            vix = raw.iloc[:, 0]
+        vix.index = pd.to_datetime(vix.index.date)
+        m["VIX"] = vix.reindex(m.index).ffill(limit=MAX_FFILL_DAYS)
+    except Exception as e:
+        log_pipeline_error("merge_main", f"VIX fetch: {e}", notes="vix")
+    return m
+
+
+def _merge_compute_rate_zscore(m):
+    """5-day change z-score over 60-day trailing window for every spread column."""
+    prefixes = [
+        "US_DE_2Y_spread", "US_DE_10Y_spread",
+        "US_JP_2Y_spread", "US_JP_10Y_spread",
+        "US_IN_policy_spread", "US_IN_10Y_spread",
+    ]
+    for prefix in prefixes:
+        if prefix not in m.columns:
+            continue
+        s = pd.to_numeric(m[prefix], errors="coerce")
+        chg5 = s.diff(5)
+        mu = chg5.rolling(60, min_periods=20).mean()
+        sd = chg5.rolling(60, min_periods=20).std().replace(0, np.nan)
+        m[f"{prefix}_zscore"] = ((chg5 - mu) / sd).clip(-3, 3)
+    return m
+
+
+def _left_join_sidecar(m, csv_path):
+    """Left-join a sidecar CSV (columns: date, pair, *metrics) onto master by date.
+
+    Metrics are written as {pair}_{metric} columns on the master for the
+    latest date present in the sidecar. Idempotent across runs.
+    """
+    if not os.path.exists(csv_path):
+        return m
+    try:
+        side = pd.read_csv(csv_path)
+        if side.empty or "date" not in side.columns or "pair" not in side.columns:
+            return m
+        side["date"] = pd.to_datetime(side["date"]).dt.normalize()
+        metric_cols = [c for c in side.columns if c not in ("date", "pair")]
+        if not metric_cols:
+            return m
+        for pair, grp in side.groupby("pair"):
+            grp = grp.sort_values("date").set_index("date")
+            for metric in metric_cols:
+                col = f"{pair}_{metric}"
+                aligned = grp[metric].reindex(m.index).astype("float64", errors="ignore")
+                if col in m.columns:
+                    m[col] = m[col].combine_first(aligned)
+                else:
+                    m[col] = aligned
+    except Exception as e:
+        from core.signal_write import log_pipeline_error
+        log_pipeline_error("merge_main", f"sidecar {csv_path}: {e}", notes="sidecar_join")
+    return m
+
+
+def _apply_iv_gate(m):
+    """CVOL iv_gate multiplier + VOL_EXPANDING override per approved design."""
+    for pair in ("EURUSD", "USDJPY"):
+        iv_col = f"{pair}_implied_vol_30d"
+        if iv_col not in m.columns:
+            continue
+        iv = pd.to_numeric(m[iv_col], errors="coerce")
+        m[f"{pair}_iv_pct"] = iv.rolling(260, min_periods=60).rank(pct=True)
+        gate = np.select(
+            [m[f"{pair}_iv_pct"] > 0.90,
+             m[f"{pair}_iv_pct"] > 0.75,
+             m[f"{pair}_iv_pct"] < 0.25],
+            [0.2, 0.7, 1.0],
+            default=1.0,
+        )
+        score_col = f"{pair.lower()}_composite_score"
+        label_col = f"{pair.lower()}_composite_label"
+        if score_col in m.columns:
+            m[score_col] = m[score_col] * gate
+        if label_col in m.columns:
+            mask = m[f"{pair}_iv_pct"] > 0.90
+            m.loc[mask, label_col] = "VOL_EXPANDING"
+    return m
+
+
+def _apply_oi_alignment(m):
+    """oi_norm (+/-/0) and UNWIND_IN_PROGRESS flag using 3-day consecutive rule."""
+    for pair in ("EURUSD", "USDJPY"):
+        align_col = f"{pair}_oi_price_alignment"
+        delta_col = f"{pair}_oi_delta"
+        px_delta_col = f"{pair}_px_delta"
+        if align_col not in m.columns or delta_col not in m.columns:
+            continue
+        if px_delta_col not in m.columns:
+            m[px_delta_col] = pd.to_numeric(m.get(pair), errors="coerce").diff()
+        alignment = m[align_col]
+        px_sign = np.sign(pd.to_numeric(m[px_delta_col], errors="coerce").fillna(0))
+        m[f"{pair}_oi_norm"] = np.where(
+            alignment == "confirming", px_sign,
+            np.where(alignment == "diverging", -px_sign, 0),
+        )
+        cot_col = "EUR_lev_percentile" if pair == "EURUSD" else "JPY_lev_percentile"
+        if cot_col in m.columns:
+            crowded = pd.to_numeric(m[cot_col], errors="coerce") > 90
+            shrinking = pd.to_numeric(m[delta_col], errors="coerce") < 0
+            trio = (crowded & shrinking).astype(int).rolling(3).sum() >= 3
+            flag_col = f"{pair}_flags"
+            if flag_col not in m.columns:
+                m[flag_col] = ""
+            m.loc[trio.fillna(False), flag_col] = "UNWIND_IN_PROGRESS"
+    return m
+
+
+def _apply_rr_modifier(m):
+    """rr_modifier (1.15/1.0/0.60) + OPTIONS_DIVERGENCE flag for EUR/USD only."""
+    rr_col = "EURUSD_risk_reversal_25d"
+    score_col = "eurusd_composite_score"
+    if rr_col not in m.columns or score_col not in m.columns:
+        return m
+    rr = pd.to_numeric(m[rr_col], errors="coerce")
+    mu = rr.rolling(260, min_periods=60).mean()
+    sd = rr.rolling(260, min_periods=60).std().replace(0, np.nan)
+    rr_z = ((rr - mu) / sd).clip(-3, 3)
+    m["EURUSD_rr_z"] = rr_z
+    score = pd.to_numeric(m[score_col], errors="coerce")
+    composite_sign = np.sign(score)
+    rr_sign = np.sign(rr)
+    agree = (composite_sign == rr_sign) & (composite_sign != 0)
+    confirm = agree & (rr_z.abs() > 0.5)
+    contradict = (~agree) & (rr_z.abs() > 1.5)
+    modifier = np.select([confirm, contradict], [1.15, 0.60], default=1.0)
+    m["EURUSD_rr_modifier"] = modifier
+    m[score_col] = m[score_col] * modifier
+    flag_col = "EURUSD_flags"
+    if flag_col not in m.columns:
+        m[flag_col] = ""
+    m.loc[contradict.fillna(False), flag_col] = "OPTIONS_DIVERGENCE"
+    return m
+
+
+def _compute_primary_driver(m):
+    """For each pair, pick the signal with highest weighted absolute contribution.
+
+    Contributions per design spec:
+      rate  0.30 * |rate_diff_zscore|
+      cot   0.25 * |cot_percentile - 50| / 50
+      skew  0.15 * |vol_skew / 3|        (0 if column absent)
+      rr    0.15 * |rr_z / 2|            (0 if column absent)
+      oi    0.15 * |oi_norm|             (0 if column absent)
+    Written to column {pair_lower}_primary_driver as "name:weight" text.
+    """
+    if m.empty:
+        return m
+    idx = m.index[-1]
+    for pair_key in ("eur", "jpy", "inr"):
+        fxid = _PAIR_ID[pair_key]
+        cot_prefix = _PAIR_COT[pair_key]
+        spread_prefix = _PAIR_SPREAD_PREFIX[pair_key]
+
+        def _latest(col):
+            if col not in m.columns:
+                return 0.0
+            v = m.at[idx, col] if idx in m.index else m[col].iloc[-1]
+            try:
+                if pd.isna(v):
+                    return 0.0
+                return float(v)
+            except (TypeError, ValueError):
+                return 0.0
+
+        rate_z = _latest(f"{spread_prefix}_zscore")
+        cot_pct = _latest(f"{cot_prefix}_lev_percentile") if cot_prefix else 50.0
+        vol_skew = _latest(f"{fxid}_vol_skew")
+        rr_z = _latest(f"{fxid}_rr_z")
+        oi_norm = _latest(f"{fxid}_oi_norm")
+
+        contribs = {
+            "rate":     0.30 * abs(rate_z),
+            "cot":      0.25 * abs(cot_pct - 50.0) / 50.0 if cot_prefix else 0.0,
+            "vol_skew": 0.15 * min(abs(vol_skew) / 3.0, 1.0),
+            "rr":       0.15 * min(abs(rr_z) / 2.0, 1.0),
+            "oi":       0.15 * abs(oi_norm),
+        }
+        if all(v == 0.0 for v in contribs.values()):
+            driver = "unknown:0.00"
+        else:
+            top = max(contribs, key=contribs.get)
+            driver = f"{top}:{contribs[top]:.2f}"
+        col = f"{pair_key}_primary_driver"
+        if col not in m.columns:
+            m[col] = None
+        m.at[idx, col] = driver
+    return m
+
+
+def merge_main():
+    """Idempotent merge step — safe to invoke multiple times.
+
+    Reads LATEST_WITH_COT_CSV (must exist from fx/cot/inr steps), joins
+    Layer-3 sidecar CSVs, computes derived columns, applies composite
+    modifiers, rewrites the master CSV, and upserts to Supabase signals.
+    Degrades gracefully — never raises into run.py.
+    """
+    print("\n" + "=" * 70)
+    print(f"  MERGE STEP -- {TODAY}")
+    print("=" * 70)
+
+    if not os.path.exists(LATEST_WITH_COT_CSV):
+        print(f"  merge_main: {LATEST_WITH_COT_CSV} missing — skip")
+        return
+
+    try:
+        m = pd.read_csv(LATEST_WITH_COT_CSV, index_col=0, parse_dates=True)
+    except Exception as e:
+        from core.signal_write import log_pipeline_error
+        log_pipeline_error("merge_main", f"read master: {e}", notes="read_master")
+        print(f"  merge_main: could not read master — {e}")
+        return
+
+    m = _merge_compute_vol5(m)
+    m = _merge_fetch_vix(m)
+    m = _merge_compute_rate_zscore(m)
+
+    for side in ("vol_latest.csv", "oi_latest.csv", "rr_latest.csv"):
+        m = _left_join_sidecar(m, os.path.join(DATA_DIR, side))
+
+    m = _apply_iv_gate(m)
+    m = _apply_oi_alignment(m)
+    m = _apply_rr_modifier(m)
+    m = _compute_primary_driver(m)
+
+    try:
+        tmp = LATEST_WITH_COT_CSV + ".tmp"
+        m.to_csv(tmp, encoding="utf-8")
+        os.replace(tmp, LATEST_WITH_COT_CSV)
+        print(f"  merge_main: wrote {LATEST_WITH_COT_CSV} ({m.shape[0]} rows, {m.shape[1]} cols)")
+    except Exception as e:
+        from core.signal_write import log_pipeline_error
+        log_pipeline_error("merge_main", f"write master: {e}", notes="write_master")
+        print(f"  merge_main: write failed — {e}")
+        return
+
+    try:
+        from core.signal_write import sync_signals_from_master_csv
+        sync_signals_from_master_csv()
+    except Exception as e:
+        from core.signal_write import log_pipeline_error
+        log_pipeline_error("merge_main", f"signals sync: {e}", notes="signals_sync")
+        print(f"  merge_main: signals sync failed — {e}")
 
 
 if __name__ == "__main__":

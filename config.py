@@ -37,6 +37,25 @@ FX_TICKERS = {
     "DXY":    "DX-Y.NYB",   # Dollar Index (basket of currencies vs USD)
 }
 
+# ── CROSS-ASSET RISK BAROMETERS ─────────────────────────────
+VIX_TICKER = "^VIX"      # CBOE Volatility Index (Yahoo Finance)
+
+# ── CME CVOL (Phase 3 vol_pipeline.py) ──────────────────────
+CME_CVOL_BASE = "https://www.cmegroup.com/CmeWS/mvc/CVOL/index"
+CME_CVOL_PRODUCTS = {
+    "EURUSD": "EURUSD_CVOL",   # 6E underlying
+    "USDJPY": "USDJPY_CVOL",   # 6J underlying
+}
+
+# ── CME OI REPORT (Phase 4 oi_pipeline.py) ──────────────────
+CME_OI_URL = "https://www.cmegroup.com/CmeWS/mvc/Volume/getVolumeDownload.do"
+CME_OI_PRODUCT_IDS = {
+    "EURUSD": "6E",
+    "USDJPY": "6J",
+}
+OI_NOISE = 0.005   # <0.5% OI change => neutral
+PX_NOISE = 0.001   # <0.1% price change => neutral
+
 # ── YIELD SOURCES ───────────────────────────────────────────
 # US yields: FRED (daily)
 FRED_SERIES = {

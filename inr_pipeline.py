@@ -52,10 +52,11 @@ _FBIL_HEADERS = {
 
 def fetch_usdinr():
     print("\n[1/3] fetching USD/INR price (yfinance USDINR=X)...")
-    import yfinance as yf
+    from core.utils import _yf_safe_download
 
-    data = yf.download("USDINR=X", start=START_DATE, interval="1d",
-                       progress=False, auto_adjust=True)
+    data = _yf_safe_download(
+        "USDINR=X", start=START_DATE, interval="1d", auto_adjust=True,
+    )
     if len(data) == 0:
         print("    FAILED -- empty dataframe")
         return pd.DataFrame()

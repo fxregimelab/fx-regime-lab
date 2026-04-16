@@ -12,6 +12,7 @@ import pandas as pd
 from config import TODAY
 from core.signal_write import log_pipeline_error
 from core.supabase_client import get_client
+from core.utils import _clean_brief_text
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +38,26 @@ def _sign_word(x: Any, bullish_first: bool = True) -> str:
 
 
 def _rate_signal(row: pd.Series, pair: str) -> str:
+    """Direction read from 5-day change z-score (Phase 1 merge output).
+
+    Falls back to 1-day change column when the z-score is missing, so this
+    stays safe on older master CSVs that pre-date Phase 1.
+    """
     if pair == "EURUSD":
-        return _sign_word(row.get("US_DE_2Y_spread_chg_1D"), True)
+        z = row.get("US_DE_2Y_spread_zscore")
+        if z is not None and not (isinstance(z, float) and pd.isna(z)):
+            return _sign_word(z, True)
+        return _sign_word(row.get("US_DE_2Y_spread_chg_1W", row.get("US_DE_2Y_spread_chg_1D")), True)
     if pair == "USDJPY":
-        return _sign_word(row.get("US_JP_2Y_spread_chg_1D"), True)
+        z = row.get("US_JP_2Y_spread_zscore")
+        if z is not None and not (isinstance(z, float) and pd.isna(z)):
+            return _sign_word(z, True)
+        return _sign_word(row.get("US_JP_2Y_spread_chg_1W", row.get("US_JP_2Y_spread_chg_1D")), True)
     if pair == "USDINR":
-        return _sign_word(row.get("US_IN_10Y_spread_chg_1D"), False)
+        z = row.get("US_IN_10Y_spread_zscore")
+        if z is not None and not (isinstance(z, float) and pd.isna(z)):
+            return _sign_word(z, False)
+        return _sign_word(row.get("US_IN_10Y_spread_chg_1W", row.get("US_IN_10Y_spread_chg_1D")), False)
     return "NEUTRAL"
 
 
@@ -113,6 +128,15 @@ def persist_regime_calls_and_brief(
         return
     row = sub.iloc[-1]
 
+    def _driver(pair_key: str, fallback: str) -> str:
+        """Prefer the merge-computed primary driver when available."""
+        v = row.get(f"{pair_key}_primary_driver")
+        if v is not None and not (isinstance(v, float) and pd.isna(v)):
+            s = str(v).strip()
+            if s:
+                return s
+        return fallback
+
     rows: List[Dict[str, Any]] = []
     eur_lab = row.get("eurusd_composite_label")
     eur_sc = row.get("eurusd_composite_score")
@@ -122,7 +146,7 @@ def persist_regime_calls_and_brief(
             str(eur_lab) if eur_lab is not None and not pd.isna(eur_lab) else "UNKNOWN",
             _conf_from_score(eur_sc),
             float(eur_sc) if eur_sc is not None and not pd.isna(eur_sc) else None,
-            "eurusd_composite",
+            _driver("eur", "eurusd_composite"),
             row,
         )
     )
@@ -134,7 +158,7 @@ def persist_regime_calls_and_brief(
             str(jpy_lab) if jpy_lab is not None and not pd.isna(jpy_lab) else "UNKNOWN",
             _conf_from_score(jpy_sc),
             float(jpy_sc) if jpy_sc is not None and not pd.isna(jpy_sc) else None,
-            "usdjpy_composite",
+            _driver("jpy", "usdjpy_composite"),
             row,
         )
     )
@@ -146,7 +170,7 @@ def persist_regime_calls_and_brief(
             str(inr_lab) if inr_lab is not None and not pd.isna(inr_lab) else "DIRECTIONAL_ONLY",
             _conf_from_score(inr_sc),
             float(inr_sc) if inr_sc is not None and not pd.isna(inr_sc) else None,
-            "inr_composite",
+            _driver("inr", "inr_composite"),
             row,
         )
     )
@@ -157,15 +181,17 @@ def persist_regime_calls_and_brief(
         log_pipeline_error("regime_persist", str(e), notes="regime_calls upsert")
         logger.warning("regime_calls upsert failed: %s", e)
 
+    cleaned_brief = _clean_brief_text(brief_text) if brief_text else ""
+
     macro_context = None
-    if brief_text:
-        one = brief_text.strip().split("\n")[0].strip()
+    if cleaned_brief:
+        one = cleaned_brief.split("\n")[0].strip()
         sent = re.split(r"(?<=[.!?])\s+", one, maxsplit=1)[0].strip()
         macro_context = sent[:2000] if sent else None
 
     brief_stub = {
         "date": TODAY,
-        "brief_text": (brief_text[:10000] if brief_text else None),
+        "brief_text": (cleaned_brief[:10000] if cleaned_brief else None),
         "eurusd_regime": rows[0]["regime"],
         "usdjpy_regime": rows[1]["regime"],
         "usdinr_regime": rows[2]["regime"],

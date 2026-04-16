@@ -76,7 +76,7 @@ STEPS = [
     ("vol",     "vol_pipeline.py"),       # Phase 1: CME CVOL (stub until API wired)
     ("oi",      "oi_pipeline.py"),        # Phase 1: CME OI delta (stub)
     ("rr",      "rr_pipeline.py"),        # Phase 1: synthetic RR proxy (yfinance)
-    ("merge",   "pipeline.py"),           # NOTE: merge is part of pipeline.py (same script)
+    ("merge",   "scripts/pipeline_merge.py"),  # Phase 1: re-entrant merge — script name differs from "fx" so dedup below is inert
     ("text",    "morning_brief.py"),      # generate text brief → briefs/brief_YYYYMMDD.txt
     ("macro",   "macro_pipeline.py"),      # Phase 10 Stage 2: fetch economic calendar → data/macro_cal.json
     ("ai",      "ai_brief.py"),           # Phase 13: AI regime reads → data/ai_regime_read.json

@@ -35,6 +35,23 @@ _MODEL = "claude-haiku-4-5-20251001"
 _AI_ARTICLE_OUTPUT = os.path.join("data", "ai_article.json")
 _AI_READ_OUTPUT = os.path.join("data", "ai_regime_read.json")
 
+
+def _load_morning_brief() -> str:
+    """Phase 2: load today's morning brief text as primary narrative source.
+
+    Returns empty string if file absent or unreadable — prompt degrades to
+    CSV-only mode but never raises.
+    """
+    try:
+        from core.paths import brief_txt
+        path = brief_txt()
+        if not os.path.exists(path):
+            return ""
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception:
+        return ""
+
 PAIR_CONFIG = {
     "eurusd": {
         "label": "EUR/USD",
@@ -241,12 +258,24 @@ def _build_pair_signal(master_df, pair, cfg):
     }
 
 
-def build_narrative_prompt(signal_data: dict) -> str:
-    """Build the prompt for Claude from signal data."""
+def build_narrative_prompt(signal_data: dict, brief_text: str = "") -> str:
+    """Build the prompt for Claude from signal data.
+
+    Phase 2: the morning brief text (if available) is the *primary* source of
+    truth for the narrative. Signal data JSON is supplied as supporting
+    numeric context, not the ground truth.
+    """
+    brief_section = (
+        f"\nPRIMARY SOURCE — today's morning brief (use this as the\n"
+        f"narrative ground truth; do not contradict its framing):\n"
+        f"----- BRIEF BEGIN -----\n{brief_text.strip()[:6000]}\n----- BRIEF END -----\n"
+        if brief_text else ""
+    )
     return f"""You are writing a daily FX regime intelligence
 brief for institutional macro researchers.
-
-Today's signal data:
+{brief_section}
+Supporting structured signal data (numeric context only — narrative must
+align with the morning brief above when present):
 {json.dumps(signal_data, indent=2)}
 
 Return valid JSON only with this schema:
@@ -432,7 +461,8 @@ def generate_brief_article(signal_data: dict) -> dict:
         raise RuntimeError("Anthropic API unavailable.")
 
     client = anthropic.Anthropic(api_key=api_key, timeout=30.0)
-    prompt = build_narrative_prompt(signal_data)
+    brief_text = _load_morning_brief()
+    prompt = build_narrative_prompt(signal_data, brief_text=brief_text)
     message = client.messages.create(
         model=_MODEL,
         max_tokens=4096,
