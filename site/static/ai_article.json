@@ -1,28 +1,28 @@
 {
   "date": "2026-04-15",
-  "headline": "Neutral Regimes Across Major Pairs as Rate Differentials Stabilize; Volatility Extremes Signal Crowding Risk",
+  "headline": "Spread Compression & Positioning Risk Define G10 Regimes; ECB Decision Looms",
   "sections": {
-    "macro_context": "Global rates markets are pricing a stable interest rate regime with the US maintaining a yield advantage across developed markets. The US-Germany 10Y spread sits at +115bp while the US-Japan spread holds at +185bp, both moderate by historical standards. However, volatility metrics reveal sharp divergence: EUR/USD implied vol is at the 87th percentile while USD/JPY sits at only the 22nd percentile. This asymmetry suggests crowding in carry trades and reduced hedging demand in lower-volatility pairs, with positioning data confirming sparse speculative interest across the board. The macro backdrop favors USD stability rather than directional conviction.",
+    "macro_context": "Rate differential compression is the dominant macro driver across G10 today. US-DE 10Y spreads have tightened 14bp in one week to 117bp, while US-JP 10Y spreads compressed 7bp to 185bp. This compression mechanically favors foreign currency strength, yet positioning remains crowded short in both EUR and JPY, creating asymmetric squeeze risk. The ECB meeting tomorrow (17 April) is the pivotal catalyst\u2014any hawkish surprise or hawkish guidance would challenge the current EUR strength narrative. Volatility in EUR/USD sits at the 87th percentile, suggesting positioning signals are less reliable and may already be pricing an ECB move. Across G10, regimes remain NEUTRAL, but with elevated tail risk in both directional anchors.",
     "eurusd": {
       "regime": "NEUTRAL",
       "confidence": 0.05,
-      "narrative": "EUR/USD remains in a neutral regime with minimal conviction at 5% confidence. The US-Germany yield differential of +115bp supports dollar resilience, but this advantage is neither extreme nor expanding. Positioning sits at only the 32.7th percentile of historical speculative interest, indicating neither long nor short crowding. The critical signal here is the 87th percentile volatility reading\u2014the highest across today's universe\u2014which suggests either hedging demand or mean-reversion expectations. This elevated vol-to-positioning divergence is a crowding risk indicator; when speculators are sparse but volatility is extreme, surprise flow or positioning unwinding can generate sharp moves.",
-      "key_driver": "US-Germany 10Y spread at +115bp with sparse positioning creates asymmetric risk to vol normalization.",
-      "watch_for": "US-Germany spread momentum reversal below 110bp or positioning acceleration above the 50th percentile."
+      "narrative": "EUR/USD closed at 1.1799, up 26bp on the day and +417bp year-to-date. The regime is supported by spread compression: the US-DE 10Y differential has narrowed 60bp over 12 months and sits at just 117bp today\u2014a historically tight level that favors EUR strength on rate differentials alone. However, the critical risk is positioning: asset managers are at the 1st percentile crowded short (258,050 contracts, +33.3% of OI), and leveraged money is at the 11th percentile short as well. With EUR/USD volatility elevated at 87th percentile, the market is priced for event risk. The ECB decision tomorrow will determine whether this positioning compresses further or unwinds.",
+      "key_driver": "US-DE 10Y spread at +117bp with asset managers crowded short at 1st percentile creates squeeze asymmetry ahead of ECB.",
+      "watch_for": "ECB dovish surprise (rate hold with easing bias) would trigger short covering; hawkish guidance would cap the rally. Break above R2 at 1.2018 signals momentum shift toward EUR strength."
     },
     "usdjpy": {
       "regime": "NEUTRAL",
       "confidence": 0.16,
-      "narrative": "USD/JPY sits in neutral regime with only 16% confidence as the carry trade remains structurally intact but dormant. The US-Japan 10Y spread of +185bp is historically normal, providing carry support. Critically, both COT positioning (35th percentile) and volatility (22nd percentile) sit in quiet zones\u2014this pair is not where institutional capital is currently rotating. The low volatility reading is the operative signal: it reflects either complacency in the carry or genuine equilibrium. BOJ policy signals and risk-off sentiment are the primary triggers; any BoJ hawkishness or equity market stress would compress the spread and test dollar support.",
-      "key_driver": "US-Japan 10Y spread at +185bp supported by subdued positioning and low implied volatility.",
-      "watch_for": "USD/JPY volatility expansion above the 40th percentile or rapid positioning accumulation signaling carry trade re-engagement."
+      "narrative": "USD/JPY trades at 158.79, down 27bp on the day but +1087bp year-to-date. Spread compression favors lower USD/JPY: the US-JP 10Y differential has compressed 115bp over 12 months and sits at 185bp today. Carry trade positioning is partially intact\u2014leveraged money is at the neutral 42nd percentile short, suggesting the 2024 unwind is complete and some carry longs have reaccumulated. Asset managers, however, remain crowded short at 1st percentile. The BoJ path is the key variable: any BoJ tightening or hawkish forward guidance would reinforce lower USD/JPY momentum. Volatility is normal at 23rd percentile, so positioning signals remain more reliable here than in EUR/USD.",
+      "key_driver": "US-JP 10Y spread at +185bp compressed 115bp in 12 months; carry trade partially recovered but asset managers crowded short at 1st percentile.",
+      "watch_for": "BoJ hawkish messaging or next policy tightening would accelerate the lower USD/JPY move. Support at 157.92 (S1) is key; break below signals continuation toward 152.45."
     },
     "usdinr": {
       "regime": "NEUTRAL",
       "confidence": 0.06,
-      "narrative": "USD/INR trades directionally with the US-India 10Y spread inverted at -234bp\u2014India's rates are superior to US rates. Volatility is at the 100th percentile, indicating maximum hedging or intervention activity, likely RBI-driven. This pair does not support precision tactical entry; instead, it signals that India's central bank is actively defending the currency against dollar strength. The negative spread typically constrains rupee appreciation, but RBI intervention\u2014evident in extreme vol\u2014is the real regime determinant. Treat this as a policy-managed pair rather than a rate-differential play.",
-      "key_driver": "US-India 10Y spread at -234bp with RBI intervention driving extreme volatility at the 100th percentile.",
-      "watch_for": "Sustained rupee weakness exceeding RBI tolerance thresholds or unexpected policy shifts in Indian rates."
+      "narrative": "USD/INR regimes remain NEUTRAL and directionally unreliable due to active RBI intervention. The RBI has deployed -4.7B USD in reserves over the past 7 days to defend the INR floor. The INR composite score is +6.4 (neutral), with RBI support contributing -6 to the score\u2014this reflects the intervention drag on any natural weakening pressure. Gold correlation has broken (USD/INR showing -247 correlation instead of the expected positive import-demand signal), partly due to seasonal Akshaya Tritiya buying masking fundamental flows. Oil correlation is near zero at 61bp, indicating the traditional oil-import channel is also subdued. With USD/INR volatility at the 100th percentile, entry precision is not warranted.",
+      "key_driver": "RBI actively defending INR floor with -4.7B USD intervention in past 7 days; gold and oil correlation channels broken.",
+      "watch_for": "RBI reserve depletion rate and any shift in intervention intensity; if RBI support weakens, USD/INR could reprrice higher. Monitor Akshaya Tritiya seasonal flows (mid-April peak) for dissipation."
     },
     "signal_changes": [
       "No material signal changes."
@@ -33,5 +33,5 @@
     "usdjpy": [],
     "usdinr": []
   },
-  "generated_at": "2026-04-16T06:26:04Z"
+  "generated_at": "2026-04-16T19:40:47Z"
 }

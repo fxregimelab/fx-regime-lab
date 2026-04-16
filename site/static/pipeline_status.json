@@ -1,5 +1,5 @@
 {
-  "last_run_utc": "2026-04-16T06:26:10Z",
+  "last_run_utc": "2026-04-16T19:40:54Z",
   "last_run_status": "ok",
   "steps_completed": [
     "fx",
@@ -8,6 +8,7 @@
     "vol",
     "oi",
     "rr",
+    "merge",
     "text",
     "macro",
     "ai",
@@ -17,5 +18,5 @@
   "source": "fx_regime_pipeline",
   "supabase_write_status": "failed",
   "supabase_rows_written": 0,
-  "last_supabase_write": "2026-04-16T06:25:48Z"
+  "last_supabase_write": "2026-04-16T19:40:30Z"
 }
