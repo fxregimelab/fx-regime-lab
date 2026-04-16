@@ -38,7 +38,12 @@ HEADERS = {
     "Notion-Version": "2022-06-28",
 }
 
-HOME_DASHBOARD_PAGE_ID = "31f4fe96a7b581a9bdbec459bd27f224"
+# Notion page ID (no dashes) for the Home Dashboard — integration must have access.
+# Override via env when the page is recreated or moved.
+HOME_DASHBOARD_PAGE_ID = os.environ.get(
+    "NOTION_HOME_DASHBOARD_PAGE_ID",
+    "31f4fe96a7b581a9bdbec459bd27f224",
+)
 WEEKLY_REGIME_DB_ID    = "f09a2ef9119341898799da7ce35940d8"
 SIGNAL_LOG_DB_ID       = "913c006dda50479aacfa3d0fe16d6bf3"
 

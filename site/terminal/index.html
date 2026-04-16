@@ -17,8 +17,11 @@
   <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="window.__supabaseReady=true;document.dispatchEvent(new Event('supabase-ready'))"></script>
   <script async src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" onload="window.__echartsReady=true;document.dispatchEvent(new Event('echarts-ready'))"></script>
   <style>
-    .term-skel-pulse { animation: term-skel-pulse 1.2s ease-in-out infinite; opacity: 0.45; }
-    @keyframes term-skel-pulse { 50% { opacity: 0.88; } }
+    .term-skel-pulse { animation: term-skel-pulse 1.8s ease-in-out infinite; opacity: 0.4; }
+    @keyframes term-skel-pulse { 50% { opacity: 0.72; } }
+    @media (prefers-reduced-motion: reduce) {
+      .term-skel-pulse { animation: none; opacity: 0.85; }
+    }
     .term-data-stale[hidden] { display: none; }
   </style>
   <script defer src="/terminal/utils.js"></script>
@@ -42,12 +45,12 @@
       <nav class="term-nav__tabs" aria-label="Terminal sections">
         <a class="term-nav__tab" href="/terminal/" data-path="/terminal/index">Home</a>
         <a class="term-nav__tab" href="/terminal/dashboard.html" data-path="/terminal/dashboard">Dashboard</a>
-        <a class="term-nav__tab" href="/" data-exit="true">🚪 Exit</a>
+        <a class="term-nav__tab" href="/" data-exit="true">Exit</a>
       </nav>
       <div class="term-nav__right">
         <span id="term-data-stale" class="term-data-stale" hidden>
           <span class="term-data-stale__dot" aria-hidden="true"></span>
-          <span class="term-data-stale__label">Data unavailable</span>
+          <span class="term-data-stale__label">Regime data unavailable — charts may use CSV fallback</span>
         </span>
         <div class="term-nav__pipeline">
           <span class="term-nav__pipeline-dot" id="term-pipeline-health-dot" aria-hidden="true"></span>
@@ -55,10 +58,12 @@
         </div>
       </div>
     </header>
+    <p id="term-provenance-strip" class="term-provenance-strip" role="status" aria-live="polite"></p>
 
     <main id="term-main" class="term-main">
       <div id="term-page-error" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:40vh" aria-live="polite"></div>
 
+      <p class="term-ticker__source" id="term-ticker-source">Stream: indicative last prices (not official closes). Tables and regime: daily pipeline.</p>
       <div class="term-ticker" aria-label="Macro snapshot">
         <div class="term-ticker-item term-skel-target" data-term-ticker="DXY"></div>
         <div class="term-ticker-item term-skel-target" data-term-ticker="EUR/USD"></div>

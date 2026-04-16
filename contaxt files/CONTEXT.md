@@ -54,26 +54,25 @@ FX Regime Lab is a live, automated, daily G10 FX Regime Detection Framework. It 
 | CFTC COT Positioning | CFTC.gov (Leveraged Money + Asset Manager) | Weekly (Tuesday snapshot, Friday release) | Live |
 | Realized Volatility | Computed from price data | Daily | Live |
 | Cross-Asset Correlations | Oil, equities, DXY vs FX pairs | Daily | Live |
-| Implied Vol (CVOL) | CME CVOL EOD API | Daily | **To build** |
-| CME Daily OI Delta | CME website | Daily | **To build** |
-| Synthetic Risk Reversal | yfinance FXE options (25-delta proxy) | Daily | **To build** |
+| Implied Vol (FX) | CBOE FX vol indices (^EVZ, ^JYVIX) via yfinance | Daily | Live (EUR/USD, USD/JPY); INR falls back in merge |
+| CME Daily OI Delta | CME open interest + price alignment | Daily | Live in `oi_pipeline.py` (pair coverage per implementation) |
+| Risk reversal (25d) | yfinance FXE option chain proxy | Daily | Live in `rr_pipeline.py` (EURUSD-centric path) |
 | NLP Sentiment | FinBERT on FOMC/ECB/BoJ minutes | Event-driven | **Future phase** |
 
 ### Current pipeline execution sequence (canonical: `run.py`)
 ```
-run.py steps: fx → cot → inr → merge → text → macro → ai → html → deploy
-(pipeline.py, cot_pipeline.py, inr_pipeline.py, morning_brief.py, macro_pipeline.py,
- ai_brief.py, create_html_brief.py, deploy.py — no create_dashboards.py)
+fx → cot → inr → vol → oi → rr → merge → text → macro → ai → substack → html → validate → deploy
 ```
+Scripts (in order): `pipeline.py`, `cot_pipeline.py`, `inr_pipeline.py`, `vol_pipeline.py`, `oi_pipeline.py`, `rr_pipeline.py`, `scripts/pipeline_merge.py`, `morning_brief.py`, `macro_pipeline.py`, `ai_brief.py`, `scripts/substack_publish.py`, `create_html_brief.py`, `validation_regime.py`, `deploy.py`. Charts ship via `create_html_brief.py` / `create_charts_plotly.py` (no `create_dashboards.py`).
 
 ### Current infrastructure
 | Component | Current state | Target state |
 |-----------|--------------|--------------|
 | Domain | **fxregimelab.com** (GoDaddy); email **shreyash@fxregimelab.com** | DNS → **Cloudflare** (recommended) for Pages + SSL |
 | Pipeline execution | GitHub Actions **`0 23 * * *` UTC** daily | Keep |
-| Data storage | CSV under `data/` | **Supabase PostgreSQL** primary + CSV fallback |
+| Data storage | CSV under `data/` + optional **Supabase** upserts when secrets are set | **Supabase PostgreSQL** primary + CSV fallback |
 | Public site | GitHub Pages serves repo-root `index.html` brief | **Cloudflare Pages** on **fxregimelab.com** — **Phase 0A:** full UI shell + placeholders **before** Supabase; **0B:** live reads |
-| Database | None in production | Supabase free tier |
+| Database | Supabase optional (dual-write from pipelines when configured) | Hardened RLS + read paths for public site |
 | Paper trading | Not yet live | MT5 via Exness demo, MQL5 EA → **`/performance`** |
 | Public performance | Not yet live | Live Supabase-fed views on **fxregimelab.com** |
 

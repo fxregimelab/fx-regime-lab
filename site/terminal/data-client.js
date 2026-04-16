@@ -1100,7 +1100,7 @@
   }
 
   /**
-   * Pair terminal strip: Live + date (Supabase-only).
+   * Pair terminal strip: source label + as-of date.
    * @param {string} source loadPairDataset dataSource: supabase | none
    * @param {string} latestDate YYYY-MM-DD
    * @param {ParentNode} [root] default document
@@ -1118,6 +1118,8 @@
     var sbDown = !!(meta.supabaseFetchFailed || meta.supabaseClientMissing);
     if (source === 'supabase') {
       prefix = 'Live';
+    } else if (source === 'none' || !source) {
+      prefix = 'Desk snapshot';
     }
     if (sbDown) {
       warnTitle = 'Supabase unavailable — check connection and credentials.';
@@ -1359,6 +1361,26 @@
     tsEl.textContent = rhs ? lhs + ' · ' + rhs : lhs;
   }
 
+  /** Home-only: single-line provenance (as-of, regime source, pipeline time, live disclaimer). */
+  function updateTermProvenanceStrip(opts) {
+    opts = opts || {};
+    var el = document.getElementById('term-provenance-strip');
+    if (!el) return;
+    var ymd = String(opts.footDate || '').slice(0, 10);
+    var pretty = _fmtDataDate(ymd);
+    var regimeSrc = opts.hasSb ? 'Regime & drivers: Supabase' : 'Regime & drivers: offline';
+    var pipe =
+      _lastPipelineStatus && _lastPipelineStatus.last_run_utc
+        ? _fmtPipelineTime(_lastPipelineStatus.last_run_utc)
+        : 'Pipeline: —';
+    var parts = [];
+    if (pretty) parts.push('Desk as of ' + pretty);
+    parts.push(regimeSrc);
+    parts.push(pipe);
+    parts.push('Ticker & card spots: indicative stream (daily close in tables)');
+    el.textContent = parts.join(' · ');
+  }
+
   function applyPipelineNavStatus(json) {
     var dot = document.getElementById('term-pipeline-health-dot');
     var label = document.getElementById('term-pipeline-health-label');
@@ -1500,7 +1522,8 @@
             var showLow = isFinite(cPct) && cPct < 35;
             lowNote.hidden = !showLow;
             if (showLow) {
-              lowNote.textContent = 'Low confidence — interpret as context, not a hard signal.';
+              lowNote.textContent =
+                'Low confidence read — use as context alongside levels and flow. See methodology.';
             }
           }
           if (driver) {
@@ -1589,6 +1612,8 @@
           updatePipelineTimestamp(_lastPipelineStatus);
         }
 
+        updateTermProvenanceStrip({ footDate: footDate, hasSb: hasSb });
+
         setStale(stale);
         setSkel(root, false);
         if (typeof global.__clearInitGuard === 'function') global.__clearInitGuard();
@@ -1600,6 +1625,7 @@
         });
         applyHomeBrief(null, null);
         updatePipelineTimestamp(_lastPipelineStatus);
+        updateTermProvenanceStrip({ footDate: '', hasSb: false });
         setStale(true);
         setSkel(root, false);
       });

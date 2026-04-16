@@ -12,7 +12,7 @@ Nothing here is investment advice; research and learning only.
 
 | Path | Role |
 |------|------|
-| `run.py` | Preferred orchestrator: `fx`→`cot`→`inr`→`vol`→`oi`→`rr`→`merge`→`text`→`macro`→`ai`→`html`→`validate`→`deploy`. |
+| `run.py` | Preferred orchestrator: `fx`→`cot`→`inr`→`vol`→`oi`→`rr`→`merge`→`text`→`macro`→`ai`→`substack`→`html`→`validate`→`deploy`. |
 | `run_all.py` | Simpler orchestrator: runs core scripts then `deploy.py`, then archives to `runs/`. |
 | `pipeline.py` | Layer 1: FX + yield ETL, spreads, writes `data/`. |
 | `cot_pipeline.py` | Layer 2: CFTC COT positioning → `data/`. |
@@ -32,7 +32,7 @@ Nothing here is investment advice; research and learning only.
 | `logos/` | Brand PNGs (some gitignored exceptions reversed in `.gitignore` for CI). |
 | `pages/` | **Standalone** narrative/export HTML cards (Chart.js “FX Regime Lab” style), *not* the daily brief. Built by `scripts/dev/build_*.py`. |
 | `scripts/dev/` | One-off builders, phase checks, stress tests, verification scripts (all `os.chdir` to repo root). |
-| `docs/` | Long-form planning (`G10_FX_FRAMEWORK_MASTER_PLAN.md`, `FX_REGIME_ROADMAP.md`, `PHASE0_CHECKLIST.md`, `IMPLEMENTATION_PLAN_PHASE0.md`). |
+| `docs/` | Long-form planning; **index:** `docs/README.md`; **pipeline ops:** `docs/PIPELINE_AUDIT_AND_OPERATIONS.md` (`G10_FX_FRAMEWORK_MASTER_PLAN.md`, `FX_REGIME_ROADMAP.md`, etc.). |
 | `.github/workflows/` | e.g. `daily_brief.yml` — CI pipeline (needs `FRED_API_KEY` secret). |
 
 ## Generated / local-only (usually not in git)
@@ -50,7 +50,7 @@ Use `core.paths` for anything that needs `ROOT` or standard folders — avoids h
 - **Source of truth for repo-root HTML:** `index.html` (copy of latest brief with path fixes after `deploy.py`).
 - **Brief originals**: `briefs/brief_YYYYMMDD.html` use `../charts/` and `../static/` because they live one level down.
 
-**Orchestrator (`run.py` `STEPS`):** `fx` → `cot` → `inr` → `merge` → `text` → `macro` → `ai` → `html` → `deploy`. There is no `create_dashboards.py`; charts are produced via `create_html_brief.py` / `create_charts_plotly.py`.
+**Orchestrator (`run.py` `STEPS`):** `fx` → `cot` → `inr` → `vol` → `oi` → `rr` → `merge` → `text` → `macro` → `ai` → `substack` → `html` → `validate` → `deploy`. There is no `create_dashboards.py`; charts are produced via `create_html_brief.py` / `create_charts_plotly.py`.
 
 ## Standalone pages (`pages/`)
 
@@ -73,6 +73,7 @@ Examples:
 - `check_brand_v2.py` — regenerates brief and asserts brand-v2 HTML/CSS markers.
 - `stress_test.py` — multi-phase presence checks on latest `briefs/brief_*.html`, generated pair chart files, and retired-workspace guards.
 - `verify_html.py`, `verify_full.py` — content checks against **latest** brief (and CSV for `verify_full`).
+- `verify_data_supabase_brief.py` — optional last-row CSV vs Supabase `signals` spot-check (manual; requires `.env` for DB).
 - `check_counts.py`, `idempotency_diff.py` — legacy/debug helpers (some hardcoded brief dates inside).
 
 All assume they are run as `python scripts/dev/<name>.py` (they set cwd to repo root).

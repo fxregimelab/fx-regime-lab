@@ -2,7 +2,7 @@
 
 This document describes the **internal research terminal** (Bloomberg-style dark UI, data-dense) for AI assistants and maintainers: URLs, navigation, every JS/CSS module, data sources, global APIs, strengths, weaknesses, and operational notes.
 
-**Related:** Repository-wide pipeline and deploy — [CODEBASE_AND_PROJECT_REFERENCE.md](./CODEBASE_AND_PROJECT_REFERENCE.md). Public light shell (nav, tokens, motion) — [UI_UX_DEEP_REFERENCE.md](./UI_UX_DEEP_REFERENCE.md).
+**Related:** Repository-wide pipeline and deploy — [CODEBASE_AND_PROJECT_REFERENCE.md](./CODEBASE_AND_PROJECT_REFERENCE.md). Pipeline order and CI env — [PIPELINE_AUDIT_AND_OPERATIONS.md](./PIPELINE_AUDIT_AND_OPERATIONS.md). Public light shell (nav, tokens, motion) — [UI_UX_DEEP_REFERENCE.md](./UI_UX_DEEP_REFERENCE.md).
 
 ---
 
@@ -339,7 +339,7 @@ flowchart TB
 
 | Risk | Detail |
 |------|--------|
-| **Duplicated mappings** | `SIGNAL_TO_CSV` exists in both `data-client.js` and `chart-builder.js` — must stay in sync with Python `signal_write` and master CSV. |
+| **Duplicated mappings** | `SIGNAL_CHART_MAP` in `data-client.js` drives terminal charts; `SIGNAL_TO_CSV` in `chart-builder.js` mirrors master columns — both must stay aligned with Python `signal_write` and merged CSV (see §15). |
 | **Large CSV in browser** | Full-file fetch/parse for some paths (panel spark, chart builder) — memory and CPU on slow devices. |
 | **Live prices** | Yahoo/Frankfurter are unofficial consumer endpoints; rate limits, shape changes, or CORS issues can break ticker without affecting pipeline CSVs. |
 | **No SSR** | All rendering client-side; SEO for terminal pages is weak by design. |
@@ -351,10 +351,61 @@ flowchart TB
 
 ## 14. Maintenance checklist for AI / humans
 
-1. When adding a **signal column** to Supabase + pipeline: update Python `signal_write` mapping, **`SIGNAL_TO_CSV` in both JS files**, and any pair inline chart series.
+1. When adding a **signal column** to Supabase + pipeline: update Python `signal_write` mapping, **`SIGNAL_CHART_MAP` in `data-client.js`**, **`SIGNAL_TO_CSV` in `chart-builder.js`** (and §15 matrix), and any pair inline chart series.
 2. When changing **pipeline** steps: update `CODEBASE_AND_PROJECT_REFERENCE.md` and `run.py` (canonical).
 3. When changing **Worker** routes or secrets: update `workers/site-entry.js` and [site/CLOUDFLARE_SETUP.md](../site/CLOUDFLARE_SETUP.md).
 4. **Never** add Chart.js to `/terminal/*`.
+
+---
+
+## 15. Pipeline-to-terminal contract (E2E audit)
+
+### 15.1 Surface map (URLs and data)
+
+| Surface | File(s) | Primary data |
+|---------|---------|----------------|
+| Terminal home | [`site/terminal/index.html`](../site/terminal/index.html) | `regime_calls` (cards), `signals` / prices bundle (`fetchLatestPrices`), `brief_log` + static `ai_article.json`, `validation_log` (accuracy strip), `/static/pipeline_status.json` |
+| Pair desks | [`eurusd.html`](../site/terminal/eurusd.html), [`usdjpy.html`](../site/terminal/usdjpy.html), [`usdinr.html`](../site/terminal/usdinr.html) | `signals` via `loadPairDataset` / chart rows; [`live-prices.js`](../site/terminal/live-prices.js) for hero spot (indicative stream) |
+| Terminal dashboard (dark) | [`site/terminal/dashboard.html`](../site/terminal/dashboard.html) | Same stack as other terminal pages where wired |
+| Public dashboard (light v2) | [`site/dashboard/index.html`](../site/dashboard/index.html) | **Placeholder** regime cards until wired to Supabase (Chart.js shell only) |
+| Chart builder | [`site/terminal/chart-builder.js`](../site/terminal/chart-builder.js) | `SIGNAL_TO_CSV` + Supabase prefetch |
+
+### 15.2 `SIGNAL_CHART_MAP` vs Supabase `signals` vs master CSV
+
+Terminal charts and signal stack use **keys on `signals`** defined in [`data-client.js`](../site/terminal/data-client.js) `SIGNAL_CHART_MAP` (~line 252). Python writes the same logical fields via [`core/signal_write.py`](../core/signal_write.py) `_row_to_signal` (plus Layer 3 columns on EUR/USD and USD/JPY only where applicable).
+
+| `signals` / chart key | Master CSV column(s) (typical) | Python source | Terminal consumer |
+|----------------------|---------------------------------|----------------|-------------------|
+| *(spot)* | `EURUSD` / `USDJPY` / `USDINR` | `_row_to_signal` `spot` | Latest price bundle; **not** a `SIGNAL_CHART_MAP` series |
+| `rate_diff_2y` | `US_DE_2Y_spread`, `US_JP_2Y_spread`, `US_IN_policy_spread` | `_row_to_signal` | `SIGNAL_CHART_MAP`, chart builder `SIGNAL_TO_CSV` |
+| `rate_diff_10y` | `US_DE_10Y_spread`, `US_JP_10Y_spread`, `US_IN_10Y_spread` | idem | idem |
+| `rate_diff_zscore` | `US_DE_*_zscore`, `US_JP_*_zscore`, `US_IN_*_zscore` (pair-specific) | idem | idem |
+| `cot_lev_money_net` | `EUR_lev_net` / `JPY_lev_net` | idem | idem |
+| `cot_asset_mgr_net` | `EUR_assetmgr_net` / `JPY_assetmgr_net` | idem | idem |
+| `cot_percentile` | `EUR_lev_percentile` / `JPY_lev_percentile` | idem | idem |
+| `realized_vol_5d` | `EURUSD_vol5`, `USDJPY_vol5`, `USDINR_vol5` | idem | idem |
+| `realized_vol_20d` | `EURUSD_vol30`, … | idem | idem |
+| `implied_vol_30d` | `{PAIR}_implied_vol_30d` | merge + vol_pipeline | idem (EUR/USD, USD/JPY) |
+| `vol_skew` | `{PAIR}_vol_skew` | idem | idem |
+| `atm_vol` | `{PAIR}_atm_vol` | idem | idem |
+| `oi_delta` | `{PAIR}_oi_delta` | merge + oi_pipeline | idem |
+| `oi_price_alignment` | `{PAIR}_oi_price_alignment` (string) | idem | idem |
+| `risk_reversal_25d` | `EURUSD_risk_reversal_25d` | merge + rr_pipeline | idem (EUR/USD only) |
+| `cross_asset_vix` | `VIX` | `_row_to_signal` | idem |
+| `cross_asset_dxy` | `DXY` | idem | idem |
+| `cross_asset_oil` | `Brent` | idem | idem |
+
+**Chart builder duplicate:** [`chart-builder.js`](../site/terminal/chart-builder.js) `SIGNAL_TO_CSV` (~lines 37–76) must stay aligned with `_row_to_signal` for every `(pair, dbCol)` pair listed there. It does **not** yet list Layer 3-only columns (`implied_vol_30d`, `oi_delta`, etc.); extend both when those series are added to the builder catalog.
+
+### 15.3 `regime_calls`, `brief_log`, `validation_log` (browser selects)
+
+| Table | `data-client.js` select | Consumers |
+|-------|-------------------------|-----------|
+| `regime_calls` | `pair, date, regime, confidence, primary_driver` | Home cards; [`pair-boot.js`](../site/terminal/pair-boot.js) |
+| `brief_log` | `date, brief_text, eurusd_regime, usdjpy_regime, usdinr_regime, macro_context` | `fetchBriefPreview` / home brief card |
+| `validation_log` | `date,pair,predicted_direction,predicted_regime,confidence,actual_direction,actual_return_1d,correct_1d` | [`terminal-accuracy.js`](../site/terminal/terminal-accuracy.js) (`correct_1d` boolean) |
+
+**Operator check:** [`scripts/dev/verify_data_supabase_brief.py`](../scripts/dev/verify_data_supabase_brief.py) (extended) validates `signals` vs merged CSV; optional regime/brief/validation probes print latest-row presence.
 
 ---
 

@@ -1,6 +1,6 @@
 # FX Regime Lab — execution roadmap
 
-Sequenced map aligned with **`contaxt files/PLAN.md`**, **`contaxt files/CONTEXT.md`**, **`contaxt files/CURSOR_RULES.md`**, and [AGENTS.md](../AGENTS.md). **Orchestration truth:** `run.py` — `fx → cot → inr → merge → text → macro → ai → html → deploy` (no `create_dashboards.py`).
+Sequenced map aligned with **`contaxt files/PLAN.md`**, **`contaxt files/CONTEXT.md`**, **`contaxt files/CURSOR_RULES.md`**, and [AGENTS.md](../AGENTS.md). **Orchestration truth:** `run.py` — `fx → cot → inr → vol → oi → rr → merge → text → macro → ai → substack → html → validate → deploy` (no `create_dashboards.py`). Details: [PIPELINE_AUDIT_AND_OPERATIONS.md](./PIPELINE_AUDIT_AND_OPERATIONS.md).
 
 **Conflict order:** CURSOR_RULES → PLAN → CONTEXT → AGENTS.md.
 
@@ -38,4 +38,4 @@ Sequenced map aligned with **`contaxt files/PLAN.md`**, **`contaxt files/CONTEXT
 - **Build-to-explain** — every module: ~2 min verbal without code.
 - **Session discipline** — state: build target, Supabase tables, `run.py` step, **fxregimelab.com path**, signal rationale.
 
-**Checklists:** [PHASE0_CHECKLIST.md](PHASE0_CHECKLIST.md) · **implementation order:** [IMPLEMENTATION_PLAN_PHASE0.md](IMPLEMENTATION_PLAN_PHASE0.md).
+**Checklists:** [PHASE0_CHECKLIST.md](PHASE0_CHECKLIST.md) · **implementation order:** [IMPLEMENTATION_PLAN_PHASE0.md](IMPLEMENTATION_PLAN_PHASE0.md) · **docs index:** [README.md](README.md).

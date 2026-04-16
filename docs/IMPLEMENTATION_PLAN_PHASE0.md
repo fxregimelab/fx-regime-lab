@@ -1,6 +1,6 @@
 # Implementation plan — Phase 0 (executable order)
 
-Use this as the default Cursor/agents task sequence. **Spec detail:** `contaxt files/PLAN.md` Phase 0.
+Use this as the default Cursor/agents task sequence. **Spec detail:** `contaxt files/PLAN.md` Phase 0. **Current pipeline order and CI env** (vol/oi/rr/merge/deploy): [PIPELINE_AUDIT_AND_OPERATIONS.md](./PIPELINE_AUDIT_AND_OPERATIONS.md).
 
 ## Track A — Phase 0A (can parallelize where noted)
 

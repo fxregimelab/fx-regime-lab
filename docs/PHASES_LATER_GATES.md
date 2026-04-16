@@ -7,3 +7,5 @@
 | **9** Product | Post–12mo track record, SSRN, MFE | Supabase Auth, Stripe, Cloudflare Workers |
 
 Do not add blocked dependencies until the corresponding gate is explicitly lifted in `contaxt files/PLAN.md` / CONTEXT.
+
+**Current pipeline steps:** [PIPELINE_AUDIT_AND_OPERATIONS.md](./PIPELINE_AUDIT_AND_OPERATIONS.md).

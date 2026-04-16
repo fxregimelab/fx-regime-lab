@@ -6,6 +6,7 @@ This document describes the **complete public-site user interface and experience
 
 - Design spec and acceptance checklist: [FX_REGIME_LAB_UI_PROMPT_V2.md](./FX_REGIME_LAB_UI_PROMPT_V2.md)
 - Repository and deploy: [CODEBASE_AND_PROJECT_REFERENCE.md](./CODEBASE_AND_PROJECT_REFERENCE.md)
+- Pipeline orchestration and CI: [PIPELINE_AUDIT_AND_OPERATIONS.md](./PIPELINE_AUDIT_AND_OPERATIONS.md)
 - Bloomberg-style terminal only: [TERMINAL_DEEP_REFERENCE.md](./TERMINAL_DEEP_REFERENCE.md)
 
 ---

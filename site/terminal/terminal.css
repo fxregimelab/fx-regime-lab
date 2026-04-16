@@ -248,6 +248,28 @@ a[href="/"].term-nav__tab.is-active {
   text-decoration: none;
 }
 
+/* Provenance (home): desk line under nav */
+.term-provenance-strip {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 8px var(--page-pad) 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  letter-spacing: 0.02em;
+}
+
+.term-ticker__source {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 6px var(--page-pad) 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+}
+
 /* ── Page wrapper ───────────────────── */
 .term-page {
   padding-top: var(--nav-h);

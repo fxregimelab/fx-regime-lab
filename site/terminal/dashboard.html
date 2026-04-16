@@ -16,8 +16,11 @@
   <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="window.__supabaseReady=true;document.dispatchEvent(new Event('supabase-ready'))"></script>
   <script async src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" onload="window.__echartsReady=true;document.dispatchEvent(new Event('echarts-ready'))"></script>
   <style>
-    .term-skel-pulse { animation: term-skel-pulse 1.2s ease-in-out infinite; opacity: 0.45; }
-    @keyframes term-skel-pulse { 50% { opacity: 0.88; } }
+    .term-skel-pulse { animation: term-skel-pulse 1.8s ease-in-out infinite; opacity: 0.4; }
+    @keyframes term-skel-pulse { 50% { opacity: 0.72; } }
+    @media (prefers-reduced-motion: reduce) {
+      .term-skel-pulse { animation: none; opacity: 0.85; }
+    }
     .term-data-stale[hidden] { display: none; }
   </style>
   <script defer src="/terminal/utils.js"></script>

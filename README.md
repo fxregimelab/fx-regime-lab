@@ -60,13 +60,15 @@ Fundamental signals break down entirely.
 
 ## Architecture
 
-For a full directory map, entry points, and deploy behaviour, see **[AGENTS.md](AGENTS.md)** (maintainer and AI context).
+For a full directory map, entry points, and deploy behaviour, see **[AGENTS.md](AGENTS.md)** (maintainer and AI context). **Pipeline order, CI env, and audit notes:** [docs/PIPELINE_AUDIT_AND_OPERATIONS.md](docs/PIPELINE_AUDIT_AND_OPERATIONS.md) · **Documentation index:** [docs/README.md](docs/README.md).
 
 ```
-run.py / run_all.py
+run.py (canonical STEPS — see AGENTS.md)
 ├── pipeline.py           # Layer 1: Rate differentials & FX data
 ├── cot_pipeline.py       # Layer 2: CFTC positioning
 ├── inr_pipeline.py       # INR-specific metrics
+├── vol_pipeline.py … rr_pipeline.py  # Layer 3 sidecars
+├── scripts/pipeline_merge.py  # merge_main → latest_with_cot
 ├── morning_brief.py      # Text brief
 ├── create_html_brief.py  # HTML brief + chart iframes
 └── deploy.py             # GitHub Pages (index.html)

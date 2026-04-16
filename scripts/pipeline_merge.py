@@ -18,7 +18,9 @@ from pipeline import merge_main
 
 def main() -> None:
     try:
-        merge_main()
+        ok = merge_main()
+        if ok is False:
+            sys.exit(1)
     except Exception as e:
         print(f"  pipeline_merge: unexpected error — {e}")
         try:
@@ -26,6 +28,7 @@ def main() -> None:
             log_pipeline_error("pipeline_merge", str(e), notes="wrapper")
         except Exception:
             pass
+        sys.exit(1)
 
 
 if __name__ == "__main__":

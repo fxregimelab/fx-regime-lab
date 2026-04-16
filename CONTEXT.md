@@ -24,7 +24,7 @@
 
 | Path | Role |
 |------|------|
-| `run.py` | Canonical orchestrator; `STEPS` order is fixed — extend only with care |
+| `run.py` | Canonical orchestrator; `STEPS` order is fixed — extend only with care (`fx`→…→`deploy`; see `AGENTS.md` and `reports/pipeline_e2e_audit.md`) |
 | `pipeline.py` | FX/yields ETL + merge → `data/` |
 | `*_pipeline.py` | Signal layers (COT, INR, vol, OI, RR, macro, etc.) |
 | `core/` | `paths.py`, Supabase helpers, shared utilities |
@@ -33,7 +33,7 @@
 | `site/` | Public dashboard + brief mirror for Cloudflare |
 | `charts/` | Generated HTML fragments (often tracked for GitHub Pages) |
 | `scripts/` | Publish, dev checks, backfill |
-| `docs/` | Long-form planning and references (committed project docs) |
+| `docs/` | Long-form planning; [docs/README.md](docs/README.md) (index), [docs/PIPELINE_AUDIT_AND_OPERATIONS.md](docs/PIPELINE_AUDIT_AND_OPERATIONS.md) (pipeline/CI) |
 | `_docs/` | **Obsidian** notes only (ADRs, tasks, research) — agents ignore unless user asks |
 | `contaxt files/` | `CONTEXT.md` (long), `PLAN.md`, `CURSOR_RULES.md` |
 

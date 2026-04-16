@@ -20,6 +20,8 @@ jobs:
     timeout-minutes: 30
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+      # Fail CI if Layer 3 (vol / oi / rr) cannot produce required sidecars — see vol/oi/rr_pipeline.py
+      LAYER3_STRICT: '1'
 
     steps:
       - name: Checkout repo
@@ -86,13 +88,28 @@ jobs:
 
       - name: Run pipeline (skip deploy — handled below)
         run: |
-          # First attempt — capture exit code explicitly
-          if python run.py --skip deploy; then
+          set +e
+          python run.py --skip deploy
+          EC1=$?
+          set -e
+          {
+            echo "### Pipeline (run.py --skip deploy)"
+            echo "- Attempt 1 exit code: \`$EC1\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$EC1" -eq 0 ]; then
             echo "RUN_OK=true" >> "$GITHUB_ENV"
           else
             echo "First attempt failed, retrying in 60s…"
             sleep 60
+            set +e
             python run.py --skip deploy
+            EC2=$?
+            set -e
+            echo "- Attempt 2 exit code: \`$EC2\`" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$EC2" -ne 0 ]; then
+              exit "$EC2"
+            fi
+            echo "RUN_OK=true" >> "$GITHUB_ENV"
           fi
 
       - name: Verify brief was generated

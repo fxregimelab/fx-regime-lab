@@ -49,8 +49,15 @@ _OI_HISTORY_CSV = os.path.join(DATA_DIR, "oi_history.csv")
 _OI_LATEST_CSV = os.path.join(DATA_DIR, "oi_latest.csv")
 
 
-def _fetch_oi_report(trade_date: datetime) -> pd.DataFrame:
-    """Download CME Volume/OI report for a trade date. Empty on any failure."""
+def _layer3_strict() -> bool:
+    return os.environ.get("LAYER3_STRICT") == "1"
+
+
+def _fetch_oi_report(trade_date: datetime) -> tuple[pd.DataFrame, str]:
+    """Download CME Volume/OI report for a trade date.
+
+    Returns (DataFrame, status_note) where status_note is 'ok', 'empty_csv', or a short HTTP/diagnostic string.
+    """
     params = {
         "tradeDate": trade_date.strftime("%Y%m%d"),
         "reportType": "VOLUME_OI",
@@ -63,17 +70,26 @@ def _fetch_oi_report(trade_date: datetime) -> pd.DataFrame:
             timeout=30,
             headers={"User-Agent": "fxregimelab/1.0"},
         )
-        r.raise_for_status()
+        if r.status_code != 200:
+            snippet = (r.text or "")[:200].replace("\n", " ")
+            log_pipeline_error(
+                "oi_pipeline",
+                f"fetch {trade_date.date()}: HTTP {r.status_code} {snippet}",
+                notes="cme_oi_http",
+            )
+            return pd.DataFrame(), f"http_{r.status_code}"
         text = r.text
     except Exception as e:
         log_pipeline_error("oi_pipeline", f"fetch {trade_date.date()}: {e}", notes="cme_oi_http")
-        return pd.DataFrame()
+        return pd.DataFrame(), "request_error"
     try:
         df = pd.read_csv(io.StringIO(text))
     except Exception as e:
         log_pipeline_error("oi_pipeline", f"parse {trade_date.date()}: {e}", notes="cme_oi_csv")
-        return pd.DataFrame()
-    return df
+        return pd.DataFrame(), "parse_error"
+    if df is None or df.empty:
+        return pd.DataFrame(), "empty_csv"
+    return df, "ok"
 
 
 def _normalise_oi_frame(raw: pd.DataFrame, trade_date: datetime) -> pd.DataFrame:
@@ -190,21 +206,25 @@ def _upsert_signals(df: pd.DataFrame) -> None:
 def main() -> None:
     print("  oi_pipeline: CME Volume/OI daily report (Phase 4)")
 
-    # CME publishes T+1; attempt today, then step back up to 2 days
+    # CME publication can lag several business days; scan last ~2 weeks of weekdays.
     raw = pd.DataFrame()
     report_date = None
-    for lag in (0, 1, 2):
+    last_status = "no_attempt"
+    for lag in range(0, 14):
         dt = datetime.today() - timedelta(days=lag)
         if dt.weekday() >= 5:  # skip weekends
             continue
-        r = _fetch_oi_report(dt)
+        r, last_status = _fetch_oi_report(dt)
         if not r.empty:
             raw = r
             report_date = dt
             break
 
     if raw.empty or report_date is None:
-        print("  oi_pipeline: no OI report available within T+2 window")
+        print(f"  oi_pipeline: no OI report available within 14d lookback (last try: {last_status})")
+        if _layer3_strict():
+            print("  oi_pipeline: LAYER3_STRICT — OI report required")
+            sys.exit(1)
         # still write an empty sidecar so merge_main does not carry stale data
         _write_csv(_OI_LATEST_CSV, pd.DataFrame(columns=[
             "date", "pair", "oi_total", "close", "oi_delta", "px_delta", "oi_price_alignment",
@@ -214,6 +234,9 @@ def main() -> None:
     today_rows = _normalise_oi_frame(raw, report_date)
     if today_rows.empty:
         print("  oi_pipeline: report parsed but no recognised products")
+        if _layer3_strict():
+            print("  oi_pipeline: LAYER3_STRICT — no recognised OI products")
+            sys.exit(1)
         _write_csv(_OI_LATEST_CSV, pd.DataFrame(columns=[
             "date", "pair", "oi_total", "close", "oi_delta", "px_delta", "oi_price_alignment",
         ]))

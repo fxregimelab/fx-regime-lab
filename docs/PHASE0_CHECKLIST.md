@@ -2,6 +2,8 @@
 
 Full narrative: **`contaxt files/PLAN.md`** Phase 0. Exit criteria must pass before **Phase 1**.
 
+**Pipeline / CI reference:** [PIPELINE_AUDIT_AND_OPERATIONS.md](./PIPELINE_AUDIT_AND_OPERATIONS.md).
+
 ---
 
 ## Phase 0A — UI shell (before Supabase code)

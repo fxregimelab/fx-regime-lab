@@ -3,6 +3,8 @@ import glob
 import os
 import sys
 
+import pandas as pd
+
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
 os.chdir(_ROOT)
 
@@ -12,9 +14,17 @@ if not _briefs:
     sys.exit(1)
 html = open(_briefs[-1], encoding='utf-8').read()
 
+_df = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
+_latest = _df.iloc[-1]
+_eur20 = _latest.get('EURUSD_corr_20d')
+_jpy20 = _latest.get('USDJPY_corr_20d')
+_eur20_s = f"{float(_eur20):+.3f}" if _eur20 is not None and pd.notna(_eur20) else None
+_jpy20_s = f"{float(_jpy20):+.3f}" if _jpy20 is not None and pd.notna(_jpy20) else None
+
 checks = [
-    ('Phase 3: EUR 20D corr row',      'EURUSD_corr_20d'),
-    ('Phase 3: JPY 20D corr row',      'USDJPY_corr_20d'),
+    ('Phase 3: two 20D Corr rows',      html.count('20D Corr') >= 2),
+    ('Phase 3: EUR 20D value in brief', _eur20_s is not None and _eur20_s in html),
+    ('Phase 3: JPY 20D value in brief', _jpy20_s is not None and _jpy20_s in html),
     ('Phase 4: JPY gold corr row',     'gold_usdjpy_corr_60d'),
     ('Phase 4: INR gold corr row',     'gold_inr_corr_60d'),
     ('Phase 5: CENTRAL BANK section',  'CENTRAL BANK ACTIVITY'),
@@ -36,7 +46,10 @@ checks = [
 print('=== HTML BRIEF CHECK ===')
 all_ok = True
 for desc, pattern in checks:
-    found = pattern in html
+    if isinstance(pattern, bool):
+        found = pattern
+    else:
+        found = pattern in html
     status = 'OK  ' if found else 'FAIL'
     if not found:
         all_ok = False
@@ -54,3 +67,5 @@ print(f'  {status2}  EUR/USD card: no orphan gold columns')
 
 print()
 print('All checks passed:', all_ok)
+if not all_ok:
+    sys.exit(1)

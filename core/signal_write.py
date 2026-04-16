@@ -12,12 +12,26 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 from config import TODAY
-from core.paths import LATEST_WITH_COT_CSV, SUPABASE_SYNC_SIDECAR
+from core.paths import LATEST_WITH_COT_CSV, RUNS_DIR, SUPABASE_SYNC_SIDECAR
 from core.supabase_client import get_client
 
 logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = 100
+
+
+def _append_local_pipeline_error(payload: Dict[str, Any]) -> None:
+    """When Supabase is unavailable, append one JSON line under runs/{TODAY}/."""
+    run_day = TODAY[:10] if len(TODAY) >= 10 else TODAY
+    out_dir = os.path.join(RUNS_DIR, run_day)
+    path = os.path.join(out_dir, "pipeline_errors_local.jsonl")
+    try:
+        os.makedirs(out_dir, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except OSError as e:
+        print(f"[pipeline_errors] local append failed: {e}", flush=True)
+        logger.warning("pipeline_errors local append failed: %s", e)
 
 
 def log_pipeline_error(
@@ -27,9 +41,6 @@ def log_pipeline_error(
     pair: Optional[str] = None,
     notes: Optional[str] = None,
 ) -> None:
-    cli = get_client()
-    if cli is None:
-        return
     payload: Dict[str, Any] = {
         "date": TODAY,
         "source": source[:50],
@@ -39,11 +50,17 @@ def log_pipeline_error(
         payload["pair"] = pair[:10]
     if notes:
         payload["notes"] = notes[:2000]
+
+    cli = get_client()
+    if cli is None:
+        _append_local_pipeline_error(payload)
+        return
     try:
         cli.table("pipeline_errors").insert(payload).execute()
     except Exception as e:
         print(f"[pipeline_errors] insert failed: {e}", flush=True)
         logger.warning("pipeline_errors insert failed: %s", e)
+        _append_local_pipeline_error(payload)
 
 
 def _write_supabase_sidecar(status: str, rows_written: int) -> None:

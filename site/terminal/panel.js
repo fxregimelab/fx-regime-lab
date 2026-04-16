@@ -193,7 +193,12 @@
     renderSignalStack(card, article);
     renderChanges(activePair);
     renderChart(activePair);
-    if (global.FXRLTerminalMotion && typeof global.FXRLTerminalMotion.animateNumbers === 'function') {
+    if (
+      global.FXRLTerminalMotion &&
+      typeof global.FXRLTerminalMotion.animateNumbers === 'function' &&
+      !(global.FXRLTerminalMotion.prefersReducedMotion &&
+        global.FXRLTerminalMotion.prefersReducedMotion())
+    ) {
       global.FXRLTerminalMotion.animateNumbers(panel);
     }
 

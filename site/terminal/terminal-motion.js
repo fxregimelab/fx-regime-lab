@@ -1,6 +1,10 @@
 (function (global) {
   'use strict';
 
+  function prefersReducedMotion() {
+    return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
   function parseNumericParts(text) {
     var raw = String(text || '').trim();
     var m = raw.match(/(-?\d+(?:\.\d+)?)/);
@@ -58,8 +62,7 @@
   function initSectionEntrance() {
     var sections = document.querySelectorAll('.term-magazine-section, .signal-section, .term-main .term-brief');
     if (!sections.length) return;
-    var reduce =
-      global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var reduce = prefersReducedMotion();
     if (reduce) {
       sections.forEach(function (section) {
         section.classList.add('is-inview');
@@ -113,7 +116,9 @@
     initWillChangeCleanup();
     initSectionEntrance();
     initStickyHead();
-    animateNumbers(root || document);
+    if (!prefersReducedMotion()) {
+      animateNumbers(root || document);
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -123,5 +128,6 @@
   global.FXRLTerminalMotion = {
     animateNumbers: animateNumbers,
     initPageMotion: initPageMotion,
+    prefersReducedMotion: prefersReducedMotion,
   };
 })(typeof window !== 'undefined' ? window : this);

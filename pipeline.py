@@ -1471,7 +1471,11 @@ def merge_main():
     Reads LATEST_WITH_COT_CSV (must exist from fx/cot/inr steps), joins
     Layer-3 sidecar CSVs, computes derived columns, applies composite
     modifiers, rewrites the master CSV, and upserts to Supabase signals.
-    Degrades gracefully — never raises into run.py.
+    Does not raise; returns False if the master CSV could not be updated.
+
+    Returns:
+        True if the merged master was written to disk successfully.
+        False if the master was missing, unreadable, or not written.
     """
     print("\n" + "=" * 70)
     print(f"  MERGE STEP -- {TODAY}")
@@ -1479,7 +1483,7 @@ def merge_main():
 
     if not os.path.exists(LATEST_WITH_COT_CSV):
         print(f"  merge_main: {LATEST_WITH_COT_CSV} missing — skip")
-        return
+        return False
 
     try:
         m = pd.read_csv(LATEST_WITH_COT_CSV, index_col=0, parse_dates=True)
@@ -1487,7 +1491,7 @@ def merge_main():
         from core.signal_write import log_pipeline_error
         log_pipeline_error("merge_main", f"read master: {e}", notes="read_master")
         print(f"  merge_main: could not read master — {e}")
-        return
+        return False
 
     m = _merge_compute_vol5(m)
     m = _merge_fetch_vix(m)
@@ -1510,7 +1514,7 @@ def merge_main():
         from core.signal_write import log_pipeline_error
         log_pipeline_error("merge_main", f"write master: {e}", notes="write_master")
         print(f"  merge_main: write failed — {e}")
-        return
+        return False
 
     try:
         from core.signal_write import sync_signals_from_master_csv
@@ -1519,6 +1523,8 @@ def merge_main():
         from core.signal_write import log_pipeline_error
         log_pipeline_error("merge_main", f"signals sync: {e}", notes="signals_sync")
         print(f"  merge_main: signals sync failed — {e}")
+
+    return True
 
 
 if __name__ == "__main__":

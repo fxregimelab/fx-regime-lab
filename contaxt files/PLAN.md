@@ -15,14 +15,11 @@
 - Public domain **fxregimelab.com** live (DNS → **Cloudflare Pages** target) ✅ / in progress
 - **Phase 0A target:** full **fxregimelab.com** UI shell (Bloomberg-style dark, placeholders) on Cloudflare Pages **before** any Supabase Python work ⚠️
 - GitHub Pages: static brief via `deploy.py` until Cloudflare + cutover plan complete ⚠️
-- Data stored in CSVs (temporary — migration required) ⚠️
-- No implied vol signal ❌
-- No risk reversal signal ❌
-- No COT lead indicator (OI delta) ❌
-- No out-of-sample validation log ❌
+- Data stored in CSVs under `data/` with optional Supabase dual-write when secrets are set ⚠️
+- Layer 3: implied vol (`vol_pipeline`), OI delta (`oi_pipeline`), risk reversal proxy (`rr_pipeline`) implemented; quality depends on upstream feeds ⚠️
+- Regime validation job (`validation_regime.py`) writes to Supabase `validation_log` when configured ⚠️
 - No paper trading ❌
-- No Supabase database ❌
-- No live public performance dashboard ❌
+- No dedicated “live performance” product surface on the public site ❌ (validation exists server-side)
 
 ---
 
@@ -95,7 +92,7 @@ Font mono (figures):   JetBrains Mono
 7. **Wire live data:** landing regime cards + `/dashboard` replace placeholders with **anon-key** Supabase reads (explicit columns, RLS).  
 8. Cloudflare Pages env: `SUPABASE_URL`, `SUPABASE_ANON_KEY` for browser client.
 
-**Orchestrator truth:** [run.py](run.py) — `fx → cot → inr → merge → text → macro → ai → html → deploy`. No `create_dashboards.py`.
+**Orchestrator truth:** [run.py](run.py) — `fx → cot → inr → vol → oi → rr → merge → text → macro → ai → substack → html → validate → deploy`. No `create_dashboards.py`.
 
 **CI cron:** `0 23 * * *` UTC daily (`.github/workflows/daily_brief.yml`).
 

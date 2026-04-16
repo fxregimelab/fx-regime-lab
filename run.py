@@ -73,9 +73,9 @@ STEPS = [
     ("fx",      "pipeline.py"),           # fetch FX prices + yields → data/latest.csv
     ("cot",     "cot_pipeline.py"),       # fetch CFTC COT data → data/cot_latest.csv
     ("inr",     "inr_pipeline.py"),       # fetch USD/INR + IN yields → data/inr_latest.csv
-    ("vol",     "vol_pipeline.py"),       # Phase 1: CME CVOL (stub until API wired)
-    ("oi",      "oi_pipeline.py"),        # Phase 1: CME OI delta (stub)
-    ("rr",      "rr_pipeline.py"),        # Phase 1: synthetic RR proxy (yfinance)
+    ("vol",     "vol_pipeline.py"),       # CBOE FX implied vol (^EVZ, ^JYVIX) → vol_latest.csv
+    ("oi",      "oi_pipeline.py"),        # CME OI + alignment → oi_latest.csv
+    ("rr",      "rr_pipeline.py"),        # EURUSD 25d RR proxy (yfinance FXE chain)
     ("merge",   "scripts/pipeline_merge.py"),  # Phase 1: re-entrant merge — script name differs from "fx" so dedup below is inert
     ("text",    "morning_brief.py"),      # generate text brief → briefs/brief_YYYYMMDD.txt
     ("macro",   "macro_pipeline.py"),      # Phase 10 Stage 2: fetch economic calendar → data/macro_cal.json
@@ -86,8 +86,8 @@ STEPS = [
     ("deploy",  "deploy.py"),             # copy to index.html and push to GitHub
 ]
 
-# Deduplicated step scripts (some names share a script — merge is inside pipeline.py)
-# When --only merge is requested, pipeline.py still runs (the merge phase is its final step).
+# Deduplicated step scripts: fx and merge used to share pipeline.py; merge now uses
+# scripts/pipeline_merge.py so fx and merge always run as separate processes.
 _STEP_NAMES = [name for name, _ in STEPS]
 
 # Steps that are non-blocking: pipeline continues even if they fail.

@@ -23,6 +23,8 @@ architecture, design philosophy, column naming conventions, layout rules,
 and implementation plan without needing to re-establish context from
 scratch. Keep this file updated as phases complete.
 
+**Operational pipeline (canonical `run.py` order, CI env):** [PIPELINE_AUDIT_AND_OPERATIONS.md](./PIPELINE_AUDIT_AND_OPERATIONS.md).
+
 ---
 
 ## SECTION 1 — CURRENT STATE (AS OF MARCH 2026)

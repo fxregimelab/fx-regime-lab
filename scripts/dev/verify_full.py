@@ -1,7 +1,6 @@
 """Full verification of all implemented phases — HTML + CSV."""
 import glob
 import os
-import re
 import sys
 
 import pandas as pd
@@ -16,6 +15,17 @@ if not _briefs:
 html = open(_briefs[-1], encoding='utf-8').read()
 df   = pd.read_csv('data/latest_with_cot.csv', index_col=0, parse_dates=True)
 latest = df.iloc[-1]
+
+eur_start = html.find('id="card-eurusd"')
+jpy_start = html.find('id="card-usdjpy"')
+inr_start = html.find('id="card-usdinr"')
+eur_section = html[eur_start:jpy_start] if eur_start != -1 and jpy_start != -1 else ''
+jpy_section = html[jpy_start:inr_start] if jpy_start != -1 and inr_start != -1 else ''
+
+_eur20 = latest['EURUSD_corr_20d']
+_jpy20 = latest['USDJPY_corr_20d']
+eur20_s = f"{float(_eur20):+.3f}" if pd.notna(_eur20) else None
+jpy20_s = f"{float(_jpy20):+.3f}" if pd.notna(_jpy20) else None
 
 print('=== CSV COLUMN CHECK ===')
 phase_cols = {
@@ -37,10 +47,6 @@ for phase, cols in phase_cols.items():
 print()
 print('=== HTML CHECK ===')
 html_checks = [
-    # Phase 3 — rendered as "20D Corr" label with value
-    ('Phase 3: EUR 20D Corr rendered',    '20D Corr'),
-    ('Phase 3: EUR -0.223 value',         '-0.223'),
-    ('Phase 3: JPY +0.150 value',         '+0.150'),
     # Phase 4
     ('Phase 4: JPY gold row',             'data-field="gold_usdjpy_corr_60d"'),
     ('Phase 4: INR gold row',             'data-field="gold_inr_corr_60d"'),
@@ -64,6 +70,17 @@ html_checks = [
 ]
 
 html_ok = True
+
+# Phase 3 — 20D corr: match CSV formatting inside each pair card
+for desc, ok in (
+    ('Phase 3: EUR card 20D Corr row', eur20_s is not None and '20D Corr' in eur_section and eur20_s in eur_section),
+    ('Phase 3: JPY card 20D Corr row', jpy20_s is not None and '20D Corr' in jpy_section and jpy20_s in jpy_section),
+):
+    status = 'OK  ' if ok else 'FAIL'
+    if not ok:
+        html_ok = False
+    print(f'  {status}  {desc}')
+
 for desc, pattern in html_checks:
     found = pattern in html
     status = 'OK  ' if found else 'FAIL'
@@ -72,12 +89,6 @@ for desc, pattern in html_checks:
     print(f'  {status}  {desc}')
 
 # EUR card should not have RBI/composite sections
-# Use id="card-..." to find actual card div boundaries (not CSS rules)
-eur_start = html.find('id="card-eurusd"')
-jpy_start = html.find('id="card-usdjpy"')
-inr_start = html.find('id="card-usdinr"')
-eur_section = html[eur_start:jpy_start]
-jpy_section = html[jpy_start:inr_start]
 
 rbi_in_eur = 'CENTRAL BANK ACTIVITY' in eur_section
 composite_in_eur = 'INR COMPOSITE' in eur_section
@@ -102,3 +113,5 @@ print()
 print(f'CSV all columns OK : {csv_ok}')
 print(f'HTML all checks OK : {html_ok}')
 print(f'OVERALL            : {"PASS" if csv_ok and html_ok else "FAIL — see failures above"}')
+if not (csv_ok and html_ok):
+    sys.exit(1)

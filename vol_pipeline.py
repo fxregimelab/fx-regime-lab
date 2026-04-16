@@ -48,6 +48,10 @@ _VOL_LATEST_CSV = os.path.join(DATA_DIR, "vol_latest.csv")
 _SIDECAR_COLS = ["date", "pair", "implied_vol_30d", "vol_skew", "atm_vol"]
 
 
+def _layer3_strict() -> bool:
+    return os.environ.get("LAYER3_STRICT") == "1"
+
+
 def _fetch_cboe_vol(pair: str, ticker: str) -> pd.DataFrame:
     """Fetch CBOE FX-vol index via yfinance wrapper. Returns empty frame on failure."""
     raw = _yf_safe_download(
@@ -143,6 +147,13 @@ def main() -> None:
             print(f"  vol_pipeline: no CBOE vol data for {pair} ({ticker})")
             continue
         frames.append(df)
+
+    if _layer3_strict() and len(frames) < len(CBOE_VOL_TICKERS):
+        print(
+            "  vol_pipeline: LAYER3_STRICT — need implied vol for every pair in "
+            f"{list(CBOE_VOL_TICKERS.keys())}"
+        )
+        sys.exit(1)
 
     if not frames:
         print("  vol_pipeline: no CBOE frames — writing empty CSV")

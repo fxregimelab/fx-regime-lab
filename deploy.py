@@ -9,6 +9,8 @@ import subprocess
 import sys
 from datetime import datetime
 
+from config import DATE_SLUG, TODAY
+
 """
 GitHub Pages deploy Pipeline.
 
@@ -19,6 +21,15 @@ Execution context:
 - Next step: none
 - Blocking: YES — pipeline halts on failure
 
+Brief path uses config.DATE_SLUG (same as create_html_brief.py).
+
+Stale-brief fallback:
+- Local: if briefs/brief_{DATE_SLUG}.html is missing, may use newest briefs/*.html
+  (WARN: not today’s slug). Set DEPLOY_ALLOW_STALE_BRIEF=1 on GitHub Actions to
+  allow the same fallback in CI.
+- GitHub Actions: if today’s brief does not exist, exit 1 unless
+  DEPLOY_ALLOW_STALE_BRIEF=1.
+
 DO NOT:
 - Import other *_pipeline.py modules
 - Use async/await
@@ -27,27 +38,41 @@ DO NOT:
 - Use plain supabase insert — always upsert
 """
 
-TODAY = datetime.today().strftime('%Y-%m-%d')
-TODAY_COMPACT = datetime.today().strftime('%Y%m%d')
-BRIEF_SOURCE = f"briefs/brief_{TODAY_COMPACT}.html"  # written by create_html_brief.py this run
+BRIEF_SOURCE = f"briefs/brief_{DATE_SLUG}.html"
 DEPLOY_TARGET = "index.html"
 
+
+def _deploy_stale_fallback_allowed() -> bool:
+    if os.environ.get("DEPLOY_ALLOW_STALE_BRIEF") == "1":
+        return True
+    return os.environ.get("GITHUB_ACTIONS") != "true"
+
+
 def deploy():
-    # check brief exists
+    # Resolve brief path (today’s slug vs newest fallback)
     if not os.path.exists(BRIEF_SOURCE):
-        # fallback: find most recent brief in briefs/ dir
+        if not _deploy_stale_fallback_allowed():
+            print(
+                "ERROR: today's brief not found (expected "
+                f"{BRIEF_SOURCE}). In CI, stale fallback is disabled; "
+                "set DEPLOY_ALLOW_STALE_BRIEF=1 to allow newest brief."
+            )
+            sys.exit(1)
         BRIEF_SOURCE_FINAL = None
         if os.path.exists("briefs"):
             candidates = sorted(
                 [f for f in os.listdir("briefs") if f.endswith(".html")],
-                reverse=True
+                reverse=True,
             )
             if candidates:
                 BRIEF_SOURCE_FINAL = f"briefs/{candidates[0]}"
-                print(f"using most recent brief: {BRIEF_SOURCE_FINAL}")
+                print(
+                    f"WARN: deploying stale brief (not {BRIEF_SOURCE}): "
+                    f"{BRIEF_SOURCE_FINAL}"
+                )
         if not BRIEF_SOURCE_FINAL:
             print("ERROR: no brief found to deploy")
-            return
+            sys.exit(1)
     else:
         BRIEF_SOURCE_FINAL = BRIEF_SOURCE
 
@@ -66,7 +91,7 @@ def deploy():
     html = html.replace('href="../static/styles.css"', 'href="static/styles.css"')
     if '<html' not in html or '</html>' not in html:
         print("ERROR: brief HTML appears corrupted (missing <html> tags) — aborting deploy")
-        return
+        sys.exit(1)
     with open(DEPLOY_TARGET, 'w', encoding='utf-8') as f:
         f.write(html)
     print(f"copied {BRIEF_SOURCE_FINAL} -> {DEPLOY_TARGET} (patched iframe paths)")

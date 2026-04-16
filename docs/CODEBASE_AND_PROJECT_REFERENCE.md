@@ -2,7 +2,7 @@
 
 This document gives AI assistants and humans a single map of the repository: purpose, orchestration, data flow, public surfaces, Cloudflare deployment, and constraints. It is descriptive, not prescriptive; authoritative rules live in `contaxt files/CURSOR_RULES.md` and `contaxt files/PLAN.md`.
 
-**Related:** Public-site UI v2 shell (nav, tokens, motion, theme bridge): [UI_UX_DEEP_REFERENCE.md](./UI_UX_DEEP_REFERENCE.md). Bloomberg-style terminal only (`site/terminal/`): [TERMINAL_DEEP_REFERENCE.md](./TERMINAL_DEEP_REFERENCE.md). Cloudflare: [site/CLOUDFLARE_SETUP.md](../site/CLOUDFLARE_SETUP.md).
+**Related:** Public-site UI v2 shell (nav, tokens, motion, theme bridge): [UI_UX_DEEP_REFERENCE.md](./UI_UX_DEEP_REFERENCE.md). Bloomberg-style terminal only (`site/terminal/`): [TERMINAL_DEEP_REFERENCE.md](./TERMINAL_DEEP_REFERENCE.md). Cloudflare: [site/CLOUDFLARE_SETUP.md](../site/CLOUDFLARE_SETUP.md). **Pipeline order, CI env, deploy/merge behavior:** [PIPELINE_AUDIT_AND_OPERATIONS.md](./PIPELINE_AUDIT_AND_OPERATIONS.md) · **E2E audit report:** [pipeline_e2e_audit.md](../reports/pipeline_e2e_audit.md).
 
 ---
 
@@ -23,13 +23,13 @@ This document gives AI assistants and humans a single map of the repository: pur
 | `pipeline.py` | FX + yields ETL, merge → `data/` (including merged master CSV). |
 | `cot_pipeline.py` | CFTC COT → `data/`. |
 | `inr_pipeline.py` | INR-specific metrics → `data/`. |
-| `vol_pipeline.py`, `oi_pipeline.py`, `rr_pipeline.py` | Additional signals (some stubs per comments). |
+| `vol_pipeline.py`, `oi_pipeline.py`, `rr_pipeline.py` | Layer 3: implied vol (CBOE), CME OI, synthetic RR sidecars → merge. |
 | `morning_brief.py` | Text brief → `briefs/brief_YYYYMMDD.txt`. |
 | `create_html_brief.py` | HTML brief + Plotly chart fragments → `briefs/`, `charts/`. |
 | `macro_pipeline.py` | Macro helpers (e.g. economic calendar JSON). |
 | `ai_brief.py` | AI regime reads → `data/` JSON consumed by site. |
-| `validation_regime.py` | Regime validation step (stub/Phase 2 per `run.py` comment). |
-| `deploy.py` | Copies latest brief to repo-root `index.html`, path fixes, git commit/push (GitHub Pages channel). |
+| `validation_regime.py` | Next-day regime vs return → `validation_log` (non-blocking). |
+| `deploy.py` | Copies `briefs/brief_{DATE_SLUG}.html` to repo-root `index.html`, path fixes, git commit/push; strict on **GitHub Actions** unless `DEPLOY_ALLOW_STALE_BRIEF=1`. |
 | `scripts/publish_brief_for_site.py` | Syncs brief, charts, static, data → `site/` for Cloudflare. |
 | `config.py` | Shared constants. |
 | `core/` | `paths.py`, `utils.py`, `pipeline_status.py`, etc. |
@@ -37,7 +37,8 @@ This document gives AI assistants and humans a single map of the repository: pur
 | `charts/` | Generated interactive HTML; tracked for GitHub Pages. |
 | `static/` | CSS and assets referenced by briefs; mirrored under `site/static/`. |
 | `pages/` | Standalone narrative HTML cards (Chart.js style), **not** the daily brief. |
-| `scripts/dev/` | Phase checks, stress tests, one-off builders (`os.chdir` to repo root). |
+| `scripts/dev/` | Phase checks, stress tests, one-off builders (`os.chdir` to repo root). Includes `verify_data_supabase_brief.py` (CSV vs Supabase spot-check). |
+| `reports/` | `pipeline_e2e_audit.md` — contract matrix and remediation status (not generated data). |
 | `workers/site-entry.js` | Cloudflare Worker: asset serving + Supabase env injection + RSS proxy. |
 | `wrangler.toml` | Binds Worker to `./site` as static assets. |
 | `.github/workflows/` | e.g. `daily_brief.yml` scheduled pipeline + deploy. |
@@ -57,10 +58,10 @@ Current `STEPS` (name → script):
 | `fx` | `pipeline.py` | `data/latest.csv`, FX/yield pulls |
 | `cot` | `cot_pipeline.py` | `data/cot_latest.csv` |
 | `inr` | `inr_pipeline.py` | `data/inr_latest.csv` |
-| `vol` | `vol_pipeline.py` | Phase 1 / stub notes in `run.py` |
-| `oi` | `oi_pipeline.py` | Phase 1 / stub |
-| `rr` | `rr_pipeline.py` | Synthetic RR proxy (yfinance) |
-| `merge` | `pipeline.py` | Merge phase is **inside** the same script as `fx` |
+| `vol` | `vol_pipeline.py` | `data/vol_latest.csv`; with **`LAYER3_STRICT=1`** (CI) fails if any expected pair missing |
+| `oi` | `oi_pipeline.py` | `data/oi_latest.csv`; strict mode fails on empty scrape |
+| `rr` | `rr_pipeline.py` | `data/rr_latest.csv` (EURUSD proxy); strict mode fails on skip |
+| `merge` | `scripts/pipeline_merge.py` | Calls `pipeline.merge_main()`; exits **1** if merge returns `False` |
 | `text` | `morning_brief.py` | `briefs/brief_YYYYMMDD.txt` |
 | `macro` | `macro_pipeline.py` | e.g. `data/macro_cal.json` |
 | `ai` | `ai_brief.py` | AI JSON; non-blocking on failure |
@@ -80,7 +81,7 @@ flowchart LR
     vol[vol_pipeline]
     oi[oi_pipeline]
     rr[rr_pipeline]
-    merge[pipeline.py merge]
+    merge[pipeline_merge]
   end
   subgraph brief [Brief]
     text[morning_brief]
@@ -133,8 +134,10 @@ flowchart LR
 
 - **Trigger:** Cron `0 23 * * *` UTC; `workflow_dispatch`.
 - **Required secret:** `FRED_API_KEY` (workflow fails if missing).
+- **Job env:** `LAYER3_STRICT=1` — fail CI if Layer 3 pipelines cannot produce required sidecars.
 - **Optional / feature secrets:** `NOTION_TOKEN`, `SUPABASE_*`, `POLYGON_KEY`, `TWELVE_DATA_KEY`, `ANTHROPIC_API_KEY`, `SUBSTACK_EMAIL`, `SUBSTACK_PASSWORD`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
-- **Flow:** `python run.py --skip deploy` (with retry) → verify `briefs/brief_YYYYMMDD.html` → `python scripts/publish_brief_for_site.py` → `python deploy.py` → `npx wrangler deploy`.
+- **Flow:** `python run.py --skip deploy` (retry once; exit codes written to **GitHub Step Summary**) → verify `briefs/brief_YYYYMMDD.html` (UTC slug from `date -u`) → `python scripts/publish_brief_for_site.py` → `python deploy.py` → `npx wrangler deploy`.
+- **Concurrency:** `cancel-in-progress: true` on group `daily-brief` — overlapping runs may cancel.
 
 Do **not** document or commit secret values.
 
@@ -175,6 +178,9 @@ Full detail: `contaxt files/CURSOR_RULES.md`. Short list:
 
 | Topic | Where |
 |-------|--------|
+| Pipeline order, CI env, deploy rules, merge exit codes | [PIPELINE_AUDIT_AND_OPERATIONS.md](./PIPELINE_AUDIT_AND_OPERATIONS.md) |
+| E2E audit matrix and remediation status | [pipeline_e2e_audit.md](../reports/pipeline_e2e_audit.md) |
+| Docs hub (Obsidian index) | [README.md](./README.md) |
 | Shell UI/UX (site map, Chart.js vs ECharts, theme bridge) | [UI_UX_DEEP_REFERENCE.md](./UI_UX_DEEP_REFERENCE.md) |
 | Terminal pages, JS modules, `FXRLData`, live prices | [TERMINAL_DEEP_REFERENCE.md](./TERMINAL_DEEP_REFERENCE.md) |
 | Phase roadmap | `contaxt files/PLAN.md` |

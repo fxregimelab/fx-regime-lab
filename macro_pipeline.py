@@ -214,7 +214,7 @@ def fetch_macro_calendar():
     high_n = sum(1 for e in ff_events if e["impact"] == "HIGH")
     med_n  = sum(1 for e in ff_events if e["impact"] == "MED")
     status = "(rate-limited; CB only)" if rate_limited and not any(e["country"] != "CB" for e in ff_events) else ""
-    print(f"    OK  {len(ff_events)} events ({high_n} HIGH, {med_n} MED) → {_OUTPATH} {status}")
+    print(f"    OK  {len(ff_events)} events ({high_n} HIGH, {med_n} MED) -> {_OUTPATH} {status}")
     return ff_events
 
 
