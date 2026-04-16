@@ -10,6 +10,25 @@ import yfinance as yf
 from core.signal_write import log_pipeline_error
 
 
+"""
+Synthetic risk reversal (RR) Pipeline.
+
+Execution context:
+- Called by run.py as STEP 6 (rr)
+- Depends on: oi_pipeline.py
+- Outputs: Supabase signals table (synthetic risk reversal) + data/rr_latest.csv if applicable
+- Next step: morning_brief.py (text step)
+- Blocking: YES — pipeline halts on failure
+
+DO NOT:
+- Import other *_pipeline.py modules
+- Use async/await
+- Add CLI arguments (argparse, click, sys.argv)
+- Hardcode dates, API keys, or file paths
+- Use plain supabase insert — always upsert
+"""
+
+
 def main() -> None:
     print("  rr_pipeline: probing FXE options (synthetic EUR/USD RR proxy)…")
     try:

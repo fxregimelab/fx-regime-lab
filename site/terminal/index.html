@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Terminal — FX Regime Lab</title>
-  <link rel="preconnect" href="https://weaaacohvzzgkgxzpaee.supabase.co" />
+  <!-- No static Supabase preconnect: real URL is injected at runtime (e.g. Cloudflare Worker + supabase-env.js); a hardcoded host would be wrong. -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,9 +13,9 @@
   <link rel="stylesheet" href="/terminal/terminal.css" />
   <meta name="supabase-url" content="" />
   <meta name="supabase-anon-key" content="" />
-  <script src="/assets/supabase-env.js"></script>
+  <script defer src="/assets/supabase-env.js"></script>
   <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="window.__supabaseReady=true;document.dispatchEvent(new Event('supabase-ready'))"></script>
-  <script async src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js" onload="window.__lwcReady=true;document.dispatchEvent(new Event('lwc-ready'))"></script>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" onload="window.__echartsReady=true;document.dispatchEvent(new Event('echarts-ready'))"></script>
   <style>
     .term-skel-pulse { animation: term-skel-pulse 1.2s ease-in-out infinite; opacity: 0.45; }
     @keyframes term-skel-pulse { 50% { opacity: 0.88; } }
@@ -30,10 +30,9 @@
   <script defer src="/terminal/home-terminal.js"></script>
   <script defer src="/terminal/live-prices.js"></script>
   <script defer src="/terminal/terminal-accuracy.js"></script>
-  <script defer src="/terminal/panel.js"></script>
   <script defer src="/terminal/theme-switch.js"></script>
 </head>
-<body class="theme-terminal">
+<body class="theme-terminal term-home">
   <a href="#term-main" class="term-sr-only">Skip to content</a>
   <div class="term-page">
     <header class="term-nav" role="banner">
@@ -42,11 +41,8 @@
       <span class="term-nav__crumb">Terminal</span>
       <nav class="term-nav__tabs" aria-label="Terminal sections">
         <a class="term-nav__tab" href="/terminal/" data-path="/terminal/index">Home</a>
-        <a class="term-nav__tab" href="/terminal/eurusd.html" data-path="/terminal/eurusd">EUR/USD</a>
-        <a class="term-nav__tab" href="/terminal/usdjpy.html" data-path="/terminal/usdjpy">USD/JPY</a>
-        <a class="term-nav__tab" href="/terminal/usdinr.html" data-path="/terminal/usdinr">USD/INR</a>
-        <a class="term-nav__tab" href="/terminal/chartbuilder.html" data-path="/terminal/chartbuilder">Chart builder</a>
-        <a class="term-nav__tab" href="/terminal/overview.html" data-path="/terminal/overview">Overview</a>
+        <a class="term-nav__tab" href="/terminal/dashboard.html" data-path="/terminal/dashboard">Dashboard</a>
+        <a class="term-nav__tab" href="/">Exit Terminal</a>
       </nav>
       <div class="term-nav__right">
         <span id="term-data-stale" class="term-data-stale" hidden>
@@ -56,9 +52,7 @@
         <div class="term-nav__pipeline">
           <span class="term-nav__pipeline-dot" id="term-pipeline-health-dot" aria-hidden="true"></span>
           <span id="term-pipeline-health-label">LIVE</span>
-          <span id="term-pipeline-ts">Pipeline 23:14 UTC · 05 Apr 2026</span>
         </div>
-        <a class="term-nav__exit" href="/">Exit Terminal</a>
       </div>
     </header>
 
@@ -66,56 +60,79 @@
       <div id="term-page-error" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:40vh" aria-live="polite"></div>
 
       <div class="term-ticker" aria-label="Macro snapshot">
-        <div data-term-ticker class="term-ticker-item term-skel-target">
-          <span class="term-ticker-label">DXY</span>
-          <span class="term-ticker-value negative">−0.14</span>
-        </div>
-        <div class="term-ticker-item term-skel-target">
-          <span class="term-ticker-label">EUR/USD</span>
-          <span class="term-ticker-value positive">+0.08</span>
-        </div>
-        <div class="term-ticker-item term-skel-target">
-          <span class="term-ticker-label">USD/JPY</span>
-          <span class="term-ticker-value negative">−0.05</span>
-        </div>
+        <div class="term-ticker-item term-skel-target" data-term-ticker="DXY"></div>
+        <div class="term-ticker-item term-skel-target" data-term-ticker="EUR/USD"></div>
+        <div class="term-ticker-item term-skel-target" data-term-ticker="USD/JPY"></div>
       </div>
 
+      <section class="term-brief-card term-brief term-home-brief" aria-labelledby="term-brief-heading">
+        <div class="term-home-brief__left">
+          <span class="term-brief-card__label term-brief__label">Morning brief</span>
+          <h1 id="term-brief-heading" class="term-brief-card__headline term-brief__title term-skel-target">Regime read — G10 snapshot</h1>
+          <p class="term-brief-card__body term-brief__body term-skel-target">
+            EUR/USD: trend bias intact with spread support; USD/JPY balanced inside range; USD/INR directional only —
+            watch RBI tone. Cross-asset: rates slightly softer, vol subdued. Full tables and charts ship with the daily HTML brief.
+          </p>
+          <div class="term-home-brief__links">
+            <a class="term-brief__link" href="/brief/">Open full brief →</a>
+            <a class="term-brief__how-link" href="/methodology/">Read methodology →</a>
+          </div>
+        </div>
+        <aside class="term-home-signals" aria-label="Key signals today">
+          <h2 class="term-home-signals__title">Key signals today</h2>
+          <div class="term-home-signals__list">
+            <div class="term-home-signals__row">
+              <span>EUR/USD rate diff</span>
+              <span class="term-home-signals__badge bearish">Bearish</span>
+            </div>
+            <div class="term-home-signals__row">
+              <span>USD/JPY COT</span>
+              <span class="term-home-signals__badge neutral">Neutral</span>
+            </div>
+            <div class="term-home-signals__row">
+              <span>USD/INR vol</span>
+              <span class="term-home-signals__badge flat">Normal</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+
       <section class="term-cards" aria-label="Regime overview">
-        <button class="term-regime-card term-card term-fade-in-delay-1" data-pair="EURUSD" type="button" data-panel-pair="EURUSD" data-panel-url="/terminal/eurusd.html">
+        <button class="term-regime-card term-card term-card--eur term-fade-in-delay-1" data-pair="EURUSD" type="button" data-panel-pair="EURUSD" data-panel-url="/terminal/dashboard.html?pair=EURUSD">
           <div class="term-card__head">
             <span class="term-regime-card__pair term-card__pair">EUR/USD</span>
-            <span class="term-card__badge term-skel-target">Trending long</span>
+            <span class="term-card__badge term-skel-target">Neutral</span>
           </div>
-          <div class="term-regime-card__price term-card__spot term-skel-target">1.0847</div>
+          <div class="term-regime-card__price term-card__spot term-skel-target">1.0854</div>
           <div class="term-regime-card__confidence term-card__confidence term-skel-target" data-card-confidence>72</div>
-          <div class="term-regime-card__regime term-card__regime term-skel-target" data-card-regime>Trending long</div>
+          <div class="term-regime-card__regime term-card__regime term-skel-target" data-card-regime>Neutral</div>
           <div class="term-card__conf-row">
             <div class="term-card__conf-bar"><div class="term-card__conf-fill" style="width:72%"></div></div>
             <span class="term-card__conf-pct term-skel-target">72%</span>
           </div>
-          <p class="term-regime-card__driver term-card__driver term-skel-target">Driver: 10Y rate spread +47bp vs prior close · COT 72nd pctile</p>
+          <p class="term-regime-card__driver term-card__driver term-skel-target">Driver: JPY composite</p>
           <p class="term-card__conf-note term-skel-target" hidden data-conf-low-note>Low confidence — interpret as context, not a hard signal.</p>
           <div class="term-regime-card__footer term-card__foot term-skel-target">Updated 23:14 UTC</div>
         </button>
 
-        <button class="term-regime-card term-card term-fade-in-delay-2" data-pair="USDJPY" type="button" data-panel-pair="USDJPY" data-panel-url="/terminal/usdjpy.html">
+        <button class="term-regime-card term-card term-card--jpy term-fade-in-delay-2" data-pair="USDJPY" type="button" data-panel-pair="USDJPY" data-panel-url="/terminal/dashboard.html?pair=USDJPY">
           <div class="term-card__head">
             <span class="term-regime-card__pair term-card__pair">USD/JPY</span>
-            <span class="term-card__badge term-skel-target">Neutral</span>
+            <span class="term-card__badge term-skel-target">Bullish</span>
           </div>
-          <div class="term-regime-card__price term-card__spot term-skel-target">149.82</div>
+          <div class="term-regime-card__price term-card__spot term-skel-target">149.22</div>
           <div class="term-regime-card__confidence term-card__confidence term-skel-target" data-card-confidence>58</div>
-          <div class="term-regime-card__regime term-card__regime term-skel-target" data-card-regime>Neutral</div>
+          <div class="term-regime-card__regime term-card__regime term-skel-target" data-card-regime>Bullish</div>
           <div class="term-card__conf-row">
             <div class="term-card__conf-bar"><div class="term-card__conf-fill" style="width:58%"></div></div>
             <span class="term-card__conf-pct term-skel-target">58%</span>
           </div>
-          <p class="term-regime-card__driver term-card__driver term-skel-target">Driver: Range compression · Realized vol 8.1% · BoJ path balanced</p>
+          <p class="term-regime-card__driver term-card__driver term-skel-target">Driver: JPY composite</p>
           <p class="term-card__conf-note term-skel-target" hidden data-conf-low-note>Low confidence — interpret as context, not a hard signal.</p>
           <div class="term-regime-card__footer term-card__foot term-skel-target">Updated 23:14 UTC</div>
         </button>
 
-        <button class="term-regime-card term-card term-fade-in-delay-3" data-pair="USDINR" type="button" data-panel-pair="USDINR" data-panel-url="/terminal/usdinr.html">
+        <button class="term-regime-card term-card term-card--inr term-fade-in-delay-3" data-pair="USDINR" type="button" data-panel-pair="USDINR" data-panel-url="/terminal/dashboard.html?pair=USDINR">
           <div class="term-card__head">
             <span class="term-regime-card__pair term-card__pair">USD/INR</span>
             <span class="term-card__badge term-skel-target">Directional</span>
@@ -127,67 +144,72 @@
             <div class="term-card__conf-bar"><div class="term-card__conf-fill" style="width:45%"></div></div>
             <span class="term-card__conf-pct term-skel-target">45%</span>
           </div>
-          <p class="term-regime-card__driver term-card__driver term-skel-target">Driver: RBI corridor · Spot pressure · Use directional read only</p>
+          <p class="term-regime-card__driver term-card__driver term-skel-target">Driver: INR composite</p>
           <p class="term-card__conf-note term-skel-target" hidden data-conf-low-note>Low confidence — interpret as context, not a hard signal.</p>
           <div class="term-regime-card__footer term-card__foot term-skel-target">Updated 23:14 UTC</div>
         </button>
       </section>
 
-      <section class="term-accuracy" id="term-accuracy-strip" aria-label="Regime accuracy strip">
-        <div class="term-accuracy-label">Regime Accuracy</div>
-        <div class="term-accuracy-item" data-acc-pair="EURUSD">
-          <span class="term-accuracy-item__dot" style="background:var(--eurusd)"></span>
-          <span class="term-accuracy-item__name">EUR/USD</span>
-          <span class="term-accuracy-item__pct">—</span>
-        </div>
-        <div class="term-accuracy-item" data-acc-pair="USDJPY">
-          <span class="term-accuracy-item__dot" style="background:var(--usdjpy)"></span>
-          <span class="term-accuracy-item__name">USD/JPY</span>
-          <span class="term-accuracy-item__pct">—</span>
-        </div>
-        <div class="term-accuracy-item" data-acc-pair="USDINR">
-          <span class="term-accuracy-item__dot" style="background:var(--usdinr)"></span>
-          <span class="term-accuracy-item__name">USD/INR</span>
-          <span class="term-accuracy-item__pct">—</span>
-        </div>
-        <div class="term-accuracy-item__name" id="term-accuracy-total">No validation data</div>
+      <section class="term-home-bottom">
+        <section class="term-accuracy" id="term-accuracy-strip" aria-label="Regime accuracy strip">
+          <div class="term-accuracy-label">Regime Accuracy</div>
+          <div class="term-accuracy-item" data-acc-pair="EURUSD">
+            <span class="term-accuracy-item__dot" style="background:var(--eurusd)"></span>
+            <span class="term-accuracy-item__name">EUR/USD</span>
+            <span class="term-accuracy-item__pct">—</span>
+          </div>
+          <div class="term-accuracy-item" data-acc-pair="USDJPY">
+            <span class="term-accuracy-item__dot" style="background:var(--usdjpy)"></span>
+            <span class="term-accuracy-item__name">USD/JPY</span>
+            <span class="term-accuracy-item__pct">—</span>
+          </div>
+          <div class="term-accuracy-item" data-acc-pair="USDINR">
+            <span class="term-accuracy-item__dot" style="background:var(--usdinr)"></span>
+            <span class="term-accuracy-item__name">USD/INR</span>
+            <span class="term-accuracy-item__pct">—</span>
+          </div>
+          <div class="term-accuracy-item__name" id="term-accuracy-total">No validation data</div>
+        </section>
+
+        <section class="term-macro-grid term-cross" aria-label="Cross-asset">
+          <div class="term-macro-item term-cross__item">
+            <span class="term-macro-item__label term-cross__label">US 10Y</span>
+            <div class="term-macro-item__value term-cross__val term-skel-target">4.28%</div>
+            <div class="term-macro-item__sub term-cross__chg term-skel-target">−3bp</div>
+          </div>
+          <div class="term-macro-item term-cross__item">
+            <span class="term-macro-item__label term-cross__label">US-DE 10Y</span>
+            <div class="term-macro-item__value term-cross__val term-skel-target">—</div>
+            <div class="term-macro-item__sub term-cross__chg term-skel-target">—</div>
+          </div>
+          <div class="term-macro-item term-cross__item">
+            <span class="term-macro-item__label term-cross__label">Brent</span>
+            <div class="term-macro-item__value term-cross__val term-skel-target">71.20</div>
+            <div class="term-macro-item__sub term-cross__chg term-skel-target">+0.42</div>
+          </div>
+          <div class="term-macro-item term-cross__item">
+            <span class="term-macro-item__label term-cross__label">Gold</span>
+            <div class="term-macro-item__value term-cross__val term-skel-target">2,685</div>
+            <div class="term-macro-item__sub term-cross__chg term-skel-target">+6.2</div>
+          </div>
+        </section>
       </section>
 
-      <section class="term-macro-grid term-cross" aria-label="Cross-asset">
-        <div class="term-macro-item term-cross__item">
-          <span class="term-macro-item__label term-cross__label">US 10Y</span>
-          <div class="term-macro-item__value term-cross__val term-skel-target">4.28%</div>
-          <div class="term-macro-item__sub term-cross__chg term-skel-target">−3bp</div>
-        </div>
-        <div class="term-macro-item term-cross__item">
-          <span class="term-macro-item__label term-cross__label">US-DE 10Y</span>
-          <div class="term-macro-item__value term-cross__val term-skel-target">—</div>
-          <div class="term-macro-item__sub term-cross__chg term-skel-target">—</div>
-        </div>
-        <div class="term-macro-item term-cross__item">
-          <span class="term-macro-item__label term-cross__label">Brent</span>
-          <div class="term-macro-item__value term-cross__val term-skel-target">71.20</div>
-          <div class="term-macro-item__sub term-cross__chg term-skel-target">+0.42</div>
-        </div>
-        <div class="term-macro-item term-cross__item">
-          <span class="term-macro-item__label term-cross__label">Gold</span>
-          <div class="term-macro-item__value term-cross__val term-skel-target">2,685</div>
-          <div class="term-macro-item__sub term-cross__chg term-skel-target">+6.2</div>
-        </div>
-      </section>
-
-      <section class="term-brief-card term-brief" aria-labelledby="term-brief-heading">
-        <span class="term-brief-card__label term-brief__label">Morning brief</span>
-        <h2 id="term-brief-heading" class="term-brief-card__headline term-brief__title term-skel-target">Regime read — G10 snapshot</h2>
-        <p class="term-brief-card__body term-brief__body term-skel-target">
-          EUR/USD: trend bias intact with spread support; USD/JPY balanced inside range; USD/INR directional only —
-          watch RBI tone. Cross-asset: rates slightly softer, vol subdued. Full tables and charts ship with the daily HTML brief.
-        </p>
-        <a class="term-brief__link" href="/brief/">Open full brief →</a>
-        <a class="term-brief__notes-link" href="/newsletter/">Read research notes →</a>
-        <p class="term-brief__how"><a class="term-brief__how-link" href="/methodology/">How this works →</a></p>
+      <section class="term-intel-bar" id="term-intel-strip" aria-label="What changed today" hidden>
+        <div class="term-intel-bar__label">What changed today</div>
+        <div id="term-intel-list" class="term-intel-bar__list"></div>
       </section>
     </main>
+
+    <footer class="term-home-footer">
+      <div class="term-home-footer__status">
+        <span class="term-home-footer__live">■</span>
+        <span>Pipeline status</span>
+        <span class="term-home-footer__sep">·</span>
+        <span id="term-pipeline-ts">Last run 23:14 UTC · 06 Apr 2026</span>
+      </div>
+      <div class="term-home-footer__copy">© 2026 FX Regime Lab</div>
+    </footer>
 
     <div class="term-panel-overlay" id="term-panel-overlay" hidden></div>
     <aside class="term-panel" id="term-panel" aria-hidden="true">
@@ -195,7 +217,7 @@
         <button type="button" class="term-panel__close" id="term-panel-close" aria-label="Close panel">×</button>
         <div class="term-panel__pair" id="term-panel-pair">EUR/USD</div>
         <div class="term-panel__spot" id="term-panel-spot">—</div>
-        <a class="term-panel__full-link" id="term-panel-link-top" href="/terminal/eurusd.html">→ Full analysis</a>
+        <a class="term-panel__full-link" id="term-panel-link-top" href="/terminal/dashboard.html?pair=EURUSD">→ Full analysis</a>
       </header>
       <div class="term-panel__body">
         <section class="term-panel__section">
@@ -221,7 +243,7 @@
         </section>
       </div>
       <footer class="term-panel__footer">
-        <a class="term-panel__cta" id="term-panel-link-bottom" href="/terminal/eurusd.html">→ Full EUR/USD analysis</a>
+        <a class="term-panel__cta" id="term-panel-link-bottom" href="/terminal/dashboard.html?pair=EURUSD">→ Full EUR/USD analysis</a>
       </footer>
     </aside>
   </div>
@@ -256,7 +278,7 @@
           if (window.FXRLTerminalAccuracy && typeof window.FXRLTerminalAccuracy.init === 'function') {
             window.FXRLTerminalAccuracy.init();
           }
-        }, 500);
+        }, 3000);
       }
       var run = window.FXRLPageInit && typeof window.FXRLPageInit.safeInit === 'function'
         ? function () { return window.FXRLPageInit.safeInit('terminal-home', bootHome); }

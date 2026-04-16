@@ -41,6 +41,19 @@
     return '';
   }
 
+  /**
+   * Same DOM node as FXRLData.initTerminalHome (.term-card__driver). Only treat the slot as
+   * AI-writable when empty or data-client’s explicit empty state — never stomp formatDriverLabel output.
+   */
+  function isDriverSlotOpenForAi(el) {
+    if (!el) return false;
+    var t = String(el.textContent || '').trim();
+    if (!t) return true;
+    if (t === '—') return true;
+    if (/^Driver:\s*—\s*$/i.test(t)) return true;
+    return false;
+  }
+
   function syncCard(card) {
     if (!card) return;
     var pct = card.querySelector('.term-card__conf-pct');
@@ -128,7 +141,7 @@
       var driver = data.key_driver || data.narrative || '';
       if (driver) {
         var driverEl = card.querySelector('.term-card__driver');
-        if (driverEl) driverEl.textContent = truncate(driver, 60);
+        if (driverEl && isDriverSlotOpenForAi(driverEl)) driverEl.textContent = truncate(driver, 60);
       }
       card.setAttribute('data-panel-narrative', data.narrative || '');
       card.setAttribute('data-panel-watch', data.watch_for || '');
@@ -160,9 +173,40 @@
       });
   }
 
+  var panelScriptLoading = false;
+
+  function wireLazyPanelOpens() {
+    document.addEventListener(
+      'click',
+      function (e) {
+        var card = e.target.closest && e.target.closest('.term-card[data-panel-pair]');
+        if (!card) return;
+        if (global.FXRLPanel) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (panelScriptLoading) return;
+        panelScriptLoading = true;
+        var s = document.createElement('script');
+        s.src = '/terminal/panel.js';
+        s.defer = true;
+        document.head.appendChild(s);
+        s.onload = function () {
+          panelScriptLoading = false;
+          global.FXRLPanel = true;
+          if (card.click) card.click();
+        };
+        s.onerror = function () {
+          panelScriptLoading = false;
+        };
+      },
+      true
+    );
+  }
+
   function init() {
     observeCards();
     initAiLayer();
+    wireLazyPanelOpens();
   }
 
   document.addEventListener('DOMContentLoaded', init);

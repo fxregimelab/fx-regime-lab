@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FX Regime Lab | Institutional Financial Terminal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#e4e1e9",
+                    "surface": "#131318",
+                    "outline-variant": "#1c1c2e",
+                    "error-container": "#93000a",
+                    "on-primary-fixed": "#001a42",
+                    "tertiary-fixed-dim": "#ffb3ad",
+                    "on-tertiary-fixed-variant": "#930013",
+                    "surface-bright": "#39383e",
+                    "secondary-fixed-dim": "#ffb95f",
+                    "inverse-on-surface": "#303036",
+                    "on-secondary": "#472a00",
+                    "surface-container-low": "#1b1b20",
+                    "on-secondary-fixed-variant": "#653e00",
+                    "inverse-primary": "#005ac2",
+                    "secondary-fixed": "#ffddb8",
+                    "on-tertiary": "#68000a",
+                    "surface-dim": "#0a0a0f",
+                    "on-surface-variant": "#c2c6d6",
+                    "primary-fixed": "#d8e2ff",
+                    "on-error-container": "#ffdad6",
+                    "on-primary-fixed-variant": "#004395",
+                    "surface-container-high": "#2a292f",
+                    "on-primary-container": "#00285d",
+                    "outline": "#8c909f",
+                    "surface-container": "#0f0f18",
+                    "inverse-surface": "#e4e1e9",
+                    "on-tertiary-container": "#5c0008",
+                    "secondary-container": "#ee9800",
+                    "on-secondary-container": "#5b3800",
+                    "tertiary": "#ffb3ad",
+                    "on-surface": "#e4e1e9",
+                    "on-error": "#690005",
+                    "on-tertiary-fixed": "#410004",
+                    "primary": "#adc6ff",
+                    "surface-variant": "#35343a",
+                    "surface-container-highest": "#35343a",
+                    "surface-container-lowest": "#0e0e13",
+                    "background": "#0a0a0f",
+                    "secondary": "#ffb95f",
+                    "error": "#ef4444",
+                    "tertiary-fixed": "#ffdad7",
+                    "primary-container": "#4d8eff",
+                    "tertiary-container": "#ff5451",
+                    "surface-tint": "#adc6ff",
+                    "on-primary": "#002e6a",
+                    "on-secondary-fixed": "#2a1700",
+                    "primary-fixed-dim": "#adc6ff"
+            },
+            "borderRadius": {
+                    "none": "0px",
+                    "DEFAULT": "0px",
+                    "lg": "0px",
+                    "xl": "0px",
+                    "full": "0px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter", "sans-serif"],
+                    "body": ["Inter", "sans-serif"],
+                    "label": ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #0a0a0f; color: #e4e1e9; }
+        .material-symbols-outlined { font-size: 20px; }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+        /* Zero out all border radius globally for Brutalist Architect theme */
+        * { border-radius: 0px !important; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- TopNavBar (Shared Component) -->
+<nav class="bg-[#0a0a0f] h-[52px] w-full border-b border-[#1c1c2e] flex items-center justify-between px-4">
+<div class="flex items-center gap-8 h-full">
+<span class="text-lg font-bold tracking-tighter text-blue-500">FX Regime Lab</span>
+<div class="flex items-center gap-0 h-full">
+<!-- Home is Active -->
+<a class="text-blue-500 border-b-2 border-blue-500 h-full flex items-center px-4 font-['Inter'] uppercase tracking-[0.05em] text-[0.6875rem] font-bold hover:bg-[#131318] transition-colors duration-100" href="#">Home</a>
+<a class="text-[#8c909f] hover:text-white h-full flex items-center px-4 font-['Inter'] uppercase tracking-[0.05em] text-[0.6875rem] font-bold hover:bg-[#131318] transition-colors duration-100" href="#">EUR/USD</a>
+<a class="text-[#8c909f] hover:text-white h-full flex items-center px-4 font-['Inter'] uppercase tracking-[0.05em] text-[0.6875rem] font-bold hover:bg-[#131318] transition-colors duration-100" href="#">USD/JPY</a>
+<a class="text-[#8c909f] hover:text-white h-full flex items-center px-4 font-['Inter'] uppercase tracking-[0.05em] text-[0.6875rem] font-bold hover:bg-[#131318] transition-colors duration-100" href="#">USD/INR</a>
+<a class="text-[#8c909f] hover:text-white h-full flex items-center px-4 font-['Inter'] uppercase tracking-[0.05em] text-[0.6875rem] font-bold hover:bg-[#131318] transition-colors duration-100" href="#">Chart Builder</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center bg-[#0e0e13] border border-[#1c1c2e] px-2 py-1">
+<span class="material-symbols-outlined text-[#8c909f] text-[16px]">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-[0.6875rem] text-white w-32 placeholder:text-[#424754]" placeholder="SEARCH ASSET..." type="text"/>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#8c909f] cursor-pointer hover:text-white">notifications</span>
+<span class="material-symbols-outlined text-[#8c909f] cursor-pointer hover:text-white">settings</span>
+<div class="flex items-center gap-2 border-l border-[#1c1c2e] pl-3">
+<span class="w-2 h-2 bg-green-500"></span>
+<span class="font-['Inter'] uppercase tracking-[0.05em] text-[0.6875rem] font-bold text-[#8c909f]">Live</span>
+</div>
+</div>
+</div>
+</nav>
+<!-- TopAppBar (Ticker Strip) -->
+<div class="bg-[#0a0a0f] h-[36px] w-full border-b border-[#1c1c2e] flex items-center px-4 overflow-hidden whitespace-nowrap gap-6">
+<span class="material-symbols-outlined text-green-500">trending_up</span>
+<div class="flex gap-8 font-mono text-[0.6875rem] tabular-nums items-center">
+<div class="flex gap-2">
+<span class="text-[#8c909f]">DXY</span>
+<span class="text-white">103.42</span>
+<span class="text-error">-0.12%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[#8c909f]">EUR/USD</span>
+<span class="text-white">1.0854</span>
+<span class="text-green-500">+0.04%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[#8c909f]">USD/JPY</span>
+<span class="text-white">149.22</span>
+<span class="text-error">-0.21%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[#8c909f]">USD/INR</span>
+<span class="text-white">83.12</span>
+<span class="text-green-500">+0.01%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[#8c909f]">GBP/USD</span>
+<span class="text-white">1.2645</span>
+<span class="text-error">-0.08%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[#8c909f]">AUD/USD</span>
+<span class="text-white">0.6512</span>
+<span class="text-green-500">+0.15%</span>
+</div>
+</div>
+</div>
+<!-- Main Content Canvas -->
+<main class="flex-1 p-4 flex flex-col gap-4 overflow-y-auto">
+<!-- Regime Cards Section -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- EUR/USD Card -->
+<div class="bg-surface-container border border-outline-variant border-t-[3px] border-t-[#3b82f6] flex flex-col p-4">
+<div class="flex justify-between items-start mb-6">
+<span class="text-[10px] font-bold text-outline tracking-widest uppercase">EUR/USD</span>
+<span class="bg-surface-container-low border border-outline px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-tighter">Neutral</span>
+</div>
+<div class="mb-1">
+<div class="text-[32px] font-bold text-white tabular-nums leading-none">1.0854</div>
+<div class="text-[12px] font-medium text-green-500 mt-1 tabular-nums">+0.0004 (+0.04%)</div>
+</div>
+<div class="border-t border-outline-variant my-4"></div>
+<div class="space-y-2">
+<div class="flex justify-between items-baseline">
+<span class="text-[10px] text-outline font-bold uppercase">Confidence</span>
+<span class="text-[11px] text-white tabular-nums font-bold">16%</span>
+</div>
+<div class="flex justify-between items-baseline">
+<span class="text-[10px] text-outline font-bold uppercase">Volatility</span>
+<span class="text-[11px] text-white font-bold">NORMAL</span>
+</div>
+<div class="flex justify-between items-baseline">
+<span class="text-[10px] text-outline font-bold uppercase">Driver</span>
+<span class="text-[11px] text-white font-bold">JPY Composite</span>
+</div>
+</div>
+<div class="mt-auto pt-6 flex justify-between items-center opacity-60">
+<span class="text-[9px] font-bold uppercase tracking-wider">06 APR 2026</span>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-green-500"></span>
+<span class="text-[9px] font-bold uppercase">Live</span>
+</div>
+</div>
+</div>
+<!-- USD/JPY Card -->
+<div class="bg-surface-container border border-outline-variant border-t-[3px] border-t-[#f59e0b] flex flex-col p-4">
+<div class="flex justify-between items-start mb-6">
+<span class="text-[10px] font-bold text-outline tracking-widest uppercase">USD/JPY</span>
+<span class="bg-secondary-container border border-on-secondary-container px-2 py-0.5 text-[10px] font-bold text-on-secondary-container uppercase tracking-tighter">Bullish</span>
+</div>
+<div class="mb-1">
+<div class="text-[32px] font-bold text-white tabular-nums leading-none">149.22</div>
+<div class="text-[12px] font-medium text-error mt-1 tabular-nums">-0.31 (-0.21%)</div>
+</div>
+<div class="border-t border-outline-variant my-4"></div>
+<div class="space-y-2">
+<div class="flex justify-between items-baseline">
+<span class="text-[10px] text-outline font-bold uppercase">Confidence</span>
+<span class="text-[11px] text-white tabular-nums font-bold">82%</span>
+</div>
+<div class="flex justify-between items-baseline">
+<span class="text-[10px] text-outline font-bold uppercase">Volatility</span>
+<span class="text-[11px] text-white font-bold">ELEVATED</span>
+</div>
+<div class="flex justify-between items-baseline">
+<span class="text-[10px] text-outline font-bold uppercase">Driver</span>
+<span class="text-[11px] text-white font-bold">Yield Spread</span>
+</div>
+</div>
+<div class="mt-auto pt-6 flex justify-between items-center opacity-60">
+<span class="text-[9px] font-bold uppercase tracking-wider">06 APR 2026</span>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-green-500"></span>
+<span class="text-[9px] font-bold uppercase">Live</span>
+</div>
+</div>
+</div>
+<!-- USD/INR Card -->
+<div class="bg-surface-container border border-outline-variant border-t-[3px] border-t-[#ef4444] flex flex-col p-4">
+<div class="flex justify-between items-start mb-6">
+<span class="text-[10px] font-bold text-outline tracking-widest uppercase">USD/INR</span>
+<span class="bg-error-container border border-error px-2 py-0.5 text-[10px] font-bold text-on-error-container uppercase tracking-tighter">Bearish</span>
+</div>
+<div class="mb-1">
+<div class="text-[32px] font-bold text-white tabular-nums leading-none">83.12</div>
+<div class="text-[12px] font-medium text-green-500 mt-1 tabular-nums">+0.01 (+0.01%)</div>
+</div>
+<div class="border-t border-outline-variant my-4"></div>
+<div class="space-y-2">
+<div class="flex justify-between items-baseline">
+<span class="text-[10px] text-outline font-bold uppercase">Confidence</span>
+<span class="text-[11px] text-white tabular-nums font-bold">64%</span>
+</div>
+<div class="flex justify-between items-baseline">
+<span class="text-[10px] text-outline font-bold uppercase">Volatility</span>
+<span class="text-[11px] text-white font-bold">LOW</span>
+</div>
+<div class="flex justify-between items-baseline">
+<span class="text-[10px] text-outline font-bold uppercase">Driver</span>
+<span class="text-[11px] text-white font-bold">Flow Dynamics</span>
+</div>
+</div>
+<div class="mt-auto pt-6 flex justify-between items-center opacity-60">
+<span class="text-[9px] font-bold uppercase tracking-wider">06 APR 2026</span>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-green-500"></span>
+<span class="text-[9px] font-bold uppercase">Live</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Intel Bar: WHAT CHANGED TODAY -->
+<div class="flex flex-col gap-2">
+<h3 class="text-[10px] font-extrabold tracking-[0.1em] text-outline uppercase px-1">What Changed Today</h3>
+<div class="flex flex-wrap gap-2">
+<div class="bg-surface-container-lowest border border-outline-variant px-3 py-2 flex items-center gap-3">
+<span class="w-1 h-1 bg-blue-500"></span>
+<span class="text-[11px] font-bold">USD/JPY Regime shifted from Neutral to Bullish on FOMC Minutes</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant px-3 py-2 flex items-center gap-3">
+<span class="w-1 h-1 bg-amber-500"></span>
+<span class="text-[11px] font-bold">BRENT Crude breached $109.50 resistance</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant px-3 py-2 flex items-center gap-3">
+<span class="w-1 h-1 bg-red-500"></span>
+<span class="text-[11px] font-bold">EUR Liquidity tightening in Asian session</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant px-3 py-2 flex items-center gap-3">
+<span class="w-1 h-1 bg-green-500"></span>
+<span class="text-[11px] font-bold">Equity correlation decoupled for USD/INR</span>
+</div>
+</div>
+</div>
+<!-- Data Strips Section (Accuracy & Cross-Asset) -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Accuracy Strip -->
+<div class="bg-surface-container-lowest border border-outline-variant p-3 flex items-center gap-6">
+<span class="text-[10px] font-extrabold text-outline uppercase tracking-wider">Regime Accuracy</span>
+<div class="flex gap-6 items-center">
+<div class="flex gap-2">
+<span class="text-[11px] font-bold text-[#8c909f]">EUR/USD</span>
+<span class="text-[11px] font-bold text-error tabular-nums">0%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[11px] font-bold text-[#8c909f]">USD/JPY</span>
+<span class="text-[11px] font-bold text-white tabular-nums">43%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[11px] font-bold text-[#8c909f]">USD/INR</span>
+<span class="text-[11px] font-bold text-green-500 tabular-nums">78%</span>
+</div>
+</div>
+</div>
+<!-- Cross-Asset Strip -->
+<div class="bg-surface-container-lowest border border-outline-variant p-3 flex items-center gap-6">
+<span class="text-[10px] font-extrabold text-outline uppercase tracking-wider">Cross-Asset Data</span>
+<div class="flex gap-6 items-center">
+<div class="flex gap-2">
+<span class="text-[11px] font-bold text-[#8c909f]">US-DE 10Y</span>
+<span class="text-[11px] font-bold text-white tabular-nums">1.27%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[11px] font-bold text-[#8c909f]">BRENT</span>
+<span class="text-[11px] font-bold text-white tabular-nums">109.77</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[11px] font-bold text-[#8c909f]">S&amp;P 500</span>
+<span class="text-[11px] font-bold text-error tabular-nums">5,021</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Morning Brief Card -->
+<div class="bg-surface-container border border-outline-variant p-6 flex flex-col gap-4">
+<div class="flex justify-between items-center border-b border-outline-variant pb-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-blue-500">auto_awesome</span>
+<h2 class="text-xl font-bold tracking-tight">Monday Alpha: Regime Shifts in G10</h2>
+</div>
+<span class="text-[10px] font-bold text-outline">06:00 UTC · ANALYSIS</span>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8">
+<div class="text-[13px] leading-relaxed text-on-surface space-y-4">
+<p>The transition in USD/JPY from a period of stability to a high-volatility Bullish regime marks a significant turning point in the G10 complex. Our models indicate that the primary driver has shifted from yield differentials to broader liquidity withdrawal, as implied by the widening spread between the 10Y Treasury and the JGB.</p>
+<p>Institutional flows suggest a liquidation of yen carry positions, accelerated by the hawkish undertones in the latest central bank communications. For the coming 48 hours, we monitor the 149.50 level as a key regime validation point. A failure to breach this could result in a rapid mean reversion to Neutral.</p>
+</div>
+<div class="bg-surface-container-low border border-outline-variant p-4">
+<h4 class="text-[10px] font-extrabold text-outline uppercase mb-3">Key Exposure Risks</h4>
+<ul class="space-y-3">
+<li class="flex items-center gap-3 text-[11px] font-bold">
+<span class="w-1.5 h-1.5 bg-red-500"></span>
+                            JPY Undervaluation Extreme
+                        </li>
+<li class="flex items-center gap-3 text-[11px] font-bold">
+<span class="w-1.5 h-1.5 bg-amber-500"></span>
+                            Treasury Auction Volatility
+                        </li>
+<li class="flex items-center gap-3 text-[11px] font-bold">
+<span class="w-1.5 h-1.5 bg-blue-500"></span>
+                            EUR Mid-Curve Squeeze
+                        </li>
+</ul>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Meta-data (Status Bar style) -->
+<footer class="h-[24px] bg-[#0f0f18] border-t border-[#1c1c2e] px-4 flex items-center justify-between text-[9px] font-bold text-outline uppercase tracking-wider">
+<div class="flex gap-4">
+<span>Terminal ID: 4992-FXRL</span>
+<span>API Status: OPTIMAL</span>
+<span>Latency: 14ms</span>
+</div>
+<div class="flex gap-4">
+<span class="text-white">Connected to NY4 Server Cluster</span>
+<span>© 2026 FX Regime Lab</span>
+</div>
+</footer>
+</body></html>

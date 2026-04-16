@@ -1,82 +1,72 @@
-/* ═══════════════════════════════════════════
-   FX Regime Lab — Lightweight Charts Config
-   Single source of truth for all terminal charts
-   Chart.js must NEVER be imported on terminal pages
-═══════════════════════════════════════════ */
-
+/* FX Regime Lab — ECharts terminal chart config */
 (function (global) {
   'use strict';
 
-  var LWC = null;
+  var EC = null;
+  var registry = new Map();
 
-  function getLWC() {
-    return global.LightweightCharts || LWC;
-  }
-
-  /* ── Design tokens ─────────────────────── */
   var T = {
-    bg: '#111827',
-    bgPage: '#080c14',
-    grid: 'rgba(255,255,255,0.04)',
-    border: 'rgba(255,255,255,0.08)',
-    text: '#8B9BB4',
-    textPrimary: '#E8EDF2',
-    crosshair: 'rgba(255,255,255,0.15)',
-    eurusd: '#4D8EFF',
-    usdjpy: '#F59E0B',
-    usdinr: '#F87171',
+    bg: 'transparent',
+    grid: '#1e293b',
+    border: '#1e293b',
+    text: '#94a3b8',
+    textPrimary: '#e8edf2',
+    eurusd: '#4da6ff',
+    usdjpy: '#ff9944',
+    usdinr: '#e74c3c',
     bullish: '#2DD4A0',
     bearish: '#F87171',
     neutral: '#8B9BB4',
     anomaly: '#F59E0B',
-    bullishBg: 'rgba(45,212,160,0.06)',
-    bearishBg: 'rgba(248,113,113,0.06)',
-    neutralBg: 'rgba(139,155,180,0.04)',
   };
 
-  function hexToRgba(hex, alpha) {
-    if (!hex || typeof hex !== 'string') return 'rgba(77,142,255,' + alpha + ')';
-    var h = hex.replace('#', '');
-    if (h.length === 3) {
-      h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-    }
-    var n = parseInt(h, 16);
-    if (!isFinite(n)) return 'rgba(77,142,255,' + alpha + ')';
-    var r = (n >> 16) & 255;
-    var g = (n >> 8) & 255;
-    var b = n & 255;
-    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  function getECharts() {
+    return global.echarts || EC;
   }
 
   function msToSec(ms) {
     return Math.floor(ms / 1000);
   }
 
-  /**
-   * @param {Array<[number,number]>|Array<{time:number,value:number}>} data
-   * @returns {{time:number,value:number}[]}
-   */
+  function hexToRgba(hex, alpha) {
+    if (!hex || typeof hex !== 'string') return 'rgba(77,166,255,' + alpha + ')';
+    var h = hex.replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var n = parseInt(h, 16);
+    if (!isFinite(n)) return 'rgba(77,166,255,' + alpha + ')';
+    var r = (n >> 16) & 255;
+    var g = (n >> 8) & 255;
+    var b = n & 255;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+  function parseTime(v) {
+    if (v == null) return NaN;
+    if (typeof v === 'number') return v > 1e12 ? v : v * 1000;
+    var t = Date.parse(String(v).length <= 10 ? String(v) + 'T12:00:00Z' : String(v));
+    return isFinite(t) ? t : NaN;
+  }
+
   function normalizeSeriesData(data) {
-    if (!data || !data.length) return [];
+    if (!Array.isArray(data) || !data.length) return [];
     var out = [];
     for (var i = 0; i < data.length; i++) {
       var d = data[i];
       var t;
       var v;
       if (Array.isArray(d)) {
-        t = msToSec(d[0]);
+        t = parseTime(d[0]);
         v = parseFloat(d[1]);
       } else if (d && d.time != null && d.value != null) {
-        t = typeof d.time === 'number' && d.time > 1e12 ? msToSec(d.time) : d.time;
+        t = parseTime(d.time);
         v = parseFloat(d.value);
-      } else if (d && d.date != null) {
-        var dt = d.date;
-        if (typeof dt === 'number' && dt > 1e12) t = msToSec(dt);
-        else if (typeof dt === 'number') t = dt;
-        else t = msToSec(new Date(String(dt) + 'T12:00:00Z').getTime());
+      } else if (d && d.date != null && d.value != null) {
+        t = parseTime(d.date);
         v = parseFloat(d.value);
-      } else continue;
-      if (!isFinite(t) || v == null || !isFinite(v)) continue;
+      } else {
+        continue;
+      }
+      if (!isFinite(t) || !isFinite(v)) continue;
       out.push({ time: t, value: v });
     }
     out.sort(function (a, b) {
@@ -87,175 +77,61 @@
 
   function ensureContainerId(container) {
     if (!container) return '';
-    if (!container.id) {
-      container.id = 'fxrl-lwc-' + Math.random().toString(36).slice(2, 11);
-    }
+    if (!container.id) container.id = 'fxrl-echart-' + Math.random().toString(36).slice(2, 11);
     return container.id;
   }
 
-  /* ── Wait for LWC to load ───────────────── */
   function waitForLWC(timeout) {
     var ms = timeout != null ? timeout : 8000;
-    if (global.__lwcReady && global.LightweightCharts) {
-      LWC = global.LightweightCharts;
+    if (getECharts()) {
+      EC = getECharts();
       return Promise.resolve(true);
     }
     return new Promise(function (resolve) {
-      var t = setTimeout(function () {
-        resolve(false);
-      }, ms);
-      document.addEventListener(
-        'lwc-ready',
-        function () {
-          clearTimeout(t);
-          LWC = global.LightweightCharts;
+      var done = false;
+      var start = Date.now();
+      var timer = setInterval(function () {
+        if (getECharts()) {
+          done = true;
+          clearInterval(timer);
+          EC = getECharts();
           resolve(true);
-        },
-        { once: true }
-      );
-    });
-  }
-
-  /* ── Base chart options ─────────────────── */
-  function baseChartOptions(container, themeOpts) {
-    var w = Math.max(
-      container.offsetWidth || 0,
-      container.clientWidth || 0,
-      300
-    );
-    var h = Math.max(
-      container.offsetHeight || 0,
-      container.clientHeight || 0,
-      200
-    );
-    var th = themeOpts || {};
-    var bg = th.bg != null ? th.bg : T.bg;
-    var txt = th.text != null ? th.text : T.text;
-    var gridC = th.grid != null ? th.grid : T.grid;
-    var borderC = th.border != null ? th.border : T.border;
-    return {
-      width: w,
-      height: h,
-      watermark: {
-        visible: false,
-      },
-      layout: {
-        background: { color: bg },
-        textColor: txt,
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: 11,
-      },
-      grid: {
-        vertLines: { color: gridC },
-        horzLines: { color: gridC },
-      },
-      crosshair: {
-        mode: th.crosshairMode != null ? th.crosshairMode : 1,
-        vertLine: {
-          color: T.crosshair,
-          labelBackgroundColor: '#1e293b',
-        },
-        horzLine: {
-          color: T.crosshair,
-          labelBackgroundColor: '#1e293b',
-        },
-      },
-      rightPriceScale: {
-        borderColor: borderC,
-        textColor: txt,
-        scaleMargins: { top: 0.08, bottom: 0.12 },
-      },
-      leftPriceScale: {
-        visible: false,
-      },
-      timeScale: {
-        borderColor: borderC,
-        textColor: txt,
-        timeVisible: true,
-        secondsVisible: false,
-        fixLeftEdge: true,
-        fixRightEdge: true,
-      },
-      handleScroll: th.handleScroll !== false,
-      handleScale: th.handleScale !== false,
-    };
-  }
-
-  /* ── Time range helper ──────────────────── */
-  function applyTimeRange(chart, range) {
-    if (!chart || !chart.timeScale) return;
-    var now = Math.floor(Date.now() / 1000);
-    var ranges = {
-      '1M': 30 * 86400,
-      '3M': 90 * 86400,
-      '6M': 180 * 86400,
-      '1Y': 365 * 86400,
-      All: null,
-    };
-    var seconds = ranges[range];
-    if (!seconds) {
-      chart.timeScale().fitContent();
-      return;
-    }
-    chart.timeScale().setVisibleRange({
-      from: now - seconds,
-      to: now,
-    });
-  }
-
-  function applyTimeRangeMs(chart, rangeMs) {
-    if (!chart || !chart.timeScale || !rangeMs) return;
-    var now = Math.floor(Date.now() / 1000);
-    var from = now - Math.floor(rangeMs / 1000);
-    try {
-      chart.timeScale().setVisibleRange({ from: from, to: now });
-    } catch (e) {
-      /* LWC v5 throws if chart has no series or scale not ready */
-    }
-  }
-
-  /* ── Time range buttons UI ──────────────── */
-  function renderTimeRangeButtons(container, chart) {
-    var parent = container.parentElement;
-    if (!parent) return;
-    if (parent.querySelector('.fxrl-range-bar')) return;
-    var ranges = ['1M', '3M', '6M', '1Y', 'All'];
-    var bar = document.createElement('div');
-    bar.className = 'fxrl-range-bar';
-    bar.style.cssText =
-      'display:flex;gap:4px;padding:8px 12px 0;font-family:\'JetBrains Mono\',monospace;';
-    ranges.forEach(function (r, i) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = r;
-      btn.dataset.range = r;
-      btn.style.cssText =
-        'background:transparent;border:1px solid rgba(255,255,255,0.10);color:#8B9BB4;font-size:10px;font-family:inherit;padding:3px 8px;border-radius:3px;cursor:pointer;transition:all 0.15s;';
-      btn.addEventListener('click', function () {
-        bar.querySelectorAll('button').forEach(function (b) {
-          b.classList.remove('active');
-          b.style.color = '#8B9BB4';
-          b.style.borderColor = 'rgba(255,255,255,0.10)';
-        });
-        btn.classList.add('active');
-        btn.style.color = '#E8EDF2';
-        btn.style.borderColor = '#4D8EFF';
-        applyTimeRange(chart, r);
-      });
-      if (i === 1) {
-        setTimeout(function () {
-          btn.click();
-        }, 0);
+          return;
+        }
+        if (Date.now() - start >= ms) {
+          done = true;
+          clearInterval(timer);
+          resolve(false);
+        }
+      }, 50);
+      if (typeof document !== 'undefined') {
+        document.addEventListener(
+          'echarts-ready',
+          function () {
+            if (done) return;
+            if (getECharts()) {
+              done = true;
+              clearInterval(timer);
+              EC = getECharts();
+              resolve(true);
+            }
+          },
+          { once: true }
+        );
       }
-      bar.appendChild(btn);
     });
-    // Insert bar as a sibling BEFORE the chart container, never inside it.
-    // LWC needs the container completely clear to inject its canvas correctly.
-    parent.insertBefore(bar, container);
   }
 
-  /* ── EMPTY / ERROR ──────────────────────── */
+  function pairColor(pair) {
+    var p = String(pair || '').replace('/', '').toUpperCase();
+    if (p === 'EURUSD') return T.eurusd;
+    if (p === 'USDJPY') return T.usdjpy;
+    if (p === 'USDINR') return T.usdinr;
+    return T.eurusd;
+  }
+
   function showChartEmpty(container, msg) {
+    if (!container) return;
     container.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:120px;color:#4A5568;font-family:\'JetBrains Mono\',monospace;font-size:11px;background:#111827;border-radius:4px;">' +
       (msg || 'Signal data not yet available') +
@@ -263,867 +139,759 @@
   }
 
   function showChartError(container, msg) {
+    if (!container) return;
     container.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:120px;color:#F87171;font-family:\'JetBrains Mono\',monospace;font-size:11px;background:#111827;border-radius:4px;">' +
       (msg || 'Chart failed to load') +
       '</div>';
   }
 
-  function pairColor(pair) {
-    var p = String(pair || '')
-      .replace('/', '')
-      .toUpperCase();
-    if (p === 'EURUSD') return T.eurusd;
-    if (p === 'USDJPY') return T.usdjpy;
-    if (p === 'USDINR') return T.usdinr;
-    return T.eurusd;
+  function baseChartOptions(container, themeOpts) {
+    var w = Math.max(container && (container.offsetWidth || container.clientWidth) || 0, 300);
+    var h = Math.max(container && (container.offsetHeight || container.clientHeight) || 0, 200);
+    var th = themeOpts || {};
+    return {
+      width: w,
+      height: h,
+      theme: {
+        bg: th.bg != null ? th.bg : T.bg,
+        text: th.text != null ? th.text : T.text,
+        grid: th.grid != null ? th.grid : T.grid,
+        border: th.border != null ? th.border : T.border,
+      },
+    };
   }
 
-  var registry = new Map();
+  function chartBaseOption(theme) {
+    return {
+      backgroundColor: theme.bg,
+      animation: false,
+      textStyle: { color: theme.text, fontFamily: "'JetBrains Mono', monospace", fontSize: 11 },
+      grid: { left: 46, right: 14, top: 16, bottom: 28, containLabel: false },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: '#0f172a',
+        borderColor: theme.grid,
+        textStyle: { color: theme.textPrimary || T.textPrimary, fontFamily: "'JetBrains Mono', monospace" },
+        axisPointer: { type: 'cross', lineStyle: { color: theme.grid } },
+      },
+      xAxis: {
+        type: 'time',
+        boundaryGap: false,
+        axisLine: { lineStyle: { color: theme.border } },
+        splitLine: { show: false },
+        axisLabel: { color: theme.text, fontSize: 10 },
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: { show: true, lineStyle: { color: theme.border } },
+        splitLine: { lineStyle: { color: theme.grid } },
+        axisLabel: { color: theme.text, fontSize: 10 },
+      },
+    };
+  }
+
+  function toSeriesPairs(data) {
+    return (data || []).map(function (p) {
+      return [p.time, p.value];
+    });
+  }
+
+  function resolveContainer(containerIdOrEl) {
+    return typeof containerIdOrEl === 'string' ? document.getElementById(containerIdOrEl) : containerIdOrEl;
+  }
+
+  function disposeInstance(instance) {
+    if (!instance) return;
+    if (typeof instance.disposeExtra === 'function') {
+      try {
+        instance.disposeExtra();
+      } catch (_e) {}
+    }
+    if (instance.chartTop && typeof instance.chartTop.dispose === 'function' && !instance.chartTop.isDisposed()) {
+      try {
+        instance.chartTop.dispose();
+      } catch (_e2) {}
+    }
+    if (instance.chartBottom && typeof instance.chartBottom.dispose === 'function' && !instance.chartBottom.isDisposed()) {
+      try {
+        instance.chartBottom.dispose();
+      } catch (_e3) {}
+    }
+    if (instance.chart && typeof instance.chart.dispose === 'function' && !instance.chart.isDisposed()) {
+      try {
+        instance.chart.dispose();
+      } catch (_e4) {}
+    }
+  }
 
   function register(id, instance) {
-    if (registry.has(id)) {
-      try {
-        var prev = registry.get(id);
-        if (prev && prev.chart && typeof prev.chart.remove === 'function') prev.chart.remove();
-      } catch (e) {}
-    }
+    if (!id) return;
+    if (registry.has(id)) disposeInstance(registry.get(id));
     registry.set(id, instance);
   }
 
-  function disposeChart(id) {
-    if (!registry.has(id)) return;
-    try {
-      var inst = registry.get(id);
-      if (inst && inst.chart && typeof inst.chart.remove === 'function') inst.chart.remove();
-      if (inst && typeof inst.disposeExtra === 'function') inst.disposeExtra();
-    } catch (e2) {}
-    registry.delete(id);
+  function clearRangeBar(container) {
+    if (!container || !container.parentElement) return;
+    var parent = container.parentElement;
+    var bar = parent.querySelector('.fxrl-range-bar[data-chart-id="' + container.id + '"]');
+    if (bar) bar.remove();
+  }
+
+  function disposeChart(idOrEl) {
+    var el = idOrEl && idOrEl.nodeType === 1 ? idOrEl : null;
+    if (!el && typeof idOrEl === 'string') el = document.getElementById(idOrEl);
+    var id = typeof idOrEl === 'string' ? idOrEl : el && el.id ? el.id : '';
+
+    if (id && registry.has(id)) {
+      disposeInstance(registry.get(id));
+      registry.delete(id);
+    } else if (el && el._echartsInst && typeof el._echartsInst.dispose === 'function') {
+      try {
+        if (!el._echartsInst.isDisposed()) el._echartsInst.dispose();
+      } catch (_e) {}
+    }
+    if (el) {
+      clearRangeBar(el);
+      el._echartsInst = undefined;
+      el.innerHTML = '';
+    }
   }
 
   function disposeAll() {
     registry.forEach(function (instance) {
-      try {
-        if (instance && instance.chart && typeof instance.chart.remove === 'function') {
-          instance.chart.remove();
-        }
-        if (instance && typeof instance.disposeExtra === 'function') instance.disposeExtra();
-      } catch (e) {}
+      disposeInstance(instance);
     });
     registry.clear();
   }
 
   function attachResize(container, chart) {
-    var ro = new ResizeObserver(function (entries) {
-      for (var i = 0; i < entries.length; i++) {
-        var w = Math.max(entries[i].contentRect.width, 100);
-        var h = Math.max(entries[i].contentRect.height, 100);
-        try {
-          chart.resize(w, h);
-        } catch (e) {}
-      }
+    var ro = new ResizeObserver(function () {
+      try {
+        if (chart && typeof chart.resize === 'function' && !chart.isDisposed()) chart.resize();
+      } catch (_e) {}
     });
     ro.observe(container);
     return ro;
   }
 
-  /* ── LINE CHART ─────────────────────────── */
-  function createLineChart(containerId, data, opts) {
+  function setRangeOnChart(chart, fromMs, toMs) {
+    if (!chart || typeof chart.setOption !== 'function') return;
+    var yAxes = [];
+    var opts = chart.getOption() || {};
+    var count = Array.isArray(opts.xAxis) ? opts.xAxis.length : 1;
+    var xAxes = [];
+    for (var i = 0; i < count; i++) {
+      xAxes.push({ min: fromMs, max: toMs });
+    }
+    chart.setOption({ xAxis: xAxes, yAxis: yAxes }, false, true);
+  }
+
+  function applyTimeRange(chart, range) {
+    if (!chart) return;
+    var now = Date.now();
+    var ranges = { '1M': 30, '3M': 90, '6M': 180, '1Y': 365 };
+    if (!ranges[range]) {
+      setRangeOnChart(chart, null, null);
+      return;
+    }
+    var from = now - ranges[range] * 86400000;
+    setRangeOnChart(chart, from, now);
+  }
+
+  function applyTimeRangeMs(chart, rangeMs) {
+    if (!chart || !rangeMs) return;
+    var now = Date.now();
+    setRangeOnChart(chart, now - Math.floor(rangeMs), now);
+  }
+
+  function renderTimeRangeButtons(container, chart) {
+    if (!container || !chart || !container.parentElement) return;
+    if (!container.id) ensureContainerId(container);
+    clearRangeBar(container);
+    var parent = container.parentElement;
+    var bar = document.createElement('div');
+    bar.className = 'fxrl-range-bar';
+    bar.dataset.chartId = container.id;
+    bar.style.cssText =
+      'display:flex;gap:4px;padding:8px 12px 0;font-family:\'JetBrains Mono\',monospace;';
+    var ranges = ['1M', '3M', '6M', '1Y', 'All'];
+    ranges.forEach(function (r, i) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = r;
+      btn.style.cssText =
+        'background:transparent;border:1px solid rgba(255,255,255,0.10);color:#8B9BB4;font-size:10px;font-family:inherit;padding:3px 8px;border-radius:3px;cursor:pointer;transition:all 0.15s;';
+      btn.addEventListener('click', function () {
+        bar.querySelectorAll('button').forEach(function (b) {
+          b.style.color = '#8B9BB4';
+          b.style.borderColor = 'rgba(255,255,255,0.10)';
+        });
+        btn.style.color = '#E8EDF2';
+        btn.style.borderColor = '#4D8EFF';
+        applyTimeRange(chart, r);
+      });
+      bar.appendChild(btn);
+      if (i === 1) setTimeout(function () { btn.click(); }, 0);
+    });
+    parent.insertBefore(bar, container);
+  }
+
+  function addTimeRangeButtons(containerIdOrEl, chartOrInstance) {
+    var container = resolveContainer(containerIdOrEl);
+    var chart = chartOrInstance && chartOrInstance.chart ? chartOrInstance.chart : chartOrInstance;
+    if (!container || !chart) return;
+    renderTimeRangeButtons(container, chart);
+  }
+
+  function toLineInstance(chart, ro) {
+    return {
+      chart: chart,
+      setRange: function (r) { applyTimeRange(chart, r); },
+      setRangeMs: function (ms) { applyTimeRangeMs(chart, ms); },
+      hasData: true,
+      disposeExtra: function () {
+        try {
+          ro.disconnect();
+        } catch (_e) {}
+      },
+    };
+  }
+
+  function createSingleChart(containerIdOrEl, rawData, opts, kind) {
     opts = opts || {};
     return waitForLWC().then(function (ready) {
-      var container =
-        typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
-      if (!container) {
-        console.warn('FXRLCharts: container not found:', containerId);
-        return null;
-      }
-      if (!document.body.contains(container)) {
-        console.warn('FXRLCharts: container is detached from DOM:', containerId);
-        return null;
-      }
+      var container = resolveContainer(containerIdOrEl);
+      if (!container) return null;
       var cid = ensureContainerId(container);
-      if (!ready || !global.LightweightCharts) {
+      disposeChart(container);
+      if (!ready || !getECharts()) {
         showChartError(container, 'Chart library unavailable');
         return null;
       }
-      var formatted = normalizeSeriesData(data);
-      if (!formatted.length) {
+      var data = normalizeSeriesData(rawData);
+      if (!data.length) {
         showChartEmpty(container, opts.emptyMessage);
         return null;
       }
-      var LW = global.LightweightCharts;
-      container.innerHTML = '';
-      container.getBoundingClientRect();
-      var rect = container.getBoundingClientRect();
-      var w = Math.max(rect.width, container.offsetWidth, container.clientWidth, 600);
-      var h = Math.max(rect.height, container.offsetHeight, container.clientHeight, 220);
-      console.log('FXRLCharts dimensions for', containerId, ':', w, 'x', h);
-      if (w === 0 || h === 0) {
-        console.warn('FXRLCharts: container has zero dimensions:', containerId, w, h);
-      }
-      var chart;
-      try {
-        chart = LW.createChart(container, {
-          width: w,
-          height: h,
-          layout: {
-            background: { color: T.bg },
-            textColor: T.text,
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-          },
-          grid: {
-            vertLines: { color: T.grid },
-            horzLines: { color: T.grid },
-          },
-          crosshair: {
-            vertLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
-            horzLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
-          },
-          rightPriceScale: {
-            borderColor: T.border,
-            textColor: T.text,
-            scaleMargins: { top: 0.08, bottom: 0.12 },
-          },
-          leftPriceScale: { visible: false },
-          timeScale: {
-            borderColor: T.border,
-            textColor: T.text,
-            timeVisible: true,
-            secondsVisible: false,
-            fixLeftEdge: true,
-            fixRightEdge: true,
-          },
-          watermark: { visible: false },
-          handleScroll: true,
-          handleScale: true,
-        });
-      } catch (err) {
-        console.error('FXRLCharts: createChart threw:', err, containerId);
-        return null;
-      }
-      container = document.getElementById(cid);
-      var canvas = container ? container.querySelector('canvas') : null;
-      if (!canvas) {
-        console.error('FXRLCharts: canvas NOT injected into DOM for:', containerId,
-          'container children:', container ? container.children.length : 'N/A');
-        try { chart.remove(); } catch (e) {}
-        return null;
-      }
-      console.log('FXRLCharts: canvas injected for:', containerId, canvas.width, 'x', canvas.height);
+      var base = baseChartOptions(container, opts.theme);
+      var chart = getECharts().init(container, null, {
+        renderer: 'canvas',
+        width: base.width,
+        height: base.height,
+      });
+      container._echartsInst = chart;
       var color = opts.color || T.eurusd;
-      var series = chart.addSeries(LW.LineSeries, {
-        color: color,
-        lineWidth: opts.lineWidth != null ? opts.lineWidth : 2,
-        priceLineVisible: false,
-        lastValueVisible: opts.lastValueVisible !== false,
-        lineStyle: opts.dashed ? 2 : 0,
-        priceFormat: opts.priceFormat || {
-          type: 'price',
-          precision: opts.precision != null ? opts.precision : 4,
-          minMove: opts.minMove != null ? opts.minMove : 0.0001,
-        },
-      });
-      series.setData(formatted);
-      if (!opts.skipRangeButtons) renderTimeRangeButtons(container, chart);
-      var ro = attachResize(container, chart);
-      var inst = {
-        chart: chart,
-        series: series,
-        setRange: function (r) {
-          applyTimeRange(chart, r);
-        },
-        setRangeMs: function (ms) {
-          applyTimeRangeMs(chart, ms);
-        },
-        disposeExtra: function () {
-          try {
-            ro.disconnect();
-          } catch (e) {}
-        },
-        hasData: true,
-      };
-      register(cid, inst);
-      return inst;
-    });
-  }
-
-  /* ── AREA CHART ─────────────────────────── */
-  function createAreaChart(containerId, data, opts) {
-    opts = opts || {};
-    return waitForLWC().then(function (ready) {
-      var container =
-        typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
-      if (!container) {
-        console.warn('FXRLCharts: container not found:', containerId);
-        return null;
-      }
-      if (!document.body.contains(container)) {
-        console.warn('FXRLCharts: container is detached from DOM:', containerId);
-        return null;
-      }
-      var cid = ensureContainerId(container);
-      if (!ready || !global.LightweightCharts) {
-        showChartError(container, 'Chart library unavailable');
-        return null;
-      }
-      var formatted = normalizeSeriesData(data);
-      if (!formatted.length) {
-        showChartEmpty(container, opts.emptyMessage);
-        return null;
-      }
-      var LW = global.LightweightCharts;
-      container.innerHTML = '';
-      container.getBoundingClientRect();
-      var rect = container.getBoundingClientRect();
-      var w = Math.max(rect.width, container.offsetWidth, container.clientWidth, 600);
-      var h = Math.max(rect.height, container.offsetHeight, container.clientHeight, 220);
-      console.log('FXRLCharts dimensions for', containerId, ':', w, 'x', h);
-      if (w === 0 || h === 0) {
-        console.warn('FXRLCharts: container has zero dimensions:', containerId, w, h);
-      }
-      var chart;
-      try {
-        chart = LW.createChart(container, {
-          width: w,
-          height: h,
-          layout: {
-            background: { color: T.bg },
-            textColor: T.text,
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-          },
-          grid: {
-            vertLines: { color: T.grid },
-            horzLines: { color: T.grid },
-          },
-          crosshair: {
-            vertLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
-            horzLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
-          },
-          rightPriceScale: {
-            borderColor: T.border,
-            textColor: T.text,
-            scaleMargins: { top: 0.08, bottom: 0.12 },
-          },
-          leftPriceScale: { visible: false },
-          timeScale: {
-            borderColor: T.border,
-            textColor: T.text,
-            timeVisible: true,
-            secondsVisible: false,
-            fixLeftEdge: true,
-            fixRightEdge: true,
-          },
-          watermark: { visible: false },
-          handleScroll: true,
-          handleScale: true,
-        });
-      } catch (err) {
-        console.error('FXRLCharts: createChart threw:', err, containerId);
-        return null;
-      }
-      container = document.getElementById(cid);
-      var canvas = container ? container.querySelector('canvas') : null;
-      if (!canvas) {
-        console.error('FXRLCharts: canvas NOT injected into DOM for:', containerId,
-          'container children:', container ? container.children.length : 'N/A');
-        try { chart.remove(); } catch (e) {}
-        return null;
-      }
-      console.log('FXRLCharts: canvas injected for:', containerId, canvas.width, 'x', canvas.height);
-      var color = opts.color || T.eurusd;
-      var series = chart.addSeries(LW.AreaSeries, {
-        lineColor: color,
-        topColor: hexToRgba(color, 0.2),
-        bottomColor: hexToRgba(color, 0),
-        lineWidth: opts.lineWidth != null ? opts.lineWidth : 2,
-        priceLineVisible: false,
-        lastValueVisible: opts.lastValueVisible !== false,
-        priceFormat: opts.priceFormat || {
-          type: 'price',
-          precision: opts.precision != null ? opts.precision : 4,
-          minMove: opts.minMove != null ? opts.minMove : 0.0001,
-        },
-      });
-      series.setData(formatted);
-      if (!opts.skipRangeButtons) renderTimeRangeButtons(container, chart);
-      var ro = attachResize(container, chart);
-      var inst = {
-        chart: chart,
-        series: series,
-        setRange: function (r) {
-          applyTimeRange(chart, r);
-        },
-        setRangeMs: function (ms) {
-          applyTimeRangeMs(chart, ms);
-        },
-        disposeExtra: function () {
-          try {
-            ro.disconnect();
-          } catch (e) {}
-        },
-        hasData: true,
-      };
-      register(cid, inst);
-      return inst;
-    });
-  }
-
-  /* ── HISTOGRAM CHART ────────────────────── */
-  function createHistogramChart(containerId, data, opts) {
-    opts = opts || {};
-    return waitForLWC().then(function (ready) {
-      var container =
-        typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
-      if (!container) {
-        console.warn('FXRLCharts: container not found:', containerId);
-        return null;
-      }
-      if (!document.body.contains(container)) {
-        console.warn('FXRLCharts: container is detached from DOM:', containerId);
-        return null;
-      }
-      var cid = ensureContainerId(container);
-      if (!ready || !global.LightweightCharts) {
-        showChartError(container, 'Chart library unavailable');
-        return null;
-      }
-      var formatted = normalizeSeriesData(data);
-      if (!formatted.length) {
-        showChartEmpty(container, opts.emptyMessage);
-        return null;
-      }
-      var LW = global.LightweightCharts;
-      container.innerHTML = '';
-      container.getBoundingClientRect();
-      var rect = container.getBoundingClientRect();
-      var w = Math.max(rect.width, container.offsetWidth, container.clientWidth, 600);
-      var h = Math.max(rect.height, container.offsetHeight, container.clientHeight, 220);
-      console.log('FXRLCharts dimensions for', containerId, ':', w, 'x', h);
-      if (w === 0 || h === 0) {
-        console.warn('FXRLCharts: container has zero dimensions:', containerId, w, h);
-      }
-      var chart;
-      try {
-        chart = LW.createChart(container, {
-          width: w,
-          height: h,
-          layout: {
-            background: { color: T.bg },
-            textColor: T.text,
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-          },
-          grid: {
-            vertLines: { color: T.grid },
-            horzLines: { color: T.grid },
-          },
-          crosshair: {
-            vertLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
-            horzLine: { color: T.crosshair, labelBackgroundColor: '#1e293b' },
-          },
-          rightPriceScale: {
-            borderColor: T.border,
-            textColor: T.text,
-            scaleMargins: { top: 0.08, bottom: 0.12 },
-          },
-          leftPriceScale: { visible: false },
-          timeScale: {
-            borderColor: T.border,
-            textColor: T.text,
-            timeVisible: true,
-            secondsVisible: false,
-            fixLeftEdge: true,
-            fixRightEdge: true,
-          },
-          watermark: { visible: false },
-          handleScroll: true,
-          handleScale: true,
-        });
-      } catch (err) {
-        console.error('FXRLCharts: createChart threw:', err, containerId);
-        return null;
-      }
-      container = document.getElementById(cid);
-      var canvas = container ? container.querySelector('canvas') : null;
-      if (!canvas) {
-        console.error('FXRLCharts: canvas NOT injected into DOM for:', containerId,
-          'container children:', container ? container.children.length : 'N/A');
-        try { chart.remove(); } catch (e) {}
-        return null;
-      }
-      console.log('FXRLCharts: canvas injected for:', containerId, canvas.width, 'x', canvas.height);
-      var defC = opts.color || T.eurusd;
-      var series = chart.addSeries(LW.HistogramSeries, {
-        color: defC,
-        priceFormat: opts.priceFormat || { type: 'volume' },
-        priceLineVisible: false,
-        lastValueVisible: true,
-      });
-      var histData = formatted.map(function (p) {
-        var val = p.value;
-        return {
-          time: p.time,
-          value: val,
-          color: val >= 0 ? T.bullish : T.bearish,
+      var series;
+      if (kind === 'histogram') {
+        series = {
+          type: 'bar',
+          barMaxWidth: 8,
+          itemStyle: { color: color },
+          data: toSeriesPairs(data),
         };
+      } else {
+        series = {
+          type: 'line',
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { width: opts.lineWidth != null ? opts.lineWidth : 2, color: color },
+          itemStyle: { color: color },
+          data: toSeriesPairs(data),
+        };
+        if (kind === 'area') {
+          series.areaStyle = { color: hexToRgba(color, 0.2) };
+        }
+      }
+      var option = chartBaseOption({
+        bg: base.theme.bg,
+        text: base.theme.text,
+        border: base.theme.border,
+        grid: base.theme.grid,
+        textPrimary: T.textPrimary,
       });
-      series.setData(histData);
-      if (!opts.skipRangeButtons) renderTimeRangeButtons(container, chart);
+      option.series = [series];
+      chart.setOption(option, true);
+      chart.resize({ width: base.width, height: base.height });
+      chart.resize();
       var ro = attachResize(container, chart);
-      var inst = {
-        chart: chart,
-        series: series,
-        setRange: function (r) {
-          applyTimeRange(chart, r);
-        },
-        setRangeMs: function (ms) {
-          applyTimeRangeMs(chart, ms);
-        },
-        disposeExtra: function () {
-          try {
-            ro.disconnect();
-          } catch (e) {}
-        },
-        hasData: true,
-      };
+      var inst = toLineInstance(chart, ro);
       register(cid, inst);
+      if (!opts.skipRangeButtons) renderTimeRangeButtons(container, chart);
       return inst;
     });
   }
 
-  /**
-   * Multi line series on one chart (shared time).
-   * @param {HTMLElement} container
-   * @param {{ data:array, color:string, lineWidth?:number, dashed?:boolean, priceScaleId?:string, precision?:number }[]} seriesList
-   */
-  function createMultiLineChart(container, seriesList, opts) {
+  function createLineChart(container, data, options) {
+    return createSingleChart(container, data, options, 'line');
+  }
+
+  function createAreaChart(container, data, options) {
+    return createSingleChart(container, data, options, 'area');
+  }
+
+  function createHistogramChart(container, data, options) {
+    return createSingleChart(container, data, options, 'histogram');
+  }
+
+  function createMultiLineChart(container, seriesArray, opts) {
     opts = opts || {};
     return waitForLWC().then(function (ready) {
+      container = resolveContainer(container);
       if (!container) return null;
-      ensureContainerId(container);
-      if (!ready || !global.LightweightCharts) {
+      var cid = ensureContainerId(container);
+      disposeChart(container);
+      if (!ready || !getECharts()) {
         showChartError(container, 'Chart library unavailable');
         return null;
       }
-      container.innerHTML = '';
-      var LW = global.LightweightCharts;
-      var chart = LW.createChart(container, baseChartOptions(container, opts.theme));
-      var seriesRefs = [];
-      var hasRight = false;
-      for (var i = 0; i < seriesList.length; i++) {
-        var spec = seriesList[i];
-        var pts = normalizeSeriesData(spec.data);
-        if (!pts.length) continue;
-        var psId = spec.priceScaleId || 'left';
-        if (psId === 'right') hasRight = true;
-        var lineOpts = {
-          color: spec.color || T.eurusd,
-          lineWidth: spec.lineWidth != null ? spec.lineWidth : 1.5,
-          priceLineVisible: false,
-          lastValueVisible: true,
-          lineStyle: spec.dashed ? 2 : 0,
-          priceScaleId: psId,
-          priceFormat: {
-            type: 'price',
-            precision: spec.precision != null ? spec.precision : 4,
-            minMove: spec.minMove != null ? spec.minMove : 0.0001,
+      var base = baseChartOptions(container, opts.theme);
+      var chart = getECharts().init(container, null, {
+        renderer: 'canvas',
+        width: base.width,
+        height: base.height,
+      });
+      container._echartsInst = chart;
+      var hasData = false;
+      var leftSeen = false;
+      var rightSeen = false;
+      var series = [];
+      (seriesArray || []).forEach(function (spec) {
+        var pts = normalizeSeriesData(spec && spec.data);
+        if (!pts.length) return;
+        hasData = true;
+        var axis = spec && spec.priceScaleId === 'right' ? 1 : 0;
+        if (axis === 0) leftSeen = true;
+        else rightSeen = true;
+        series.push({
+          name: spec && spec.name ? spec.name : '',
+          type: 'line',
+          smooth: true,
+          symbol: 'none',
+          yAxisIndex: axis,
+          lineStyle: {
+            width: spec && spec.lineWidth != null ? spec.lineWidth : 2,
+            type: spec && spec.dashed ? 'dashed' : 'solid',
+            color: spec && spec.color ? spec.color : T.eurusd,
           },
-        };
-        var s = chart.addSeries(LW.LineSeries, lineOpts);
-        s.setData(pts);
-        seriesRefs.push(s);
-      }
-      chart.priceScale('right').applyOptions({
-        visible: hasRight,
-        borderColor: T.border,
-        textColor: T.text,
+          itemStyle: { color: spec && spec.color ? spec.color : T.eurusd },
+          data: toSeriesPairs(pts),
+        });
       });
-      chart.priceScale('left').applyOptions({
-        visible: true,
-        borderColor: T.border,
-        textColor: T.text,
-      });
-      if (!opts.skipRangeButtons) renderTimeRangeButtons(container, chart);
-      var ro = attachResize(container, chart);
-      return {
-        chart: chart,
-        series: seriesRefs,
-        setRangeMs: function (ms) {
-          applyTimeRangeMs(chart, ms);
-        },
-        hasData: seriesRefs.length > 0,
-        disposeExtra: function () {
-          try {
-            ro.disconnect();
-          } catch (e) {}
-        },
-      };
-    });
-  }
-
-  /**
-   * Two stacked charts (e.g. vol + corr), sync visible time range.
-   */
-  function createDualPaneCharts(container, topSpec, bottomSpec, opts) {
-    opts = opts || {};
-    return waitForLWC().then(function (ready) {
-      if (!container) return null;
-      if (!ready || !global.LightweightCharts) {
-        showChartError(container, 'Chart library unavailable');
-        return null;
-      }
-      function paneHasAnySeries(specs) {
-        for (var i = 0; i < (specs || []).length; i++) {
-          var sp = specs[i];
-          if (!sp) continue;
-          if (normalizeSeriesData(sp.data).length) return true;
-        }
-        return false;
-      }
-      var willHaveTop = paneHasAnySeries(topSpec);
-      var willHaveBot = paneHasAnySeries(bottomSpec);
-      if (!willHaveTop && !willHaveBot) {
+      if (!hasData) {
+        chart.dispose();
         showChartEmpty(container, opts.emptyMessage);
         return null;
       }
-      container.innerHTML = '';
-      var wrap = document.createElement('div');
-      wrap.style.display = 'flex';
-      wrap.style.flexDirection = 'column';
-      wrap.style.height = '100%';
-      wrap.style.minHeight = '220px';
-      var topEl = document.createElement('div');
-      topEl.style.flex = '1';
-      topEl.style.minHeight = '100px';
-      var botEl = document.createElement('div');
-      botEl.style.flex = '1';
-      botEl.style.minHeight = '80px';
-      wrap.appendChild(topEl);
-      wrap.appendChild(botEl);
-      container.appendChild(wrap);
-
-      var LW = global.LightweightCharts;
-      var chartTop = LW.createChart(topEl, baseChartOptions(topEl, opts.theme));
-      var chartBot = LW.createChart(botEl, baseChartOptions(botEl, opts.theme));
-
-      function syncCharts(a, b) {
-        a.timeScale().subscribeVisibleLogicalRangeChange(function (range) {
-          if (range === null) return;
-          try {
-            b.timeScale().setVisibleLogicalRange(range);
-          } catch (e) {}
-        });
-      }
-
-      var topSeries = [];
-      var botSeries = [];
-      topSpec.forEach(function (spec) {
-        var pts = normalizeSeriesData(spec.data);
-        if (!pts.length) return;
-        var s = spec.area
-          ? chartTop.addSeries(LW.AreaSeries, {
-              lineColor: spec.color,
-              topColor: hexToRgba(spec.color, 0.15),
-              bottomColor: hexToRgba(spec.color, 0),
-              lineWidth: spec.lineWidth || 1.5,
-              priceLineVisible: false,
-            })
-          : chartTop.addSeries(LW.LineSeries, {
-              color: spec.color,
-              lineWidth: spec.lineWidth || 1.5,
-              lineStyle: spec.dashed ? 2 : 0,
-              priceLineVisible: false,
-            });
-        s.setData(pts);
-        topSeries.push(s);
+      var option = chartBaseOption({
+        bg: base.theme.bg,
+        text: base.theme.text,
+        border: base.theme.border,
+        grid: base.theme.grid,
+        textPrimary: T.textPrimary,
       });
-      bottomSpec.forEach(function (spec) {
-        var pts = normalizeSeriesData(spec.data);
-        if (!pts.length) return;
-        var s = chartBot.addSeries(LW.LineSeries, {
-          color: spec.color || T.neutral,
-          lineWidth: spec.lineWidth || 1.2,
-          priceLineVisible: false,
-        });
-        s.setData(pts);
-        if (spec.zeroLine) {
-          try {
-            s.createPriceLine({ price: 0, color: T.border, lineWidth: 1, lineStyle: 2 });
-          } catch (e) {}
-        }
-        botSeries.push(s);
-      });
-
-      syncCharts(chartTop, chartBot);
-      syncCharts(chartBot, chartTop);
-
-      var ro = new ResizeObserver(function () {
-        var w = container.offsetWidth || 600;
-        try {
-          chartTop.applyOptions({ width: w, height: topEl.clientHeight || 120 });
-          chartBot.applyOptions({ width: w, height: botEl.clientHeight || 100 });
-        } catch (e) {}
-      });
-      ro.observe(container);
-
-      return {
-        chart: chartTop,
-        chartTop: chartTop,
-        chartBottom: chartBot,
-        setRangeMs: function (ms) {
-          if (topSeries.length) applyTimeRangeMs(chartTop, ms);
-          if (botSeries.length) applyTimeRangeMs(chartBot, ms);
+      option.yAxis = [
+        {
+          type: 'value',
+          show: leftSeen || !rightSeen,
+          axisLine: { lineStyle: { color: base.theme.border } },
+          splitLine: { lineStyle: { color: base.theme.grid } },
+          axisLabel: { color: base.theme.text, fontSize: 10 },
         },
-        hasData: topSeries.length > 0 || botSeries.length > 0,
-        disposeExtra: function () {
-          try {
-            ro.disconnect();
-          } catch (e) {}
-          try {
-            chartTop.remove();
-          } catch (e2) {}
-          try {
-            chartBot.remove();
-          } catch (e3) {}
+        {
+          type: 'value',
+          show: rightSeen,
+          axisLine: { lineStyle: { color: base.theme.border } },
+          splitLine: { show: false },
+          axisLabel: { color: base.theme.text, fontSize: 10 },
         },
-      };
-    });
-  }
-
-  /**
-   * COT: histogram (lev net) + line (asset mgr) on right scale; optional constant percentile line.
-   */
-  function createCotCompositeChart(container, spec, opts) {
-    opts = opts || {};
-    return waitForLWC().then(function (ready) {
-      if (!container) return null;
-      if (!ready || !global.LightweightCharts) {
-        showChartError(container, 'Chart library unavailable');
-        return null;
-      }
-      var LW = global.LightweightCharts;
-      container.innerHTML = '';
-      var chart = LW.createChart(container, baseChartOptions(container, opts.theme));
-      var levPts = spec.levHistogram || [];
-      var assetPts = normalizeSeriesData(spec.assetLine || []);
-      if (!levPts.length && !assetPts.length) {
-        showChartEmpty(container, opts.emptyMessage);
-        return null;
-      }
-      var hist = chart.addSeries(LW.HistogramSeries, {
-        priceScaleId: 'left',
-        priceFormat: { type: 'volume' },
-        priceLineVisible: false,
-      });
-      hist.setData(levPts);
-      var line = chart.addSeries(LW.LineSeries, {
-        color: spec.assetColor || '#6b7280',
-        lineWidth: 1.5,
-        priceScaleId: 'right',
-        priceLineVisible: false,
-        priceFormat: { type: 'price', precision: 0, minMove: 1 },
-      });
-      if (assetPts.length) line.setData(assetPts);
-      if (isFinite(spec.th80)) {
-        try {
-          hist.createPriceLine({
-            price: spec.th80,
-            color: T.anomaly,
-            lineWidth: 1,
-            lineStyle: 2,
-            axisLabelVisible: true,
-            title: '80th',
-          });
-        } catch (e) {}
-      }
-      if (isFinite(spec.th20)) {
-        try {
-          hist.createPriceLine({
-            price: spec.th20,
-            color: T.anomaly,
-            lineWidth: 1,
-            lineStyle: 2,
-            axisLabelVisible: true,
-            title: '20th',
-          });
-        } catch (e) {}
-      }
-      chart.priceScale('left').applyOptions({ visible: true });
-      chart.priceScale('right').applyOptions({ visible: assetPts.length > 0 });
+      ];
+      option.series = series;
+      chart.setOption(option, true);
+      chart.resize({ width: base.width, height: base.height });
+      chart.resize();
       var ro = attachResize(container, chart);
-      return {
+      var inst = {
         chart: chart,
-        setRangeMs: function (ms) {
-          applyTimeRangeMs(chart, ms);
-        },
+        series: series,
+        setRangeMs: function (ms) { applyTimeRangeMs(chart, ms); },
         hasData: true,
         disposeExtra: function () {
           try {
             ro.disconnect();
-          } catch (e) {}
+          } catch (_e) {}
         },
       };
+      register(cid, inst);
+      if (!opts.skipRangeButtons) renderTimeRangeButtons(container, chart);
+      return inst;
     });
   }
 
-  /**
-   * Momentum: top = histogram (daily %) + line (5d mom, right scale); bottom = spot line.
-   */
-  function createMomentumDualPane(container, spec, opts) {
+  function buildDualPane(container, topSeries, botSeries, opts) {
     opts = opts || {};
     return waitForLWC().then(function (ready) {
+      container = resolveContainer(container);
       if (!container) return null;
-      if (!ready || !global.LightweightCharts) {
+      var cid = ensureContainerId(container);
+      disposeChart(container);
+      if (!ready || !getECharts()) {
         showChartError(container, 'Chart library unavailable');
         return null;
       }
       container.innerHTML = '';
       var wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex;flex-direction:column;height:100%;min-height:240px;';
+      wrap.style.cssText = 'display:flex;flex-direction:column;height:100%;min-height:220px;';
       var topEl = document.createElement('div');
-      topEl.style.cssText = 'flex:1.2;min-height:120px;position:relative;';
       var botEl = document.createElement('div');
+      topEl.style.cssText = 'flex:1;min-height:110px;';
       botEl.style.cssText = 'flex:1;min-height:90px;';
       wrap.appendChild(topEl);
       wrap.appendChild(botEl);
       container.appendChild(wrap);
-      var LW = global.LightweightCharts;
-      var chartTop = LW.createChart(topEl, baseChartOptions(topEl, opts.theme));
-      var chartBot = LW.createChart(botEl, baseChartOptions(botEl, opts.theme));
-      var retBars = spec.dailyHist || [];
-      var momLn = normalizeSeriesData(spec.momoLine || []);
-      var spotLn = normalizeSeriesData(spec.spotLine || []);
-      var topHas = retBars.length > 0 || momLn.length > 0;
-      var botHas = spotLn.length > 0;
-      if (retBars.length) {
-        var h = chartTop.addSeries(LW.HistogramSeries, {
-          priceScaleId: 'left',
-          priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
-        });
-        h.setData(retBars);
-        try {
-          h.createPriceLine({ price: 0, color: T.border, lineWidth: 1, lineStyle: 2 });
-        } catch (e) {}
-      }
-      if (momLn.length) {
-        var m = chartTop.addSeries(LW.LineSeries, {
-          color: spec.momColor || T.eurusd,
-          lineWidth: 1.2,
-          priceScaleId: 'right',
-          priceLineVisible: false,
-        });
-        m.setData(momLn);
-      }
-      chartTop.priceScale('right').applyOptions({ visible: momLn.length > 0 });
-      if (spotLn.length) {
-        var sp = chartBot.addSeries(LW.LineSeries, {
-          color: spec.spotColor || T.textPrimary,
-          lineWidth: 1.2,
-          priceLineVisible: false,
-        });
-        sp.setData(spotLn);
-      }
-      function syncCharts(a, b) {
-        a.timeScale().subscribeVisibleLogicalRangeChange(function (range) {
-          if (range === null) return;
-          try {
-            b.timeScale().setVisibleLogicalRange(range);
-          } catch (e) {}
-        });
-      }
-      syncCharts(chartTop, chartBot);
-      syncCharts(chartBot, chartTop);
+      var baseTop = baseChartOptions(topEl, opts.theme);
+      var baseBot = baseChartOptions(botEl, opts.theme);
+      var chartTop = getECharts().init(topEl, null, {
+        renderer: 'canvas',
+        width: baseTop.width,
+        height: baseTop.height,
+      });
+      var chartBottom = getECharts().init(botEl, null, {
+        renderer: 'canvas',
+        width: baseBot.width,
+        height: baseBot.height,
+      });
+      var topOpt = chartBaseOption({
+        bg: baseTop.theme.bg,
+        text: baseTop.theme.text,
+        border: baseTop.theme.border,
+        grid: baseTop.theme.grid,
+        textPrimary: T.textPrimary,
+      });
+      topOpt.series = topSeries;
+      var botOpt = chartBaseOption({
+        bg: baseBot.theme.bg,
+        text: baseBot.theme.text,
+        border: baseBot.theme.border,
+        grid: baseBot.theme.grid,
+        textPrimary: T.textPrimary,
+      });
+      botOpt.series = botSeries;
+      chartTop.setOption(topOpt, true);
+      chartBottom.setOption(botOpt, true);
+      chartTop.resize({ width: baseTop.width, height: baseTop.height });
+      chartTop.resize();
+      chartBottom.resize({ width: baseBot.width, height: baseBot.height });
+      chartBottom.resize();
       var ro = new ResizeObserver(function () {
-        var w = container.offsetWidth || 600;
         try {
-          chartTop.applyOptions({ width: w, height: topEl.clientHeight || 140 });
-          chartBot.applyOptions({ width: w, height: botEl.clientHeight || 100 });
-        } catch (e) {}
+          chartTop.resize();
+          chartBottom.resize();
+        } catch (_e) {}
       });
       ro.observe(container);
-      return {
+      var inst = {
         chart: chartTop,
         chartTop: chartTop,
-        chartBottom: chartBot,
+        chartBottom: chartBottom,
         setRangeMs: function (ms) {
-          if (topHas) applyTimeRangeMs(chartTop, ms);
-          if (botHas) applyTimeRangeMs(chartBot, ms);
+          applyTimeRangeMs(chartTop, ms);
+          applyTimeRangeMs(chartBottom, ms);
         },
-        hasData: retBars.length > 0 || spotLn.length > 0,
+        hasData: (topSeries && topSeries.length) || (botSeries && botSeries.length),
         disposeExtra: function () {
           try {
             ro.disconnect();
-          } catch (e) {}
-          try {
-            chartTop.remove();
-          } catch (e2) {}
-          try {
-            chartBot.remove();
-          } catch (e3) {}
+          } catch (_e2) {}
         },
       };
+      register(cid, inst);
+      return inst;
     });
   }
 
-  /**
-   * FPI weekly: histogram bars + cumulative line (right).
-   */
-  function createFpiComboChart(container, spec, opts) {
+  function createDualPaneCharts(container, topSpec, bottomSpec, opts) {
+    var topSeries = [];
+    (topSpec || []).forEach(function (spec) {
+      var pts = normalizeSeriesData(spec && spec.data);
+      if (!pts.length) return;
+      topSeries.push({
+        type: 'line',
+        smooth: true,
+        symbol: 'none',
+        lineStyle: {
+          width: spec && spec.lineWidth != null ? spec.lineWidth : 2,
+          type: spec && spec.dashed ? 'dashed' : 'solid',
+          color: spec && spec.color ? spec.color : T.eurusd,
+        },
+        itemStyle: { color: spec && spec.color ? spec.color : T.eurusd },
+        areaStyle: spec && spec.area ? { color: hexToRgba(spec.color || T.eurusd, 0.15) } : null,
+        data: toSeriesPairs(pts),
+      });
+    });
+    var botSeries = [];
+    (bottomSpec || []).forEach(function (spec) {
+      var pts = normalizeSeriesData(spec && spec.data);
+      if (!pts.length) return;
+      botSeries.push({
+        type: 'line',
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: spec && spec.lineWidth != null ? spec.lineWidth : 2, color: spec && spec.color ? spec.color : T.neutral },
+        itemStyle: { color: spec && spec.color ? spec.color : T.neutral },
+        markLine: spec && spec.zeroLine ? { symbol: ['none', 'none'], data: [{ yAxis: 0, lineStyle: { color: T.border, type: 'dashed' } }] } : null,
+        data: toSeriesPairs(pts),
+      });
+    });
+    if (!topSeries.length && !botSeries.length) {
+      container = resolveContainer(container);
+      if (container) showChartEmpty(container, opts && opts.emptyMessage);
+      return Promise.resolve(null);
+    }
+    return buildDualPane(container, topSeries, botSeries, opts);
+  }
+
+  function createCotCompositeChart(container, data, opts) {
     opts = opts || {};
     return waitForLWC().then(function (ready) {
+      container = resolveContainer(container);
       if (!container) return null;
-      if (!ready || !global.LightweightCharts) {
+      var cid = ensureContainerId(container);
+      disposeChart(container);
+      if (!ready || !getECharts()) {
         showChartError(container, 'Chart library unavailable');
         return null;
       }
-      var LW = global.LightweightCharts;
-      container.innerHTML = '';
-      var chart = LW.createChart(container, baseChartOptions(container, opts.theme));
-      var bars = spec.barData || [];
-      var cum = normalizeSeriesData(spec.cumLine || []);
-      if (!bars.length && !cum.length) {
+      var lev = [];
+      var asset = [];
+      var pct = [];
+      var th20 = data && data.th20;
+      var th80 = data && data.th80;
+      if (data && Array.isArray(data.dates)) {
+        for (var i = 0; i < data.dates.length; i++) {
+          var t = parseTime(data.dates[i]);
+          if (!isFinite(t)) continue;
+          var lv = parseFloat((data.levMoney || [])[i]);
+          var av = parseFloat((data.assetMgr || [])[i]);
+          var pv = parseFloat((data.percentile || [])[i]);
+          if (isFinite(lv)) lev.push([t, lv]);
+          if (isFinite(av)) asset.push([t, av]);
+          if (isFinite(pv)) pct.push([t, pv]);
+        }
+      } else {
+        lev = toSeriesPairs((data && data.levHistogram) || []);
+        asset = toSeriesPairs(normalizeSeriesData((data && data.assetLine) || []));
+      }
+      if (!lev.length && !asset.length && !pct.length) {
         showChartEmpty(container, opts.emptyMessage);
         return null;
       }
-      if (bars.length) {
-        var h = chart.addSeries(LW.HistogramSeries, { priceScaleId: 'left' });
-        h.setData(bars);
-      }
-      if (cum.length) {
-        var ln = chart.addSeries(LW.LineSeries, {
-          color: spec.cumColor || T.usdinr,
-          lineWidth: 1.5,
-          priceScaleId: 'right',
-          priceLineVisible: false,
-        });
-        ln.setData(cum);
-      }
-      chart.priceScale('right').applyOptions({ visible: cum.length > 0 });
-      var ro = attachResize(container, chart);
-      return {
-        chart: chart,
-        setRangeMs: function (ms) {
-          applyTimeRangeMs(chart, ms);
+      var base = baseChartOptions(container, opts.theme);
+      var chart = getECharts().init(container, null, {
+        renderer: 'canvas',
+        width: base.width,
+        height: base.height,
+      });
+      container._echartsInst = chart;
+      var option = chartBaseOption({
+        bg: base.theme.bg,
+        text: base.theme.text,
+        border: base.theme.border,
+        grid: base.theme.grid,
+        textPrimary: T.textPrimary,
+      });
+      option.yAxis = [
+        {
+          type: 'value',
+          axisLine: { lineStyle: { color: base.theme.border } },
+          splitLine: { lineStyle: { color: base.theme.grid } },
+          axisLabel: { color: base.theme.text, fontSize: 10 },
         },
+        {
+          type: 'value',
+          min: 0,
+          max: 100,
+          axisLine: { lineStyle: { color: base.theme.border } },
+          splitLine: { show: false },
+          axisLabel: { color: base.theme.text, fontSize: 10 },
+        },
+      ];
+      option.series = [
+        {
+          name: 'Lev Money',
+          type: 'bar',
+          barMaxWidth: 8,
+          itemStyle: { color: T.usdjpy },
+          data: lev,
+          markLine: {
+            symbol: ['none', 'none'],
+            data: [
+              isFinite(th80) ? { yAxis: th80, lineStyle: { color: T.anomaly, type: 'dashed' } } : null,
+              isFinite(th20) ? { yAxis: th20, lineStyle: { color: T.anomaly, type: 'dashed' } } : null,
+            ].filter(Boolean),
+          },
+        },
+        {
+          name: 'Asset Mgr',
+          type: 'bar',
+          barMaxWidth: 8,
+          itemStyle: { color: '#6b7280' },
+          data: asset,
+        },
+        {
+          name: 'Percentile',
+          type: 'line',
+          yAxisIndex: 1,
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { width: 2, color: T.eurusd },
+          itemStyle: { color: T.eurusd },
+          data: pct,
+        },
+      ];
+      chart.setOption(option, true);
+      chart.resize({ width: base.width, height: base.height });
+      chart.resize();
+      var ro = attachResize(container, chart);
+      var inst = {
+        chart: chart,
+        setRangeMs: function (ms) { applyTimeRangeMs(chart, ms); },
         hasData: true,
         disposeExtra: function () {
           try {
             ro.disconnect();
-          } catch (e) {}
+          } catch (_e) {}
         },
       };
+      register(cid, inst);
+      if (!opts.skipRangeButtons) renderTimeRangeButtons(container, chart);
+      return inst;
     });
   }
 
-  /**
-   * SVG radar replacement for cross-asset (two polygons: current vs longer avg).
-   */
+  function createMomentumDualPane(container, spec, opts) {
+    var top = [];
+    var bars = (spec && spec.dailyHist) || [];
+    if (bars.length) {
+      top.push({
+        type: 'bar',
+        barMaxWidth: 8,
+        itemStyle: { color: T.usdjpy },
+        data: toSeriesPairs(normalizeSeriesData(bars)),
+      });
+    }
+    var mom = normalizeSeriesData(spec && spec.momoLine);
+    if (mom.length) {
+      top.push({
+        type: 'line',
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 2, color: spec && spec.momColor ? spec.momColor : T.eurusd },
+        itemStyle: { color: spec && spec.momColor ? spec.momColor : T.eurusd },
+        data: toSeriesPairs(mom),
+      });
+    }
+    var bot = [];
+    var spot = normalizeSeriesData(spec && spec.spotLine);
+    if (spot.length) {
+      bot.push({
+        type: 'line',
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 2, color: spec && spec.spotColor ? spec.spotColor : T.textPrimary },
+        itemStyle: { color: spec && spec.spotColor ? spec.spotColor : T.textPrimary },
+        data: toSeriesPairs(spot),
+      });
+    }
+    if (!top.length && !bot.length) {
+      container = resolveContainer(container);
+      if (container) showChartEmpty(container, opts && opts.emptyMessage);
+      return Promise.resolve(null);
+    }
+    return buildDualPane(container, top, bot, opts);
+  }
+
+  function createFpiComboChart(container, spec, opts) {
+    opts = opts || {};
+    return waitForLWC().then(function (ready) {
+      container = resolveContainer(container);
+      if (!container) return null;
+      var cid = ensureContainerId(container);
+      disposeChart(container);
+      if (!ready || !getECharts()) {
+        showChartError(container, 'Chart library unavailable');
+        return null;
+      }
+      var bars = toSeriesPairs(normalizeSeriesData((spec && spec.barData) || []));
+      var cum = toSeriesPairs(normalizeSeriesData((spec && spec.cumLine) || []));
+      if (!bars.length && !cum.length) {
+        showChartEmpty(container, opts.emptyMessage);
+        return null;
+      }
+      var base = baseChartOptions(container, opts.theme);
+      var chart = getECharts().init(container, null, {
+        renderer: 'canvas',
+        width: base.width,
+        height: base.height,
+      });
+      container._echartsInst = chart;
+      var option = chartBaseOption({
+        bg: base.theme.bg,
+        text: base.theme.text,
+        border: base.theme.border,
+        grid: base.theme.grid,
+        textPrimary: T.textPrimary,
+      });
+      option.yAxis = [
+        {
+          type: 'value',
+          axisLine: { lineStyle: { color: base.theme.border } },
+          splitLine: { lineStyle: { color: base.theme.grid } },
+          axisLabel: { color: base.theme.text, fontSize: 10 },
+        },
+        {
+          type: 'value',
+          axisLine: { lineStyle: { color: base.theme.border } },
+          splitLine: { show: false },
+          axisLabel: { color: base.theme.text, fontSize: 10 },
+        },
+      ];
+      option.series = [
+        { type: 'bar', barMaxWidth: 8, itemStyle: { color: T.usdinr }, data: bars },
+        {
+          type: 'line',
+          yAxisIndex: 1,
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { width: 2, color: spec && spec.cumColor ? spec.cumColor : T.usdinr },
+          itemStyle: { color: spec && spec.cumColor ? spec.cumColor : T.usdinr },
+          data: cum,
+        },
+      ];
+      chart.setOption(option, true);
+      chart.resize({ width: base.width, height: base.height });
+      chart.resize();
+      var ro = attachResize(container, chart);
+      var inst = {
+        chart: chart,
+        setRangeMs: function (ms) { applyTimeRangeMs(chart, ms); },
+        hasData: true,
+        disposeExtra: function () {
+          try {
+            ro.disconnect();
+          } catch (_e) {}
+        },
+      };
+      register(cid, inst);
+      if (!opts.skipRangeButtons) renderTimeRangeButtons(container, chart);
+      return inst;
+    });
+  }
+
   function renderCrossRadarSvg(container, params) {
     if (!container) return;
-    var axes = params.axes || [];
-    var accent = params.accent || T.eurusd;
+    var axes = params && params.axes ? params.axes : [];
+    var accent = params && params.accent ? params.accent : T.eurusd;
     var n = axes.length || 5;
     var cx = 50;
     var cy = 52;
@@ -1138,85 +906,39 @@
       pts.push(cx + r * v * Math.cos(ang) + ',' + (cy + r * v * Math.sin(ang)));
       pts2.push(cx + r * v2 * Math.cos(ang) + ',' + (cy + r * v2 * Math.sin(ang)));
     }
-    var poly = pts.join(' ');
-    var poly2 = pts2.join(' ');
     var sb = [];
     sb.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" style="max-height:280px">');
-    for (var ring = 1; ring <= 4; ring++) {
-      var rr = (r * ring) / 4;
-      var ringPts = [];
-      for (var j = 0; j < n; j++) {
-        var a = -Math.PI / 2 + (j * 2 * Math.PI) / n;
-        ringPts.push(cx + rr * Math.cos(a) + ',' + (cy + rr * Math.sin(a)));
-      }
-      sb.push(
-        '<polygon fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.4" points="' +
-          ringPts.join(' ') +
-          '"/>'
-      );
-    }
-    for (var k = 0; k < n; k++) {
-      var a2 = -Math.PI / 2 + (k * 2 * Math.PI) / n;
-      sb.push(
-        '<line x1="' +
-          cx +
-          '" y1="' +
-          cy +
-          '" x2="' +
-          (cx + r * Math.cos(a2)) +
-          '" y2="' +
-          (cy + r * Math.sin(a2)) +
-          '" stroke="rgba(255,255,255,0.1)" stroke-width="0.4"/>'
-      );
-      var lab = axes[k] && axes[k].label ? String(axes[k].label).replace(/&/g, '&amp;') : '';
-      var lx = cx + (r + 8) * Math.cos(a2);
-      var ly = cy + (r + 8) * Math.sin(a2);
-      sb.push(
-        '<text x="' +
-          lx +
-          '" y="' +
-          ly +
-          '" fill="#8B9BB4" font-size="5" font-family="JetBrains Mono,monospace" text-anchor="middle">' +
-          lab +
-          '</text>'
-      );
-    }
-    sb.push(
-      '<polygon fill="' +
-        hexToRgba(accent, 0.12) +
-        '" stroke="' +
-        accent +
-        '" stroke-width="0.8" points="' +
-        poly +
-        '"/>'
-    );
-    sb.push(
-      '<polygon fill="rgba(107,114,128,0.1)" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2" points="' +
-        poly2 +
-        '"/>'
-    );
+    sb.push('<polygon fill="' + hexToRgba(accent, 0.12) + '" stroke="' + accent + '" stroke-width="0.8" points="' + pts.join(' ') + '"/>');
+    sb.push('<polygon fill="rgba(107,114,128,0.1)" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2" points="' + pts2.join(' ') + '"/>');
     sb.push('</svg>');
     container.innerHTML = sb.join('');
   }
 
-  function addTimeRangeButtons(containerId, instance) {
-    var container =
-      typeof containerId === 'string' ? document.getElementById(containerId) : containerId;
-    if (!container || !instance || !instance.chart) return;
-    renderTimeRangeButtons(container, instance.chart);
+  function resizeTabCharts(panel) {
+    if (!panel) return;
+    panel.querySelectorAll('.term-chart').forEach(function (container) {
+      if (container._echartsInst && typeof container._echartsInst.resize === 'function') {
+        try {
+          container._echartsInst.resize();
+        } catch (_e) {}
+      }
+    });
   }
 
   global.FXRLCharts = {
     line: createLineChart,
     area: createAreaChart,
     histogram: createHistogramChart,
+    createLineChart: createLineChart,
+    createAreaChart: createAreaChart,
+    createHistogramChart: createHistogramChart,
     createMultiLineChart: createMultiLineChart,
     createDualPaneCharts: createDualPaneCharts,
     createCotCompositeChart: createCotCompositeChart,
     createMomentumDualPane: createMomentumDualPane,
     createFpiComboChart: createFpiComboChart,
-    renderCrossRadarSvg: renderCrossRadarSvg,
     addTimeRangeButtons: addTimeRangeButtons,
+    renderCrossRadarSvg: renderCrossRadarSvg,
     pairColor: pairColor,
     applyTimeRange: applyTimeRange,
     applyTimeRangeMs: applyTimeRangeMs,
@@ -1231,11 +953,11 @@
     showChartError: showChartError,
     ensureContainerId: ensureContainerId,
     baseChartOptions: baseChartOptions,
+    resizeTabCharts: resizeTabCharts,
     registry: registry,
     T: T,
   };
 
-  /* Legacy alias for scripts still reading TERMINAL_CHART_BASE.color */
   global.TERMINAL_CHART_BASE = {
     color: [T.eurusd, T.usdjpy, T.usdinr, T.bullish, T.bearish, '#7c6bcf'],
     textStyle: { fontFamily: '"JetBrains Mono", monospace', fontSize: 11, color: T.text },
@@ -1245,5 +967,5 @@
 if (typeof window.FXRLCharts === 'undefined') {
   console.error('FXRLCharts failed to register. Check lw-charts-config.js for syntax errors.');
 } else {
-  console.log('FXRLCharts registered successfully.');
+  console.log('FXRLCharts registered successfully (ECharts).');
 }

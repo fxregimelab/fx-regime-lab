@@ -3,7 +3,7 @@
  * Row IDs differ per pair but accordion behaviour is identical. Do not add
  * pair-specific logic here — put it in the pair HTML instead.
  *
- * Terminal pair pages — single-open accordion + lazy Lightweight Charts init.
+ * Terminal pair pages — single-open accordion + lazy chart init.
  */
 (function (global) {
   'use strict';
@@ -20,27 +20,21 @@
       }
       return;
     }
-    if (wrapper.chartTop && wrapper.chartBottom && typeof wrapper.chartTop.applyOptions === 'function') {
+    if (wrapper.chartTop && wrapper.chartBottom && typeof wrapper.chartTop.resize === 'function') {
       var wrap = mount.firstElementChild;
       var topEl = wrap && wrap.children[0];
       var botEl = wrap && wrap.children[1];
       try {
-        wrapper.chartTop.applyOptions({
-          width: w,
-          height: topEl ? topEl.clientHeight : Math.max(80, Math.floor(h * 0.55)),
-        });
-        wrapper.chartBottom.applyOptions({
-          width: w,
-          height: botEl ? botEl.clientHeight : Math.max(60, Math.floor(h * 0.45)),
-        });
+        wrapper.chartTop.resize({ width: w, height: topEl ? topEl.clientHeight : Math.max(80, Math.floor(h * 0.55)) });
+        wrapper.chartBottom.resize({ width: w, height: botEl ? botEl.clientHeight : Math.max(60, Math.floor(h * 0.45)) });
       } catch (e2) {
         /* ignore */
       }
       return;
     }
-    if (wrapper.chart && typeof wrapper.chart.applyOptions === 'function') {
+    if (wrapper.chart && typeof wrapper.chart.resize === 'function') {
       try {
-        wrapper.chart.applyOptions({ width: w, height: h });
+        wrapper.chart.resize({ width: w, height: h });
       } catch (e3) {
         /* ignore */
       }

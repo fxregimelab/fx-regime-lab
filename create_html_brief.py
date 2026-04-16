@@ -23,6 +23,24 @@ from charts.registry import CHART_REGISTRY
 from charts.base import set_chart_months
 import plotly.io as pio
 
+"""
+HTML morning brief Pipeline.
+
+Execution context:
+- Called by run.py as STEP 10 (html)
+- Depends on: morning_brief.py, ai_brief.py
+- Outputs: briefs/brief_YYYYMMDD.html, charts/*.html
+- Next step: validation_regime.py
+- Blocking: YES — pipeline halts on failure
+
+DO NOT:
+- Import other *_pipeline.py modules
+- Use async/await
+- Add CLI arguments (argparse, click, sys.argv)
+- Hardcode dates, API keys, or file paths
+- Use plain supabase insert — always upsert
+"""
+
 plotly_config = dict(scrollZoom=True, displayModeBar=False)
 
 CHARTS_DIR = 'charts'

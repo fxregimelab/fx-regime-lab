@@ -36,14 +36,14 @@
         wrapper.dispose();
         return;
       }
-      if (wrapper.chart && typeof wrapper.chart.remove === 'function') {
-        wrapper.chart.remove();
+      if (wrapper.chart && typeof wrapper.chart.dispose === 'function') {
+        if (!wrapper.chart.isDisposed()) wrapper.chart.dispose();
       }
-      if (wrapper.chartTop && typeof wrapper.chartTop.remove === 'function') {
-        wrapper.chartTop.remove();
+      if (wrapper.chartTop && typeof wrapper.chartTop.dispose === 'function') {
+        if (!wrapper.chartTop.isDisposed()) wrapper.chartTop.dispose();
       }
-      if (wrapper.chartBottom && typeof wrapper.chartBottom.remove === 'function') {
-        wrapper.chartBottom.remove();
+      if (wrapper.chartBottom && typeof wrapper.chartBottom.dispose === 'function') {
+        if (!wrapper.chartBottom.isDisposed()) wrapper.chartBottom.dispose();
       }
       if (typeof wrapper.disposeExtra === 'function') {
         wrapper.disposeExtra();
@@ -98,10 +98,10 @@
       var factory = chartInits[key];
       if (typeof factory !== 'function') return;
 
-      if (!global.LightweightCharts) {
+      if (!global.echarts) {
         if (typeof document !== 'undefined') {
           document.addEventListener(
-            'lwc-ready',
+            'echarts-ready',
             function () {
               initChart(section);
             },

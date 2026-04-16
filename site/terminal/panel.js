@@ -13,6 +13,12 @@
     USDINR: 'USD/INR',
   };
 
+  var PAIR_CODE_MAP = {
+    eurusd: 'EURUSD',
+    usdjpy: 'USDJPY',
+    usdinr: 'USDINR',
+  };
+
   function getPairArticle(pair) {
     var intel = global.FXRLHomeIntel || {};
     var sections = intel.sections || {};
@@ -24,6 +30,17 @@
 
   function byId(id) {
     return document.getElementById(id);
+  }
+
+  function normalizePairCode(pairLike) {
+    var raw = String(pairLike || '').trim();
+    if (!raw) return '';
+    var compact = raw.replace(/[^A-Za-z]/g, '').toLowerCase();
+    return PAIR_CODE_MAP[compact] || raw.toUpperCase();
+  }
+
+  function dashboardUrlForPair(pairCode) {
+    return '/terminal/dashboard.html?pair=' + encodeURIComponent(pairCode);
   }
 
   function stripDriverPrefix(s) {
@@ -88,9 +105,9 @@
   }
 
   function disposePanelChart() {
-    if (panelChartInst && panelChartInst.chart && typeof panelChartInst.chart.remove === 'function') {
+    if (panelChartInst && panelChartInst.chart && typeof panelChartInst.chart.dispose === 'function') {
       try {
-        panelChartInst.chart.remove();
+        if (!panelChartInst.chart.isDisposed()) panelChartInst.chart.dispose();
       } catch (e) {}
     }
     if (panelChartInst && typeof panelChartInst.disposeExtra === 'function') {
@@ -154,10 +171,10 @@
   }
 
   function openPanel(card) {
-    activePair = card.getAttribute('data-panel-pair');
+    activePair = normalizePairCode(card.getAttribute('data-panel-pair'));
     var article = getPairArticle(activePair);
     var pairLabel = PAIR_LABEL[activePair] || activePair;
-    var pairUrl = card.getAttribute('data-panel-url') || '/terminal/';
+    var pairUrl = dashboardUrlForPair(activePair);
     var spot = card.getAttribute('data-panel-spot') || '—';
     var driverRaw = card.getAttribute('data-panel-driver') || article.key_driver || '—';
     var driver = driverRaw === '—' ? '—' : prettyDriverLine(driverRaw);
@@ -221,5 +238,9 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })(typeof window !== 'undefined' ? window : this);

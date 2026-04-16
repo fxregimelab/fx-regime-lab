@@ -1,18 +1,3 @@
-"""Generate article-style FX morning brief narratives.
-
-Primary output:
-  data/ai_article.json
-
-Compatibility output used by create_html_brief.py:
-  data/ai_regime_read.json
-
-The "rate differential z-score" material-change rule is computed locally as the
-rolling 60-day z-score of first differences in spread series:
-  EUR/USD -> US_DE_10Y_spread
-  USD/JPY -> US_JP_10Y_spread
-  USD/INR -> US_IN_10Y_spread
-"""
-
 import json
 import math
 import os
@@ -20,6 +5,24 @@ from datetime import datetime, timezone
 
 import pandas as pd
 from dotenv import load_dotenv
+
+"""
+AI narrative brief Pipeline.
+
+Execution context:
+- Called by run.py as STEP 9 (ai)
+- Depends on: morning_brief.py (brief text must exist)
+- Outputs: data/ai_article.json, site/data/ai_article.json
+- Next step: create_html_brief.py
+- Blocking: NO — pipeline continues if this step fails
+
+DO NOT:
+- Import other *_pipeline.py modules
+- Use async/await
+- Add CLI arguments (argparse, click, sys.argv)
+- Hardcode dates, API keys, or file paths
+- Use plain supabase insert — always upsert
+"""
 
 load_dotenv()
 

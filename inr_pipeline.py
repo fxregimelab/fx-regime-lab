@@ -21,6 +21,24 @@ from datetime import date, timedelta
 
 from config import TODAY, START_DATE, MAX_FFILL_DAYS, ROLLING_WINDOW, CORR_WINDOW, VOL_WINDOW
 
+"""
+USD/INR extension Pipeline.
+
+Execution context:
+- Called by run.py as STEP 3 (inr)
+- Depends on: cot_pipeline.py (data/cot_latest.csv must exist)
+- Outputs: data/inr_latest.csv
+- Next step: vol_pipeline.py
+- Blocking: YES — pipeline halts on failure
+
+DO NOT:
+- Import other *_pipeline.py modules
+- Use async/await
+- Add CLI arguments (argparse, click, sys.argv)
+- Hardcode dates, API keys, or file paths
+- Use plain supabase insert — always upsert
+"""
+
 # FBIL API constants
 _FBIL_BASE    = "https://www.fbil.org.in/wasdm"
 _FBIL_HEADERS = {

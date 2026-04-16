@@ -649,106 +649,132 @@
   }
 
   /**
-   * Build / rebuild a Lightweight Charts instance for the chart builder preview.
+   * Build / rebuild an ECharts instance for the chart builder preview.
    */
   function buildChartBuilderLwc(chartEl, rangeMs, themeName) {
     var FX = global.FXRLCharts;
-    var LW = global.LightweightCharts;
-    if (!chartEl || !FX || !LW || typeof FX.normalizeSeriesData !== 'function') return null;
+    var EC = global.echarts;
+    if (!chartEl || !FX || !EC || typeof FX.normalizeSeriesData !== 'function') return null;
     var Th = ThemeManager.themes[themeName] || ThemeManager.themes.dark;
     var isLight = themeName === 'light';
-    var themeOpts = {
+    var dims = FX.baseChartOptions(chartEl, {
       bg: isLight ? LIGHT_BG : DARK_BG,
       text: Th.text,
       grid: Th.grid,
       border: Th.axis,
-      handleScroll: true,
-      handleScale: true,
-    };
-    var chart = LW.createChart(chartEl, FX.baseChartOptions(chartEl, themeOpts));
+    });
+    var chart = EC.init(chartEl, null, {
+      renderer: 'canvas',
+      width: dims.width,
+      height: dims.height,
+    });
     var hasLeft = false;
     var hasRight = false;
     SeriesManager.active.forEach(function (entry) {
       if (entry.yAxis === 'right') hasRight = true;
       else hasLeft = true;
     });
-    chart.applyOptions({
-      leftPriceScale: {
-        visible: hasLeft,
-        borderColor: Th.axis,
-        textColor: Th.text,
-        scaleMargins: { top: 0.08, bottom: 0.12 },
-      },
-      rightPriceScale: {
-        visible: hasRight || !hasLeft,
-        borderColor: Th.axis,
-        textColor: Th.text,
-        scaleMargins: { top: 0.08, bottom: 0.12 },
-      },
-    });
+    var series = [];
 
     SeriesManager.active.forEach(function (entry) {
       var raw = SeriesManager._prepareDisplay(entry, rangeMs);
       var normalized = FX.normalizeSeriesData(raw);
       if (!normalized.length) return;
       var c = entry.colour || entry.meta.colour;
-      var priceScaleId = entry.yAxis === 'right' ? 'right' : 'left';
-      var lineStyle = entry.lineStyle === 'dashed' ? 2 : 0;
+      var yAxisIndex = entry.yAxis === 'right' ? 1 : 0;
+      var lineStyle = entry.lineStyle === 'dashed' ? 'dashed' : 'solid';
       var t = entry.chartType;
+      var points = normalized.map(function (p) {
+        return [p.time, p.value];
+      });
 
       if (t === 'bar') {
-        var hb = chart.addSeries(LW.HistogramSeries, {
-          color: c,
-          priceScaleId: priceScaleId,
-          priceLineVisible: false,
+        series.push({
+          type: 'bar',
+          name: entry.meta.label,
+          yAxisIndex: yAxisIndex,
+          barMaxWidth: 8,
+          itemStyle: { color: c },
+          data: points,
         });
-        hb.setData(normalized);
       } else if (t === 'area') {
-        var ar = chart.addSeries(LW.AreaSeries, {
-          lineColor: c,
-          topColor: FX.hexToRgba(c, 0.2),
-          bottomColor: FX.hexToRgba(c, 0),
-          lineWidth: 1.5,
-          priceScaleId: priceScaleId,
-          lineStyle: lineStyle,
-          priceLineVisible: false,
+        series.push({
+          type: 'line',
+          name: entry.meta.label,
+          smooth: true,
+          symbol: 'none',
+          yAxisIndex: yAxisIndex,
+          lineStyle: { color: c, width: 1.5, type: lineStyle },
+          itemStyle: { color: c },
+          areaStyle: { color: FX.hexToRgba(c, 0.2) },
+          data: points,
         });
-        ar.setData(normalized);
       } else if (t === 'scatter') {
-        var sc;
-        try {
-          sc = chart.addSeries(LW.LineSeries, {
-            color: c,
-            lineWidth: 2,
-            priceScaleId: priceScaleId,
-            lineStyle: lineStyle,
-            priceLineVisible: false,
-            lastValueVisible: false,
-            pointMarkersVisible: true,
-          });
-        } catch (eSc) {
-          sc = chart.addSeries(LW.LineSeries, {
-            color: c,
-            lineWidth: 2,
-            priceScaleId: priceScaleId,
-            lineStyle: lineStyle,
-            priceLineVisible: false,
-            lastValueVisible: false,
-          });
-        }
-        sc.setData(normalized);
-      } else {
-        var ln = chart.addSeries(LW.LineSeries, {
-          color: c,
-          lineWidth: 1.5,
-          priceScaleId: priceScaleId,
-          lineStyle: lineStyle,
-          priceLineVisible: false,
+        series.push({
+          type: 'line',
+          name: entry.meta.label,
+          smooth: false,
+          showSymbol: true,
+          symbolSize: 4,
+          yAxisIndex: yAxisIndex,
+          lineStyle: { color: c, width: 1, type: lineStyle },
+          itemStyle: { color: c },
+          data: points,
         });
-        ln.setData(normalized);
+      } else {
+        series.push({
+          type: 'line',
+          name: entry.meta.label,
+          smooth: true,
+          symbol: 'none',
+          yAxisIndex: yAxisIndex,
+          lineStyle: { color: c, width: 1.5, type: lineStyle },
+          itemStyle: { color: c },
+          data: points,
+        });
       }
     });
 
+    chart.setOption(
+      {
+        backgroundColor: isLight ? LIGHT_BG : DARK_BG,
+        animation: false,
+        textStyle: { color: Th.text, fontFamily: "'JetBrains Mono', monospace", fontSize: 11 },
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: isLight ? '#fffaf0' : '#0f172a',
+          borderColor: Th.axis,
+          textStyle: { color: Th.text, fontFamily: "'JetBrains Mono', monospace" },
+          axisPointer: { type: 'cross', lineStyle: { color: Th.axis } },
+        },
+        grid: { left: 52, right: 16, top: 16, bottom: 28 },
+        xAxis: {
+          type: 'time',
+          boundaryGap: false,
+          axisLine: { lineStyle: { color: Th.axis } },
+          splitLine: { show: false },
+          axisLabel: { color: Th.text, fontSize: 10 },
+        },
+        yAxis: [
+          {
+            type: 'value',
+            show: hasLeft,
+            axisLine: { lineStyle: { color: Th.axis } },
+            splitLine: { lineStyle: { color: Th.grid } },
+            axisLabel: { color: Th.text, fontSize: 10 },
+          },
+          {
+            type: 'value',
+            show: hasRight || !hasLeft,
+            axisLine: { lineStyle: { color: Th.axis } },
+            splitLine: { show: false },
+            axisLabel: { color: Th.text, fontSize: 10 },
+          },
+        ],
+        series: series,
+      },
+      true
+    );
     FX.applyTimeRangeMs(chart, rangeMs);
     return chart;
   }
@@ -853,7 +879,7 @@
       if (!SeriesManager.hasDataSeries()) {
         return Promise.reject(new Error('NO_DATA_SERIES'));
       }
-      if (!chart || typeof chart.takeScreenshot !== 'function') {
+      if (!chart || (typeof chart.getDataURL !== 'function' && typeof chart.takeScreenshot !== 'function')) {
         return Promise.reject(new Error('NO_CHART'));
       }
       if (w < 100 || h < 100) {
@@ -871,38 +897,49 @@
       var prevW = chartEl ? chartEl.clientWidth : null;
       var prevH = chartEl ? chartEl.clientHeight : null;
       var self = this;
-      chart.applyOptions({ width: w, height: h });
+      function restoreSize() {
+        if (chartEl && prevW != null && prevH != null && chart && typeof chart.resize === 'function') {
+          try {
+            chart.resize({ width: prevW, height: prevH });
+          } catch (_e) {}
+        }
+      }
+      if (chart && typeof chart.resize === 'function') {
+        chart.resize({ width: w, height: h });
+      }
       return new Promise(function (resolve, reject) {
         global.requestAnimationFrame(function () {
           global.requestAnimationFrame(function () {
-            var shot;
+            var dataURL = '';
             try {
-              shot = chart.takeScreenshot();
-            } catch (e) {
-              if (chartEl && prevW != null && prevH != null) {
-                chart.applyOptions({ width: prevW, height: prevH });
+              if (typeof chart.getDataURL === 'function') {
+                dataURL = chart.getDataURL({
+                  type: 'png',
+                  pixelRatio: 2,
+                  backgroundColor: theme === 'light' ? LIGHT_BG : DARK_BG,
+                });
+              } else {
+                var shot = chart.takeScreenshot();
+                dataURL = shot && typeof shot.toDataURL === 'function' ? shot.toDataURL('image/png') : '';
               }
+            } catch (e) {
+              restoreSize();
               reject(e);
               return;
             }
             function finishWithCanvas(cv) {
               if (!cv || typeof cv.toDataURL !== 'function') {
-                if (chartEl && prevW != null && prevH != null) {
-                  chart.applyOptions({ width: prevW, height: prevH });
-                }
+                restoreSize();
                 reject(new Error('SCREENSHOT_FAILED'));
                 return;
               }
-              var dataURL = cv.toDataURL('image/png');
-              self.loadImage(dataURL).then(function (img) {
+              self.loadImage(cv.toDataURL('image/png')).then(function (img) {
                 var canvas = document.createElement('canvas');
                 canvas.width = w;
                 canvas.height = h;
                 var ctx = canvas.getContext('2d');
                 if (!ctx) {
-                  if (chartEl && prevW != null && prevH != null) {
-                    chart.applyOptions({ width: prevW, height: prevH });
-                  }
+                  restoreSize();
                   reject(new Error('canvas context unavailable'));
                   return;
                 }
@@ -916,34 +953,27 @@
                 }
                 ctx.drawImage(img, 0, 0, w, h);
                 self.addBranding(ctx, config, w, h).then(function () {
-                  if (chartEl && prevW != null && prevH != null) {
-                    chart.applyOptions({ width: prevW, height: prevH });
-                  }
+                  restoreSize();
                   self.triggerDownload(canvas, config.pair || self.deriveExportPair(), config.fileDate || config.asOfDate || '');
                   resolve();
                 }).catch(function (err) {
-                  if (chartEl && prevW != null && prevH != null) {
-                    chart.applyOptions({ width: prevW, height: prevH });
-                  }
+                  restoreSize();
                   reject(err);
                 });
               }).catch(function (err) {
-                if (chartEl && prevW != null && prevH != null) {
-                  chart.applyOptions({ width: prevW, height: prevH });
-                }
+                restoreSize();
                 reject(err);
               });
             }
-            if (shot && typeof shot.then === 'function') {
-              shot.then(finishWithCanvas).catch(function (err) {
-                if (chartEl && prevW != null && prevH != null) {
-                  chart.applyOptions({ width: prevW, height: prevH });
-                }
-                reject(err);
-              });
-            } else {
-              finishWithCanvas(shot);
+            if (!dataURL) {
+              restoreSize();
+              reject(new Error('SCREENSHOT_FAILED'));
+              return;
             }
+            self.loadImage(dataURL).then(finishWithCanvas).catch(function (err) {
+              restoreSize();
+              reject(err);
+            });
           });
         });
       });
@@ -1086,9 +1116,9 @@
         } catch (e) {}
         resizeObs = null;
       }
-      if (chart && typeof chart.remove === 'function') {
+      if (chart && typeof chart.dispose === 'function') {
         try {
-          chart.remove();
+          if (!chart.isDisposed()) chart.dispose();
         } catch (e2) {}
       }
       chart = null;
@@ -1267,7 +1297,7 @@
       chartEl.innerHTML = '';
       refreshLegend();
 
-      if (!global.LightweightCharts) {
+      if (!global.echarts) {
         if (typeof opts.onEmptyState === 'function') opts.onEmptyState(true);
         return;
       }
@@ -1302,7 +1332,7 @@
           resizeObs = new ResizeObserver(function () {
             if (!chart || !chartEl) return;
             try {
-              chart.applyOptions({
+              chart.resize({
                 width: chartEl.clientWidth || 600,
                 height: chartEl.clientHeight || 340,
               });
@@ -1332,7 +1362,7 @@
       resizeObs = new ResizeObserver(function () {
         if (!chart || !chartEl) return;
         try {
-          chart.applyOptions({
+          chart.resize({
             width: chartEl.clientWidth || 600,
             height: chartEl.clientHeight || 340,
           });
@@ -1529,13 +1559,13 @@
   }
 
   async function initChartBuilder() {
-    // Wait for LWC
+    // Wait for chart library (ECharts, via FX.waitForLWC alias)
     var FX = global.FXRLCharts;
     if (FX && typeof FX.waitForLWC === 'function') {
-      var lwcReady = await FX.waitForLWC(8000);
-      if (!lwcReady) {
+      var chartLibReady = await FX.waitForLWC(8000);
+      if (!chartLibReady) {
         if (typeof console !== 'undefined' && console.error) {
-          console.error('[ChartBuilder] LWC not available');
+          console.error('[ChartBuilder] ECharts not available');
         }
         return;
       }

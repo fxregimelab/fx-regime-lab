@@ -23,6 +23,25 @@ from core.utils import (
 from config import TODAY, TODAY_FMT, get_upcoming_event
 
 
+"""
+Text morning brief Pipeline.
+
+Execution context:
+- Called by run.py as STEP 7 (text)
+- Depends on: all ETL steps complete, data/latest_with_cot.csv must exist
+- Outputs: briefs/brief_YYYYMMDD.txt
+- Next step: macro_pipeline.py
+- Blocking: YES — pipeline halts on failure
+
+DO NOT:
+- Import other *_pipeline.py modules
+- Use async/await
+- Add CLI arguments (argparse, click, sys.argv)
+- Hardcode dates, API keys, or file paths
+- Use plain supabase insert — always upsert
+"""
+
+
 def _regime_label(percentile, net):
     """Return a short regime string."""
     if pd.isna(percentile):

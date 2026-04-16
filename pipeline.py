@@ -23,6 +23,24 @@ from concurrent.futures import ThreadPoolExecutor
 
 from config import TODAY, START_DATE, MAX_FFILL_DAYS, VOL_WINDOW, ROLLING_WINDOW, CORR_WINDOW, PERIODS
 
+"""
+G10 FX and yields (fx + merge) Pipeline.
+
+Execution context:
+- Called by run.py as STEP 1 (fx) and merge (same script)
+- Depends on: none
+- Outputs: data/latest.csv, data/latest_with_cot.csv (merge phase)
+- Next step: cot_pipeline.py
+- Blocking: YES — pipeline halts on failure
+
+DO NOT:
+- Import other *_pipeline.py modules
+- Use async/await
+- Add CLI arguments (argparse, click, sys.argv)
+- Hardcode dates, API keys, or file paths
+- Use plain supabase insert — always upsert
+"""
+
 load_dotenv()
 FRED_KEY = os.getenv("FRED_API_KEY")
 if not FRED_KEY:

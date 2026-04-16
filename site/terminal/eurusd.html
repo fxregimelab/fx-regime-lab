@@ -15,7 +15,7 @@
   <meta name="supabase-anon-key" content="" />
   <script src="/assets/supabase-env.js"></script>
   <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="window.__supabaseReady=true;document.dispatchEvent(new Event('supabase-ready'))"></script>
-  <script async src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js" onload="window.__lwcReady=true;document.dispatchEvent(new Event('lwc-ready'))"></script>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" onload="window.__echartsReady=true;document.dispatchEvent(new Event('echarts-ready'))"></script>
   <script defer src="/terminal/utils.js"></script>
   <script defer src="/terminal/page-init.js"></script>
   <script defer src="/terminal/lw-charts-config.js"></script>
@@ -36,19 +36,19 @@
       <span class="term-nav__crumb">Terminal</span>
       <nav class="term-nav__tabs" aria-label="Terminal sections">
         <a class="term-nav__tab" href="/terminal/" data-path="/terminal/index">Home</a>
-        <a class="term-nav__tab" href="/terminal/eurusd.html" data-path="/terminal/eurusd">EUR/USD</a>
-        <a class="term-nav__tab" href="/terminal/usdjpy.html" data-path="/terminal/usdjpy">USD/JPY</a>
-        <a class="term-nav__tab" href="/terminal/usdinr.html" data-path="/terminal/usdinr">USD/INR</a>
-        <a class="term-nav__tab" href="/terminal/chartbuilder.html" data-path="/terminal/chartbuilder">Chart builder</a>
-        <a class="term-nav__tab" href="/terminal/overview.html" data-path="/terminal/overview">Overview</a>
+        <a class="term-nav__tab" href="/terminal/dashboard.html" data-path="/terminal/eurusd">Dashboard</a>
+        <a class="term-nav__tab" href="/">Exit Terminal</a>
       </nav>
       <div class="term-nav__right">
+        <span id="term-data-stale" class="term-data-stale" hidden>
+          <span class="term-data-stale__dot" aria-hidden="true"></span>
+          <span class="term-data-stale__label">Data unavailable</span>
+        </span>
         <div class="term-nav__pipeline">
-          <span class="term-nav__pipeline-dot" aria-hidden="true"></span>
-          <span>Live</span>
+          <span class="term-nav__pipeline-dot" id="term-pipeline-health-dot" aria-hidden="true"></span>
+          <span id="term-pipeline-health-label">LIVE</span>
           <span id="term-pipeline-ts">Pipeline —</span>
         </div>
-        <a class="term-nav__exit" href="/">Exit Terminal</a>
       </div>
     </header>
 

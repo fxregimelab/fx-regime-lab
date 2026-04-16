@@ -2,7 +2,8 @@
 (function (global) {
   'use strict';
 
-  var chartInitDone = {};
+  var chartInitDone = new Set();
+  var chartInitInProgress = new Set();
 
   function updateHero(pair, latest, regime) {
     var D = global.FXRLData;
@@ -132,9 +133,22 @@
     container.classList.add('term-fade-in');
   }
 
+  function resizeTabCharts(panel) {
+    if (!panel) return;
+    panel.querySelectorAll('.term-chart').forEach(function (container) {
+      var w = container.offsetWidth || 600;
+      var h = container.offsetHeight || 220;
+      if (container._echartsInst && typeof container._echartsInst.resize === 'function') {
+        try {
+          container._echartsInst.resize({ width: w, height: h });
+        } catch (_e) {}
+      }
+    });
+  }
+
   function initTabCharts(tabName, rows, pair) {
-    if (chartInitDone[tabName]) return;
-    chartInitDone[tabName] = true;
+    if (chartInitDone.has(tabName)) return;
+    chartInitDone.add(tabName);
 
     // Defer until browser has painted containers so offsetHeight is real
     requestAnimationFrame(function () {
@@ -145,12 +159,20 @@
   }
 
   function _doInitTabCharts(tabName, rows, pair) {
+    if (chartInitInProgress.has(tabName)) return;
+    chartInitInProgress.add(tabName);
+
     var FX = global.FXRLCharts;
     var D = global.FXRLData;
-    if (!FX || !D || !D.SIGNAL_CHART_MAP) return;
+    if (!FX || !D || !D.SIGNAL_CHART_MAP) {
+      chartInitInProgress.delete(tabName);
+      return;
+    }
 
     var color = FX.pairColor(pair);
     var map = D.SIGNAL_CHART_MAP;
+    var promises = [];
+    var panel = document.querySelector('[data-tab-panel="' + tabName + '"]');
 
     Object.keys(map).forEach(function (col) {
       var cfg = map[col];
@@ -198,6 +220,8 @@
         chartPromise = FX.line(containerId, data, opts);
       }
 
+      promises.push(chartPromise);
+
       chartPromise.then(function (instance) {
         if (instance) {
           // Do NOT call FX.register() here — the factory already registers
@@ -210,6 +234,11 @@
           if (cell) cell.classList.add('term-fade-in');
         }
       });
+    });
+
+    Promise.allSettled(promises).then(function () {
+      resizeTabCharts(panel);
+      chartInitInProgress.delete(tabName);
     });
   }
 
@@ -228,6 +257,7 @@
         var panel = document.querySelector('[data-tab-panel="' + tabName + '"]');
         if (panel) {
           panel.style.display = 'block';
+          resizeTabCharts(panel);
           panel.classList.remove('term-fade-in');
           panel.offsetHeight;
           panel.classList.add('term-fade-in');
@@ -261,9 +291,9 @@
         var FX = global.FXRLCharts;
         if (FX && FX.registry) {
           FX.registry.forEach(function (instance) {
-            if (instance && instance.chart && typeof instance.chart.applyOptions === 'function') {
+            if (instance && instance.chart && typeof instance.chart.resize === 'function') {
               try {
-                instance.chart.applyOptions({ width: instance.chart.options().width });
+                instance.chart.resize();
               } catch (e) {}
             }
           });
@@ -310,6 +340,10 @@
             }
             var defTab = pairConfig.defaultTab || 'fundamentals';
             initTabCharts(defTab, rowsArr, normPair);
+            setTimeout(function () {
+              var defaultPanel = document.querySelector('[data-tab-panel="fundamentals"]');
+              resizeTabCharts(defaultPanel);
+            }, 500);
             wireTabs(rowsArr, normPair, pairConfig);
 
             if (global.FXRLTerminalMotion && typeof global.FXRLTerminalMotion.initPageMotion === 'function') {

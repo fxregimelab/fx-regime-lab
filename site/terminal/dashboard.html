@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — FX Regime Lab Terminal</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://query1.finance.yahoo.com" />
+  <link rel="stylesheet" href="/terminal/terminal.css" />
+  <meta name="supabase-url" content="" />
+  <meta name="supabase-anon-key" content="" />
+  <script defer src="/assets/supabase-env.js"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="window.__supabaseReady=true;document.dispatchEvent(new Event('supabase-ready'))"></script>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js" onload="window.__echartsReady=true;document.dispatchEvent(new Event('echarts-ready'))"></script>
+  <style>
+    .term-skel-pulse { animation: term-skel-pulse 1.2s ease-in-out infinite; opacity: 0.45; }
+    @keyframes term-skel-pulse { 50% { opacity: 0.88; } }
+    .term-data-stale[hidden] { display: none; }
+  </style>
+  <script defer src="/terminal/utils.js"></script>
+  <script defer src="/terminal/page-init.js"></script>
+  <script defer src="/terminal/lw-charts-config.js"></script>
+  <script defer src="/terminal/data-client.js"></script>
+  <script defer src="/terminal/terminal-nav.js"></script>
+  <script defer src="/terminal/terminal-motion.js"></script>
+  <script defer src="/terminal/live-prices.js"></script>
+  <script defer src="/terminal/theme-switch.js"></script>
+</head>
+<body class="theme-terminal term-dashboard">
+  <a href="#term-main" class="term-sr-only">Skip to content</a>
+  <div class="term-page">
+    <header class="term-nav" role="banner">
+      <a class="term-nav__brand term-brand" href="/terminal/"></a>
+      <span class="term-nav__divider" aria-hidden="true">/</span>
+      <span class="term-nav__crumb">Dashboard</span>
+      <nav class="term-nav__tabs" aria-label="Terminal sections">
+        <a class="term-nav__tab" href="/terminal/" data-path="/terminal/index">Home</a>
+        <a class="term-nav__tab" href="/terminal/dashboard.html" data-path="/terminal/dashboard">Dashboard</a>
+        <a class="term-nav__tab" href="/">Exit Terminal</a>
+      </nav>
+      <div class="term-nav__right">
+        <span id="term-data-stale" class="term-data-stale" hidden>
+          <span class="term-data-stale__dot" aria-hidden="true"></span>
+          <span class="term-data-stale__label">Data unavailable</span>
+        </span>
+        <div class="term-nav__pipeline">
+          <span class="term-nav__pipeline-dot" id="term-pipeline-health-dot" aria-hidden="true"></span>
+          <span id="term-pipeline-health-label">LIVE</span>
+          <span id="term-pipeline-ts">Last run 23:14 UTC · 06 Apr 2026</span>
+        </div>
+      </div>
+    </header>
+
+    <main id="term-main" class="term-main">
+      <div class="term-ticker" aria-label="Macro snapshot">
+        <div class="term-ticker-item term-skel-target" data-term-ticker="DXY"></div>
+        <div class="term-ticker-item term-skel-target" data-term-ticker="EUR/USD"></div>
+        <div class="term-ticker-item term-skel-target" data-term-ticker="USD/JPY"></div>
+      </div>
+
+      <section class="term-dash-grid" aria-label="Dashboard workstation">
+        <aside class="term-dash-coverage">
+          <div class="term-dash-coverage__head">
+            <span>Coverage</span>
+          </div>
+
+          <button class="term-dash-pair-row is-active" data-pair-row="EURUSD" data-pair="EURUSD" type="button" aria-current="true">
+            <div class="term-dash-pair-row__top">
+              <span class="term-dash-pair-row__pair" data-row-pair-label>EUR/USD</span>
+              <span class="term-dash-pill neutral" data-row-regime>Neutral</span>
+            </div>
+            <div class="term-dash-pair-row__mid">
+              <span class="term-dash-pair-row__spot" data-row-spot>1.0854</span>
+              <span class="term-dash-pair-row__chg positive" data-row-change>+0.04%</span>
+            </div>
+            <div class="term-dash-pair-row__meta" data-row-confidence>Confidence 2%</div>
+          </button>
+
+          <button class="term-dash-pair-row" data-pair-row="USDJPY" data-pair="USDJPY" type="button">
+            <div class="term-dash-pair-row__top">
+              <span class="term-dash-pair-row__pair" data-row-pair-label>USD/JPY</span>
+              <span class="term-dash-pill bullish" data-row-regime>Bullish</span>
+            </div>
+            <div class="term-dash-pair-row__mid">
+              <span class="term-dash-pair-row__spot" data-row-spot>149.22</span>
+              <span class="term-dash-pair-row__chg negative" data-row-change>-0.21%</span>
+            </div>
+            <div class="term-dash-pair-row__meta" data-row-confidence>Confidence 50%</div>
+          </button>
+
+          <button class="term-dash-pair-row" data-pair-row="USDINR" data-pair="USDINR" type="button">
+            <div class="term-dash-pair-row__top">
+              <span class="term-dash-pair-row__pair" data-row-pair-label>USD/INR</span>
+              <span class="term-dash-pill bearish" data-row-regime>Bearish</span>
+            </div>
+            <div class="term-dash-pair-row__mid">
+              <span class="term-dash-pair-row__spot" data-row-spot>83.24</span>
+              <span class="term-dash-pair-row__chg positive" data-row-change>+0.15%</span>
+            </div>
+            <div class="term-dash-pair-row__meta" data-row-confidence>Confidence 14%</div>
+          </button>
+        </aside>
+
+        <section class="term-dash-center">
+          <div class="term-dash-headline">
+            <div class="term-dash-headline__pair" id="dash-headline-pair">EUR/USD</div>
+            <div class="term-dash-headline__spot" id="dash-headline-spot">1.0854 +0.04%</div>
+            <div class="term-dash-headline__state" id="dash-headline-state">NEUTRAL · CONFIDENCE 2% · VOL NORMAL</div>
+          </div>
+
+          <section class="term-dash-card">
+            <header class="term-dash-card__head term-dash-signals-head">
+              <span>Signal</span>
+              <span>Direction</span>
+              <span>Value</span>
+              <span>Contribution</span>
+            </header>
+            <div class="term-dash-signal-row" data-signal-row="rate">
+              <span>Rate Differentials</span>
+              <span class="term-signal-direction bearish" data-dir="BEARISH" data-signal-direction>Bearish</span>
+              <span data-signal-value>-14.2 bps</span>
+              <span class="term-dash-contrib bearish" data-signal-contrib>65%</span>
+            </div>
+            <div class="term-dash-signal-row" data-signal-row="cot">
+              <span>COT Position</span>
+              <span class="term-signal-direction neutral" data-dir="NEUTRAL" data-signal-direction>Neutral</span>
+              <span data-signal-value>0.42σ</span>
+              <span class="term-dash-contrib neutral" data-signal-contrib>5%</span>
+            </div>
+            <div class="term-dash-signal-row" data-signal-row="vol">
+              <span>Realized Vol</span>
+              <span class="term-signal-direction bearish" data-dir="BEARISH" data-signal-direction>Bearish</span>
+              <span data-signal-value>8.42%</span>
+              <span class="term-dash-contrib bearish" data-signal-contrib>30%</span>
+            </div>
+            <div class="term-dash-signal-row" data-signal-row="cross">
+              <span>Cross Asset Correlation</span>
+              <span class="term-signal-direction bearish" data-dir="BEARISH" data-signal-direction>Bearish</span>
+              <span data-signal-value>-0.12</span>
+              <span class="term-dash-contrib bearish" data-signal-contrib>45%</span>
+            </div>
+          </section>
+
+          <section class="term-dash-card">
+            <header class="term-dash-charts-head">
+              <nav class="term-dash-chart-tabs" aria-label="Chart tabs">
+                <button class="term-dash-chart-tab is-active" data-chart-tab="fundamentals" type="button">Fundamentals</button>
+                <button class="term-dash-chart-tab" data-chart-tab="positioning" type="button">Positioning</button>
+                <button class="term-dash-chart-tab" data-chart-tab="volcorr" type="button">Vol &amp; Corr</button>
+                <button class="term-dash-chart-tab" data-chart-tab="crossasset" type="button">Cross Asset</button>
+              </nav>
+              <div class="term-dash-chart-range">
+                <button class="term-dash-range-btn is-active" type="button">1M</button>
+                <button class="term-dash-range-btn" type="button">3M</button>
+                <button class="term-dash-range-btn" type="button">6M</button>
+                <button class="term-dash-range-btn" type="button">YTD</button>
+              </div>
+            </header>
+            <div class="term-dash-chart-grid">
+              <div class="term-dash-chart-box" id="dash-chart-box-left">
+                <span class="term-dash-chart-title" id="dash-chart-title-left">Rate Differential 2Y</span>
+                <div class="term-dash-chart chart-container" id="dash-chart-left" aria-label="Rate differential 2Y chart placeholder"></div>
+              </div>
+              <div class="term-dash-chart-box" id="dash-chart-box-right">
+                <span class="term-dash-chart-title" id="dash-chart-title-right">Rate Differential 10Y</span>
+                <div class="term-dash-chart chart-container" id="dash-chart-right" aria-label="Rate differential 10Y chart placeholder"></div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <aside class="term-dash-detail">
+          <section class="term-dash-side-card">
+            <h2 class="term-dash-side-card__title">Regime Detail</h2>
+            <div class="term-dash-regime" id="dash-regime-label">NEUTRAL</div>
+            <div class="term-dash-confidence-row">
+              <span>Confidence</span>
+              <span id="dash-regime-confidence-text">2%</span>
+            </div>
+            <div class="term-dash-confidence-bar">
+              <span id="dash-regime-confidence-bar" style="width: 2%"></span>
+            </div>
+            <div class="term-dash-matrix-row"><span>Primary Driver</span><span id="dash-regime-driver">—</span></div>
+          </section>
+
+          <section class="term-dash-side-card">
+            <h2 class="term-dash-side-card__title">Signal Matrix</h2>
+            <div class="term-dash-matrix-row"><span>Rate Differentials</span><span class="bearish" data-matrix-signal="rate">BEARISH</span></div>
+            <div class="term-dash-matrix-row"><span>COT Positioning</span><span class="neutral" data-matrix-signal="cot">NEUTRAL</span></div>
+            <div class="term-dash-matrix-row"><span>Vol &amp; Correlation</span><span class="bearish" data-matrix-signal="vol">BEARISH</span></div>
+            <div class="term-dash-matrix-row"><span>Cross Asset</span><span class="bearish" data-matrix-signal="cross">BEARISH</span></div>
+          </section>
+
+          <section class="term-dash-side-card">
+            <h2 class="term-dash-side-card__title">Morning Brief</h2>
+            <h3 class="term-dash-brief-title">Regime read — 13 Apr 2026</h3>
+            <p class="term-dash-brief-text">The single currency remains anchored to macro volatility as terminal rates pricing shifts.</p>
+            <p class="term-dash-brief-text">Focus remains on 10Y differential widening versus G10 peers.</p>
+            <a class="term-dash-brief-link" href="/brief/">OPEN FULL BRIEF →</a>
+          </section>
+
+          <section class="term-dash-side-card">
+            <h2 class="term-dash-side-card__title">Accuracy</h2>
+            <div class="term-dash-acc-row">
+              <span><i class="eur"></i>EUR/USD</span><span>0%</span>
+            </div>
+            <div class="term-dash-acc-row">
+              <span><i class="jpy"></i>USD/JPY</span><span>50%</span>
+            </div>
+            <div class="term-dash-acc-row">
+              <span><i class="inr"></i>USD/INR</span><span>14%</span>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="term-dash-footer">
+      <div class="term-dash-footer__status">
+        <span class="term-dash-footer__live">■</span>
+        <span>Pipeline status</span>
+        <span class="term-dash-footer__sep">·</span>
+        <span>Last run 23:14 UTC · 06 Apr 2026</span>
+      </div>
+      <div class="term-dash-footer__copy">© 2026 FX Regime Lab</div>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var PAIRS = ['EURUSD', 'USDJPY', 'USDINR'];
+      var PAIR_LABELS = {
+        EURUSD: 'EUR/USD',
+        USDJPY: 'USD/JPY',
+        USDINR: 'USD/INR',
+      };
+      var PAIR_COLOR_VARS = {
+        EURUSD: '--pair-eur',
+        USDJPY: '--pair-jpy',
+        USDINR: '--pair-inr',
+      };
+      var LIVE_SYMBOLS = {
+        EURUSD: 'EURUSD=X',
+        USDJPY: 'JPY=X',
+        USDINR: 'INR=X',
+      };
+      var TAB_SIGNAL_MAP = {
+        fundamentals: [
+          { key: 'rate_diff_2y', label: 'Rate Differential 2Y' },
+          { key: 'rate_diff_10y', label: 'Rate Differential 10Y' },
+        ],
+        positioning: [
+          { key: 'cot_lev_money_net', label: 'COT Leveraged Money Net' },
+          { key: 'cot_percentile', label: 'COT Percentile' },
+        ],
+        volcorr: [
+          { key: 'realized_vol_20d', label: 'Realized Vol 20D' },
+          { key: 'vol_regime_zscore', label: 'Vol Regime Z-Score' },
+        ],
+        crossasset: [
+          { key: 'cross_asset_dxy', label: 'Cross Asset DXY' },
+          { key: 'cross_asset_oil', label: 'Cross Asset Oil' },
+        ],
+      };
+
+      var state = {
+        selectedPair: 'EURUSD',
+        activeTab: 'fundamentals',
+        activeRange: '1M',
+        regimeByPair: {},
+        latestSignalsByPair: {},
+        latestPricesByPair: {},
+        liveSpotByPair: {},
+        fullSeriesByPair: {},
+      };
+
+      function qs(sel, root) {
+        return (root || document).querySelector(sel);
+      }
+
+      function qsa(sel, root) {
+        return Array.prototype.slice.call((root || document).querySelectorAll(sel));
+      }
+
+      function getData() {
+        return window.FXRLData || null;
+      }
+
+      function toNumber(v) {
+        if (v == null) return NaN;
+        if (typeof v === 'number') return isFinite(v) ? v : NaN;
+        var s = String(v).trim();
+        if (!s) return NaN;
+        s = s.replace(/,/g, '').replace(/%/g, '').replace(/bps/gi, '').trim();
+        var n = Number(s);
+        return isFinite(n) ? n : NaN;
+      }
+
+      function pickFirstNumber(row, keys) {
+        if (!row) return NaN;
+        for (var i = 0; i < keys.length; i++) {
+          var key = keys[i];
+          if (row[key] == null) continue;
+          var n = toNumber(row[key]);
+          if (isFinite(n)) return n;
+        }
+        return NaN;
+      }
+
+      function pairLabel(pair) {
+        return PAIR_LABELS[pair] || pair;
+      }
+
+      function classForDirection(dir) {
+        var d = String(dir || '').toLowerCase();
+        if (d.indexOf('bull') >= 0 || d === 'positive') return 'bullish';
+        if (d.indexOf('bear') >= 0 || d === 'negative') return 'bearish';
+        return 'neutral';
+      }
+
+      function formatDirection(dir) {
+        var raw = String(dir || '').trim();
+        if (!raw) return 'Neutral';
+        if (raw.indexOf('_') >= 0) raw = raw.replace(/_/g, ' ');
+        return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+      }
+
+      function inferDirection(val, neutralBand) {
+        if (!isFinite(val)) return 'NEUTRAL';
+        var band = neutralBand != null ? neutralBand : 0;
+        if (val > band) return 'BULLISH';
+        if (val < -band) return 'BEARISH';
+        return 'NEUTRAL';
+      }
+
+      function fmtPct(value, decimals) {
+        if (!isFinite(value)) return '—';
+        var d = decimals != null ? decimals : 2;
+        var sign = value > 0 ? '+' : '';
+        return sign + value.toFixed(d) + '%';
+      }
+
+      function fmtBps(value) {
+        if (!isFinite(value)) return '—';
+        return (value * 100).toFixed(1) + ' bps';
+      }
+
+      function fmtNum(value, decimals) {
+        if (!isFinite(value)) return '—';
+        return value.toFixed(decimals != null ? decimals : 2);
+      }
+
+      function applyDirectionClass(el, directionRaw) {
+        if (!el) return;
+        var cls = classForDirection(directionRaw);
+        el.classList.remove('bullish', 'bearish', 'neutral', 'positive', 'negative');
+        el.classList.add(cls);
+      }
+
+      function setText(el, txt) {
+        if (!el) return;
+        el.textContent = txt;
+      }
+
+      function getPairRow(pair) {
+        return qs('.term-dash-pair-row[data-pair-row="' + pair + '"]');
+      }
+
+      function getPairColor(pair) {
+        var varName = PAIR_COLOR_VARS[pair] || '--pair-eur';
+        var css = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        if (css) return css;
+        if (pair === 'USDJPY') return '#f59e0b';
+        if (pair === 'USDINR') return '#ef4444';
+        return '#3b82f6';
+      }
+
+      function showErrorState(message) {
+        var msg = message || 'Data unavailable';
+        setText(qs('#dash-headline-state'), msg);
+        PAIRS.forEach(function (pair) {
+          var row = getPairRow(pair);
+          if (!row) return;
+          setText(qs('[data-row-spot]', row), '—');
+          setText(qs('[data-row-change]', row), '—');
+          setText(qs('[data-row-confidence]', row), 'Confidence —');
+          setText(qs('[data-row-regime]', row), '—');
+        });
+      }
+
+      function readLatestSignalRow(rows) {
+        return Array.isArray(rows) && rows.length ? rows[rows.length - 1] : null;
+      }
+
+      function computePriceFromRows(latestSignal, latestPriceRow) {
+        var spot = pickFirstNumber(latestSignal, [
+          'spot',
+          'spot_price',
+          'fx_spot',
+          'close',
+          'close_price',
+          'last_price',
+          'price',
+        ]);
+        if (!isFinite(spot)) {
+          spot = pickFirstNumber(latestPriceRow, ['spot', 'spot_price', 'fx_spot', 'close', 'close_price', 'last_price', 'price']);
+        }
+
+        var changePct = pickFirstNumber(latestSignal, [
+          'change_pct',
+          'pct_change',
+          'daily_change_pct',
+          'return_1d',
+          'ret_1d',
+          'daily_return',
+          'spot_change_pct',
+          'price_change_pct',
+        ]);
+        if (!isFinite(changePct)) {
+          changePct = pickFirstNumber(latestPriceRow, [
+            'change_pct',
+            'pct_change',
+            'daily_change_pct',
+            'return_1d',
+            'ret_1d',
+            'daily_return',
+            'spot_change_pct',
+            'price_change_pct',
+          ]);
+        }
+        if (!isFinite(spot)) {
+          spot = pickFirstNumber(latestPriceRow, ['price']);
+        }
+        if (!isFinite(changePct)) {
+          changePct = pickFirstNumber(latestPriceRow, ['changePct']);
+        }
+        return { spot: spot, changePct: changePct };
+      }
+
+      function parseLivePricePayload(payload) {
+        if (!payload) return null;
+        var directPrice = toNumber(payload.price);
+        var directChangePct = toNumber(payload.changePct);
+        if (isFinite(directPrice)) {
+          return {
+            price: directPrice,
+            changePct: isFinite(directChangePct) ? directChangePct : NaN,
+          };
+        }
+
+        var meta = payload.chart && payload.chart.result && payload.chart.result[0] && payload.chart.result[0].meta
+          ? payload.chart.result[0].meta
+          : null;
+        var px = meta ? toNumber(meta.regularMarketPrice) : NaN;
+        var prev = meta ? toNumber(meta.previousClose) : NaN;
+        if (!isFinite(px)) return null;
+        var pct = isFinite(prev) && prev !== 0 ? ((px - prev) / prev) * 100 : NaN;
+        return { price: px, changePct: pct };
+      }
+
+      function fetchLiveSpots() {
+        var pairs = Object.keys(LIVE_SYMBOLS);
+        return Promise.allSettled(
+          pairs.map(function (pair) {
+            var symbol = LIVE_SYMBOLS[pair];
+            return fetch('/api/fx-price?symbol=' + encodeURIComponent(symbol))
+              .then(function (res) {
+                if (!res || !res.ok) throw new Error('live_price_http_' + (res ? res.status : 'fail'));
+                return res.json();
+              })
+              .then(function (json) {
+                var parsed = parseLivePricePayload(json);
+                return { pair: pair, data: parsed };
+              });
+          })
+        ).then(function (results) {
+          var out = {};
+          results.forEach(function (r) {
+            if (r.status !== 'fulfilled' || !r.value) return;
+            out[r.value.pair] = r.value.data || null;
+          });
+          return out;
+        });
+      }
+
+      function updateCoverageRows() {
+        var D = getData();
+        PAIRS.forEach(function (pair) {
+          var row = getPairRow(pair);
+          if (!row) return;
+          var regime = state.regimeByPair[pair] || null;
+          var latestSignal = state.latestSignalsByPair[pair] || null;
+          var latestPriceRow = state.latestPricesByPair[pair] || null;
+          var liveSpot = state.liveSpotByPair[pair] || null;
+          var px = computePriceFromRows(latestSignal, latestPriceRow);
+          if (liveSpot && isFinite(toNumber(liveSpot.price))) px.spot = toNumber(liveSpot.price);
+          if (liveSpot && isFinite(toNumber(liveSpot.changePct))) px.changePct = toNumber(liveSpot.changePct);
+
+          var regimeText = regime && regime.regime ? D.formatRegimeLabel(regime.regime) : '—';
+          var confPct = regime ? D.confidenceToPercent(regime.confidence) : NaN;
+          setText(qs('[data-row-regime]', row), regimeText);
+          applyDirectionClass(qs('[data-row-regime]', row), regime && regime.regime ? regime.regime : 'neutral');
+
+          setText(qs('[data-row-spot]', row), isFinite(px.spot) ? fmtNum(px.spot, pair === 'USDJPY' ? 2 : 4) : '—');
+          var chgEl = qs('[data-row-change]', row);
+          var chgLabel = fmtPct(px.changePct, 2);
+          setText(chgEl, chgLabel);
+          chgEl.classList.remove('positive', 'negative');
+          if (isFinite(px.changePct)) chgEl.classList.add(px.changePct >= 0 ? 'positive' : 'negative');
+
+          setText(qs('[data-row-confidence]', row), 'Confidence ' + (isFinite(confPct) ? confPct + '%' : '—'));
+        });
+      }
+
+      function setActivePairRow(pair) {
+        qsa('.term-dash-pair-row[data-pair-row]').forEach(function (btn) {
+          var active = btn.getAttribute('data-pair-row') === pair;
+          btn.classList.toggle('is-active', active);
+          if (active) btn.setAttribute('aria-current', 'true');
+          else btn.removeAttribute('aria-current');
+        });
+      }
+
+      function renderSignalStack(latest, regimeExtended, pair) {
+        var D = getData();
+        var rateVal = pickFirstNumber(latest, ['rate_diff_2y', 'rate_diff_10y']);
+        var cotVal = pickFirstNumber(latest, ['cot_percentile', 'cot_lev_money_net']);
+        var volVal = pickFirstNumber(latest, ['realized_vol_20d', 'realized_vol_5d']);
+        var crossVal = pickFirstNumber(latest, ['cross_asset_dxy', 'cross_asset_oil']);
+
+        var rateDir = regimeExtended && regimeExtended.rate_signal ? regimeExtended.rate_signal : inferDirection(rateVal, 0.0005);
+        var cotDir = regimeExtended && regimeExtended.cot_signal ? regimeExtended.cot_signal : (isFinite(cotVal) ? (cotVal > 60 ? 'BULLISH' : cotVal < 40 ? 'BEARISH' : 'NEUTRAL') : 'NEUTRAL');
+        var volDir = regimeExtended && regimeExtended.vol_signal ? regimeExtended.vol_signal : inferDirection(volVal, 0.02);
+        var crossDir = regimeExtended && regimeExtended.cross_signal ? regimeExtended.cross_signal : inferDirection(crossVal, 0.05);
+
+        var rows = {
+          rate: { dir: rateDir, value: fmtBps(rateVal), contrib: 35 },
+          cot: { dir: cotDir, value: isFinite(cotVal) ? fmtNum(cotVal, 2) : '—', contrib: 20 },
+          vol: { dir: volDir, value: fmtPct(volVal, 2), contrib: 20 },
+          cross: { dir: crossDir, value: isFinite(crossVal) ? fmtNum(crossVal, 2) : '—', contrib: 25 },
+        };
+
+        Object.keys(rows).forEach(function (key) {
+          var row = qs('.term-dash-signal-row[data-signal-row="' + key + '"]');
+          if (!row) return;
+          var directionEl = qs('[data-signal-direction]', row);
+          var valueEl = qs('[data-signal-value]', row);
+          var contribEl = qs('[data-signal-contrib]', row);
+          directionEl.style.color = '';
+          setText(directionEl, formatDirection(rows[key].dir));
+          directionEl.setAttribute('data-dir', String(rows[key].dir || 'NEUTRAL').toUpperCase());
+          applyDirectionClass(directionEl, rows[key].dir);
+
+          setText(valueEl, rows[key].value);
+
+          if (pair === 'USDINR' && key === 'cot') {
+            setText(directionEl, 'N/A');
+            directionEl.style.color = 'var(--text-muted)';
+            directionEl.setAttribute('data-dir', 'N/A');
+            setText(valueEl, '—');
+            contribEl.classList.remove('bullish', 'bearish', 'neutral');
+            setText(contribEl, '—');
+          } else {
+            var pct = rows[key].contrib;
+            contribEl.classList.remove('bullish', 'bearish', 'neutral');
+            applyDirectionClass(contribEl, rows[key].dir);
+            contribEl.innerHTML =
+              '<span>' + pct + '%</span>' +
+              '<span aria-hidden="true" style="display:inline-block;width:54px;height:4px;background:var(--border);margin-left:8px;vertical-align:middle;position:relative;top:-1px;">' +
+              '<span style="display:block;height:100%;width:' + pct + '%;background:currentColor;"></span></span>';
+          }
+        });
+
+        var matrixRate = qs('[data-matrix-signal="rate"]');
+        var matrixCot = qs('[data-matrix-signal="cot"]');
+        var matrixVol = qs('[data-matrix-signal="vol"]');
+        var matrixCross = qs('[data-matrix-signal="cross"]');
+
+        setText(matrixRate, String(rateDir || 'NEUTRAL').toUpperCase());
+        setText(matrixCot, String(cotDir || 'NEUTRAL').toUpperCase());
+        setText(matrixVol, String(volDir || 'NEUTRAL').toUpperCase());
+        setText(matrixCross, String(crossDir || 'NEUTRAL').toUpperCase());
+
+        applyDirectionClass(matrixRate, rateDir);
+        applyDirectionClass(matrixCot, cotDir);
+        applyDirectionClass(matrixVol, volDir);
+        applyDirectionClass(matrixCross, crossDir);
+      }
+
+      function updateRegimeDetail(regime) {
+        var D = getData();
+        var regimeLabel = regime && regime.regime ? String(regime.regime).toUpperCase() : '—';
+        var confPct = regime ? D.confidenceToPercent(regime.confidence) : NaN;
+        var driver = regime && regime.primary_driver ? D.formatDriverLabel(regime.primary_driver) : '—';
+        setText(qs('#dash-regime-label'), regimeLabel);
+        setText(qs('#dash-regime-confidence-text'), isFinite(confPct) ? confPct + '%' : '—');
+        setText(qs('#dash-regime-driver'), driver);
+        var bar = qs('#dash-regime-confidence-bar');
+        if (bar) bar.style.width = (isFinite(confPct) ? confPct : 0) + '%';
+      }
+
+      function updateCenterHeader(pair, latest, regime) {
+        var D = getData();
+        var px = computePriceFromRows(latest, state.latestPricesByPair[pair]);
+        var liveSpot = state.liveSpotByPair[pair] || null;
+        if (liveSpot && isFinite(toNumber(liveSpot.price))) px.spot = toNumber(liveSpot.price);
+        if (liveSpot && isFinite(toNumber(liveSpot.changePct))) px.changePct = toNumber(liveSpot.changePct);
+        var confPct = regime ? D.confidenceToPercent(regime.confidence) : NaN;
+        var vol = pickFirstNumber(latest, ['realized_vol_20d', 'realized_vol_5d']);
+        var volState = isFinite(vol) ? (vol > 10 ? 'VOL HIGH' : vol < 6 ? 'VOL LOW' : 'VOL NORMAL') : 'VOL —';
+        var regTxt = regime && regime.regime ? String(regime.regime).toUpperCase() : '—';
+
+        setText(qs('#dash-headline-pair'), pairLabel(pair));
+        setText(
+          qs('#dash-headline-spot'),
+          (isFinite(px.spot) ? fmtNum(px.spot, pair === 'USDJPY' ? 2 : 4) : '—') +
+            ' ' +
+            (isFinite(px.changePct) ? fmtPct(px.changePct, 2) : '—')
+        );
+        setText(
+          qs('#dash-headline-state'),
+          regTxt + ' · CONFIDENCE ' + (isFinite(confPct) ? confPct + '%' : '—') + ' · ' + volState
+        );
+      }
+
+      function toSeries(rows, col) {
+        if (!Array.isArray(rows)) return [];
+        var out = [];
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (!r || r.date == null || r[col] == null) continue;
+          var n = toNumber(r[col]);
+          if (!isFinite(n)) continue;
+          out.push({ date: r.date, value: n });
+        }
+        return out;
+      }
+
+      function renderOneChart(containerId, titleId, rows, spec, pairColor) {
+        var FX = window.FXRLCharts;
+        var container = qs('#' + containerId);
+        if (!container) return Promise.resolve(null);
+        setText(qs('#' + titleId), spec ? spec.label : '—');
+        if (!spec) {
+          container.innerHTML = '';
+          return Promise.resolve(null);
+        }
+        var data = toSeries(rows, spec.key);
+        return FX.line(containerId, data, {
+          color: pairColor,
+          skipRangeButtons: true,
+          emptyMessage: spec.label + ' — no data',
+        }).catch(function () {
+          container.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:11px;">—</div>';
+          return null;
+        });
+      }
+
+      function setTab(tabName) {
+        state.activeTab = tabName;
+        qsa('.term-dash-chart-tab[data-chart-tab]').forEach(function (btn) {
+          btn.classList.toggle('is-active', btn.getAttribute('data-chart-tab') === tabName);
+        });
+      }
+
+      function setRange(rangeLabel) {
+        state.activeRange = rangeLabel;
+        qsa('.term-dash-range-btn').forEach(function (btn) {
+          btn.classList.toggle('is-active', String(btn.textContent || '').trim().toUpperCase() === rangeLabel);
+        });
+      }
+
+      function filterChartData(rangeLabel, rows) {
+        var src = Array.isArray(rows) ? rows.slice() : [];
+        if (!src.length) return src;
+        if (rangeLabel === '1M') return src.slice(-30);
+        if (rangeLabel === '3M') return src.slice(-90);
+        if (rangeLabel === '6M') return src.slice(-180);
+        if (rangeLabel === 'YTD') {
+          var y = new Date().getUTCFullYear();
+          var start = new Date(Date.UTC(y, 0, 1));
+          return src.filter(function (r) {
+            if (!r || !r.date) return false;
+            var t = Date.parse(String(r.date).slice(0, 10) + 'T00:00:00Z');
+            return isFinite(t) && t >= start.getTime();
+          });
+        }
+        return src;
+      }
+
+      function initDashboardCharts(pair) {
+        var FX = window.FXRLCharts;
+        if (!FX || typeof FX.line !== 'function') return Promise.resolve();
+        var fullRows = state.fullSeriesByPair[pair] || [];
+        var rows = filterChartData(state.activeRange, fullRows);
+        var specs = TAB_SIGNAL_MAP[state.activeTab] || TAB_SIGNAL_MAP.fundamentals;
+        var pairColor = getPairColor(pair);
+
+        var leftBox = qs('#dash-chart-box-left');
+        var rightBox = qs('#dash-chart-box-right');
+        var chartGrid = qs('.term-dash-chart-grid');
+        var msg = qs('#dash-positioning-unavailable-msg');
+        if (!msg && chartGrid) {
+          msg = document.createElement('div');
+          msg.id = 'dash-positioning-unavailable-msg';
+          msg.className = 'term-dash-unavailable-msg';
+          msg.textContent = 'COT positioning data not available for USD/INR — CFTC disaggregated futures do not cover this pair.';
+          msg.style.display = 'none';
+          chartGrid.appendChild(msg);
+        }
+        if (FX.disposeChart) {
+          FX.disposeChart('dash-chart-left');
+          FX.disposeChart('dash-chart-right');
+        }
+
+        if (pair === 'USDINR' && state.activeTab === 'positioning') {
+          if (leftBox) leftBox.style.display = 'none';
+          if (rightBox) rightBox.style.display = 'none';
+          if (msg) msg.style.display = 'flex';
+          return Promise.resolve();
+        }
+
+        if (msg) msg.style.display = 'none';
+        if (leftBox) leftBox.style.display = '';
+        if (rightBox) rightBox.style.display = specs[1] ? '' : 'none';
+
+        return Promise.allSettled([
+          renderOneChart('dash-chart-left', 'dash-chart-title-left', rows, specs[0], pairColor),
+          renderOneChart('dash-chart-right', 'dash-chart-title-right', rows, specs[1], pairColor),
+        ]).then(function () {});
+      }
+
+      function fetchRegimeExtended(pair) {
+        var D = getData();
+        if (!D || typeof D.getSupabaseClient !== 'function') return Promise.resolve(null);
+        var client = D.getSupabaseClient();
+        if (!client) return Promise.resolve(null);
+        return client
+          .from('regime_calls')
+          .select('pair,date,regime,confidence,primary_driver,rate_signal,cot_signal,vol_signal,cross_signal')
+          .eq('pair', pair)
+          .order('date', { ascending: false })
+          .limit(1)
+          .then(function (res) {
+            if (!res || res.error || !res.data || !res.data.length) return null;
+            return res.data[0];
+          })
+          .catch(function () {
+            return null;
+          });
+      }
+
+      function loadPairDetail(pair) {
+        var D = getData();
+        state.selectedPair = pair;
+        setActivePairRow(pair);
+
+        return Promise.allSettled([
+          D.fetchSignalsFromSupabase(pair, 400),
+          D.fetchLatestSignalRow(pair),
+          D.fetchRegimeCalls(pair, 1),
+          fetchRegimeExtended(pair),
+          D.fetchLatestPrices(),
+          fetchLiveSpots(),
+        ]).then(function (results) {
+          var signalRows = results[0].status === 'fulfilled' ? (results[0].value || []) : [];
+          var latestSignalRow = results[1].status === 'fulfilled' ? (results[1].value || null) : null;
+          var regimeRows = results[2].status === 'fulfilled' ? (results[2].value || []) : [];
+          var regimeExt = results[3].status === 'fulfilled' ? results[3].value : null;
+          var latestPrices = results[4].status === 'fulfilled' && results[4].value ? results[4].value : null;
+          var liveSpots = results[5].status === 'fulfilled' && results[5].value ? results[5].value : null;
+
+          state.fullSeriesByPair[pair] = signalRows;
+          var latest = latestSignalRow || readLatestSignalRow(signalRows);
+          if (latest) state.latestSignalsByPair[pair] = latest;
+          if (latestPrices && latestPrices.byPair) {
+            console.log('[Dashboard] fetchLatestPrices() raw (loadPairDetail):', latestPrices);
+            state.latestPricesByPair = latestPrices.byPair;
+          }
+          if (liveSpots) state.liveSpotByPair = liveSpots;
+
+          var regimeBasic = regimeRows.length ? regimeRows[0] : null;
+          var regime = regimeExt || regimeBasic;
+
+          updateCenterHeader(pair, latest, regimeBasic);
+          renderSignalStack(latest || {}, regime, pair);
+          if (pair === 'USDINR') {
+            var cotRow = qs('.term-dash-signal-row[data-signal-row="cot"]');
+            var cotDirectionEl = cotRow ? qs('[data-signal-direction]', cotRow) : null;
+            var cotValueEl = cotRow ? qs('[data-signal-value]', cotRow) : null;
+            var cotContribEl = cotRow ? qs('[data-signal-contrib]', cotRow) : null;
+            if (cotDirectionEl) {
+              cotDirectionEl.textContent = 'N/A';
+              cotDirectionEl.style.color = 'var(--text-muted)';
+            }
+            if (cotValueEl) cotValueEl.textContent = '—';
+            if (cotContribEl) cotContribEl.textContent = '—';
+          }
+          updateRegimeDetail(regimeBasic);
+          updateCoverageRows();
+
+          return initDashboardCharts(pair);
+        }).catch(function () {
+          showErrorState('Pair detail unavailable');
+        });
+      }
+
+      function wirePairSwitching() {
+        qsa('.term-dash-pair-row[data-pair-row]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var pair = btn.getAttribute('data-pair-row');
+            if (!pair || pair === state.selectedPair) return;
+            loadPairDetail(pair);
+          });
+        });
+      }
+
+      function wireChartTabs() {
+        qsa('.term-dash-chart-tab[data-chart-tab]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var tabName = btn.getAttribute('data-chart-tab');
+            if (!tabName || tabName === state.activeTab) return;
+            setTab(tabName);
+            initDashboardCharts(state.selectedPair);
+          });
+        });
+      }
+
+      function wireRangeButtons() {
+        qsa('.term-dash-range-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var label = String(btn.textContent || '').trim().toUpperCase();
+            if (!label || label === state.activeRange) return;
+            setRange(label);
+            filterChartData(label, state.fullSeriesByPair[state.selectedPair] || []);
+            initDashboardCharts(state.selectedPair);
+          });
+        });
+      }
+
+      function loadDashboard() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pairFromUrl = urlParams.get('pair');
+        const defaultPair = pairFromUrl || 'EURUSD';
+        var defaultPairNorm = String(defaultPair).replace(/\//g, '').toUpperCase();
+        if (PAIRS.indexOf(defaultPairNorm) === -1) defaultPairNorm = 'EURUSD';
+
+        var D = getData();
+        var jobs = [];
+        PAIRS.forEach(function (pair) {
+          jobs.push(D.fetchRegimeCalls(pair, 1));
+        });
+        jobs.push(D.fetchLatestPrices());
+        jobs.push(fetchLiveSpots());
+        PAIRS.forEach(function (pair) {
+          jobs.push(D.fetchLatestSignalRow(pair));
+        });
+
+        return Promise.allSettled(jobs).then(function (results) {
+          for (var i = 0; i < PAIRS.length; i++) {
+            var pair = PAIRS[i];
+            var regRes = results[i];
+            state.regimeByPair[pair] =
+              regRes && regRes.status === 'fulfilled' && regRes.value && regRes.value.length ? regRes.value[0] : null;
+          }
+
+          var latestPricesRes = results[PAIRS.length];
+          if (latestPricesRes && latestPricesRes.status === 'fulfilled' && latestPricesRes.value && latestPricesRes.value.byPair) {
+            console.log('[Dashboard] fetchLatestPrices() raw (loadDashboard):', latestPricesRes.value);
+            state.latestPricesByPair = latestPricesRes.value.byPair;
+          }
+          var liveSpotsRes = results[PAIRS.length + 1];
+          if (liveSpotsRes && liveSpotsRes.status === 'fulfilled' && liveSpotsRes.value) {
+            state.liveSpotByPair = liveSpotsRes.value;
+          }
+
+          for (var j = 0; j < PAIRS.length; j++) {
+            var pairCode = PAIRS[j];
+            var sigRes = results[PAIRS.length + 2 + j];
+            var latest = sigRes && sigRes.status === 'fulfilled' ? (sigRes.value || null) : null;
+            if (latest) state.latestSignalsByPair[pairCode] = latest;
+          }
+
+          updateCoverageRows();
+          setActivePairRow(defaultPairNorm);
+          return loadPairDetail(defaultPairNorm);
+        });
+      }
+
+      function startDashboard() {
+        if (window.__dashboardStarted) return;
+        window.__dashboardStarted = true;
+
+        var run = window.FXRLPageInit && typeof window.FXRLPageInit.safeInit === 'function'
+          ? function () { return window.FXRLPageInit.safeInit('terminal-dashboard', function () { return Promise.resolve(); }); }
+          : function () { return Promise.resolve(); };
+
+        run()
+          .then(function () {
+            var D = getData();
+            if (!D || typeof D.initDataClient !== 'function') {
+              throw new Error('FXRLData unavailable');
+            }
+            return D.initDataClient();
+          })
+          .then(function (client) {
+            if (!client) throw new Error('Supabase client not ready');
+            wirePairSwitching();
+            wireChartTabs();
+            wireRangeButtons();
+            setRange('1M');
+            return loadDashboard();
+          })
+          .catch(function (err) {
+            console.error('[Dashboard] Init error:', err);
+            showErrorState('Data unavailable');
+          });
+      }
+
+      document.addEventListener('DOMContentLoaded', startDashboard);
+      document.addEventListener('supabase-ready', startDashboard);
+      window.startDashboard = startDashboard;
+    })();
+  </script>
+</body>
+</html>

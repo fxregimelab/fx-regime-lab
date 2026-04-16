@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>QUANTITATIVE AUTHORITY | FX Regime Lab</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-highest": "#35343a",
+                    "surface-container": "#1f1f25",
+                    "primary": "#adc6ff",
+                    "on-secondary": "#472a00",
+                    "background": "#131318",
+                    "surface": "#131318",
+                    "tertiary-fixed": "#ffdad7",
+                    "error": "#ffb4ab",
+                    "on-secondary-fixed-variant": "#653e00",
+                    "on-primary-container": "#00285d",
+                    "on-tertiary-fixed": "#410004",
+                    "surface-container-low": "#1b1b20",
+                    "outline-variant": "#424754",
+                    "tertiary-fixed-dim": "#ffb3ad",
+                    "inverse-primary": "#005ac2",
+                    "secondary-fixed": "#ffddb8",
+                    "tertiary-container": "#ff5451",
+                    "primary-fixed": "#d8e2ff",
+                    "on-surface": "#e4e1e9",
+                    "secondary-fixed-dim": "#ffb95f",
+                    "error-container": "#93000a",
+                    "surface-container-lowest": "#0e0e13",
+                    "secondary-container": "#ee9800",
+                    "secondary": "#ffb95f",
+                    "primary-container": "#4d8eff",
+                    "on-surface-variant": "#c2c6d6",
+                    "surface-container-high": "#2a292f",
+                    "on-primary-fixed-variant": "#004395",
+                    "on-error": "#690005",
+                    "on-secondary-container": "#5b3800",
+                    "on-tertiary-fixed-variant": "#930013",
+                    "on-error-container": "#ffdad6",
+                    "surface-bright": "#39383e",
+                    "primary-fixed-dim": "#adc6ff",
+                    "outline": "#8c909f",
+                    "on-tertiary-container": "#5c0008",
+                    "on-primary-fixed": "#001a42",
+                    "surface-dim": "#131318",
+                    "on-primary": "#002e6a",
+                    "inverse-surface": "#e4e1e9",
+                    "surface-variant": "#35343a",
+                    "surface-tint": "#adc6ff",
+                    "on-secondary-fixed": "#2a1700",
+                    "on-background": "#e4e1e9",
+                    "tertiary": "#ffb3ad",
+                    "on-tertiary": "#68000a",
+                    "inverse-on-surface": "#303036"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0px",
+                    "lg": "0px",
+                    "xl": "0px",
+                    "full": "0px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0a0a0f;
+            color: #e4e1e9;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .tabular { font-variant-numeric: tabular-nums; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .material-symbols-outlined { font-size: 18px; vertical-align: middle; }
+        .sharp-border { border-radius: 0px !important; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+<!-- Top Navigation Shell -->
+<nav class="bg-[#0a0a0f] text-[#3b82f6] font-['Inter'] uppercase tracking-widest text-[0.75rem] font-bold border-b border-[#1c1c2e] flex justify-between items-center h-[52px] px-6 w-full fixed top-0 z-50">
+<div class="flex items-center gap-8">
+<span class="text-lg font-black tracking-tighter text-[#3b82f6]">QUANTITATIVE AUTHORITY</span>
+<div class="flex gap-6 h-full items-center">
+<a class="text-[#8c909f] hover:text-[#e4e1e9] transition-colors" href="#">HOME</a>
+<a class="text-[#3b82f6] border-b-2 border-[#3b82f6] pb-1" href="#">DASHBOARD</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-[#8c909f] hover:text-[#e4e1e9] transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+                EXIT TERMINAL
+            </button>
+</div>
+</nav>
+<!-- Ticker Bar -->
+<div class="bg-[#0f0f18] border-b border-[#1c1c2e] h-[36px] mt-[52px] flex items-center px-6 overflow-hidden">
+<div class="flex gap-8 items-center text-[0.6875rem] font-medium tabular uppercase tracking-wider">
+<div class="flex gap-2">
+<span class="text-[#8c909f]">DXY</span>
+<span class="font-bold text-[#e4e1e9]">98.37</span>
+<span class="text-[#ef4444]">-0.12%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[#8c909f]">EUR/USD</span>
+<span class="font-bold text-[#e4e1e9]">1.0854</span>
+<span class="text-[#22c55e]">+0.04%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[#8c909f]">USD/JPY</span>
+<span class="font-bold text-[#e4e1e9]">149.22</span>
+<span class="text-[#ef4444]">-0.21%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[#8c909f]">GBP/USD</span>
+<span class="font-bold text-[#e4e1e9]">1.2645</span>
+<span class="text-[#22c55e]">+0.11%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[#8c909f]">AUD/USD</span>
+<span class="font-bold text-[#e4e1e9]">0.6512</span>
+<span class="text-[#ef4444]">-0.05%</span>
+</div>
+</div>
+</div>
+<!-- Main Content Area -->
+<main class="flex flex-1 overflow-hidden">
+<!-- Left Panel (Fixed Sidebar) -->
+<aside class="w-[240px] flex-shrink-0 bg-[#0a0a0f] border-r border-[#1c1c2e] flex flex-col overflow-y-auto no-scrollbar">
+<div class="p-4 border-b border-[#1c1c2e] bg-[#0f0f18]">
+<span class="text-[0.6875rem] font-bold text-[#8c909f] tracking-widest uppercase">Active Watchlist</span>
+</div>
+<!-- Pair Row: EUR/USD -->
+<div class="p-4 bg-[#13131f] border-l-[3px] border-[#3b82f6] border-b border-[#1c1c2e] cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[0.875rem] font-black tracking-tight text-[#e4e1e9]">EUR/USD</span>
+<span class="bg-[#1c1c2e] text-[#8c909f] text-[0.625rem] px-1.5 py-0.5 font-bold uppercase tracking-tighter">NEUTRAL</span>
+</div>
+<div class="flex justify-between items-end">
+<div>
+<div class="text-[1.125rem] font-bold tabular leading-tight">1.0854</div>
+<div class="text-[0.6875rem] text-[#22c55e] tabular">+0.04%</div>
+</div>
+<div class="w-16 h-4 flex items-end gap-0.5">
+<div class="w-1 bg-[#1c1c2e] h-2"></div>
+<div class="w-1 bg-[#3b82f6] h-4"></div>
+<div class="w-1 bg-[#1c1c2e] h-3"></div>
+<div class="w-1 bg-[#1c1c2e] h-1"></div>
+</div>
+</div>
+</div>
+<!-- Pair Row: USD/JPY -->
+<div class="p-4 hover:bg-[#131318] border-l-[3px] border-[#f59e0b] border-b border-[#1c1c2e] cursor-pointer transition-colors">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[0.875rem] font-black tracking-tight text-[#e4e1e9]">USD/JPY</span>
+<span class="bg-[#2a1700] text-[#f59e0b] text-[0.625rem] px-1.5 py-0.5 font-bold uppercase tracking-tighter">BULLISH</span>
+</div>
+<div class="flex justify-between items-end">
+<div>
+<div class="text-[1.125rem] font-bold tabular leading-tight">149.22</div>
+<div class="text-[0.6875rem] text-[#ef4444] tabular">-0.21%</div>
+</div>
+<div class="w-16 h-4 flex items-end gap-0.5">
+<div class="w-1 bg-[#1c1c2e] h-1"></div>
+<div class="w-1 bg-[#1c1c2e] h-2"></div>
+<div class="w-1 bg-[#f59e0b] h-4"></div>
+<div class="w-1 bg-[#f59e0b] h-3"></div>
+</div>
+</div>
+</div>
+<!-- Pair Row: USD/INR -->
+<div class="p-4 hover:bg-[#131318] border-l-[3px] border-[#ef4444] border-b border-[#1c1c2e] cursor-pointer transition-colors">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[0.875rem] font-black tracking-tight text-[#e4e1e9]">USD/INR</span>
+<span class="bg-[#300002] text-[#ef4444] text-[0.625rem] px-1.5 py-0.5 font-bold uppercase tracking-tighter">BEARISH</span>
+</div>
+<div class="flex justify-between items-end">
+<div>
+<div class="text-[1.125rem] font-bold tabular leading-tight">82.94</div>
+<div class="text-[0.6875rem] text-[#22c55e] tabular">+0.12%</div>
+</div>
+<div class="w-16 h-4 flex items-end gap-0.5">
+<div class="w-1 bg-[#ef4444] h-4"></div>
+<div class="w-1 bg-[#ef4444] h-3"></div>
+<div class="w-1 bg-[#1c1c2e] h-2"></div>
+<div class="w-1 bg-[#1c1c2e] h-1"></div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Right Panel (Content) -->
+<section class="flex-1 flex flex-col overflow-y-auto bg-[#0a0a0f] pb-12">
+<!-- Section A: Signal Stack Table -->
+<div class="p-6">
+<div class="flex justify-between items-center mb-4">
+<div class="flex items-center gap-4">
+<h1 class="text-xl font-black tracking-tight text-[#e4e1e9]">EUR/USD SIGNAL STACK</h1>
+<span class="bg-[#1c1c2e] text-[#8c909f] text-[0.6875rem] px-2 py-0.5 font-bold uppercase tracking-widest">NEUTRAL REGIME</span>
+</div>
+<span class="text-[0.6875rem] text-[#8c909f] uppercase font-medium">Last updated 06 Apr 2026</span>
+</div>
+<div class="border border-[#1c1c2e] bg-[#0f0f18]">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-[#131318] border-b border-[#1c1c2e]">
+<th class="p-3 text-[0.6875rem] font-bold text-[#8c909f] uppercase tracking-wider">Signal Factor</th>
+<th class="p-3 text-[0.6875rem] font-bold text-[#8c909f] uppercase tracking-wider">Direction</th>
+<th class="p-3 text-[0.6875rem] font-bold text-[#8c909f] uppercase tracking-wider text-right">Value / Metric</th>
+<th class="p-3 text-[0.6875rem] font-bold text-[#8c909f] uppercase tracking-wider w-[200px]">Contribution</th>
+</tr>
+</thead>
+<tbody class="text-[0.75rem] tabular">
+<tr class="border-b border-[#1c1c2e] hover:bg-[#131318]">
+<td class="p-3 text-[#e4e1e9] font-medium">Rate Differentials</td>
+<td class="p-3">
+<span class="text-[#ef4444] font-bold">BEARISH</span>
+</td>
+<td class="p-3 text-right font-bold text-[#e4e1e9]">US-DE 2Y: 1.25%</td>
+<td class="p-3">
+<div class="w-full bg-[#1c1c2e] h-1.5">
+<div class="bg-[#ef4444] h-full" style="width: 42%;"></div>
+</div>
+</td>
+</tr>
+<tr class="border-b border-[#1c1c2e] bg-[#131318] hover:bg-[#1b1b20]">
+<td class="p-3 text-[#e4e1e9] font-medium">COT Positioning</td>
+<td class="p-3">
+<span class="text-[#8c909f] font-bold">NEUTRAL</span>
+</td>
+<td class="p-3 text-right font-bold text-[#e4e1e9]">35th PCT</td>
+<td class="p-3">
+<div class="w-full bg-[#1c1c2e] h-1.5">
+<div class="bg-[#8c909f] h-full" style="width: 29%;"></div>
+</div>
+</td>
+</tr>
+<tr class="border-b border-[#1c1c2e] hover:bg-[#131318]">
+<td class="p-3 text-[#e4e1e9] font-medium">Vol &amp; Correlation</td>
+<td class="p-3">
+<span class="text-[#ef4444] font-bold">BEARISH</span>
+</td>
+<td class="p-3 text-right font-bold text-[#e4e1e9]">20D Realized: 7.8%</td>
+<td class="p-3">
+<div class="w-full bg-[#1c1c2e] h-1.5">
+<div class="bg-[#ef4444] h-full" style="width: 100%;"></div>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-[#131318]">
+<td class="p-3 text-[#e4e1e9] font-medium">Cross Asset</td>
+<td class="p-3">
+<span class="text-[#ef4444] font-bold">BEARISH</span>
+</td>
+<td class="p-3 text-right font-bold text-[#e4e1e9]">DXY: 99.98</td>
+<td class="p-3">
+<div class="w-full bg-[#1c1c2e] h-1.5">
+<div class="bg-[#ef4444] h-full" style="width: 15%;"></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Section B: Charts & Tabs -->
+<div class="px-6 flex-1 flex flex-col">
+<div class="flex border-b border-[#1c1c2e] mb-4 overflow-x-auto no-scrollbar">
+<button class="px-4 py-2 text-[0.6875rem] font-bold uppercase tracking-widest text-[#3b82f6] border-b-2 border-[#3b82f6]">FUNDAMENTALS</button>
+<button class="px-4 py-2 text-[0.6875rem] font-bold uppercase tracking-widest text-[#8c909f] hover:text-[#e4e1e9]">POSITIONING</button>
+<button class="px-4 py-2 text-[0.6875rem] font-bold uppercase tracking-widest text-[#8c909f] hover:text-[#e4e1e9]">VOL &amp; CORR</button>
+<button class="px-4 py-2 text-[0.6875rem] font-bold uppercase tracking-widest text-[#8c909f] hover:text-[#e4e1e9]">CROSS ASSET</button>
+</div>
+<div class="flex-1 bg-[#0f0f18] border border-[#1c1c2e] relative min-h-[300px]">
+<div class="absolute top-4 left-4 flex flex-col">
+<span class="text-[0.75rem] font-bold text-[#e4e1e9]">Rate Differential 2Y — 3M view</span>
+<span class="text-[0.625rem] text-[#8c909f] uppercase">US Generic 2Y vs DE Generic 2Y</span>
+</div>
+<!-- Chart Placeholder Visual -->
+<div class="w-full h-full p-12 flex items-center justify-center">
+<svg class="w-full h-full opacity-40" fill="none" viewbox="0 0 800 300" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 250L50 240L100 260L150 230L200 245L250 200L300 210L350 180L400 160L450 170L500 140L550 155L600 120L650 130L700 90L750 100L800 70" stroke="#3b82f6" stroke-width="1.5"></path>
+<path d="M0 200L50 210L100 190L150 205L200 180L250 195L300 160L350 175L400 140L450 150L500 120L550 135L600 100L650 110L700 70L750 85L800 50" stroke="#8c909f" stroke-dasharray="4 4" stroke-width="1"></path>
+</svg>
+</div>
+<div class="absolute bottom-4 right-4 flex gap-4 text-[0.625rem] font-medium text-[#8c909f]">
+<div class="flex items-center gap-1">
+<div class="w-3 h-[1px] bg-[#3b82f6]"></div>
+<span>US-DE SPREAD</span>
+</div>
+<div class="flex items-center gap-1">
+<div class="w-3 h-[1px] bg-[#8c909f] border-dashed border-t"></div>
+<span>EUR/USD SPOT</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer Shell -->
+<footer class="bg-[#0a0a0f] border-t border-[#1c1c2e] fixed bottom-0 w-full h-[32px] flex justify-between items-center px-6 z-50">
+<div class="flex items-center gap-4 text-[#22c55e] font-['Inter'] text-[0.6875rem] font-medium tabular uppercase tracking-wider">
+<span class="flex items-center gap-1">
+<span class="text-[0.5rem]">■</span> PIPELINE: STABLE
+            </span>
+<span class="text-[#8c909f]">LAST RUN 23:14 UTC · 06 APR 2026</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<span class="text-[#8c909f]">DXY: 104.22</span>
+<span class="text-[#8c909f]">EURUSD: 1.0854</span>
+<span class="text-[#8c909f]">USDJPY: 149.12</span>
+</div>
+<span class="text-[#8c909f] font-['Inter'] text-[0.6875rem] font-medium uppercase">© 2026 THE QUANTITATIVE AUTHORITY</span>
+</div>
+</footer>
+</body></html>

@@ -11,12 +11,7 @@
   };
 
   var PRICE_API_PRIMARY = '/api/fx-price?symbol=';
-  var PRICE_API_FALLBACK = 'https://query2.finance.yahoo.com/v8/finance/chart/';
-  var FX_FALLBACK = {
-    'EUR/USD': { from: 'EUR', to: 'USD' },
-    'USD/JPY': { from: 'USD', to: 'JPY' },
-    'USD/INR': { from: 'USD', to: 'INR' },
-  };
+  var PRICE_API_FALLBACK = '/proxy/yahoo/v8/finance/chart/';
   var CARD_MAP = {
     'EUR/USD': '.term-card--eur',
     'USD/JPY': '.term-card--jpy',
@@ -45,10 +40,6 @@
     if (name === 'Gold') return Number(price).toLocaleString('en-US', { maximumFractionDigits: 0 });
     if (name === 'DXY') return Number(price).toFixed(2);
     return String(price);
-  }
-
-  function ymd(d) {
-    return d.toISOString().slice(0, 10);
   }
 
   function fetchJsonWithTimeout(url, timeoutMs) {
@@ -98,36 +89,7 @@
     }
   }
 
-  function fetchFrankfurterPair(name) {
-    var map = FX_FALLBACK[name];
-    if (!map) return Promise.resolve(null);
-    var now = new Date();
-    var yday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    var latestUrl = 'https://api.frankfurter.app/latest?from=' + map.from + '&to=' + map.to;
-    var prevUrl = 'https://api.frankfurter.app/' + ymd(yday) + '?from=' + map.from + '&to=' + map.to;
-    return Promise.all([
-      fetchJsonWithTimeout(latestUrl, 4000).catch(function () {
-        return null;
-      }),
-      fetchJsonWithTimeout(prevUrl, 4000).catch(function () {
-        return null;
-      }),
-    ])
-      .then(function (rows) {
-        var latest = rows[0];
-        var prev = rows[1];
-        var price = latest && latest.rates ? Number(latest.rates[map.to]) : NaN;
-        var prevClose = prev && prev.rates ? Number(prev.rates[map.to]) : NaN;
-        if (!isFinite(price)) return null;
-        if (!isFinite(prevClose) || prevClose === 0) prevClose = price;
-        var change = price - prevClose;
-        var changePct = prevClose !== 0 ? (change / prevClose) * 100 : 0;
-        return { price: price, change: change, changePct: changePct };
-      })
-      .catch(function () {
-        return null;
-      });
-  }
+  // Live spot path uses Worker / Yahoo only; api.frankfurter.app is not used in this file.
 
   function parseYahooPrice(data) {
     var chart = data && data.chart;
@@ -185,15 +147,15 @@
   }
 
   function ensureTickerStructure() {
-    var ticker = document.querySelector('[data-term-ticker]');
-    if (!ticker) return false;
-    if (ticker.querySelector('[data-ticker]')) return true;
-    var names = Object.keys(SYMBOLS);
-    ticker.innerHTML = names
-      .map(function (name, idx) {
-        return (idx ? '<span class="sep">·</span>' : '') + tickerItemHtml(name);
-      })
-      .join('');
+    var roots = document.querySelectorAll('[data-term-ticker]');
+    if (!roots.length) return false;
+    for (var i = 0; i < roots.length; i++) {
+      var cell = roots[i];
+      var name = (cell.getAttribute('data-term-ticker') || '').trim();
+      if (!name || !SYMBOLS[name]) continue;
+      if (cell.querySelector('[data-ticker="' + name + '"]')) continue;
+      cell.innerHTML = tickerItemHtml(name);
+    }
     return true;
   }
 
@@ -313,22 +275,30 @@
   }
 
   function initObserver() {
-    var ticker = document.querySelector('[data-term-ticker]');
-    if (!ticker) return;
+    var bar = document.querySelector('.term-ticker');
+    if (!bar) return;
     if (tickerObserver) tickerObserver.disconnect();
     tickerObserver = new MutationObserver(function () {
-      if (!ticker.querySelector('[data-ticker]')) {
-        ensureTickerStructure();
-        var now = Date.now();
-        if (!document.hidden && now - lastObserverKick > 10000) {
-          lastObserverKick = now;
-          setTimeout(function () {
-            updateAllPrices();
-          }, 250);
+      var cells = bar.querySelectorAll('[data-term-ticker]');
+      var missing = false;
+      for (var i = 0; i < cells.length; i++) {
+        var name = (cells[i].getAttribute('data-term-ticker') || '').trim();
+        if (name && SYMBOLS[name] && !cells[i].querySelector('[data-ticker="' + name + '"]')) {
+          missing = true;
+          break;
         }
       }
+      if (!missing) return;
+      ensureTickerStructure();
+      var now = Date.now();
+      if (!document.hidden && now - lastObserverKick > 10000) {
+        lastObserverKick = now;
+        setTimeout(function () {
+          updateAllPrices();
+        }, 250);
+      }
     });
-    tickerObserver.observe(ticker, { childList: true, subtree: true });
+    tickerObserver.observe(bar, { childList: true, subtree: true });
   }
 
   var visibilityHooked = false;

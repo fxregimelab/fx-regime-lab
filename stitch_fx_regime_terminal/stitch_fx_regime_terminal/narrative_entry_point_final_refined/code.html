@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FX REGIME LAB | TERMINAL</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "background": "#0a0a0f",
+                        "surface": "#0f0f18",
+                        "surface-low": "#131318",
+                        "outline-variant": "#1c1c2e",
+                        "outline": "#8c909f",
+                        "primary": "#3b82f6",
+                        "bullish": "#22c55e",
+                        "bearish": "#ef4444",
+                        "warning": "#f59e0b",
+                        "on-surface": "#e4e1e9",
+                        "on-surface-variant": "#8c909f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0px",
+                        "lg": "0px",
+                        "xl": "0px",
+                        "full": "0px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0a0a0f;
+            color: #e4e1e9;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+        }
+        /* Rigid scrollbar for terminal look */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #0a0a0f; }
+        ::-webkit-scrollbar-thumb { background: #1c1c2e; }
+        .tabular { font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+<!-- TopNavBar (JSON Managed) -->
+<header class="flex items-center justify-between px-4 w-full h-[52px] bg-[#0a0a0f] border-b border-[#1c1c2e] font-['Inter'] font-bold text-xs tracking-wider uppercase">
+<div class="flex items-center gap-8 h-full">
+<span class="text-sm font-bold tracking-tighter text-[#e4e1e9]">FX REGIME LAB</span>
+<nav class="flex h-full">
+<!-- Active Navigation: HOME -->
+<a class="text-[#3b82f6] border-b border-[#3b82f6] h-full flex items-center px-4 duration-75 ease-in-out hover:bg-[#131318]" href="#">HOME</a>
+<a class="text-[#8c909f] hover:text-[#e4e1e9] h-full flex items-center px-4 duration-75 ease-in-out hover:bg-[#131318]" href="#">DASHBOARD</a>
+<a class="text-[#8c909f] hover:text-[#e4e1e9] h-full flex items-center px-4 duration-75 ease-in-out hover:bg-[#131318]" href="#">EXIT TERMINAL</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 text-[10px] tracking-widest text-[#8c909f]">
+<span class="w-2 h-2 rounded-full bg-[#22c55e]"></span>
+                LIVE
+            </div>
+</div>
+</header>
+<!-- SideNavBar / Ticker Strip (JSON Managed) -->
+<section class="flex items-center w-full h-[36px] px-4 overflow-hidden bg-[#0a0a0f] border-b border-[#1c1c2e] font-['Inter'] text-[11px] tabular-nums">
+<div class="flex items-center gap-2 pr-4 border-r border-[#1c1c2e] mr-4 shrink-0">
+<span class="material-symbols-outlined text-[#22c55e] text-[14px]">show_chart</span>
+<span class="text-[#e4e1e9] font-bold uppercase tracking-tighter">Ticker</span>
+</div>
+<div class="flex gap-6 overflow-hidden whitespace-nowrap">
+<div class="flex gap-2">
+<span class="text-[#8c909f]">DXY</span>
+<span class="text-white font-bold">98.37</span>
+<span class="text-[#ef4444]">-0.12%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[#8c909f]">EUR/USD</span>
+<span class="text-white font-bold">1.0854</span>
+<span class="text-[#22c55e]">+0.04%</span>
+</div>
+<div class="flex gap-2">
+<span class="text-[#8c909f]">USD/JPY</span>
+<span class="text-white font-bold">149.22</span>
+<span class="text-[#ef4444]">-0.21%</span>
+</div>
+</div>
+</section>
+<!-- Main Content Canvas -->
+<main class="flex-1 p-4 flex flex-col gap-4 overflow-y-auto">
+<!-- Morning Brief (Hero Section) -->
+<div class="grid grid-cols-1 md:grid-cols-10 border border-[#1c1c2e] bg-[#0f0f18]">
+<!-- Left: Content -->
+<div class="md:col-span-6 p-6 border-r border-[#1c1c2e] flex flex-col justify-between">
+<div>
+<span class="inline-block text-[10px] font-bold tracking-[0.2em] text-[#3b82f6] mb-2">MORNING BRIEF</span>
+<h1 class="text-3xl font-bold tracking-tight text-white mb-4">Regime read — 13 Apr 2026</h1>
+<p class="text-[#94a3b8] leading-relaxed text-sm max-w-2xl mb-6">
+                        Systemic risk remains compressed despite hawkish rhetoric from the ECB. Current volatility clusters suggest a transition into a low-dispersion regime for G10 pairs. We observe a tactical decoupling in USD/JPY order flow as Japanese corporate hedging hits a 3-month peak ahead of the fiscal quarter close.
+                    </p>
+</div>
+<div class="flex gap-4">
+<a class="text-[#3b82f6] text-xs font-bold uppercase tracking-wider hover:underline" href="#">Open full brief →</a>
+<a class="text-[#3b82f6] text-xs font-bold uppercase tracking-wider hover:underline" href="#">Read methodology →</a>
+</div>
+</div>
+<!-- Right: Signals -->
+<div class="md:col-span-4 p-6 bg-[#13131f]">
+<h3 class="text-[10px] font-bold tracking-[0.2em] text-[#8c909f] mb-4">KEY SIGNALS TODAY</h3>
+<div class="space-y-4">
+<div class="flex justify-between items-center py-2 border-b border-[#1c1c2e]">
+<span class="text-xs text-[#8c909f]">EUR/USD Rate Diff</span>
+<span class="text-[10px] font-bold text-[#ef4444] px-2 py-0.5 border border-[#ef4444]">BEARISH</span>
+</div>
+<div class="flex justify-between items-center py-2 border-b border-[#1c1c2e]">
+<div class="flex flex-col">
+<span class="text-xs text-[#8c909f]">USD/JPY COT</span>
+<span class="text-[9px] text-[#424754]">35th pct</span>
+</div>
+<span class="text-[10px] font-bold text-[#8c909f] px-2 py-0.5 border border-[#8c909f]">NEUTRAL</span>
+</div>
+<div class="flex justify-between items-center py-2">
+<span class="text-xs text-[#8c909f]">USD/INR Vol</span>
+<span class="text-[10px] font-bold text-[#e4e1e9] px-2 py-0.5 border border-[#e4e1e9]">NORMAL</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Regime Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- EUR/USD -->
+<div class="bg-[#0f0f18] border-t-[3px] border-t-[#3b82f6] border-x border-b border-[#1c1c2e] p-4">
+<div class="flex justify-between items-start mb-6">
+<div class="flex flex-col">
+<span class="text-xl font-bold tracking-tighter">EUR/USD</span>
+</div>
+<span class="text-[9px] font-bold border border-[#8c909f] text-[#8c909f] px-1.5 py-0.5">NEUTRAL</span>
+</div>
+<div class="flex justify-between items-end mb-4">
+<div class="tabular text-2xl font-bold">1.0854</div>
+<div class="text-[#22c55e] text-xs font-bold tabular">+0.04%</div>
+</div>
+<div class="border-t border-[#1c1c2e] pt-3 mt-4">
+<div class="text-[9px] tracking-tight text-[#8c909f] font-medium leading-tight">
+                        CONFIDENCE 16% · VOL NORMAL · DRIVER JPY COMPOSITE
+                    </div>
+</div>
+<div class="mt-3 pt-3 border-t border-[#1c1c2e] flex items-center gap-2 text-[9px] text-[#8c909f] uppercase tracking-tighter">06 APR 2026 · <span class="text-[#22c55e]">■</span> LIVE</div></div>
+<!-- USD/JPY -->
+<div class="bg-[#0f0f18] border-t-[3px] border-t-[#f59e0b] border-x border-b border-[#1c1c2e] p-4">
+<div class="flex justify-between items-start mb-6">
+<div class="flex flex-col">
+<span class="text-xl font-bold tracking-tighter">USD/JPY</span>
+</div>
+<span class="text-[9px] font-bold border border-[#22c55e] text-[#22c55e] px-1.5 py-0.5">BULLISH</span>
+</div>
+<div class="flex justify-between items-end mb-4">
+<div class="tabular text-2xl font-bold">149.22</div>
+<div class="text-[#ef4444] text-xs font-bold tabular">-0.21%</div>
+</div>
+<div class="border-t border-[#1c1c2e] pt-3 mt-4">
+<div class="text-[9px] tracking-tight text-[#8c909f] font-medium leading-tight">
+                        CONFIDENCE 16% · VOL NORMAL · DRIVER JPY COMPOSITE
+                    </div>
+</div>
+<div class="mt-3 pt-3 border-t border-[#1c1c2e] flex items-center gap-2 text-[9px] text-[#8c909f] uppercase tracking-tighter">06 APR 2026 · <span class="text-[#22c55e]">■</span> LIVE</div></div>
+<!-- USD/INR -->
+<div class="bg-[#0f0f18] border-t-[3px] border-t-[#ef4444] border-x border-b border-[#1c1c2e] p-4">
+<div class="flex justify-between items-start mb-6">
+<div class="flex flex-col">
+<span class="text-xl font-bold tracking-tighter">USD/INR</span>
+</div>
+<span class="text-[9px] font-bold border border-[#ef4444] text-[#ef4444] px-1.5 py-0.5">BEARISH</span>
+</div>
+<div class="flex justify-between items-end mb-4">
+<div class="tabular text-2xl font-bold">83.12</div>
+<div class="text-[#22c55e] text-xs font-bold tabular">+0.08%</div>
+</div>
+<div class="border-t border-[#1c1c2e] pt-3 mt-4">
+<div class="text-[9px] tracking-tight text-[#8c909f] font-medium leading-tight">
+                        CONFIDENCE 16% · VOL NORMAL · DRIVER JPY COMPOSITE
+                    </div>
+</div>
+<div class="mt-3 pt-3 border-t border-[#1c1c2e] flex items-center gap-2 text-[9px] text-[#8c909f] uppercase tracking-tighter">06 APR 2026 · <span class="text-[#22c55e]">■</span> LIVE</div></div>
+</div>
+<!-- Bottom Strip / Market Context -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="bg-[#0f0f18] border border-[#1c1c2e] p-4 flex items-center justify-between">
+<span class="text-[10px] font-bold tracking-widest text-[#8c909f]">REGIME ACCURACY</span>
+<div class="flex gap-6">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 bg-[#3b82f6]"></span>
+<span class="text-[10px] tabular uppercase">EUR/USD 0%</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 bg-[#f59e0b]"></span>
+<span class="text-[10px] tabular uppercase">USD/JPY 43%</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 bg-[#ef4444]"></span>
+<span class="text-[10px] tabular uppercase">USD/INR 17%</span>
+</div>
+</div>
+</div>
+<div class="bg-[#0f0f18] border border-[#1c1c2e] p-4 flex items-center justify-between">
+<span class="text-[10px] font-bold tracking-widest text-[#8c909f]">CROSS-ASSET DATA</span>
+<div class="flex gap-6">
+<div class="flex items-center gap-2">
+<span class="text-[10px] text-[#8c909f]">US-DE 10Y</span>
+<span class="text-[10px] font-bold tabular text-white" style="color: #f1f5f9;">1.27%</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] text-[#8c909f]">BRENT</span>
+<span class="text-[10px] font-bold tabular text-white" style="color: #f1f5f9;">109.77</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer (JSON Managed) -->
+<footer class="flex items-center justify-between px-4 w-full h-[36px] bg-[#0a0a0f] border-t border-[#1c1c2e] font-['Inter'] text-[10px] uppercase tracking-widest fixed bottom-0">
+<div class="flex items-center gap-4 text-[#8c909f]"><span class="flex items-center gap-2"><span class="text-[#22c55e]">■</span> PIPELINE STATUS · LAST RUN 23:14 UTC · 06 APR 2026</span></div>
+<div class="flex items-center gap-4 text-[#8c909f]"><span class="text-[#8c909f]">© 2026 FX REGIME LAB</span></div>
+</footer>
+</body></html>

@@ -91,7 +91,7 @@
   function initDataClient() {
     if (_supabaseClient) return Promise.resolve(_supabaseClient);
     if (_initPromise) return _initPromise;
-    _initPromise = waitForSupabase(8000)
+    _initPromise = waitForSupabase(5000)
       .then(function (ready) {
         if (!ready) {
           if (typeof console !== 'undefined' && console.warn) {
@@ -922,7 +922,9 @@
       return queryWithTimeout(
         client
           .from('signals')
-          .select('date,pair,cross_asset_dxy,cross_asset_oil,cross_asset_vix,realized_vol_5d')
+          .select(
+            'date,pair,cross_asset_dxy,cross_asset_oil,cross_asset_vix,realized_vol_5d,rate_diff_10y'
+          )
           .in('pair', ['EURUSD', 'USDJPY', 'USDINR'])
           .order('date', { ascending: false })
           .limit(90)
@@ -1130,6 +1132,7 @@
     }
   }
 
+  /** Toggle nav stale hint: visible when show=true (removes HTML hidden attribute). */
   function setStale(show) {
     var el = document.getElementById('term-data-stale');
     if (!el) return;
@@ -1183,13 +1186,19 @@
   function cleanBriefText(raw) {
     if (!raw || typeof raw !== 'string') return '';
     var t = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Full-line separator runs (box-drawing + ASCII): ═══, ───, ===, ---, ***
+    t = t.replace(/^[\u2550]{3,}\s*$/gm, '');
+    t = t.replace(/^[\u2500]{3,}\s*$/gm, '');
+    t = t.replace(/^={3,}\s*$/gm, '');
+    t = t.replace(/^-{3,}\s*$/gm, '');
+    t = t.replace(/^\*{3,}\s*$/gm, '');
+
     // Remove === separator lines and inline === patterns
     t = t.replace(/={3,}[^\n]*={3,}/g, '');
-    t = t.replace(/^=+\s*$/gm, '');
     // Remove !! markers
     t = t.replace(/!!/g, '');
-    // Remove ---- separator lines and inline runs
-    t = t.replace(/^-{4,}\s*$/gm, '');
+    // Inline runs of 4+ hyphens (horizontal rules / leaks)
     t = t.replace(/-{4,}/g, ' ');
     // Remove pipeline header and metadata lines
     t = t.replace(/^G10 FX MORNING BRIEF.*$/gm, '');
@@ -1209,6 +1218,41 @@
     t = t.replace(/\*\*([^*]+)\*\*/g, '$1');
     t = t.replace(/__([^_]+)__/g, '$1');
     t = t.replace(/#{1,6}\s*/gm, '');
+    // Inline runs of 3+ asterisks (horizontal rules / leaks; **bold** uses pairs of 2)
+    t = t.replace(/\*{3,}/g, ' ');
+
+    var lines = t.split('\n');
+    var trimmed = [];
+    var i;
+    for (i = 0; i < lines.length; i++) {
+      var s = lines[i].replace(/^[ \t]+|[ \t]+$/g, '');
+      if (!s) {
+        trimmed.push('');
+        continue;
+      }
+      // Section headers: ALL CAPS, 8–59 chars (skip short tickers like EUR/USD)
+      if (s.length < 60 && s.length >= 8 && /[A-Z]/.test(s) && !/[a-z]/.test(s)) {
+        continue;
+      }
+      trimmed.push(s);
+    }
+
+    var collapsed = [];
+    var prevBlank = false;
+    for (i = 0; i < trimmed.length; i++) {
+      var ln = trimmed[i];
+      if (ln === '') {
+        if (!prevBlank) {
+          collapsed.push('');
+          prevBlank = true;
+        }
+      } else {
+        collapsed.push(ln);
+        prevBlank = false;
+      }
+    }
+    t = collapsed.join('\n');
+
     t = t.replace(/[ \t]+/g, ' ');
     t = t.replace(/\n{3,}/g, '\n\n');
     return t.trim();
@@ -1506,6 +1550,8 @@
           lastBundle && lastBundle.byPair
             ? lastBundle.byPair.EURUSD || lastBundle.byPair.USDJPY || lastBundle.byPair.USDINR
             : null;
+        var eurRow = lastBundle && lastBundle.byPair ? lastBundle.byPair.EURUSD : null;
+        var usDe10y = eurRow ? num(eurRow.rate_diff_10y) : NaN;
         var items = document.querySelectorAll('.term-cross .term-cross__item');
         if (items.length >= 4) {
           function setCrossItem(idx, label, valStr) {
@@ -1521,10 +1567,16 @@
               c.className = 'term-cross__chg';
             }
           }
+          // Raw US_10Y is not stored on signals rows (only cross_asset_* and pair-specific rate_diff_*).
           setCrossItem(0, 'US 10Y', '—');
-          setCrossItem(1, 'US–DE 10Y', '—');
+          setCrossItem(
+            1,
+            'US–DE 10Y',
+            isFinite(usDe10y) ? usDe10y.toFixed(2) + '%' : '—'
+          );
           var br = ref ? num(ref.cross_asset_oil) : NaN;
           setCrossItem(2, 'Brent', isFinite(br) ? br.toFixed(2) : '—');
+          // Gold exists in the pipeline master CSV but is not written to Supabase signals (no column).
           setCrossItem(3, 'Gold', '—');
         }
 

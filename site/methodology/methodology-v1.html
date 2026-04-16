@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Methodology — FX Regime Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <style>
+    .meth-content {
+      width: 100%;
+    }
+    .meth-label-muted {
+      color: var(--text-muted);
+    }
+    .meth-prose {
+      color: var(--text-sec);
+      max-width: 42rem;
+      line-height: 1.65;
+    }
+    .meth-h2 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      margin: 2rem 0 0.75rem;
+    }
+    .meth-list {
+      color: var(--text-sec);
+      max-width: 42rem;
+      line-height: 1.7;
+      margin: 0;
+      padding-left: 1.25rem;
+    }
+    .meth-list strong {
+      color: var(--text);
+    }
+    .meth-note {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 2rem;
+      max-width: 42rem;
+      line-height: 1.6;
+    }
+    .meth-cta {
+      display: inline-block;
+      margin-top: 1rem;
+    }
+    .meth-footer-brand {
+      color: var(--text-on-dark);
+      font-family: var(--font-display);
+    }
+  </style>
+</head>
+<body class="theme-light">
+  <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
+  <div class="v2-wrap">
+    <header class="v2-nav" data-nav-root>
+      <a class="v2-nav__brand" href="/">FX Regime Lab</a>
+      <ul class="v2-nav__links">
+        <li><a href="/" data-path="/">Home</a></li>
+        <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
+        <li><a href="/terminal/overview.html" data-path="/terminal/overview">Terminal</a></li>
+        <li><a href="/performance/" data-path="/performance">Performance</a></li>
+        <li><a href="/brief/" data-path="/brief">Brief</a></li>
+        <li><a href="/newsletter/" data-path="/newsletter">Newsletter</a></li>
+        <li><a href="/methodology/" data-path="/methodology">Methodology</a></li>
+        <li><a href="/about/" data-path="/about">About</a></li>
+      </ul>
+      <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu"><span></span><span></span><span></span></button>
+    </header>
+    <div class="v2-nav__overlay" data-nav-overlay>
+      <a href="/">Home</a>
+      <a href="/dashboard/">Dashboard</a>
+      <a href="/terminal/overview.html">Terminal</a>
+      <a href="/performance/">Performance</a>
+      <a href="/brief/">Brief</a>
+      <a href="/newsletter/">Newsletter</a>
+      <a href="/methodology/">Methodology</a>
+      <a href="/about/">About</a>
+    </div>
+
+    <main class="page-centered">
+      <div class="meth-content" data-reveal-stagger="cards">
+        <p class="label-caps meth-label-muted">Methodology</p>
+        <h1>How the daily pipeline is built</h1>
+        <p class="meth-prose">
+          FX Regime Lab ingests public market data, merges it into a single daily dataset, and publishes
+          regime labels with rolling validation. Nothing here is investment advice; it is a transparent
+          research stack you can reproduce from documented sources.
+        </p>
+
+        <h2 class="meth-h2">Pipeline order</h2>
+        <p class="meth-prose">
+          The orchestrated sequence is: FX and yield ETL, CFTC COT positioning, INR-specific metrics,
+          optional volatility and open-interest layers, risk-reversal inputs where configured, merge into
+          a master table, text brief, optional macro helpers, AI-assisted narrative (when enabled), HTML
+          brief with charts, then deploy. Failed upstream fetches are isolated so the rest of the run can
+          complete.
+        </p>
+
+        <h2 class="meth-h2">Signal families</h2>
+        <ul class="meth-list">
+          <li><strong>Rates and spreads</strong> — policy and benchmark yield differentials that anchor G10 FX.</li>
+          <li><strong>Positioning</strong> — CFTC Commitments of Traders for liquid futures proxies.</li>
+          <li><strong>Volatility and skew</strong> — realized and implied vol, plus optionality metrics where available.</li>
+          <li><strong>Cross-asset</strong> — DXY, oil, equity vol, and related macro series as context, not standalone alpha.</li>
+          <li><strong>Regime call</strong> — a structured label with confidence and primary driver, logged for next-day checks.</li>
+        </ul>
+
+        <h2 class="meth-h2">Validation</h2>
+        <p class="meth-prose">
+          Calls are compared to realized price behaviour on a defined horizon; rolling accuracy appears in
+          the terminal and brief headers. Gaps or source errors are logged for monitoring.
+        </p>
+
+        <p class="meth-note">
+          A formal paper-style write-up is planned alongside the public site. Until then, the morning
+          brief and terminal charts remain the live specification of what shipped each day.
+        </p>
+        <a class="link-primary meth-cta" href="/terminal/">Open the terminal →</a>
+      </div>
+    </main>
+
+    <footer class="v2-footer">
+      <div class="v2-footer__grid">
+        <div><strong class="meth-footer-brand">FX Regime Lab</strong></div>
+        <nav class="v2-footer__nav">
+          <a href="/">Home</a>
+          <a href="/dashboard/">Dashboard</a>
+          <a href="/terminal/overview.html">Terminal</a>
+          <a href="/performance/">Performance</a>
+          <a href="/brief/">Brief</a>
+          <a href="/newsletter/">Newsletter</a>
+          <a href="/methodology/">Methodology</a>
+          <a href="/about/">About</a>
+        </nav>
+        <div><a href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a></div>
+      </div>
+      <p class="v2-footer__rule">© 2026 FX Regime Lab</p>
+    </footer>
+  </div>
+  <script src="/assets/theme-switch.js" defer></script>
+  <script src="/assets/canvas-bg.js" defer></script>
+  <script src="/assets/nav.js" defer></script>
+  <script src="/assets/section-reveal.js" defer></script>
+</body>
+</html>

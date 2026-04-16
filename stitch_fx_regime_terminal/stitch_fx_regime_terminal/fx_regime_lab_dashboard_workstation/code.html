@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .material-symbols-outlined { font-size: 20px; vertical-align: middle; }
+        .tabular { font-variant-numeric: tabular-nums; }
+        /* Precision Stroke Rule - Double Stroking for active elements */
+        .active-pair-stroke {
+            outline: 1px solid #1c1c2e;
+            border-left: 2px solid #3b82f6;
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #0a0a0f; }
+        ::-webkit-scrollbar-thumb { background: #1c1c2e; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "outline-variant": "#1c1c2e",
+                        "surface-dim": "#0a0a0f",
+                        "surface-container": "#0f0f18",
+                        "surface-container-low": "#131318",
+                        "surface-container-high": "#1b1b20",
+                        "primary": "#3b82f6",
+                        "bullish": "#22c55e",
+                        "bearish": "#ef4444",
+                        "neutral": "#8c909f",
+                        "warning": "#f59e0b"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0px",
+                        "lg": "0px",
+                        "xl": "0px",
+                        "full": "0px"
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface-dim text-[#e4e1e9] h-screen flex flex-col overflow-hidden">
+<!-- TopAppBar Shell -->
+<header class="bg-[#0a0a0f] border-b border-[#1c1c2e] h-[52px] flex items-center justify-between px-4 w-full shrink-0 z-50">
+<div class="flex items-center gap-8">
+<span class="text-[1.125rem] font-bold text-white tracking-tighter uppercase">FX REGIME LAB</span>
+<nav class="flex h-[52px] items-center">
+<a class="text-[#8c909f] font-bold tracking-tight text-[0.75rem] uppercase px-4 h-full flex items-center hover:text-white transition-colors" href="#">HOME</a>
+<a class="text-blue-500 border-b border-blue-500 font-bold tracking-tight text-[0.75rem] uppercase px-4 h-full flex items-center transition-colors" href="#">DASHBOARD</a>
+<a class="text-[#8c909f] font-bold tracking-tight text-[0.75rem] uppercase px-4 h-full flex items-center hover:text-white transition-colors" href="#">EXIT TERMINAL</a>
+</nav>
+</div>
+<div class="flex items-center gap-4 text-bullish font-bold text-[0.75rem] tracking-widest">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sensors</span>
+<span>■ LIVE</span>
+</div>
+</header>
+<!-- Ticker Strip -->
+<div class="bg-[#0a0a0f] border-b border-[#1c1c2e] h-[36px] flex items-center px-4 overflow-hidden shrink-0">
+<div class="flex items-center gap-8 tabular text-[0.6875rem] font-medium tracking-widest uppercase">
+<div class="flex gap-2">
+<span class="text-[#8c909f]">DXY</span>
+<span class="text-white">98.37</span>
+<span class="text-bearish">-0.12%</span>
+</div>
+<div class="flex gap-2 border-l border-[#1c1c2e] pl-8">
+<span class="text-[#8c909f]">EUR/USD</span>
+<span class="text-white">1.0854</span>
+<span class="text-bullish">+0.04%</span>
+</div>
+<div class="flex gap-2 border-l border-[#1c1c2e] pl-8">
+<span class="text-[#8c909f]">USD/JPY</span>
+<span class="text-white">149.22</span>
+<span class="text-bearish">-0.21%</span>
+</div>
+<div class="flex gap-2 border-l border-[#1c1c2e] pl-8">
+<span class="text-[#8c909f]">GBP/USD</span>
+<span class="text-white">1.2642</span>
+<span class="text-bullish">+0.11%</span>
+</div>
+<div class="flex gap-2 border-l border-[#1c1c2e] pl-8">
+<span class="text-[#8c909f]">AUD/USD</span>
+<span class="text-white">0.6514</span>
+<span class="text-bearish">-0.05%</span>
+</div>
+</div>
+</div>
+<!-- Main Terminal Grid -->
+<main class="flex flex-1 overflow-hidden">
+<!-- SideNavBar / Coverage Panel -->
+<aside class="w-[220px] bg-[#0f0f18] border-r border-[#1c1c2e] flex flex-col shrink-0 overflow-y-auto">
+<div class="p-3 border-b border-[#1c1c2e] flex items-center justify-between">
+<span class="text-[0.6875rem] font-bold text-[#8c909f] tracking-widest uppercase">COVERAGE</span>
+<span class="material-symbols-outlined text-[16px] text-[#8c909f]">analytics</span>
+</div>
+<!-- Coverage Rows -->
+<div class="flex flex-col">
+<!-- Active Row -->
+<div class="p-3 bg-[#131318] border-l-2 border-blue-500 hover:bg-[#1c1c2e] cursor-pointer transition-all duration-75">
+<div class="flex justify-between items-start mb-1">
+<span class="text-[0.75rem] font-bold text-white">EUR/USD</span>
+<span class="text-[0.625rem] px-1 bg-[#1c1c2e] text-neutral border border-[#1c1c2e]">NEUTRAL</span>
+</div>
+<div class="flex justify-between items-end tabular">
+<span class="text-[0.875rem] font-bold text-white">1.0854</span>
+<span class="text-[0.6875rem] text-bullish">+0.04%</span>
+</div>
+<div class="mt-2 h-1 w-full bg-[#1c1c2e]">
+<div class="h-full bg-blue-500" style="width: 2%;"></div>
+</div>
+</div>
+<div class="p-3 border-b border-[#1c1c2e] hover:bg-[#1c1c2e] cursor-pointer transition-all duration-75">
+<div class="flex justify-between items-start mb-1">
+<span class="text-[0.75rem] font-bold text-[#8c909f]">USD/JPY</span>
+<span class="text-[0.625rem] px-1 bg-[#1c1c2e] text-warning border border-warning">RISK-ON</span>
+</div>
+<div class="flex justify-between items-end tabular">
+<span class="text-[0.875rem] font-bold text-white">149.22</span>
+<span class="text-[0.6875rem] text-bearish">-0.21%</span>
+</div>
+</div>
+<div class="p-3 border-b border-[#1c1c2e] hover:bg-[#1c1c2e] cursor-pointer transition-all duration-75">
+<div class="flex justify-between items-start mb-1">
+<span class="text-[0.75rem] font-bold text-[#8c909f]">USD/INR</span>
+<span class="text-[0.625rem] px-1 bg-[#1c1c2e] text-bearish border border-bearish">BEARISH</span>
+</div>
+<div class="flex justify-between items-end tabular">
+<span class="text-[0.875rem] font-bold text-white">83.24</span>
+<span class="text-[0.6875rem] text-bullish">+0.15%</span>
+</div>
+</div>
+</div>
+<!-- Cross-Asset Section -->
+<div class="p-3 border-b border-[#1c1c2e] bg-[#131318] mt-4">
+<span class="text-[0.6875rem] font-bold text-[#8c909f] tracking-widest uppercase">CROSS-ASSET</span>
+</div>
+<div class="flex flex-col tabular text-[0.75rem]">
+<div class="px-3 py-2 flex justify-between hover:bg-[#1c1c2e]">
+<span class="text-[#8c909f]">DXY</span>
+<span class="text-white font-medium">98.37</span>
+</div>
+<div class="px-3 py-2 flex justify-between bg-[#131318] hover:bg-[#1c1c2e]">
+<span class="text-[#8c909f]">US-DE 10Y</span>
+<span class="text-white font-medium">1.27%</span>
+</div>
+<div class="px-3 py-2 flex justify-between hover:bg-[#1c1c2e]">
+<span class="text-[#8c909f]">BRENT</span>
+<span class="text-white font-medium">109.77</span>
+</div>
+<div class="px-3 py-2 flex justify-between bg-[#131318] hover:bg-[#1c1c2e]">
+<span class="text-[#8c909f]">VIX</span>
+<span class="text-white font-medium">18.42</span>
+</div>
+</div>
+</aside>
+<!-- Center Panel -->
+<section class="flex-1 flex flex-col overflow-y-auto bg-surface-dim">
+<!-- Center Top Bar -->
+<div class="h-[40px] border-b border-[#1c1c2e] bg-[#0f0f18] flex items-center px-4 gap-6 shrink-0">
+<div class="flex items-center gap-2">
+<span class="text-[0.875rem] font-bold text-white">EUR/USD</span>
+<span class="text-[0.875rem] tabular text-bullish">1.0854 +0.04%</span>
+</div>
+<div class="h-4 w-px bg-[#1c1c2e]"></div>
+<div class="flex items-center gap-4 text-[0.6875rem] font-bold tracking-widest">
+<span class="text-neutral">NEUTRAL</span>
+<span class="text-white">CONFIDENCE 2%</span>
+<span class="text-[#8c909f]">·</span>
+<span class="text-bullish">VOL NORMAL</span>
+</div>
+</div>
+<!-- Signal Stack Table -->
+<div class="p-4 flex flex-col gap-4">
+<div class="border border-[#1c1c2e] bg-[#0f0f18]">
+<div class="grid grid-cols-4 bg-[#131318] border-b border-[#1c1c2e] px-3 py-1.5 text-[0.625rem] font-bold text-[#8c909f] tracking-widest uppercase">
+<div>SIGNAL</div>
+<div class="text-center">DIRECTION</div>
+<div class="text-right">VALUE</div>
+<div class="text-right px-4">CONTRIBUTION</div>
+</div>
+<div class="flex flex-col tabular text-[0.75rem]">
+<!-- Table Rows -->
+<div class="grid grid-cols-4 items-center px-3 py-2 border-b border-[#1c1c2e] hover:bg-[#131318]">
+<div class="text-white font-medium">Rate Differentials</div>
+<div class="flex justify-center">
+<span class="px-2 py-0.5 bg-[#ef4444]/10 text-bearish border border-bearish text-[0.625rem] font-bold uppercase">BEARISH</span>
+</div>
+<div class="text-right text-white">-14.2 bps</div>
+<div class="px-4">
+<div class="h-2 w-full bg-[#1c1c2e] flex justify-end">
+<div class="h-full bg-bearish w-[65%]"></div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-4 items-center px-3 py-2 border-b border-[#1c1c2e] bg-[#131318]/50 hover:bg-[#131318]">
+<div class="text-white font-medium">COT Position</div>
+<div class="flex justify-center">
+<span class="px-2 py-0.5 bg-[#8c909f]/10 text-neutral border border-[#8c909f] text-[0.625rem] font-bold uppercase">NEUTRAL</span>
+</div>
+<div class="text-right text-white">0.42σ</div>
+<div class="px-4">
+<div class="h-2 w-full bg-[#1c1c2e] relative">
+<div class="absolute left-1/2 h-full bg-neutral w-[5%]"></div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-4 items-center px-3 py-2 border-b border-[#1c1c2e] hover:bg-[#131318]">
+<div class="text-white font-medium">Realized Vol</div>
+<div class="flex justify-center">
+<span class="px-2 py-0.5 bg-[#ef4444]/10 text-bearish border border-bearish text-[0.625rem] font-bold uppercase">BEARISH</span>
+</div>
+<div class="text-right text-white">8.42%</div>
+<div class="px-4">
+<div class="h-2 w-full bg-[#1c1c2e] flex justify-end">
+<div class="h-full bg-bearish w-[30%]"></div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-4 items-center px-3 py-2 hover:bg-[#131318]">
+<div class="text-white font-medium">Cross Asset Correlation</div>
+<div class="flex justify-center">
+<span class="px-2 py-0.5 bg-[#ef4444]/10 text-bearish border border-bearish text-[0.625rem] font-bold uppercase">BEARISH</span>
+</div>
+<div class="text-right text-white">-0.12</div>
+<div class="px-4">
+<div class="h-2 w-full bg-[#1c1c2e] flex justify-end">
+<div class="h-full bg-bearish w-[45%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Charts Section -->
+<div class="flex flex-col gap-px border border-[#1c1c2e]">
+<div class="bg-[#131318] h-[36px] flex items-center justify-between px-3">
+<div class="flex h-full">
+<button class="px-4 text-[0.6875rem] font-bold text-white border-b-2 border-blue-500">FUNDAMENTALS</button>
+<button class="px-4 text-[0.6875rem] font-bold text-[#8c909f] hover:text-white">POSITIONING</button>
+<button class="px-4 text-[0.6875rem] font-bold text-[#8c909f] hover:text-white">TECHNICALS</button>
+</div>
+<div class="flex gap-1">
+<button class="px-2 py-0.5 text-[0.625rem] bg-[#1c1c2e] text-white">1M</button>
+<button class="px-2 py-0.5 text-[0.625rem] hover:bg-[#1c1c2e] text-[#8c909f]">3M</button>
+<button class="px-2 py-0.5 text-[0.625rem] hover:bg-[#1c1c2e] text-[#8c909f]">6M</button>
+<button class="px-2 py-0.5 text-[0.625rem] hover:bg-[#1c1c2e] text-[#8c909f]">YTD</button>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-px bg-[#1c1c2e]">
+<div class="bg-[#0f0f18] h-[220px] p-4 flex flex-col">
+<span class="text-[0.625rem] font-bold text-[#8c909f] uppercase mb-2">RATE DIFFERENTIAL 2Y</span>
+<div class="flex-1 bg-surface-dim relative border border-[#1c1c2e]/50 overflow-hidden">
+<!-- Mock Chart Canvas -->
+<svg class="absolute inset-0 h-full w-full opacity-60">
+<path d="M0 100 L20 90 L40 120 L60 80 L80 110 L100 130 L120 100 L140 140 L160 110 L180 150 L200 130 L220 160 L240 140 L260 170 L280 150 L300 180" fill="none" stroke="#3b82f6" stroke-width="1.5"></path>
+<line stroke="#1c1c2e" stroke-dasharray="2,2" x1="0" x2="100%" y1="20" y2="20"></line>
+<line stroke="#1c1c2e" stroke-dasharray="2,2" x1="0" x2="100%" y1="60" y2="60"></line>
+<line stroke="#1c1c2e" stroke-dasharray="2,2" x1="0" x2="100%" y1="100" y2="100"></line>
+<line stroke="#1c1c2e" stroke-dasharray="2,2" x1="0" x2="100%" y1="140" y2="140"></line>
+</svg>
+</div>
+</div>
+<div class="bg-[#0f0f18] h-[220px] p-4 flex flex-col">
+<span class="text-[0.625rem] font-bold text-[#8c909f] uppercase mb-2">RATE DIFFERENTIAL 10Y</span>
+<div class="flex-1 bg-surface-dim relative border border-[#1c1c2e]/50 overflow-hidden">
+<!-- Mock Chart Canvas -->
+<svg class="absolute inset-0 h-full w-full opacity-60">
+<path d="M0 80 L20 85 L40 75 L60 90 L80 85 L100 95 L120 80 L140 100 L160 90 L180 110 L200 105 L220 120 L240 115 L260 130 L280 125 L300 140" fill="none" stroke="#3b82f6" stroke-width="1.5"></path>
+<line stroke="#1c1c2e" stroke-dasharray="2,2" x1="0" x2="100%" y1="20" y2="20"></line>
+<line stroke="#1c1c2e" stroke-dasharray="2,2" x1="0" x2="100%" y1="60" y2="60"></line>
+<line stroke="#1c1c2e" stroke-dasharray="2,2" x1="0" x2="100%" y1="100" y2="100"></line>
+<line stroke="#1c1c2e" stroke-dasharray="2,2" x1="0" x2="100%" y1="140" y2="140"></line>
+</svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Panel / Details -->
+<aside class="w-[300px] bg-[#0f0f18] border-l border-[#1c1c2e] flex flex-col shrink-0 overflow-y-auto">
+<div class="p-4 border-b border-[#1c1c2e]">
+<span class="text-[0.6875rem] font-bold text-[#8c909f] tracking-widest uppercase block mb-4">REGIME DETAIL</span>
+<div class="flex items-baseline justify-between mb-2">
+<h2 class="text-[1.5rem] font-bold text-white tracking-tighter">NEUTRAL</h2>
+<span class="tabular text-[0.875rem] text-bearish font-medium">-16.3 pts</span>
+</div>
+<div class="flex items-center justify-between text-[0.75rem] mb-1">
+<span class="text-[#8c909f]">CONFIDENCE</span>
+<span class="text-white">2.0%</span>
+</div>
+<div class="h-1 w-full bg-[#1c1c2e]">
+<div class="h-full bg-blue-500" style="width: 2%;"></div>
+</div>
+</div>
+<!-- Signal Matrix -->
+<div class="p-4 border-b border-[#1c1c2e]">
+<span class="text-[0.6875rem] font-bold text-[#8c909f] tracking-widest uppercase block mb-3">SIGNAL MATRIX</span>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center text-[0.75rem]">
+<span class="text-[#8c909f]">YIELD SPREAD</span>
+<span class="text-bearish font-bold">SHORT</span>
+</div>
+<div class="flex justify-between items-center text-[0.75rem]">
+<span class="text-[#8c909f]">EQUITY VOL</span>
+<span class="text-bearish font-bold">SHORT</span>
+</div>
+<div class="flex justify-between items-center text-[0.75rem]">
+<span class="text-[#8c909f]">RETAIL FLOW</span>
+<span class="text-bullish font-bold">LONG</span>
+</div>
+<div class="flex justify-between items-center text-[0.75rem]">
+<span class="text-[#8c909f]">TERM PREMIA</span>
+<span class="text-neutral font-bold">FLAT</span>
+</div>
+</div>
+</div>
+<!-- Morning Brief -->
+<div class="p-4 border-b border-[#1c1c2e] bg-[#131318]">
+<span class="text-[0.6875rem] font-bold text-[#8c909f] tracking-widest uppercase block mb-3">MORNING BRIEF</span>
+<h3 class="text-[0.875rem] font-bold text-white mb-2">Regime read — 13 Apr 2026</h3>
+<p class="text-[0.75rem] leading-snug text-[#8c909f] mb-4">
+                    The single currency remains anchored to macro volatility as terminal rates pricing shifts. Focus remains on the 10Y differential widening vs G10 peers...
+                </p>
+<a class="text-[0.6875rem] font-bold text-blue-500 hover:text-white transition-colors" href="#">OPEN FULL BRIEF →</a>
+</div>
+<!-- Accuracy Metrics -->
+<div class="p-4">
+<span class="text-[0.6875rem] font-bold text-[#8c909f] tracking-widest uppercase block mb-3">ACCURACY (1W)</span>
+<div class="flex flex-col gap-3 tabular">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 bg-blue-500"></div>
+<span class="text-[0.75rem] text-white">EUR/USD</span>
+</div>
+<span class="text-[0.75rem] font-bold text-white">0%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 bg-warning"></div>
+<span class="text-[0.75rem] text-white">USD/JPY</span>
+</div>
+<span class="text-[0.75rem] font-bold text-white">43%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 bg-bearish"></div>
+<span class="text-[0.75rem] text-white">USD/INR</span>
+</div>
+<span class="text-[0.75rem] font-bold text-white">17%</span>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<!-- Footer Shell -->
+<footer class="bg-[#0a0a0f] border-t border-[#1c1c2e] h-[36px] flex items-center justify-between px-4 z-50 shrink-0">
+<div class="flex items-center gap-4 text-green-500 text-[0.6875rem] font-medium tracking-widest uppercase">
+<span>■ PIPELINE STATUS</span>
+<span class="text-[#8c909f]">·</span>
+<span class="text-[#8c909f]">LAST RUN 23:14 UTC</span>
+<span class="text-[#8c909f]">·</span>
+<span class="text-[#8c909f]">06 APR 2026</span>
+</div>
+<div class="text-[#8c909f] text-[0.6875rem] font-medium tracking-widest uppercase">
+            © 2026 FX REGIME LAB
+        </div>
+</footer>
+</body></html>

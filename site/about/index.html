@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/site.css" />
   <style>
     :root {
       --cream: #FAFAF5;
@@ -759,6 +760,7 @@
   </style>
 </head>
 <body class="theme-light">
+  <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
   <div class="v2-wrap">
     <header class="v2-nav nav-scrolled" data-nav-root>
       <a class="v2-nav__brand" href="/">
@@ -929,7 +931,7 @@ Daily.</h2>
         <h2 id="contact-heading">Get in touch.</h2>
         <p class="sub">Research questions, framework discussion, or institutional inquiries.</p>
         <a class="email" href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a>
-        <a class="linkedin" href="#">LinkedIn ↗</a>
+        <a class="linkedin" href="https://www.linkedin.com/in/shreyash045/" target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>
       </section>
     </main>
 
@@ -954,5 +956,8 @@ Daily.</h2>
       <p class="v2-footer__rule">© 2026 FX Regime Lab · Built by Shreyash Sakhare</p>
     </footer>
   </div>
+  <script defer src="/assets/nav.js"></script>
+  <script defer src="/assets/theme-switch.js"></script>
+  <script defer src="/assets/canvas-bg.js"></script>
 </body>
 </html>

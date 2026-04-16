@@ -15,6 +15,24 @@ from core.paths import LATEST_WITH_COT_CSV
 from core.signal_write import log_pipeline_error
 from core.supabase_client import get_client
 
+"""
+Regime validation Pipeline.
+
+Execution context:
+- Called by run.py as STEP 11 (validate)
+- Depends on: create_html_brief.py (brief HTML must exist)
+- Outputs: validation log only — no data files written
+- Next step: deploy.py
+- Blocking: NO — pipeline continues if this step fails
+
+DO NOT:
+- Import other *_pipeline.py modules
+- Use async/await
+- Add CLI arguments (argparse, click, sys.argv)
+- Hardcode dates, API keys, or file paths
+- Use plain supabase insert — always upsert
+"""
+
 PAIR_TICKERS = {
     "EURUSD": "EURUSD=X",
     "USDJPY": "USDJPY=X",

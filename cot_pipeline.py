@@ -29,6 +29,24 @@ from datetime import datetime
 from core.utils import ordinal
 from config import TODAY
 
+"""
+CFTC COT positioning Pipeline.
+
+Execution context:
+- Called by run.py as STEP 2 (cot)
+- Depends on: pipeline.py (fx step must complete, data/latest.csv must exist)
+- Outputs: data/cot_latest.csv
+- Next step: inr_pipeline.py
+- Blocking: YES — pipeline halts on failure
+
+DO NOT:
+- Import other *_pipeline.py modules
+- Use async/await
+- Add CLI arguments (argparse, click, sys.argv)
+- Hardcode dates, API keys, or file paths
+- Use plain supabase insert — always upsert
+"""
+
 CURRENT_YR = datetime.today().year
 
 # years of history to pull for percentile calculation

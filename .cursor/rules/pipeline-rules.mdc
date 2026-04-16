@@ -1,0 +1,30 @@
+---
+description:
+globs: *_pipeline.py
+alwaysApply: false
+---
+# Pipeline Module Rules
+
+## Architecture
+
+This module is one step in the canonical run.py STEPS sequence: fx → cot → inr → vol → oi → rr → merge → text → macro → ai → html → validate → deploy
+Do NOT reorder steps. Do NOT suggest running steps in parallel. Do NOT make steps conditional.
+Code Rules — Non-Negotiable
+
+Python only. No async/await. No concurrency. Sequential execution only.
+Do NOT import other *_pipeline.py modules. Pipelines share state only via Supabase tables.
+Do NOT add CLI arguments (argparse, click, sys.argv). run.py handles all orchestration.
+All Supabase writes use upsert with unique constraint on (date, pair). Never plain insert.
+All API calls are wrapped in try/except. On failure: log error, continue with previous day's value, flag gap.
+Configuration comes from environment variables only. Never hardcode dates, keys, or paths.
+Every function has a docstring: what it computes, what it returns, what it writes to Supabase.
+Approved Libraries
+pandas, numpy, requests, supabase-py, yfinance, scipy, statsmodels
+No scikit-learn, tensorflow, pytorch, or any ML library without explicit instruction.Anti-Patterns — NEVER Suggest These
+
+async def anywhere in a pipeline module
+import from another *_pipeline.py
+hardcoded dates or API keys
+argparse or sys.argv
+plain supabase insert (always upsert)
+new pip dependencies without explicit approval

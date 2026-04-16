@@ -23,6 +23,25 @@ from datetime import datetime
 from core.pipeline_status import write_pipeline_status
 
 
+"""
+FX Regime Lab pipeline orchestrator Pipeline.
+
+Execution context:
+- Invoked as: python run.py (orchestrator; see STEPS for ordered subprocess scripts)
+- Depends on: none (entry point)
+- Outputs: none directly; delegates to each step's script
+- Next step: first step runs pipeline.py (fx); full chain ends with deploy.py
+- Blocking: per STEPS; non-blocking step names: macro, ai, validate, substack (see NON_BLOCKING_STEPS)
+
+DO NOT:
+- Import other *_pipeline.py modules
+- Use async/await
+- Add CLI arguments (argparse, click, sys.argv)
+- Hardcode dates, API keys, or file paths
+- Use plain supabase insert — always upsert
+"""
+
+
 class _Tee:
     """Write output to both a stream and a log file simultaneously."""
     def __init__(self, stream, logfile):

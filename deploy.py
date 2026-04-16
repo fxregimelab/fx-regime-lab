@@ -9,6 +9,24 @@ import subprocess
 import sys
 from datetime import datetime
 
+"""
+GitHub Pages deploy Pipeline.
+
+Execution context:
+- Called by run.py as STEP 12 (deploy) — end of pipeline
+- Depends on: create_html_brief.py (brief HTML must exist)
+- Outputs: repo-root index.html, git commit and push to GitHub Pages
+- Next step: none
+- Blocking: YES — pipeline halts on failure
+
+DO NOT:
+- Import other *_pipeline.py modules
+- Use async/await
+- Add CLI arguments (argparse, click, sys.argv)
+- Hardcode dates, API keys, or file paths
+- Use plain supabase insert — always upsert
+"""
+
 TODAY = datetime.today().strftime('%Y-%m-%d')
 TODAY_COMPACT = datetime.today().strftime('%Y%m%d')
 BRIEF_SOURCE = f"briefs/brief_{TODAY_COMPACT}.html"  # written by create_html_brief.py this run

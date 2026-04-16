@@ -21,6 +21,24 @@ import requests
 import pandas as pd
 from config import TODAY
 
+"""
+Economic calendar Pipeline.
+
+Execution context:
+- Called by run.py as STEP 8 (macro)
+- Depends on: morning_brief.py
+- Outputs: data/macro_cal.json
+- Next step: ai_brief.py
+- Blocking: NO — pipeline continues if this step fails
+
+DO NOT:
+- Import other *_pipeline.py modules
+- Use async/await
+- Add CLI arguments (argparse, click, sys.argv)
+- Hardcode dates, API keys, or file paths
+- Use plain supabase insert — always upsert
+"""
+
 _FF_URLS = [
     "https://nfs.faireconomy.media/ff_calendar_thisweek.xml",
     "https://nfs.faireconomy.media/ff_calendar_nextweek.xml",   # may 404 at week boundary
