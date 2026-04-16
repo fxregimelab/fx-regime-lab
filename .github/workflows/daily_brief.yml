@@ -55,8 +55,11 @@ jobs:
           if [ -n "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
             echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
           fi
-          if [ -n "${{ secrets.CME_API_KEY }}" ]; then
-            echo "CME_API_KEY=${{ secrets.CME_API_KEY }}" >> .env
+          if [ -n "${{ secrets.TWELVE_DATA_KEY }}" ]; then
+            echo "TWELVE_DATA_KEY=${{ secrets.TWELVE_DATA_KEY }}" >> .env
+          fi
+          if [ -n "${{ secrets.POLYGON_KEY }}" ]; then
+            echo "POLYGON_KEY=${{ secrets.POLYGON_KEY }}" >> .env
           fi
           # ANTHROPIC_API_KEY: used by ai_brief.py for
           # narrative generation. Add to GitHub repo secrets.

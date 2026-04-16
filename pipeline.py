@@ -23,7 +23,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from config import TODAY, START_DATE, MAX_FFILL_DAYS, VOL_WINDOW, ROLLING_WINDOW, CORR_WINDOW, PERIODS, VIX_TICKER
 from core.paths import LATEST_WITH_COT_CSV, DATA_DIR
-from core.utils import _yf_safe_download
+from core.utils import _yf_frame_has_close, _yf_safe_download
 
 """
 G10 FX and yields (fx + merge) Pipeline.
@@ -102,7 +102,7 @@ def fetch_fx_data():
             interval="1d",
             auto_adjust=True,
         )
-        if not raw.empty and "Close" in raw.columns:
+        if _yf_frame_has_close(raw):
             break
         wait = 30 * attempt
         print(f"    yfinance attempt {attempt}/3 returned empty -- retrying in {wait}s...")
@@ -134,7 +134,7 @@ def fetch_fx_data():
                 "DX=F", start=START_DATE, end=TODAY,
                 interval="1d", auto_adjust=True,
             )
-            if not _dxy_raw.empty:
+            if _dxy_raw is not None and not _dxy_raw.empty:
                 _dxy_series = (_dxy_raw["Close"] if "Close" in _dxy_raw.columns
                                else _dxy_raw.iloc[:, 0]).copy()
                 _dxy_series.index = pd.to_datetime(_dxy_series.index.date)
@@ -173,7 +173,7 @@ def fetch_commodity_data():
             interval="1d",
             auto_adjust=True,
         )
-        if not raw.empty:
+        if _yf_frame_has_close(raw):
             break
         wait = 30 * attempt
         print(f"    yfinance attempt {attempt}/3 returned empty -- retrying in {wait}s...")
@@ -1264,9 +1264,8 @@ def _merge_fetch_vix(m):
     """Fetch VIX close series and align to master index. NaN-safe on failure."""
     from core.signal_write import log_pipeline_error
     try:
-        from core.utils import _yf_safe_download
         raw = _yf_safe_download(VIX_TICKER, start=START_DATE, end=TODAY, interval="1d", auto_adjust=True)
-        if raw is None or raw.empty:
+        if not _yf_frame_has_close(raw):
             log_pipeline_error("merge_main", "VIX fetch empty", notes="vix")
             return m
         if isinstance(raw.columns, pd.MultiIndex):

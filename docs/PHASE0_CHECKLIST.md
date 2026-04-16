@@ -49,7 +49,7 @@ Full narrative: **`contaxt files/PLAN.md`** Phase 0. Exit criteria must pass bef
 
 ### GitHub Actions
 
-- [ ] Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, `CME_API_KEY`
+- [ ] Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, optional `POLYGON_KEY`, `TWELVE_DATA_KEY`
 - [ ] `daily_brief.yml` injects secrets; cron **`0 23 * * *`**
 
 ### Cloudflare env (0B)

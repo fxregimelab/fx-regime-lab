@@ -40,11 +40,14 @@ FX_TICKERS = {
 # ── CROSS-ASSET RISK BAROMETERS ─────────────────────────────
 VIX_TICKER = "^VIX"      # CBOE Volatility Index (Yahoo Finance)
 
-# ── CME CVOL (Phase 3 vol_pipeline.py) ──────────────────────
-CME_CVOL_BASE = "https://www.cmegroup.com/CmeWS/mvc/CVOL/index"
-CME_CVOL_PRODUCTS = {
-    "EURUSD": "EURUSD_CVOL",   # 6E underlying
-    "USDJPY": "USDJPY_CVOL",   # 6J underlying
+# ── Backup market-data keys (optional; empty = disabled, not an error) ─────
+TWELVE_DATA_KEY = os.getenv("TWELVE_DATA_KEY", "")
+POLYGON_KEY = os.getenv("POLYGON_KEY", "")
+
+# ── CBOE FX vol indices (free, via yfinance) — Phase 3 CVOL replacement ─────
+CBOE_VOL_TICKERS = {
+    "EURUSD": "^EVZ",    # CBOE EuroCurrency Volatility Index (30-day IV)
+    "USDJPY": "^JYVIX",  # CBOE/CME Yen Volatility Index (30-day IV)
 }
 
 # ── CME OI REPORT (Phase 4 oi_pipeline.py) ──────────────────

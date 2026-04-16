@@ -57,7 +57,7 @@ def fetch_usdinr():
     data = _yf_safe_download(
         "USDINR=X", start=START_DATE, interval="1d", auto_adjust=True,
     )
-    if len(data) == 0:
+    if data is None or data.empty:
         print("    FAILED -- empty dataframe")
         return pd.DataFrame()
 

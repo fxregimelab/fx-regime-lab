@@ -13,7 +13,7 @@
 ## Tech stack
 
 - **Python 3.9+** — pipeline scripts, `pandas` / `numpy` / `scipy`, `requests`, `supabase-py`, `yfinance`
-- **Data:** FRED, CFTC COT, yfinance, CME (where wired); **Supabase** first for persistent signal writes, CSV fallback
+- **Data:** FRED, CFTC COT, yfinance (optional Polygon.io fallback); **Supabase** first for persistent signal writes, CSV fallback
 - **Outputs:** `morning_brief.py` (text), `create_html_brief.py` + Plotly → `briefs/`; `charts/` tracked for Pages
 - **Site:** `site/` static shell (fxregimelab.com on Cloudflare Pages); `deploy.py` / `scripts/publish_brief_for_site.py` as in `AGENTS.md`
 - **CI:** GitHub Actions (e.g. `FRED_API_KEY` and other secrets as documented); no hardcoded keys in repo
@@ -41,7 +41,8 @@
 
 ## Current sprint / active task
 
-**Phases 1-4 complete — terminal redesign live. Next: Phase 5 nav rollout + Phase 6 final QA**
+**Layer 3 complete — vol/oi/rr pipelines live.**  
+Next: verify first CI run, then dashboard wiring for new signals
 
 ---
 

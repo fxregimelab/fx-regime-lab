@@ -50,7 +50,8 @@ Every line of code either moves toward that audience or it doesn't. There is no 
 SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY   # CI writes — bypasses RLS
 SUPABASE_ANON_KEY           # public dashboard / Cloudflare Pages reads
-CME_API_KEY
+POLYGON_KEY
+TWELVE_DATA_KEY
 FRED_API_KEY
 ```
 Never print these. Never log these. Never commit these.

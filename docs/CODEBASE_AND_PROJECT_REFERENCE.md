@@ -133,7 +133,7 @@ flowchart LR
 
 - **Trigger:** Cron `0 23 * * *` UTC; `workflow_dispatch`.
 - **Required secret:** `FRED_API_KEY` (workflow fails if missing).
-- **Optional / feature secrets:** `NOTION_TOKEN`, `SUPABASE_*`, `CME_API_KEY`, `ANTHROPIC_API_KEY`, `SUBSTACK_EMAIL`, `SUBSTACK_PASSWORD`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
+- **Optional / feature secrets:** `NOTION_TOKEN`, `SUPABASE_*`, `POLYGON_KEY`, `TWELVE_DATA_KEY`, `ANTHROPIC_API_KEY`, `SUBSTACK_EMAIL`, `SUBSTACK_PASSWORD`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
 - **Flow:** `python run.py --skip deploy` (with retry) → verify `briefs/brief_YYYYMMDD.html` → `python scripts/publish_brief_for_site.py` → `python deploy.py` → `npx wrangler deploy`.
 
 Do **not** document or commit secret values.

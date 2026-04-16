@@ -91,7 +91,7 @@ Font mono (figures):   JetBrains Mono
 3. `core/signal_write.py` — upsert (`on_conflict='date,pair'`), batching, `pipeline_errors`, CSV fallback.  
 4. Dual-write from `pipeline.py`, `cot_pipeline.py`, `inr_pipeline.py` (+ merge) → `signals`.  
 5. `persist_regime_call()` + `brief_log` stub from brief path.  
-6. GitHub Secrets + `daily_brief.yml` `.env`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, `CME_API_KEY`; cron **`0 23 * * *`**.  
+6. GitHub Secrets + `daily_brief.yml` `.env`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, optional `POLYGON_KEY` / `TWELVE_DATA_KEY`; cron **`0 23 * * *`**.  
 7. **Wire live data:** landing regime cards + `/dashboard` replace placeholders with **anon-key** Supabase reads (explicit columns, RLS).  
 8. Cloudflare Pages env: `SUPABASE_URL`, `SUPABASE_ANON_KEY` for browser client.
 
@@ -273,7 +273,7 @@ CI uses **`SUPABASE_SERVICE_ROLE_KEY`** (bypasses RLS). Public **fxregimelab.com
 **What it detects:** Forward-looking implied volatility regime and directional asymmetry  
 **Why a PM uses it:** Vol regime determines whether signals are in a trending or uncertain environment. High IV + rising skew = options market pricing directional risk. Low IV complacency with high COT crowding = squeeze setup.  
 **Data source:** CME CVOL EOD REST API (free with registration at cmegroup.com/market-data/market-data-api.html)  
-**Auth:** OAuth API key — store as GitHub Actions secret `CME_API_KEY`  
+**Auth:** None for CBOE headline indices (yfinance); optional Polygon.io key as Yahoo fallback  
 **Pairs covered:** EUR/USD (EURUSD CVOL), USD/JPY (USDJPY CVOL)
 
 **Outputs per pair per day:**

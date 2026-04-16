@@ -6,36 +6,217 @@ import os
 import re
 import base64
 import math
+from typing import List, Optional, Sequence, Union
+
 import pandas as pd
+
+
+def _yahoo_ticker_to_polygon(yahoo_ticker: str) -> Optional[str]:
+    """Map a Yahoo Finance symbol to Polygon aggregates ticker, or None if unsupported."""
+    y = str(yahoo_ticker).strip()
+    known = {
+        "EURUSD=X": "C:EURUSD",
+        "JPY=X": "C:USDJPY",
+        "USDINR=X": "C:USDINR",
+        "^VIX": "I:VIX",
+        "^EVZ": "I:EVZ",
+        "^JYVIX": "I:JYVIX",
+    }
+    if y in known:
+        return known[y]
+    if y.endswith("=X") and len(y) >= 7:
+        core = y.replace("=X", "").replace("-", "").upper()
+        if len(core) == 6 and core.isalpha():
+            return f"C:{core}"
+    if y.startswith("^") and len(y) > 1:
+        return "I:" + y[1:].upper()
+    return None
+
+
+def _polygon_aggs_to_yf_like_df(
+    poly_ticker: str,
+    start_d: str,
+    end_d: str,
+    api_key: str,
+) -> Optional[pd.DataFrame]:
+    """Fetch Polygon 1-day aggs and return a yfinance-shaped single-ticker DataFrame."""
+    try:
+        import requests
+    except ImportError:
+        return None
+    url = (
+        f"https://api.polygon.io/v2/aggs/ticker/{poly_ticker}"
+        f"/range/1/day/{start_d}/{end_d}"
+    )
+    try:
+        r = requests.get(
+            url,
+            params={
+                "apiKey": api_key,
+                "adjusted": "true",
+                "sort": "asc",
+                "limit": 50000,
+            },
+            timeout=45,
+        )
+        payload = r.json()
+    except Exception:
+        return None
+    if r.status_code != 200 or not isinstance(payload, dict):
+        return None
+    results = payload.get("results") or []
+    if not results:
+        return None
+    rows = []
+    for bar in results:
+        ts = bar.get("t")
+        if ts is None:
+            continue
+        dt = pd.to_datetime(int(ts), unit="ms", utc=True).tz_convert(None).normalize()
+        o = float(bar.get("o") or bar.get("O") or 0)
+        h = float(bar.get("h") or bar.get("H") or 0)
+        lo = float(bar.get("l") or bar.get("L") or 0)
+        c = float(bar.get("c") or bar.get("C") or 0)
+        v = float(bar.get("v") or bar.get("V") or 0)
+        rows.append((dt, o, h, lo, c, v))
+    if not rows:
+        return None
+    idx = pd.DatetimeIndex([x[0] for x in rows])
+    out = pd.DataFrame(
+        {
+            "Open": [x[1] for x in rows],
+            "High": [x[2] for x in rows],
+            "Low": [x[3] for x in rows],
+            "Close": [x[4] for x in rows],
+            "Adj Close": [x[4] for x in rows],
+            "Volume": [x[5] for x in rows],
+        },
+        index=idx,
+    )
+    out.index.name = "Date"
+    return out
+
+
+def _polygon_fallback_download(
+    tickers: Union[str, Sequence[str]],
+    start_d: str,
+    end_d: str,
+    api_key: str,
+) -> Optional[pd.DataFrame]:
+    """Build a yfinance-compatible frame from Polygon daily aggs (per ticker)."""
+    if isinstance(tickers, str):
+        tlist: List[str] = [tickers]
+    else:
+        tlist = [str(t) for t in tickers]
+    if len(tlist) == 1:
+        poly = _yahoo_ticker_to_polygon(tlist[0])
+        if not poly:
+            return None
+        return _polygon_aggs_to_yf_like_df(poly, start_d, end_d, api_key)
+    close_frames = []
+    for y in tlist:
+        poly = _yahoo_ticker_to_polygon(y)
+        if not poly:
+            continue
+        one = _polygon_aggs_to_yf_like_df(poly, start_d, end_d, api_key)
+        if one is None or one.empty or "Close" not in one.columns:
+            continue
+        s = pd.to_numeric(one["Close"], errors="coerce")
+        s.name = y
+        close_frames.append(s)
+    if not close_frames:
+        return None
+    merged = pd.concat(close_frames, axis=1).sort_index()
+    ycols = [str(c) for c in merged.columns.tolist()]
+    merged.columns = pd.MultiIndex.from_product([["Close"], ycols])
+    return merged
+
+
+def _yf_frame_has_close(raw: Optional[pd.DataFrame]) -> bool:
+    """True if frame has a Close series (flat or MultiIndex columns, yfinance-style)."""
+    if raw is None or raw.empty:
+        return False
+    if "Close" in raw.columns:
+        return True
+    cols = raw.columns
+    if isinstance(cols, pd.MultiIndex):
+        return "Close" in cols.get_level_values(0)
+    return False
 
 
 # ── yfinance safe wrapper ────────────────────────────────────────────────────
 #
 # Phase 2: every yfinance call in the pipeline must go through this wrapper.
-# Enforces timeout, try/except, non-empty frame, and logs failures to
-# pipeline_errors. NEVER raises — returns an empty DataFrame on any error so
-# callers' existing NaN/ffill paths degrade gracefully.
+# On yfinance failure: if POLYGON_KEY is set, Polygon.io daily aggs are used
+# when the Yahoo symbol maps to a Polygon ticker. Otherwise logs and returns
+# None so callers treat missing data explicitly.
 
 def _yf_safe_download(tickers, **kw):
-    """Wrap yf.download with timeout + try/except + pipeline_errors logging."""
+    """Wrap yf.download with timeout; optional Polygon fallback; returns None on total failure."""
     try:
         import yfinance as yf
     except ImportError:
-        return pd.DataFrame()
+        return None
     kw.setdefault("timeout", 30)
     kw.setdefault("progress", False)
+    df = None
+    y_err = None
     try:
         df = yf.download(tickers, **kw)
-        if df is None or df.empty:
-            return pd.DataFrame()
-        return df
     except Exception as e:
+        y_err = e
+
+    from config import POLYGON_KEY, START_DATE, TODAY
+    from core.signal_write import log_pipeline_error
+
+    start_d = str(kw.get("start") or START_DATE)[:10]
+    end_d = str(kw.get("end") or TODAY)[:10]
+
+    ok = df is not None and not df.empty
+    if ok:
+        return df
+
+    if POLYGON_KEY:
         try:
-            from core.signal_write import log_pipeline_error
-            log_pipeline_error("yfinance", f"{tickers}: {e}", notes="safe_download")
+            poly_df = _polygon_fallback_download(
+                tickers, start_d, end_d, POLYGON_KEY,
+            )
+            if poly_df is not None and not poly_df.empty:
+                return poly_df
+        except Exception as poly_exc:
+            try:
+                log_pipeline_error(
+                    "yfinance",
+                    f"{tickers}: Polygon fallback error: {poly_exc}",
+                    notes="safe_download_polygon",
+                )
+            except Exception:
+                pass
+        try:
+            msg = (
+                f"{tickers}: yfinance failed"
+                + (f" ({y_err})" if y_err else " (empty)")
+                + "; Polygon fallback failed or unmapped ticker"
+            )
+            log_pipeline_error("yfinance", msg, notes="safe_download_polygon")
         except Exception:
             pass
-        return pd.DataFrame()
+        return None
+
+    try:
+        if y_err:
+            log_pipeline_error(
+                "yfinance", f"{tickers}: {y_err}", notes="safe_download",
+            )
+        else:
+            log_pipeline_error(
+                "yfinance",
+                f"{tickers}: empty download (POLYGON_KEY unset)",
+                notes="safe_download",
+            )
+    except Exception:
+        pass
+    return None
 
 
 # ── brief text cleaner (Python port of site/terminal/data-client.js) ─────────
