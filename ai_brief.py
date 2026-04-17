@@ -1,7 +1,10 @@
 import json
 import math
 import os
+import re
+from collections import Counter
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -12,7 +15,7 @@ AI narrative brief Pipeline.
 Execution context:
 - Called by run.py as STEP 9 (ai)
 - Depends on: morning_brief.py (brief text must exist)
-- Outputs: data/ai_article.json, site/data/ai_article.json
+- Outputs: data/ai_article.json, data/ai_regime_read.json
 - Next step: create_html_brief.py
 - Blocking: NO — pipeline continues if this step fails
 
@@ -34,6 +37,38 @@ except ImportError:
 _MODEL = "claude-haiku-4-5-20251001"
 _AI_ARTICLE_OUTPUT = os.path.join("data", "ai_article.json")
 _AI_READ_OUTPUT = os.path.join("data", "ai_regime_read.json")
+
+SYSTEM_PROMPT = (
+    "You are a senior FX macro analyst writing the daily morning brief for an "
+    "institutional research terminal. Your output is read by discretionary macro "
+    "portfolio managers. Write in clean, direct prose. No bullet points. No headers. "
+    "No markdown. No em-dashes. No pipeline variable names, no placeholder text, no "
+    "bracketed labels. Never write things like [MISSING DATA], [N/A], signal_name=value, "
+    "or any raw Python variable output. "
+    "Structure: one paragraph per currency pair (EUR/USD, USD/JPY, USD/INR). Each "
+    "paragraph must: state the current regime and confidence level in plain English, "
+    "name the primary driver, note any signal that changed materially since the prior "
+    "session, and close with one sentence on what a PM would watch next. Macro context "
+    "goes at the top in one sentence before the pair paragraphs. Total output must be "
+    "180-250 words. Practitioner tone throughout: this is not educational content, "
+    "it is a live market brief."
+)
+
+_FORBIDDEN_SUBSTRINGS = (
+    "[missing",
+    "[n/a]",
+    "[error",
+    "signal_",
+    "_norm",
+    "_raw",
+    "_pipeline",
+    "={",
+    "= {",
+    "traceback",
+    "keyerror",
+    "typeerror",
+)
+_NONE_WORD_RE = re.compile(r"\bnone\b", re.IGNORECASE)
 
 
 def _load_morning_brief() -> str:
@@ -258,104 +293,360 @@ def _build_pair_signal(master_df, pair, cfg):
     }
 
 
-def build_narrative_prompt(signal_data: dict, brief_text: str = "") -> str:
-    """Build the prompt for Claude from signal data.
+def _fmt_spread_pp(value: Optional[float]) -> str:
+    if value is None:
+        return "unavailable"
+    return f"{value:+.2f} percentage points"
 
-    Phase 2: the morning brief text (if available) is the *primary* source of
-    truth for the narrative. Signal data JSON is supplied as supporting
-    numeric context, not the ground truth.
-    """
-    brief_section = (
-        f"\nPRIMARY SOURCE — today's morning brief (use this as the\n"
-        f"narrative ground truth; do not contradict its framing):\n"
-        f"----- BRIEF BEGIN -----\n{brief_text.strip()[:6000]}\n----- BRIEF END -----\n"
-        if brief_text else ""
+
+def _fmt_pctile(value: Optional[float], label: str) -> str:
+    if value is None:
+        return "unavailable"
+    return f"{value:.1f} ({label})"
+
+
+def build_signal_context_lines(signal_data: dict) -> str:
+    """Plain-text key-value lines for the user prompt (no JSON or snake_case)."""
+    lines: List[str] = []
+    d = signal_data.get("date")
+    lines.append(f"Observation date: {d}")
+    order = ("eurusd", "usdjpy", "usdinr")
+    for pair_key in order:
+        cfg = PAIR_CONFIG[pair_key]
+        lab = cfg["label"]
+        pdata = (signal_data.get("pairs") or {}).get(pair_key) or {}
+        regime = pdata.get("regime")
+        conf = pdata.get("confidence")
+        conf_pct = (
+            round(float(conf) * 100) if conf is not None else None
+        )
+        lines.append(
+            f"{lab} composite regime label: {regime if regime is not None else 'unavailable'}"
+        )
+        if conf_pct is not None:
+            lines.append(f"{lab} model confidence (approximate): {conf_pct}%")
+        spread = pdata.get("spread")
+        lines.append(
+            f"{lab} {cfg['spread_name']} (level versus prior close proxy): "
+            f"{_fmt_spread_pp(spread if isinstance(spread, (int, float)) else None)}"
+        )
+        cot = pdata.get("cot_percentile")
+        cot_label = (
+            "COT leveraged positioning percentile"
+            if pair_key != "usdinr"
+            else "Positioning proxy percentile (FPI-style window)"
+        )
+        lines.append(f"{lab} {cot_label}: {_fmt_pctile(cot, 'percentile')}")
+        volp = pdata.get("vol_percentile")
+        lines.append(
+            f"{lab} implied volatility percentile: {_fmt_pctile(volp, 'percentile')}"
+        )
+        drv = pdata.get("driver")
+        if drv:
+            lines.append(f"{lab} desk-style driver summary: {drv}")
+        lines.append("")
+
+    changes = signal_data.get("signal_changes") or []
+    if changes:
+        lines.append("Material signal changes since the prior session:")
+        for ch in changes:
+            lines.append(f"- {ch}")
+    else:
+        lines.append("Material signal changes since the prior session: none flagged.")
+    return "\n".join(lines).strip()
+
+
+def build_user_prompt(signal_data: dict, brief_text: str = "") -> str:
+    """User message: optional desk brief plus labeled signal lines."""
+    signal_block = build_signal_context_lines(signal_data)
+    parts = [
+        "Write today's institutional morning brief per your system instructions.",
+        "Use only the facts below and the desk brief when present. Output plain prose only.",
+        "",
+        "Supporting inputs (readable labels):",
+        signal_block,
+        "",
+    ]
+    if brief_text.strip():
+        parts.extend(
+            [
+                "Primary desk brief for narrative alignment (do not contradict):",
+                "----- BRIEF BEGIN -----",
+                brief_text.strip()[:6000],
+                "----- BRIEF END -----",
+                "",
+            ]
+        )
+    parts.append(
+        "Respond with the brief only: one macro sentence, then one paragraph each "
+        "for EUR/USD, USD/JPY, and USD/INR, separated by blank lines. No other text."
     )
-    return f"""You are writing a daily FX regime intelligence
-brief for institutional macro researchers.
-{brief_section}
-Supporting structured signal data (numeric context only — narrative must
-align with the morning brief above when present):
-{json.dumps(signal_data, indent=2)}
+    return "\n".join(parts)
 
-Return valid JSON only with this schema:
-{{
-  "headline": "string",
-  "sections": {{
-    "macro_context": "string",
-    "eurusd": {{
-      "narrative": "string",
-      "key_driver": "string",
-      "watch_for": "string"
-    }},
-    "usdjpy": {{
-      "narrative": "string",
-      "key_driver": "string",
-      "watch_for": "string"
-    }},
-    "usdinr": {{
-      "narrative": "string",
-      "key_driver": "string",
-      "watch_for": "string"
-    }}
-  }}
-}}
 
-Write a concise research article with these sections:
+def _first_sentence(text: str) -> str:
+    text = (text or "").strip()
+    if not text:
+        return ""
+    for i, ch in enumerate(text):
+        if ch in ".?!" and (i == len(text) - 1 or text[i + 1].isspace()):
+            return text[: i + 1].strip()
+    return text
 
-## Macro Context
-One paragraph: what is the dominant macro theme today
-and how it affects G10 FX regimes.
 
-## EUR/USD
-Regime: [state regime and confidence]
-Two paragraphs: what the signals say and why it matters.
-Key driver: [primary driver in one sentence]
-Watch for: [what would change the call]
+def _split_pair_paragraphs(after_macro: str) -> List[str]:
+    s = after_macro.strip()
+    if not s:
+        return ["", "", ""]
+    chunks = [p.strip() for p in re.split(r"\n\s*\n+", s) if p.strip()]
+    if len(chunks) >= 3:
+        return chunks[:3]
+    lines = [ln.strip() for ln in s.splitlines() if ln.strip()]
+    if len(lines) >= 3:
+        return lines[:3]
+    if len(chunks) == 2:
+        return [chunks[0], chunks[1], ""]
+    if len(chunks) == 1:
+        return [chunks[0], "", ""]
+    if len(lines) == 2:
+        return [lines[0], lines[1], ""]
+    if len(lines) == 1:
+        return [lines[0], "", ""]
+    return ["", "", ""]
 
-## USD/JPY
-Same structure as EUR/USD.
 
-## USD/INR
-Same structure. Note: directional only due to RBI
-intervention. No precision entries.
+def parse_plain_text_brief(raw_text: str, pair_signals: Dict[str, Any]) -> Dict[str, Any]:
+    """Turn model plain-text output into the article dict shape expected by _merge_article."""
+    raw = (raw_text or "").strip()
+    if raw.startswith("```"):
+        lines = raw.split("\n")
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        raw = "\n".join(lines).strip()
 
-Rules:
-- Write like a senior FX desk strategist: declarative sentences, no bullet lists inside "narrative" fields.
-- Each pair "narrative" must be 2–3 short paragraphs of prose (not a dump of column names or JSON keys).
-- Stay consistent with the PRIMARY SOURCE morning brief when provided; you may add precise numbers from signal_data but must not reverse the brief's directional framing.
-- Data-grounded: cite specific spreads, percentiles, or vol levels from signal_data where you use them.
-- At most one hedging clause per pair paragraph (e.g. "unless spreads re-price"); avoid stacking "may/might/could".
-- Maximum 600 words total across all string fields.
-- Never mention "AI", "generated", or the model.
-- Tone: calm, precise, confident.
+    macro = _first_sentence(raw)
+    rest = raw[len(macro) :].strip() if macro else raw
+    paras = _split_pair_paragraphs(rest)
+    for i, pair in enumerate(("eurusd", "usdjpy", "usdinr")):
+        if not paras[i]:
+            ps = pair_signals[pair]
+            paras[i] = (
+                f"{ps['label']} is in a {ps['regime']} regime with "
+                f"{round(ps['confidence'] * 100)}% confidence. {ps['driver']}"
+            )
+    eur_p, jpy_p, inr_p = paras[0], paras[1], paras[2]
+    headline = macro[:80] + ("…" if len(macro) > 80 else "") if macro else "G10 FX regime brief"
 
-Example shape (content is illustrative only — replace with today's facts):
-{{
-  "headline": "Rates spine firm; EUR holds trend on spread momentum",
-  "sections": {{
-    "macro_context": "US–DE 10Y trades wider on the week while vol remains controlled, keeping the burden of proof on positioning extremes rather than carry shocks.",
-    "eurusd": {{
-      "narrative": "EUR/USD remains in a trending configuration with rate differentials providing the incremental buyer of dips. COT sits elevated but not yet at forced-exit territory, so the spread story leads.\\n\\nRealized vol is only a modifier today: unless it jumps into the top decile, treat range extensions as slow rather than disorderly.\\n\\nThe tactical bias stays with the differential until German front-end reprices materially.",
-      "key_driver": "US–DE 10Y spread direction vs 1W change.",
-      "watch_for": "A clean reversal in 2Y spread momentum or an abrupt vol spike that breaks 20d correlation stability."
-    }},
-    "usdjpy": {{
-      "narrative": "USD/JPY balances a firm US–JP rate gap against compressed retail positioning extremes. The pair is not signaling a vol event; it is signaling patience.\\n\\nIntervention risk is a tail, not the base case, while 10Y spreads stay pinned near current ranges.",
-      "key_driver": "US–JP 10Y spread with BoJ steady narrative.",
-      "watch_for": "Sudden JPY funding stress or a break in cross-asset correlation that invalidates the rates link."
-    }},
-    "usdinr": {{
-      "narrative": "USD/INR is read as directional-only: RBI reserve dynamics and onshore liquidity dominate small-model precision. The trade is regime, not point forecast.\\n\\nUse the rate-vol stack as context for squeeze risk, not for intraday levels.",
-      "key_driver": "Policy spread plus intervention proxy.",
-      "watch_for": "Reserve drawdown pace and oil-inflation surprises that force a policy response."
-    }}
-  }}
-}}
+    return {
+        "headline": headline,
+        "sections": {
+            "macro_context": macro,
+            "eurusd": {"narrative": eur_p},
+            "usdjpy": {"narrative": jpy_p},
+            "usdinr": {"narrative": inr_p},
+        },
+        "generated_at": _iso_utc_now(),
+    }
 
-CRITICAL: Respond with a single JSON object only. No markdown fences, no
-preamble or explanation before or after the JSON.
-"""
+
+def validate_brief_quality(brief_text: str) -> Tuple[bool, str]:
+    """Quality gate on the raw institutional brief string."""
+    t = (brief_text or "").strip()
+    words = t.split()
+    if len(words) < 150:
+        return False, f"brief too short ({len(words)} words, minimum 150)"
+
+    low = t.lower()
+    for sub in _FORBIDDEN_SUBSTRINGS:
+        if sub in low:
+            return False, f"forbidden marker or leak: {sub!r}"
+
+    if _NONE_WORD_RE.search(t):
+        return False, "forbidden marker or leak: standalone 'none'"
+
+    def _has_pair(s: str, slash_pat: str, compact_pat: str) -> bool:
+        u = s.upper()
+        return slash_pat in u or compact_pat in u
+
+    if not _has_pair(t, "EUR/USD", "EURUSD"):
+        return False, "missing EUR/USD (or EURUSD)"
+    if not _has_pair(t, "USD/JPY", "USDJPY"):
+        return False, "missing USD/JPY (or USDJPY)"
+    if not _has_pair(t, "USD/INR", "USDINR"):
+        return False, "missing USD/INR (or USDINR)"
+
+    return True, ""
+
+
+def _tokenize_overlap(s: str) -> Counter:
+    return Counter(re.findall(r"[a-z0-9]+", s.lower()))
+
+
+def _overlap_coefficient(a: str, b: str) -> float:
+    ca, cb = _tokenize_overlap(a), _tokenize_overlap(b)
+    if not ca:
+        return 0.0
+    inter = sum(min(ca[w], cb[w]) for w in ca)
+    return inter / sum(ca.values())
+
+
+def _load_latest_brief_log_text() -> Optional[str]:
+    """Most recent brief_log row (typically today's desk brief after text step)."""
+    try:
+        from core.supabase_client import get_client
+
+        cli = get_client()
+        if cli is None:
+            return None
+        res = (
+            cli.table("brief_log")
+            .select("brief_text")
+            .order("date", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = getattr(res, "data", None) or []
+        if rows and rows[0].get("brief_text"):
+            return str(rows[0]["brief_text"]).strip()
+        return None
+    except Exception:
+        return None
+
+
+def _load_prior_brief_log_text(current_date: str) -> Optional[str]:
+    try:
+        from core.supabase_client import get_client
+
+        cli = get_client()
+        if cli is None:
+            return None
+        res = (
+            cli.table("brief_log")
+            .select("date,brief_text")
+            .order("date", desc=True)
+            .limit(15)
+            .execute()
+        )
+        rows = getattr(res, "data", None) or []
+        for row in rows:
+            if row.get("date") == current_date:
+                continue
+            bt = row.get("brief_text")
+            if bt and str(bt).strip():
+                return str(bt).strip()
+        return None
+    except Exception:
+        return None
+
+
+def _similarity_fail_reason(brief_text: str, current_date: str) -> Optional[str]:
+    prior = _load_prior_brief_log_text(current_date)
+    if not prior:
+        return None
+    coeff = _overlap_coefficient(brief_text, prior)
+    if coeff > 0.85:
+        return "brief too similar to prior day"
+    return None
+
+
+def validate_brief_quality_full(brief_text: str, current_date: str) -> Tuple[bool, str]:
+    ok, reason = validate_brief_quality(brief_text)
+    if not ok:
+        return ok, reason
+    sim = _similarity_fail_reason(brief_text, current_date)
+    if sim:
+        return False, sim
+    return True, ""
+
+
+def _macro_from_desk_brief(brief_text: str) -> str:
+    idx = brief_text.find("DESK SUMMARY")
+    if idx < 0:
+        t = brief_text.strip()
+        return _first_sentence(t) if t else "Prior desk brief (quality gate fallback)."
+    tail = brief_text[idx:]
+    grabbed: List[str] = []
+    for ln in tail.splitlines()[1:]:
+        s = ln.strip()
+        if not s or s.startswith("---"):
+            if grabbed:
+                break
+            continue
+        if s.startswith("Near-term catalyst"):
+            break
+        if s.startswith("REGIME CALL ACCURACY"):
+            break
+        grabbed.append(s)
+    joined = " ".join(grabbed).strip()
+    return joined[:800] if joined else "Prior desk brief (quality gate fallback)."
+
+
+def _article_from_brief_log_text(
+    brief_text: str, signal_data: dict, pair_signals: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Rebuild article JSON from a saved desk brief (REGIME READ + summary)."""
+    macro = _macro_from_desk_brief(brief_text)
+    eur_m = re.search(
+        r"EUR/USD\s+(.+?)(?=\n\s*\n\s*USD/JPY|\n\s*USD/JPY\s)",
+        brief_text,
+        re.DOTALL | re.IGNORECASE,
+    )
+    jpy_m = re.search(
+        r"USD/JPY\s+(.+?)(?=\n\s*\n\s*=+|\n\s*=+\s*$|\Z)",
+        brief_text,
+        re.DOTALL | re.IGNORECASE,
+    )
+    eur_body = re.sub(r"\s+", " ", eur_m.group(1).strip()) if eur_m else ""
+    jpy_body = re.sub(r"\s+", " ", jpy_m.group(1).strip()) if jpy_m else ""
+    inr = pair_signals["usdinr"]
+    inr_body = (
+        f"USD/INR is in a {inr['regime']} regime with "
+        f"{round(inr['confidence'] * 100)}% confidence (directional read). {inr['driver']}"
+    )
+    if not eur_body:
+        ps = pair_signals["eurusd"]
+        eur_body = (
+            f"EUR/USD is in a {ps['regime']} regime with "
+            f"{round(ps['confidence'] * 100)}% confidence. {ps['driver']}"
+        )
+    if not jpy_body:
+        ps = pair_signals["usdjpy"]
+        jpy_body = (
+            f"USD/JPY is in a {ps['regime']} regime with "
+            f"{round(ps['confidence'] * 100)}% confidence. {ps['driver']}"
+        )
+
+    hl = "G10 FX regime brief (prior desk snapshot)"
+    mtitle = re.search(r"G10 FX MORNING BRIEF", brief_text, re.IGNORECASE)
+    if mtitle:
+        hl = "G10 FX Morning Brief (prior desk snapshot)"
+
+    return {
+        "date": signal_data.get("date"),
+        "headline": hl,
+        "sections": {
+            "macro_context": macro,
+            "eurusd": {"narrative": eur_body},
+            "usdjpy": {"narrative": jpy_body},
+            "usdinr": {"narrative": inr_body},
+        },
+        "generated_at": _iso_utc_now(),
+    }
+
+
+def _call_claude_plain(
+    client: Any, user_prompt: str, retry_suffix: str = ""
+) -> str:
+    up = user_prompt + (retry_suffix or "")
+    message = client.messages.create(
+        model=_MODEL,
+        max_tokens=2048,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": up}],
+    )
+    return message.content[0].text
 
 
 def _build_signal_data(master_df):
@@ -448,60 +739,52 @@ def _fallback_article(signal_data, pair_signals):
     }
 
 
-def _parse_claude_json_response(raw_text: str) -> dict:
-    """Parse JSON from model output; tolerate markdown fences and leading prose."""
-    text = (raw_text or "").strip()
-    if not text:
-        raise ValueError("empty model response")
-
-    if text.startswith("```"):
-        lines = text.split("\n")
-        if lines and lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        text = "\n".join(lines).strip()
-
-    decoder = json.JSONDecoder()
-    start = text.find("{")
-    if start == -1:
-        raise ValueError("no JSON object start in model response")
-    try:
-        parsed, _ = decoder.raw_decode(text, start)
-    except json.JSONDecodeError:
-        raise
-    if not isinstance(parsed, dict):
-        raise ValueError("model JSON root must be an object")
-    return parsed
-
-
-def generate_brief_article(signal_data: dict) -> dict:
+def generate_brief_article(
+    signal_data: dict, pair_signals: Dict[str, Any]
+) -> Dict[str, Any]:
     """
-    Takes structured signal data and returns
-    a formatted article with sections per pair.
-    Uses Claude Haiku for cost efficiency (~$0.003/call).
+    Calls Claude with system + user prompts; returns article dict after
+    plain-text quality checks (retry once, then brief_log fallback).
     """
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key or anthropic is None:
         raise RuntimeError("Anthropic API unavailable.")
 
-    client = anthropic.Anthropic(api_key=api_key, timeout=30.0)
+    client = anthropic.Anthropic(api_key=api_key, timeout=120.0)
     brief_text = _load_morning_brief()
-    prompt = build_narrative_prompt(signal_data, brief_text=brief_text)
-    message = client.messages.create(
-        model=_MODEL,
-        max_tokens=4096,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    user_prompt = build_user_prompt(signal_data, brief_text=brief_text)
+    date_s = str(signal_data.get("date", ""))
 
-    raw_text = message.content[0].text
-    parsed = _parse_claude_json_response(raw_text)
-    return {
-        "date": signal_data.get("date"),
-        "headline": _safe_str(parsed.get("headline"), "FX regime briefing"),
-        "sections": parsed.get("sections", {}),
-        "generated_at": _iso_utc_now(),
-    }
+    raw_text = _call_claude_plain(client, user_prompt)
+    ok, reason = validate_brief_quality_full(raw_text, date_s)
+    if not ok:
+        raw_text = _call_claude_plain(
+            client,
+            user_prompt,
+            f"\n\nPrevious attempt failed quality check: {reason}. Rewrite fully.",
+        )
+        ok, reason = validate_brief_quality_full(raw_text, date_s)
+
+    if not ok:
+        from core.signal_write import log_pipeline_error
+
+        log_pipeline_error("ai_brief_quality_gate", reason, pair=None)
+        print(f"[AI] WARN quality gate failed after retry: {reason}")
+        latest_bt = _load_latest_brief_log_text()
+        if latest_bt:
+            print("[AI] WARN using latest brief_log desk brief as fallback")
+            return _article_from_brief_log_text(latest_bt, signal_data, pair_signals)
+        raise RuntimeError(f"quality gate failed and brief_log empty: {reason}")
+
+    wc = len(raw_text.split())
+    print(f"[AI] institutional brief passed quality gate ({wc} words)")
+    print("[AI] ----- institutional brief (plain text) -----")
+    print(raw_text.strip())
+    print("[AI] ----- end institutional brief -----")
+
+    parsed = parse_plain_text_brief(raw_text, pair_signals)
+    parsed["date"] = signal_data.get("date")
+    return parsed
 
 
 def _merge_article(model_article, signal_data, pair_signals):
@@ -576,7 +859,7 @@ def run():
     signal_data, pair_signals = _build_signal_data(master_df)
 
     try:
-        model_article = generate_brief_article(signal_data)
+        model_article = generate_brief_article(signal_data, pair_signals)
         article = _merge_article(model_article, signal_data, pair_signals)
         print("[AI] Claude narrative generation OK")
     except Exception as exc:

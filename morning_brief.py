@@ -23,6 +23,28 @@ from core.utils import (
 from config import TODAY, TODAY_FMT, get_upcoming_event
 
 
+def _validation_scored_row_count():
+    """Rows in validation_log with non-null correct_1d, or None if unavailable."""
+    try:
+        from core.supabase_client import get_client
+
+        cli = get_client()
+        if cli is None:
+            return None
+        res = (
+            cli.table("validation_log")
+            .select("date", count="exact")
+            .not_.is_("correct_1d", "null")
+            .execute()
+        )
+        n = getattr(res, "count", None)
+        if n is not None:
+            return int(n)
+        return len(getattr(res, "data", None) or [])
+    except Exception:
+        return None
+
+
 """
 Text morning brief Pipeline.
 
@@ -301,7 +323,12 @@ def build_brief(df):
         )
 
     acc_path = "data/validation_accuracy.json"
-    if os.path.exists(acc_path):
+    scored_n = _validation_scored_row_count()
+    if scored_n is not None and scored_n < 5:
+        lines.append("")
+        lines.append("  REGIME CALL ACCURACY (last 20 days)")
+        lines.append("  Accuracy tracking reset — insufficient data")
+    elif os.path.exists(acc_path):
         try:
             with open(acc_path, encoding="utf-8") as af:
                 acc = json.load(af)
