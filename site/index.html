@@ -257,11 +257,11 @@
       <section class="hero-v2 hero-v2--v3" data-canvas-opacity="1">
         <div class="hero-v3-maincols">
           <div class="hero-v2__col-left">
-            <div class="hero-v3-accuracy" aria-hidden="true">
+            <div class="hero-v3-accuracy" id="hero-accuracy-wrap">
               <div class="hero-v3-accuracy__track">
                 <div class="hero-v3-accuracy__fill" id="hero-accuracy-fill"></div>
               </div>
-              <p class="hero-v3-accuracy__lbl">68% — Regime accuracy, last 20 days</p>
+              <p class="hero-v3-accuracy__lbl" id="hero-accuracy-lbl">Loading validation context…</p>
             </div>
             <p class="label-caps hero-v2__label">Live · Daily · Verified</p>
             <h1 class="hero-v2__title">Regime detection.<br />Publicly proven.</h1>
@@ -301,6 +301,11 @@
           </div>
         </div>
         <p class="hero-v3-scrollcue" id="hero-scrollcue"><span class="hero-v3-scrollcue__arrow">↓</span> Scroll to explore</p>
+        <p
+          id="home-macro-catalyst"
+          class="font-mono"
+          style="max-width:var(--max-w);margin:0 auto 8px;padding:0 24px;font-size:12px;line-height:1.5;color:var(--text-muted)"
+        ></p>
         <div class="hero-v3-ticker" aria-hidden="true">
           <div class="hero-v3-ticker__inner">
             <span class="hero-v3-ticker__segment"
@@ -436,7 +441,7 @@
               <span class="font-mono" id="brief-preview-date">APR 04 2026 · 23:14 UTC</span>
             </div>
             <div class="bp-divider"></div>
-            <p class="bp-acc">Regime Accuracy (last 20 days): EUR/USD 68% | USD/JPY 71% | USD/INR 64%</p>
+            <p class="bp-acc" id="brief-preview-acc">Validation context loads from Supabase when configured.</p>
             <p class="bp-pair">EUR/USD</p>
             <p class="bp-regime">TRENDING LONG</p>
             <p class="bp-meta">Confidence: 72% · Rate diff: +47bp · COT: 72nd pct</p>
@@ -452,12 +457,12 @@
         <p class="section-v2__sub mx-auto" style="max-width:560px" data-reveal="sub">Since April 2026, every regime prediction has been logged at the moment of generation and compared against actual next-day price movement. No backdating. No cherry-picking.</p>
         <div class="stats-row" data-reveal="stats">
           <div class="stat-block">
-            <div class="num" data-count="68" data-suffix="%">0%</div>
-            <div class="lbl">20-day accuracy</div>
-            <div class="sub">EUR/USD</div>
+            <div class="num" id="home-stat-pool-pct" data-count="0" data-suffix="%">—</div>
+            <div class="lbl">20-day accuracy pool</div>
+            <div class="sub" id="home-stat-pool-sub">Evaluated days (all pairs)</div>
           </div>
           <div class="stat-block">
-            <div class="num" data-count="247">0</div>
+            <div class="num" id="home-stat-logged" data-count="0">0</div>
             <div class="lbl">Predictions logged</div>
             <div class="sub">Across all pairs</div>
           </div>
@@ -467,15 +472,14 @@
             <div class="sub">No backdating</div>
           </div>
         </div>
+        <p class="section-v2__sub mx-auto" style="max-width:640px;margin-bottom:12px;font-size:13px;color:var(--text-muted)" id="home-validation-table-note">
+          Illustrative rows below; live log is on the <a href="/dashboard/#validation">dashboard</a> and in the terminal.
+        </p>
         <div style="overflow-x:auto;margin-bottom:24px">
           <table class="table-v2 mx-auto" style="max-width:800px">
             <thead><tr><th>Date</th><th>Pair</th><th>Predicted</th><th>Confidence</th><th>Outcome</th></tr></thead>
             <tbody data-reveal-stagger="rows">
-              <tr class="row-ok"><td class="cell-date">Apr 03</td><td class="cell-pair-eur">EUR/USD</td><td>Long</td><td class="cell-mono">72%</td><td>✓</td></tr>
-              <tr class="row-ok"><td class="cell-date">Apr 03</td><td class="cell-pair-jpy">USD/JPY</td><td>Neutral</td><td class="cell-mono">58%</td><td>✓</td></tr>
-              <tr class="row-bad"><td class="cell-date">Apr 02</td><td class="cell-pair-inr">USD/INR</td><td>Long</td><td class="cell-mono">55%</td><td>✗</td></tr>
-              <tr class="row-ok"><td class="cell-date">Apr 02</td><td class="cell-pair-eur">EUR/USD</td><td>Long</td><td class="cell-mono">70%</td><td>✓</td></tr>
-              <tr class="row-ok"><td class="cell-date">Apr 01</td><td class="cell-pair-jpy">USD/JPY</td><td>Neutral</td><td class="cell-mono">61%</td><td>✓</td></tr>
+              <tr><td colspan="5" class="cell-mono" style="text-align:center;color:var(--text-muted);padding:20px">Sample layout — not live outcomes</td></tr>
             </tbody>
           </table>
         </div>
@@ -530,6 +534,8 @@
   <script src="/assets/site.js"></script>
   <script src="/assets/supabase-env.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+  <script src="/assets/site-validation.js"></script>
+  <script src="/assets/macro-catalyst.js"></script>
   <script defer src="/assets/intro.js"></script>
   <script>
     (function () {
@@ -566,7 +572,7 @@
         }
 
         if (reduceMotion) {
-          accFill.style.width = '68%';
+          accFill.style.width = '6%';
           card.classList.add('hero-v3-card-ready');
           confEl.textContent = '72';
           barFill.style.width = '72%';
@@ -578,14 +584,7 @@
           return;
         }
 
-        var accStart = performance.now();
-        function accTick(now) {
-          var p = Math.min(1, (now - accStart) / 800);
-          var e = easeOutCubic(p);
-          accFill.style.width = 68 * e + '%';
-          if (p < 1) requestAnimationFrame(accTick);
-        }
-        requestAnimationFrame(accTick);
+        accFill.style.width = '6%';
 
         requestAnimationFrame(function () {
           requestAnimationFrame(function () {
@@ -963,6 +962,79 @@
           if (inrArt) inrArt.setAttribute('data-conf-target', '45');
         }
       } catch (e) {}
+    })();
+  </script>
+  <script>
+    (async function () {
+      var lbl = document.getElementById('hero-accuracy-lbl');
+      var fill = document.getElementById('hero-accuracy-fill');
+      var bp = document.getElementById('brief-preview-acc');
+      var poolPct = document.getElementById('home-stat-pool-pct');
+      var poolSub = document.getElementById('home-stat-pool-sub');
+      var loggedEl = document.getElementById('home-stat-logged');
+      if (!window.FXRLSiteValidation) {
+        if (lbl) lbl.textContent = 'Validation stats load when the site is deployed with Supabase.';
+        return;
+      }
+      try {
+        var p = await window.FXRLSiteValidation.loadMarketingValidation();
+        var f = window.FXRLSiteValidation.formatAccuracyBar(p);
+        if (lbl) {
+          lbl.textContent = p.showAccuracy
+            ? 'Rolling 20d (evaluated days): ' + f.short.replace(/^Accuracy \(20d, evaluated days\): /, '')
+            : window.FXRLSiteValidation.DISCLAIMER_SHORT;
+        }
+        if (fill) {
+          if (p.showAccuracy) {
+            var sum = 0;
+            var n = 0;
+            ['EURUSD', 'USDJPY', 'USDINR'].forEach(function (code) {
+              var s = p.byPair[code] && p.byPair[code].summary20;
+              if (s && isFinite(s.pct)) {
+                sum += s.pct;
+                n += 1;
+              }
+            });
+            fill.style.width = n ? Math.min(100, Math.round(sum / n)) + '%' : '6%';
+          } else {
+            fill.style.width = '6%';
+          }
+        }
+        if (bp) {
+          bp.textContent = p.showAccuracy ? f.short : window.FXRLSiteValidation.DISCLAIMER;
+        }
+        if (poolPct && poolSub) {
+          var ev = p.evaluated20;
+          var sumP = 0;
+          var nc = 0;
+          ['EURUSD', 'USDJPY', 'USDINR'].forEach(function (code) {
+            var s = p.byPair[code] && p.byPair[code].summary20;
+            if (s && isFinite(s.pct)) {
+              sumP += s.pct;
+              nc += 1;
+            }
+          });
+          if (p.showAccuracy && nc > 0) {
+            var avg = Math.round((sumP / nc) * 10) / 10;
+            poolPct.textContent = avg + '%';
+            poolSub.textContent = 'Mean of pair-level 20d pools · ' + ev + ' evaluated row-days';
+          } else {
+            poolPct.textContent = '—';
+            poolSub.textContent = ev + ' evaluated row-days in 20d window (need more for headline %)';
+          }
+        }
+        if (loggedEl) {
+          loggedEl.textContent = String(p.total500 || 0);
+        }
+      } catch (err) {
+        if (lbl) lbl.textContent = window.FXRLSiteValidation.DISCLAIMER_SHORT;
+      }
+    })();
+  </script>
+  <script>
+    (function () {
+      var el = document.getElementById('home-macro-catalyst');
+      if (el && window.FXRLMacroCatalyst) window.FXRLMacroCatalyst.fillElement(el, null);
     })();
   </script>
 </body>

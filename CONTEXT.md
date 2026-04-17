@@ -42,7 +42,7 @@
 ## Current sprint / active task
 
 **Layer 3 complete — vol/oi/rr pipelines live.**  
-Next: verify first CI run, then dashboard wiring for new signals
+Recent: public `site/` dashboard wired to Supabase; `/data/pipeline_status.json` canonical; brief B2 chrome on publish; macro catalyst + regime history on home/terminal.
 
 ---
 

@@ -812,6 +812,11 @@
         <div class="meth2-inner">
           <p class="label-caps">VALIDATION</p>
           <h2>Out-of-sample accuracy. Updated daily.</h2>
+          <p class="meth2-regime-lede" style="max-width:720px;margin-bottom:20px">
+            Every <span class="font-mono">regime_calls</span> row is written on the pipeline date (no backdating). The next trading day,
+            <span class="font-mono">validation_regime.py</span> compares the prior call’s directional read to realised 1D FX returns and upserts
+            <span class="font-mono">validation_log</span>. When the predicted direction is <strong>NEUTRAL</strong>, <span class="font-mono">correct_1d</span> is intentionally left null — those days do not count toward hit-rate numerators or denominators, which keeps early-sample dashboards honest when the composite sits flat. Rolling accuracy on the public shell is shown only after enough evaluated (non-null) rows exist; until then you will see an explicit “validation accumulating” notice rather than a fake percentage.
+          </p>
           <div class="meth2-validation-placeholder">Validation data loading in next build phase</div>
         </div>
       </section>
@@ -917,7 +922,7 @@
 
       var tsEl = document.getElementById('meth2-pipeline-ts');
       if (tsEl) {
-        fetch('/static/pipeline_status.json', { cache: 'no-store' })
+        fetch('/data/pipeline_status.json', { cache: 'no-store' })
           .then(function (r) {
             if (!r.ok) throw new Error('bad status');
             return r.json();

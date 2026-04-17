@@ -321,12 +321,37 @@ Same structure. Note: directional only due to RBI
 intervention. No precision entries.
 
 Rules:
-- Write like a senior FX researcher, not a student
-- No hedging language ("may", "might", "could")
-- Data-grounded: cite the actual numbers
-- Maximum 600 words total
-- Never mention "AI" or "generated"
-- Tone: calm, precise, confident
+- Write like a senior FX desk strategist: declarative sentences, no bullet lists inside "narrative" fields.
+- Each pair "narrative" must be 2–3 short paragraphs of prose (not a dump of column names or JSON keys).
+- Stay consistent with the PRIMARY SOURCE morning brief when provided; you may add precise numbers from signal_data but must not reverse the brief's directional framing.
+- Data-grounded: cite specific spreads, percentiles, or vol levels from signal_data where you use them.
+- At most one hedging clause per pair paragraph (e.g. "unless spreads re-price"); avoid stacking "may/might/could".
+- Maximum 600 words total across all string fields.
+- Never mention "AI", "generated", or the model.
+- Tone: calm, precise, confident.
+
+Example shape (content is illustrative only — replace with today's facts):
+{{
+  "headline": "Rates spine firm; EUR holds trend on spread momentum",
+  "sections": {{
+    "macro_context": "US–DE 10Y trades wider on the week while vol remains controlled, keeping the burden of proof on positioning extremes rather than carry shocks.",
+    "eurusd": {{
+      "narrative": "EUR/USD remains in a trending configuration with rate differentials providing the incremental buyer of dips. COT sits elevated but not yet at forced-exit territory, so the spread story leads.\\n\\nRealized vol is only a modifier today: unless it jumps into the top decile, treat range extensions as slow rather than disorderly.\\n\\nThe tactical bias stays with the differential until German front-end reprices materially.",
+      "key_driver": "US–DE 10Y spread direction vs 1W change.",
+      "watch_for": "A clean reversal in 2Y spread momentum or an abrupt vol spike that breaks 20d correlation stability."
+    }},
+    "usdjpy": {{
+      "narrative": "USD/JPY balances a firm US–JP rate gap against compressed retail positioning extremes. The pair is not signaling a vol event; it is signaling patience.\\n\\nIntervention risk is a tail, not the base case, while 10Y spreads stay pinned near current ranges.",
+      "key_driver": "US–JP 10Y spread with BoJ steady narrative.",
+      "watch_for": "Sudden JPY funding stress or a break in cross-asset correlation that invalidates the rates link."
+    }},
+    "usdinr": {{
+      "narrative": "USD/INR is read as directional-only: RBI reserve dynamics and onshore liquidity dominate small-model precision. The trade is regime, not point forecast.\\n\\nUse the rate-vol stack as context for squeeze risk, not for intraday levels.",
+      "key_driver": "Policy spread plus intervention proxy.",
+      "watch_for": "Reserve drawdown pace and oil-inflation surprises that force a policy response."
+    }}
+  }}
+}}
 
 CRITICAL: Respond with a single JSON object only. No markdown fences, no
 preamble or explanation before or after the JSON.

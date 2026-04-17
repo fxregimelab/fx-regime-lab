@@ -141,10 +141,12 @@ FRED_API_KEY=your_key_here
 
 ### Run
 ```bash
-python run_all.py
+python run.py
 ```
 
-Or run individually:
+(`run_all.py` is deprecated — legacy subset + Pages deploy only.)
+
+Or run individual scripts (not the full canonical chain):
 ```bash
 python pipeline.py
 python cot_pipeline.py
@@ -160,7 +162,7 @@ python create_html_brief.py
 percentage changes across 1D, 1W, 1M, 3M, 12M windows. COT summary with
 regime classification per pair.
 
-**Charts:** Interactive HTML under `charts/` (iframes used by the brief; also copied into `runs/` when using `run_all.py`).
+**Charts:** Interactive HTML under `charts/` (iframes used by the brief; `runs/` may hold copies from older workflows).
 
 **Data:** Master CSV saved to /data with full history. Latest snapshot
 always available as data/latest_with_cot.csv.
@@ -168,7 +170,7 @@ always available as data/latest_with_cot.csv.
 ---
 
 ## Daily Run Archive
-Each execution of `run_all.py` now archives outputs under a date-stamped
+When using legacy `run_all.py`, each execution archives outputs under a date-stamped
 directory to keep historical results tidy. The structure for a run on
 2026‑02‑26 looks like:
 

@@ -30,6 +30,7 @@
   <script defer src="/terminal/data-client.js"></script>
   <script defer src="/terminal/terminal-nav.js"></script>
   <script defer src="/terminal/terminal-motion.js"></script>
+  <script defer src="/assets/macro-catalyst.js"></script>
   <script defer src="/terminal/home-terminal.js"></script>
   <script defer src="/terminal/live-prices.js"></script>
   <script defer src="/terminal/terminal-accuracy.js"></script>
@@ -61,7 +62,9 @@
     <p id="term-provenance-strip" class="term-provenance-strip" role="status" aria-live="polite"></p>
 
     <main id="term-main" class="term-main">
-      <div id="term-page-error" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:40vh" aria-live="polite"></div>
+      <div id="term-page-error" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:40vh" aria-live="polite" role="alert">
+        <p class="term-page-error__text" style="margin:0;text-align:center"></p>
+      </div>
 
       <p class="term-ticker__source" id="term-ticker-source">Stream: indicative last prices (not official closes). Tables and regime: daily pipeline.</p>
       <div class="term-ticker" aria-label="Macro snapshot">
@@ -69,6 +72,12 @@
         <div class="term-ticker-item term-skel-target" data-term-ticker="EUR/USD"></div>
         <div class="term-ticker-item term-skel-target" data-term-ticker="USD/JPY"></div>
       </div>
+
+      <p
+        id="term-macro-catalyst"
+        class="term-macro-catalyst"
+        style="max-width:960px;margin:0 auto 16px;padding:0 20px;font-size:11px;line-height:1.5;color:var(--text-muted);font-family:var(--font-data)"
+      ></p>
 
       <section class="term-brief-card term-brief term-home-brief" aria-labelledby="term-brief-heading">
         <div class="term-home-brief__left">
@@ -116,6 +125,7 @@
             <span class="term-card__conf-pct term-skel-target">72%</span>
           </div>
           <p class="term-regime-card__driver term-card__driver term-skel-target">Driver: JPY composite</p>
+          <p class="term-card__regime-history term-skel-target" data-regime-history aria-live="polite"></p>
           <p class="term-card__conf-note term-skel-target" hidden data-conf-low-note>Low confidence — interpret as context, not a hard signal.</p>
           <div class="term-regime-card__footer term-card__foot term-skel-target">Updated 23:14 UTC</div>
         </button>
@@ -133,6 +143,7 @@
             <span class="term-card__conf-pct term-skel-target">58%</span>
           </div>
           <p class="term-regime-card__driver term-card__driver term-skel-target">Driver: JPY composite</p>
+          <p class="term-card__regime-history term-skel-target" data-regime-history aria-live="polite"></p>
           <p class="term-card__conf-note term-skel-target" hidden data-conf-low-note>Low confidence — interpret as context, not a hard signal.</p>
           <div class="term-regime-card__footer term-card__foot term-skel-target">Updated 23:14 UTC</div>
         </button>
@@ -150,6 +161,7 @@
             <span class="term-card__conf-pct term-skel-target">45%</span>
           </div>
           <p class="term-regime-card__driver term-card__driver term-skel-target">Driver: INR composite</p>
+          <p class="term-card__regime-history term-skel-target" data-regime-history aria-live="polite"></p>
           <p class="term-card__conf-note term-skel-target" hidden data-conf-low-note>Low confidence — interpret as context, not a hard signal.</p>
           <div class="term-regime-card__footer term-card__foot term-skel-target">Updated 23:14 UTC</div>
         </button>

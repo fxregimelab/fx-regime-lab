@@ -13,8 +13,8 @@
 - EUR/USD, USD/JPY, USD/INR covered ✅
 - Rate differentials, COT, realized vol, cross-asset correlations live ✅
 - Public domain **fxregimelab.com** live (DNS → **Cloudflare Pages** target) ✅ / in progress
-- **Phase 0A target:** full **fxregimelab.com** UI shell (Bloomberg-style dark, placeholders) on Cloudflare Pages **before** any Supabase Python work ⚠️
-- GitHub Pages: static brief via `deploy.py` until Cloudflare + cutover plan complete ⚠️
+- **Phase 0A target:** full **fxregimelab.com** UI shell on Cloudflare Pages (light editorial marketing + separate dark terminal) **before** any Supabase Python work ⚠️
+- GitHub Pages: optional **legacy** static brief channel via `deploy.py`; **canonical** brief + dashboard live on Cloudflare (`site/`). Retire Pages after Cloudflare `/brief` is verified stable ⚠️
 - Data stored in CSVs under `data/` with optional Supabase dual-write when secrets are set ⚠️
 - Layer 3: implied vol (`vol_pipeline`), OI delta (`oi_pipeline`), risk reversal proxy (`rr_pipeline`) implemented; quality depends on upstream feeds ⚠️
 - Regime validation job (`validation_regime.py`) writes to Supabase `validation_log` when configured ⚠️
@@ -27,13 +27,13 @@
 **Mandatory order:** **Phase 0A** (UI shell + branding on **Cloudflare Pages**, static placeholders) → **Phase 0B** (Supabase DDL, RLS, Python dual-write, live reads). **Do not start 0B until 0A is deployed and verified on fxregimelab.com.**  
 **Phase 1** (new signal modules) stays blocked until **combined Phase 0 exit criteria** at the end of this section pass.
 
-GitHub Actions / `run.py` pipeline continues; `deploy.py` may write **`static/pipeline_status.json`** (or agreed path) with **last run timestamp** for the `/dashboard` status board in 0A.
+GitHub Actions / `run.py` pipeline continues; `write_pipeline_status()` writes **`site/data/pipeline_status.json`** (canonical URL **`/data/pipeline_status.json`** on Pages) for dashboard + terminal.
 
 ---
 
 ### Phase 0A — UI shell ships first (no Supabase required)
 
-Ship the full site structure, **Bloomberg Terminal–inspired** dark UI (data-dense, sharp edges, no gradients / glassmorphism / generic SaaS hero). **Placeholder copy and static regime cards** are designed—not blank pages.
+Ship the full site structure on Cloudflare: **light editorial** marketing shell (`site/` UI Prompt v2) plus a **separate dark terminal** (`site/terminal/`) for dense research. Public pages avoid generic SaaS hero patterns; terminal stays data-dense without gradients/glassmorphism.
 
 **Recommended repo location:** static site source under **`site/`** (or Pages project build output) deployed by Cloudflare Pages from this repo.
 

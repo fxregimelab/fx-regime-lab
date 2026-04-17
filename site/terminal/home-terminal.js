@@ -207,6 +207,10 @@
     observeCards();
     initAiLayer();
     wireLazyPanelOpens();
+    var mc = document.getElementById('term-macro-catalyst');
+    if (mc && global.FXRLMacroCatalyst && typeof global.FXRLMacroCatalyst.fillElement === 'function') {
+      global.FXRLMacroCatalyst.fillElement(mc, null);
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);

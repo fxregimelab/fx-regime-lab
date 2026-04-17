@@ -150,7 +150,7 @@ Do **not** document or commit secret values.
 1. Picks latest `briefs/brief_*.html`, rewrites paths (`../charts/` → `/charts/`, etc.), writes `site/brief/latest.html`.
 2. Syncs Plotly chart HTML → `site/charts/`.
 3. Syncs `static/` → `site/static/`.
-4. **Pipeline status:** Prefers `site/data/pipeline_status.json` (written under `site/data/` by pipeline status helper); else copies `static/pipeline_status.json` → `site/static/pipeline_status.json`. Terminal home fetches **`/static/pipeline_status.json`**.
+4. **Pipeline status:** Canonical file is `site/data/pipeline_status.json` (from `write_pipeline_status()`). All browser surfaces fetch **`/data/pipeline_status.json`**. Publish may still mirror a copy to `site/static/pipeline_status.json` for legacy URLs only.
 5. Copies selected files from `data/` → `site/data/`: `latest_with_cot.csv`, `cot_latest.csv`, `inr_latest.csv`, `macro_cal.json`.
 6. AI article archive logic for `ai_article.json` / manifests (see script).
 

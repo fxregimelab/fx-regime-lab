@@ -40,7 +40,7 @@ This document describes the **internal research terminal** (Bloomberg-style dark
   - Home: `data-path="/terminal/index"` — matches `/terminal`, `/terminal/`, `/terminal/index`.
   - Others: e.g. `data-path="/terminal/eurusd"` — substring match on normalized pathname (no `.html`).
 - **Implementation:** `site/terminal/terminal-nav.js` — `syncTabActive()` on `DOMContentLoaded`.
-- **Pipeline health:** Right side shows a dot + `LIVE` / `STALE` / `UNKNOWN` + timestamp string. Populated from `/static/pipeline_status.json` via `FXRLData` (`applyPipelineNavStatus`, `updatePipelineTimestamp`) on the home page; logic uses `supabase_write_status`, `last_supabase_write`, and session data date age.
+- **Pipeline health:** Right side shows a dot + `LIVE` / `STALE` / `UNKNOWN` + timestamp string. Populated from **`/data/pipeline_status.json`** via `FXRLData` (`applyPipelineNavStatus`, `updatePipelineTimestamp`) on the home page; logic uses `supabase_write_status`, `last_supabase_write`, and session data date age. JSON field for the run time is **`last_run_utc`**.
 - **Stale data banner:** `#term-data-stale` — shown when home init cannot get regime data from Supabase as expected.
 - **Exit:** `.term-nav__exit` / `[data-term-exit]` — calls `FXRLThemeSwitch.exitTerminal()` if present, else clears `sessionStorage` theme key, removes `theme-terminal`, adds `theme-light`, navigates to `/`.
 
@@ -245,7 +245,7 @@ PostgREST via `@supabase/supabase-js`; **anon key**; RLS expected on public read
 | `/data/inr_latest.csv` | INR slice |
 | `/data/macro_cal.json` | Macro calendar |
 | `/data/ai_article.json` | AI article JSON for home intel + panel |
-| `/static/pipeline_status.json` | Pipeline last run + Supabase sync metadata (copy precedence: `site/data` → `site/static` in publish script) |
+| `/data/pipeline_status.json` | Pipeline last run + Supabase sync metadata (**canonical**; same object may be mirrored under `/static/` for legacy links) |
 
 Worker adds CORS headers for `/data/*.csv` and `/static/*.json` where implemented.
 
@@ -291,7 +291,7 @@ flowchart TB
   end
   subgraph static [Published static files]
     csv["/data/*.csv"]
-    ps["/static/pipeline_status.json"]
+    ps["/data/pipeline_status.json"]
     ai["/data/ai_article.json"]
   end
   page --> fxdata
@@ -364,10 +364,10 @@ flowchart TB
 
 | Surface | File(s) | Primary data |
 |---------|---------|----------------|
-| Terminal home | [`site/terminal/index.html`](../site/terminal/index.html) | `regime_calls` (cards), `signals` / prices bundle (`fetchLatestPrices`), `brief_log` + static `ai_article.json`, `validation_log` (accuracy strip), `/static/pipeline_status.json` |
+| Terminal home | [`site/terminal/index.html`](../site/terminal/index.html) | `regime_calls` (cards), `signals` / prices bundle (`fetchLatestPrices`), `brief_log` + static `ai_article.json`, `validation_log` (accuracy strip), `/data/pipeline_status.json` |
 | Pair desks | [`eurusd.html`](../site/terminal/eurusd.html), [`usdjpy.html`](../site/terminal/usdjpy.html), [`usdinr.html`](../site/terminal/usdinr.html) | `signals` via `loadPairDataset` / chart rows; [`live-prices.js`](../site/terminal/live-prices.js) for hero spot (indicative stream) |
 | Terminal dashboard (dark) | [`site/terminal/dashboard.html`](../site/terminal/dashboard.html) | Same stack as other terminal pages where wired |
-| Public dashboard (light v2) | [`site/dashboard/index.html`](../site/dashboard/index.html) | **Placeholder** regime cards until wired to Supabase (Chart.js shell only) |
+| Public dashboard (light v2) | [`site/dashboard/index.html`](../site/dashboard/index.html) | Live `regime_calls` + `signals` + `validation_log` via [`site/assets/dashboard-live.js`](../site/assets/dashboard-live.js) (Chart.js tabs still illustrative) |
 | Chart builder | [`site/terminal/chart-builder.js`](../site/terminal/chart-builder.js) | `SIGNAL_TO_CSV` + Supabase prefetch |
 
 ### 15.2 `SIGNAL_CHART_MAP` vs Supabase `signals` vs master CSV

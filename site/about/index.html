@@ -825,6 +825,11 @@
               <a class="about-cta-primary" href="/terminal/">View Terminal →</a>
               <a class="about-cta-secondary" href="/methodology/">Read Methodology →</a>
             </div>
+            <p style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:24px;line-height:1.5">
+              Daily pipeline last run:
+              <span id="about-pipeline-ts">—</span>
+              · <a href="/dashboard/">Live dashboard</a>
+            </p>
           </div>
         </div>
       </section>
@@ -959,5 +964,15 @@ Daily.</h2>
   <script defer src="/assets/nav.js"></script>
   <script defer src="/assets/theme-switch.js"></script>
   <script defer src="/assets/canvas-bg.js"></script>
+  <script src="/assets/site.js"></script>
+  <script>
+    (async function () {
+      var el = document.getElementById('about-pipeline-ts');
+      if (!el || !window.FXRegimeSite) return;
+      var st = await window.FXRegimeSite.loadPipelineStatus();
+      el.textContent =
+        st && st.last_run_utc ? window.FXRegimeSite.formatTs(st.last_run_utc) : 'No run recorded';
+    })();
+  </script>
 </body>
 </html>

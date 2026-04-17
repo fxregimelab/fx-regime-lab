@@ -38,13 +38,13 @@
       <a href="/about/">About</a>
     </div>
 
-    <div class="dash-bar">
+    <div class="dash-bar" style="flex-wrap:wrap;gap:8px 16px">
       <span class="label-caps" style="color:var(--text-muted)">Live dashboard</span>
       <span class="dash-bar__mono"><span class="pulse-dot" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>Pipeline last run: <span id="dash-pipeline-ts">—</span></span>
-      <span class="dash-bar__mono">Accuracy (20d): EUR/USD 68% · USD/JPY 71% · USD/INR 64%</span>
+      <span class="dash-bar__mono" id="dash-accuracy-line" style="max-width:100%;font-size:12px;line-height:1.4;color:var(--text-sec)">Loading validation summary…</span>
     </div>
     <p class="dash-placeholder-note" role="status" style="max-width:960px;margin:12px auto 0;padding:0 24px;font-size:13px;color:var(--text-muted);line-height:1.55;">
-      Illustrative layout: regime badges, confidence bars, accuracy line, and numeric rows below are <strong>placeholders</strong> until this page is wired to Supabase. For live pipeline data use the <a href="/terminal/">Research terminal</a>.
+      Loading live regime rows from Supabase…
     </p>
 
     <section class="section-v2">
@@ -52,52 +52,56 @@
         <article class="card-light card-light--eur dash-pair-card">
           <div class="pair-card__head">
             <span class="pair-card__name">EUR/USD</span>
-            <span class="badge-regime" style="background:rgba(37,99,168,.1);border-color:rgba(37,99,168,.25);color:var(--pair-eur)">TRENDING LONG</span>
+            <span class="badge-regime" id="dash-eur-badge" style="background:rgba(37,99,168,.1);border-color:rgba(37,99,168,.25);color:var(--pair-eur)">—</span>
           </div>
+          <p class="dash-regime-history" id="dash-eur-history" style="font-size:12px;color:var(--text-muted);margin:8px 0 0;line-height:1.4"></p>
           <div class="conf-bar-wrap">
             <span class="label-caps">Confidence</span>
             <div class="conf-bar-row">
-              <div class="conf-bar"><div class="conf-bar__fill" style="width:72%;background:var(--pair-eur)"></div></div>
-              <span class="font-mono" style="font-weight:600">72%</span>
+              <div class="conf-bar"><div class="conf-bar__fill" id="dash-eur-conf-bar" style="width:0%;background:var(--pair-eur)"></div></div>
+              <span class="font-mono" style="font-weight:600" id="dash-eur-conf-pct">—</span>
             </div>
           </div>
-          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Rate differential</span><span class="font-mono">+47 bp</span></div>
-          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>COT percentile</span><span class="font-mono">72nd</span></div>
-          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Realized vol</span><span class="font-mono">8.4%</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Rate differential</span><span class="font-mono" id="dash-eur-rd">—</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>COT percentile</span><span class="font-mono" id="dash-eur-cot">—</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Realized vol</span><span class="font-mono" id="dash-eur-vol">—</span></div>
           <p class="label-caps" style="margin-top:16px;color:var(--text-muted)">Change from yesterday</p>
           <p class="font-mono" style="margin:0;color:var(--positive)">▲ Strengthening</p>
         </article>
         <article class="card-light card-light--jpy dash-pair-card">
           <div class="pair-card__head">
             <span class="pair-card__name">USD/JPY</span>
-            <span class="badge-regime" style="background:rgba(184,107,42,.1);border-color:rgba(184,107,42,.25);color:var(--pair-jpy)">NEUTRAL</span>
+            <span class="badge-regime" id="dash-jpy-badge" style="background:rgba(184,107,42,.1);border-color:rgba(184,107,42,.25);color:var(--pair-jpy)">—</span>
           </div>
+          <p class="dash-regime-history" id="dash-jpy-history" style="font-size:12px;color:var(--text-muted);margin:8px 0 0;line-height:1.4"></p>
           <div class="conf-bar-wrap">
             <span class="label-caps">Confidence</span>
             <div class="conf-bar-row">
-              <div class="conf-bar"><div class="conf-bar__fill" style="width:58%;background:var(--pair-jpy)"></div></div>
-              <span class="font-mono" style="font-weight:600">58%</span>
+              <div class="conf-bar"><div class="conf-bar__fill" id="dash-jpy-conf-bar" style="width:0%;background:var(--pair-jpy)"></div></div>
+              <span class="font-mono" style="font-weight:600" id="dash-jpy-conf-pct">—</span>
             </div>
           </div>
-          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Rate differential</span><span class="font-mono">—</span></div>
-          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>COT percentile</span><span class="font-mono">—</span></div>
-          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Realized vol</span><span class="font-mono">—</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Rate differential</span><span class="font-mono" id="dash-jpy-rd">—</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>COT percentile</span><span class="font-mono" id="dash-jpy-cot">—</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Realized vol</span><span class="font-mono" id="dash-jpy-vol">—</span></div>
           <p class="label-caps" style="margin-top:16px;color:var(--text-muted)">Change from yesterday</p>
           <p class="font-mono" style="margin:0;color:var(--text-muted)">Flat</p>
         </article>
         <article class="card-light card-light--inr dash-pair-card">
           <div class="pair-card__head">
             <span class="pair-card__name">USD/INR</span>
-            <span class="badge-regime" style="background:rgba(166,48,48,.1);border-color:rgba(166,48,48,.25);color:var(--pair-inr)">DIRECTIONAL ONLY</span>
+            <span class="badge-regime" id="dash-inr-badge" style="background:rgba(166,48,48,.1);border-color:rgba(166,48,48,.25);color:var(--pair-inr)">—</span>
           </div>
+          <p class="dash-regime-history" id="dash-inr-history" style="font-size:12px;color:var(--text-muted);margin:8px 0 0;line-height:1.4"></p>
           <div class="conf-bar-wrap">
             <span class="label-caps">Confidence</span>
             <div class="conf-bar-row">
-              <div class="conf-bar"><div class="conf-bar__fill" style="width:40%;background:var(--pair-inr)"></div></div>
-              <span class="font-mono" style="font-weight:600">—</span>
+              <div class="conf-bar"><div class="conf-bar__fill" id="dash-inr-conf-bar" style="width:0%;background:var(--pair-inr)"></div></div>
+              <span class="font-mono" style="font-weight:600" id="dash-inr-conf-pct">—</span>
             </div>
           </div>
-          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Spot / vol</span><span class="font-mono">—</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>10Y spread</span><span class="font-mono" id="dash-inr-rd">—</span></div>
+          <div class="hero-card-dark__row dash-data-row" style="color:var(--text)"><span>Realized vol</span><span class="font-mono" id="dash-inr-vol">—</span></div>
           <p class="label-caps" style="margin-top:16px;color:var(--text-muted)">Updated</p>
           <p class="font-mono" style="margin:0" id="dash-inr-ts">—</p>
         </article>
@@ -166,14 +170,12 @@
 
     <section class="section-v2" id="validation">
       <h2 class="section-v2__title" data-reveal="headline">Validation log</h2>
-      <p class="section-v2__sub" data-reveal="sub">Last 30 predictions (sample rows — full log from Supabase <span class="font-mono">validation_log</span> in Phase 2).</p>
+      <p class="section-v2__sub" data-reveal="sub">Latest rows from Supabase <span class="font-mono">validation_log</span> (1d direction check; NEUTRAL predictions show —).</p>
       <div style="overflow-x:auto">
         <table class="table-v2">
           <thead><tr><th>Date</th><th>Pair</th><th>Predicted</th><th>Confidence</th><th>Outcome</th></tr></thead>
-          <tbody data-reveal-stagger="rows">
-            <tr class="row-ok"><td class="cell-date">2026-04-03</td><td class="cell-pair-eur">EUR/USD</td><td>Long</td><td class="cell-mono">72%</td><td>✓</td></tr>
-            <tr class="row-ok"><td class="cell-date">2026-04-03</td><td class="cell-pair-jpy">USD/JPY</td><td>Neutral</td><td class="cell-mono">58%</td><td>✓</td></tr>
-            <tr class="row-bad"><td class="cell-date">2026-04-02</td><td class="cell-pair-inr">USD/INR</td><td>Long</td><td class="cell-mono">55%</td><td>✗</td></tr>
+          <tbody id="dash-validation-tbody" data-reveal-stagger="rows">
+            <tr><td colspan="5" style="text-align:center;color:var(--text-muted)">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -203,6 +205,10 @@
   <script src="/assets/nav.js"></script>
   <script src="/assets/section-reveal.js"></script>
   <script src="/assets/site.js"></script>
+  <script src="/assets/supabase-env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+  <script src="/assets/site-validation.js"></script>
+  <script src="/assets/dashboard-live.js"></script>
   <script>
     document.querySelectorAll('.dash-tabs button').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -252,6 +258,22 @@
       else if (el) el.textContent = 'No successful run recorded yet';
       var ir = document.getElementById('dash-inr-ts');
       if (ir && st && st.last_run_utc) ir.textContent = window.FXRegimeSite.formatTs(st.last_run_utc);
+      var accEl = document.getElementById('dash-accuracy-line');
+      if (accEl && window.FXRLSiteValidation) {
+        try {
+          var p = await window.FXRLSiteValidation.loadMarketingValidation();
+          var f = window.FXRLSiteValidation.formatAccuracyBar(p);
+          accEl.textContent = p.showAccuracy ? f.short : window.FXRLSiteValidation.DISCLAIMER;
+        } catch (e) {
+          accEl.textContent =
+            window.FXRLSiteValidation.DISCLAIMER_SHORT || 'Validation data unavailable offline.';
+        }
+      } else if (accEl) {
+        accEl.textContent = 'Connect Supabase on Cloudflare to load live validation stats.';
+      }
+      if (window.FXRLDashboardLive && typeof window.FXRLDashboardLive.load === 'function') {
+        window.FXRLDashboardLive.load();
+      }
     })();
   </script>
   <script>

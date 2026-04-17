@@ -17,9 +17,10 @@ Supabase credentials arrive via /assets/supabase-env.js — do not hardcode them
 Always handle Supabase fetch errors gracefully with a visible error state.
 Style
 
-Dark navy theme: background #0a0e1a
-Pair colors: EUR/USD #4da6ff, USD/JPY #ff9944, USD/INR #e74c3c
-Typography: Inter (body), Playfair Display (headings), JetBrains Mono (data/numbers)
+**Marketing shell (`site/` except `/terminal/`):** UI Prompt v2 — light editorial / canvas (`docs/FX_REGIME_LAB_UI_PROMPT_V2.md`): Playfair + DM Sans + JetBrains Mono; light backgrounds. Pair accents stay EUR/USD #4da6ff, USD/JPY #ff9944, USD/INR #e74c3c where applicable.
+
+**Research terminal (`site/terminal/`):** dark desk theme (background ~#0a0e1a, data-dense). Same pair accent hex values.
+
 Do not introduce new fonts, color schemes, or UI frameworks without explicit instruction.
 Anti-Patterns — NEVER Suggest These
 

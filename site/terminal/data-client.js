@@ -1100,6 +1100,24 @@
   }
 
   /**
+   * @param {{regime?: string}[]} rows newest first from regime_calls
+   */
+  function regimeHistoryLine(rows) {
+    if (!rows || !rows.length) return '';
+    var cur = String(rows[0].regime || '').trim();
+    if (!cur) return '';
+    var streak = 0;
+    for (var i = 0; i < rows.length; i++) {
+      if (String(rows[i].regime || '').trim() === cur) streak += 1;
+      else break;
+    }
+    var prev = streak < rows.length ? String(rows[streak].regime || '').trim() : '';
+    var curL = formatRegimeLabel(cur);
+    if (!prev) return streak + 'd at ' + curL;
+    return curL + ' · ' + streak + 'd · was ' + formatRegimeLabel(prev);
+  }
+
+  /**
    * Pair terminal strip: source label + as-of date.
    * @param {string} source loadPairDataset dataSource: supabase | none
    * @param {string} latestDate YYYY-MM-DD
@@ -1426,7 +1444,7 @@
 
     checkPipelineErrors();
 
-    fetchJsonWithTimeout('/static/pipeline_status.json', FETCH_TIMEOUT_MS)
+    fetchJsonWithTimeout('/data/pipeline_status.json', FETCH_TIMEOUT_MS)
       .then(function (j) {
         if (j && j.last_supabase_write) {
           applyPipelineNavStatus(j);
@@ -1465,7 +1483,7 @@
     ];
 
     var pRegime = pairs.map(function (x) {
-      return fetchRegimeCalls(x.pair, 1).then(function (rows) {
+      return fetchRegimeCalls(x.pair, 120).then(function (rows) {
         return { pair: x.pair, card: x.card, rows: rows };
       });
     });
@@ -1539,6 +1557,10 @@
               driver.textContent = 'Driver: ' + formatDriverLabel(pd);
               driver.style.color = '';
             }
+          }
+          var hist = card.querySelector('[data-regime-history]');
+          if (hist) {
+            hist.textContent = pack.rows.length ? regimeHistoryLine(pack.rows) : '';
           }
         });
 
@@ -1715,9 +1737,9 @@
       }
 
       try {
-        var psResp = await fetch('/static/pipeline_status.json');
+        var psResp = await fetch('/data/pipeline_status.json');
         var psJson = await psResp.json();
-        console.info('pipeline_status.json:', psResp.ok ? 'OK - last run: ' + (psJson.last_run || 'unknown') : 'FAIL');
+        console.info('pipeline_status.json:', psResp.ok ? 'OK - last run: ' + (psJson.last_run_utc || psJson.last_run || 'unknown') : 'FAIL');
       } catch (e3) {
         console.info('pipeline_status.json: FAILED -', e3 && e3.message ? e3.message : e3);
       }

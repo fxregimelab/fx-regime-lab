@@ -4,6 +4,8 @@ Full narrative: **`contaxt files/PLAN.md`** Phase 0. Exit criteria must pass bef
 
 **Pipeline / CI reference:** [PIPELINE_AUDIT_AND_OPERATIONS.md](./PIPELINE_AUDIT_AND_OPERATIONS.md).
 
+**Hosting:** treat **Cloudflare Pages + `site/`** as the canonical public product (`fxregimelab.com`). GitHub Pages remains an optional legacy mirror until explicitly sunset.
+
 ---
 
 ## Phase 0A — UI shell (before Supabase code)

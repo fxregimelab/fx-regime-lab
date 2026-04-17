@@ -271,6 +271,35 @@ def build_brief(df):
     lines.append(f"  FX as of: {as_of}  |  IN 10Y as of: {in10y_date}  |  COT cutoff: {cot_cutoff} (pub'd: {cot_published})")
     lines.append("=" * W)
 
+    # Lead narrative (desk tone) — tables below stay numeric; this block is for fast human + AI read.
+    eur_c = row.get("eurusd_composite_label", "")
+    jpy_c = row.get("usdjpy_composite_label", "")
+    inr_c = row.get("inr_composite_label", "")
+    if isinstance(eur_c, float) and pd.isna(eur_c):
+        eur_c = ""
+    if isinstance(jpy_c, float) and pd.isna(jpy_c):
+        jpy_c = ""
+    if isinstance(inr_c, float) and pd.isna(inr_c):
+        inr_c = ""
+    eur_c = str(eur_c).strip() or "n/a"
+    jpy_c = str(jpy_c).strip() or "n/a"
+    inr_c = str(inr_c).strip() or "directional-only frame"
+    lines.append("")
+    lines.append("  DESK SUMMARY")
+    lines.append(f"  {'-' * 66}")
+    lines.append(
+        f"  As of {as_of}, the working story is anchored in rate spreads: US–DE 10Y sits at "
+        f"{de10_today:.2f}% ({_pp(de10_1w)} over 1W) while US–JP 10Y is {jp10_today:.2f}% ({_pp(jp10_1w)} over 1W). "
+        f"Composite labels read EUR/USD {eur_c}, USD/JPY {jpy_c}, USD/INR {inr_c}. "
+        "Treat COT and realized vol in the sections below as overlays on that rates spine—crowding and stress "
+        "change how aggressively to trade the spread signal, they rarely invalidate it in isolation."
+    )
+    if upcoming_event is not None:
+        lines.append(
+            f"  Near-term catalyst: {upcoming_event['event']} on {upcoming_event['date']} "
+            f"({upcoming_event['days_away']} day(s) out)."
+        )
+
     acc_path = "data/validation_accuracy.json"
     if os.path.exists(acc_path):
         try:

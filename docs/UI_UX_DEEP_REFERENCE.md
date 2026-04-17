@@ -139,7 +139,7 @@ Most shell pages share:
 | `canvas-bg.js` | Background canvas |
 | `section-reveal.js` | Scroll-driven reveals + count-ups |
 
-**Pipeline JSON path:** `FXRegimeSite` uses `/data/pipeline_status.json`. The terminal home uses **`/static/pipeline_status.json`** (after publish, sync rules apply). Authors should not assume a single path across all surfaces without checking [CODEBASE_AND_PROJECT_REFERENCE.md](./CODEBASE_AND_PROJECT_REFERENCE.md).
+**Pipeline JSON path:** All surfaces use **`/data/pipeline_status.json`** (terminal, dashboard, diagnostics). A copy under `/static/` may exist for legacy bookmarks only.
 
 ---
 
@@ -158,7 +158,7 @@ Most shell pages share:
 
 ### Brief hub (`/brief/`)
 
-- Light “paper” styling overrides in `<style>` for the hub layout; **embedded or linked** latest brief may still use **dark Plotly** styling from the generator — expect a **visual contrast** between hub chrome and iframe/content until unified.
+- Light “paper” styling on the **article hub** (`/brief/index.html`); link to **`/brief/latest.html`** for the full Plotly desk brief. CI injects a **fixed “Desk view” chrome bar** on `latest.html` (see `scripts/publish_brief_for_site.py`) so the dark brief reads as an intentional research surface, not a broken theme.
 
 ### Performance / About / Methodology / Newsletter
 
@@ -218,7 +218,7 @@ flowchart LR
 | Issue | Detail |
 |-------|--------|
 | **Dual brief aesthetic** | Pipeline-generated `latest.html` may not match light shell until HTML pipeline CSS is unified — users see two “brands” in one journey. |
-| **Pipeline path split** | Dashboard uses `/data/pipeline_status.json`; terminal nav uses `/static/pipeline_status.json` — different files after publish precedence; timestamps could diverge if sync misconfigured. |
+| **Legacy `/static/pipeline_status.json`** | Prefer `/data/pipeline_status.json` everywhere; static copy is optional mirror from publish. |
 | **Placeholder metrics** | Dashboard may still show static accuracy strings in markup vs live API — verify before claiming live numbers in marketing. |
 | **Chart.js + Plotly + ECharts** — three chart stacks across surfaces | Necessary by architecture but increases cognitive load for maintainers. |
 | **Heavy home page** | Hero + canvas + Chart.js + intro assets — monitor LCP and mobile performance. |

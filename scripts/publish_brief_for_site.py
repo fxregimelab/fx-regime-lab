@@ -56,6 +56,44 @@ def _latest_brief_path() -> str | None:
     return candidates[0]
 
 
+_RESEARCH_DESK_CHROME = """<!-- fxrl: research-desk chrome (B2 product frame) -->
+<style id="fxrl-research-desk-style">
+#fxrl-research-desk-bar{position:fixed;top:0;left:0;right:0;z-index:99999;display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;
+padding:10px 18px;background:#0a0e1a;color:#e5e7eb;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:13px;
+border-bottom:1px solid #1e293b;box-sizing:border-box}
+#fxrl-research-desk-bar a{color:#93c5fd;text-decoration:none}
+#fxrl-research-desk-bar a:hover{text-decoration:underline}
+#fxrl-research-desk-spacer{height:48px}
+@media(max-width:640px){#fxrl-research-desk-spacer{height:64px}}
+</style>
+<div id="fxrl-research-desk-bar" role="navigation" aria-label="Research desk">
+  <strong style="color:#f9fafb;letter-spacing:0.02em">Desk view</strong>
+  <span style="color:#9ca3af">Plotly pipeline brief — dark theme for chart fidelity.</span>
+  <span style="flex:1"></span>
+  <a href="/brief/">Editorial brief hub</a>
+  <span style="color:#4b5563">·</span>
+  <a href="/">Site home</a>
+  <span style="color:#4b5563">·</span>
+  <a href="/terminal/">Research terminal</a>
+</div>
+<div id="fxrl-research-desk-spacer" aria-hidden="true"></div>
+"""
+
+
+def _inject_research_desk_chrome(html: str) -> str:
+    """Framed hand-off from light site shell to dark Plotly brief (plan B2)."""
+    if "fxrl-research-desk-bar" in html:
+        return html
+    lower = html.lower()
+    i = lower.find("<body")
+    if i < 0:
+        return html
+    j = html.find(">", i)
+    if j < 0:
+        return html
+    return html[: j + 1] + "\n" + _RESEARCH_DESK_CHROME + html[j + 1 :]
+
+
 def _rewrite_html(html: str) -> str:
     html = re.sub(
         r'(<iframe\b[^>]*\bsrc=")\.\./charts/',
@@ -175,6 +213,7 @@ def main() -> int:
     with open(brief_path, encoding="utf-8") as f:
         html = f.read()
     html = _rewrite_html(html)
+    html = _inject_research_desk_chrome(html)
     os.makedirs(os.path.dirname(OUT_BRIEF), exist_ok=True)
     with open(OUT_BRIEF, "w", encoding="utf-8") as f:
         f.write(html)
@@ -189,13 +228,13 @@ def main() -> int:
     _pipe_status_site_data = os.path.join(SITE, "data", "pipeline_status.json")
     _pipe_status_static = os.path.join(STATIC_SRC, "pipeline_status.json")
     os.makedirs(OUT_STATIC, exist_ok=True)
-    # Precedence: site/data/pipeline_status.json (run.py merge output) wins over static/.
+    # Canonical URL for all surfaces: /data/pipeline_status.json. Optional mirror for legacy links.
     if os.path.isfile(_pipe_status_site_data):
         shutil.copy2(_pipe_status_site_data, os.path.join(OUT_STATIC, "pipeline_status.json"))
-        print("Copied site/data/pipeline_status.json -> site/static/ (terminal HOME fetch)")
+        print("Copied site/data/pipeline_status.json -> site/static/ (legacy mirror; prefer /data/)")
     elif os.path.isfile(_pipe_status_static):
         shutil.copy2(_pipe_status_static, os.path.join(OUT_STATIC, "pipeline_status.json"))
-        print("Copied static/pipeline_status.json -> site/static/ (terminal HOME fetch)")
+        print("Copied static/pipeline_status.json -> site/static/ (legacy mirror)")
 
     os.makedirs(OUT_DATA, exist_ok=True)
     for name in _DATA_FILES:

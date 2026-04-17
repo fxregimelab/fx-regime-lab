@@ -16,6 +16,8 @@ aliases:
 
 Authoritative orchestration lives in [`run.py`](../run.py) `STEPS`. Full **contract matrix**, silent-failure notes, and remediation status: [**Pipeline E2E audit**](../reports/pipeline_e2e_audit.md).
 
+**FedWatch spike (not in `STEPS`):** [`scripts/dev/fedwatch_spike.py`](../scripts/dev/fedwatch_spike.py) — manual probe for CME FedWatch accessibility; requires ToS review and explicit approval before any new pipeline module.
+
 ---
 
 ## Canonical `run.py` step order

@@ -77,8 +77,13 @@
           setItem(pack.pair, summarize(pack.rows20));
           totalLogged += pack.rows500.length;
         });
+        var minPool = 25;
         if (totalLogged > 0) {
-          setTotal(totalLogged + ' predictions logged');
+          setTotal(
+            totalLogged +
+              ' predictions logged' +
+              (totalLogged < minPool ? ' · small sample — see Methodology' : '')
+          );
         } else {
           setTotal('No validation data');
         }

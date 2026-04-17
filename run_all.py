@@ -1,4 +1,9 @@
 # run_all.py
+"""DEPRECATED (April 2026): use `python run.py` as the only supported orchestrator.
+
+This script runs a subset of legacy steps and GitHub Pages deploy. It is kept
+temporarily so old notes and bookmarks do not break; do not extend it.
+"""
 import subprocess
 import sys
 import os
@@ -12,6 +17,7 @@ _parser.add_argument('--months', type=int, default=12,
 _args = _parser.parse_args()
 MONTHS = _args.months
 
+print("WARN: run_all.py is deprecated — use: python run.py\n")
 print("running full pipeline...\n")
 subprocess.run([sys.executable, "pipeline.py"],          check=True)
 subprocess.run([sys.executable, "cot_pipeline.py"],      check=True)

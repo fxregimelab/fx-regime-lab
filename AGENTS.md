@@ -13,7 +13,7 @@ Nothing here is investment advice; research and learning only.
 | Path | Role |
 |------|------|
 | `run.py` | Preferred orchestrator: `fx`→`cot`→`inr`→`vol`→`oi`→`rr`→`merge`→`text`→`macro`→`ai`→`substack`→`html`→`validate`→`deploy`. |
-| `run_all.py` | Simpler orchestrator: runs core scripts then `deploy.py`, then archives to `runs/`. |
+| `run_all.py` | **Deprecated** legacy orchestrator (subset of steps + `deploy.py` + `runs/` archive). Prefer `run.py`. |
 | `pipeline.py` | Layer 1: FX + yield ETL, spreads, writes `data/`. |
 | `cot_pipeline.py` | Layer 2: CFTC COT positioning → `data/`. |
 | `inr_pipeline.py` | INR-specific metrics → `data/`. |
@@ -46,7 +46,7 @@ Use `core.paths` for anything that needs `ROOT` or standard folders — avoids h
 ## Deploy, GitHub Pages, and fxregimelab.com
 
 - **Canonical public site (target):** [https://fxregimelab.com](https://fxregimelab.com) — **Cloudflare Pages** (dashboard `/dashboard`, brief `/brief`, etc.; see PLAN Phase 0).
-- **GitHub Pages** (current `deploy.py` output): `https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/` — keep as static brief fallback until Cloudflare is verified (PLAN Phase 0.8).
+- **GitHub Pages** (`deploy.py` still can push repo-root `index.html`): `https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/` — **legacy mirror** for the Plotly brief. **Canonical public product** is Cloudflare (`fxregimelab.com`, `site/`). Sunset GitHub Pages after a sustained period of clean `/brief` + `/dashboard` on Cloudflare (see PLAN Phase 0.8).
 - **Source of truth for repo-root HTML:** `index.html` (copy of latest brief with path fixes after `deploy.py`).
 - **Brief originals**: `briefs/brief_YYYYMMDD.html` use `../charts/` and `../static/` because they live one level down.
 
@@ -87,7 +87,7 @@ All assume they are run as `python scripts/dev/<name>.py` (they set cwd to repo 
 
 1. Python 3.9+, `pip install -r requirements.txt`
 2. `.env` with `FRED_API_KEY=...`
-3. `python run_all.py` or `python run.py`
+3. `python run.py` (`run_all.py` is deprecated)
 
 ## Maintenance notes
 
