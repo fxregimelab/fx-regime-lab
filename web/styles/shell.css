@@ -1,0 +1,13 @@
+/* Shell layout — light theme tokens and small overrides */
+.shell-root {
+  background-color: var(--shell-bg);
+  color: var(--shell-fg);
+}
+
+.shell-canvas-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.35;
+}

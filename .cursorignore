@@ -1,15 +1,44 @@
-# Lean indexing: large or non-code paths (pair with root .cursorrules)
-.obsidian/
-_docs/
-.git/
+Dependencies
 node_modules/
-.venv/
-venv/
-__pycache__/
-data/
-briefs/
-runs/
+web/node_modules/
+.pnpm-store/
+Build outputs
+web/.next/
+web/.vercel/
+web/out/
 dist/
 build/
+Archive — old v1 site, no longer relevant
+_archive/
+Pipeline data outputs — large CSV files not useful for coding
+data/.csv
+data/.json
+briefs/
+charts/
+static/
+runs/
+Generated files
+web/public/data/
+Python cache
+pycache/
+*.pyc
+*.pyo
+.pytest_cache/
+Environment files
+.env
+.env.local
+.env*.local
+.dev.vars
+OS files
+.DS_Store
+Thumbs.db
+Logs
+.log
+npm-debug.log
+Wrangler
 .wrangler/
-stitch (1)/
+Git
+.git/
+Large or irrelevant docs
+*.canvas
+reports/

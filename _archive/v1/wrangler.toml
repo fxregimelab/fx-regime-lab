@@ -1,0 +1,10 @@
+# Workers + static assets under site/. `main` is required so Cloudflare allows
+# dashboard Variables/Secrets (asset-only Workers cannot).
+# Deploy from CI: `npx wrangler deploy` (not `wrangler pages deploy`).
+name = "fx-regime-lab"
+main = "workers/site-entry.js"
+compatibility_date = "2026-04-04"
+
+[assets]
+directory = "./site"
+binding = "ASSETS"

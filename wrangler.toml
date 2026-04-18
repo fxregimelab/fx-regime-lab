@@ -1,10 +1,8 @@
-# Workers + static assets under site/. `main` is required so Cloudflare allows
-# dashboard Variables/Secrets (asset-only Workers cannot).
-# Deploy from CI: `npx wrangler deploy` (not `wrangler pages deploy`).
 name = "fx-regime-lab"
-main = "workers/site-entry.js"
-compatibility_date = "2026-04-04"
+# 2024-09-23+ enables nodejs_compat_v2 polyfills (e.g. async_hooks) required by next-on-pages.
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "./web/.vercel/output/static"
 
-[assets]
-directory = "./site"
-binding = "ASSETS"
+[vars]
+ENVIRONMENT = "production"

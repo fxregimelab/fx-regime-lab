@@ -1,0 +1,10 @@
+/* TradingView Lightweight Charts containers */
+.lw-chart-container {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+}
+
+.lw-chart-container > div {
+  width: 100% !important;
+}

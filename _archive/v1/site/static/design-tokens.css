@@ -1,0 +1,203 @@
+/* =============================================================
+   G10 FX Regime — Design Tokens (Single Source of Truth)
+   All colour, typography, spacing, elevation, and motion
+   values live here. Pages import this before all other CSS.
+   =============================================================
+
+   Usage:
+     color: var(--color-text-primary);
+     background: var(--color-bg-secondary);
+     font-size: var(--font-size-sm);
+     padding: var(--space-md);
+
+   Light mode:  html[data-theme="light"] { … }
+   ============================================================= */
+
+:root {
+
+  /* ─── BACKGROUND LAYERS ──────────────────────────────────── */
+  --color-bg-base:       #0a0e1a;   /* Page / deepest layer       */
+  --color-bg-primary:    #0d1225;   /* Card body / panel bg       */
+  --color-bg-secondary:  #111827;   /* Card header / sidebar      */
+  --color-bg-tertiary:   #1a2035;   /* Tab bar / hover surface    */
+  --color-bg-elevated:   #1d2a42;   /* Hover / focus state        */
+  --color-bg-overlay:    rgba(10, 14, 26, 0.95);  /* Backdrop     */
+
+  /* ─── BORDERS ────────────────────────────────────────────── */
+  --color-border-subtle:   #1e2d45;  /* Faint dividers             */
+  --color-border-default:  #253555;  /* Standard borders           */
+  --color-border-emphasis: #3a4d70;  /* Active / focus borders     */
+
+  /* ─── TEXT ───────────────────────────────────────────────── */
+  --color-text-primary:   #e2e8f0;   /* Body text                  */
+  --color-text-secondary: #8899aa;   /* Labels, metadata           */
+  --color-text-muted:     #4a5c75;   /* Inactive / disabled        */
+  --color-text-inverse:   #0a0e1a;   /* Text on light bg           */
+
+  /* ─── SIGNAL COLOURS ─────────────────────────────────────── */
+  --color-signal-bullish:  #00d4aa;  /* Long / support / up move   */
+  --color-signal-bearish:  #ff4444;  /* Short / resistance / down  */
+  --color-signal-caution:  #f0a500;  /* Warning / extended / amber */
+  --color-signal-neutral:  #4a5c75;  /* No signal / flat           */
+  --color-signal-info:     #4da6ff;  /* Informational / blue       */
+
+  /* ─── PAIR ACCENT COLOURS ────────────────────────────────── */
+  --color-pair-eurusd:  #4da6ff;    /* EUR/USD — blue              */
+  --color-pair-usdjpy:  #ff9944;    /* USD/JPY — orange            */
+  --color-pair-usdinr:  #e74c3c;    /* USD/INR — red               */
+
+  /* ─── STATUS BADGE FILLS ─────────────────────────────────── */
+  --badge-crowded-long-bg:   rgba(240, 165, 0, 0.18);
+  --badge-crowded-long-text: #f0a500;
+  --badge-crowded-long-bdr:  rgba(240, 165, 0, 0.4);
+
+  --badge-crowded-short-bg:   rgba(231, 76, 60, 0.85);
+  --badge-crowded-short-text: #ffffff;
+  --badge-crowded-short-bdr:  #e74c3c;
+
+  --badge-danger-bg:   rgba(231, 76, 60, 0.85);
+  --badge-danger-text: #ffffff;
+  --badge-danger-bdr:  #e74c3c;
+
+  --badge-warning-bg:   rgba(255, 153, 68, 0.85);
+  --badge-warning-text: #000000;
+  --badge-warning-bdr:  #ff9944;
+
+  --badge-success-bg:   rgba(46, 204, 113, 0.22);
+  --badge-success-text: #2ecc71;
+  --badge-success-bdr:  rgba(46, 204, 113, 0.45);
+
+  --badge-neutral-bg:   #1d2235;
+  --badge-neutral-text: #6b7894;
+  --badge-neutral-bdr:  #2a3050;
+
+  --badge-info-bg:   #1a1a2a;
+  --badge-info-text: #4da6ff;
+  --badge-info-bdr:  #253060;
+
+  /* ─── TYPOGRAPHY ─────────────────────────────────────────── */
+  --font-family:   'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --font-size-2xs: 8px;
+  --font-size-xs:  9px;
+  --font-size-sm:  10px;
+  --font-size-base: 11px;
+  --font-size-md:  12px;
+  --font-size-lg:  13px;
+  --font-size-xl:  14px;
+  --font-size-2xl: 16px;
+  --font-size-3xl: 20px;
+  --font-size-4xl: 24px;
+  --font-size-5xl: 28px;
+
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+  --font-weight-extrabold:800;
+
+  --line-height-tight:  1.1;
+  --line-height-normal: 1.4;
+  --line-height-relaxed:1.6;
+
+  --letter-spacing-tight:   -0.02em;
+  --letter-spacing-normal:   0.04em;
+  --letter-spacing-wide:     0.10em;
+  --letter-spacing-wider:    0.12em;
+  --letter-spacing-widest:   0.18em;
+
+  /* ─── SPACING (8 px grid) ────────────────────────────────── */
+  --space-1:  2px;
+  --space-2:  4px;
+  --space-3:  6px;
+  --space-4:  8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-7: 14px;
+  --space-8: 16px;
+  --space-9: 18px;
+  --space-10:20px;
+  --space-12:24px;
+  --space-14:28px;
+  --space-16:32px;
+
+  /* Semantic aliases */
+  --space-xs:  var(--space-2);
+  --space-sm:  var(--space-4);
+  --space-md:  var(--space-6);
+  --space-lg:  var(--space-8);
+  --space-xl:  var(--space-10);
+  --space-2xl: var(--space-12);
+
+  /* ─── LAYOUT ─────────────────────────────────────────────── */
+  --layout-left-panel:      38%;
+  --layout-right-panel:     62%;
+  --layout-nav-height:      40px;   /* Sticky top nav height      */
+  --layout-card-height:     calc(100vh - var(--layout-nav-height));
+  --layout-metric-name-w:  118px;   /* .name width in brief rows  */
+  --layout-metric-val-w:    58px;   /* .val width in brief rows   */
+
+  /* ─── BORDERS / RADIUS ───────────────────────────────────── */
+  --radius-sm:   2px;
+  --radius-md:   4px;
+  --radius-lg:   6px;
+  --radius-pill: 999px;
+
+  /* ─── ELEVATION (box-shadow) ─────────────────────────────── */
+  --shadow-sm:  0 1px 2px  rgba(0, 0, 0, 0.30);
+  --shadow-md:  0 2px 8px  rgba(0, 0, 0, 0.40);
+  --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.50);
+
+  /* ─── MOTION ─────────────────────────────────────────────── */
+  --ease-default: cubic-bezier(0.4, 0, 0.6, 1);
+  --ease-in:      cubic-bezier(0.4, 0, 1,   1);
+  --ease-out:     cubic-bezier(0, 0, 0.2,   1);
+
+  --duration-fast:   100ms;
+  --duration-normal: 200ms;
+  --duration-slow:   300ms;
+
+  --transition-fast:   var(--duration-fast)   var(--ease-default);
+  --transition-normal: var(--duration-normal) var(--ease-default);
+  --transition-slow:   var(--duration-slow)   var(--ease-default);
+
+  /* ─── Z-INDEX LADDER ─────────────────────────────────────── */
+  --z-base:      1;
+  --z-dropdown: 100;
+  --z-sticky:   200;
+  --z-modal:   1000;
+  --z-toast:   9000;
+  --z-nav:     9999;
+}
+
+
+
+
+
+/* =============================================================
+   ACCESSIBILITY — reduced motion
+   ============================================================= */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast:   0ms;
+    --duration-normal: 0ms;
+    --duration-slow:   0ms;
+  }
+}
+
+
+/* =============================================================
+   SCREEN-READER ONLY UTILITY
+   Used for aria-live regions and skip links
+   ============================================================= */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,63 @@
+﻿---
+description:
+globs:
+alwaysApply: true
+---
+# Session Start Protocol
+
+NOTE: alwaysApply:true has a known bug in Cursor 3.0.16+ where it silently downgrades to requestable. If this rule did not auto-load, manually run: @CONTEXT.md @contaxt files/PLAN.md at the start of the session before any other task.
+
+---
+
+## STEP 0 — READ BEFORE TOUCHING ANYTHING
+
+1. Read CONTEXT.md — full project context, locked decisions, current state
+2. Read contaxt files/PLAN.md — current phase, current session deliverable, what comes next
+
+State the current phase and today's session deliverable explicitly before writing any code:
+"Today's session will build [X]. It will write to [Supabase tables / site path]. It is run.py step [NAME]."
+
+---
+
+## CANONICAL PIPELINE ORDER — NEVER DEVIATE
+
+run.py STEPS (exact, fixed, immutable):
+fx → cot → inr → vol → oi → rr → merge → text → macro → ai → substack → html → validate → deploy
+
+- Never reorder these steps
+- Never suggest parallelization
+- Never make steps conditional
+- New pipelines are added to CANONICAL_ORDER only with explicit instruction
+- If user asks to reorder: push back. Only proceed if user types "override canonical order"
+
+---
+
+## PROTECTED DIRECTORIES — NEVER TOUCH
+
+- data/          → bulk output, never read or reference
+- briefs/        → generated briefs, never read or reference
+- runs/          → pipeline run logs, never read or reference
+- _docs/         → Obsidian vault, NEVER modify, NEVER read, NEVER touch
+- .venv/         → virtual environment, never modify
+
+---
+
+## PROJECT BOUNDARIES
+
+- Python only. No C++. No Node.js backend. No JavaScript frameworks.
+- site/ is static HTML/CSS/JS only. No React. No bundlers.
+- All persistent data goes to Supabase. Not local files in production.
+- One file per signal module. Do not combine pipeline logic.
+- No new dependencies without explicit approval.
+
+---
+
+## BEFORE WRITING ANY CODE
+
+- [ ] CONTEXT.md read and confirmed
+- [ ] contaxt files/PLAN.md read and confirmed
+- [ ] Session deliverable stated explicitly
+- [ ] No conflict with existing Supabase schema
+- [ ] No existing script does what you are about to build
+
+---

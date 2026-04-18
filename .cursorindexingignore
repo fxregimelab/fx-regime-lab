@@ -1,5 +1,43 @@
-*.csv
-*.parquet
-*.db
-*.sqlite
-*.json
+Everything in .cursorignore plus these additional exclusions for indexing
+Archive — never index old code
+_archive/
+Pipeline data — large files, not code
+data/
+briefs/
+charts/
+static/
+runs/
+sql/
+supabase/
+Generated Next.js output
+web/.next/
+web/.vercel/
+Node modules
+node_modules/
+web/node_modules/
+Test and config noise
+*.test.ts
+*.test.tsx
+.spec.ts
+.spec.tsx
+jest.config.
+vitest.config.
+Lock files — no value for indexing
+package-lock.json
+web/package-lock.json
+yarn.lock
+pnpm-lock.yaml
+Binary and media
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.woff
+*.woff2
+*.ttf
+*.eot
+Python compiled
+pycache/
+*.pyc

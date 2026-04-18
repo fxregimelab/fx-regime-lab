@@ -1,22 +1,56 @@
-# FX Regime Lab — Cursor behavior (complements `.cursor/rules/*.mdc`)
+FX Regime Lab — Cursor Rules
+Read TASK.md at the start of every session before anything else.
+Then read only the docs/ files listed in TASK.md for the current task.
+Never read all docs at once.
+Session discipline
 
-## Read first
-1. **Always read repo root `CONTEXT.md` first** for a short project snapshot.
-2. **Orchestration and layout:** `AGENTS.md`, `run.py` (`STEPS`), `contaxt files/PLAN.md` for phase work.
-3. **Deep narrative (optional):** `contaxt files/CONTEXT.md` when philosophy, career context, or long product history matters.
+Read TASK.md first. Always.
+State which files you will modify before modifying any file.
+Complete one task fully before starting another.
+If scope creep appears mid-task, note it in TASK.md under "Discovered issues" and finish the current task first.
+After completing a task, print: DONE — [task name] — [files modified] — [files created]
 
-## Do not treat as code / avoid bulk-reading
-- `.obsidian/`, `_docs/` (Obsidian vault notes — **do not modify `_docs/**` unless the user explicitly asks**)
-- `.git/`, `node_modules/`, `dist/`, `build/`
-- Generated / local bulk: `data/`, `briefs/`, `runs/`, `.venv/`, `venv/`, `__pycache__/`
+What to read for each domain
 
-## Tech stack (this repo)
-- **Primary:** Python — pandas, numpy, requests, supabase-py, yfinance, scipy (no new deps without approval).
-- **Pipeline:** Daily G10 FX regime ETL, merge, text/HTML brief, optional AI/Substack; Supabase upserts + CSV fallback per project rules.
-- **Public site:** Static `site/` (fxregimelab.com / Cloudflare Pages); Workers/bindings as configured — not a React/Node monorepo.
+Frontend task → docs/FRONTEND_ARCHITECTURE.md + docs/DESIGN_SYSTEM.md
+Database/query task → docs/DATABASE_SCHEMA.md
+Pipeline task → docs/PIPELINE_REFERENCE.md
+Signal/regime task → docs/SIGNAL_DEFINITIONS.md
+New feature → docs/FEATURE_REGISTRY.md + docs/PHASES.md
+Unclear → docs/PROJECT_OVERVIEW.md then decide
 
-## Shared logic
-- Use `core/` and `config.py` for paths, clients, shared helpers — there is no `shared/` package.
+Hard rules (never violate)
 
-## Conflicts
-If anything here conflicts with **`.cursor/rules/*.mdc`**, the **`.mdc` rules win** (especially pipeline order: do not restructure `run.py` `STEPS` without explicit instruction).
+Never use Chart.js, ECharts, Plotly, or Recharts anywhere in web/
+Never write supabase.from() inside components, pages, or hooks — queries.ts only
+Never modify *.py files unless TASK.md explicitly says to modify Python
+Never modify workers/site-entry.js unless TASK.md explicitly says to
+Never modify .github/workflows/ unless TASK.md explicitly says to
+Never use inline styles in web/ — Tailwind only
+Never use any TypeScript type — strict mode enforced
+Never hardcode pair names, regime labels, or route paths — use lib/constants/
+Server components → lib/supabase/server.ts
+Client components → lib/supabase/client.ts
+Every new page route needs loading.tsx and error.tsx siblings
+TradingView Lightweight Charts v5 is the only chart library
+
+Token efficiency rules
+
+Read only the files relevant to the current task
+Do not re-read files already read in this session
+Do not print file contents unless asked
+Do not explain what you are about to do — just do it
+Do not summarise what you just did at length — print the DONE line and stop
+Do not ask clarifying questions if TASK.md and the relevant doc answer them
+If genuinely unclear, ask one specific question, not multiple
+
+Code quality rules
+
+TypeScript strict — no any, no ts-ignore, no type assertions without comment
+Every function needs a return type annotation
+No console.log in production code — use proper error handling
+Wrap all Supabase calls in try/catch
+Handle null/undefined from all Supabase responses before using data
+images.unoptimized must stay true in next.config.js (Cloudflare Pages requirement)
+export const runtime = 'edge' required on dynamic routes and API routes
+compatibility_date must stay 2025-01-01 or later in wrangler.toml

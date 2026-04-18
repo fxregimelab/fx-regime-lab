@@ -1,0 +1,22 @@
+# FX Regime Lab — Cursor behavior (complements `.cursor/rules/*.mdc`)
+
+## Read first
+1. **Always read repo root `CONTEXT.md` first** for a short project snapshot.
+2. **Orchestration and layout:** `AGENTS.md`, `run.py` (`STEPS`), `contaxt files/PLAN.md` for phase work.
+3. **Deep narrative (optional):** `contaxt files/CONTEXT.md` when philosophy, career context, or long product history matters.
+
+## Do not treat as code / avoid bulk-reading
+- `.obsidian/`, `_docs/` (Obsidian vault notes — **do not modify `_docs/**` unless the user explicitly asks**)
+- `.git/`, `node_modules/`, `dist/`, `build/`
+- Generated / local bulk: `data/`, `briefs/`, `runs/`, `.venv/`, `venv/`, `__pycache__/`
+
+## Tech stack (this repo)
+- **Primary:** Python — pandas, numpy, requests, supabase-py, yfinance, scipy (no new deps without approval).
+- **Pipeline:** Daily G10 FX regime ETL, merge, text/HTML brief, optional AI/Substack; Supabase upserts + CSV fallback per project rules.
+- **Public site:** Static `site/` (fxregimelab.com / Cloudflare Pages); Workers/bindings as configured — not a React/Node monorepo.
+
+## Shared logic
+- Use `core/` and `config.py` for paths, clients, shared helpers — there is no `shared/` package.
+
+## Conflicts
+If anything here conflicts with **`.cursor/rules/*.mdc`**, the **`.mdc` rules win** (especially pipeline order: do not restructure `run.py` `STEPS` without explicit instruction).

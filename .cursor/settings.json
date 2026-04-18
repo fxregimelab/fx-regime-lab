@@ -1,13 +1,15 @@
 {
-  "plugins": {
-    "firebase": {
-      "enabled": true
-    },
-    "cloudflare": {
-      "enabled": true
-    },
-    "supabase": {
-      "enabled": true
-    }
+  "chat": {
+    "defaultModel": "claude-sonnet-4-5",
+    "alwaysReadFiles": ["TASK.md"],
+    "contextStrategy": "focused"
+  },
+  "indexing": {
+    "respectGitignore": true,
+    "maxFileSize": 500000
+  },
+  "editor": {
+    "formatOnSave": true,
+    "defaultFormatter": "prettier"
   }
 }

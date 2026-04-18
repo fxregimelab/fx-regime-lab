@@ -66,3 +66,10 @@ prototype_*
 temp_*
 debug_*
 
+# Next.js (v2 frontend)
+web/.next/
+web/node_modules/
+web/.vercel/
+.env.local
+!web/public/images/shreyash_sakhare.png
+
