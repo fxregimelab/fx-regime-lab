@@ -6,3 +6,5 @@ pages_build_output_dir = "./web/.vercel/output/static"
 
 [vars]
 ENVIRONMENT = "production"
+NEXT_PUBLIC_SUPABASE_URL = "https://weaaacohvzzgkgxzpaee.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndlYWFhY29odnp6Z2tneHpwYWVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMTYxMzEsImV4cCI6MjA5MDg5MjEzMX0.s-68-fcXLb-6qIs2pMEuojjhbtdeKqL3eU5eLBo3jDg"
