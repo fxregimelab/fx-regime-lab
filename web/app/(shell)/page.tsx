@@ -12,8 +12,6 @@ import { createClient } from '@/lib/supabase/server';
 import type { RegimeCall } from '@/lib/types/regime';
 import type { SignalValue } from '@/lib/types/signal';
 
-export const runtime = 'edge';
-
 function emptyPairRecord<T>(): Record<PairLabel, T | null> {
   return Object.fromEntries(PAIRS.map((p) => [p.label, null])) as Record<PairLabel, T | null>;
 }

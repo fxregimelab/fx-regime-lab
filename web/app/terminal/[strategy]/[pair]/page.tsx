@@ -1,8 +1,6 @@
 // Pair desk — full signal depth
 import { PairDesk } from '@/components/terminal/PairDesk';
 
-export const runtime = 'edge';
-
 type Props = { params: Promise<{ strategy: string; pair: string }> };
 
 export default async function TerminalPairPage({ params }: Props) {

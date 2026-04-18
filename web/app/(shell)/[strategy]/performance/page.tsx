@@ -1,6 +1,4 @@
 // Strategy-specific performance
-export const runtime = 'edge';
-
 type Props = { params: Promise<{ strategy: string }> };
 
 export default async function StrategyPerformancePage({ params }: Props) {

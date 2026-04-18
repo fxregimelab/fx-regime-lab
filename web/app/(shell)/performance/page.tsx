@@ -5,8 +5,6 @@ import { getValidationHomeStrip, getValidationLog } from '@/lib/supabase/queries
 import type { ValidationHomeStrip } from '@/lib/supabase/queries';
 import type { ValidationRow } from '@/lib/types/validation';
 
-export const runtime = 'edge';
-
 export default async function PerformancePage() {
   let initialStrip: ValidationHomeStrip | null = null;
   let initialRows: ValidationRow[] = [];

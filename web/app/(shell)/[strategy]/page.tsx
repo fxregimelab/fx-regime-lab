@@ -1,6 +1,4 @@
 // Strategy overview (fx-regime etc)
-export const runtime = 'edge';
-
 type Props = { params: Promise<{ strategy: string }> };
 
 export default async function StrategyPage({ params }: Props) {

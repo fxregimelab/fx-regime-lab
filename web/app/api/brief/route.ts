@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getLatestBrief } from '@/lib/supabase/queries';
 
-export const runtime = 'edge';
-
 export async function GET() {
   try {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {

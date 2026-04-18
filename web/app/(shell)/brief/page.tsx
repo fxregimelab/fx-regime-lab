@@ -4,9 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 import { getLatestBrief } from '@/lib/supabase/queries';
 import type { BriefLogRow } from '@/lib/supabase/queries';
 
-export const runtime = 'edge';
-export const dynamic = 'force-dynamic';
-
 export default async function BriefPage() {
   let initialBrief: BriefLogRow | null = null;
   let initialError: string | null = null;

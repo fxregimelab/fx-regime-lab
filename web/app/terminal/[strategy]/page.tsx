@@ -2,8 +2,6 @@
 import Link from 'next/link';
 import { PAIRS } from '@/lib/constants/pairs';
 
-export const runtime = 'edge';
-
 type Props = { params: Promise<{ strategy: string }> };
 
 export default async function TerminalStrategyPage({ params }: Props) {
