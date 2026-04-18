@@ -3,224 +3,336 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FX Regime Lab — Regime detection, publicly proven</title>
+  <title>FX Regime Lab - Shreyash Sakhare</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@500;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/assets/intro.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/site.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
-    .hero-v2--v3 {
+    .home-hero {
+      min-height: calc(100vh - var(--nav-h));
       display: flex;
       flex-direction: column;
-      min-height: calc(100vh - var(--nav-h));
-      position: relative;
-      padding: 0 0 24px;
-      max-width: none;
-      margin: 0;
+      justify-content: center;
+      padding: 40px 24px 56px;
+      box-sizing: border-box;
     }
-    .hero-v3-maincols {
+    .home-hero__grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 48px;
+      gap: 40px;
       align-items: center;
-      flex: 1;
       width: 100%;
       max-width: var(--max-w);
       margin: 0 auto;
-      padding: 48px 24px 0;
     }
     @media (min-width: 960px) {
-      .hero-v3-maincols {
-        grid-template-columns: 1.1fr 0.9fr;
+      .home-hero__grid {
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 56px;
       }
     }
-    .hero-v2--v3 .hero-v2__col-left,
-    .hero-v2--v3 .hero-v2__col-right {
-      margin: 0;
-      padding: 0;
-      max-width: none;
-    }
-    .hero-v2--v3 .hero-v2__col-right {
-      animation: none;
-    }
-    .hero-v3-accuracy {
-      margin-bottom: 14px;
-    }
-    .hero-v3-accuracy__track {
-      width: 120px;
-      height: 3px;
-      background: rgba(0, 0, 0, 0.08);
-      border-radius: 1px;
-      overflow: hidden;
-    }
-    .hero-v3-accuracy__fill {
-      height: 100%;
-      width: 0%;
-      background: #2d9e6b;
-      border-radius: 1px;
-    }
-    .hero-v3-accuracy__lbl {
-      font-family: var(--font-mono);
+    .home-eyebrow {
+      font-family: var(--font-body);
       font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin: 0 0 16px;
+      max-width: 26em;
+    }
+    .home-hero__h1 {
+      font-family: var(--font-display);
+      font-size: 38px;
+      font-weight: 700;
+      line-height: 1.1;
       color: var(--text);
-      margin: 8px 0 0;
-      line-height: 1.3;
+      margin: 0 0 20px;
+      letter-spacing: -0.02em;
     }
-    .hero-v3-scrollcue {
-      text-align: center;
-      font-family: 'DM Sans', system-ui, sans-serif;
-      font-size: 11px;
-      color: #9ca3af;
-      margin: 20px auto 12px;
-      transition: opacity 0.35s ease;
-    }
-    .hero-v3-scrollcue.is-hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-    .hero-v3-scrollcue__arrow {
-      display: inline-block;
-      margin-right: 4px;
-      animation: heroV3ScrollBounce 2s ease-in-out infinite;
-    }
-    @keyframes heroV3ScrollBounce {
-      0%,
-      100% {
-        transform: translateY(0);
-      }
-      50% {
-        transform: translateY(6px);
+    @media (min-width: 960px) {
+      .home-hero__h1 {
+        font-size: 56px;
       }
     }
-    .hero-v3-ticker {
-      width: 100%;
-      max-width: none;
-      margin: 0;
-      overflow: hidden;
-      padding: 8px 0;
-      background: rgba(27, 58, 107, 0.06);
-      border-top: 1px solid rgba(27, 58, 107, 0.15);
-      border-bottom: 1px solid rgba(27, 58, 107, 0.15);
+    .home-hero__lede {
+      font-family: var(--font-body);
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--text-sec);
+      max-width: 480px;
+      margin: 0 0 28px;
     }
-    .hero-v3-ticker__inner {
-      display: inline-flex;
-      width: max-content;
-      animation: heroV3Ticker 40s linear infinite;
+    .home-hero__ctas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px 28px;
+      margin-bottom: 22px;
     }
-    @keyframes heroV3Ticker {
-      from {
-        transform: translateX(0);
-      }
-      to {
-        transform: translateX(-50%);
-      }
+    .home-hero__cta {
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
-    .hero-v3-ticker__segment {
-      flex-shrink: 0;
+    .home-hero__cta:hover {
+      color: var(--accent-hover);
+    }
+    .home-hero__pipe {
       font-family: var(--font-mono);
-      font-size: 11px;
-      color: rgba(27, 58, 107, 0.7);
-      padding: 0 48px 0 0;
-      white-space: nowrap;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin: 0;
     }
-    #hero-card-eur {
-      opacity: 0;
-      transform: translateX(40px);
+    .home-card--skeleton .home-skel-hide {
+      visibility: hidden;
     }
-    #hero-card-eur.hero-v3-card-ready {
-      opacity: 1;
-      transform: translateX(0);
-      transition: opacity 700ms ease-out, transform 700ms ease-out;
+    .home-card--skeleton .home-skel-bar {
+      display: block;
     }
-    .hero-v3-confbar {
-      margin-bottom: 14px;
+    .home-skel-bar {
+      display: none;
+      height: 10px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+      margin-bottom: 12px;
+      animation: homeSkelPulse 1.2s ease-in-out infinite;
     }
-    .hero-v3-confbar__track {
-      position: relative;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 2px;
-      overflow: hidden;
+    .home-skel-bar:nth-child(2) {
+      animation-delay: 0.15s;
     }
-    .hero-v3-confbar__fill {
-      height: 100%;
-      width: 0%;
-      border-radius: 2px;
-      background: var(--pair-eur);
+    .home-skel-bar:nth-child(3) {
+      animation-delay: 0.3s;
     }
-    .hero-v3-confbar__shimmer {
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 45%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
-      pointer-events: none;
-      animation: heroV3Shimmer 12s ease-in-out infinite;
-    }
-    @keyframes heroV3Shimmer {
-      0%,
-      92% {
-        transform: translateX(-120%);
-        opacity: 0;
-      }
-      92.5% {
-        opacity: 1;
-      }
-      97.5% {
-        transform: translateX(380%);
-        opacity: 0;
-      }
-      100% {
-        opacity: 0;
-      }
-    }
-    .hero-v2--v3 .pulse-dot {
-      animation: heroV3PulseDot 3s ease-in-out infinite;
-    }
-    @keyframes heroV3PulseDot {
+    @keyframes homeSkelPulse {
       0%,
       100% {
-        opacity: 1;
+        opacity: 0.45;
       }
       50% {
-        opacity: 0.3;
+        opacity: 1;
       }
-    }
-    html.hero-site-anim-paused .hero-v3-ticker__inner,
-    html.hero-site-anim-paused .hero-v2--v3 .pulse-dot,
-    html.hero-site-anim-paused .hero-v3-confbar__shimmer {
-      animation-play-state: paused !important;
     }
     @media (prefers-reduced-motion: reduce) {
-      .hero-v3-ticker__inner {
+      .home-skel-bar {
         animation: none;
-        transform: translateX(0);
+        opacity: 0.7;
       }
-      .hero-v3-scrollcue__arrow {
-        animation: none;
+    }
+    .home-pairs {
+      padding: 48px 24px 64px;
+      max-width: var(--max-w);
+      margin: 0 auto;
+    }
+    .home-pairs__grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    @media (min-width: 900px) {
+      .home-pairs__grid {
+        grid-template-columns: repeat(3, 1fr);
       }
-      .hero-v3-confbar__shimmer {
-        animation: none;
-        opacity: 0;
+    }
+    .home-pair-wrap {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      border-radius: var(--radius-card);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .home-pair-wrap:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+    }
+    .home-pair-wrap:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .home-pair-foot {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--accent);
+      margin-top: 12px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .home-track {
+      background: var(--bg-dark);
+      color: #e8edf5;
+      padding: 36px 24px 40px;
+    }
+    .home-track__grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px 16px;
+      max-width: 900px;
+      margin: 0 auto 20px;
+      text-align: center;
+    }
+    @media (min-width: 800px) {
+      .home-track__grid {
+        grid-template-columns: repeat(4, 1fr);
       }
+    }
+    .home-track__num {
+      font-family: var(--font-mono);
+      font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+      font-weight: 600;
+      color: #fff;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .home-track__lbl {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(232, 237, 245, 0.75);
+    }
+    .home-track-accumulating {
+      font-family: var(--font-body);
+      font-size: inherit;
+      font-style: italic;
+      color: rgba(232, 237, 245, 0.55);
+    }
+    .home-track__note {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: rgba(232, 237, 245, 0.55);
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto;
+      line-height: 1.55;
+    }
+    .home-track__note a {
+      color: #93c5fd;
+      text-decoration: underline;
+      margin-left: 4px;
+    }
+    .home-signals {
+      padding: var(--section-y) 24px;
+      max-width: var(--max-w);
+      margin: 0 auto;
+    }
+    .home-signals__h2 {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 12px;
+      line-height: 1.15;
+    }
+    .home-signals__sub {
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text-sec);
+      max-width: 640px;
+      margin: 0 0 36px;
+    }
+    .home-signals__grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 28px 32px;
+    }
+    @media (min-width: 700px) {
+      .home-signals__grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    .home-sig__num {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin: 0 0 6px;
+    }
+    .home-sig__name {
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 10px;
+    }
+    .home-sig__body {
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-sec);
+      margin: 0;
+    }
+    .home-about {
+      padding: var(--section-y) 24px;
+      background: var(--bg-page);
+    }
+    .home-about__inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    @media (min-width: 800px) {
+      .home-about__inner {
+        grid-template-columns: minmax(200px, 280px) 1fr;
+      }
+    }
+    .home-about__photo {
+      width: 100%;
+      max-width: 280px;
+      margin: 0 auto;
+      border-radius: 8px;
+      display: block;
+      height: auto;
+    }
+    .home-about__label {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin: 0 0 12px;
+    }
+    .home-about__name {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 16px;
+      line-height: 1.15;
+    }
+    .home-about__body {
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--text-sec);
+      max-width: 460px;
+      margin: 0 0 18px;
+    }
+    .home-about__link {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
   </style>
 </head>
-<body class="theme-light intro-active">
-  <div id="fxrl-intro" aria-hidden="true">
-    <canvas id="intro-canvas"></canvas>
-    <div id="intro-brand-text"></div>
-    <button id="intro-skip" type="button" aria-label="Skip intro">Skip</button>
-  </div>
+<body class="theme-light">
   <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
   <div class="v2-wrap">
     <header class="v2-nav" data-nav-root>
       <a class="v2-nav__brand" href="/">
-        <span id="nav-mark-slot" class="v2-nav__mark-slot" aria-hidden="true">
-          <svg id="nav-mark" class="v2-nav__mark-static" viewBox="0 0 240 135" xmlns="http://www.w3.org/2000/svg">
+        <span class="v2-nav__mark-slot" aria-hidden="true">
+          <svg class="v2-nav__mark-static" viewBox="0 0 240 135" xmlns="http://www.w3.org/2000/svg">
             <path d="M82 12 L212 12 L227 40 L97 40 Z" fill="#2563A8"></path>
             <path d="M65 52 L180 52 L195 80 L80 80 Z" fill="#B86B2A"></path>
             <path d="M48 92 L148 92 L163 120 L63 120 Z" fill="#A63030"></path>
@@ -230,12 +342,17 @@
       </a>
       <ul class="v2-nav__links">
         <li><a href="/" data-path="/">Home</a></li>
-        <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
-        <li><a href="/terminal/overview.html" data-path="/terminal/overview">Terminal</a></li>
-        <li><a href="/performance/" data-path="/performance">Performance</a></li>
         <li><a href="/brief/" data-path="/brief">Brief</a></li>
-        <li><a href="/newsletter/" data-path="/newsletter">Newsletter</a></li>
-        <li><a href="/methodology/" data-path="/methodology">Methodology</a></li>
+        <li class="v2-nav__item v2-nav__item--research">
+          <button type="button" class="v2-nav__research-trigger" data-nav-research-trigger aria-expanded="false" aria-haspopup="true">Research</button>
+          <div class="v2-nav__dropdown" role="menu">
+            <a href="/dashboard/" data-path="/dashboard" role="menuitem">Dashboard</a>
+            <a href="/terminal/overview.html" data-path="/terminal/overview" role="menuitem">Terminal</a>
+            <a href="/performance/" data-path="/performance" role="menuitem">Performance</a>
+            <a href="/methodology/" data-path="/methodology" role="menuitem">Methodology</a>
+            <a href="/newsletter/" data-path="/newsletter" role="menuitem">Newsletter</a>
+          </div>
+        </li>
         <li><a href="/about/" data-path="/about">About</a></li>
       </ul>
       <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu">
@@ -243,273 +360,226 @@
       </button>
     </header>
     <div class="v2-nav__overlay" data-nav-overlay>
-      <a href="/">Home</a>
-      <a href="/dashboard/">Dashboard</a>
-      <a href="/terminal/overview.html">Terminal</a>
-      <a href="/performance/">Performance</a>
-      <a href="/brief/">Brief</a>
-      <a href="/newsletter/">Newsletter</a>
-      <a href="/methodology/">Methodology</a>
-      <a href="/about/">About</a>
+      <div class="v2-nav__overlay-inner">
+        <a href="/" data-path="/">Home</a>
+        <a href="/brief/" data-path="/brief">Brief</a>
+        <div class="v2-nav__overlay-research">
+          <button type="button" class="v2-nav__overlay-research-trigger" data-nav-overlay-research-trigger aria-expanded="false">Research</button>
+          <div class="v2-nav__overlay-subs" data-nav-overlay-subs hidden>
+            <a href="/dashboard/">Dashboard</a>
+            <a href="/terminal/overview.html">Terminal</a>
+            <a href="/performance/">Performance</a>
+            <a href="/methodology/">Methodology</a>
+            <a href="/newsletter/">Newsletter</a>
+          </div>
+        </div>
+        <a href="/about/" data-path="/about">About</a>
+      </div>
     </div>
 
     <main>
-      <section class="hero-v2 hero-v2--v3" data-canvas-opacity="1">
-        <div class="hero-v3-maincols">
-          <div class="hero-v2__col-left">
-            <div class="hero-v3-accuracy" id="hero-accuracy-wrap">
-              <div class="hero-v3-accuracy__track">
-                <div class="hero-v3-accuracy__fill" id="hero-accuracy-fill"></div>
-              </div>
-              <p class="hero-v3-accuracy__lbl" id="hero-accuracy-lbl">Loading validation context…</p>
+      <section class="home-hero" aria-label="Introduction">
+        <div class="home-hero__grid">
+          <div>
+            <p class="home-eyebrow">Live macro strategy · since April 2026</p>
+            <h1 class="home-hero__h1">Shreyash Sakhare.<br />Building the track record.</h1>
+            <p class="home-hero__lede">
+              20. EE undergrad. Studying how G10 FX regimes form and break with rate differentials, COT positioning, and volatility. Every call logged the moment it is made. Every outcome public.
+            </p>
+            <div class="home-hero__ctas">
+              <a class="home-hero__cta" href="/brief/">Read today's brief →</a>
+              <a class="home-hero__cta" href="/dashboard/">See the validation log →</a>
             </div>
-            <p class="label-caps hero-v2__label">Live · Daily · Verified</p>
-            <h1 class="hero-v2__title">Regime detection.<br />Publicly proven.</h1>
-            <p class="hero-v2__sub">Live daily signals across EUR/USD, USD/JPY, and USD/INR — built on rate differentials, COT positioning, implied volatility, and cross-asset correlations. Every call logged. Every outcome tracked.</p>
-            <div class="hero-v2__links">
-              <a class="link-primary" href="/dashboard/">View live dashboard →</a>
-              <a class="link-sec" href="/brief/">Read today's brief →</a>
-            </div>
-            <p class="hero-v2__attr">Built by Shreyash Sakhare · fxregimelab.com</p>
+            <p class="home-hero__pipe">Pipeline last run: <span id="home-pipeline-ts">-</span></p>
           </div>
-          <div class="hero-v2__col-right">
-            <div class="card-dark card-dark--eur" id="hero-card-eur">
-              <div class="hero-card-dark__top">
-                <span class="hero-card-dark__pair">EUR / USD</span>
-                <span class="badge-regime" id="hero-eur-badge">TRENDING LONG</span>
-              </div>
-              <div class="hero-card-dark__conf">
-                <span class="hero-card-dark__conf-num" id="hero-eur-conf">0</span><span class="hero-card-dark__conf-num" style="font-size:28px">%</span>
-                <span class="hero-card-dark__conf-lbl">Confidence</span>
-              </div>
-              <div class="hero-v3-confbar">
-                <div class="hero-v3-confbar__track">
-                  <div class="hero-v3-confbar__fill" id="hero-eur-confbar-fill"></div>
-                  <div class="hero-v3-confbar__shimmer" aria-hidden="true"></div>
+          <div>
+            <div class="card-dark card-dark--eur home-card--skeleton" id="home-hero-card">
+              <span class="home-skel-bar" aria-hidden="true"></span>
+              <span class="home-skel-bar" aria-hidden="true"></span>
+              <span class="home-skel-bar" aria-hidden="true"></span>
+              <div class="home-skel-hide">
+                <div class="hero-card-dark__top">
+                  <span class="hero-card-dark__pair">EUR / USD</span>
+                  <span class="badge-regime" id="home-hero-badge">-</span>
+                </div>
+                <div class="hero-card-dark__conf">
+                  <span class="hero-card-dark__conf-num" id="home-hero-conf">-</span><span class="hero-card-dark__conf-num" style="font-size: 28px">%</span>
+                  <span class="hero-card-dark__conf-lbl">Confidence</span>
+                </div>
+                <div class="hero-v3-confbar" style="margin-bottom: 14px">
+                  <div class="hero-v3-confbar__track">
+                    <div class="hero-v3-confbar__fill" id="home-hero-conf-bar" style="width: 0%; background: var(--pair-eur)"></div>
+                  </div>
+                </div>
+                <div class="hero-card-dark__divider"></div>
+                <div class="hero-card-dark__row"><span>Rate differential</span><span class="hero-card-dark__pos" id="home-hero-rd">-</span></div>
+                <div class="hero-card-dark__row"><span>COT percentile</span><span id="home-hero-cot">-</span></div>
+                <div class="hero-card-dark__row"><span>Realized vol</span><span id="home-hero-vol">-</span></div>
+                <div class="hero-card-dark__row"><span>Signal composite</span><span id="home-hero-sc">-</span></div>
+                <div class="hero-card-dark__foot">
+                  <span class="pulse-dot" aria-hidden="true"></span>
+                  <span id="home-hero-ts">-</span>
                 </div>
               </div>
-              <div class="hero-card-dark__divider"></div>
-              <div class="hero-card-dark__row" data-hero-v3-row><span>Rate Differential</span><span class="hero-card-dark__pos" id="hero-eur-rd">▲ +0bp</span></div>
-              <div class="hero-card-dark__row" data-hero-v3-row><span>COT Position</span><span id="hero-eur-cot">0th pct</span></div>
-              <div class="hero-card-dark__row" data-hero-v3-row><span>Realized Vol</span><span id="hero-eur-vol">0.0%</span></div>
-              <div class="hero-card-dark__row" data-hero-v3-row><span>Signal composite</span><span id="hero-eur-sc">+0.00</span></div>
-              <div class="hero-card-dark__foot">
-                <span class="pulse-dot" aria-hidden="true"></span>
-                <span id="hero-eur-ts">Updated — UTC</span>
-              </div>
             </div>
-          </div>
-        </div>
-        <p class="hero-v3-scrollcue" id="hero-scrollcue"><span class="hero-v3-scrollcue__arrow">↓</span> Scroll to explore</p>
-        <p
-          id="home-macro-catalyst"
-          class="font-mono"
-          style="max-width:var(--max-w);margin:0 auto 8px;padding:0 24px;font-size:12px;line-height:1.5;color:var(--text-muted)"
-        ></p>
-        <div class="hero-v3-ticker" aria-hidden="true">
-          <div class="hero-v3-ticker__inner">
-            <span class="hero-v3-ticker__segment"
-              >EUR/USD · TRENDING LONG · 72% confidence · Rate Diff: +47bp · COT: 72nd pct · USD/JPY · NEUTRAL · 44% confidence · USD/INR · STRUCTURAL LONG · 91% confidence · Pipeline last run: 23:14 UTC · Apr 04 2026 ·
-            </span>
-            <span class="hero-v3-ticker__segment"
-              >EUR/USD · TRENDING LONG · 72% confidence · Rate Diff: +47bp · COT: 72nd pct · USD/JPY · NEUTRAL · 44% confidence · USD/INR · STRUCTURAL LONG · 91% confidence · Pipeline last run: 23:14 UTC · Apr 04 2026 ·
-            </span>
           </div>
         </div>
       </section>
 
-      <section class="section-v2">
-        <h2 class="section-v2__title" data-reveal="headline">Three pairs. One framework. Daily.</h2>
-        <p class="section-v2__sub" data-reveal="sub">EUR/USD · USD/JPY · USD/INR — each pair tracked across the same signal stack, updated every trading day after market close.</p>
-        <div class="grid-pairs" id="regime-cards" data-reveal-stagger="cards">
-          <article class="card-light card-light--eur" data-conf-target="72">
-            <div class="pair-card__head">
-              <span class="pair-card__name">EUR/USD</span>
-              <span class="badge-regime" style="background:rgba(37,99,168,.1);border-color:rgba(37,99,168,.25);color:var(--pair-eur)" id="card-eur-regime">TRENDING LONG</span>
-            </div>
-            <div class="conf-bar-wrap">
-              <span class="label-caps">Confidence</span>
-              <div class="conf-bar-row">
-                <div class="conf-bar"><div class="conf-bar__fill" id="card-eur-bar" style="width:72%;background:var(--pair-eur)"></div></div>
-                <span class="font-mono" style="font-weight:600" id="card-eur-conf">72%</span>
+      <section class="home-pairs" aria-label="Active pairs">
+        <div class="home-pairs__grid">
+          <a class="home-pair-wrap" href="/terminal/eurusd.html">
+            <article class="card-light card-light--eur dash-pair-card home-card--skeleton" id="home-pair-eur">
+              <span class="home-skel-bar" style="background: rgba(0, 0, 0, 0.08)" aria-hidden="true"></span>
+              <span class="home-skel-bar" style="background: rgba(0, 0, 0, 0.08)" aria-hidden="true"></span>
+              <div class="home-skel-hide">
+                <div class="pair-card__head">
+                  <span class="pair-card__name">EUR/USD</span>
+                  <span class="badge-regime" id="home-eur-badge" style="background: rgba(37, 99, 168, 0.1); border-color: rgba(37, 99, 168, 0.25); color: var(--pair-eur)">-</span>
+                </div>
+                <p class="dash-regime-history" id="home-eur-history" style="font-size: 12px; color: var(--text-muted); margin: 8px 0 0; line-height: 1.4"></p>
+                <div class="conf-bar-wrap">
+                  <span class="label-caps">Confidence</span>
+                  <div class="conf-bar-row">
+                    <div class="conf-bar"><div class="conf-bar__fill" id="home-eur-conf-bar" style="width: 0%; background: var(--pair-eur)"></div></div>
+                    <span class="font-mono" style="font-weight: 600" id="home-eur-conf-pct">-</span>
+                  </div>
+                </div>
+                <div class="hero-card-dark__row dash-data-row" style="color: var(--text)"><span>Rate differential</span><span class="font-mono" id="home-eur-rd">-</span></div>
+                <div class="hero-card-dark__row dash-data-row" style="color: var(--text)"><span>COT percentile</span><span class="font-mono" id="home-eur-cot">-</span></div>
+                <div class="hero-card-dark__row dash-data-row" style="color: var(--text)"><span>Realized vol</span><span class="font-mono" id="home-eur-vol">-</span></div>
+                <p class="label-caps" style="margin-top: 16px; color: var(--text-muted)">Change from yesterday</p>
+                <p class="font-mono" style="margin: 0" id="home-eur-chg">-</p>
               </div>
-            </div>
-            <div class="pair-sparkline-wrap" aria-hidden="true">
-              <canvas class="pair-sparkline" id="spark-eur" width="400" height="40"></canvas>
-            </div>
-            <ul class="signal-dots">
-              <li><span class="dot dot-ok"></span> Rate stack</li>
-              <li><span class="dot dot-ok"></span> COT</li>
-              <li><span class="dot dot-warn"></span> Vol</li>
-            </ul>
-            <a class="link-primary" href="/dashboard/">View in dashboard →</a>
-          </article>
-          <article class="card-light card-light--jpy" data-conf-target="58">
-            <div class="pair-card__head">
-              <span class="pair-card__name">USD/JPY</span>
-              <span class="badge-regime" style="background:rgba(184,107,42,.1);border-color:rgba(184,107,42,.25);color:var(--pair-jpy)" id="card-jpy-regime">NEUTRAL</span>
-            </div>
-            <div class="conf-bar-wrap">
-              <span class="label-caps">Confidence</span>
-              <div class="conf-bar-row">
-                <div class="conf-bar"><div class="conf-bar__fill" id="card-jpy-bar" style="width:58%;background:var(--pair-jpy)"></div></div>
-                <span class="font-mono" style="font-weight:600" id="card-jpy-conf">58%</span>
+              <p class="home-pair-foot">View in terminal →</p>
+            </article>
+          </a>
+          <a class="home-pair-wrap" href="/terminal/usdjpy.html">
+            <article class="card-light card-light--jpy dash-pair-card home-card--skeleton" id="home-pair-jpy">
+              <span class="home-skel-bar" style="background: rgba(0, 0, 0, 0.08)" aria-hidden="true"></span>
+              <span class="home-skel-bar" style="background: rgba(0, 0, 0, 0.08)" aria-hidden="true"></span>
+              <div class="home-skel-hide">
+                <div class="pair-card__head">
+                  <span class="pair-card__name">USD/JPY</span>
+                  <span class="badge-regime" id="home-jpy-badge" style="background: rgba(184, 107, 42, 0.1); border-color: rgba(184, 107, 42, 0.25); color: var(--pair-jpy)">-</span>
+                </div>
+                <p class="dash-regime-history" id="home-jpy-history" style="font-size: 12px; color: var(--text-muted); margin: 8px 0 0; line-height: 1.4"></p>
+                <div class="conf-bar-wrap">
+                  <span class="label-caps">Confidence</span>
+                  <div class="conf-bar-row">
+                    <div class="conf-bar"><div class="conf-bar__fill" id="home-jpy-conf-bar" style="width: 0%; background: var(--pair-jpy)"></div></div>
+                    <span class="font-mono" style="font-weight: 600" id="home-jpy-conf-pct">-</span>
+                  </div>
+                </div>
+                <div class="hero-card-dark__row dash-data-row" style="color: var(--text)"><span>Rate differential</span><span class="font-mono" id="home-jpy-rd">-</span></div>
+                <div class="hero-card-dark__row dash-data-row" style="color: var(--text)"><span>COT percentile</span><span class="font-mono" id="home-jpy-cot">-</span></div>
+                <div class="hero-card-dark__row dash-data-row" style="color: var(--text)"><span>Realized vol</span><span class="font-mono" id="home-jpy-vol">-</span></div>
+                <p class="label-caps" style="margin-top: 16px; color: var(--text-muted)">Change from yesterday</p>
+                <p class="font-mono" style="margin: 0" id="home-jpy-chg">-</p>
               </div>
-            </div>
-            <div class="pair-sparkline-wrap" aria-hidden="true">
-              <canvas class="pair-sparkline" id="spark-jpy" width="400" height="40"></canvas>
-            </div>
-            <ul class="signal-dots">
-              <li><span class="dot dot-miss"></span> Rate stack</li>
-              <li><span class="dot dot-miss"></span> COT</li>
-              <li><span class="dot dot-miss"></span> Vol</li>
-            </ul>
-            <a class="link-primary" href="/dashboard/">View in dashboard →</a>
-          </article>
-          <article class="card-light card-light--inr" data-conf-target="0">
-            <div class="pair-card__head">
-              <span class="pair-card__name">USD/INR</span>
-              <span class="badge-regime" style="background:rgba(166,48,48,.1);border-color:rgba(166,48,48,.25);color:var(--pair-inr)" id="card-inr-regime">DIRECTIONAL ONLY</span>
-            </div>
-            <div class="conf-bar-wrap">
-              <span class="label-caps">Confidence</span>
-              <div class="conf-bar-row">
-                <div class="conf-bar"><div class="conf-bar__fill" id="card-inr-bar" style="width:0%;background:var(--pair-inr)"></div></div>
-                <span class="font-mono" style="font-weight:600" id="card-inr-conf">—</span>
+              <p class="home-pair-foot">View in terminal →</p>
+            </article>
+          </a>
+          <a class="home-pair-wrap" href="/terminal/usdinr.html">
+            <article class="card-light card-light--inr dash-pair-card home-card--skeleton" id="home-pair-inr">
+              <span class="home-skel-bar" style="background: rgba(0, 0, 0, 0.08)" aria-hidden="true"></span>
+              <span class="home-skel-bar" style="background: rgba(0, 0, 0, 0.08)" aria-hidden="true"></span>
+              <div class="home-skel-hide">
+                <div class="pair-card__head">
+                  <span class="pair-card__name">USD/INR</span>
+                  <span class="badge-regime" id="home-inr-badge" style="background: rgba(166, 48, 48, 0.1); border-color: rgba(166, 48, 48, 0.25); color: var(--pair-inr)">-</span>
+                </div>
+                <p class="dash-regime-history" id="home-inr-history" style="font-size: 12px; color: var(--text-muted); margin: 8px 0 0; line-height: 1.4"></p>
+                <div class="conf-bar-wrap">
+                  <span class="label-caps">Confidence</span>
+                  <div class="conf-bar-row">
+                    <div class="conf-bar"><div class="conf-bar__fill" id="home-inr-conf-bar" style="width: 0%; background: var(--pair-inr)"></div></div>
+                    <span class="font-mono" style="font-weight: 600" id="home-inr-conf-pct">-</span>
+                  </div>
+                </div>
+                <div class="hero-card-dark__row dash-data-row" style="color: var(--text)"><span>10Y spread</span><span class="font-mono" id="home-inr-rd">-</span></div>
+                <div class="hero-card-dark__row dash-data-row" style="color: var(--text)"><span>Realized vol</span><span class="font-mono" id="home-inr-vol">-</span></div>
+                <p class="label-caps" style="margin-top: 16px; color: var(--text-muted)">Change from yesterday</p>
+                <p class="font-mono" style="margin: 0" id="home-inr-chg">-</p>
               </div>
-            </div>
-            <div class="pair-sparkline-wrap" aria-hidden="true">
-              <canvas class="pair-sparkline" id="spark-inr" width="400" height="40"></canvas>
-            </div>
-            <ul class="signal-dots">
-              <li><span class="dot dot-warn"></span> Spot / vol</li>
-              <li><span class="dot dot-miss"></span> COT</li>
-              <li><span class="dot dot-miss"></span> Cross-asset</li>
-            </ul>
-            <a class="link-primary" href="/dashboard/">View in dashboard →</a>
-          </article>
+              <p class="home-pair-foot">View in terminal →</p>
+            </article>
+          </a>
         </div>
       </section>
 
-      <div class="section-bg-subtle">
-        <div class="section-v2 section-v2__inner">
-          <div class="text-center" style="max-width:640px;margin:0 auto 48px">
-            <p class="label-caps" style="color:var(--text-muted)" data-reveal="headline">The signal framework</p>
-            <p class="section-v2__sub" style="margin-top:12px;margin-bottom:0" data-reveal="sub">Four signal layers. Each independent. Each measuring something the others cannot.</p>
-          </div>
-          <div class="meth-grid" data-reveal-stagger="cards">
-            <div class="meth-item">
-              <p class="label-caps">Rate differentials</p>
-              <h3>Yield spreads</h3>
-              <p>2Y and 10Y yield spreads across Fed, ECB, and BoJ — the primary directional driver for G10 FX regime direction.</p>
-            </div>
-            <div class="meth-item">
-              <p class="label-caps">COT positioning</p>
-              <h3>Crowding</h3>
-              <p>CFTC Commitment of Traders — Leveraged Money and Asset Manager categories, ranked by 52-week percentile to detect crowding risk.</p>
-            </div>
-            <div class="meth-item">
-              <p class="label-caps">Implied volatility</p>
-              <h3>Regime shifts</h3>
-              <p>CME CVOL 30-day implied vol and skew — distinguishes trending regimes from vol-expansion regimes before they occur.</p>
-            </div>
-            <div class="meth-item">
-              <p class="label-caps">Cross-asset</p>
-              <h3>Context</h3>
-              <p>VIX, DXY, and oil — regime confirmation signals that change what every other signal means.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section-bg-white section-canvas-dim">
-        <div class="section-v2__inner two-col" style="padding-top:var(--section-y);padding-bottom:var(--section-y)">
-          <div data-reveal-stagger="cards" style="display:contents">
+      <section class="home-track" aria-label="Track record">
+        <div class="home-track__grid">
           <div>
-            <p class="label-caps" style="color:var(--text-muted)" data-reveal="headline">The daily brief</p>
-            <h2 class="section-v2__title mt-0" data-reveal="headline">Every morning.<br />Before the market opens.</h2>
-            <p class="section-v2__sub" data-reveal="sub">A daily regime brief covering what the signals say, what changed overnight, and what setups are forming. Written for practitioners, not for algorithms.</p>
-            <a class="ghost-btn" href="/brief/">Read this morning's brief →</a>
+            <span class="home-track__num">Apr 2026</span>
+            <span class="home-track__lbl">Tracking since</span>
           </div>
-          <div class="card-dark brief-preview-dark" style="border-left:3px solid var(--accent)">
-            <div class="bp-head">
-              <span>FX REGIME LAB</span>
-              <span>QUANTAMENTAL MACRO BRIEF</span>
-            </div>
-            <div class="bp-head" style="margin-top:4px">
-              <span class="label-caps" style="font-size:11px;letter-spacing:0.08em">DAILY 23:00 UTC</span>
-              <span class="font-mono" id="brief-preview-date">APR 04 2026 · 23:14 UTC</span>
-            </div>
-            <div class="bp-divider"></div>
-            <p class="bp-acc" id="brief-preview-acc">Validation context loads from Supabase when configured.</p>
-            <p class="bp-pair">EUR/USD</p>
-            <p class="bp-regime">TRENDING LONG</p>
-            <p class="bp-meta">Confidence: 72% · Rate diff: +47bp · COT: 72nd pct</p>
-            <p class="bp-body">Rate differential momentum remains positive with the 2Y spread holding above +45bp. COT positioning at 72nd percentile…</p>
-            <p class="bp-link"><a href="/brief/">Read full brief →</a></p>
+          <div>
+            <span class="home-track__num" id="home-track-days">-</span>
+            <span class="home-track__lbl">Days logged</span>
           </div>
+          <div>
+            <span class="home-track__num" id="home-track-predictions">-</span>
+            <span class="home-track__lbl">Predictions made</span>
+          </div>
+          <div>
+            <span class="home-track__num" id="home-track-accuracy">-</span>
+            <span class="home-track__lbl">Rolling 20d accuracy</span>
           </div>
         </div>
-      </div>
-
-      <section class="section-v2 text-center">
-        <h2 class="section-v2__title mx-auto" data-reveal="headline">Every call. Every outcome.<br />On the record.</h2>
-        <p class="section-v2__sub mx-auto" style="max-width:560px" data-reveal="sub">Since April 2026, every regime prediction has been logged at the moment of generation and compared against actual next-day price movement. No backdating. No cherry-picking.</p>
-        <div class="stats-row" data-reveal="stats">
-          <div class="stat-block">
-            <div class="num" id="home-stat-pool-pct" data-count="0" data-suffix="%">—</div>
-            <div class="lbl">20-day accuracy pool</div>
-            <div class="sub" id="home-stat-pool-sub">Evaluated days (all pairs)</div>
-          </div>
-          <div class="stat-block">
-            <div class="num" id="home-stat-logged" data-count="0">0</div>
-            <div class="lbl">Predictions logged</div>
-            <div class="sub">Across all pairs</div>
-          </div>
-          <div class="stat-block">
-            <div class="num" style="font-size:36px">Apr 2026</div>
-            <div class="lbl">Tracking since</div>
-            <div class="sub">No backdating</div>
-          </div>
-        </div>
-        <p class="section-v2__sub mx-auto" style="max-width:640px;margin-bottom:12px;font-size:13px;color:var(--text-muted)" id="home-validation-table-note">
-          Illustrative rows below; live log is on the <a href="/dashboard/#validation">dashboard</a> and in the terminal.
+        <p class="home-track__note">
+          No backdating. Calls logged at generation time. Outcomes filled next trading day.
+          <a href="/dashboard/">Full log →</a>
         </p>
-        <div style="overflow-x:auto;margin-bottom:24px">
-          <table class="table-v2 mx-auto" style="max-width:800px">
-            <thead><tr><th>Date</th><th>Pair</th><th>Predicted</th><th>Confidence</th><th>Outcome</th></tr></thead>
-            <tbody data-reveal-stagger="rows">
-              <tr><td colspan="5" class="cell-mono" style="text-align:center;color:var(--text-muted);padding:20px">Sample layout — not live outcomes</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <a class="link-primary" href="/dashboard/#validation">View full validation log →</a>
       </section>
 
-      <div class="section-bg-white">
-        <div class="section-v2__inner researcher-grid" style="padding:var(--section-y) 24px" data-reveal-stagger="cards">
-          <img class="researcher-photo" src="/assets/images/shreyash_sakhare.png" alt="Shreyash Sakhare" width="200" height="200" loading="lazy" />
-          <div>
-            <p class="label-caps" style="color:var(--text-muted)">THE RESEARCHER</p>
-            <h2 class="section-v2__title mt-0" style="font-size:32px">Shreyash Sakhare</h2>
-            <p style="color:var(--text-sec);max-width:520px">B.Tech Electrical Engineering, Pune. Building toward a career in quantamental macro — the intersection of systematic signal engineering and discretionary regime judgment. FX Regime Lab is the work in progress, running live since early 2026.</p>
-            <p style="margin-top:20px">
-              <a class="link-primary" href="https://linkedin.com/in/shreyash045" target="_blank" rel="noopener">LinkedIn ↗</a>
-              <span style="display:inline-block;width:24px"></span>
-              <a class="link-sec" href="mailto:shreyash@fxregimelab.com">shreyash@fxregimelab.com</a>
-              <span style="display:inline-block;width:24px"></span>
-              <a class="link-primary" href="https://fxregimelab.substack.com" target="_blank" rel="noopener">Substack ↗</a>
-            </p>
+      <section class="home-signals" data-reveal-stagger="cards">
+        <h2 class="home-signals__h2" data-reveal="headline">How I read regime</h2>
+        <p class="home-signals__sub" data-reveal="sub">Four signal inputs. Each measures something the others cannot. Combined into a daily composite.</p>
+        <div class="home-signals__grid">
+          <div data-reveal="sub">
+            <p class="home-sig__num">01</p>
+            <p class="home-sig__name">Rate differential</p>
+            <p class="home-sig__body">2Y and 10Y yield spreads between central banks. Wide and widening means directional pressure. Compressing reads as regime exhaustion.</p>
+          </div>
+          <div data-reveal="sub">
+            <p class="home-sig__num">02</p>
+            <p class="home-sig__name">COT positioning</p>
+            <p class="home-sig__body">CFTC Commitment of Traders, leveraged money and asset manager. 52-week percentile rank. Above the 85th or below the 15th flags crowding risk that can override the directional signal.</p>
+          </div>
+          <div data-reveal="sub">
+            <p class="home-sig__num">03</p>
+            <p class="home-sig__name">Implied volatility</p>
+            <p class="home-sig__body">30-day implied vol via ^EVZ (EUR/USD) and CME CVOL. High vol degrades trend signals. Low vol confirms carry regime. Acts as a gate on composite output.</p>
+          </div>
+          <div data-reveal="sub">
+            <p class="home-sig__num">04</p>
+            <p class="home-sig__name">Cross-asset</p>
+            <p class="home-sig__body">VIX, DXY correlation, gold correlation. Context layer: it does not drive the call but it modifies conviction. Broken correlations flag regime transitions before price moves.</p>
           </div>
         </div>
-      </div>
+      </section>
+
+      <section class="home-about" data-reveal-stagger="cards">
+        <div class="home-about__inner">
+          <img class="home-about__photo" src="/assets/images/shreyash_sakhare.png" alt="Shreyash Sakhare" width="400" height="400" loading="lazy" />
+          <div>
+            <p class="home-about__label">The researcher</p>
+            <h2 class="home-about__name">Shreyash Sakhare</h2>
+            <p class="home-about__body">
+              B.Tech Electrical Engineering, Pune. I'm building toward a role in discretionary macro: the kind that requires understanding why positions form and break, not just where price is. This is where I practice. The pipeline runs daily. The calls are public. The methodology is documented. NTU MFE Singapore target, 2028.
+            </p>
+            <a class="home-about__link" href="/about/">Full background →</a>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="v2-footer">
       <div class="v2-footer__grid">
         <div>
-          <strong style="color:#e5e7eb;font-family:var(--font-display)">FX Regime Lab</strong>
-          <p style="font-size:12px;margin:8px 0 0">Live quantamental macro research · fxregimelab.com</p>
+          <strong style="color: #e5e7eb; font-family: var(--font-display)">FX Regime Lab</strong>
+          <p style="font-size: 12px; margin: 8px 0 0">Live G10 regime research · fxregimelab.com</p>
         </div>
         <nav class="v2-footer__nav">
           <a href="/">Home</a>
@@ -534,508 +604,6 @@
   <script src="/assets/site.js"></script>
   <script src="/assets/supabase-env.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
-  <script src="/assets/site-validation.js"></script>
-  <script src="/assets/macro-catalyst.js"></script>
-  <script defer src="/assets/intro.js"></script>
-  <script>
-    (function () {
-      function countUp(el, target, suffix, dur) {
-        var start = performance.now();
-        function tick(now) {
-          var p = Math.min(1, (now - start) / dur);
-          var ease = 1 - Math.pow(1 - p, 3);
-          el.textContent = Math.round(target * ease) + (suffix || '');
-          if (p < 1) requestAnimationFrame(tick);
-        }
-        requestAnimationFrame(tick);
-      }
-      var reduceMotion =
-        typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-      function easeOutCubic(t) {
-        return 1 - Math.pow(1 - t, 3);
-      }
-
-      function runHeroV3() {
-        var card = document.getElementById('hero-card-eur');
-        var accFill = document.getElementById('hero-accuracy-fill');
-        var confEl = document.getElementById('hero-eur-conf');
-        var barFill = document.getElementById('hero-eur-confbar-fill');
-        var rdEl = document.getElementById('hero-eur-rd');
-        var cotEl = document.getElementById('hero-eur-cot');
-        var volEl = document.getElementById('hero-eur-vol');
-        var scEl = document.getElementById('hero-eur-sc');
-        var rows = document.querySelectorAll('#hero-card-eur [data-hero-v3-row]');
-        if (!card || !accFill || !confEl || !barFill || !rdEl || !cotEl || !volEl || !scEl) {
-          window.__heroV3IntroDone = true;
-          return;
-        }
-
-        if (reduceMotion) {
-          accFill.style.width = '6%';
-          card.classList.add('hero-v3-card-ready');
-          confEl.textContent = '72';
-          barFill.style.width = '72%';
-          rdEl.textContent = '▲ +47bp';
-          cotEl.textContent = '72nd pct';
-          volEl.textContent = '8.4%';
-          scEl.textContent = '+0.68';
-          window.__heroV3IntroDone = true;
-          return;
-        }
-
-        accFill.style.width = '6%';
-
-        requestAnimationFrame(function () {
-          requestAnimationFrame(function () {
-            card.classList.add('hero-v3-card-ready');
-          });
-        });
-
-        var introStart = 700 + 400;
-        setTimeout(function () {
-          var t0 = performance.now();
-          function confTick(now) {
-            var p = Math.min(1, (now - t0) / 800);
-            var e = easeOutCubic(p);
-            var v = Math.round(72 * e);
-            confEl.textContent = String(v);
-            barFill.style.width = 72 * e + '%';
-            if (p < 1) requestAnimationFrame(confTick);
-            else {
-              confEl.textContent = '72';
-              barFill.style.width = '72%';
-              runAfterConf();
-            }
-          }
-          requestAnimationFrame(confTick);
-        }, introStart);
-
-        function ordinalSuffix(n) {
-          var j = n % 10;
-          var k = n % 100;
-          if (j === 1 && k !== 11) return 'st';
-          if (j === 2 && k !== 12) return 'nd';
-          if (j === 3 && k !== 13) return 'rd';
-          return 'th';
-        }
-
-        function runNumberSpan(el, dur, delay, from, to, format) {
-          setTimeout(function () {
-            var start = performance.now();
-            function tick(now) {
-              var p = Math.min(1, (now - start) / dur);
-              var e = easeOutCubic(p);
-              var v = from + (to - from) * e;
-              el.textContent = format(v, p >= 1);
-              if (p < 1) requestAnimationFrame(tick);
-            }
-            requestAnimationFrame(tick);
-          }, delay);
-        }
-
-        function runAfterConf() {
-          runNumberSpan(
-            rdEl,
-            600,
-            0,
-            0,
-            47,
-            function (v, done) {
-              var n = done ? 47 : Math.round(v);
-              return '▲ +' + n + 'bp';
-            }
-          );
-          runNumberSpan(
-            cotEl,
-            600,
-            100,
-            0,
-            72,
-            function (v, done) {
-              var n = done ? 72 : Math.max(0, Math.round(v));
-              return n + ordinalSuffix(n) + ' pct';
-            }
-          );
-          runNumberSpan(
-            volEl,
-            600,
-            200,
-            0,
-            8.4,
-            function (v, done) {
-              var x = done ? 8.4 : Math.round(v * 10) / 10;
-              return x.toFixed(1) + '%';
-            }
-          );
-          runNumberSpan(
-            scEl,
-            600,
-            300,
-            0,
-            0.68,
-            function (v, done) {
-              var x = done ? 0.68 : Math.round(v * 100) / 100;
-              var s = (x >= 0 ? '+' : '') + x.toFixed(2);
-              return s;
-            }
-          );
-          setTimeout(function () {
-            window.__heroV3IntroDone = true;
-            startRowBreathing(rows);
-          }, 300 + 600 + 300);
-        }
-      }
-
-      var rowBreathInterval = null;
-
-      function startRowBreathing(rows) {
-        if (reduceMotion || !rows || !rows.length) return;
-        if (rowBreathInterval) {
-          clearInterval(rowBreathInterval);
-          rowBreathInterval = null;
-        }
-        var idx = 0;
-        function pulseNext() {
-          rows.forEach(function (r) {
-            r.classList.remove('hero-card-dark__row--highlight');
-          });
-          rows[idx].classList.add('hero-card-dark__row--highlight');
-          var cur = idx;
-          setTimeout(function () {
-            rows[cur].classList.remove('hero-card-dark__row--highlight');
-          }, 1500);
-          idx = (idx + 1) % rows.length;
-        }
-        pulseNext();
-        rowBreathInterval = setInterval(pulseNext, 8000);
-      }
-
-      document.addEventListener('visibilitychange', function () {
-        if (document.hidden) {
-          document.documentElement.classList.add('hero-site-anim-paused');
-          if (rowBreathInterval) {
-            clearInterval(rowBreathInterval);
-            rowBreathInterval = null;
-          }
-        } else {
-          document.documentElement.classList.remove('hero-site-anim-paused');
-          if (window.__heroV3IntroDone && !reduceMotion) {
-            var r2 = document.querySelectorAll('#hero-card-eur [data-hero-v3-row]');
-            startRowBreathing(r2);
-          }
-        }
-      });
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', runHeroV3);
-      } else {
-        runHeroV3();
-      }
-
-      var cue = document.getElementById('hero-scrollcue');
-      function onScrollCue() {
-        if (!cue) return;
-        if (window.scrollY > 100) cue.classList.add('is-hidden');
-        else cue.classList.remove('is-hidden');
-      }
-      window.addEventListener('scroll', onScrollCue, { passive: true });
-      onScrollCue();
-    })();
-  </script>
-  <script>
-    (function () {
-      var Chart = window.Chart;
-      if (!Chart) return;
-
-      function series14(seed) {
-        var out = [];
-        var v = 0.5;
-        for (var i = 0; i < 14; i++) {
-          v += Math.sin(seed * 0.41 + i * 0.62) * 0.09 + Math.cos(i * 0.35 + seed) * 0.04;
-          v = Math.max(0.08, Math.min(0.92, v));
-          out.push(v);
-        }
-        return out;
-      }
-
-      function makeClipPlugin(getProgress) {
-        return {
-          id: 'fxSparkClip_' + Math.floor(Math.random() * 1e9),
-          beforeDatasetsDraw: function (chart) {
-            var p = getProgress();
-            var ctx = chart.ctx;
-            var a = chart.chartArea;
-            var w = Math.max(0, a.width * p);
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(a.left, a.top, w, a.height);
-            ctx.clip();
-          },
-          afterDatasetsDraw: function (chart) {
-            chart.ctx.restore();
-          },
-        };
-      }
-
-      function buildChart(canvasId, border, fillRgb) {
-        var canvas = document.getElementById(canvasId);
-        if (!canvas) return;
-        var full = series14(border.length + canvasId.length);
-        var labels = full.map(function (_, i) {
-          return String(i);
-        });
-        var prog = { v: 0 };
-        var plugin = makeClipPlugin(function () {
-          return prog.v;
-        });
-        var chart = new Chart(canvas, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                data: full,
-                borderColor: border,
-                borderWidth: 1.5,
-                tension: 0.35,
-                fill: true,
-                backgroundColor: fillRgb,
-                pointRadius: 0,
-                pointHoverRadius: 0,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            interaction: { mode: 'nearest', intersect: false },
-            plugins: { legend: { display: false }, tooltip: { enabled: false } },
-            scales: {
-              x: { display: false, grid: { display: false } },
-              y: { display: false, min: 0, max: 1, grid: { display: false } },
-            },
-          },
-          plugins: [plugin],
-        });
-        var start = performance.now();
-        function frame(now) {
-          var t = Math.min(1, (now - start) / 600);
-          prog.v = 1 - Math.pow(1 - t, 3);
-          chart.update('none');
-          if (t < 1) requestAnimationFrame(frame);
-          else prog.v = 1;
-        }
-        requestAnimationFrame(frame);
-      }
-
-      function initSparklinesWhenVisible() {
-        var grid = document.getElementById('regime-cards');
-        if (!grid) return;
-
-        function runSparklines() {
-          buildChart('spark-eur', '#2563a8', 'rgba(37, 99, 168, 0.08)');
-          buildChart('spark-jpy', '#b86b2a', 'rgba(184, 107, 42, 0.08)');
-          buildChart('spark-inr', '#a63030', 'rgba(166, 48, 48, 0.08)');
-        }
-
-        if (!('IntersectionObserver' in window)) {
-          runSparklines();
-        } else {
-          var io = new IntersectionObserver(
-            function (entries) {
-              entries.forEach(function (en) {
-                if (!en.isIntersecting) return;
-                io.disconnect();
-                runSparklines();
-              });
-            },
-            { root: null, rootMargin: '0px 0px 10% 0px', threshold: 0.05 }
-          );
-          io.observe(grid);
-        }
-      }
-
-      initSparklinesWhenVisible();
-
-      var grid = document.getElementById('regime-cards');
-      if (!grid) return;
-
-      function parseTarget(card) {
-        var v = parseFloat(card.getAttribute('data-conf-target') || '0', 10);
-        return isNaN(v) ? 0 : v;
-      }
-
-      function barFill(card) {
-        return card.querySelector('.conf-bar__fill');
-      }
-
-      grid.querySelectorAll('.card-light').forEach(function (card) {
-        var fill = barFill(card);
-        if (!fill) return;
-        var target = parseTarget(card);
-
-        card.addEventListener('mouseenter', function () {
-          card.classList.add('is-pair-hover');
-          fill.style.transition = 'width 400ms cubic-bezier(0.33, 1, 0.68, 1)';
-          fill.style.width = '0%';
-          var lis = card.querySelectorAll('.signal-dots li');
-          lis.forEach(function (li) {
-            li.classList.remove('signal-dot-in');
-          });
-          requestAnimationFrame(function () {
-            requestAnimationFrame(function () {
-              fill.style.width = target + '%';
-              lis.forEach(function (li, i) {
-                setTimeout(function () {
-                  li.classList.add('signal-dot-in');
-                }, i * 60);
-              });
-            });
-          });
-        });
-
-        card.addEventListener('mouseleave', function () {
-          card.classList.remove('is-pair-hover');
-          fill.style.transition = 'width 200ms ease';
-          fill.style.width = target + '%';
-          card.querySelectorAll('.signal-dots li').forEach(function (li) {
-            li.classList.remove('signal-dot-in');
-          });
-        });
-      });
-    })();
-  </script>
-  <script>
-    (async function () {
-      var st = await window.FXRegimeSite.loadPipelineStatus();
-      var ts = st && st.last_run_utc ? window.FXRegimeSite.formatTs(st.last_run_utc) : '—';
-      var hel = document.getElementById('hero-eur-ts');
-      if (hel && st && st.last_run_utc) hel.textContent = 'Updated ' + ts.replace(' UTC', '') + ' UTC';
-      var url = window.__SUPABASE_URL__;
-      var key = window.__SUPABASE_ANON_KEY__;
-      var S = window.supabase;
-      if (!url || !key || !S || !S.createClient) return;
-      try {
-        var client = S.createClient(url, key);
-        var q = await client.from('signals').select('date,pair,rate_diff_2y,rate_diff_10y,cot_percentile,realized_vol_20d').order('date', { ascending: false }).limit(9);
-        if (q.error) return;
-        var byPair = {};
-        (q.data || []).forEach(function (row) { if (!byPair[row.pair]) byPair[row.pair] = row; });
-        function fmtPct(x) { return x == null ? '—' : Math.round(x) + 'th pct'; }
-        function fmtVol(x) { return x == null ? '—' : Number(x).toFixed(1) + '%'; }
-        function fmtBp(x) { if (x == null) return '—'; var v = Math.round(x); return (v >= 0 ? '▲ +' : '▼ ') + Math.abs(v) + 'bp'; }
-        function applyHeroFromSupabase() {
-          if (!byPair.EURUSD) return;
-          var rd = document.getElementById('hero-eur-rd');
-          if (rd) {
-            rd.textContent = fmtBp(byPair.EURUSD.rate_diff_10y != null ? byPair.EURUSD.rate_diff_10y : byPair.EURUSD.rate_diff_2y);
-            rd.classList.add('hero-card-dark__pos');
-          }
-          var cot = document.getElementById('hero-eur-cot');
-          if (cot) cot.textContent = fmtPct(byPair.EURUSD.cot_percentile);
-          var vol = document.getElementById('hero-eur-vol');
-          if (vol) vol.textContent = fmtVol(byPair.EURUSD.realized_vol_20d);
-        }
-        function whenHeroIntroDone(fn) {
-          if (window.__heroV3IntroDone) {
-            fn();
-            return;
-          }
-          var n = 0;
-          var t = setInterval(function () {
-            if (window.__heroV3IntroDone || n++ > 80) {
-              clearInterval(t);
-              fn();
-            }
-          }, 100);
-        }
-        whenHeroIntroDone(applyHeroFromSupabase);
-        if (byPair.USDJPY) {
-          document.getElementById('card-jpy-bar').style.width = '58%';
-        }
-        if (byPair.USDINR) {
-          document.getElementById('card-inr-bar').style.width = '45%';
-          document.getElementById('card-inr-conf').textContent = '45%';
-          var inrArt = document.querySelector('#regime-cards .card-light--inr');
-          if (inrArt) inrArt.setAttribute('data-conf-target', '45');
-        }
-      } catch (e) {}
-    })();
-  </script>
-  <script>
-    (async function () {
-      var lbl = document.getElementById('hero-accuracy-lbl');
-      var fill = document.getElementById('hero-accuracy-fill');
-      var bp = document.getElementById('brief-preview-acc');
-      var poolPct = document.getElementById('home-stat-pool-pct');
-      var poolSub = document.getElementById('home-stat-pool-sub');
-      var loggedEl = document.getElementById('home-stat-logged');
-      if (!window.FXRLSiteValidation) {
-        if (lbl) lbl.textContent = 'Validation stats load when the site is deployed with Supabase.';
-        return;
-      }
-      try {
-        var p = await window.FXRLSiteValidation.loadMarketingValidation();
-        var f = window.FXRLSiteValidation.formatAccuracyBar(p);
-        if (lbl) {
-          lbl.textContent = p.showAccuracy
-            ? 'Rolling 20d (evaluated days): ' + f.short.replace(/^Accuracy \(20d, evaluated days\): /, '')
-            : window.FXRLSiteValidation.DISCLAIMER_SHORT;
-        }
-        if (fill) {
-          if (p.showAccuracy) {
-            var sum = 0;
-            var n = 0;
-            ['EURUSD', 'USDJPY', 'USDINR'].forEach(function (code) {
-              var s = p.byPair[code] && p.byPair[code].summary20;
-              if (s && isFinite(s.pct)) {
-                sum += s.pct;
-                n += 1;
-              }
-            });
-            fill.style.width = n ? Math.min(100, Math.round(sum / n)) + '%' : '6%';
-          } else {
-            fill.style.width = '6%';
-          }
-        }
-        if (bp) {
-          bp.textContent = p.showAccuracy ? f.short : window.FXRLSiteValidation.DISCLAIMER;
-        }
-        if (poolPct && poolSub) {
-          var ev = p.evaluated20;
-          var sumP = 0;
-          var nc = 0;
-          ['EURUSD', 'USDJPY', 'USDINR'].forEach(function (code) {
-            var s = p.byPair[code] && p.byPair[code].summary20;
-            if (s && isFinite(s.pct)) {
-              sumP += s.pct;
-              nc += 1;
-            }
-          });
-          if (p.showAccuracy && nc > 0) {
-            var avg = Math.round((sumP / nc) * 10) / 10;
-            poolPct.textContent = avg + '%';
-            poolSub.textContent = 'Mean of pair-level 20d pools · ' + ev + ' evaluated row-days';
-          } else {
-            poolPct.textContent = '—';
-            poolSub.textContent = ev + ' evaluated row-days in 20d window (need more for headline %)';
-          }
-        }
-        if (loggedEl) {
-          loggedEl.textContent = String(p.total500 || 0);
-        }
-      } catch (err) {
-        if (lbl) lbl.textContent = window.FXRLSiteValidation.DISCLAIMER_SHORT;
-      }
-    })();
-  </script>
-  <script>
-    (function () {
-      var el = document.getElementById('home-macro-catalyst');
-      if (el && window.FXRLMacroCatalyst) window.FXRLMacroCatalyst.fillElement(el, null);
-    })();
-  </script>
+  <script src="/assets/home-live.js"></script>
 </body>
 </html>

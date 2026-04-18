@@ -176,7 +176,7 @@
     hydrateTerminalBrand();
     syncTabActive();
     initPairSubNav();
-    document.querySelectorAll('a.term-nav__exit, a[data-term-exit]').forEach(function (a) {
+    document.querySelectorAll('a.term-nav__exit, a[data-term-exit], a[data-exit="true"]').forEach(function (a) {
       a.addEventListener('click', function (e) {
         e.preventDefault();
         leaveTerminal();

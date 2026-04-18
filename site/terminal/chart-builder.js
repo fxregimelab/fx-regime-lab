@@ -33,48 +33,10 @@
   var PREFETCH_DONE = false;
   var _paperTextureCanvas = null;
 
-  // Mirror of data-client.js mapping; used only for local column lookup.
-  var SIGNAL_TO_CSV = {
-    EURUSD: {
-      spot: 'EURUSD',
-      rate_diff_2y: 'US_DE_2Y_spread',
-      rate_diff_10y: 'US_DE_10Y_spread',
-      rate_diff_zscore: 'US_DE_2Y_spread_zscore',
-      cot_lev_money_net: 'EUR_lev_net',
-      cot_asset_mgr_net: 'EUR_assetmgr_net',
-      cot_percentile: 'EUR_lev_percentile',
-      realized_vol_5d: 'EURUSD_vol5',
-      realized_vol_20d: 'EURUSD_vol30',
-      cross_asset_dxy: 'DXY',
-      cross_asset_oil: 'Brent',
-      cross_asset_vix: 'VIX',
-    },
-    USDJPY: {
-      spot: 'USDJPY',
-      rate_diff_2y: 'US_JP_2Y_spread',
-      rate_diff_10y: 'US_JP_10Y_spread',
-      rate_diff_zscore: 'US_JP_2Y_spread_zscore',
-      cot_lev_money_net: 'JPY_lev_net',
-      cot_asset_mgr_net: 'JPY_assetmgr_net',
-      cot_percentile: 'JPY_lev_percentile',
-      realized_vol_5d: 'USDJPY_vol5',
-      realized_vol_20d: 'USDJPY_vol30',
-      cross_asset_dxy: 'DXY',
-      cross_asset_oil: 'Brent',
-      cross_asset_vix: 'VIX',
-    },
-    USDINR: {
-      spot: 'USDINR',
-      rate_diff_2y: 'US_IN_policy_spread',
-      rate_diff_10y: 'US_IN_10Y_spread',
-      rate_diff_zscore: 'US_IN_policy_spread_zscore',
-      realized_vol_5d: 'USDINR_vol5',
-      realized_vol_20d: 'USDINR_vol30',
-      cross_asset_dxy: 'DXY',
-      cross_asset_oil: 'Brent',
-      cross_asset_vix: 'VIX',
-    },
-  };
+  var SIGNAL_TO_CSV = global.FXRLData && global.FXRLData.SIGNAL_TO_CSV;
+  if (!SIGNAL_TO_CSV) {
+    throw new Error('chart-builder.js: load data-client.js before chart-builder.js (SIGNAL_TO_CSV missing).');
+  }
   var CSV_TO_SIGNAL = {};
   Object.keys(SIGNAL_TO_CSV).forEach(function (pair) {
     var m = SIGNAL_TO_CSV[pair];

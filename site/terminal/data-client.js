@@ -396,6 +396,49 @@
     },
   };
 
+  /** Supabase `signals` / DB field → merged master CSV column (per pair). Single source for chart-builder.js. */
+  var SIGNAL_TO_CSV = {
+    EURUSD: {
+      spot: 'EURUSD',
+      rate_diff_2y: 'US_DE_2Y_spread',
+      rate_diff_10y: 'US_DE_10Y_spread',
+      rate_diff_zscore: 'US_DE_2Y_spread_zscore',
+      cot_lev_money_net: 'EUR_lev_net',
+      cot_asset_mgr_net: 'EUR_assetmgr_net',
+      cot_percentile: 'EUR_lev_percentile',
+      realized_vol_5d: 'EURUSD_vol5',
+      realized_vol_20d: 'EURUSD_vol30',
+      cross_asset_dxy: 'DXY',
+      cross_asset_oil: 'Brent',
+      cross_asset_vix: 'VIX',
+    },
+    USDJPY: {
+      spot: 'USDJPY',
+      rate_diff_2y: 'US_JP_2Y_spread',
+      rate_diff_10y: 'US_JP_10Y_spread',
+      rate_diff_zscore: 'US_JP_2Y_spread_zscore',
+      cot_lev_money_net: 'JPY_lev_net',
+      cot_asset_mgr_net: 'JPY_assetmgr_net',
+      cot_percentile: 'JPY_lev_percentile',
+      realized_vol_5d: 'USDJPY_vol5',
+      realized_vol_20d: 'USDJPY_vol30',
+      cross_asset_dxy: 'DXY',
+      cross_asset_oil: 'Brent',
+      cross_asset_vix: 'VIX',
+    },
+    USDINR: {
+      spot: 'USDINR',
+      rate_diff_2y: 'US_IN_policy_spread',
+      rate_diff_10y: 'US_IN_10Y_spread',
+      rate_diff_zscore: 'US_IN_policy_spread_zscore',
+      realized_vol_5d: 'USDINR_vol5',
+      realized_vol_20d: 'USDINR_vol30',
+      cross_asset_dxy: 'DXY',
+      cross_asset_oil: 'Brent',
+      cross_asset_vix: 'VIX',
+    },
+  };
+
   function computeSignalStack(latestRow) {
     if (!latestRow) return null;
 
@@ -1664,6 +1707,7 @@
     getDataFreshness: getDataFreshness,
     getFreshnessLabel: getFreshnessLabel,
     SIGNAL_CHART_MAP: SIGNAL_CHART_MAP,
+    SIGNAL_TO_CSV: SIGNAL_TO_CSV,
     computeSignalStack: computeSignalStack,
     fetchPipelineStatus: fetchPipelineStatus,
     fetchRegimeCalls: fetchRegimeCalls,

@@ -14,28 +14,49 @@
   <canvas id="fx-canvas-bg" aria-hidden="true"></canvas>
   <div class="v2-wrap">
     <header class="v2-nav" data-nav-root>
-      <a class="v2-nav__brand" href="/">FX Regime Lab</a>
+      <a class="v2-nav__brand" href="/">
+        <span class="v2-nav__mark-slot" aria-hidden="true">
+          <svg class="v2-nav__mark-static" viewBox="0 0 240 135" xmlns="http://www.w3.org/2000/svg">
+            <path d="M82 12 L212 12 L227 40 L97 40 Z" fill="#2563A8"></path>
+            <path d="M65 52 L180 52 L195 80 L80 80 Z" fill="#B86B2A"></path>
+            <path d="M48 92 L148 92 L163 120 L63 120 Z" fill="#A63030"></path>
+          </svg>
+        </span>
+        <span class="v2-nav__word">FX Regime Lab</span>
+      </a>
       <ul class="v2-nav__links">
         <li><a href="/" data-path="/">Home</a></li>
-        <li><a href="/dashboard/" data-path="/dashboard">Dashboard</a></li>
-        <li><a href="/terminal/overview.html" data-path="/terminal/overview">Terminal</a></li>
-        <li><a href="/performance/" data-path="/performance">Performance</a></li>
         <li><a href="/brief/" data-path="/brief">Brief</a></li>
-        <li><a href="/newsletter/" data-path="/newsletter">Newsletter</a></li>
-        <li><a href="/methodology/" data-path="/methodology">Methodology</a></li>
+        <li class="v2-nav__item v2-nav__item--research">
+          <button type="button" class="v2-nav__research-trigger" data-nav-research-trigger aria-expanded="false" aria-haspopup="true">Research</button>
+          <div class="v2-nav__dropdown" role="menu">
+            <a href="/dashboard/" data-path="/dashboard" role="menuitem">Dashboard</a>
+            <a href="/terminal/overview.html" data-path="/terminal/overview" role="menuitem">Terminal</a>
+            <a href="/performance/" data-path="/performance" role="menuitem">Performance</a>
+            <a href="/methodology/" data-path="/methodology" role="menuitem">Methodology</a>
+            <a href="/newsletter/" data-path="/newsletter" role="menuitem">Newsletter</a>
+          </div>
+        </li>
         <li><a href="/about/" data-path="/about">About</a></li>
       </ul>
       <button type="button" class="v2-nav__toggle" data-nav-toggle aria-expanded="false" aria-label="Open menu"><span></span><span></span><span></span></button>
     </header>
     <div class="v2-nav__overlay" data-nav-overlay>
-      <a href="/">Home</a>
-      <a href="/dashboard/">Dashboard</a>
-      <a href="/terminal/overview.html">Terminal</a>
-      <a href="/performance/">Performance</a>
-      <a href="/brief/">Brief</a>
-      <a href="/newsletter/">Newsletter</a>
-      <a href="/methodology/">Methodology</a>
-      <a href="/about/">About</a>
+      <div class="v2-nav__overlay-inner">
+        <a href="/" data-path="/">Home</a>
+        <a href="/brief/" data-path="/brief">Brief</a>
+        <div class="v2-nav__overlay-research">
+          <button type="button" class="v2-nav__overlay-research-trigger" data-nav-overlay-research-trigger aria-expanded="false">Research</button>
+          <div class="v2-nav__overlay-subs" data-nav-overlay-subs hidden>
+            <a href="/dashboard/">Dashboard</a>
+            <a href="/terminal/overview.html">Terminal</a>
+            <a href="/performance/">Performance</a>
+            <a href="/methodology/">Methodology</a>
+            <a href="/newsletter/">Newsletter</a>
+          </div>
+        </div>
+        <a href="/about/" data-path="/about">About</a>
+      </div>
     </div>
 
     <div class="dash-bar" style="flex-wrap:wrap;gap:8px 16px">
@@ -255,7 +276,7 @@
       var st = await window.FXRegimeSite.loadPipelineStatus();
       var el = document.getElementById('dash-pipeline-ts');
       if (el && st && st.last_run_utc) el.textContent = window.FXRegimeSite.formatTs(st.last_run_utc);
-      else if (el) el.textContent = 'No successful run recorded yet';
+      else if (el) el.textContent = '—';
       var ir = document.getElementById('dash-inr-ts');
       if (ir && st && st.last_run_utc) ir.textContent = window.FXRegimeSite.formatTs(st.last_run_utc);
       var accEl = document.getElementById('dash-accuracy-line');

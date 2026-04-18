@@ -140,13 +140,28 @@
     });
   }
 
+  function syncDashPipelineTs() {
+    if (!global.FXRegimeSite || typeof global.FXRegimeSite.loadPipelineStatus !== 'function') return Promise.resolve();
+    return global.FXRegimeSite.loadPipelineStatus().then(function (st) {
+      var el = document.getElementById('dash-pipeline-ts');
+      var ir = document.getElementById('dash-inr-ts');
+      var txt =
+        st && st.last_run_utc && global.FXRegimeSite.formatTs
+          ? global.FXRegimeSite.formatTs(st.last_run_utc)
+          : '-';
+      if (el) el.textContent = txt;
+      if (ir) ir.textContent = txt;
+    });
+  }
+
   function loadDashboard() {
     var client = getClient();
     var note = document.querySelector('.dash-placeholder-note');
+    syncDashPipelineTs();
     if (!client) {
       if (note) {
         note.innerHTML =
-          'Supabase env not injected — pair cards stay static. Configure Cloudflare Worker env for live reads.';
+          'Supabase env not injected; pair cards stay static. Configure Cloudflare Worker env for live reads.';
       }
       return Promise.resolve();
     }
@@ -185,8 +200,7 @@
           applyPairCard(pack.prefix, latestReg, pack.signal, pack.regimes);
         });
         if (note) {
-          note.innerHTML =
-            'Live regime and signal rows from Supabase. Charts below remain illustrative; use the <a href="/terminal/">Research terminal</a> for full desks.';
+          note.innerHTML = 'Live regime and signal rows from Supabase.';
         }
         return client
           .from('validation_log')
@@ -203,7 +217,7 @@
       .catch(function (e) {
         if (note) {
           note.textContent =
-            'Live read failed: ' + (e && e.message ? e.message : String(e)) + ' — try the terminal.';
+            'Live read failed: ' + (e && e.message ? e.message : String(e)) + '. Try the terminal.';
         }
       });
   }

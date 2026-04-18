@@ -3,8 +3,8 @@
  * (asset-only Workers cannot have env vars). Serves /assets/supabase-env.js from env.
  *
  * REQUIRED Worker env vars (set in Cloudflare dashboard → Workers → Settings → Variables):
- *   SUPABASE_URL — project URL (https://xxx.supabase.co)
- *   SUPABASE_ANON_KEY — public anon key (RLS enforced; browser reads only)
+ *   SUPABASE_URL - project URL from Worker secrets
+ *   SUPABASE_ANON_KEY - public anon key (RLS enforced; browser reads only)
  *
  */
 
@@ -15,7 +15,7 @@ const CONTENT_SECURITY_POLICY = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: https: blob:",
-  "connect-src 'self' https://*.supabase.co https://weaaacohvzzgkgxzpaee.supabase.co",
+  "connect-src 'self' https://*.supabase.co",
   "frame-src 'self' https:",
 ].join("; ");
 
