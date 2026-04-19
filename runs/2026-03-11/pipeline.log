@@ -1,0 +1,23 @@
+
+==================================================
+  fx_regime pipeline  --  2026-03-11
+==================================================
+  [skip]  fx
+  [skip]  cot
+  [skip]  inr
+  [skip]  merge
+  [skip]  text
+  [skip]  ai
+  [skip]  html
+
+>>  deploy  (deploy.py)
+copied briefs/brief_20260311.html -> index.html (patched iframe paths)
+ERROR: git operation failed: Command '['git', 'pull', '--rebase', 'origin', 'main']' returned non-zero exit status 128.
+brief is saved locally but NOT pushed to GitHub � check git credentials/network
+error: cannot pull with rebase: Your index contains uncommitted changes.
+error: Please commit or stash them.
+FAIL  deploy after 0.4s
+   Fix deploy.py and re-run:  python run.py --only deploy
+
+  pipeline stopped after 0.4s -- fix the error above and retry.
+

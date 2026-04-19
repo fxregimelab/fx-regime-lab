@@ -1,0 +1,362 @@
+{
+  "version": 3,
+  "routes": [
+    {
+      "src": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$",
+      "headers": {
+        "Location": "/$1"
+      },
+      "status": 308,
+      "continue": true
+    },
+    {
+      "src": "/_next/__private/trace",
+      "dest": "/404",
+      "status": 404,
+      "continue": true
+    },
+    {
+      "src": "/404/?",
+      "status": 404,
+      "continue": true,
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-prerender-revalidate"
+        }
+      ]
+    },
+    {
+      "src": "/500",
+      "status": 500,
+      "continue": true
+    },
+    {
+      "src": "^/_next/data/wCo7ERwCVC2933REYVHch/(.*).json",
+      "dest": "/$1",
+      "override": true,
+      "continue": true,
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ]
+    },
+    {
+      "src": "^/index(?:/)?",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/",
+      "override": true,
+      "continue": true
+    },
+    {
+      "continue": true,
+      "src": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/terminal(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json)?[\\/#\\?]?$",
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-prerender-revalidate",
+          "value": "3d98b57f66df780943b49f99f27383ba"
+        }
+      ],
+      "middlewarePath": "middleware",
+      "middlewareRawSrc": [
+        "/terminal/:path*"
+      ],
+      "override": true
+    },
+    {
+      "src": "^/$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/wCo7ERwCVC2933REYVHch/index.json",
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/((?!_next/)(?:.*[^/]|.*))/?$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/wCo7ERwCVC2933REYVHch/$1.json",
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/?",
+      "has": [
+        {
+          "type": "header",
+          "key": "rsc",
+          "value": "1"
+        }
+      ],
+      "dest": "/index.rsc",
+      "headers": {
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+      },
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/((?!.+\\.rsc).+?)(?:/)?$",
+      "has": [
+        {
+          "type": "header",
+          "key": "rsc",
+          "value": "1"
+        }
+      ],
+      "dest": "/$1.rsc",
+      "headers": {
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+      },
+      "continue": true,
+      "override": true
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "^/_next/data/wCo7ERwCVC2933REYVHch/(.*).json",
+      "dest": "/$1",
+      "continue": true,
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ]
+    },
+    {
+      "src": "^/index(?:/)?",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/",
+      "continue": true
+    },
+    {
+      "src": "/index(\\.action|\\.rsc)",
+      "dest": "/",
+      "continue": true
+    },
+    {
+      "src": "/\\.prefetch\\.rsc$",
+      "dest": "/__index.prefetch.rsc",
+      "check": true
+    },
+    {
+      "src": "/(.+)/\\.prefetch\\.rsc$",
+      "dest": "/$1.prefetch.rsc",
+      "check": true
+    },
+    {
+      "src": "/\\.rsc$",
+      "dest": "/index.rsc",
+      "check": true
+    },
+    {
+      "src": "/(.+)/\\.rsc$",
+      "dest": "/$1.rsc",
+      "check": true
+    },
+    {
+      "handle": "resource"
+    },
+    {
+      "src": "/.*",
+      "status": 404
+    },
+    {
+      "handle": "miss"
+    },
+    {
+      "src": "/_next/static/.+",
+      "status": 404,
+      "check": true,
+      "dest": "/_next/static/not-found.txt",
+      "headers": {
+        "content-type": "text/plain; charset=utf-8"
+      }
+    },
+    {
+      "handle": "rewrite"
+    },
+    {
+      "src": "^/$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/wCo7ERwCVC2933REYVHch/index.json",
+      "continue": true
+    },
+    {
+      "src": "^/((?!_next/)(?:.*[^/]|.*))/?$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/wCo7ERwCVC2933REYVHch/$1.json",
+      "continue": true
+    },
+    {
+      "src": "^/_next/data/wCo7ERwCVC2933REYVHch/terminal/(?<nxtPstrategy>[^/]+?)(?:/)?.json$",
+      "dest": "/terminal/[strategy]?nxtPstrategy=$nxtPstrategy"
+    },
+    {
+      "src": "^/_next/data/wCo7ERwCVC2933REYVHch/terminal/(?<nxtPstrategy>[^/]+?)/(?<nxtPpair>[^/]+?)(?:/)?.json$",
+      "dest": "/terminal/[strategy]/[pair]?nxtPstrategy=$nxtPstrategy&nxtPpair=$nxtPpair"
+    },
+    {
+      "src": "^/_next/data/wCo7ERwCVC2933REYVHch/(?<nxtPstrategy>[^/]+?)(?:/)?.json$",
+      "dest": "/[strategy]?nxtPstrategy=$nxtPstrategy"
+    },
+    {
+      "src": "^/_next/data/wCo7ERwCVC2933REYVHch/(?<nxtPstrategy>[^/]+?)/performance(?:/)?.json$",
+      "dest": "/[strategy]/performance?nxtPstrategy=$nxtPstrategy"
+    },
+    {
+      "src": "^/terminal/(?<nxtPstrategy>[^/]+?)(?:\\.rsc)(?:/)?$",
+      "dest": "/terminal/[strategy].rsc?nxtPstrategy=$nxtPstrategy"
+    },
+    {
+      "src": "^/terminal/(?<nxtPstrategy>[^/]+?)(?:/)?$",
+      "dest": "/terminal/[strategy]?nxtPstrategy=$nxtPstrategy"
+    },
+    {
+      "src": "^/terminal/(?<nxtPstrategy>[^/]+?)/(?<nxtPpair>[^/]+?)(?:\\.rsc)(?:/)?$",
+      "dest": "/terminal/[strategy]/[pair].rsc?nxtPstrategy=$nxtPstrategy&nxtPpair=$nxtPpair"
+    },
+    {
+      "src": "^/terminal/(?<nxtPstrategy>[^/]+?)/(?<nxtPpair>[^/]+?)(?:/)?$",
+      "dest": "/terminal/[strategy]/[pair]?nxtPstrategy=$nxtPstrategy&nxtPpair=$nxtPpair"
+    },
+    {
+      "src": "^/(?<nxtPstrategy>[^/]+?)(?:\\.rsc)(?:/)?$",
+      "dest": "/[strategy].rsc?nxtPstrategy=$nxtPstrategy"
+    },
+    {
+      "src": "^/(?<nxtPstrategy>[^/]+?)(?:/)?$",
+      "dest": "/[strategy]?nxtPstrategy=$nxtPstrategy"
+    },
+    {
+      "src": "^/(?<nxtPstrategy>[^/]+?)/performance(?:\\.rsc)(?:/)?$",
+      "dest": "/[strategy]/performance.rsc?nxtPstrategy=$nxtPstrategy"
+    },
+    {
+      "src": "^/(?<nxtPstrategy>[^/]+?)/performance(?:/)?$",
+      "dest": "/[strategy]/performance?nxtPstrategy=$nxtPstrategy"
+    },
+    {
+      "src": "^/_next/data/wCo7ERwCVC2933REYVHch/(.*).json",
+      "headers": {
+        "x-nextjs-matched-path": "/$1"
+      },
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/wCo7ERwCVC2933REYVHch/(.*).json",
+      "dest": "__next_data_catchall"
+    },
+    {
+      "handle": "hit"
+    },
+    {
+      "src": "/_next/static/(?:[^/]+/pages|pages|chunks|runtime|css|image|media|wCo7ERwCVC2933REYVHch)/.+",
+      "headers": {
+        "cache-control": "public,max-age=31536000,immutable"
+      },
+      "continue": true,
+      "important": true
+    },
+    {
+      "src": "/index(?:/)?",
+      "headers": {
+        "x-matched-path": "/"
+      },
+      "continue": true,
+      "important": true
+    },
+    {
+      "src": "/((?!index$).*?)(?:/)?",
+      "headers": {
+        "x-matched-path": "/$1"
+      },
+      "continue": true,
+      "important": true
+    },
+    {
+      "handle": "error"
+    },
+    {
+      "src": "/.*",
+      "dest": "/404",
+      "status": 404
+    },
+    {
+      "src": "/.*",
+      "dest": "/500",
+      "status": 500
+    }
+  ],
+  "overrides": {
+    "404.html": {
+      "path": "404",
+      "contentType": "text/html; charset=utf-8"
+    },
+    "500.html": {
+      "path": "500",
+      "contentType": "text/html; charset=utf-8"
+    },
+    "_app.rsc.json": {
+      "path": "_app.rsc",
+      "contentType": "application/json"
+    },
+    "_error.rsc.json": {
+      "path": "_error.rsc",
+      "contentType": "application/json"
+    },
+    "_document.rsc.json": {
+      "path": "_document.rsc",
+      "contentType": "application/json"
+    },
+    "404.rsc.json": {
+      "path": "404.rsc",
+      "contentType": "application/json"
+    },
+    "__next_data_catchall.json": {
+      "path": "__next_data_catchall",
+      "contentType": "application/json"
+    },
+    "_next/static/not-found.txt": {
+      "contentType": "text/plain"
+    }
+  },
+  "framework": {
+    "version": "15.5.2"
+  },
+  "crons": []
+}

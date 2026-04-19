@@ -1,0 +1,43 @@
+============================================================  
+ G10 FX REGIME PIPELINE  --  11-03-2026 10:21:28.22                    
+============================================================  
+
+3 Failed downloads:
+['JPY=X', 'DX-Y.NYB', 'EURUSD=X']: TypeError("'NoneType' object is not subscriptable")
+======================================================================
+  G10 FX PIPELINE -- 2026-03-11
+======================================================================
+
+[1/5] fetching FX prices from yahoo finance...
+    got 0 rows, 3 pairs
+Traceback (most recent call last):
+  File "C:\Market Journey 2026\Code\fx_regime\pipeline.py", line 1132, in <module>
+    main()
+  File "C:\Market Journey 2026\Code\fx_regime\pipeline.py", line 1109, in main
+    fx_df        = fetch_fx_data()
+                   ^^^^^^^^^^^^^^^
+  File "C:\Market Journey 2026\Code\fx_regime\pipeline.py", line 95, in fetch_fx_data
+    print(f"    from {prices.index[0].date()} to {prices.index[-1].date()}")
+                      ~~~~~~~~~~~~^^^
+  File "c:\Market Journey 2026\Code\fx_regime\.venv\Lib\site-packages\pandas\core\indexes\base.py", line 5401, in __getitem__
+    return getitem(key)
+           ^^^^^^^^^^^^
+  File "c:\Market Journey 2026\Code\fx_regime\.venv\Lib\site-packages\pandas\core\arrays\datetimelike.py", line 393, in __getitem__
+    result = cast(Union[Self, DTScalarOrNaT], super().__getitem__(key))
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Market Journey 2026\Code\fx_regime\.venv\Lib\site-packages\pandas\core\arrays\_mixins.py", line 293, in __getitem__
+    result = self._ndarray[key]
+             ~~~~~~~~~~~~~^^^^^
+IndexError: index 0 is out of bounds for axis 0 with size 0
+
+==================================================
+  fx_regime pipeline  --  2026-03-11
+==================================================
+
+>>  fx  (pipeline.py)
+FAIL  fx after 4.3s
+   Fix pipeline.py and re-run:  python run.py --only fx
+
+  pipeline stopped after 4.3s -- fix the error above and retry.
+
+[ERROR] Pipeline failed with exit code 1 -- see runs\20260311\bat_runner.log  

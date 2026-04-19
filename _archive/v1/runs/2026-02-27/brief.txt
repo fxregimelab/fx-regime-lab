@@ -1,0 +1,52 @@
+======================================================================
+  G10 FX MORNING BRIEF
+  Friday, 27 February 2026
+  data as of: 2026-02-26  |  COT as of: 2026-02-17
+======================================================================
+
+  PRICES
+  pair           price        1D       12M
+  ------------------------------------------------
+  EUR/USD       1.1815    +0.34%   +11.18%
+  USD/JPY     156.2000    +0.21%    +4.27%
+  DXY          97.7900    +0.09%    -7.52%
+
+  RATE DIFFERENTIALS  (narrowing = foreign currency should strengthen)
+  spread                   today    1D chg   12M chg
+  ----------------------------------------------------
+  US-DE 10Y (cross)        0.68%   +0.00pp   -0.52pp
+  US-DE 2Y  (same)         1.44%   +0.00pp   -0.41pp
+  US-JP 10Y (cross)        1.28%   -0.01pp   -1.26pp
+  US-JP 2Y  (same)         2.20%   -0.02pp   -0.95pp
+
+  VOLATILITY  (30D realized, annualized | 3Y percentile)
+  --------------------------------------------------------
+  pair            vol30        pct   flag
+  --------------------------------------------------------
+  EURUSD           7.5%       71th   NORMAL
+  USDJPY          11.2%       80th   ELEVATED
+
+  COT POSITIONING (as of 2026-02-17)
+  ------------------------------------------------------------------
+
+  EUR/USD:
+    Leveraged Money   : +43,549 contracts | +4.8% OI | CROWDED LONG  (96th pct)
+    Asset Manager     : +413,713 contracts | +45.1% OI | CROWDED LONG  (93rd pct)
+
+  USD/JPY:
+    Leveraged Money   : -29,321 contracts | -8.3% OI | NEUTRAL SHORT (67th pct)
+    Asset Manager     : +40,546 contracts | +11.4% OI | NEUTRAL LONG  (71st pct)
+
+  REGIME READ
+  ------------------------------------------------------------------
+  EUR/USD  spread compression supports EUR strength; Leveraged Money
+           96th pct and Asset Manager 93rd pct both crowded long —
+           dual category confirmation, strongest reversal risk
+           signal this framework produces.
+
+  USD/JPY  spread compression favors lower USD/JPY; Leveraged Money
+           67th pct and Asset Manager 71st pct both neutral — carry
+           partially intact, BoJ path is key variable. vol elevated
+           — positioning signals less reliable.
+
+======================================================================

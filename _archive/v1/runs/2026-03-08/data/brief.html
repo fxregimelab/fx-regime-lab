@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>G10 FX Morning Brief — Sunday, 08 March 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script><style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    background: #0d0d0d;
+    color: #cccccc;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+}
+.globalbar {
+    width: 100%;
+    background: #1a1a1a;
+    padding: 6px 20px;
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 8px 20px;
+    border-bottom: 1px solid #1e1e1e;
+}
+.header-left .label {
+    font-size: 10px;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+}
+.header-left .title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+}
+.header-right {
+    font-size: 11px;
+    color: #888;
+    text-align: right;
+    line-height: 1.7;
+}
+.content {
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.card {
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.card-header {
+    height: 34px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+}
+.ch-pair {
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    letter-spacing: 1.5px;
+}
+.ch-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-left: 16px;
+}
+.ch-1d {
+    font-size: 13px;
+    margin-left: 12px;
+}
+.ch-12m-label {
+    font-size: 11px;
+    color: #888;
+    margin-left: 12px;
+}
+.ch-12m {
+    font-size: 12px;
+    margin-left: 4px;
+}
+.ch-badge {
+    margin-left: auto;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.badge-crowded-long  { background: #f0a500; color: #000000; }
+.badge-crowded-short { background: #e05c5c; color: #ffffff; }
+.badge-neutral-card  { background: #333333; color: #888888; }
+.card-body {
+    height: auto;
+    display: flex;
+    align-items: stretch;
+    background: #141414;
+}
+
+.brief-left {
+    flex: 0 0 38%;
+    min-width: 0;
+    box-sizing: border-box;
+    background: #141414;
+    border-right: 1px solid #2a2a2a;
+    padding: 10px 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.brief-right {
+    flex: 1 1 0;
+    min-width: 0;
+    background: #0d0d0d;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+}
+.chart-tab-bar {
+    height: 30px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    gap: 2px;
+}
+.chart-tab {
+    padding: 0 12px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: #555;
+    font-size: 10px;
+    font-family: inherit;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: color 0.15s;
+}
+.chart-tab:hover {
+    color: #888;
+}
+.chart-tab.active {
+    color: #cccccc;
+    background: #252525;
+}
+.chart-display-area {
+    flex-grow: 1;
+    position: relative;
+    overflow: hidden;
+}
+.chart-pane {
+    width: 100%;
+    overflow: visible;
+}
+.brief-section {
+    border-top: 1px solid #252525;
+    padding-top: 6px;
+}
+.brief-section:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+.brief-section.regime-read .brief-text { display: none; }
+.brief-section.regime-read.open .brief-text { display: block; }
+.brief-label.regime-toggle { cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.regime-arrow { color: #444; font-size: 8px; transition: transform 0.15s; }
+.brief-section.regime-read.open .regime-arrow { transform: rotate(90deg); }
+.brief-label {
+    color: #555;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+.brief-row {
+    display: flex;
+    align-items: center;
+    line-height: 1.25;
+    margin-top: 2px;
+}
+.brief-row .name {
+    width: 118px;
+    flex-shrink: 0;
+    color: #888;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.brief-row .val {
+    width: 58px;
+    flex-shrink: 0;
+    text-align: right;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.brief-row .pct {
+    flex: 1;
+    text-align: right;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+.badge-mini {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border: 1px solid #2a2a2a;
+}
+.badge-mini.badge-neutral { background: #1a1a1a; color: #888; }
+.badge-mini.badge-success { background: rgba(0, 212, 170, 0.12); color: #00d4aa; border-color: rgba(0, 212, 170, 0.25); }
+.badge-mini.badge-warning { background: rgba(240, 165, 0, 0.12); color: #f0a500; border-color: rgba(240, 165, 0, 0.25); }
+.badge-mini.badge-danger  { background: rgba(224, 92, 92, 0.12); color: #e05c5c; border-color: rgba(224, 92, 92, 0.25); }
+
+.brief-text {
+    color: #aaaaaa;
+    font-size: 11px;
+    line-height: 1.5;
+}
+.brief-muted {
+    color: #555;
+    font-size: 11px;
+}
+/* ---- full-screen scroll-snap ---- */
+html { scroll-snap-type: y mandatory; overflow-y: scroll; }
+#landing { height: 100vh; scroll-snap-align: start; }
+.content { padding: 0; gap: 0; }
+.card { height: 100vh; scroll-snap-align: start; border-radius: 0;
+        border-left: none; border-right: none;
+        display: flex; flex-direction: column; }
+.card-body { flex: 1; min-height: 0; }
+.workspace-snap { height: 100vh; scroll-snap-align: start;
+  display: flex; flex-direction: column; background: #0d0d0d; }
+.ws-header { height: 36px; display: flex; align-items: center;
+  padding: 0 20px; background: #1a1a1a; border-top: 1px solid #2a2a2a;
+  font-size: 10px; font-weight: 700; letter-spacing: 2px; color: #555;
+  text-transform: uppercase; flex-shrink: 0; }
+.ws-iframe-wrap { flex: 1; min-height: 0; overflow: hidden; }
+.ws-iframe-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
+.footer {
+    background: #0d0d0d;
+    border-top: 1px solid #1e1e1e;
+    padding: 10px 20px;
+    font-size: 10px;
+    color: #555;
+}
+/* lp-css-v3 */
+/* ---- landing page ---- */
+#landing {
+    height: 100vh; scroll-snap-align: start;
+    display: flex; flex-direction: column;
+    background: #0a0a0a; padding: 24px 28px 32px;
+    box-sizing: border-box; overflow: hidden;
+}
+.lp-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 16px; flex-shrink: 0;
+}
+.lp-framework-label {
+    font-size: 9px; letter-spacing: 0.2em; color: #444;
+    text-transform: uppercase; margin-bottom: 4px;
+}
+.lp-date { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.lp-meta { font-size: 10px; color: #555; }
+.lp-ws-btn {
+    display: inline-block; padding: 8px 16px;
+    background: #1a1a1a; border: 1px solid #333;
+    color: #888; font-size: 9px; letter-spacing: 0.15em;
+    text-transform: uppercase; text-decoration: none;
+    border-radius: 3px; flex-shrink: 0; align-self: center;
+    transition: color 0.15s, border-color 0.15s;
+}
+.lp-ws-btn:hover { color: #fff; border-color: #555; }
+.lp-ticker-bar {
+    display: flex; gap: 0; flex-shrink: 0;
+    background: #111; border: 1px solid #1e1e1e;
+    border-radius: 4px; padding: 8px 16px;
+    margin-bottom: 20px; overflow: hidden;
+}
+.lp-ticker-item {
+    display: flex; align-items: center; gap: 8px;
+    flex: 1; padding: 0 12px;
+    border-right: 1px solid #1e1e1e;
+}
+.lp-ticker-item:first-child { padding-left: 0; }
+.lp-ticker-item:last-child { border-right: none; }
+.lp-ticker-label { font-size: 9px; color: #555; letter-spacing: 0.1em; text-transform: uppercase; width: 52px; flex-shrink: 0; }
+.lp-ticker-price { font-size: 12px; color: #fff; font-weight: 600; }
+.lp-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    flex: 1; min-height: 0; overflow: hidden;
+}
+.lp-pair-card {
+    background: #111; border: 1px solid #1e1e1e;
+    border-radius: 4px; display: flex; flex-direction: column;
+    overflow: hidden;
+}
+.lp-card-header {
+    padding: 12px 14px 8px; background: #141414; flex-shrink: 0;
+}
+.lp-pair-label {
+    font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;
+}
+.lp-price-block { display: flex; align-items: baseline; gap: 8px; }
+.lp-price { font-size: 22px; font-weight: 700; color: #fff; }
+.lp-1d { font-size: 14px; }
+.lp-12m-label { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.1em; }
+.lp-12m { font-size: 11px; }
+.lp-spread-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 14px; background: #0d0d0d;
+    border-top: 1px solid #1e1e1e; border-bottom: 1px solid #1e1e1e; flex-shrink: 0;
+}
+.lp-spread-label { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.08em; }
+.lp-spread-val { font-size: 12px; font-weight: 600; }
+.lp-signals { flex: 1; padding: 8px 14px; overflow: hidden; display: flex; flex-direction: column; gap: 4px; }
+.lc-row { display: flex; align-items: center; gap: 6px; }
+.lc-name { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; flex: 1; }
+.lc-val { font-size: 11px; font-variant-numeric: tabular-nums; min-width: 52px; text-align: right; }
+.lc-badge { font-size: 8px; padding: 1px 5px; border-radius: 2px; letter-spacing: 0.06em; }
+.lp-drilldown {
+    display: block; padding: 8px 14px; background: #0d0d0d;
+    border-top: 1px solid #1e1e1e; font-size: 9px;
+    color: #444; text-decoration: none; letter-spacing: 0.1em;
+    text-transform: uppercase; text-align: right; flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+}
+.lp-drilldown:hover { color: #fff; background: #1a1a1a; }
+.lp-nav-hint {
+    text-align: center; font-size: 9px; color: #2a2a2a;
+    padding-top: 8px; letter-spacing: 0.15em; flex-shrink: 0;
+}
+/* badge-info variant for DOLLAR REGIME */
+.badge-info { background: #1a1a2a; color: #4da6ff; }
+/* end lp-css */
+/* pnav-css-v1 */
+/* ---- fixed bottom pair nav ---- */
+#pair-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 32px; z-index: 9999;
+    background: rgba(10,10,10,0.93);
+    backdrop-filter: blur(6px);
+    display: flex; justify-content: center; align-items: center;
+    gap: 0; border-top: 1px solid #2a2a2a;
+}
+#pair-nav a {
+    font-size: 10px; letter-spacing: 0.12em; color: #555;
+    text-transform: uppercase; text-decoration: none;
+    padding: 0 20px; line-height: 32px; transition: color 0.15s;
+    border-right: 1px solid #1e1e1e;
+}
+#pair-nav a:last-child { border-right: none; }
+#pair-nav a.nav-active { color: #ffffff; }
+#pair-nav a:hover { color: #aaa; }
+.card { padding-bottom: 32px; }
+#landing { padding-bottom: 32px; }
+</style>
+</head>
+<body>
+
+<!-- GLOBAL BAR (superseded by landing page) -->
+
+<!-- HEADER (superseded by landing page) -->
+<!-- LANDING PAGE -->
+<div id="landing">
+  <div class="lp-header">
+    <div class="lp-title-block">
+      <div class="lp-framework-label">G10 FX REGIME DETECTION FRAMEWORK</div>
+      <div class="lp-date">Morning Brief &mdash; Sunday, 08 March 2026</div>
+      <div class="lp-meta">FX as of: 06 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; IN 10Y as of: 06 Mar 2026 &nbsp;&nbsp;|&nbsp;&nbsp; COT cutoff: 03 Mar 2026 (pub&apos;d: 06 Mar 2026) &nbsp;&nbsp;|&nbsp;&nbsp; run: 08 Mar 2026 14:33 IST</div>
+    </div>
+    <a href="#workspace-snap" class="lp-ws-btn">WORKSPACE &#9654;</a>
+  </div>
+  <div class="lp-ticker-bar"><div class="lp-ticker-item"><span class="lp-ticker-label">DXY</span><span class="lp-ticker-price">98.86</span><span style="color:#ff4444;font-size:11px">-0.47%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">EUR/USD</span><span class="lp-ticker-price">1.1608</span><span style="color:#ff4444;font-size:11px">-0.24%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">USD/JPY</span><span class="lp-ticker-price">157.53</span><span style="color:#00d4aa;font-size:11px">+0.35%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">USD/INR</span><span class="lp-ticker-price">91.79</span><span style="color:#ff4444;font-size:11px">-0.36%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">Brent</span><span class="lp-ticker-price">$92.69</span><span style="color:#00d4aa;font-size:11px">+8.52%</span></div><div class="lp-ticker-item"><span class="lp-ticker-label">Gold</span><span class="lp-ticker-price">$5,159</span><span style="color:#00d4aa;font-size:11px">+1.84%</span></div></div>
+  <div class="lp-grid">
+    <div class="lp-pair-card">
+          <div class="lp-card-header" style="border-top:3px solid #4da6ff">
+            <span class="lp-pair-label" style="color:#4da6ff">EUR/USD</span>
+            <div class="lp-price-block">
+              <span class="lp-price">1.1608</span>
+              <span class="lp-1d"><span style="color:#ff4444;font-size:14px">-0.24%</span></span>
+              <span class="lp-12m-label">12M</span>
+              <span class="lp-12m"><span style="color:#00d4aa;font-size:11px">+6.63%</span></span>
+            </div>
+          </div>
+          <div class="lp-spread-row">
+            <span class="lp-spread-label">Rate Spread (10Y)</span>
+            <span class="lp-spread-val" style="color:#ff4444">↑ 0.68%</span>
+          </div>
+          <div class="lp-signals"><div class="lc-row"><span class="lc-name">Lev Money</span><span class="lc-val" style="color:#fff">88th %ile</span><span class="lc-badge badge-warning">88th pct</span></div><div class="lc-row"><span class="lc-name">Vol 30D</span><span class="lc-val" style="color:#fff">7.3%</span><span class="lc-badge badge-neutral">NORMAL</span></div><div class="lc-row"><span class="lc-name">Regime Corr</span><span class="lc-val" style="color:#ff4444">-0.131</span><span class="lc-badge badge-danger">BROKEN</span></div><div class="lc-row"><span class="lc-name">Oil Corr 60D</span><span class="lc-val" style="color:#888">+0.010</span><span class="lc-badge badge-neutral">LOW</span></div><div class="lc-row"><span class="lc-name">DXY Corr 60D</span><span class="lc-val" style="color:#00d4aa">-0.270</span><span class="lc-badge badge-success">EUR SPECIFIC</span></div></div>
+          <a class="lp-drilldown" href="#card-eurusd">View Detail →</a>
+        </div>
+    <div class="lp-pair-card">
+          <div class="lp-card-header" style="border-top:3px solid #ff9944">
+            <span class="lp-pair-label" style="color:#ff9944">USD/JPY</span>
+            <div class="lp-price-block">
+              <span class="lp-price">157.53</span>
+              <span class="lp-1d"><span style="color:#00d4aa;font-size:14px">+0.35%</span></span>
+              <span class="lp-12m-label">12M</span>
+              <span class="lp-12m"><span style="color:#00d4aa;font-size:11px">+6.24%</span></span>
+            </div>
+          </div>
+          <div class="lp-spread-row">
+            <span class="lp-spread-label">Rate Spread (10Y)</span>
+            <span class="lp-spread-val" style="color:#ff4444">↑ 1.40%</span>
+          </div>
+          <div class="lp-signals"><div class="lc-row"><span class="lc-name">Lev Money</span><span class="lc-val" style="color:#fff">63th %ile</span><span class="lc-badge badge-neutral">63th pct</span></div><div class="lc-row"><span class="lc-name">Vol 30D</span><span class="lc-val" style="color:#fff">11.3%</span><span class="lc-badge badge-warning">ELEVATED</span></div><div class="lc-row"><span class="lc-name">Regime Corr</span><span class="lc-val" style="color:#ff4444">-0.046</span><span class="lc-badge badge-danger">BROKEN</span></div><div class="lc-row"><span class="lc-name">Oil Corr 60D</span><span class="lc-val" style="color:#888">+0.093</span><span class="lc-badge badge-neutral">LOW</span></div><div class="lc-row"><span class="lc-name">DXY Corr 60D</span><span class="lc-val" style="color:#00d4aa">+0.120</span><span class="lc-badge badge-success">YEN SPECIFIC</span></div></div>
+          <a class="lp-drilldown" href="#card-usdjpy">View Detail →</a>
+        </div>
+    <div class="lp-pair-card">
+          <div class="lp-card-header" style="border-top:3px solid #e74c3c">
+            <span class="lp-pair-label" style="color:#e74c3c">USD/INR</span>
+            <div class="lp-price-block">
+              <span class="lp-price">91.79</span>
+              <span class="lp-1d"><span style="color:#ff4444;font-size:14px">-0.36%</span></span>
+              <span class="lp-12m-label">12M</span>
+              <span class="lp-12m"><span style="color:#00d4aa;font-size:11px">+5.09%</span></span>
+            </div>
+          </div>
+          <div class="lp-spread-row">
+            <span class="lp-spread-label">US 2Y–IN 10Y (cross)</span>
+            <span class="lp-spread-val" style="color:#ff4444">↑ -3.31%</span>
+          </div>
+          <div class="lp-signals"><div class="lc-row"><span class="lc-name">Vol 30D</span><span class="lc-val" style="color:#fff">6.3%</span><span class="lc-badge badge-danger">EXTREME</span></div><div class="lc-row"><span class="lc-name">Oil Corr 60D</span><span class="lc-val" style="color:#888">-0.106</span><span class="lc-badge badge-neutral">LOW</span></div><div class="lc-row"><span class="lc-name">DXY Corr 60D</span><span class="lc-val" style="color:#00d4aa">-0.032</span><span class="lc-badge badge-success">INDIA SPECIFIC</span></div></div>
+          <a class="lp-drilldown" href="#card-usdinr">View Detail →</a>
+        </div>
+  </div>
+  <div class="lp-nav-hint">&#8595; scroll to pair detail</div>
+</div>
+
+<div class="content">
+
+  <div class="card" id="card-eurusd" data-pair="eurusd">
+    <div class="card-header">
+      <span class="ch-pair">EUR/USD</span>
+      <span class="ch-price">1.1608</span>
+      <span class="ch-1d" style="color:#ff4444">-0.24%</span>
+      <span class="ch-12m-label">12M:</span>
+      <span class="ch-12m" style="color:#00d4aa">+6.63%</span>
+      <span class="ch-badge badge-crowded-long">CROWDED LONG</span>
+    </div>
+    <div class="card-body">
+      
+      
+      
+      
+      
+      
+      <div class="brief-left">
+
+        <div class="brief-section">
+          <div class="brief-label">RATE DIFFERENTIALS</div>
+          <div class="brief-row"><span class="name">US-DE 10Y</span><span class="val">0.68%</span><span class="pct" style="color:#ff4444">+0.03pp</span></div>
+          <div class="brief-row"><span class="name">US-DE 2Y</span><span class="val">1.40%</span><span class="pct" style="color:#ff4444">+0.00pp</span></div>
+          </div>
+
+        <div class="brief-section">
+          <div class="brief-label">POSITIONING (COT)</div>
+          <div class="brief-row"><span class="name">Lev Money</span><span class="pct" style="color:#00d4aa">+29,632</span><span class="pct">88th %ile</span><span class="badge-mini badge-danger">CROWDED LONG</span></div>
+          <div class="brief-row"><span class="name">Asset Mgr</span><span class="pct" style="color:#00d4aa">+370,272</span><span class="pct">64th %ile</span><span class="badge-mini badge-neutral">NEUTRAL LONG</span></div>
+          </div>
+
+        <div class="brief-section">
+          <div class="brief-label">VOLATILITY &amp; CORRELATION</div>
+          <div class="brief-row"><span class="name">30D Vol</span><span class="val">7.3%</span><span class="pct">67th %ile</span><span class="badge-mini badge-neutral">NORMAL</span></div>
+          <div class="brief-row"><span class="name">60D Corr</span><span class="pct" style="color:#ff4444">-0.131</span><span></span><span class="badge-mini badge-danger">BROKEN</span></div>
+          <div class="brief-row"><span class="name">Oil corr 60D</span><span class="pct" style="color:#555555" data-field="oil_eurusd_corr_60d">+0.010</span><span></span><span class="badge-mini badge-neutral" data-badge="oil_eurusd_corr_60d">LOW</span></div>
+          <div class="brief-row"><span class="name">DXY corr 60D</span><span class="pct" style="color:#00d4aa" data-field="dxy_eurusd_corr_60d">-0.270</span><span></span><span class="badge-mini badge-success" data-badge="dxy_eurusd_corr_60d">EUR SPECIFIC</span></div>
+          </div>
+
+        <div class="brief-section regime-read">
+          <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
+          <div class="brief-text">spread compression supports EUR strength; positioning crowded — asymmetric reversal risk, easy move likely priced.</div>
+        </div>
+      </div>
+
+      <div class="brief-right">
+        <div class="chart-tab-bar">
+          <button class="chart-tab active" data-pair="eurusd" data-tab="0">FUNDAMENTALS</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="1">POSITIONING</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="2">VOL & CORRELATION</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="3">CROSS ASSET</button>
+        </div>
+        <div class="chart-display-area">
+          <div class="chart-pane" data-pair="eurusd" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
+<iframe src="../charts/eurusd_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="eurusd" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/eurusd_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="eurusd" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/eurusd_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="eurusd" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/eurusd_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="card-usdjpy" data-pair="usdjpy">
+    <div class="card-header">
+      <span class="ch-pair">USD/JPY</span>
+      <span class="ch-price">157.53</span>
+      <span class="ch-1d" style="color:#00d4aa">+0.35%</span>
+      <span class="ch-12m-label">12M:</span>
+      <span class="ch-12m" style="color:#00d4aa">+6.24%</span>
+      <span class="ch-badge badge-neutral-card">NEUTRAL</span>
+    </div>
+    <div class="card-body">
+      
+      
+      
+      
+      
+      
+      <div class="brief-left">
+
+        <div class="brief-section">
+          <div class="brief-label">RATE DIFFERENTIALS</div>
+          <div class="brief-row"><span class="name">US-JP 10Y</span><span class="val">1.40%</span><span class="pct" style="color:#ff4444">+0.15pp</span></div>
+          <div class="brief-row"><span class="name">US-JP 2Y</span><span class="val">2.31%</span><span class="pct" style="color:#ff4444">+0.18pp</span></div>
+          </div>
+
+        <div class="brief-section">
+          <div class="brief-label">POSITIONING (COT)</div>
+          <div class="brief-row"><span class="name">Lev Money</span><span class="pct" style="color:#ff4444">-34,225</span><span class="pct">63th %ile</span><span class="badge-mini badge-neutral">NEUTRAL SHORT</span></div>
+          <div class="brief-row"><span class="name">Asset Mgr</span><span class="pct" style="color:#00d4aa">+17,904</span><span class="pct">59th %ile</span><span class="badge-mini badge-neutral">NEUTRAL LONG</span></div>
+          </div>
+
+        <div class="brief-section">
+          <div class="brief-label">VOLATILITY &amp; CORRELATION</div>
+          <div class="brief-row"><span class="name">30D Vol</span><span class="val">11.3%</span><span class="pct">82th %ile</span><span class="badge-mini badge-warning">ELEVATED</span></div>
+          <div class="brief-row"><span class="name">60D Corr</span><span class="pct" style="color:#ff4444">-0.046</span><span></span><span class="badge-mini badge-danger">BROKEN</span></div>
+          <div class="brief-row"><span class="name">Oil corr 60D</span><span class="pct" style="color:#555555" data-field="oil_usdjpy_corr_60d">+0.093</span><span></span><span class="badge-mini badge-neutral" data-badge="oil_usdjpy_corr_60d">LOW</span></div>
+          <div class="brief-row"><span class="name">DXY corr 60D</span><span class="pct" style="color:#00d4aa" data-field="dxy_usdjpy_corr_60d">+0.120</span><span></span><span class="badge-mini badge-success" data-badge="dxy_usdjpy_corr_60d">YEN SPECIFIC</span></div>
+          </div>
+
+        <div class="brief-section regime-read">
+          <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
+          <div class="brief-text">spread compression favors lower USD/JPY; Leveraged Money 63rd pct and Asset Manager 59th pct both neutral — carry partially intact, BoJ path is key variable. vol elevated — positioning signals less reliable.</div>
+        </div>
+      </div>
+
+      <div class="brief-right">
+        <div class="chart-tab-bar">
+          <button class="chart-tab active" data-pair="usdjpy" data-tab="0">FUNDAMENTALS</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="1">POSITIONING</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="2">VOL & CORRELATION</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="3">CROSS ASSET</button>
+        </div>
+        <div class="chart-display-area">
+          <div class="chart-pane" data-pair="usdjpy" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
+<iframe src="../charts/usdjpy_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdjpy_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdjpy_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdjpy_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="card-usdinr" data-pair="usdinr">
+    <div class="card-header">
+      <span class="ch-pair">USD/INR</span>
+      <span class="ch-price">91.79</span>
+      <span class="ch-1d" style="color:#ff4444">-0.36%</span>
+      <span class="ch-12m-label">12M:</span>
+      <span class="ch-12m" style="color:#00d4aa">+5.09%</span>
+      <span class="ch-badge badge-neutral-card">RATE DIFF ONLY</span>
+    </div>
+    <div class="card-body">
+      
+      
+      
+      
+      
+      
+      <div class="brief-left">
+
+        <div class="brief-section">
+          <div class="brief-label">RATE DIFFERENTIALS</div>
+          <div class="brief-row"><span class="name">US 2Y–IN 10Y</span><span class="val">-3.31%</span><span class="pct" style="color:#ff4444">+0.14pp</span></div>
+          <div class="brief-row"><span class="name">US-IN Policy</span><span class="val">-1.81%</span><span class="pct" style="color:#ff4444">+0.14pp</span></div>
+          </div>
+
+        <div class="brief-section">
+          <div class="brief-label">POSITIONING (COT)</div>
+          <div class="brief-muted">FPI proxy unavailable</div>
+          </div>
+
+        <div class="brief-section">
+          <div class="brief-label">VOLATILITY &amp; CORRELATION</div>
+          <div class="brief-row"><span class="name">30D Vol</span><span class="val">6.3%</span><span class="pct">91th %ile</span><span class="badge-mini badge-danger">EXTREME</span></div>
+          <div class="brief-row"><span class="name">Oil corr 60D</span><span class="pct" style="color:#555555" data-field="oil_inr_corr_60d">-0.106</span><span></span><span class="badge-mini badge-neutral" data-badge="oil_inr_corr_60d">LOW</span></div>
+          <div class="brief-row"><span class="name">DXY corr 60D</span><span class="pct" style="color:#00d4aa" data-field="dxy_inr_corr_60d">-0.032</span><span></span><span class="badge-mini badge-success" data-badge="dxy_inr_corr_60d">INDIA SPECIFIC</span></div>
+          </div>
+
+        <div class="brief-section regime-read">
+          <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
+          <div class="brief-text">US-IN spread at -3.31%. India yield premium intact at 3.31pp. Rate differential favors INR strength. FPI positioning data pending.</div>
+        </div>
+      </div>
+
+      <div class="brief-right">
+        <div class="chart-tab-bar">
+          <button class="chart-tab active" data-pair="usdinr" data-tab="0">FUNDAMENTALS</button>
+          <button class="chart-tab" data-pair="usdinr" data-tab="1">CROSS ASSET</button>
+        </div>
+        <div class="chart-display-area">
+          <div class="chart-pane" data-pair="usdinr" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
+<iframe src="../charts/usdinr_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdinr" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdinr_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- GLOBAL ANALYSIS WORKSPACE -->
+<div class="workspace-snap" id="workspace-snap">
+  <div class="ws-header">ANALYSIS WORKSPACE &mdash; ALL PAIRS</div>
+  <div class="ws-iframe-wrap">
+    <div class="chart-pane" data-pair="global" data-pane="0" style="visibility:visible;position:relative;pointer-events:auto;width:100%;height:100%;">
+<iframe src="../charts/global_workspace.html" style="width:100%;height:calc(100vh - 36px);border:none;display:block;" loading="eager" scrolling="no"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  Data: FRED &middot; ECB SDW &middot; Japan MOF &middot; CFTC &middot; Yahoo Finance | G10 FX Regime Detection Framework &mdash; Shreyash Sakhare
+</div>
+
+<script>
+document.querySelectorAll('.chart-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    var pair   = this.dataset.pair;
+    var tabIdx = this.dataset.tab;
+
+    document.querySelectorAll('.chart-tab[data-pair="' + pair + '"]')
+      .forEach(function(t) { t.classList.remove('active'); });
+
+    document.querySelectorAll('.chart-pane[data-pair="' + pair + '"]')
+      .forEach(function(p) {
+        p.style.visibility    = 'hidden';
+        p.style.position      = 'absolute';
+        p.style.pointerEvents = 'none';
+      });
+
+    this.classList.add('active');
+
+    var pane = document.querySelector(
+      '.chart-pane[data-pair="' + pair + '"][data-pane="' + tabIdx + '"]'
+    );
+    pane.style.visibility    = 'visible';
+    pane.style.position      = 'absolute';
+    pane.style.pointerEvents = 'auto';
+  });
+});
+
+document.querySelectorAll('.regime-toggle').forEach(function(lbl) {
+  lbl.addEventListener('click', function() {
+    this.closest('.regime-read').classList.toggle('open');
+  });
+});
+
+// Bottom nav active state via IntersectionObserver
+(function() {
+  var navLinks = document.querySelectorAll('#pair-nav a');
+  var targets  = ['landing', 'card-eurusd', 'card-usdjpy', 'card-usdinr', 'workspace-snap'];
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting && e.intersectionRatio >= 0.5) {
+        navLinks.forEach(function(a) { a.classList.remove('nav-active'); });
+        var link = document.querySelector('#pair-nav a[href="#' + e.target.id + '"]');
+        if (link) link.classList.add('nav-active');
+      }
+    });
+  }, {threshold: 0.5});
+  targets.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) io.observe(el);
+  });
+})();
+</script>
+
+<nav id="pair-nav">
+  <a href="#landing" class="pnav-btn" data-target="landing-page">HOME</a>
+  <a href="#card-eurusd" class="pnav-btn" data-target="card-eurusd">EUR/USD</a>
+  <a href="#card-usdjpy" class="pnav-btn" data-target="card-usdjpy">USD/JPY</a>
+  <a href="#card-usdinr" class="pnav-btn" data-target="card-usdinr">USD/INR</a>
+  <a href="#workspace-snap" class="pnav-btn" data-target="workspace-snap">WS</a>
+</nav>
+</body>
+</html>

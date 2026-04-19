@@ -1,0 +1,44 @@
+======================================================================
+  G10 FX MORNING BRIEF
+  Thursday, 26 February 2026
+  data as of: 2026-02-25  |  COT as of: 2026-02-17
+======================================================================
+
+  PRICES
+  pair           price        1D       12M
+  ------------------------------------------------
+  EUR/USD       1.1775    -0.16%   +12.31%
+  USD/JPY     155.8800    +0.81%    +4.40%
+  DXY          97.7000    -0.18%    -7.60%
+
+  RATE DIFFERENTIALS  (narrowing = foreign currency should strengthen)
+  spread                   today    1D chg   12M chg
+  ----------------------------------------------------
+  US-DE 10Y (cross)        0.66%   +0.00pp   -0.74pp
+  US-DE 2Y  (same)         1.42%   +0.00pp   -0.56pp
+  US-JP 10Y (cross)        1.28%   -0.03pp   -1.26pp
+  US-JP 2Y  (same)         2.21%   +0.03pp   -0.92pp
+
+  COT POSITIONING (as of 2026-02-17)
+  ------------------------------------------------------------------
+
+  EUR/USD:
+    Leveraged Money   : +43,549 contracts | +4.8% OI | CROWDED LONG  (96th pct)
+    Asset Manager     : +413,713 contracts | +45.1% OI | CROWDED LONG  (93rd pct)
+
+  USD/JPY:
+    Leveraged Money   : -29,321 contracts | -8.3% OI | NEUTRAL SHORT (67th pct)
+    Asset Manager     : +40,546 contracts | +11.4% OI | NEUTRAL LONG  (71st pct)
+
+  REGIME READ
+  ------------------------------------------------------------------
+  EUR/USD  spread compression supports EUR strength; Leveraged Money
+           96th pct and Asset Manager 93rd pct both crowded long —
+           dual category confirmation, strongest reversal risk
+           signal this framework produces.
+
+  USD/JPY  spread compression favors lower USD/JPY; Leveraged Money
+           67th pct and Asset Manager 71st pct both neutral — carry
+           partially intact, BoJ path is key variable.
+
+======================================================================

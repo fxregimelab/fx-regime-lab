@@ -1,0 +1,424 @@
+
+==================================================
+  fx_regime pipeline  --  2026-04-18
+==================================================
+
+>>  fx  (pipeline.py)
+======================================================================
+  G10 FX PIPELINE -- 2026-04-18
+======================================================================
+
+[1/5] fetching FX prices from yahoo finance...
+    got 1639 rows, 3 pairs
+    from 2020-01-01 to 2026-04-17
+
+[1b] fetching commodity prices from yahoo finance...
+    OK  Brent (BZ=F) -- 1584 rows, latest: 90.84 on 2026-04-17
+    OK  Gold (GC=F) -- 1584 rows, latest: 4878.80 on 2026-04-17
+
+[2/5] fetching all yields (FRED + ECB + MOF + IT � parallel)...
+    OK  US_2Y (FRED DGS2) -- 1572 rows, latest: 3.76% on 2026-04-15
+    WARN IT_10Y ECB failed (HTTPError): 404 Client Error:  for url: https://data-api.ecb.europa.eu/service/data/YC/B.IT.EUR.4F.G_N_A.SV_C_YM.SR_10Y?startPeriod=2020-01-01&detail=dataonly
+    OK  US_10Y (FRED DGS10) -- 1572 rows, latest: 4.29% on 2026-04-15
+    OK  DE_2Y (ECB daily) -- 1607 rows, latest: 2.49% on 2026-04-16
+    OK  IT_10Y (FRED monthly->bday ffill) -- 1643 rows, latest non-NaN: 3.49% on 2026-04-17
+    OK  JP_2Y (MOF daily) -- 1536 rows, latest: 1.37% on 2026-04-16
+    OK  JP_10Y (MOF daily) -- 1536 rows, latest: 2.41% on 2026-04-16
+    OK  DE_10Y (ECB daily) -- 1607 rows, latest: 3.07% on 2026-04-16
+
+[3/5] calculating rate differentials...
+    US_DE_10Y_spread       : +1.22%
+    US_DE_2Y_spread        : +1.27%
+    US_JP_10Y_spread       : +1.88%
+    US_JP_10Y_spread_accel : +0.01%
+    US_JP_2Y_spread        : +2.39%
+    US_curve               : +0.53%
+    BTP_Bund_spread        : +0.42%  [NORMAL]
+    BTP_Bund_flag          : NORMAL
+
+[4/5] building master dataset...
+    WARNING -- missing values:
+DXY                       1
+US_2Y                     1
+US_10Y                    1
+DE_2Y                     1
+DE_10Y                    1
+JP_2Y                     3
+JP_10Y                    3
+US_DE_10Y_spread          1
+US_DE_2Y_spread           1
+US_JP_10Y_spread          3
+US_JP_10Y_spread_accel    8
+US_JP_2Y_spread           3
+US_curve                  1
+BTP_Bund_spread           1
+Brent                     1
+Gold                      1
+dtype: int64
+    shape: 1638 rows x 20 columns
+
+[VOL] calculating realized volatility...
+    EURUSD: 8.5% annualized | 87th pct | ELEVATED
+    USDJPY: 7.1% annualized | 19th pct | NORMAL
+
+[CORR] calculating regime correlation...
+    EURUSD: 60D:+0.320  /  20D:+0.503
+    USDJPY: 60D:-0.189  /  20D:-0.488
+
+[OIL] calculating oil correlation (Phase 1)...
+    EURUSD  : -0.333  (oil_eurusd_corr_60d)
+    USDJPY  : +0.132  (oil_usdjpy_corr_60d)
+
+[GOLD] calculating gold correlation (Phase 4)...
+    USDJPY  : -0.308  (gold_usdjpy_corr_60d)
+
+[DXY] calculating DXY decomposition (Phase 2)...
+    EURUSD  : -0.160  (dxy_eurusd_corr_60d)
+    USDJPY  : +0.148  (dxy_usdjpy_corr_60d)
+
+[LEVELS] calculating rolling key support/resistance levels...
+    EURUSD: S1=1.1460  R1=1.1809
+    USDJPY: S1=158.42  R1=160.23
+
+[COMPOSITE] calculating G10 composite regime scores (Phase 8)...
+    EUR/USD composite: +2.4  [NEUTRAL]
+    USD/JPY composite: -15.5  [NEUTRAL]
+
+[5/5] calculating changes...
+    USDINR not in master -- run inr_pipeline.py first
+    Brent change columns added
+    Gold change columns added
+    added change columns for 5 periods
+
+    saved: data/master_20260418.csv
+    saved: data/latest.csv
+
+======================================================================
+  MORNING NUMBERS
+======================================================================
+  as of: 2026-04-17
+
+  COMMODITIES:
+  asset         price      1D%      1W%      1M%
+  ------------------------------------------------
+  Brent         90.84   -8.60%   -4.58%  -16.39%  ($/bbl)
+  Gold        4878.80   +1.95%   +2.45%   +6.04%  ($/oz)
+
+  FX PRICES:
+  pair          price      1D%      1W%      1M%      3M%     12M%
+  ------------------------------------------------------------------
+  EURUSD       1.1786   -0.20%   +0.81%   +2.80%   +1.26%   +3.90%
+  USDJPY     158.4230   -0.24%   -0.43%   -0.86%   +0.16%  +10.14%
+  DXY         98.1070   -0.12%   -0.55%   -1.13%   -0.54%   -0.91%
+
+  YIELDS:
+  series                today    1D chg    1M chg   12M chg
+  ----------------------------------------------------------
+  US 2Y                 3.76%    +0.00pp    -0.03pp    +0.09pp
+  US 10Y                4.29%    +0.00pp    +0.04pp    +0.06pp
+  DE 2Y                 2.49%    +0.00pp    +0.02pp    +0.75pp
+  DE 10Y                3.07%    +0.00pp    +0.06pp    +0.47pp
+  JP 2Y                 1.37%    +0.00pp    +0.09pp    +0.68pp
+  JP 10Y                2.41%    +0.00pp    +0.14pp    +1.08pp
+  US curve              0.53%    +0.00pp    +0.07pp    -0.03pp
+
+  RATE DIFFERENTIALS:
+  spread                    today    1D chg    1M chg   12M chg
+  --------------------------------------------------------------
+  US-DE 10Y                 1.22%    +0.00pp    -0.02pp    -0.41pp
+  US-DE 2Y                  1.27%    +0.00pp    -0.05pp    -0.66pp
+  US-JP 10Y                 1.88%    +0.00pp    -0.10pp    -1.02pp
+  US-JP 2Y                  2.39%    +0.00pp    -0.12pp    -0.59pp
+
+  pp = percentage points (yields and spreads move in pp)
+   % = percentage change (FX prices)
+======================================================================
+
+  run cot_pipeline.py next
+  then create_dashboards.py for charts
+======================================================================
+OK  fx  -- 10.7s
+
+>>  cot  (cot_pipeline.py)
+==============================================================
+  COT POSITIONING PIPELINE -- 2026-04-18
+==============================================================
+
+[1/4] fetching CFTC COT data...
+    OK  2023 -- 104 rows
+    OK  2024 -- 106 rows
+    OK  2025 -- 104 rows
+    OK  2026 -- 28 rows
+    combined: 342 rows, 2023 to 2026
+
+[2/4] calculating net positioning and percentiles...
+
+    JPY:
+      Leveraged Money:
+        net : -51,110 contracts (SHORT)
+        % OI: -14.6%  |  percentile: 42nd
+        regime: NEUTRAL
+      Asset Manager:
+        net : -15,945 contracts (SHORT)
+        % OI: -4.6%  |  percentile: 1st
+        regime: CROWDED SHORT
+
+    EUR:
+      Leveraged Money:
+        net : +882 contracts (LONG)
+        % OI: +0.1%  |  percentile: 11th
+        regime: CROWDED SHORT
+      Asset Manager:
+        net : +258,050 contracts (LONG)
+        % OI: +33.3%  |  percentile: 1st
+        regime: CROWDED SHORT
+
+[3/4] saving data...
+
+    saved: data/cot_latest.csv
+    rows: 171, from 2023-01-03 to 2026-04-07
+
+[4/4] merging COT with FX master data...
+    saved: C:\Market Journey 2026\Code\fx_regime\data\latest_with_cot.csv
+    shape: 1638 rows x 151 columns
+
+==============================================================
+  COT SUMMARY (Leveraged Money)
+==============================================================
+
+  JPY (as of 2026-04-07):
+    net position : -51,110 contracts (SHORT)
+    % of OI      : -14.6%
+    percentile   : 42nd (vs last 3 years)
+    regime       : MODERATELY SHORT (42nd pct) -- no crowding signal
+
+  EUR (as of 2026-04-07):
+    net position : +882 contracts (LONG)
+    % of OI      : +0.1%
+    percentile   : 11th (vs last 3 years)
+    regime       : CROWDED SHORT -- squeeze risk if catalyst appears
+
+==============================================================
+  run create_dashboards.py for charts
+==============================================================
+[Supabase] Wrote 3276 signal rows
+OK  cot  -- 21.0s
+
+>>  inr  (inr_pipeline.py)
+==============================================================
+  INR PIPELINE -- 2026-04-18
+==============================================================
+
+[1/3] fetching USD/INR price (yfinance USDINR=X)...
+    OK  1638 rows, latest: 2026-04-17 = 92.5230
+
+[2/3] fetching IN 10Y yield (FBIL daily G-sec benchmark)...
+    FBIL cache: 760 rows, last = 2026-04-17
+    FBIL: cache is up to date
+    OK  daily, as of 2026-04-17 = 7.11%  (repo proxy = 5.61%)
+
+[3/3] fetching FPI flows (NSE primary, SEBI fallback)...
+    OK  NSE cache 20d, latest: 2026-04-17
+    FPI 20D flow: -114,078  percentile: N/A (building cache)
+
+[saving] assembling inr_latest.csv...
+    USDINR vol: 12.4% annualized | 100th pct | EXTREME
+    saved: data/inr_latest.csv  (1638 rows x 12 cols)
+    oil_inr_corr_60d: +0.119
+    dxy_inr_corr_60d:  -0.049
+    gold_inr_corr_60d: -0.270
+    gold_seasonal_flag: 1  label: AKSHAYA TRITIYA
+    WARN: RBI reserves primary (RBUKRESERVES) failed: Bad Request.  The series does not exist. � trying fallback
+    rbi_reserve_chg_1w: -4.7B  flag: ACTIVE SUPPORT
+    inr_composite_score: +27.0  [NEUTRAL]
+    merged into: data/latest_with_cot.csv  (178 cols total)
+INR columns in master: ['USDINR', 'IN_10Y', 'IN_repo_proxy', 'IN_10Y_source', 'US_IN_10Y_spread', 'US_IN_policy_spread', 'USDINR_vol30', 'USDINR_vol_pct', 'USDINR_chg_1D', 'USDINR_chg_1W', 'USDINR_chg_1M', 'USDINR_chg_3M', 'USDINR_chg_12M', 'US_IN_10Y_spread_chg_12M', 'US_IN_policy_spread_chg_12M']
+
+==============================================================
+  INR SUMMARY
+==============================================================
+
+  USD/INR:          92.5230
+  IN 10Y:           7.11%  (FBIL daily, as of 2026-04-17)
+  US-IN spread:     -2.82%
+  FPI 20D flow:     -114,078  (percentile: nanth)
+
+==============================================================
+[Supabase] Wrote 4914 signal rows
+  Supabase: full signals history upsert OK (if configured)
+OK  inr  -- 22.4s
+
+>>  vol  (vol_pipeline.py)
+  vol_pipeline: CBOE FX implied-vol via yfinance (^EVZ, ^JYVIX)
+  vol_pipeline: wrote C:\Market Journey 2026\Code\fx_regime\data\vol_latest.csv (1301 rows)
+  vol_pipeline: upserted 260 rows for EURUSD
+  vol_pipeline: upserted 1 rows for USDJPY
+OK  vol  -- 4.8s
+
+>>  oi  (oi_pipeline.py)
+  oi_pipeline: CME Volume/OI daily report (Phase 4)
+  oi_pipeline: no OI report available within 14d lookback (last try: http_403)
+OK  oi  -- 10.4s
+
+>>  rr  (rr_pipeline.py)
+  rr_pipeline: Synthetic 25-delta RR via FXE proxy (Phase 5)
+  rr_pipeline: EURUSD RR = +0.793 vol pts (atm_proxy, expiry 2026-05-15, 27d)
+  rr_pipeline: wrote C:\Market Journey 2026\Code\fx_regime\data\rr_latest.csv (1 rows)
+  rr_pipeline: upserted EURUSD risk_reversal_25d=+0.793
+OK  rr  -- 11.5s
+
+>>  merge  (scripts/pipeline_merge.py)
+
+======================================================================
+  MERGE STEP -- 2026-04-18
+======================================================================
+  merge_main: wrote C:\Market Journey 2026\Code\fx_regime\data\latest_with_cot.csv (1638 rows, 203 cols)
+[Supabase] Wrote 3 signal rows
+OK  merge  -- 3.7s
+
+>>  text  (morning_brief.py)
+======================================================================
+  G10 FX MORNING BRIEF
+  Saturday, 18 April 2026
+  FX as of: 2026-04-17  |  IN 10Y as of: 2026-04-17  |  COT cutoff: 2026-04-07 (pub'd: 2026-04-10)
+======================================================================
+
+  DESK SUMMARY
+  ------------------------------------------------------------------
+  As of 2026-04-17, the working story is anchored in rate spreads: US�DE 10Y sits at 1.22% (+0.01pp over 1W) while US�JP 10Y is 1.88% (+0.01pp over 1W). Composite labels read EUR/USD NEUTRAL, USD/JPY NEUTRAL, USD/INR NEUTRAL. Treat COT and realized vol in the sections below as overlays on that rates spine�crowding and stress change how aggressively to trade the spread signal, they rarely invalidate it in isolation.
+
+  PRICES
+  pair           price        1D       12M
+  ------------------------------------------------
+  EUR/USD       1.1786    -0.20%    +3.90%
+  USD/JPY     158.4230    -0.24%   +10.14%
+  DXY          98.1070    -0.12%    -0.91%
+
+  RATE DIFFERENTIALS  (narrowing = foreign currency should strengthen)
+  spread                   today    1W chg   12M chg
+  ----------------------------------------------------
+  US-DE 10Y (cross)        1.22%   +0.01pp   -0.41pp
+  US-DE 2Y  (same)         1.27%   -0.01pp   -0.66pp
+  US-JP 10Y (cross)        1.88%   +0.01pp   -1.02pp
+  US-JP 2Y  (same)         2.39%   -0.01pp   -0.59pp
+  BTP-Bund (IT-DE 10Y)     0.42pp                      [NORMAL]
+
+  REGIME CORRELATION  (60D rolling | spread vs FX move)
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            +0.320   WEAKENING
+  USD/JPY            -0.189   BROKEN
+
+  OIL CORRELATION  (60D rolling | Brent returns vs FX returns)
+  expected: EUR/USD negative, USD/JPY positive, USD/INR positive
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            -0.333   MODERATE
+  USD/JPY            +0.132   LOW
+  USD/INR            +0.119   LOW
+
+  DXY DECOMPOSITION  (60D rolling | DXY returns vs FX returns)
+  high +ve = dollar-driven | low corr = pair-specific factor
+  pair          correlation   regime
+  ----------------------------------------------------
+  EUR/USD            -0.160   EUR SPECIFIC
+  USD/JPY            +0.148   YEN SPECIFIC
+  USD/INR            -0.049   INDIA SPECIFIC
+
+  GOLD CORRELATION  (60D rolling | Gold returns vs FX returns)
+  USD/JPY: negative expected (safe-haven) | USD/INR: positive expected (import demand)
+  pair          correlation   flag
+  ----------------------------------------------------
+  USD/JPY            -0.308   MODERATE
+  USD/INR            -0.270   GOLD DIVERGENCE  << sign reversal -- safe-haven/import demand channel broken
+                              SEASONAL: AKSHAYA TRITIYA
+
+  RBI INTERVENTION  (FRED RBUKRESERVES | 7-day change in USD bn)
+  ----------------------------------------------------
+  RBI Reserves              -4.7B   ACTIVE SUPPORT  << defending INR floor
+
+  INR COMPOSITE SCORE  (oil 25% | DXY 20% | FPI 25% | RBI 20% | rate 10%)
+  ----------------------------------------------------
+  SCORE: +27.0  [NEUTRAL]
+  Components: Oil(-3) DXY(+1) FPI(+25) RBI(-6) Rate(+10)
+
+  G10 COMPOSITE REGIME SCORES  (Phase 8 | +ve = USD strength pressure)
+  --------------------------------------------------------------
+  pair            score   label
+  --------------------------------------------------------------
+  EUR/USD          +2.4   NEUTRAL
+  USD/JPY         -15.5   NEUTRAL
+  weights: EUR/USD rate 30%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 8%+dxy 7%
+           USD/JPY rate 25%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 10%+gold 5%+dxy 5%
+
+  KEY LEVELS  (90D | S=support, R=resistance, (n)=touches)
+  --------------------------------------------------------------
+  EUR/USD:  S3: 1.1435          S2: 1.1435          S1: 1.146          
+           R1: 1.1809          R2: 1.2018          R3: 1.2018         
+  USD/JPY:  S3: 152.45          S2: 152.45          S1: 158.42         
+           R1: 160.23          R2: 160.23          R3: 160.23         
+
+  VOLATILITY  (30D realized, annualized | 3Y percentile)
+  --------------------------------------------------------
+  pair            vol30        pct   flag
+  --------------------------------------------------------
+  EURUSD           8.5%       87th   ELEVATED
+  USDJPY           7.1%       19th   NORMAL
+
+  COT POSITIONING  (cutoff: 2026-04-07 = Tue close | pub'd: 2026-04-10 = Fri)
+  ------------------------------------------------------------------
+
+  EUR/USD:
+    Leveraged Money   : +882 contracts | +0.1% OI | CROWDED SHORT (11th pct)
+    Asset Manager     : +258,050 contracts | +33.3% OI | CROWDED SHORT (1st pct)
+
+  USD/JPY:
+    Leveraged Money   : -51,110 contracts | -14.6% OI | NEUTRAL SHORT (42nd pct)
+    Asset Manager     : -15,945 contracts | -4.6% OI | CROWDED SHORT (1st pct)
+
+  REGIME READ
+  ------------------------------------------------------------------
+  EUR/USD  spread compression supports EUR strength; positioning
+           crowded short � squeeze risk if EUR catalyst appears. vol
+           elevated � positioning signals less reliable.
+
+  USD/JPY  spread compression favors lower USD/JPY; carry trade
+           partially intact (42nd pct) � BoJ path is key variable.
+
+======================================================================
+
+  saved: briefs/brief_20260418.txt
+OK  text  -- 2.8s
+
+>>  macro  (macro_pipeline.py)
+
+[macro] fetching economic calendar...
+    cache fresh (<12h) � using 3 cached events
+OK  macro  -- 0.6s
+
+>>  ai  (ai_brief.py)
+[AI] institutional brief passed quality gate (298 words)
+[AI] ----- institutional brief (plain text) -----
+G10 spreads have compressed modestly across the board as US rates grip, leaving all three major pairs locked in neutral regimes with minimal conviction.
+
+EUR/USD sits neutral with only five percent model confidence despite a 122 basis point US-DE spread that should theoretically anchor euro strength. The real constraint is positioning: leveraged shorts sit at the eleventh percentile crowding, and implied volatility has exploded to the eighty-seventh percentile, which historically degrades the reliability of spread-driven signals. Asset managers are also deeply short at the first percentile, a setup vulnerable to mean reversion if any eurozone data surprise to the upside materializes. Watch for any ECB speaker commentary or euro area growth prints that could trigger tactical squeeze coverage.
+
+USD/JPY remains neutral with fifteen percent confidence as the 188 basis point US-JP spread persists, yet COT positioning sits benign at the forty-second percentile with leveraged money only modestly short. Implied volatility at the nineteenth percentile suggests the market is sleeping on carry trade risk, and the negative correlation between spreads and price action at minus eighteen percent hints that BoJ guidance, not rate differentials, is the actual lever right now. PMs should track any hint from Japanese officials that policy normalization is accelerating.
+
+USD/INR is neutral with twenty-seven percent confidence but flashing an extreme warning: implied volatility sits at the hundredth percentile and the rupee correlation with gold has reversed into negative territory, signaling a broken safe-haven channel just as Akshaya Tritiya season arrives. The minus 282 basis point US-India spread should naturally support rupee strength, yet RBI has actively defended reserves by four point seven billion dollars in the past week, suggesting official concern about INR weakness despite fundamentals. The next move hinges entirely on whether RBI sustains intervention or allows the rupee to normalize toward the spread.
+[AI] ----- end institutional brief -----
+[AI] Claude narrative generation OK
+[AI] wrote data\ai_article.json
+[AI] wrote data\ai_regime_read.json
+OK  ai  -- 11.4s
+
+>>  substack  (scripts/substack_publish.py)
+[Substack] Error: Login failed: HTTP 401
+FAIL  substack after 3.1s
+   WARN: substack failed — non-blocking, pipeline continues
+
+>>  html  (create_html_brief.py)
+Generated: briefs/brief_20260418.html
+OK  html  -- 5.9s
+
+>>  validate  (validation_regime.py)

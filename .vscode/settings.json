@@ -1,0 +1,8 @@
+{
+    "python.terminal.useEnvFile": true,
+    "python.envFile": "${workspaceFolder}/.env",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "off",
+    "cursorpyright.analysis.autoImportCompletions": true,
+    "cursorpyright.analysis.typeCheckingMode": "off"
+}

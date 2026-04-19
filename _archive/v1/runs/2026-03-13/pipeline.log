@@ -1,0 +1,102 @@
+
+==================================================
+  fx_regime pipeline  --  2026-03-13
+==================================================
+
+>>  fx  (pipeline.py)
+======================================================================
+  G10 FX PIPELINE -- 2026-03-13
+======================================================================
+
+[1/5] fetching FX prices from yahoo finance...
+    DXY missing/NaN from batch -- retrying standalone with DX=F...
+    DXY fallback failed: int() argument must be a string, a bytes-like object or a real number, not 'Series'
+    got 1612 rows, 3 pairs
+    from 2020-01-01 to 2026-03-12
+
+[1b] fetching commodity prices from yahoo finance...
+    OK  Brent (BZ=F) -- 1559 rows, latest: 100.46 on 2026-03-12
+    OK  Gold (GC=F) -- 1559 rows, latest: 5115.80 on 2026-03-12
+
+[2/5] fetching all yields (FRED + ECB + MOF + IT � parallel)...
+    OK  US_2Y (FRED DGS2) -- 1547 rows, latest: 3.64% on 2026-03-11
+    WARN IT_10Y ECB failed (HTTPError): 404 Client Error:  for url: https://data-api.ecb.europa.eu/service/data/YC/B.IT.EUR.4F.G_N_A.SV_C_YM.SR_10Y?startPeriod=2020-01-01&detail=dataonly
+    OK  US_10Y (FRED DGS10) -- 1547 rows, latest: 4.21% on 2026-03-11
+    OK  IT_10Y (FRED monthly->bday ffill) -- 1618 rows, latest non-NaN: 3.49% on 2026-03-13
+    OK  DE_2Y (ECB daily) -- 1583 rows, latest: 2.35% on 2026-03-12
+    OK  JP_2Y (MOF daily) -- 1512 rows, latest: 1.26% on 2026-03-12
+    OK  JP_10Y (MOF daily) -- 1512 rows, latest: 2.20% on 2026-03-12
+    OK  DE_10Y (ECB daily) -- 1583 rows, latest: 3.00% on 2026-03-12
+
+[3/5] calculating rate differentials...
+    US_DE_10Y_spread       : +1.21%
+    US_DE_2Y_spread        : +1.29%
+    US_JP_10Y_spread       : +2.01%
+    US_JP_10Y_spread_accel : +0.04%
+    US_JP_2Y_spread        : +2.38%
+    US_curve               : +0.57%
+    BTP_Bund_spread        : +0.49%  [NORMAL]
+    BTP_Bund_flag          : NORMAL
+
+[4/5] building master dataset...
+    clean -- no missing values
+    shape: 0 rows x 20 columns
+
+[VOL] calculating realized volatility...
+
+[CORR] calculating regime correlation...
+    EURUSD: no correlation data (yield series unavailable)
+    USDJPY: no correlation data (yield series unavailable)
+
+[OIL] calculating oil correlation (Phase 1)...
+    EURUSD  : no data
+    USDJPY  : no data
+
+[GOLD] calculating gold correlation (Phase 4)...
+    USDJPY  : no data
+
+[DXY] calculating DXY decomposition (Phase 2)...
+    EURUSD  : no data
+    USDJPY  : no data
+
+[LEVELS] calculating rolling key support/resistance levels...
+
+[COMPOSITE] calculating G10 composite regime scores (Phase 8)...
+
+[5/5] calculating changes...
+    USDINR not in master -- run inr_pipeline.py first
+    Brent change columns added
+    Gold change columns added
+    added change columns for 5 periods
+
+    saved: data/master_20260313.csv
+    saved: data/latest.csv
+
+======================================================================
+  MORNING NUMBERS
+======================================================================
+
+2 Failed downloads:
+['EURUSD=X']: TypeError("'NoneType' object is not subscriptable")
+['DX-Y.NYB']: KeyError('chart')
+Traceback (most recent call last):
+  File "C:\Market Journey 2026\Code\fx_regime\pipeline.py", line 1208, in <module>
+    main()
+  File "C:\Market Journey 2026\Code\fx_regime\pipeline.py", line 1200, in main
+    print_morning_summary(master)
+  File "C:\Market Journey 2026\Code\fx_regime\pipeline.py", line 1073, in print_morning_summary
+    latest    = master.dropna(subset=["EURUSD", "USDJPY"]).iloc[-1]
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^
+  File "c:\Market Journey 2026\Code\fx_regime\.venv\Lib\site-packages\pandas\core\indexing.py", line 1207, in __getitem__
+    return self._getitem_axis(maybe_callable, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Market Journey 2026\Code\fx_regime\.venv\Lib\site-packages\pandas\core\indexing.py", line 1773, in _getitem_axis
+    self._validate_integer(key, axis)
+  File "c:\Market Journey 2026\Code\fx_regime\.venv\Lib\site-packages\pandas\core\indexing.py", line 1706, in _validate_integer
+    raise IndexError("single positional indexer is out-of-bounds")
+IndexError: single positional indexer is out-of-bounds
+FAIL  fx after 58.7s
+   Fix pipeline.py and re-run:  python run.py --only fx
+
+  pipeline stopped after 58.8s -- fix the error above and retry.
+

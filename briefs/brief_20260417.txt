@@ -1,0 +1,112 @@
+======================================================================
+  G10 FX MORNING BRIEF
+  Friday, 17 April 2026
+  FX as of: 2026-04-16  |  IN 10Y as of: 2026-04-16  |  COT cutoff: 2026-04-07 (pub'd: 2026-04-10)
+======================================================================
+
+  DESK SUMMARY
+  ------------------------------------------------------------------
+  As of 2026-04-16, the working story is anchored in rate spreads: US–DE 10Y sits at 1.22% (+0.00pp over 1W) while US–JP 10Y is 1.88% (-0.01pp over 1W). Composite labels read EUR/USD NEUTRAL, USD/JPY NEUTRAL, USD/INR NEUTRAL. Treat COT and realized vol in the sections below as overlays on that rates spine—crowding and stress change how aggressively to trade the spread signal, they rarely invalidate it in isolation.
+  Near-term catalyst: ECB Meeting on 2026-04-17 (0 day(s) out).
+
+  !! MACRO EVENT TODAY: ECB Meeting (2026-04-17) !!
+
+  PRICES
+  pair           price        1D       12M
+  ------------------------------------------------
+  EUR/USD       1.1809    +0.08%    +3.85%
+  USD/JPY     158.8090    +0.01%   +11.15%
+  DXY          98.2200    +0.16%    -1.26%
+
+  RATE DIFFERENTIALS  (narrowing = foreign currency should strengthen)
+  spread                   today    1W chg   12M chg
+  ----------------------------------------------------
+  US-DE 10Y (cross)        1.22%   +0.00pp   -0.51pp
+  US-DE 2Y  (same)         1.27%   +0.02pp   -0.75pp
+  US-JP 10Y (cross)        1.88%   -0.01pp   -1.06pp
+  US-JP 2Y  (same)         2.39%   +0.01pp   -0.66pp
+  BTP-Bund (IT-DE 10Y)        n/a                      [N/A]
+
+  REGIME CORRELATION  (60D rolling | spread vs FX move)
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            +0.296   BROKEN
+  USD/JPY            -0.189   BROKEN
+
+  OIL CORRELATION  (60D rolling | Brent returns vs FX returns)
+  expected: EUR/USD negative, USD/JPY positive, USD/INR positive
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            -0.343   MODERATE
+  USD/JPY            +0.123   LOW
+  USD/INR            +0.072   LOW
+
+  DXY DECOMPOSITION  (60D rolling | DXY returns vs FX returns)
+  high +ve = dollar-driven | low corr = pair-specific factor
+  pair          correlation   regime
+  ----------------------------------------------------
+  EUR/USD            -0.198   EUR SPECIFIC
+  USD/JPY            +0.141   YEN SPECIFIC
+  USD/INR            -0.056   INDIA SPECIFIC
+
+  GOLD CORRELATION  (60D rolling | Gold returns vs FX returns)
+  USD/JPY: negative expected (safe-haven) | USD/INR: positive expected (import demand)
+  pair          correlation   flag
+  ----------------------------------------------------
+  USD/JPY            -0.304   MODERATE
+  USD/INR            -0.256   GOLD DIVERGENCE  << sign reversal -- safe-haven/import demand channel broken
+                              SEASONAL: AKSHAYA TRITIYA
+
+  RBI INTERVENTION  (FRED RBUKRESERVES | 7-day change in USD bn)
+  ----------------------------------------------------
+  RBI Reserves              -4.7B   ACTIVE SUPPORT  << defending INR floor
+
+  INR COMPOSITE SCORE  (oil 25% | DXY 20% | FPI 25% | RBI 20% | rate 10%)
+  ----------------------------------------------------
+  SCORE: +29.7  [NEUTRAL]
+  Components: Oil(+2) DXY(-1) FPI(+25) RBI(-6) Rate(+10)
+
+  G10 COMPOSITE REGIME SCORES  (Phase 8 | +ve = USD strength pressure)
+  --------------------------------------------------------------
+  pair            score   label
+  --------------------------------------------------------------
+  EUR/USD          +2.5   NEUTRAL
+  USD/JPY         -15.7   NEUTRAL
+  weights: EUR/USD rate 30%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 8%+dxy 7%
+           USD/JPY rate 25%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 10%+gold 5%+dxy 5%
+
+  KEY LEVELS  (90D | S=support, R=resistance, (n)=touches)
+  --------------------------------------------------------------
+  EUR/USD:  S3: 1.1435          S2: 1.1435          S1: 1.146          
+           R1: 1.1809          R2: 1.2018          R3: 1.2018         
+  USD/JPY:  S3: 152.45          S2: 152.45          S1: 157.92         
+           R1: 160.23          R2: 160.23          R3: 160.23         
+
+  VOLATILITY  (30D realized, annualized | 3Y percentile)
+  --------------------------------------------------------
+  pair            vol30        pct   flag
+  --------------------------------------------------------
+  EURUSD           8.5%       87th   ELEVATED
+  USDJPY           7.1%       20th   NORMAL
+
+  COT POSITIONING  (cutoff: 2026-04-07 = Tue close | pub'd: 2026-04-10 = Fri)
+  ------------------------------------------------------------------
+
+  EUR/USD:
+    Leveraged Money   : +882 contracts | +0.1% OI | CROWDED SHORT (11th pct)
+    Asset Manager     : +258,050 contracts | +33.3% OI | CROWDED SHORT (1st pct)
+
+  USD/JPY:
+    Leveraged Money   : -51,110 contracts | -14.6% OI | NEUTRAL SHORT (42nd pct)
+    Asset Manager     : -15,945 contracts | -4.6% OI | CROWDED SHORT (1st pct)
+
+  REGIME READ
+  ------------------------------------------------------------------
+  EUR/USD  spread compression supports EUR strength; positioning
+           crowded short — squeeze risk if EUR catalyst appears. vol
+           elevated — positioning signals less reliable.
+
+  USD/JPY  spread compression favors lower USD/JPY; carry trade
+           partially intact (42nd pct) — BoJ path is key variable.
+
+======================================================================

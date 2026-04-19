@@ -1,0 +1,51 @@
+======================================================================
+  G10 FX MORNING BRIEF
+  Saturday, 28 February 2026
+  data as of: 2026-02-27  |  COT as of: 2026-02-24
+======================================================================
+
+  PRICES
+  pair           price        1D       12M
+  ------------------------------------------------
+  EUR/USD       1.1803    -0.10%    +9.34%
+  USD/JPY     155.8590    -0.22%    +4.68%
+  DXY          97.6100    -0.18%    -6.20%
+
+  RATE DIFFERENTIALS  (narrowing = foreign currency should strengthen)
+  spread                   today    1D chg   12M chg
+  ----------------------------------------------------
+  US-DE 10Y (cross)        0.67%   +0.00pp   -0.34pp
+  US-DE 2Y  (same)         1.42%   +0.00pp   -0.32pp
+  US-JP 10Y (cross)        1.25%   +0.00pp   -1.19pp
+  US-JP 2Y  (same)         2.17%   +0.00pp   -0.93pp
+
+  VOLATILITY  (30D realized, annualized | 3Y percentile)
+  --------------------------------------------------------
+  pair            vol30        pct   flag
+  --------------------------------------------------------
+  EURUSD           7.4%       69th   NORMAL
+  USDJPY          11.2%       80th   ELEVATED
+
+  COT POSITIONING (as of 2026-02-24)
+  ------------------------------------------------------------------
+
+  EUR/USD:
+    Leveraged Money   : +36,797 contracts | +4.0% OI | CROWDED LONG  (94th pct)
+    Asset Manager     : +395,301 contracts | +43.4% OI | NEUTRAL LONG  (79th pct)
+
+  USD/JPY:
+    Leveraged Money   : -26,317 contracts | -7.1% OI | NEUTRAL SHORT (69th pct)
+    Asset Manager     : +30,972 contracts | +8.4% OI | NEUTRAL LONG  (69th pct)
+
+  REGIME READ
+  ------------------------------------------------------------------
+  EUR/USD  spread compression supports EUR strength; positioning
+           crowded — asymmetric reversal risk, easy move likely
+           priced.
+
+  USD/JPY  spread compression favors lower USD/JPY; Leveraged Money
+           69th pct and Asset Manager 69th pct both neutral — carry
+           partially intact, BoJ path is key variable. vol elevated
+           — positioning signals less reliable.
+
+======================================================================

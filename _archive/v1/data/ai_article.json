@@ -1,0 +1,37 @@
+{
+  "date": "2026-04-17",
+  "headline": "G10 spreads have compressed modestly across the board as US rates grip, leaving \u2026",
+  "sections": {
+    "macro_context": "G10 spreads have compressed modestly across the board as US rates grip, leaving all three major pairs locked in neutral regimes with minimal conviction.",
+    "eurusd": {
+      "regime": "NEUTRAL",
+      "confidence": 0.05,
+      "narrative": "EUR/USD sits neutral with only five percent model confidence despite a 122 basis point US-DE spread that should theoretically anchor euro strength. The real constraint is positioning: leveraged shorts sit at the eleventh percentile crowding, and implied volatility has exploded to the eighty-seventh percentile, which historically degrades the reliability of spread-driven signals. Asset managers are also deeply short at the first percentile, a setup vulnerable to mean reversion if any eurozone data surprise to the upside materializes. Watch for any ECB speaker commentary or euro area growth prints that could trigger tactical squeeze coverage.",
+      "key_driver": "US-DE 10Y spread at +1.22pp with positioning at 11.5th percentile.",
+      "watch_for": "US-DE 10Y spread momentum reversal or regime flip."
+    },
+    "usdjpy": {
+      "regime": "NEUTRAL",
+      "confidence": 0.15,
+      "narrative": "USD/JPY remains neutral with fifteen percent confidence as the 188 basis point US-JP spread persists, yet COT positioning sits benign at the forty-second percentile with leveraged money only modestly short. Implied volatility at the nineteenth percentile suggests the market is sleeping on carry trade risk, and the negative correlation between spreads and price action at minus eighteen percent hints that BoJ guidance, not rate differentials, is the actual lever right now. PMs should track any hint from Japanese officials that policy normalization is accelerating.",
+      "key_driver": "US-JP 10Y spread at +1.88pp with positioning at 42.3th percentile.",
+      "watch_for": "US-JP 10Y spread momentum reversal or regime flip."
+    },
+    "usdinr": {
+      "regime": "NEUTRAL",
+      "confidence": 0.27,
+      "narrative": "USD/INR is neutral with twenty-seven percent confidence but flashing an extreme warning: implied volatility sits at the hundredth percentile and the rupee correlation with gold has reversed into negative territory, signaling a broken safe-haven channel just as Akshaya Tritiya season arrives. The minus 282 basis point US-India spread should naturally support rupee strength, yet RBI has actively defended reserves by four point seven billion dollars in the past week, suggesting official concern about INR weakness despite fundamentals. The next move hinges entirely on whether RBI sustains intervention or allows the rupee to normalize toward the spread.",
+      "key_driver": "US-IN 10Y spread at -2.82pp with positioning at N/A.",
+      "watch_for": "US-IN 10Y spread momentum reversal or regime flip."
+    },
+    "signal_changes": [
+      "No material signal changes."
+    ]
+  },
+  "charts_to_show": {
+    "eurusd": [],
+    "usdjpy": [],
+    "usdinr": []
+  },
+  "generated_at": "2026-04-17T19:15:11Z"
+}

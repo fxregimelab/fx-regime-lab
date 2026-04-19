@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>G10 FX Morning Brief — Wednesday, 04 March 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script><style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    background: #0d0d0d;
+    color: #cccccc;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+}
+.globalbar {
+    width: 100%;
+    background: #1a1a1a;
+    padding: 6px 20px;
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 8px 20px;
+    border-bottom: 1px solid #1e1e1e;
+}
+.header-left .label {
+    font-size: 10px;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+}
+.header-left .title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+}
+.header-right {
+    font-size: 11px;
+    color: #888;
+    text-align: right;
+    line-height: 1.7;
+}
+.content {
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.card {
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.card-header {
+    height: 34px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+}
+.ch-pair {
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    letter-spacing: 1.5px;
+}
+.ch-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-left: 16px;
+}
+.ch-1d {
+    font-size: 13px;
+    margin-left: 12px;
+}
+.ch-12m-label {
+    font-size: 11px;
+    color: #888;
+    margin-left: 12px;
+}
+.ch-12m {
+    font-size: 12px;
+    margin-left: 4px;
+}
+.ch-badge {
+    margin-left: auto;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.badge-crowded-long  { background: #f0a500; color: #000000; }
+.badge-crowded-short { background: #e05c5c; color: #ffffff; }
+.badge-neutral-card  { background: #333333; color: #888888; }
+.card-body {
+    height: auto;
+    display: flex;
+    align-items: stretch;
+    background: #141414;
+}
+
+.brief-left {
+    flex: 0 0 38%;
+    min-width: 0;
+    box-sizing: border-box;
+    background: #141414;
+    border-right: 1px solid #2a2a2a;
+    padding: 10px 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.brief-right {
+    flex: 1 1 0;
+    min-width: 0;
+    background: #0d0d0d;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+}
+.chart-tab-bar {
+    height: 30px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    gap: 2px;
+}
+.chart-tab {
+    padding: 0 12px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: #555;
+    font-size: 10px;
+    font-family: inherit;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: color 0.15s;
+}
+.chart-tab:hover {
+    color: #888;
+}
+.chart-tab.active {
+    color: #cccccc;
+    background: #252525;
+}
+.chart-display-area {
+    flex-grow: 1;
+    position: relative;
+    overflow: hidden;
+}
+.chart-pane {
+    width: 100%;
+    overflow: visible;
+}
+.brief-section {
+    border-top: 1px solid #252525;
+    padding-top: 6px;
+}
+.brief-section:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+.brief-section.regime-read .brief-text { display: none; }
+.brief-section.regime-read.open .brief-text { display: block; }
+.brief-label.regime-toggle { cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.regime-arrow { color: #444; font-size: 8px; transition: transform 0.15s; }
+.brief-section.regime-read.open .regime-arrow { transform: rotate(90deg); }
+.brief-label {
+    color: #555;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+.brief-row {
+    display: flex;
+    align-items: center;
+    line-height: 1.25;
+    margin-top: 2px;
+}
+.brief-row .name {
+    width: 118px;
+    flex-shrink: 0;
+    color: #888;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.brief-row .val {
+    width: 58px;
+    flex-shrink: 0;
+    text-align: right;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.brief-row .pct {
+    flex: 1;
+    text-align: right;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+.badge-mini {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border: 1px solid #2a2a2a;
+}
+.badge-mini.badge-neutral { background: #1a1a1a; color: #888; }
+.badge-mini.badge-success { background: rgba(0, 212, 170, 0.12); color: #00d4aa; border-color: rgba(0, 212, 170, 0.25); }
+.badge-mini.badge-warning { background: rgba(240, 165, 0, 0.12); color: #f0a500; border-color: rgba(240, 165, 0, 0.25); }
+.badge-mini.badge-danger  { background: rgba(224, 92, 92, 0.12); color: #e05c5c; border-color: rgba(224, 92, 92, 0.25); }
+
+.brief-text {
+    color: #aaaaaa;
+    font-size: 11px;
+    line-height: 1.5;
+}
+.brief-muted {
+    color: #555;
+    font-size: 11px;
+}
+.footer {
+    background: #0d0d0d;
+    border-top: 1px solid #1e1e1e;
+    padding: 10px 20px;
+    font-size: 10px;
+    color: #555;
+}
+/* ---- full-screen scroll-snap ---- */
+html { scroll-snap-type: y mandatory; overflow-y: scroll; }
+#landing { height: 100vh; scroll-snap-align: start; }
+.content { padding: 0; gap: 0; }
+.card {
+    height: 100vh;
+    scroll-snap-align: start;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    display: flex;
+    flex-direction: column;
+}
+.card-body { flex: 1; min-height: 0; }
+.workspace-snap {
+    height: 100vh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    background: #0d0d0d;
+}
+.ws-header {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    background: #1a1a1a;
+    border-top: 1px solid #2a2a2a;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #555;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+.ws-iframe-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+.ws-iframe-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
+</style>
+</head>
+<body>
+
+<!-- GLOBAL BAR -->
+<div class="globalbar">
+  DXY 99.17 <span style="color:#00d4aa">+1.60%</span>
+  &nbsp;|&nbsp; Brent $83.52
+  &nbsp;|&nbsp; Gold $5,184
+  &nbsp;|&nbsp; COT: 02 Mar 2026
+  &nbsp;|&nbsp; Next COT: 06 Mar 2026
+  &nbsp;|&nbsp; All prices: prior session close
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="label">G10 FX Regime Detection Framework</div>
+    <div class="title">Morning Brief &mdash; Wednesday, 04 March 2026</div>
+  </div>
+  <div class="header-right">
+    data as of: 02 Mar 2026<br>
+    pipeline run: 04 Mar 2026 15:14 IST
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="content">
+
+  <div class="card" id="card-eurusd" data-pair="eurusd">
+    <div class="card-header">
+      <span class="ch-pair">EUR/USD</span>
+      <span class="ch-price">1.1697</span>
+      <span class="ch-1d" style="color:#ff4444">-0.90%</span>
+      <span class="ch-12m-label">12M:</span>
+      <span class="ch-12m" style="color:#00d4aa">+10.82%</span>
+      <span class="ch-badge badge-crowded-long">CROWDED LONG</span>
+    </div>
+    <div class="card-body">
+      <div class="brief-left">
+
+        <div class="brief-section">
+          <div class="brief-label">RATE DIFFERENTIALS</div>
+          <div class="brief-row">
+            <span class="name">US-DE 10Y</span>
+            <span class="val">0.71%</span>
+            <span class="pct" style="color:#00d4aa">-1.24pp</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">US-DE 2Y</span>
+            <span class="val">1.44%</span>
+            <span class="pct" style="color:#00d4aa">-0.74pp</span>
+          </div>
+        </div>
+
+        <div class="brief-section">
+          <div class="brief-label">POSITIONING (COT)</div>
+          <div class="brief-row">
+            <span class="name">Lev Money</span>
+            <span class="pct" style="color:#00d4aa">+36,797</span>
+            <span class="pct">94th</span>
+            <span class="badge-mini badge-danger">CROWDED LONG</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">Asset Manager</span>
+            <span class="pct" style="color:#00d4aa">+395,301</span>
+            <span class="pct">79th</span>
+            <span class="badge-mini badge-neutral">NEUTRAL</span>
+          </div>
+        </div>
+
+        <div class="brief-section">
+          <div class="brief-label">VOLATILITY & CORRELATION</div>
+          <div class="brief-row">
+            <span class="name">30D Vol</span>
+            <span class="val">8.7%</span>
+            <span class="pct">64th</span>
+            <span class="badge-mini badge-neutral">NORMAL</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">60D Corr</span>
+            <span class="pct" style="color:#ff4444">-0.205</span>
+            <span></span>
+            <span class="badge-mini badge-danger">BROKEN</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">Oil corr 60D</span>
+            <span class="pct" style="color:#555555" data-field="oil_eurusd_corr_60d">+0.035</span>
+            <span></span>
+            <span class="badge-mini badge-neutral" data-badge="oil_eurusd_corr_60d">LOW</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">DXY corr 60D</span>
+            <span class="pct" style="color:#888888" data-field="dxy_eurusd_corr_60d">-0.501</span>
+            <span></span>
+            <span class="badge-mini badge-warning" data-badge="dxy_eurusd_corr_60d">MIXED</span>
+          </div>
+        </div>
+
+        <div class="brief-section regime-read">
+          <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
+          <div class="brief-text">Leveraged Money 94th and Asset Manager 79th both crowded long — dual category confirmation, strongest reversal risk signal this framework produces.</div>
+        </div>
+
+      </div>
+      <div class="brief-right">
+        <div class="chart-tab-bar">
+          <button class="chart-tab active" data-pair="eurusd" data-tab="0">FUNDAMENTALS</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="1">POSITIONING</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="2">VOL & CORRELATION</button>
+          <button class="chart-tab" data-pair="eurusd" data-tab="3">CROSS ASSET</button>
+        </div>
+        <div class="chart-display-area">
+          <div class="chart-pane" data-pair="eurusd" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
+<iframe src="../charts/eurusd_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="eurusd" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/eurusd_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="eurusd" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/eurusd_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="eurusd" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/eurusd_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="card-usdjpy" data-pair="usdjpy">
+    <div class="card-header">
+      <span class="ch-pair">USD/JPY</span>
+      <span class="ch-price">157.2570</span>
+      <span class="ch-1d" style="color:#00d4aa">+0.90%</span>
+      <span class="ch-12m-label">12M:</span>
+      <span class="ch-12m" style="color:#00d4aa">+3.86%</span>
+      <span class="ch-badge badge-neutral-card">NEUTRAL</span>
+    </div>
+    <div class="card-body">
+      <div class="brief-left">
+
+        <div class="brief-section">
+          <div class="brief-label">RATE DIFFERENTIALS</div>
+          <div class="brief-row">
+            <span class="name">US-JP 10Y</span>
+            <span class="val">1.38%</span>
+            <span class="pct" style="color:#00d4aa">-1.69pp</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">US-JP 2Y</span>
+            <span class="val">2.25%</span>
+            <span class="pct" style="color:#00d4aa">-1.30pp</span>
+          </div>
+        </div>
+
+        <div class="brief-section">
+          <div class="brief-label">POSITIONING (COT)</div>
+          <div class="brief-row">
+            <span class="name">Lev Money</span>
+            <span class="pct" style="color:#ff4444">-26,317</span>
+            <span class="pct">69th</span>
+            <span class="badge-mini badge-neutral">NEUTRAL</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">Asset Manager</span>
+            <span class="pct" style="color:#00d4aa">+30,972</span>
+            <span class="pct">69th</span>
+            <span class="badge-mini badge-neutral">NEUTRAL</span>
+          </div>
+        </div>
+
+        <div class="brief-section">
+          <div class="brief-label">VOLATILITY & CORRELATION</div>
+          <div class="brief-row">
+            <span class="name">30D Vol</span>
+            <span class="val">12.5%</span>
+            <span class="pct">66th</span>
+            <span class="badge-mini badge-neutral">NORMAL</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">60D Corr</span>
+            <span class="pct" style="color:#00d4aa">+0.225</span>
+            <span></span>
+            <span class="badge-mini badge-danger">BROKEN</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">Oil corr 60D</span>
+            <span class="pct" style="color:#555555" data-field="oil_usdjpy_corr_60d">+0.048</span>
+            <span></span>
+            <span class="badge-mini badge-neutral" data-badge="oil_usdjpy_corr_60d">LOW</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">DXY corr 60D</span>
+            <span class="pct" style="color:#888888" data-field="dxy_usdjpy_corr_60d">+0.392</span>
+            <span></span>
+            <span class="badge-mini badge-warning" data-badge="dxy_usdjpy_corr_60d">MIXED</span>
+          </div>
+        </div>
+
+        <div class="brief-section regime-read">
+          <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
+          <div class="brief-text">Spread compression favors lower USD/JPY. Leveraged Money 69th and Asset Manager 69th both neutral — carry partially intact, BoJ path is key variable.</div>
+        </div>
+      </div>
+
+      <div class="brief-right">
+        <div class="chart-tab-bar">
+          <button class="chart-tab active" data-pair="usdjpy" data-tab="0">FUNDAMENTALS</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="1">POSITIONING</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="2">VOL & CORRELATION</button>
+          <button class="chart-tab" data-pair="usdjpy" data-tab="3">CROSS ASSET</button>
+        </div>
+        <div class="chart-display-area">
+          <div class="chart-pane" data-pair="usdjpy" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
+<iframe src="../charts/usdjpy_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdjpy_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="2" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdjpy_2.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdjpy" data-pane="3" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdjpy_3.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="card-usdinr" data-pair="usdinr">
+    <div class="card-header">
+      <span class="ch-pair">USD/INR</span>
+      <span class="ch-price">91.0796</span>
+      <span class="ch-1d" style="color:#00d4aa">+0.14%</span>
+      <span class="ch-12m-label">12M:</span>
+      <span class="ch-12m" style="color:#00d4aa">+7.58%</span>
+      <span class="ch-badge badge-neutral-card">RATE DIFF ONLY</span>
+    </div>
+    <div class="card-body">
+      <div class="brief-left">
+
+        <div class="brief-section">
+          <div class="brief-label">RATE DIFFERENTIALS</div>
+          <div class="brief-row">
+            <span class="name">US-IN 10Y</span>
+            <span class="val">-3.26%</span>
+            <span class="pct" style="color:#00d4aa">-0.61pp</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">US-IN Policy</span>
+            <span class="val">-1.76%</span>
+            <span class="pct" style="color:#00d4aa">-0.61pp</span>
+          </div>
+        </div>
+
+        <div class="brief-section">
+          <div class="brief-label">POSITIONING (COT)</div>
+          <div class="brief-muted">FPI proxy unavailable</div>
+        </div>
+
+        <div class="brief-section">
+          <div class="brief-label">VOLATILITY & CORRELATION</div>
+          <div class="brief-row">
+            <span class="name">30D Vol</span>
+            <span class="val">—</span>
+            <span class="pct">—</span>
+            <span class="badge-mini badge-neutral">—</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">Oil corr 60D</span>
+            <span class="pct" style="color:#555555" data-field="oil_inr_corr_60d">-0.092</span>
+            <span></span>
+            <span class="badge-mini badge-neutral" data-badge="oil_inr_corr_60d">LOW</span>
+          </div>
+          <div class="brief-row">
+            <span class="name">DXY corr 60D</span>
+            <span class="pct" style="color:#00d4aa" data-field="dxy_inr_corr_60d">-0.155</span>
+            <span></span>
+            <span class="badge-mini badge-success" data-badge="dxy_inr_corr_60d">INDIA SPECIFIC</span>
+          </div>
+        </div>
+
+        <div class="brief-section regime-read">
+          <div class="brief-label regime-toggle">REGIME READ <span class="regime-arrow">▶</span></div>
+          <div class="brief-text">US-IN spread at -3.26%. India yield premium intact at 3.26pp. Rate differential favors INR strength. FPI positioning data pending Playwright integration.</div>
+        </div>
+      </div>
+
+      <div class="brief-right">
+        <div class="chart-tab-bar">
+          <button class="chart-tab active" data-pair="usdinr" data-tab="0">FUNDAMENTALS</button>
+          <button class="chart-tab" data-pair="usdinr" data-tab="1">CROSS ASSET</button>
+        </div>
+        <div class="chart-display-area">
+          <div class="chart-pane" data-pair="usdinr" data-pane="0" style="visibility:visible; position:absolute; pointer-events:auto; width:100%; height:100%;">
+<iframe src="../charts/usdinr_0.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+          <div class="chart-pane" data-pair="usdinr" data-pane="1" style="visibility:hidden; position:absolute; pointer-events:none; width:100%; height:100%;">
+<iframe src="../charts/usdinr_1.html" style="width:100%;height:100%;border:none;display:block;" loading="eager" scrolling="no"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- GLOBAL ANALYSIS WORKSPACE -->
+<div class="workspace-snap" id="workspace-snap">
+  <div class="ws-header">ANALYSIS WORKSPACE &mdash; ALL PAIRS</div>
+  <div class="ws-iframe-wrap">
+    <div class="chart-pane" data-pair="global" data-pane="0" style="visibility:visible;position:relative;pointer-events:auto;width:100%;height:100%;">
+<iframe src="../charts/global_workspace.html" style="width:100%;height:calc(100vh - 36px);border:none;display:block;" loading="eager" scrolling="no"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  Data: FRED &middot; ECB SDW &middot; Japan MOF &middot; CFTC &middot; Yahoo Finance | G10 FX Regime Detection Framework &mdash; Shreyash Sakhare
+</div>
+
+<script>
+document.querySelectorAll('.chart-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    var pair   = this.dataset.pair;
+    var tabIdx = this.dataset.tab;
+
+    document.querySelectorAll('.chart-tab[data-pair="' + pair + '"]')
+      .forEach(function(t) { t.classList.remove('active'); });
+
+    document.querySelectorAll('.chart-pane[data-pair="' + pair + '"]')
+      .forEach(function(p) {
+        p.style.visibility    = 'hidden';
+        p.style.position      = 'absolute';
+        p.style.pointerEvents = 'none';
+      });
+
+    this.classList.add('active');
+
+    var pane = document.querySelector(
+      '.chart-pane[data-pair="' + pair + '"][data-pane="' + tabIdx + '"]'
+    );
+    pane.style.visibility    = 'visible';
+    pane.style.position      = 'absolute';
+    pane.style.pointerEvents = 'auto';
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,38 @@
+[
+  {
+    "date": "2026-04-17",
+    "time": null,
+    "country": "CB",
+    "event": "ECB Meeting",
+    "impact": "HIGH",
+    "pairs": [
+      "EURUSD",
+      "USDJPY",
+      "USDINR"
+    ]
+  },
+  {
+    "date": "2026-05-01",
+    "time": null,
+    "country": "CB",
+    "event": "BoJ Policy",
+    "impact": "HIGH",
+    "pairs": [
+      "EURUSD",
+      "USDJPY",
+      "USDINR"
+    ]
+  },
+  {
+    "date": "2026-05-07",
+    "time": null,
+    "country": "CB",
+    "event": "Fed FOMC",
+    "impact": "HIGH",
+    "pairs": [
+      "EURUSD",
+      "USDJPY",
+      "USDINR"
+    ]
+  }
+]

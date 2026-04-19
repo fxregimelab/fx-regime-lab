@@ -1,0 +1,29 @@
+
+==================================================
+  fx_regime pipeline  --  2026-03-10
+==================================================
+
+>>  fx  (pipeline.py)
+OK  fx  -- 8.2s
+
+>>  cot  (cot_pipeline.py)
+OK  cot  -- 5.2s
+
+>>  inr  (inr_pipeline.py)
+OK  inr  -- 5.2s
+  [skip]  merge
+
+>>  text  (morning_brief.py)
+OK  text  -- 0.6s
+
+>>  html  (create_html_brief.py)
+OK  html  -- 3.4s
+  [skip]  deploy
+
+==================================================
+  all steps done  (22.5s total)
+  archived -> runs/2026-03-10/
+
+  live at: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/
+==================================================
+

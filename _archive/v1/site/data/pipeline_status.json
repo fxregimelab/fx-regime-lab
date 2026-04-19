@@ -1,0 +1,23 @@
+{
+  "last_run_utc": "2026-04-17T18:09:37Z",
+  "last_run_status": "failed",
+  "steps_completed": [
+    "fx",
+    "cot",
+    "inr",
+    "vol",
+    "oi",
+    "rr",
+    "merge",
+    "text",
+    "macro",
+    "ai",
+    "html",
+    "validate"
+  ],
+  "source": "fx_regime_pipeline",
+  "error_message": "step:deploy",
+  "supabase_write_status": "failed",
+  "supabase_rows_written": 0,
+  "last_supabase_write": "2026-04-17T18:07:27Z"
+}

@@ -1,0 +1,543 @@
+============================================================  
+ G10 FX REGIME PIPELINE  --  01-04-2026 10:09:34.04                    
+============================================================  
+
+==================================================
+  fx_regime pipeline  --  2026-04-01
+==================================================
+
+>>  fx  (pipeline.py)
+======================================================================
+  G10 FX PIPELINE -- 2026-04-01
+======================================================================
+
+[1/5] fetching FX prices from yahoo finance...
+    got 1626 rows, 3 pairs
+    from 2020-01-01 to 2026-03-31
+
+[1b] fetching commodity prices from yahoo finance...
+    OK  Brent (BZ=F) -- 1572 rows, latest: 118.35 on 2026-03-31
+    OK  Gold (GC=F) -- 1572 rows, latest: 4647.60 on 2026-03-31
+
+[2/5] fetching all yields (FRED + ECB + MOF + IT ? parallel)...
+    OK  US_2Y (FRED DGS2) -- 1560 rows, latest: 3.82% on 2026-03-30
+    OK  DE_2Y (ECB daily) -- 1596 rows, latest: 2.60% on 2026-03-30
+    WARN IT_10Y ECB failed (HTTPError): 404 Client Error:  for url: https://data-api.ecb.europa.eu/service/data/YC/B.IT.EUR.4F.G_N_A.SV_C_YM.SR_10Y?startPeriod=2020-01-01&detail=dataonly
+    OK  US_10Y (FRED DGS10) -- 1560 rows, latest: 4.35% on 2026-03-30
+    OK  IT_10Y (FRED monthly->bday ffill) -- 1631 rows, latest non-NaN: 3.49% on 2026-04-01
+    OK  DE_10Y (ECB daily) -- 1596 rows, latest: 3.09% on 2026-03-30
+    OK  JP_2Y (MOF daily) -- 1524 rows, latest: 1.38% on 2026-03-31
+    OK  JP_10Y (MOF daily) -- 1524 rows, latest: 2.37% on 2026-03-31
+
+[3/5] calculating rate differentials...
+    US_DE_10Y_spread       : +1.26%
+    US_DE_2Y_spread        : +1.22%
+    US_JP_10Y_spread       : +1.98%
+    US_JP_10Y_spread_accel : -0.08%
+    US_JP_2Y_spread        : +2.44%
+    US_curve               : +0.53%
+    BTP_Bund_spread        : +0.40%  [NORMAL]
+    BTP_Bund_flag          : NORMAL
+
+[4/5] building master dataset...
+    WARNING -- missing values:
+DXY                       1
+US_2Y                     1
+US_10Y                    1
+DE_2Y                     1
+DE_10Y                    1
+JP_2Y                     3
+JP_10Y                    3
+US_DE_10Y_spread          1
+US_DE_2Y_spread           1
+US_JP_10Y_spread          3
+US_JP_10Y_spread_accel    8
+US_JP_2Y_spread           3
+US_curve                  1
+BTP_Bund_spread           1
+Brent                     1
+Gold                      1
+dtype: int64
+    shape: 1625 rows x 20 columns
+
+[VOL] calculating realized volatility...
+    EURUSD: 7.3% annualized | 70th pct | NORMAL
+    USDJPY: 7.6% annualized | 27th pct | NORMAL
+
+[CORR] calculating regime correlation...
+    EURUSD: 60D:+0.125  /  20D:+0.486  REGIME TRANSITION
+    USDJPY: 60D:-0.134  /  20D:-0.564  REGIME TRANSITION
+
+[OIL] calculating oil correlation (Phase 1)...
+    EURUSD  : -0.089  (oil_eurusd_corr_60d)
+    USDJPY  : -0.007  (oil_usdjpy_corr_60d)
+
+[GOLD] calculating gold correlation (Phase 4)...
+    USDJPY  : -0.203  (gold_usdjpy_corr_60d)
+
+[DXY] calculating DXY decomposition (Phase 2)...
+    EURUSD  : -0.091  (dxy_eurusd_corr_60d)
+    USDJPY  : +0.052  (dxy_usdjpy_corr_60d)
+
+[LEVELS] calculating rolling key support/resistance levels...
+    EURUSD: S1=1.1435  R1=1.1636
+    USDJPY: S1=156.98  R1=160.23
+
+[COMPOSITE] calculating G10 composite regime scores (Phase 8)...
+    EUR/USD composite: -3.5  [NEUTRAL]
+    USD/JPY composite: -15.0  [NEUTRAL]
+
+[5/5] calculating changes...
+    USDINR not in master -- run inr_pipeline.py first
+    Brent change columns added
+    Gold change columns added
+    added change columns for 5 periods
+
+    saved: data/master_20260401.csv
+    saved: data/latest.csv
+
+======================================================================
+  MORNING NUMBERS
+======================================================================
+  as of: 2026-03-31
+
+  COMMODITIES:
+  asset         price      1D%      1W%      1M%
+  ------------------------------------------------
+  Brent        118.35   +4.94%  +13.26%  +52.24%  ($/bbl)
+  Gold        4647.60   +2.69%   +5.64%  -12.22%  ($/oz)
+
+  FX PRICES:
+  pair          price      1D%      1W%      1M%      3M%     12M%
+  ------------------------------------------------------------------
+  EURUSD       1.1460   -0.28%   -1.27%   -2.55%   -2.45%   +4.33%
+  USDJPY     159.8410   -0.25%   +0.86%   +2.05%   +2.19%   +9.91%
+  DXY         99.9600   -0.55%   +0.53%   +1.61%   +1.71%   -3.20%
+
+  YIELDS:
+  series                today    1D chg    1M chg   12M chg
+  ----------------------------------------------------------
+  US 2Y                 3.82%    +0.00pp    +0.35pp    +0.09pp
+  US 10Y                4.35%    +0.00pp    +0.30pp    +0.20pp
+  DE 2Y                 2.60%    +0.00pp    +0.57pp    +0.81pp
+  DE 10Y                3.09%    +0.00pp    +0.33pp    +0.41pp
+  JP 2Y                 1.38%    +0.01pp    +0.16pp    +0.79pp
+  JP 10Y                2.37%    -0.00pp    +0.28pp    +1.24pp
+  US curve              0.53%    +0.00pp    -0.05pp    +0.11pp
+
+  RATE DIFFERENTIALS:
+  spread                    today    1D chg    1M chg   12M chg
+  --------------------------------------------------------------
+  US-DE 10Y                 1.26%    +0.00pp    -0.03pp    -0.21pp
+  US-DE 2Y                  1.22%    +0.00pp    -0.22pp    -0.72pp
+  US-JP 10Y                 1.98%    +0.00pp    +0.02pp    -1.04pp
+  US-JP 2Y                  2.44%    -0.01pp    +0.19pp    -0.70pp
+
+  pp = percentage points (yields and spreads move in pp)
+   % = percentage change (FX prices)
+======================================================================
+
+  run cot_pipeline.py next
+  then create_dashboards.py for charts
+======================================================================
+OK  fx  -- 82.1s
+
+>>  cot  (cot_pipeline.py)
+==============================================================
+  COT POSITIONING PIPELINE -- 2026-04-01
+==============================================================
+
+[1/4] fetching CFTC COT data...
+    OK  2023 -- 104 rows
+    OK  2024 -- 106 rows
+    OK  2025 -- 104 rows
+    OK  2026 -- 24 rows
+    combined: 338 rows, 2023 to 2026
+
+[2/4] calculating net positioning and percentiles...
+
+    JPY:
+      Leveraged Money:
+        net : -54,852 contracts (SHORT)
+        % OI: -16.7%  |  percentile: 29th
+        regime: NEUTRAL
+      Asset Manager:
+        net : -6,250 contracts (SHORT)
+        % OI: -1.9%  |  percentile: 43rd
+        regime: NEUTRAL
+
+    EUR:
+      Leveraged Money:
+        net : -13,538 contracts (SHORT)
+        % OI: -1.8%  |  percentile: 15th
+        regime: CROWDED SHORT
+      Asset Manager:
+        net : +287,940 contracts (LONG)
+        % OI: +37.7%  |  percentile: 29th
+        regime: NEUTRAL
+
+[3/4] saving data...
+
+    saved: data/cot_latest.csv
+    rows: 169, from 2023-01-03 to 2026-03-24
+
+[4/4] merging COT with FX master data...
+    saved: C:\Market Journey 2026\Code\fx_regime\data\latest_with_cot.csv
+    shape: 1625 rows x 151 columns
+
+==============================================================
+  COT SUMMARY (Leveraged Money)
+==============================================================
+
+  JPY (as of 2026-03-24):
+    net position : -54,852 contracts (SHORT)
+    % of OI      : -16.7%
+    percentile   : 29th (vs last 3 years)
+    regime       : MODERATELY SHORT (29th pct) -- no crowding signal
+
+  EUR (as of 2026-03-24):
+    net position : -13,538 contracts (SHORT)
+    % of OI      : -1.8%
+    percentile   : 15th (vs last 3 years)
+    regime       : CROWDED SHORT -- squeeze risk if catalyst appears
+
+==============================================================
+  run create_dashboards.py for charts
+==============================================================
+C:\Market Journey 2026\Code\fx_regime\cot_pipeline.py:306: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master[col] = cot_daily[col]
+OK  cot  -- 6.6s
+
+>>  inr  (inr_pipeline.py)
+==============================================================
+  INR PIPELINE -- 2026-04-01
+==============================================================
+
+[1/3] fetching USD/INR price (yfinance USDINR=X)...
+    OK  1625 rows, latest: 2026-03-31 = 94.3559
+
+[2/3] fetching IN 10Y yield (FBIL daily G-sec benchmark)...
+    FBIL cache: 750 rows, last = 2026-03-30
+    FBIL: fetching 2 new business days (2026-03-31 to 2026-04-01)
+    FBIL: 2 dates skipped (holidays/errors)
+    OK  daily, as of 2026-03-30 = 7.24%  (repo proxy = 5.74%)
+
+[3/3] fetching FPI flows (NSE primary, SEBI fallback)...
+    OK  NSE cache 13d, latest: 2026-03-30
+    FPI 20D flow: -89,691  percentile: N/A (building cache)
+
+[saving] assembling inr_latest.csv...
+    USDINR vol: 7.6% annualized | 96th pct | EXTREME
+    saved: data/inr_latest.csv  (1625 rows x 12 cols)
+    oil_inr_corr_60d: -0.055
+    dxy_inr_corr_60d:  -0.097
+    gold_inr_corr_60d: -0.317
+    gold_seasonal_flag: 0  label: nan
+    WARN: RBI reserves primary (RBUKRESERVES) failed: Bad Request.  The series does not exist. ? trying fallback
+    rbi_reserve_chg_1w: -4.7B  flag: ACTIVE SUPPORT
+    inr_composite_score: +29.6  [NEUTRAL]
+    merged into: data/latest_with_cot.csv  (178 cols total)
+INR columns in master: ['USDINR', 'IN_10Y', 'IN_repo_proxy', 'IN_10Y_source', 'US_IN_10Y_spread', 'US_IN_policy_spread', 'USDINR_vol30', 'USDINR_vol_pct', 'USDINR_chg_1D', 'USDINR_chg_1W', 'USDINR_chg_1M', 'USDINR_chg_3M', 'USDINR_chg_12M', 'US_IN_10Y_spread_chg_12M', 'US_IN_policy_spread_chg_12M']
+
+==============================================================
+  INR SUMMARY
+==============================================================
+
+  USD/INR:          94.3559
+  IN 10Y:           7.24%  (FBIL daily, as of 2026-03-31)
+  US-IN spread:     -2.89%
+  FPI 20D flow:     -89,691  (percentile: nanth)
+
+==============================================================
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:547: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master[f"USDINR_chg_{label}"] = (
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:559: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master["oil_inr_corr_60d"] = brent_ret.rolling(CORR_WINDOW).corr(usdinr_ret)
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:569: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master["dxy_inr_corr_60d"] = dxy_ret.rolling(CORR_WINDOW).corr(usdinr_ret)
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:580: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master["gold_inr_corr_60d"] = gold_ret_inr.rolling(CORR_WINDOW).corr(usdinr_ret_g)
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:587: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master["gold_seasonal_flag"] = master.index.month.isin(
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:600: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master["gold_seasonal_label"] = pd.Series(
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:619: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master["rbi_reserves"]       = rbi_aligned
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:620: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master["rbi_reserve_chg_1w"] = rbi_chg_aligned
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:628: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master["rbi_intervention_flag"] = master["rbi_reserve_chg_1w"].apply(_rbi_flag)
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:665: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master["inr_composite_score"] = master.apply(_compute_inr_composite, axis=1)
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:675: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master["inr_composite_label"] = master["inr_composite_score"].apply(_inr_score_label_fn)
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:706: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master[chg_col] = chg
+C:\Market Journey 2026\Code\fx_regime\inr_pipeline.py:706: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  master[chg_col] = chg
+OK  inr  -- 6.6s
+  [dedup] merge  (pipeline.py already ran)
+
+>>  text  (morning_brief.py)
+======================================================================
+  G10 FX MORNING BRIEF
+  Wednesday, 01 April 2026
+  FX as of: 2026-03-31  |  IN 10Y as of: 2026-03-31  |  COT cutoff: 2026-03-24 (pub'd: 2026-03-27)
+======================================================================
+
+  PRICES
+  pair           price        1D       12M
+  ------------------------------------------------
+  EUR/USD       1.1460    -0.28%    +4.33%
+  USD/JPY     159.8410    -0.25%    +9.91%
+  DXY          99.9600    -0.55%    -3.20%
+
+  RATE DIFFERENTIALS  (narrowing = foreign currency should strengthen)
+  spread                   today    1W chg   12M chg
+  ----------------------------------------------------
+  US-DE 10Y (cross)        1.26%   -0.07pp   -0.21pp
+  US-DE 2Y  (same)         1.22%   -0.09pp   -0.72pp
+  US-JP 10Y (cross)        1.98%   -0.12pp   -1.04pp
+  US-JP 2Y  (same)         2.44%   -0.14pp   -0.70pp
+  BTP-Bund (IT-DE 10Y)     0.40pp                      [NORMAL]
+
+  REGIME CORRELATION  (60D rolling | spread vs FX move)
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            +0.125   BROKEN
+  USD/JPY            -0.134   BROKEN
+
+  OIL CORRELATION  (60D rolling | Brent returns vs FX returns)
+  expected: EUR/USD negative, USD/JPY positive, USD/INR positive
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            -0.089   LOW
+  USD/JPY            -0.007   LOW
+  USD/INR            -0.055   LOW
+
+  DXY DECOMPOSITION  (60D rolling | DXY returns vs FX returns)
+  high +ve = dollar-driven | low corr = pair-specific factor
+  pair          correlation   regime
+  ----------------------------------------------------
+  EUR/USD            -0.091   EUR SPECIFIC
+  USD/JPY            +0.052   YEN SPECIFIC
+  USD/INR            -0.097   INDIA SPECIFIC
+
+  GOLD CORRELATION  (60D rolling | Gold returns vs FX returns)
+  USD/JPY: negative expected (safe-haven) | USD/INR: positive expected (import demand)
+  pair          correlation   flag
+  ----------------------------------------------------
+  USD/JPY            -0.203   WEAK
+  USD/INR            -0.317   GOLD DIVERGENCE  << sign reversal -- safe-haven/import demand channel broken
+
+  RBI INTERVENTION  (FRED RBUKRESERVES | 7-day change in USD bn)
+  ----------------------------------------------------
+  RBI Reserves              -4.7B   ACTIVE SUPPORT  << defending INR floor
+
+  INR COMPOSITE SCORE  (oil 25% | DXY 20% | FPI 25% | RBI 20% | rate 10%)
+  ----------------------------------------------------
+  SCORE: +29.6  [NEUTRAL]
+  Components: Oil(-1) DXY(+2) FPI(+25) RBI(-6) Rate(+10)
+
+  G10 COMPOSITE REGIME SCORES  (Phase 8 | +ve = USD strength pressure)
+  --------------------------------------------------------------
+  pair            score   label
+  --------------------------------------------------------------
+  EUR/USD          -3.5   NEUTRAL
+  USD/JPY         -15.0   NEUTRAL
+  weights: EUR/USD rate 30%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 8%+dxy 7%
+           USD/JPY rate 25%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 10%+gold 5%+dxy 5%
+
+  KEY LEVELS  (90D | S=support, R=resistance, (n)=touches)
+  --------------------------------------------------------------
+  EUR/USD:  S3: 1.1435          S2: 1.1435          S1: 1.1435         
+           R1: 1.1636          R2: 1.2018          R3: 1.2018         
+  USD/JPY:  S3: 152.45          S2: 152.45          S1: 156.98         
+           R1: 160.23          R2: 160.23          R3: 160.23         
+
+  VOLATILITY  (30D realized, annualized | 3Y percentile)
+  --------------------------------------------------------
+  pair            vol30        pct   flag
+  --------------------------------------------------------
+  EURUSD           7.3%       70th   NORMAL
+  USDJPY           7.6%       27th   NORMAL
+
+  COT POSITIONING  (cutoff: 2026-03-24 = Tue close | pub'd: 2026-03-27 = Fri)
+  ------------------------------------------------------------------
+
+  EUR/USD:
+    Leveraged Money   : -13,538 contracts | -1.8% OI | CROWDED SHORT (15th pct)
+    Asset Manager     : +287,940 contracts | +37.7% OI | NEUTRAL LONG  (29th pct)
+  >> DIVERGENCE: Leveraged Money and Asset Manager opposing ? signal reliability reduced
+
+  USD/JPY:
+    Leveraged Money   : -54,852 contracts | -16.7% OI | NEUTRAL SHORT (29th pct)
+    Asset Manager     : -6,250 contracts | -1.9% OI | NEUTRAL SHORT (43rd pct)
+
+  REGIME READ
+  ------------------------------------------------------------------
+  EUR/USD  spread compression supports EUR strength; positioning
+           crowded short ? squeeze risk if EUR catalyst appears.
+
+  USD/JPY  spread compression favors lower USD/JPY; Leveraged Money
+           29th pct and Asset Manager 43rd pct both neutral ? carry
+           partially intact, BoJ path is key variable.
+
+======================================================================
+
+  saved: briefs/brief_20260401.txt
+OK  text  -- 0.6s
+
+>>  macro  (macro_pipeline.py)
+
+[macro] fetching economic calendar...
+    fetching ForexFactory calendar (thisweek + nextweek)...
+Traceback (most recent call last):
+  File "C:\Market Journey 2026\Code\fx_regime\macro_pipeline.py", line 204, in <module>
+    fetch_macro_calendar()
+  File "C:\Market Journey 2026\Code\fx_regime\macro_pipeline.py", line 199, in fetch_macro_calendar
+    print(f"    OK  {len(ff_events)} events ({high_n} HIGH, {med_n} MED) \u2192 {_OUTPATH} {status}")
+  File "C:\Users\Shreyash\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 33: character maps to <undefined>
+FAIL  macro after 5.9s
+   WARN: macro failed — non-blocking, pipeline continues
+
+>>  ai  (ai_brief.py)
+[AI] ANTHROPIC_API_KEY not set ? skipping AI regime reads.
+OK  ai  -- 0.5s
+
+>>  html  (create_html_brief.py)
+Generated: charts/global_workspace.html
+Generated: briefs/brief_20260401.html
+OK  html  -- 11.6s
+
+>>  deploy  (deploy.py)
+[detached HEAD 997d71b] brief update 2026-04-01 10:11 IST
+ 18 files changed, 82 insertions(+), 82 deletions(-)
+copied briefs/brief_20260401.html -> index.html (patched iframe paths)
+ERROR: git operation failed: Command '['git', 'pull', '--rebase', 'origin', 'main']' returned non-zero exit status 128.
+brief is saved locally but NOT pushed to GitHub ? check git credentials/network
+From https://github.com/Shreyash3007/G10-FX-Regime-Detection-Framework
+ * branch            main       -> FETCH_HEAD
+   f8f487d..0e0ed12  main       -> origin/main
+fatal: It seems that there is already a rebase-merge directory, and
+I wonder if you are in the middle of another rebase.  If that is the
+case, please try
+	git rebase (--continue | --abort | --skip)
+If that is not the case, please
+	rm -fr ".git/rebase-merge"
+and run me again.  I am stopping in case you still have something
+valuable there.
+
+FAIL  deploy after 3.1s
+   Fix deploy.py and re-run:  python run.py --only deploy
+
+  pipeline stopped after 117.1s -- fix the error above and retry.
+
+[ERROR] Pipeline failed with exit code 1 -- see runs\20260401\bat_runner.log  
+============================================================  
+ G10 FX REGIME PIPELINE  --  01-04-2026 23:30:02.10                    
+============================================================  
+
+==================================================
+  fx_regime pipeline  --  2026-04-01
+==================================================
+
+>>  fx  (pipeline.py)
+======================================================================
+  G10 FX PIPELINE -- 2026-04-01
+======================================================================
+
+[1/5] fetching FX prices from yahoo finance...
+    got 1571 rows, 3 pairs
+    from 2020-01-02 to 2026-03-31
+
+[1b] fetching commodity prices from yahoo finance...
+    OK  Brent (BZ=F) -- 1572 rows, latest: 118.35 on 2026-03-31
+    OK  Gold (GC=F) -- 1572 rows, latest: 4647.60 on 2026-03-31
+
+[2/5] fetching all yields (FRED + ECB + MOF + IT ? parallel)...
+    WARN IT_10Y ECB failed (HTTPError): 404 Client Error:  for url: https://data-api.ecb.europa.eu/service/data/YC/B.IT.EUR.4F.G_N_A.SV_C_YM.SR_10Y?startPeriod=2020-01-01&detail=dataonly
+    FAIL US_2Y (FRED DGS2) -- Internal Server Error
+    WARN IT_10Y FRED fallback failed (ValueError): Internal Server Error
+    WARN IT_10Y: all sources failed, BTP-Bund spread will be NaN
+    OK  DE_2Y (ECB daily) -- 1597 rows, latest: 2.59% on 2026-03-31
+    FAIL US_10Y (FRED DGS10) -- Internal Server Error
+    OK  JP_2Y (MOF daily) -- 1524 rows, latest: 1.38% on 2026-03-31
+    OK  JP_10Y (MOF daily) -- 1524 rows, latest: 2.37% on 2026-03-31
+    OK  DE_10Y (ECB daily) -- 1597 rows, latest: 3.07% on 2026-03-31
+    WARNING -- missing series US_2Y, filling with NaNs
+    WARNING -- missing series US_10Y, filling with NaNs
+
+[3/5] calculating rate differentials...
+    US_DE_10Y_spread       : no data
+    US_DE_2Y_spread        : no data
+    US_JP_10Y_spread       : no data
+    US_JP_10Y_spread_accel : no data
+    US_JP_2Y_spread        : no data
+    US_curve               : no data
+
+[4/5] building master dataset...
+    clean -- no missing values
+    shape: 0 rows x 17 columns
+
+[VOL] calculating realized volatility...
+
+[CORR] calculating regime correlation...
+    EURUSD: no correlation data (yield series unavailable)
+    USDJPY: no correlation data (yield series unavailable)
+
+[OIL] calculating oil correlation (Phase 1)...
+    EURUSD  : no data
+    USDJPY  : no data
+
+[GOLD] calculating gold correlation (Phase 4)...
+    USDJPY  : no data
+
+[DXY] calculating DXY decomposition (Phase 2)...
+    EURUSD  : no data
+    USDJPY  : no data
+
+[LEVELS] calculating rolling key support/resistance levels...
+
+[COMPOSITE] calculating G10 composite regime scores (Phase 8)...
+
+[5/5] calculating changes...
+    USDINR not in master -- run inr_pipeline.py first
+    Brent change columns added
+    Gold change columns added
+    added change columns for 5 periods
+
+    saved: data/master_20260401.csv
+    saved: data/latest.csv
+
+======================================================================
+  MORNING NUMBERS
+======================================================================
+
+2 Failed downloads:
+['EURUSD=X', 'JPY=X']: TypeError("'NoneType' object is not subscriptable")
+Traceback (most recent call last):
+  File "C:\Market Journey 2026\Code\fx_regime\pipeline.py", line 1208, in <module>
+    main()
+  File "C:\Market Journey 2026\Code\fx_regime\pipeline.py", line 1200, in main
+    print_morning_summary(master)
+  File "C:\Market Journey 2026\Code\fx_regime\pipeline.py", line 1073, in print_morning_summary
+    latest    = master.dropna(subset=["EURUSD", "USDJPY"]).iloc[-1]
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^
+  File "c:\Market Journey 2026\Code\fx_regime\.venv\Lib\site-packages\pandas\core\indexing.py", line 1207, in __getitem__
+    return self._getitem_axis(maybe_callable, axis=axis)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Market Journey 2026\Code\fx_regime\.venv\Lib\site-packages\pandas\core\indexing.py", line 1773, in _getitem_axis
+    self._validate_integer(key, axis)
+  File "c:\Market Journey 2026\Code\fx_regime\.venv\Lib\site-packages\pandas\core\indexing.py", line 1706, in _validate_integer
+    raise IndexError("single positional indexer is out-of-bounds")
+IndexError: single positional indexer is out-of-bounds
+FAIL  fx after 42.0s
+   Fix pipeline.py and re-run:  python run.py --only fx
+
+  pipeline stopped after 42.0s -- fix the error above and retry.
+
+[ERROR] Pipeline failed with exit code 1 -- see runs\20260401\bat_runner.log  

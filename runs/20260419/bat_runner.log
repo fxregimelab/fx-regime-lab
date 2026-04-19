@@ -1,0 +1,883 @@
+============================================================  
+ G10 FX REGIME PIPELINE  --  19-04-2026  0:02:44.80                    
+============================================================  
+
+==================================================
+  fx_regime pipeline  --  2026-04-19
+==================================================
+
+>>  fx  (pipeline.py)
+======================================================================
+  G10 FX PIPELINE -- 2026-04-19
+======================================================================
+
+[1/5] fetching FX prices from yahoo finance...
+    got 1639 rows, 3 pairs
+    from 2020-01-01 to 2026-04-17
+
+[1b] fetching commodity prices from yahoo finance...
+    OK  Brent (BZ=F) -- 1584 rows, latest: 90.38 on 2026-04-17
+    OK  Gold (GC=F) -- 1584 rows, latest: 4857.60 on 2026-04-17
+
+[2/5] fetching all yields (FRED + ECB + MOF + IT ? parallel)...
+    OK  US_2Y (FRED DGS2) -- 1573 rows, latest: 3.78% on 2026-04-16
+    OK  US_10Y (FRED DGS10) -- 1573 rows, latest: 4.32% on 2026-04-16
+    WARN IT_10Y ECB failed (HTTPError): 404 Client Error:  for url: https://data-api.ecb.europa.eu/service/data/YC/B.IT.EUR.4F.G_N_A.SV_C_YM.SR_10Y?startPeriod=2020-01-01&detail=dataonly
+    OK  DE_2Y (ECB daily) -- 1607 rows, latest: 2.49% on 2026-04-16
+    OK  IT_10Y (FRED monthly->bday ffill) -- 1643 rows, latest non-NaN: 3.49% on 2026-04-17
+    OK  DE_10Y (ECB daily) -- 1607 rows, latest: 3.07% on 2026-04-16
+    FAIL JP yields (MOF) -- ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+    WARNING -- missing series JP_2Y, filling with NaNs
+    WARNING -- missing series JP_10Y, filling with NaNs
+
+[3/5] calculating rate differentials...
+    US_DE_10Y_spread       : +1.25%
+    US_DE_2Y_spread        : +1.29%
+    US_JP_10Y_spread       : no data
+    US_JP_10Y_spread_accel : no data
+    US_JP_2Y_spread        : no data
+    US_curve               : +0.54%
+    BTP_Bund_spread        : +0.42%  [NORMAL]
+    BTP_Bund_flag          : NORMAL
+
+[4/5] building master dataset...
+    WARNING -- missing values:
+DXY                          1
+US_2Y                        1
+US_10Y                       1
+DE_2Y                        1
+DE_10Y                       1
+JP_2Y                     1638
+JP_10Y                    1638
+US_DE_10Y_spread             1
+US_DE_2Y_spread              1
+US_JP_10Y_spread          1638
+US_JP_10Y_spread_accel    1638
+US_JP_2Y_spread           1638
+US_curve                     1
+BTP_Bund_spread              1
+Brent                        1
+Gold                         1
+dtype: int64
+    shape: 1638 rows x 20 columns
+
+[VOL] calculating realized volatility...
+    EURUSD: 8.6% annualized | 87th pct | ELEVATED
+    USDJPY: 7.0% annualized | 19th pct | NORMAL
+
+[CORR] calculating regime correlation...
+    EURUSD: 60D:+0.317  /  20D:+0.480
+    USDJPY: no correlation data (yield series unavailable)
+
+[OIL] calculating oil correlation (Phase 1)...
+    EURUSD  : -0.320  (oil_eurusd_corr_60d)
+    USDJPY  : +0.127  (oil_usdjpy_corr_60d)
+
+[GOLD] calculating gold correlation (Phase 4)...
+    USDJPY  : -0.306  (gold_usdjpy_corr_60d)
+
+[DXY] calculating DXY decomposition (Phase 2)...
+    EURUSD  : -0.158  (dxy_eurusd_corr_60d)
+    USDJPY  : +0.148  (dxy_usdjpy_corr_60d)
+
+[LEVELS] calculating rolling key support/resistance levels...
+    EURUSD: S1=1.1460  R1=1.1809
+    USDJPY: S1=158.48  R1=160.23
+
+[COMPOSITE] calculating G10 composite regime scores (Phase 8)...
+
+[5/5] calculating changes...
+    USDINR not in master -- run inr_pipeline.py first
+    Brent change columns added
+    Gold change columns added
+    added change columns for 5 periods
+
+    saved: data/master_20260419.csv
+    saved: data/latest.csv
+
+======================================================================
+  MORNING NUMBERS
+======================================================================
+  as of: 2026-04-17
+
+  COMMODITIES:
+  asset         price      1D%      1W%      1M%
+  ------------------------------------------------
+  Brent         90.38   -9.07%   -5.06%  -16.82%  ($/bbl)
+  Gold        4857.60   +1.51%   +2.01%   +5.58%  ($/oz)
+
+  FX PRICES:
+  pair          price      1D%      1W%      1M%      3M%     12M%
+  ------------------------------------------------------------------
+  EURUSD       1.1767   -0.35%   +0.65%   +2.64%   +1.10%   +3.74%
+  USDJPY     158.5840   -0.14%   -0.33%   -0.76%   +0.26%  +10.25%
+  DXY         98.1000   -0.12%   -0.56%   -1.14%   -0.55%   -0.92%
+
+  YIELDS:
+  series                today    1D chg    1M chg   12M chg
+  ----------------------------------------------------------
+  US 2Y                 3.78%    +0.00pp    -0.01pp    +0.11pp
+  US 10Y                4.32%    +0.00pp    +0.07pp    +0.09pp
+  DE 2Y                 2.49%    +0.00pp    +0.02pp    +0.75pp
+  DE 10Y                3.07%    +0.00pp    +0.06pp    +0.47pp
+  JP 2Y                  nan%     +nanpp     +nanpp     +nanpp
+  JP 10Y                 nan%     +nanpp     +nanpp     +nanpp
+  US curve              0.54%    +0.00pp    +0.08pp    -0.02pp
+
+  RATE DIFFERENTIALS:
+  spread                    today    1D chg    1M chg   12M chg
+  --------------------------------------------------------------
+  US-DE 10Y                 1.25%    +0.00pp    +0.01pp    -0.38pp
+  US-DE 2Y                  1.29%    +0.00pp    -0.03pp    -0.64pp
+  US-JP 10Y                  nan%     +nanpp     +nanpp     +nanpp
+  US-JP 2Y                   nan%     +nanpp     +nanpp     +nanpp
+
+  pp = percentage points (yields and spreads move in pp)
+   % = percentage change (FX prices)
+======================================================================
+
+  run cot_pipeline.py next
+  then create_dashboards.py for charts
+======================================================================
+OK  fx  -- 34.3s
+
+>>  cot  (cot_pipeline.py)
+==============================================================
+  COT POSITIONING PIPELINE -- 2026-04-19
+==============================================================
+
+[1/4] fetching CFTC COT data...
+    OK  2023 -- 104 rows
+    OK  2024 -- 106 rows
+    OK  2025 -- 104 rows
+    OK  2026 -- 30 rows
+    combined: 344 rows, 2023 to 2026
+
+[2/4] calculating net positioning and percentiles...
+
+    JPY:
+      Leveraged Money:
+        net : -54,445 contracts (SHORT)
+        % OI: -15.4%  |  percentile: 34th
+        regime: NEUTRAL
+      Asset Manager:
+        net : -10,033 contracts (SHORT)
+        % OI: -2.8%  |  percentile: 3rd
+        regime: CROWDED SHORT
+
+    EUR:
+      Leveraged Money:
+        net : +25,382 contracts (LONG)
+        % OI: +3.2%  |  percentile: 55th
+        regime: NEUTRAL
+      Asset Manager:
+        net : +270,442 contracts (LONG)
+        % OI: +34.3%  |  percentile: 5th
+        regime: CROWDED SHORT
+
+[3/4] saving data...
+
+    saved: data/cot_latest.csv
+    rows: 172, from 2023-01-03 to 2026-04-14
+
+[4/4] merging COT with FX master data...
+    saved: C:\Market Journey 2026\Code\fx_regime\data\latest_with_cot.csv
+    shape: 1638 rows x 151 columns
+
+==============================================================
+  COT SUMMARY (Leveraged Money)
+==============================================================
+
+  JPY (as of 2026-04-14):
+    net position : -54,445 contracts (SHORT)
+    % of OI      : -15.4%
+    percentile   : 34th (vs last 3 years)
+    regime       : MODERATELY SHORT (34th pct) -- no crowding signal
+
+  EUR (as of 2026-04-14):
+    net position : +25,382 contracts (LONG)
+    % of OI      : +3.2%
+    percentile   : 55th (vs last 3 years)
+    regime       : MODERATELY LONG (55th pct) -- no crowding signal
+
+==============================================================
+  run create_dashboards.py for charts
+==============================================================
+[Supabase] Wrote 3276 signal rows
+OK  cot  -- 19.6s
+
+>>  inr  (inr_pipeline.py)
+==============================================================
+  INR PIPELINE -- 2026-04-19
+==============================================================
+
+[1/3] fetching USD/INR price (yfinance USDINR=X)...
+    OK  1638 rows, latest: 2026-04-17 = 92.5750
+
+[2/3] fetching IN 10Y yield (FBIL daily G-sec benchmark)...
+    FBIL cache: 760 rows, last = 2026-04-17
+    FBIL: cache is up to date
+    OK  daily, as of 2026-04-17 = 7.11%  (repo proxy = 5.61%)
+
+[3/3] fetching FPI flows (NSE primary, SEBI fallback)...
+    OK  NSE cache 20d, latest: 2026-04-17
+    FPI 20D flow: -114,078  percentile: N/A (building cache)
+
+[saving] assembling inr_latest.csv...
+    USDINR vol: 12.4% annualized | 100th pct | EXTREME
+    saved: data/inr_latest.csv  (1638 rows x 12 cols)
+    oil_inr_corr_60d: +0.118
+    dxy_inr_corr_60d:  -0.050
+    gold_inr_corr_60d: -0.266
+    gold_seasonal_flag: 1  label: AKSHAYA TRITIYA
+    WARN: RBI reserves primary (RBUKRESERVES) failed: Bad Request.  The series does not exist. ? trying fallback
+    rbi_reserve_chg_1w: -4.7B  flag: ACTIVE SUPPORT
+    inr_composite_score: +27.0  [NEUTRAL]
+    merged into: data/latest_with_cot.csv  (178 cols total)
+INR columns in master: ['USDINR', 'IN_10Y', 'IN_repo_proxy', 'IN_10Y_source', 'US_IN_10Y_spread', 'US_IN_policy_spread', 'USDINR_vol30', 'USDINR_vol_pct', 'USDINR_chg_1D', 'USDINR_chg_1W', 'USDINR_chg_1M', 'USDINR_chg_3M', 'USDINR_chg_12M', 'US_IN_10Y_spread_chg_12M', 'US_IN_policy_spread_chg_12M']
+
+==============================================================
+  INR SUMMARY
+==============================================================
+
+  USD/INR:          92.5750
+  IN 10Y:           7.11%  (FBIL daily, as of 2026-04-17)
+  US-IN spread:     -2.79%
+  FPI 20D flow:     -114,078  (percentile: nanth)
+
+==============================================================
+[Supabase] Wrote 4914 signal rows
+  Supabase: full signals history upsert OK (if configured)
+OK  inr  -- 19.5s
+
+>>  vol  (vol_pipeline.py)
+  vol_pipeline: CBOE FX implied-vol via yfinance (^EVZ, ^JYVIX)
+  vol_pipeline: wrote C:\Market Journey 2026\Code\fx_regime\data\vol_latest.csv (1301 rows)
+  vol_pipeline: upserted 260 rows for EURUSD
+  vol_pipeline: upserted 1 rows for USDJPY
+OK  vol  -- 5.8s
+
+>>  oi  (oi_pipeline.py)
+  oi_pipeline: CME Volume/OI daily report (Phase 4)
+  oi_pipeline: no OI report available within 14d lookback (last try: http_403)
+OK  oi  -- 12.0s
+
+>>  rr  (rr_pipeline.py)
+  rr_pipeline: Synthetic 25-delta RR via FXE proxy (Phase 5)
+  rr_pipeline: EURUSD RR = +0.830 vol pts (atm_proxy, expiry 2026-05-15, 26d)
+  rr_pipeline: wrote C:\Market Journey 2026\Code\fx_regime\data\rr_latest.csv (1 rows)
+  rr_pipeline: upserted EURUSD risk_reversal_25d=+0.830
+OK  rr  -- 19.5s
+
+>>  merge  (scripts/pipeline_merge.py)
+
+======================================================================
+  MERGE STEP -- 2026-04-19
+======================================================================
+  merge_main: wrote C:\Market Journey 2026\Code\fx_regime\data\latest_with_cot.csv (1638 rows, 203 cols)
+[Supabase] Wrote 3 signal rows
+OK  merge  -- 8.4s
+
+>>  text  (morning_brief.py)
+======================================================================
+  G10 FX MORNING BRIEF
+  Sunday, 19 April 2026
+  FX as of: 2026-04-17  |  IN 10Y as of: 2026-04-17  |  COT cutoff: 2026-04-14 (pub'd: 2026-04-17)
+======================================================================
+
+  DESK SUMMARY
+  ------------------------------------------------------------------
+  As of 2026-04-17, the working story is anchored in rate spreads: US?DE 10Y sits at 1.25% (+0.04pp over 1W) while US?JP 10Y is nan% (  n/a   over 1W). Composite labels read EUR/USD NEUTRAL, USD/JPY UNKNOWN, USD/INR NEUTRAL. Treat COT and realized vol in the sections below as overlays on that rates spine?crowding and stress change how aggressively to trade the spread signal, they rarely invalidate it in isolation.
+
+  PRICES
+  pair           price        1D       12M
+  ------------------------------------------------
+  EUR/USD       1.1767    -0.35%    +3.74%
+  USD/JPY     158.5840    -0.14%   +10.25%
+  DXY          98.1000    -0.12%    -0.92%
+
+  RATE DIFFERENTIALS  (narrowing = foreign currency should strengthen)
+  spread                   today    1W chg   12M chg
+  ----------------------------------------------------
+  US-DE 10Y (cross)        1.25%   +0.04pp   -0.38pp
+  US-DE 2Y  (same)         1.29%   +0.01pp   -0.64pp
+  US-JP 10Y (cross)         nan%     n/a       n/a  
+  US-JP 2Y  (same)          nan%     n/a       n/a  
+  BTP-Bund (IT-DE 10Y)     0.42pp                      [NORMAL]
+
+  REGIME CORRELATION  (60D rolling | spread vs FX move)
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            +0.317   WEAKENING
+  USD/JPY             n/a     NO DATA
+
+  OIL CORRELATION  (60D rolling | Brent returns vs FX returns)
+  expected: EUR/USD negative, USD/JPY positive, USD/INR positive
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            -0.320   MODERATE
+  USD/JPY            +0.127   LOW
+  USD/INR            +0.118   LOW
+
+  DXY DECOMPOSITION  (60D rolling | DXY returns vs FX returns)
+  high +ve = dollar-driven | low corr = pair-specific factor
+  pair          correlation   regime
+  ----------------------------------------------------
+  EUR/USD            -0.158   EUR SPECIFIC
+  USD/JPY            +0.148   YEN SPECIFIC
+  USD/INR            -0.050   INDIA SPECIFIC
+
+  GOLD CORRELATION  (60D rolling | Gold returns vs FX returns)
+  USD/JPY: negative expected (safe-haven) | USD/INR: positive expected (import demand)
+  pair          correlation   flag
+  ----------------------------------------------------
+  USD/JPY            -0.306   MODERATE
+  USD/INR            -0.266   GOLD DIVERGENCE  << sign reversal -- safe-haven/import demand channel broken
+                              SEASONAL: AKSHAYA TRITIYA
+
+  RBI INTERVENTION  (FRED RBUKRESERVES | 7-day change in USD bn)
+  ----------------------------------------------------
+  RBI Reserves              -4.7B   ACTIVE SUPPORT  << defending INR floor
+
+  INR COMPOSITE SCORE  (oil 25% | DXY 20% | FPI 25% | RBI 20% | rate 10%)
+  ----------------------------------------------------
+  SCORE: +27.0  [NEUTRAL]
+  Components: Oil(-3) DXY(+1) FPI(+25) RBI(-6) Rate(+10)
+
+  G10 COMPOSITE REGIME SCORES  (Phase 8 | +ve = USD strength pressure)
+  --------------------------------------------------------------
+  pair            score   label
+  --------------------------------------------------------------
+  EUR/USD          +3.5   NEUTRAL
+  USD/JPY           n/a   UNKNOWN
+  weights: EUR/USD rate 30%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 8%+dxy 7%
+           USD/JPY rate 25%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 10%+gold 5%+dxy 5%
+
+  KEY LEVELS  (90D | S=support, R=resistance, (n)=touches)
+  --------------------------------------------------------------
+  EUR/USD:  S3: 1.1435          S2: 1.1435          S1: 1.146          
+           R1: 1.1809          R2: 1.2018          R3: 1.2018         
+  USD/JPY:  S3: 152.45          S2: 152.45          S1: 158.48         
+           R1: 160.23          R2: 160.23          R3: 160.23         
+
+  VOLATILITY  (30D realized, annualized | 3Y percentile)
+  --------------------------------------------------------
+  pair            vol30        pct   flag
+  --------------------------------------------------------
+  EURUSD           8.6%       87th   ELEVATED
+  USDJPY           7.0%       19th   NORMAL
+
+  COT POSITIONING  (cutoff: 2026-04-14 = Tue close | pub'd: 2026-04-17 = Fri)
+  ------------------------------------------------------------------
+
+  EUR/USD:
+    Leveraged Money   : +25,382 contracts | +3.2% OI | NEUTRAL LONG  (55th pct)
+    Asset Manager     : +270,442 contracts | +34.3% OI | CROWDED SHORT (5th pct)
+
+  USD/JPY:
+    Leveraged Money   : -54,445 contracts | -15.4% OI | NEUTRAL SHORT (34th pct)
+    Asset Manager     : -10,033 contracts | -2.8% OI | CROWDED SHORT (3rd pct)
+
+  REGIME READ
+  ------------------------------------------------------------------
+  EUR/USD  spread compression supports EUR strength; positioning
+           neutral ? no crowding distortion. vol elevated ?
+           positioning signals less reliable.
+
+  USD/JPY  spreads flat, no directional signal; carry trade
+           partially intact (34th pct) ? BoJ path is key variable.
+
+======================================================================
+
+  saved: briefs/brief_20260419.txt
+OK  text  -- 3.8s
+
+>>  macro  (macro_pipeline.py)
+
+[macro] fetching economic calendar...
+    fetching ForexFactory calendar (thisweek + nextweek)...
+    OK  2 events (2 HIGH, 0 MED) -> C:\Market Journey 2026\Code\fx_regime\data\macro_cal.json 
+OK  macro  -- 2.4s
+
+>>  ai  (ai_brief.py)
+[AI] institutional brief passed quality gate (358 words)
+[AI] ----- institutional brief (plain text) -----
+US?DE 10Y spread at 1.25 percent remains the dominant cross-asset signal while US?JP rates remain opaque and volatility regimes diverge sharply across G10.
+
+EUR/USD sits in neutral territory with minimal model conviction at just five percent, anchored to the 1.25 percentage point US?DE spread widening marginally to cover US rate premium. Leveraged positioning has crept into the neutral long territory at the 55th percentile, and asset managers are crowded short at the fifth percentile, leaving the pair vulnerable to positioning unwind once volatility normalizes from its elevated 87th percentile reading. The regime correlation has weakened to 0.317 over 60 days, signaling the spread transmission mechanism is losing grip; elevated vol obscures whether to trust the mean reversion. Watch whether the asset manager short unwinds faster than the spread itself tightens, as that divergence would send EUR/USD lower despite rate support.
+
+USD/JPY labors in unknown regime territory with fifty percent model confidence because US?JP 10Y data is missing and BoJ policy uncertainty clouds the cross. Leveraged money sits at the 34th percentile short, below neutral, while asset managers are heavily crowded into a short at just the third percentile?a classic setup for carry-trade deleveraging if risk appetite cracks. Realized volatility at just the 19th percentile sits well below USD/JPY's historical norm, masking latent positioning risk. The next catalyst to monitor is any BoJ communication signaling hawkishness or forward guidance on rate path, which would force covering shorts and spike vol.
+
+USD/INR clings to neutral despite all-time high realized volatility at the 100th percentile, with RBI actively defending the currency through four point seven billion dollars of reserve drawdown over seven days. The US?IN spread has compressed 2.79 percentage points, turning into a headwind for rupee strength, while gold correlation has inverted to negative (minus 0.266) in what the desk flags as a Akshaya Tritiya seasonal effect, breaking the normal import-demand channel. FPI flow is still a net positive at plus 25 in the composite score, but RBI support is straining at minus six. Watch whether RBI reserves continue to drain; if drawdowns accelerate past current pace or cross psychological thresholds, INR support becomes structural and defensive rather than temporary.
+[AI] ----- end institutional brief -----
+[AI] Claude narrative generation OK
+[AI] wrote data\ai_article.json
+[AI] wrote data\ai_regime_read.json
+OK  ai  -- 15.3s
+
+>>  substack  (scripts/substack_publish.py)
+[Substack] Error: Login failed: HTTP 401
+FAIL  substack after 3.2s
+   WARN: substack failed — non-blocking, pipeline continues
+
+>>  html  (create_html_brief.py)
+Generated: briefs/brief_20260419.html
+OK  html  -- 7.1s
+
+>>  validate  (validation_regime.py)
+  validation_regime: done
+OK  validate  -- 7.9s
+
+>>  deploy  (deploy.py)
+[main 03d81f5] brief update 2026-04-19 00:05 IST
+ 401 files changed, 38360 insertions(+), 347 deletions(-)
+ create mode 100644 .github/workflows/deploy_web.yml
+ create mode 100644 DEPLOY.md
+ create mode 100644 TASK.md
+ create mode 100644 _archive/v1/.cursor/commands/add-pair.md
+ create mode 100644 _archive/v1/.cursor/commands/backfill.md
+ create mode 100644 _archive/v1/.cursor/commands/brief-check.md
+ create mode 100644 _archive/v1/.cursor/commands/new-signal.md
+ create mode 100644 _archive/v1/.cursor/commands/run-validation.md
+ create mode 100644 _archive/v1/.cursor/plans/cboe_vol_pipeline_swap_75eccc34.plan.md
+ create mode 100644 _archive/v1/.cursor/plans/e2e_pipeline_audit_b4ecc0ae.plan.md
+ create mode 100644 _archive/v1/.cursor/plans/fix_persisted_pipeline_issues_a28465d0.plan.md
+ create mode 100644 _archive/v1/.cursor/plans/layer_3_signal_pipeline_phases_69f7ed6a.plan.md
+ create mode 100644 _archive/v1/.cursor/plans/public_surface_+_credibility_a2d4418c.plan.md
+ create mode 100644 _archive/v1/.cursor/rules/FX-Regime-Lab-Core.mdc
+ create mode 100644 _archive/v1/.cursor/rules/Session-Start.mdc
+ create mode 100644 _archive/v1/.cursor/rules/pipeline-rules.mdc
+ create mode 100644 _archive/v1/.cursor/rules/site-rules.mdc
+ create mode 100644 _archive/v1/.cursor/settings.json
+ create mode 100644 _archive/v1/.cursor/skills/chartjs-fx-regime-dashboard/SKILL.md
+ create mode 100644 _archive/v1/.cursor/skills/fx-regime-html-dashboards-briefs/SKILL.md
+ create mode 100644 _archive/v1/.cursor/skills/fx-regime-pipeline-triage/SKILL.md
+ create mode 100644 _archive/v1/.cursor/skills/fx-regime-signal-pipeline/SKILL.md
+ create mode 100644 _archive/v1/.cursor/skills/fx-regime-supabase-writes/SKILL.md
+ create mode 100644 _archive/v1/.cursor/skills/pipeline-data-fetch/SKILL.md
+ create mode 100644 _archive/v1/.cursor/skills/regime-validation-logging/SKILL.md
+ create mode 100644 _archive/v1/.cursorignore
+ create mode 100644 _archive/v1/.cursorindexingignore
+ create mode 100644 _archive/v1/.cursorrules
+ create mode 100644 _archive/v1/.dev.vars.example
+ create mode 100644 _archive/v1/.env.example
+ create mode 100644 _archive/v1/.github/agents/deep-code-explainer.agent.md
+ create mode 100644 _archive/v1/.github/prompts/explain-file.prompt.md
+ create mode 100644 _archive/v1/.github/skills/explain-function/SKILL.md
+ create mode 100644 _archive/v1/.github/skills/explain-function/references/framework-patterns.md
+ create mode 100644 _archive/v1/.github/workflows/daily_brief.yml
+ create mode 100644 _archive/v1/.github/workflows/deploy_cloudflare_site.yml
+ create mode 100644 _archive/v1/.obsidian/app.json
+ create mode 100644 _archive/v1/.obsidian/appearance.json
+ create mode 100644 _archive/v1/.obsidian/core-plugins.json
+ create mode 100644 _archive/v1/.obsidian/graph.json
+ create mode 100644 _archive/v1/.obsidian/workspace.json
+ create mode 100644 _archive/v1/AGENTS.md
+ rename CONTEXT.md => _archive/v1/CONTEXT.md (100%)
+ rename README.md => _archive/v1/README.md (100%)
+ create mode 100644 _archive/v1/Untitled.canvas
+ create mode 100644 _archive/v1/_docs/_index.md
+ create mode 100644 _archive/v1/_docs/architecture/README.md
+ create mode 100644 _archive/v1/_docs/research/README.md
+ create mode 100644 _archive/v1/_docs/tasks/README.md
+ create mode 100644 _archive/v1/_docs/tasks/about-page-april-2026.md
+ create mode 100644 _archive/v1/_docs/tasks/pipeline-layer3-april-2026.md
+ create mode 100644 _archive/v1/_docs/tasks/terminal-bug-fix-april-2026.md
+ create mode 100644 _archive/v1/ai_brief.py
+ create mode 100644 _archive/v1/cb_events.json
+ create mode 100644 _archive/v1/charts/__init__.py
+ create mode 100644 _archive/v1/charts/base.py
+ create mode 100644 _archive/v1/charts/eurusd_0.html
+ create mode 100644 _archive/v1/charts/eurusd_1.html
+ create mode 100644 _archive/v1/charts/eurusd_2.html
+ create mode 100644 _archive/v1/charts/eurusd_3.html
+ create mode 100644 _archive/v1/charts/eurusd_4.html
+ create mode 100644 _archive/v1/charts/global_workspace.html
+ create mode 100644 _archive/v1/charts/registry.py
+ create mode 100644 _archive/v1/charts/usdinr_0.html
+ create mode 100644 _archive/v1/charts/usdinr_1.html
+ create mode 100644 _archive/v1/charts/usdinr_2.html
+ create mode 100644 _archive/v1/charts/usdinr_3.html
+ create mode 100644 _archive/v1/charts/usdinr_4.html
+ create mode 100644 _archive/v1/charts/usdjpy_0.html
+ create mode 100644 _archive/v1/charts/usdjpy_1.html
+ create mode 100644 _archive/v1/charts/usdjpy_2.html
+ create mode 100644 _archive/v1/charts/usdjpy_3.html
+ create mode 100644 _archive/v1/charts/usdjpy_4.html
+ create mode 100644 _archive/v1/charts/usdjpy_5.html
+ create mode 100644 _archive/v1/charts/workspace.py
+ create mode 100644 _archive/v1/check_latest.py
+ create mode 100644 _archive/v1/config.py
+ rename {contaxt files => _archive/v1/contaxt files}/CONTEXT.md (100%)
+ rename {contaxt files => _archive/v1/contaxt files}/CURSOR_RULES.md (100%)
+ rename {contaxt files => _archive/v1/contaxt files}/PLAN.md (100%)
+ create mode 100644 _archive/v1/core/__init__.py
+ create mode 100644 _archive/v1/core/paper_export.py
+ create mode 100644 _archive/v1/core/paths.py
+ create mode 100644 _archive/v1/core/pipeline_status.py
+ create mode 100644 _archive/v1/core/regime_persist.py
+ create mode 100644 _archive/v1/core/signal_write.py
+ create mode 100644 _archive/v1/core/supabase_client.py
+ create mode 100644 _archive/v1/core/utils.py
+ create mode 100644 _archive/v1/cot_pipeline.py
+ create mode 100644 _archive/v1/create_charts_plotly.py
+ create mode 100644 _archive/v1/create_html_brief.py
+ create mode 100644 _archive/v1/deploy.py
+ rename {docs => _archive/v1/docs}/CODEBASE_AND_PROJECT_REFERENCE.md (100%)
+ rename {docs => _archive/v1/docs}/FX_REGIME_LAB_UI_PROMPT_V2.md (100%)
+ rename {docs => _archive/v1/docs}/FX_REGIME_ROADMAP.md (100%)
+ rename {docs => _archive/v1/docs}/G10_FX_FRAMEWORK_MASTER_PLAN.md (100%)
+ rename {docs => _archive/v1/docs}/IMPLEMENTATION_PLAN_PHASE0.md (100%)
+ rename {docs => _archive/v1/docs}/LOCAL_DEV.md (100%)
+ rename {docs => _archive/v1/docs}/PHASE0_CHECKLIST.md (100%)
+ rename {docs => _archive/v1/docs}/PHASES_LATER_GATES.md (100%)
+ rename {docs => _archive/v1/docs}/PIPELINE_AUDIT_AND_OPERATIONS.md (100%)
+ rename {docs => _archive/v1/docs}/README.md (100%)
+ rename {docs => _archive/v1/docs}/SUPABASE_SETUP.md (100%)
+ rename {docs => _archive/v1/docs}/TERMINAL_DEEP_REFERENCE.md (100%)
+ rename {docs => _archive/v1/docs}/UI_UX_DEEP_REFERENCE.md (100%)
+ rename {docs => _archive/v1/docs}/signals_table_migration.sql (100%)
+ create mode 100644 _archive/v1/gbpusd_pipeline.py
+ create mode 100644 _archive/v1/index.html
+ create mode 100644 _archive/v1/inr_pipeline.py
+ create mode 100644 _archive/v1/macro_pipeline.py
+ create mode 100644 _archive/v1/morning_brief.py
+ create mode 100644 _archive/v1/notion_sync.py
+ create mode 100644 _archive/v1/oi_pipeline.py
+ rename {pages => _archive/v1/pages}/demo_eurusd_rate_corr.html (100%)
+ rename {pages => _archive/v1/pages}/eur_correlation_reconnect.html (100%)
+ rename {pages => _archive/v1/pages}/eur_divergence.html (100%)
+ rename {pages => _archive/v1/pages}/eur_reconnection_journey.html (100%)
+ rename {pages => _archive/v1/pages}/gold_liquidation.html (100%)
+ rename {pages => _archive/v1/pages}/hormuz_countdown.html (100%)
+ rename {pages => _archive/v1/pages}/jpy_carry_trap.html (100%)
+ rename {pages => _archive/v1/pages}/jpy_correlation_flip.html (100%)
+ rename {pages => _archive/v1/pages}/positioning_inversion.html (100%)
+ rename {pages => _archive/v1/pages}/safe_haven_breakdown.html (100%)
+ rename {pages => _archive/v1/pages}/usdinr_regime_card.html (100%)
+ rename {pages => _archive/v1/pages}/usdinr_regime_shift.html (100%)
+ create mode 100644 _archive/v1/pipeline.py
+ create mode 100644 _archive/v1/reports/__init__.py
+ create mode 100644 _archive/v1/reports/pipeline_e2e_audit.md
+ create mode 100644 _archive/v1/requirements.txt
+ create mode 100644 _archive/v1/rr_pipeline.py
+ create mode 100644 _archive/v1/run.py
+ create mode 100644 _archive/v1/run_all.bat
+ create mode 100644 _archive/v1/run_all.py
+ create mode 100644 _archive/v1/scripts/backfill_cot.py
+ create mode 100644 _archive/v1/scripts/backfill_inr.py
+ create mode 100644 _archive/v1/scripts/backfill_supabase.py
+ create mode 100644 _archive/v1/scripts/backtest_layer_stub.py
+ create mode 100644 _archive/v1/scripts/dev/backfill_signals.py
+ create mode 100644 _archive/v1/scripts/dev/build_eur.py
+ create mode 100644 _archive/v1/scripts/dev/build_hormuz.py
+ create mode 100644 _archive/v1/scripts/dev/build_jpy.py
+ create mode 100644 _archive/v1/scripts/dev/build_usdinr.py
+ create mode 100644 _archive/v1/scripts/dev/check_brand_v2.py
+ create mode 100644 _archive/v1/scripts/dev/check_counts.py
+ create mode 100644 _archive/v1/scripts/dev/check_phase1.py
+ create mode 100644 _archive/v1/scripts/dev/check_phase23.py
+ create mode 100644 _archive/v1/scripts/dev/check_phase3.py
+ create mode 100644 _archive/v1/scripts/dev/emit_supabase_env_for_site.py
+ create mode 100644 _archive/v1/scripts/dev/fedwatch_spike.py
+ create mode 100644 _archive/v1/scripts/dev/idempotency_diff.py
+ create mode 100644 _archive/v1/scripts/dev/reset_docker_wsl.ps1
+ create mode 100644 _archive/v1/scripts/dev/reset_validation_log.py
+ create mode 100644 _archive/v1/scripts/dev/resolve_deploy_rebase_conflicts.py
+ create mode 100644 _archive/v1/scripts/dev/stress_test.py
+ create mode 100644 _archive/v1/scripts/dev/terminal_data_smoke.py
+ create mode 100644 _archive/v1/scripts/dev/verify_data_supabase_brief.py
+ create mode 100644 _archive/v1/scripts/dev/verify_full.py
+ create mode 100644 _archive/v1/scripts/dev/verify_html.py
+ create mode 100644 _archive/v1/scripts/pipeline_merge.py
+ create mode 100644 _archive/v1/scripts/publish_brief_for_site.py
+ create mode 100644 _archive/v1/scripts/substack_publish.py
+ rename {site => _archive/v1/site}/CLOUDFLARE_SETUP.md (100%)
+ rename {site => _archive/v1/site}/README.md (100%)
+ rename {site => _archive/v1/site}/_redirects (100%)
+ rename {site => _archive/v1/site}/about/index.html (100%)
+ rename {site => _archive/v1/site}/assets/canvas-bg.js (100%)
+ rename {site => _archive/v1/site}/assets/dashboard-live.js (100%)
+ rename {site => _archive/v1/site}/assets/home-live.js (100%)
+ rename {site => _archive/v1/site}/assets/images/.gitkeep (100%)
+ rename {site => _archive/v1/site}/assets/intro.css (100%)
+ rename {site => _archive/v1/site}/assets/intro.js (100%)
+ rename {site => _archive/v1/site}/assets/macro-catalyst.js (100%)
+ rename {site => _archive/v1/site}/assets/nav.js (100%)
+ rename {site => _archive/v1/site}/assets/researcher-placeholder.svg (100%)
+ rename {site => _archive/v1/site}/assets/section-reveal.js (100%)
+ rename {site => _archive/v1/site}/assets/site-validation.js (100%)
+ rename {site => _archive/v1/site}/assets/site.css (100%)
+ rename {site => _archive/v1/site}/assets/site.js (100%)
+ rename {site => _archive/v1/site}/assets/theme-switch.js (100%)
+ rename {site => _archive/v1/site}/brief/index.html (100%)
+ rename {site => _archive/v1/site}/brief/latest.html (100%)
+ rename {site => _archive/v1/site}/charts/eurusd_0.html (100%)
+ rename {site => _archive/v1/site}/charts/eurusd_1.html (100%)
+ rename {site => _archive/v1/site}/charts/eurusd_2.html (100%)
+ rename {site => _archive/v1/site}/charts/eurusd_3.html (100%)
+ rename {site => _archive/v1/site}/charts/eurusd_4.html (100%)
+ rename {site => _archive/v1/site}/charts/usdinr_0.html (100%)
+ rename {site => _archive/v1/site}/charts/usdinr_1.html (100%)
+ rename {site => _archive/v1/site}/charts/usdinr_2.html (100%)
+ rename {site => _archive/v1/site}/charts/usdinr_3.html (100%)
+ rename {site => _archive/v1/site}/charts/usdinr_4.html (100%)
+ rename {site => _archive/v1/site}/charts/usdjpy_0.html (100%)
+ rename {site => _archive/v1/site}/charts/usdjpy_1.html (100%)
+ rename {site => _archive/v1/site}/charts/usdjpy_2.html (100%)
+ rename {site => _archive/v1/site}/charts/usdjpy_3.html (100%)
+ rename {site => _archive/v1/site}/charts/usdjpy_4.html (100%)
+ rename {site => _archive/v1/site}/charts/usdjpy_5.html (100%)
+ rename {site => _archive/v1/site}/dashboard/index.html (100%)
+ rename {site => _archive/v1/site}/index.html (100%)
+ rename {site => _archive/v1/site}/methodology/index.html (100%)
+ rename {site => _archive/v1/site}/methodology/methodology-v1.html (100%)
+ rename {site => _archive/v1/site}/newsletter/index.html (100%)
+ rename {site => _archive/v1/site}/performance/index.html (100%)
+ rename {site => _archive/v1/site}/robots.txt (100%)
+ rename {site => _archive/v1/site}/sitemap.xml (100%)
+ rename {site => _archive/v1/site}/static/ai_article.json (100%)
+ rename {site => _archive/v1/site}/static/design-tokens.css (100%)
+ rename {site => _archive/v1/site}/static/pipeline_status.json (100%)
+ rename {site => _archive/v1/site}/static/styles.css (100%)
+ rename {site => _archive/v1/site}/terminal/chart-builder.js (100%)
+ rename {site => _archive/v1/site}/terminal/chartbuilder.html (100%)
+ rename {site => _archive/v1/site}/terminal/dashboard.html (100%)
+ rename {site => _archive/v1/site}/terminal/data-client.js (100%)
+ rename {site => _archive/v1/site}/terminal/eurusd.html (100%)
+ rename {site => _archive/v1/site}/terminal/expandable-rows.js (100%)
+ rename {site => _archive/v1/site}/terminal/home-terminal.js (100%)
+ rename {site => _archive/v1/site}/terminal/index.html (100%)
+ rename {site => _archive/v1/site}/terminal/live-prices.js (100%)
+ rename {site => _archive/v1/site}/terminal/lw-charts-config.js (100%)
+ rename {site => _archive/v1/site}/terminal/overview.html (100%)
+ rename {site => _archive/v1/site}/terminal/page-init.js (100%)
+ rename {site => _archive/v1/site}/terminal/pair-boot.js (100%)
+ rename {site => _archive/v1/site}/terminal/panel.js (100%)
+ rename {site => _archive/v1/site}/terminal/terminal-accuracy.js (100%)
+ rename {site => _archive/v1/site}/terminal/terminal-lazy-charts.js (100%)
+ rename {site => _archive/v1/site}/terminal/terminal-motion.js (100%)
+ rename {site => _archive/v1/site}/terminal/terminal-nav.js (100%)
+ rename {site => _archive/v1/site}/terminal/terminal.css (100%)
+ rename {site => _archive/v1/site}/terminal/theme-switch.js (100%)
+ rename {site => _archive/v1/site}/terminal/usdinr.html (100%)
+ rename {site => _archive/v1/site}/terminal/usdjpy.html (100%)
+ rename {site => _archive/v1/site}/terminal/utils.js (100%)
+ create mode 100644 _archive/v1/sql/migration_add_signals_spot.sql
+ create mode 100644 _archive/v1/sql/schema.sql
+ create mode 100644 _archive/v1/static/design-tokens.css
+ create mode 100644 _archive/v1/static/styles.css
+ rename {stitch_fx_regime_terminal => _archive/v1/stitch_fx_regime_terminal}/stitch_fx_regime_terminal/fx_regime_lab_dashboard/code.html (100%)
+ rename {stitch_fx_regime_terminal => _archive/v1/stitch_fx_regime_terminal}/stitch_fx_regime_terminal/fx_regime_lab_dashboard_refined_workstation/code.html (100%)
+ rename {stitch_fx_regime_terminal => _archive/v1/stitch_fx_regime_terminal}/stitch_fx_regime_terminal/fx_regime_lab_dashboard_workstation/code.html (100%)
+ rename {stitch_fx_regime_terminal => _archive/v1/stitch_fx_regime_terminal}/stitch_fx_regime_terminal/fx_regime_lab_dashboard_workstation_final/code.html (100%)
+ rename {stitch_fx_regime_terminal => _archive/v1/stitch_fx_regime_terminal}/stitch_fx_regime_terminal/fx_regime_lab_terminal/code.html (100%)
+ rename {stitch_fx_regime_terminal => _archive/v1/stitch_fx_regime_terminal}/stitch_fx_regime_terminal/fx_regime_lab_terminal_refined/code.html (100%)
+ rename {stitch_fx_regime_terminal => _archive/v1/stitch_fx_regime_terminal}/stitch_fx_regime_terminal/fx_regime_lab_terminal_refined_final/code.html (100%)
+ rename {stitch_fx_regime_terminal => _archive/v1/stitch_fx_regime_terminal}/stitch_fx_regime_terminal/narrative_entry_point/code.html (100%)
+ rename {stitch_fx_regime_terminal => _archive/v1/stitch_fx_regime_terminal}/stitch_fx_regime_terminal/narrative_entry_point_final_refined/code.html (100%)
+ rename {stitch_fx_regime_terminal => _archive/v1/stitch_fx_regime_terminal}/stitch_fx_regime_terminal/narrative_entry_point_refined/code.html (100%)
+ rename {stitch_fx_regime_terminal => _archive/v1/stitch_fx_regime_terminal}/stitch_fx_regime_terminal/regime_terminal/DESIGN.md (100%)
+ create mode 100644 _archive/v1/supabase/.gitignore
+ create mode 100644 _archive/v1/supabase/config.toml
+ create mode 100644 _archive/v1/supabase/migrations/.tmp_schema_check.sql
+ create mode 100644 _archive/v1/supabase/migrations/20260404154618_remote_schema.sql
+ create mode 100644 _archive/v1/validation_regime.py
+ create mode 100644 _archive/v1/vol_pipeline.py
+ create mode 100644 _archive/v1/workers/site-entry.js
+ create mode 100644 _archive/v1/wrangler.toml
+ create mode 100644 docs/CRITIQUE_AND_PLAN.md
+ create mode 100644 docs/CURSOR_RULES.md
+ create mode 100644 docs/DATABASE_SCHEMA.md
+ create mode 100644 docs/DESIGN_SYSTEM.md
+ create mode 100644 docs/FEATURE_REGISTRY.md
+ create mode 100644 docs/FRONTEND_ARCHITECTURE.md
+ create mode 100644 docs/GIT_CONVENTIONS.md
+ create mode 100644 docs/PHASES.md
+ create mode 100644 docs/PIPELINE_REFERENCE.md
+ create mode 100644 docs/PROJECT_OVERVIEW.md
+ create mode 100644 docs/SIGNAL_DEFINITIONS.md
+ create mode 100644 docs/TECH_STACK.md
+ create mode 100644 docs/_index.md
+ delete mode 100644 site/assets/images/logo.png
+ delete mode 100644 site/assets/images/logo_without_bg.png
+ delete mode 100644 site/assets/images/shreyash.jpg
+ delete mode 100644 site/assets/images/shreyash_sakhare.png
+ delete mode 100644 site/assets/images/wordmark_without_bg.png
+ delete mode 100644 site/data/.gitkeep
+ create mode 100644 web/.gitignore
+ create mode 100644 web/AGENTS.md
+ create mode 100644 web/CLAUDE.md
+ create mode 100644 web/README.md
+ create mode 100644 web/app/(shell)/[strategy]/error.tsx
+ create mode 100644 web/app/(shell)/[strategy]/loading.tsx
+ create mode 100644 web/app/(shell)/[strategy]/page.tsx
+ create mode 100644 web/app/(shell)/[strategy]/performance/error.tsx
+ create mode 100644 web/app/(shell)/[strategy]/performance/loading.tsx
+ create mode 100644 web/app/(shell)/[strategy]/performance/page.tsx
+ create mode 100644 web/app/(shell)/about/error.tsx
+ create mode 100644 web/app/(shell)/about/loading.tsx
+ create mode 100644 web/app/(shell)/about/page.tsx
+ create mode 100644 web/app/(shell)/brief/error.tsx
+ create mode 100644 web/app/(shell)/brief/loading.tsx
+ create mode 100644 web/app/(shell)/brief/page.tsx
+ create mode 100644 web/app/(shell)/error.tsx
+ create mode 100644 web/app/(shell)/layout.tsx
+ create mode 100644 web/app/(shell)/loading.tsx
+ create mode 100644 web/app/(shell)/page.tsx
+ create mode 100644 web/app/(shell)/performance/error.tsx
+ create mode 100644 web/app/(shell)/performance/loading.tsx
+ create mode 100644 web/app/(shell)/performance/page.tsx
+ create mode 100644 web/app/api/brief/route.ts
+ create mode 100644 web/app/globals.css
+ create mode 100644 web/app/layout.tsx
+ create mode 100644 web/app/not-found.tsx
+ create mode 100644 web/app/terminal/[strategy]/[pair]/error.tsx
+ create mode 100644 web/app/terminal/[strategy]/[pair]/loading.tsx
+ create mode 100644 web/app/terminal/[strategy]/[pair]/page.tsx
+ create mode 100644 web/app/terminal/[strategy]/error.tsx
+ create mode 100644 web/app/terminal/[strategy]/loading.tsx
+ create mode 100644 web/app/terminal/[strategy]/page.tsx
+ create mode 100644 web/app/terminal/error.tsx
+ create mode 100644 web/app/terminal/layout.tsx
+ create mode 100644 web/app/terminal/loading.tsx
+ create mode 100644 web/app/terminal/page.tsx
+ create mode 100644 web/components/brief/BriefRenderer.tsx
+ create mode 100644 web/components/charts/RegimeChart.tsx
+ create mode 100644 web/components/charts/TimeSeriesChart.tsx
+ create mode 100644 web/components/regime/ConfidenceBar.tsx
+ create mode 100644 web/components/regime/RegimeCard.tsx
+ create mode 100644 web/components/regime/SignalStack.tsx
+ create mode 100644 web/components/regime/ValidationTable.tsx
+ create mode 100644 web/components/shell/AboutStrip.tsx
+ create mode 100644 web/components/shell/CanvasBg.tsx
+ create mode 100644 web/components/shell/Footer.tsx
+ create mode 100644 web/components/shell/HomeHero.tsx
+ create mode 100644 web/components/shell/HomeLive.tsx
+ create mode 100644 web/components/shell/HomePairCards.tsx
+ create mode 100644 web/components/shell/Nav.tsx
+ create mode 100644 web/components/shell/PerformanceClient.tsx
+ create mode 100644 web/components/shell/PipelineStatus.tsx
+ create mode 100644 web/components/shell/SignalArchitectureSection.tsx
+ create mode 100644 web/components/shell/TrackRecordStrip.tsx
+ create mode 100644 web/components/terminal/PairDesk.tsx
+ create mode 100644 web/components/terminal/SignalDepth.tsx
+ create mode 100644 web/components/terminal/TerminalNav.tsx
+ create mode 100644 web/components/ui/Badge.tsx
+ create mode 100644 web/components/ui/Button.tsx
+ create mode 100644 web/components/ui/Skeleton.tsx
+ create mode 100644 web/eslint.config.mjs
+ create mode 100644 web/hooks/useBrief.ts
+ create mode 100644 web/hooks/useHomeMarketData.ts
+ create mode 100644 web/hooks/useRegimeCalls.ts
+ create mode 100644 web/hooks/useSignalValues.ts
+ create mode 100644 web/hooks/useValidationLog.ts
+ create mode 100644 web/lib/constants/pairs.ts
+ create mode 100644 web/lib/constants/regimes.ts
+ create mode 100644 web/lib/constants/routes.ts
+ create mode 100644 web/lib/constants/strategies.ts
+ create mode 100644 web/lib/supabase/client.ts
+ create mode 100644 web/lib/supabase/queries.ts
+ create mode 100644 web/lib/supabase/server.ts
+ create mode 100644 web/lib/types/index.ts
+ create mode 100644 web/lib/types/regime.ts
+ create mode 100644 web/lib/types/signal.ts
+ create mode 100644 web/lib/types/strategy.ts
+ create mode 100644 web/lib/types/validation.ts
+ create mode 100644 web/lib/utils/format.ts
+ create mode 100644 web/lib/utils/regime.ts
+ create mode 100644 web/middleware.ts
+ create mode 100644 web/next.config.js
+ create mode 100644 web/package-lock.json
+ create mode 100644 web/package.json
+ create mode 100644 web/postcss.config.mjs
+ create mode 100644 web/public/favicon.ico
+ create mode 100644 web/public/file.svg
+ create mode 100644 web/public/fonts/.gitkeep
+ create mode 100644 web/public/globe.svg
+ create mode 100644 web/public/images/README.md
+ create mode 100644 web/public/images/shreyash_sakhare.png
+ create mode 100644 web/public/next.svg
+ create mode 100644 web/public/vercel.svg
+ create mode 100644 web/public/window.svg
+ create mode 100644 web/styles/charts.css
+ create mode 100644 web/styles/shell.css
+ create mode 100644 web/styles/terminal.css
+ create mode 100644 web/tailwind.config.ts
+ create mode 100644 web/tsconfig.json
+copied briefs/brief_20260419.html -> index.html (patched iframe paths)
+pushed to GitHub at 00:05 IST
+live at: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/
+warning: in the working copy of '.cursorignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/.cursor/commands/add-pair.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/.cursor/commands/backfill.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/.cursor/commands/brief-check.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/.cursor/commands/new-signal.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/.cursor/commands/run-validation.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/.cursor/plans/cboe_vol_pipeline_swap_75eccc34.plan.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/.cursor/plans/e2e_pipeline_audit_b4ecc0ae.plan.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/.cursor/plans/fix_persisted_pipeline_issues_a28465d0.plan.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/.cursor/plans/layer_3_signal_pipeline_phases_69f7ed6a.plan.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/.cursor/plans/public_surface_+_credibility_a2d4418c.plan.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/_docs/tasks/pipeline-layer3-april-2026.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/pages/demo_eurusd_rate_corr.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/site/assets/researcher-placeholder.svg', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/supabase/.gitignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '_archive/v1/supabase/config.toml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/CRITIQUE_AND_PLAN.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web/.gitignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web/AGENTS.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web/CLAUDE.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web/app/globals.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web/app/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web/eslint.config.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web/package-lock.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web/package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web/postcss.config.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web/tsconfig.json', LF will be replaced by CRLF the next time Git touches it
+From https://github.com/fxregimelab/fx-regime-lab
+ * branch            main       -> FETCH_HEAD
+To https://github.com/fxregimelab/fx-regime-lab.git
+   4dd1f79..03d81f5  main -> main
+OK  deploy  -- 17.7s
+
+==================================================
+  all steps done  (176.6s total)
+  archived -> runs/2026-04-19/
+
+Running Notion sync...
+==================================================
+  FX REGIME LAB — Notion Sync
+  2026-04-19 00:05
+==================================================
+
+Loading pipeline data...
+  eur_price: 1.176747441291809
+  jpy_price: 158.58399963378906
+  inr_price: 92.5749969482422
+  brent: 90.37999725341795
+  eur_pct: 55.76923076923077
+  jpy_pct: 34.61538461538461
+  eur_corr: 0.317477246268808
+  jpy_corr: None
+  inr_corr: -0.049513243170719
+  oil_inr_corr: 0.1182746114730276
+  eur_regime: WEAKENING
+  jpy_regime: BROKEN
+  inr_regime: BROKEN
+  driver: Mixed
+
+Updating Home Dashboard...
+
+Notion sync warning: Traceback (most recent call last):
+  File "C:\Market Journey 2026\Code\fx_regime\notion_sync.py", line 437, in main
+    update_home_dashboard(d)
+  File "C:\Market Journey 2026\Code\fx_regime\notion_sy
+(Pipeline complete — Notion sync failure is non-blocking)
+
+  live at: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/
+==================================================
+
+ Pipeline complete  --  19-04-2026  0:05:44.46                         
+============================================================  

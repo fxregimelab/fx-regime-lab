@@ -1,0 +1,42 @@
+{
+  "date": "2026-04-03",
+  "headline": "Yield Spreads Stabilize G10 While EM Volatility Spikes; USD/INR Momentum Threshold Breached",
+  "sections": {
+    "macro_context": "Global rate differentials remain the dominant regime anchor across FX markets today. The US-Eurozone 10Y spread holds at +126bp while US-Japan spread sits at +192bp\u2014both stable anchors supporting mild USD resilience. However, volatility regimes are diverging: G10 pairs show moderate compression while emerging market volatility has spiked significantly, particularly USD/INR which trades at the 96th percentile. This bifurcation reflects capital flows responding to widening developed-market yield advantages while simultaneously pricing tail risks in EM rate stability and RBI intervention capacity.",
+    "eurusd": {
+      "regime": "NEUTRAL",
+      "confidence": 0.05,
+      "narrative": "EUR/USD remains anchored in a neutral regime with minimal conviction (5% confidence), constrained by the persistent +126bp US-DE 10Y spread. Positioning sits at the 35th percentile of historical ranges, indicating light net USD longs\u2014neither crowded nor complacent. The pair currently reflects equilibrium between diverging monetary policy paths and offsetting technical positioning. This configuration will persist until either the spread compresses materially or positioning mean-reverts sharply higher.",
+      "key_driver": "US-DE 10Y spread at +126bp with positioning at 35th percentile.",
+      "watch_for": "Spread momentum reversal below 100bp or COT positioning acceleration above 60th percentile would signal regime transition."
+    },
+    "usdjpy": {
+      "regime": "NEUTRAL",
+      "confidence": 0.15,
+      "narrative": "USD/JPY signals a neutral regime (15% confidence) despite a +192bp US-JP spread\u2014wider than EUR/USD but insufficient to sustain directional conviction given balanced positioning at the 42nd percentile. Today's signal change marks a critical development: the daily z-score for rate differential momentum crossed 1.5 standard deviations, indicating the sharpest single-day spread move in months. This threshold breach reflects accelerating BOJ policy divergence expectations, though the pair has not yet broken its regime anchor. The momentum reversal will determine whether this becomes a sustained widening or mean-reversion trade.",
+      "key_driver": "US-JP 10Y spread at +192bp with daily momentum now 1.5\u03c3 above baseline.",
+      "watch_for": "Sustained spread widening above 210bp or BOJ guidance changes would confirm bullish USD/JPY regime shift; mean-reversion toward 170bp would invalidate momentum signal."
+    },
+    "usdinr": {
+      "regime": "NEUTRAL",
+      "confidence": 0.29,
+      "narrative": "USD/INR presents a directional-only regime assessment due to RBI intervention overlay, which fundamentally breaks conventional spread-based forecasting. The pair's -301bp US-IN 10Y spread (negative because Indian yields remain elevated) sits alongside extreme 96th percentile volatility\u2014the highest reading across today's universe. The daily z-score threshold breach for spread momentum (1.5\u03c3) signals sharp INR weakness dynamics, likely RBI-contained but nevertheless indicating significant capital outflow pressure. This volatility spike, combined with the extreme positioning gap (COT data unavailable, typical for emerging currency intervention regimes), demands vigilance on rupee stability rather than carry dynamics.",
+      "key_driver": "US-IN 10Y spread at -301bp with volatility at 96th percentile and momentum threshold breach.",
+      "watch_for": "RBI reserve depletion pace, USD/INR break above 83.50 as intervention capacity signal, and carry trade unwind acceleration from non-resident investors."
+    },
+    "signal_changes": [
+      "USD/JPY US-JP 10Y spread daily-change z-score crossed the 1.5 threshold.",
+      "USD/INR US-IN 10Y spread daily-change z-score crossed the 1.5 threshold."
+    ]
+  },
+  "charts_to_show": {
+    "eurusd": [],
+    "usdjpy": [
+      "rate_differentials"
+    ],
+    "usdinr": [
+      "rate_differentials"
+    ]
+  },
+  "generated_at": "2026-04-05T18:01:20Z"
+}

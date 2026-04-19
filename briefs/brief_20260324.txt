@@ -1,0 +1,103 @@
+======================================================================
+  G10 FX MORNING BRIEF
+  Tuesday, 24 March 2026
+  FX as of: 2026-03-23  |  IN 10Y as of: 2026-03-23  |  COT cutoff: 2026-03-17 (pub'd: 2026-03-20)
+======================================================================
+
+  PRICES
+  pair           price        1D       12M
+  ------------------------------------------------
+  EUR/USD       1.1560    -0.15%    +7.03%
+  USD/JPY     159.2340    +0.83%    +5.56%
+  DXY          98.9500    -0.70%    -4.89%
+
+  RATE DIFFERENTIALS  (narrowing = foreign currency should strengthen)
+  spread                   today    1W chg   12M chg
+  ----------------------------------------------------
+  US-DE 10Y (cross)        1.31%   +0.07pp   -0.14pp
+  US-DE 2Y  (same)         1.29%   -0.05pp   -0.57pp
+  US-JP 10Y (cross)        2.07%   +0.13pp   -0.65pp
+  US-JP 2Y  (same)         2.57%   +0.18pp   -0.44pp
+  BTP-Bund (IT-DE 10Y)     0.42pp                      [NORMAL]
+
+  REGIME CORRELATION  (60D rolling | spread vs FX move)
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            +0.095   BROKEN
+  USD/JPY            -0.094   BROKEN
+
+  OIL CORRELATION  (60D rolling | Brent returns vs FX returns)
+  expected: EUR/USD negative, USD/JPY positive, USD/INR positive
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            -0.074   LOW
+  USD/JPY            +0.007   LOW
+  USD/INR            +0.032   LOW
+
+  DXY DECOMPOSITION  (60D rolling | DXY returns vs FX returns)
+  high +ve = dollar-driven | low corr = pair-specific factor
+  pair          correlation   regime
+  ----------------------------------------------------
+  EUR/USD            -0.093   EUR SPECIFIC
+  USD/JPY            +0.032   YEN SPECIFIC
+  USD/INR            -0.129   INDIA SPECIFIC
+
+  GOLD CORRELATION  (60D rolling | Gold returns vs FX returns)
+  USD/JPY: negative expected (safe-haven) | USD/INR: positive expected (import demand)
+  pair          correlation   flag
+  ----------------------------------------------------
+  USD/JPY            -0.210   WEAK
+  USD/INR            -0.325   GOLD DIVERGENCE  << sign reversal -- safe-haven/import demand channel broken
+
+  RBI INTERVENTION  (FRED RBUKRESERVES | 7-day change in USD bn)
+  ----------------------------------------------------
+  RBI Reserves              -4.7B   ACTIVE SUPPORT  << defending INR floor
+
+  INR COMPOSITE SCORE  (oil 25% | DXY 20% | FPI 25% | RBI 20% | rate 10%)
+  ----------------------------------------------------
+  SCORE: +30.8  [MODERATE DEPRECIATION PRESSURE]
+  Components: Oil(-1) DXY(+3) FPI(+25) RBI(-6) Rate(+10)
+
+  G10 COMPOSITE REGIME SCORES  (Phase 8 | +ve = USD strength pressure)
+  --------------------------------------------------------------
+  pair            score   label
+  --------------------------------------------------------------
+  EUR/USD          -1.2   NEUTRAL
+  USD/JPY         -10.6   NEUTRAL
+  weights: EUR/USD rate 30%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 8%+dxy 7%
+           USD/JPY rate 25%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 10%+gold 5%+dxy 5%
+
+  KEY LEVELS  (90D | S=support, R=resistance, (n)=touches)
+  --------------------------------------------------------------
+  EUR/USD:  S3: 1.1435          S2: 1.1435          S1: 1.1435         
+           R1: 1.1815          R2: 1.2018          R3: 1.2018         
+  USD/JPY:  S3: 152.45          S2: 152.45          S1: 154.63         
+           R1: 159.79          R2: 159.79          R3: 159.79         
+
+  VOLATILITY  (30D realized, annualized | 3Y percentile)
+  --------------------------------------------------------
+  pair            vol30        pct   flag
+  --------------------------------------------------------
+  EURUSD           7.4%       70th   NORMAL
+  USDJPY           8.9%       39th   NORMAL
+
+  COT POSITIONING  (cutoff: 2026-03-17 = Tue close | pub'd: 2026-03-20 = Fri)
+  ------------------------------------------------------------------
+
+  EUR/USD:
+    Leveraged Money   : -6,952 contracts | -0.9% OI | NEUTRAL SHORT (22nd pct)
+    Asset Manager     : +294,538 contracts | +39.0% OI | NEUTRAL LONG  (30th pct)
+
+  USD/JPY:
+    Leveraged Money   : -65,429 contracts | -20.0% OI | CROWDED SHORT (17th pct)
+    Asset Manager     : -439 contracts | -0.1% OI | NEUTRAL SHORT (47th pct)
+
+  REGIME READ
+  ------------------------------------------------------------------
+  EUR/USD  spread compression supports EUR strength; positioning
+           neutral — no crowding distortion.
+
+  USD/JPY  spread compression favors lower USD/JPY; yen shorts
+           crowded — unwind/squeeze risk elevated.
+
+======================================================================

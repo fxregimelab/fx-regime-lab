@@ -1,0 +1,498 @@
+============================================================  
+ G10 FX REGIME PIPELINE  --  05-04-2026 23:30:02.56                    
+============================================================  
+
+==================================================
+  fx_regime pipeline  --  2026-04-05
+==================================================
+
+>>  fx  (pipeline.py)
+======================================================================
+  G10 FX PIPELINE -- 2026-04-05
+======================================================================
+
+[1/5] fetching FX prices from yahoo finance...
+    got 1629 rows, 3 pairs
+    from 2020-01-01 to 2026-04-03
+
+[1b] fetching commodity prices from yahoo finance...
+    OK  Brent (BZ=F) -- 1574 rows, latest: 109.05 on 2026-04-02
+    OK  Gold (GC=F) -- 1574 rows, latest: 4702.70 on 2026-04-02
+
+[2/5] fetching all yields (FRED + ECB + MOF + IT ? parallel)...
+    WARN IT_10Y ECB failed (HTTPError): 404 Client Error:  for url: https://data-api.ecb.europa.eu/service/data/YC/B.IT.EUR.4F.G_N_A.SV_C_YM.SR_10Y?startPeriod=2020-01-01&detail=dataonly
+    OK  US_2Y (FRED DGS2) -- 1563 rows, latest: 3.79% on 2026-04-02
+    WARN IT_10Y FRED fallback failed (ValueError): None
+    WARN IT_10Y: all sources failed, BTP-Bund spread will be NaN
+    OK  DE_2Y (ECB daily) -- 1598 rows, latest: 2.55% on 2026-04-01
+    OK  JP_2Y (MOF daily) -- 1526 rows, latest: 1.39% on 2026-04-02
+    OK  JP_10Y (MOF daily) -- 1526 rows, latest: 2.40% on 2026-04-02
+    OK  US_10Y (FRED DGS10) -- 1563 rows, latest: 4.31% on 2026-04-02
+    OK  DE_10Y (ECB daily) -- 1598 rows, latest: 3.05% on 2026-04-01
+
+[3/5] calculating rate differentials...
+    US_DE_10Y_spread       : +1.26%
+    US_DE_2Y_spread        : +1.24%
+    US_JP_10Y_spread       : +1.91%
+    US_JP_10Y_spread_accel : -0.22%
+    US_JP_2Y_spread        : +2.40%
+    US_curve               : +0.52%
+
+[4/5] building master dataset...
+    WARNING -- missing values:
+DXY                       1
+US_2Y                     1
+US_10Y                    1
+DE_2Y                     1
+DE_10Y                    1
+JP_2Y                     3
+JP_10Y                    3
+US_DE_10Y_spread          1
+US_DE_2Y_spread           1
+US_JP_10Y_spread          3
+US_JP_10Y_spread_accel    8
+US_JP_2Y_spread           3
+US_curve                  1
+Brent                     1
+Gold                      1
+dtype: int64
+    shape: 1628 rows x 17 columns
+
+[VOL] calculating realized volatility...
+    EURUSD: 8.1% annualized | 80th pct | ELEVATED
+    USDJPY: 7.6% annualized | 27th pct | NORMAL
+
+[CORR] calculating regime correlation...
+    EURUSD: 60D:+0.178  /  20D:+0.719  REGIME TRANSITION
+    USDJPY: 60D:-0.154  /  20D:-0.583  REGIME TRANSITION
+
+[OIL] calculating oil correlation (Phase 1)...
+    EURUSD  : -0.190  (oil_eurusd_corr_60d)
+    USDJPY  : +0.075  (oil_usdjpy_corr_60d)
+
+[GOLD] calculating gold correlation (Phase 4)...
+    USDJPY  : -0.222  (gold_usdjpy_corr_60d)
+
+[DXY] calculating DXY decomposition (Phase 2)...
+    EURUSD  : -0.103  (dxy_eurusd_corr_60d)
+    USDJPY  : +0.068  (dxy_usdjpy_corr_60d)
+
+[LEVELS] calculating rolling key support/resistance levels...
+    EURUSD: S1=1.1435  R1=1.1617
+    USDJPY: S1=157.85  R1=160.23
+
+[COMPOSITE] calculating G10 composite regime scores (Phase 8)...
+    EUR/USD composite: +0.1  [NEUTRAL]
+    USD/JPY composite: -15.3  [NEUTRAL]
+
+[5/5] calculating changes...
+    USDINR not in master -- run inr_pipeline.py first
+    Brent change columns added
+    Gold change columns added
+    added change columns for 5 periods
+
+    saved: data/master_20260405.csv
+    saved: data/latest.csv
+
+======================================================================
+  MORNING NUMBERS
+======================================================================
+  as of: 2026-04-03
+
+  COMMODITIES:
+  asset         price      1D%      1W%      1M%
+  ------------------------------------------------
+  Brent        109.05   +0.00%   -3.13%  +27.68%  ($/bbl)
+  Gold        4702.70   +0.00%   +4.69%   -7.16%  ($/oz)
+
+  FX PRICES:
+  pair          price      1D%      1W%      1M%      3M%     12M%
+  ------------------------------------------------------------------
+  EURUSD       1.1522   -0.59%   -0.11%   -0.98%   -1.65%   +5.20%
+  USDJPY     159.6320   +0.59%   -0.05%   +1.69%   +1.92%   +8.30%
+  DXY        100.0300   +0.00%   -0.12%   +0.71%   +1.47%   -0.83%
+
+  YIELDS:
+  series                today    1D chg    1M chg   12M chg
+  ----------------------------------------------------------
+  US 2Y                 3.79%    +0.00pp    +0.22pp    -0.05pp
+  US 10Y                4.31%    +0.00pp    +0.18pp    -0.09pp
+  DE 2Y                 2.55%    +0.00pp    +0.38pp    +0.72pp
+  DE 10Y                3.05%    +0.00pp    +0.16pp    +0.37pp
+  JP 2Y                 1.39%    +0.00pp    +0.13pp    +0.71pp
+  JP 10Y                2.40%    +0.00pp    +0.22pp    +1.02pp
+  US curve              0.52%    +0.00pp    -0.04pp    -0.04pp
+
+  RATE DIFFERENTIALS:
+  spread                    today    1D chg    1M chg   12M chg
+  --------------------------------------------------------------
+  US-DE 10Y                 1.26%    +0.00pp    +0.02pp    -0.46pp
+  US-DE 2Y                  1.24%    +0.00pp    -0.16pp    -0.77pp
+  US-JP 10Y                 1.91%    +0.00pp    -0.04pp    -1.11pp
+  US-JP 2Y                  2.40%    +0.00pp    +0.09pp    -0.76pp
+
+  pp = percentage points (yields and spreads move in pp)
+   % = percentage change (FX prices)
+======================================================================
+
+  run cot_pipeline.py next
+  then create_dashboards.py for charts
+======================================================================
+OK  fx  -- 18.8s
+
+>>  cot  (cot_pipeline.py)
+==============================================================
+  COT POSITIONING PIPELINE -- 2026-04-05
+==============================================================
+
+[1/4] fetching CFTC COT data...
+    OK  2023 -- 104 rows
+    OK  2024 -- 106 rows
+    OK  2025 -- 104 rows
+    OK  2026 -- 26 rows
+    combined: 340 rows, 2023 to 2026
+
+[2/4] calculating net positioning and percentiles...
+
+    JPY:
+      Leveraged Money:
+        net : -46,182 contracts (SHORT)
+        % OI: -13.4%  |  percentile: 42nd
+        regime: NEUTRAL
+      Asset Manager:
+        net : -3,645 contracts (SHORT)
+        % OI: -1.1%  |  percentile: 45th
+        regime: NEUTRAL
+
+    EUR:
+      Leveraged Money:
+        net : +3,947 contracts (LONG)
+        % OI: +0.5%  |  percentile: 35th
+        regime: NEUTRAL
+      Asset Manager:
+        net : +264,417 contracts (LONG)
+        % OI: +34.2%  |  percentile: 22nd
+        regime: NEUTRAL
+
+[3/4] saving data...
+
+    saved: data/cot_latest.csv
+    rows: 170, from 2023-01-03 to 2026-03-31
+
+[4/4] merging COT with FX master data...
+    saved: C:\Market Journey 2026\Code\fx_regime\data\latest_with_cot.csv
+    shape: 1628 rows x 148 columns
+
+==============================================================
+  COT SUMMARY (Leveraged Money)
+==============================================================
+
+  JPY (as of 2026-03-31):
+    net position : -46,182 contracts (SHORT)
+    % of OI      : -13.4%
+    percentile   : 42nd (vs last 3 years)
+    regime       : MODERATELY SHORT (42nd pct) -- no crowding signal
+
+  EUR (as of 2026-03-31):
+    net position : +3,947 contracts (LONG)
+    % of OI      : +0.5%
+    percentile   : 35th (vs last 3 years)
+    regime       : MODERATELY LONG (35th pct) -- no crowding signal
+
+==============================================================
+  run create_dashboards.py for charts
+==============================================================
+[Supabase] Wrote 3256 signal rows
+OK  cot  -- 15.3s
+
+>>  inr  (inr_pipeline.py)
+==============================================================
+  INR PIPELINE -- 2026-04-05
+==============================================================
+
+[1/3] fetching USD/INR price (yfinance USDINR=X)...
+    OK  1628 rows, latest: 2026-04-03 = 92.9736
+
+[2/3] fetching IN 10Y yield (FBIL daily G-sec benchmark)...
+    FBIL cache: 751 rows, last = 2026-04-02
+    FBIL: fetching 1 new business days (2026-04-03 to 2026-04-03)
+    FBIL: 1 dates skipped (holidays/errors)
+    OK  daily, as of 2026-04-02 = 7.32%  (repo proxy = 5.82%)
+
+[3/3] fetching FPI flows (NSE primary, SEBI fallback)...
+    OK  NSE cache 14d, latest: 2026-04-02
+    FPI 20D flow: -99,622  percentile: N/A (building cache)
+
+[saving] assembling inr_latest.csv...
+    USDINR vol: 8.7% annualized | 96th pct | EXTREME
+    saved: data/inr_latest.csv  (1628 rows x 12 cols)
+    oil_inr_corr_60d: +0.034
+    dxy_inr_corr_60d:  -0.082
+    gold_inr_corr_60d: -0.307
+    gold_seasonal_flag: 1  label: AKSHAYA TRITIYA
+    WARN: RBI reserves primary (RBUKRESERVES) failed: Bad Request.  The series does not exist. ? trying fallback
+    rbi_reserve_chg_1w: -4.7B  flag: ACTIVE SUPPORT
+    inr_composite_score: +29.0  [NEUTRAL]
+    merged into: data/latest_with_cot.csv  (175 cols total)
+INR columns in master: ['USDINR', 'IN_10Y', 'IN_repo_proxy', 'IN_10Y_source', 'US_IN_10Y_spread', 'US_IN_policy_spread', 'USDINR_vol30', 'USDINR_vol_pct', 'USDINR_chg_1D', 'USDINR_chg_1W', 'USDINR_chg_1M', 'USDINR_chg_3M', 'USDINR_chg_12M', 'US_IN_10Y_spread_chg_12M', 'US_IN_policy_spread_chg_12M']
+
+==============================================================
+  INR SUMMARY
+==============================================================
+
+  USD/INR:          92.9736
+  IN 10Y:           7.32%  (FBIL daily, as of 2026-04-03)
+  US-IN spread:     -3.01%
+  FPI 20D flow:     -99,622  (percentile: nanth)
+
+==============================================================
+[Supabase] Wrote 4884 signal rows
+  Supabase: full signals history upsert OK (if configured)
+OK  inr  -- 16.5s
+
+>>  vol  (vol_pipeline.py)
+  vol_pipeline: CME_API_KEY not set ? skipping CVOL fetch (Phase 1)
+OK  vol  -- 0.1s
+
+>>  oi  (oi_pipeline.py)
+  oi_pipeline: stub ? implement CME OI scrape/API (Phase 1)
+OK  oi  -- 0.1s
+
+>>  rr  (rr_pipeline.py)
+  rr_pipeline: probing FXE options (synthetic EUR/USD RR proxy)?
+    OK nearest expiry bucket: 2026-04-17 (full RR calc Phase 1)
+OK  rr  -- 6.4s
+  [dedup] merge  (pipeline.py already ran)
+
+>>  text  (morning_brief.py)
+======================================================================
+  G10 FX MORNING BRIEF
+  Sunday, 05 April 2026
+  FX as of: 2026-04-03  |  IN 10Y as of: 2026-04-03  |  COT cutoff: 2026-03-31 (pub'd: 2026-04-03)
+======================================================================
+
+  !! MACRO EVENT in 4 days: RBI MPC (2026-04-09) !!
+
+  PRICES
+  pair           price        1D       12M
+  ------------------------------------------------
+  EUR/USD       1.1522    -0.59%    +5.20%
+  USD/JPY     159.6320    +0.59%    +8.30%
+  DXY         100.0300    +0.00%    -0.83%
+
+  RATE DIFFERENTIALS  (narrowing = foreign currency should strengthen)
+  spread                   today    1W chg   12M chg
+  ----------------------------------------------------
+  US-DE 10Y (cross)        1.26%   -0.03pp   -0.46pp
+  US-DE 2Y  (same)         1.24%   +0.01pp   -0.77pp
+  US-JP 10Y (cross)        1.92%   -0.15pp   -1.11pp
+  US-JP 2Y  (same)         2.40%   -0.09pp   -0.76pp
+  BTP-Bund (IT-DE 10Y)        n/a                      [N/A]
+
+  REGIME CORRELATION  (60D rolling | spread vs FX move)
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            +0.178   BROKEN
+  USD/JPY            -0.154   BROKEN
+
+  OIL CORRELATION  (60D rolling | Brent returns vs FX returns)
+  expected: EUR/USD negative, USD/JPY positive, USD/INR positive
+  pair          correlation   flag
+  ----------------------------------------------------
+  EUR/USD            -0.190   LOW
+  USD/JPY            +0.075   LOW
+  USD/INR            +0.034   LOW
+
+  DXY DECOMPOSITION  (60D rolling | DXY returns vs FX returns)
+  high +ve = dollar-driven | low corr = pair-specific factor
+  pair          correlation   regime
+  ----------------------------------------------------
+  EUR/USD            -0.103   EUR SPECIFIC
+  USD/JPY            +0.068   YEN SPECIFIC
+  USD/INR            -0.082   INDIA SPECIFIC
+
+  GOLD CORRELATION  (60D rolling | Gold returns vs FX returns)
+  USD/JPY: negative expected (safe-haven) | USD/INR: positive expected (import demand)
+  pair          correlation   flag
+  ----------------------------------------------------
+  USD/JPY            -0.222   WEAK
+  USD/INR            -0.307   GOLD DIVERGENCE  << sign reversal -- safe-haven/import demand channel broken
+                              SEASONAL: AKSHAYA TRITIYA
+
+  RBI INTERVENTION  (FRED RBUKRESERVES | 7-day change in USD bn)
+  ----------------------------------------------------
+  RBI Reserves              -4.7B   ACTIVE SUPPORT  << defending INR floor
+
+  INR COMPOSITE SCORE  (oil 25% | DXY 20% | FPI 25% | RBI 20% | rate 10%)
+  ----------------------------------------------------
+  SCORE: +29.0  [NEUTRAL]
+  Components: Oil(+0) DXY(-0) FPI(+25) RBI(-6) Rate(+10)
+
+  G10 COMPOSITE REGIME SCORES  (Phase 8 | +ve = USD strength pressure)
+  --------------------------------------------------------------
+  pair            score   label
+  --------------------------------------------------------------
+  EUR/USD          +0.1   NEUTRAL
+  USD/JPY         -15.3   NEUTRAL
+  weights: EUR/USD rate 30%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 8%+dxy 7%
+           USD/JPY rate 25%+lev 20%+amgr 10%+vol 10%+corr 15%+oil 10%+gold 5%+dxy 5%
+
+  KEY LEVELS  (90D | S=support, R=resistance, (n)=touches)
+  --------------------------------------------------------------
+  EUR/USD:  S3: 1.1435          S2: 1.1435          S1: 1.1435         
+           R1: 1.1617          R2: 1.2018          R3: 1.2018         
+  USD/JPY:  S3: 152.45          S2: 152.45          S1: 157.85         
+           R1: 160.23          R2: 160.23          R3: 160.23         
+
+  VOLATILITY  (30D realized, annualized | 3Y percentile)
+  --------------------------------------------------------
+  pair            vol30        pct   flag
+  --------------------------------------------------------
+  EURUSD           8.1%       80th   ELEVATED
+  USDJPY           7.6%       27th   NORMAL
+
+  COT POSITIONING  (cutoff: 2026-03-31 = Tue close | pub'd: 2026-04-03 = Fri)
+  ------------------------------------------------------------------
+
+  EUR/USD:
+    Leveraged Money   : +3,947 contracts | +0.5% OI | NEUTRAL LONG  (35th pct)
+    Asset Manager     : +264,417 contracts | +34.2% OI | NEUTRAL LONG  (22nd pct)
+
+  USD/JPY:
+    Leveraged Money   : -46,182 contracts | -13.4% OI | NEUTRAL SHORT (42nd pct)
+    Asset Manager     : -3,645 contracts | -1.1% OI | NEUTRAL SHORT (45th pct)
+
+  REGIME READ
+  ------------------------------------------------------------------
+  EUR/USD  spread compression supports EUR strength; positioning
+           neutral ? no crowding distortion. vol elevated ?
+           positioning signals less reliable.
+
+  USD/JPY  spread compression favors lower USD/JPY; Leveraged Money
+           42nd pct and Asset Manager 45th pct both neutral ? carry
+           partially intact, BoJ path is key variable.
+
+======================================================================
+
+  saved: briefs/brief_20260405.txt
+OK  text  -- 4.2s
+
+>>  macro  (macro_pipeline.py)
+
+[macro] fetching economic calendar...
+    cache fresh (<12h) ? using 4 cached events
+OK  macro  -- 1.1s
+
+>>  ai  (ai_brief.py)
+[AI] Claude narrative generation OK
+[AI] wrote data\ai_article.json
+[AI] wrote data\ai_regime_read.json
+OK  ai  -- 15.3s
+
+>>  substack  (scripts/substack_publish.py)
+[Substack] Error: Login failed: HTTP 401
+FAIL  substack after 3.1s
+   WARN: substack failed — non-blocking, pipeline continues
+
+>>  html  (create_html_brief.py)
+Generated: briefs/brief_20260405.html
+OK  html  -- 8.2s
+
+>>  validate  (validation_regime.py)
+  validation_regime: done
+OK  validate  -- 4.2s
+
+>>  deploy  (deploy.py)
+[main bd0bf66] brief update 2026-04-05 23:31 IST
+ 26 files changed, 260 insertions(+), 101 deletions(-)
+ create mode 100644 site/terminal/overview.html
+Auto-merging charts/eurusd_0.html
+Auto-merging charts/eurusd_1.html
+Auto-merging charts/eurusd_2.html
+Auto-merging charts/eurusd_3.html
+Auto-merging charts/eurusd_4.html
+Auto-merging charts/usdinr_0.html
+Auto-merging charts/usdinr_1.html
+Auto-merging charts/usdinr_2.html
+Auto-merging charts/usdinr_3.html
+Auto-merging charts/usdinr_4.html
+Auto-merging charts/usdjpy_0.html
+Auto-merging charts/usdjpy_1.html
+Auto-merging charts/usdjpy_2.html
+Auto-merging charts/usdjpy_3.html
+Auto-merging charts/usdjpy_4.html
+Auto-merging charts/usdjpy_5.html
+Auto-merging index.html
+Merge made by the 'ort' strategy.
+ index.html                       |  4 ++--
+ site/brief/latest.html           | 14 +++++++-------
+ site/charts/eurusd_0.html        |  2 +-
+ site/charts/eurusd_1.html        |  2 +-
+ site/charts/eurusd_2.html        |  2 +-
+ site/charts/eurusd_3.html        |  2 +-
+ site/charts/eurusd_4.html        |  2 +-
+ site/charts/usdinr_0.html        |  2 +-
+ site/charts/usdinr_1.html        |  2 +-
+ site/charts/usdinr_2.html        |  2 +-
+ site/charts/usdinr_3.html        |  2 +-
+ site/charts/usdinr_4.html        |  2 +-
+ site/charts/usdjpy_0.html        |  2 +-
+ site/charts/usdjpy_1.html        |  2 +-
+ site/charts/usdjpy_2.html        |  2 +-
+ site/charts/usdjpy_3.html        |  2 +-
+ site/charts/usdjpy_4.html        |  2 +-
+ site/charts/usdjpy_5.html        |  2 +-
+ site/static/pipeline_status.json |  4 ++--
+ 19 files changed, 27 insertions(+), 27 deletions(-)
+copied briefs/brief_20260405.html -> index.html (patched iframe paths)
+WARN: rebase with -X theirs failed; trying merge origin/main (-X ours)
+error: cannot rebase: You have unstaged changes.
+error: Please commit or stash them.
+pushed to GitHub at 23:31 IST
+live at: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/
+From https://github.com/fxregimelab/fx-regime-lab
+ * branch            main       -> FETCH_HEAD
+fatal: no rebase in progress
+To https://github.com/fxregimelab/fx-regime-lab.git
+   ab84f1e..da42edc  main -> main
+OK  deploy  -- 8.6s
+
+==================================================
+  all steps done  (101.7s total)
+  archived -> runs/2026-04-05/
+
+Running Notion sync...
+==================================================
+  FX REGIME LAB — Notion Sync
+  2026-04-05 23:31
+==================================================
+
+Loading pipeline data...
+  eur_price: 1.1522064208984375
+  jpy_price: 159.6320037841797
+  inr_price: 92.97360229492188
+  brent: 109.0500030517578
+  eur_pct: 35.294117647058826
+  jpy_pct: 42.94117647058823
+  eur_corr: 0.1775592602191868
+  jpy_corr: -0.1541055906453877
+  inr_corr: -0.0822446936897174
+  oil_inr_corr: 0.0338735098409062
+  eur_regime: BROKEN
+  jpy_regime: BROKEN
+  inr_regime: BROKEN
+  driver: External Shock
+
+Updating Home Dashboard...
+
+Notion sync warning: Traceback (most recent call last):
+  File "C:\Market Journey 2026\Code\fx_regime\notion_sync.py", line 432, in main
+    update_home_dashboard(d)
+  File "C:\Market Journey 2026\Code\fx_regime\notion_sy
+(Pipeline complete — Notion sync failure is non-blocking)
+
+  live at: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/
+==================================================
+
+ Pipeline complete  --  05-04-2026 23:31:49.30                         
+============================================================  

@@ -1,0 +1,55 @@
+
+==================================================
+  fx_regime pipeline  --  2026-03-12
+==================================================
+  [skip]  fx
+  [skip]  cot
+  [skip]  inr
+  [skip]  merge
+  [skip]  text
+  [skip]  ai
+
+>>  html  (create_html_brief.py)
+Generated: charts/global_workspace.html
+Generated: briefs/brief_20260312.html
+OK  html  -- 6.3s
+  [skip]  deploy
+
+==================================================
+  all steps done  (6.3s total)
+  archived -> runs/2026-03-12/
+
+Running Notion sync...
+==================================================
+  FX REGIME LAB — Notion Sync
+  2026-03-12 17:27
+==================================================
+
+Loading pipeline data...
+  eur_price: 1.1611299514770508
+  jpy_price: 158.11399841308594
+  inr_price: 92.16510009765624
+  brent: 91.9800033569336
+  eur_pct: 87.95180722891565
+  jpy_pct: 63.25301204819277
+  eur_corr: None
+  jpy_corr: 0.0058007532223892
+  inr_corr: 0.0502751078715162
+  oil_inr_corr: 0.1398611411819016
+  eur_regime: BROKEN
+  jpy_regime: BROKEN
+  inr_regime: BROKEN
+  driver: External Shock
+
+Updating Home Dashboard...
+
+Notion sync warning: Traceback (most recent call last):
+  File "C:\Market Journey 2026\Code\fx_regime\notion_sync.py", line 432, in main
+    update_home_dashboard(d)
+    ~~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Market Journey 
+(Pipeline complete — Notion sync failure is non-blocking)
+
+  live at: https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/
+==================================================
+
