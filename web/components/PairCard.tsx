@@ -1,7 +1,7 @@
 import { ConfidenceBar } from '@/components/ConfidenceBar';
 import { pairBgClass, pairTextClass } from '@/lib/pair-styles';
 import type { PairMeta, RegimeCall, SignalRow } from '@/lib/types';
-import { fmt2, fmtChg, fmtSpot } from '@/lib/utils/format';
+import { fmt2, fmtChg, fmtInt, fmtSpot } from '@/lib/utils/format';
 import Link from 'next/link';
 
 export function PairCard({
@@ -40,7 +40,7 @@ export function PairCard({
           </div>
           <div>
             <p className="font-mono text-[9px] text-[#a0a0a0]">COT %</p>
-            <p className="font-mono text-[10px] text-[#0a0a0a]">{signal.cot_percentile}</p>
+            <p className="font-mono text-[10px] text-[#0a0a0a]">{fmtInt(signal.cot_percentile)}</p>
           </div>
           <div>
             <p className="font-mono text-[9px] text-[#a0a0a0]">REAL VOL 20D</p>

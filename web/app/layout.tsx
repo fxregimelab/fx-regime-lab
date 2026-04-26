@@ -1,3 +1,4 @@
+import { DebugCssProbe } from '@/components/DebugCssProbe';
 import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
@@ -38,7 +39,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="flex min-h-screen flex-col font-sans antialiased">{children}</body>
+      <body className="flex min-h-screen flex-col font-sans antialiased">
+        <DebugCssProbe />
+        {children}
+      </body>
     </html>
   );
 }

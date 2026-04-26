@@ -18,7 +18,7 @@ import {
   getRegimeHistory,
   getUpcomingMacroEvents,
 } from '@/lib/supabase/queries';
-import { fmt2, fmtChg, fmtSpot } from '@/lib/utils/format';
+import { fmt2, fmtChg, fmtInt, fmtSpot } from '@/lib/utils/format';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -73,7 +73,7 @@ export default async function PairDetailPage({
 
   const signalRows = [
     { k: 'RATE DIFF 2Y', v: fmt2(signal.rate_diff_2y) },
-    { k: 'COT %', v: String(signal.cot_percentile) },
+    { k: 'COT %', v: fmtInt(signal.cot_percentile) },
     { k: 'REAL VOL 20D', v: fmt2(signal.realized_vol_20d) },
     { k: 'REAL VOL 5D', v: fmt2(signal.realized_vol_5d) },
     {
