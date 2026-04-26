@@ -10,7 +10,12 @@ import {
   mapRegimeCallRow,
   mapSignalRow,
 } from '@/lib/supabase/map-row';
-import { getLatestRegimeCalls, getLatestSignals, getRegimeHeatmap } from '@/lib/supabase/queries';
+import {
+  getLatestRegimeCalls,
+  getLatestSignals,
+  getRegimeHeatmap,
+  getValidationStats,
+} from '@/lib/supabase/queries';
 import type { HeatmapData, PairMeta, RegimeCall, SignalRow } from '@/lib/types';
 import Link from 'next/link';
 
@@ -19,7 +24,11 @@ function regimeForPair(rows: RegimeCall[], label: string): RegimeCall | undefine
 }
 
 export default async function HomePage() {
-  const [regimeRes, heatmapRes] = await Promise.all([getLatestRegimeCalls(), getRegimeHeatmap()]);
+  const [regimeRes, heatmapRes, statsRes] = await Promise.all([
+    getLatestRegimeCalls(),
+    getRegimeHeatmap(),
+    getValidationStats(),
+  ]);
   if (regimeRes.error) {
     return (
       <div className="bg-white px-6 py-10">
@@ -29,6 +38,12 @@ export default async function HomePage() {
   }
 
   const regimeRows = (regimeRes.data ?? []).map(mapRegimeCallRow);
+  const stats = statsRes.data ?? {
+    winRate: 0,
+    callsMade: 0,
+    medianReturn: 0,
+    daysLive: 0,
+  };
   const heatmapData: HeatmapData =
     heatmapRes.error || !heatmapRes.data?.length
       ? { dates: [], regimes: {} }
@@ -109,14 +124,23 @@ export default async function HomePage() {
       <section className="border-y border-[#e5e5e5] py-6">
         <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-6 px-6 sm:grid-cols-4">
           {[
-            { label: 'CALLS MADE', value: '74' },
-            { label: 'WIN RATE', value: '78%' },
+            {
+              label: 'CALLS MADE',
+              value: stats.callsMade > 0 ? String(stats.callsMade) : '—',
+            },
+            {
+              label: 'WIN RATE',
+              value: stats.callsMade > 0 ? `${Math.round(stats.winRate * 100)}%` : '—',
+            },
             { label: 'PAIRS TRACKED', value: '3' },
-            { label: 'DAYS LIVE', value: '21d' },
+            {
+              label: 'DAYS LIVE',
+              value: stats.daysLive > 0 ? String(stats.daysLive) : '—',
+            },
           ].map((s) => (
             <div key={s.label}>
-              <p className="font-mono text-[9px] tracking-widest text-[#a0a0a0]">{s.label}</p>
-              <p className="mt-1 font-mono text-[20px] font-semibold text-[#0a0a0a]">{s.value}</p>
+              <p className="font-mono text-[11px] tracking-widest text-[#a0a0a0]">{s.label}</p>
+              <p className="mt-1 font-mono text-[22px] font-semibold text-[#0a0a0a]">{s.value}</p>
             </div>
           ))}
         </div>

@@ -3,11 +3,12 @@ const TRACK: Record<'light' | 'dark', string> = {
   dark: '#1e1e1e',
 };
 
-type BarHeightPx = 3 | 4;
+type BarHeightPx = 3 | 4 | 6;
 
 const barClass: Record<BarHeightPx, string> = {
   3: 'h-[3px]',
   4: 'h-1',
+  6: 'h-[6px]',
 };
 
 export function ConfidenceBar({
@@ -15,7 +16,7 @@ export function ConfidenceBar({
   pairColor,
   variant = 'light',
   className,
-  barHeightPx = 4,
+  barHeightPx = 6,
 }: {
   value: number;
   pairColor: string;

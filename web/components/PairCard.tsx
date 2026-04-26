@@ -17,7 +17,7 @@ export function PairCard({
   return (
     <Link
       href={`/pairs/${pair.urlSlug}`}
-      className="group flex border border-[#e5e5e5] bg-white transition hover:shadow-sm"
+      className="group flex min-h-[160px] border border-[#e5e5e5] bg-white transition hover:shadow-sm"
     >
       <span className={`w-0.5 shrink-0 ${pairBgClass(pair.label)}`} aria-hidden />
       <div className="min-w-0 flex-1 p-4">
@@ -29,7 +29,7 @@ export function PairCard({
             {fmtSpot(signal.spot, pair.label)}
           </span>
         </div>
-        <p className="mb-1 font-sans text-[13px] font-semibold uppercase text-[#0a0a0a]">
+        <p className="mb-1 min-h-[2.5rem] font-sans text-[13px] font-semibold uppercase text-[#0a0a0a]">
           {regime.regime}
         </p>
         <ConfidenceBar value={regime.confidence} pairColor={pair.pairColor} />

@@ -1,5 +1,5 @@
 import { ConfidenceBar } from '@/components/ConfidenceBar';
-import { pairBorderLClass, pairTextClass } from '@/lib/pair-styles';
+import { pairBgClass, pairTextClass } from '@/lib/pair-styles';
 import type { PairMeta, RegimeCall, SignalRow } from '@/lib/types';
 import { fmt2, fmtChg, fmtSpot } from '@/lib/utils/format';
 
@@ -14,8 +14,9 @@ export function HeroRegimeCard({
 }) {
   const chg = fmtChg(signal.day_change_pct);
   return (
-    <div className={`w-full border border-[#e5e5e5] bg-white ${pairBorderLClass(pair.label)}`}>
-      <div className="p-5">
+    <div className="flex w-full border border-[#e5e5e5] bg-white">
+      <span className={`w-1 shrink-0 ${pairBgClass(pair.label)}`} aria-hidden />
+      <div className="flex-1 p-5">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
           <span className={`font-mono text-[10px] ${pairTextClass(pair.label)}`}>{pair.label}</span>
           <div className="flex items-baseline gap-3">
