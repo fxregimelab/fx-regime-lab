@@ -1,14 +1,7 @@
 import { PAIR_LABELS, regimeHeatmapCellClass } from '@/lib/pair-styles';
 import type { HeatmapData, PairMeta } from '@/lib/types';
 
-const shellRow = 'border-b border-[#e5e5e5] last:border-b-0';
-const shellLabelCell = 'flex w-16 shrink-0 items-center border-r border-[#e5e5e5] px-2 py-2';
-const shellLabelText = 'font-mono text-[9px] text-[#0a0a0a]';
 const shellWrap = 'border border-[#e5e5e5] bg-white';
-
-const termRow = 'border-b border-[#1e1e1e] last:border-b-0';
-const termLabelCell = 'flex w-16 shrink-0 items-center border-r border-[#1e1e1e] px-2 py-2';
-const termLabelText = 'font-mono text-[9px] text-[#e8e8e8]';
 const termWrap = 'border border-[#1e1e1e] bg-[#0c0c0c]';
 
 export function RegimeHeatmap({
@@ -24,27 +17,45 @@ export function RegimeHeatmap({
 }) {
   const isTerminal = variant === 'terminal';
   const wrap = isTerminal ? termWrap : shellWrap;
-  const row = isTerminal ? termRow : shellRow;
-  const labelCell = isTerminal ? termLabelCell : shellLabelCell;
-  const labelText = isTerminal ? termLabelText : shellLabelText;
+  const headerBg = isTerminal ? 'bg-[#0d0d0d] border-[#1e1e1e]' : 'bg-[#fafafa] border-[#e5e5e5]';
+  const headerText = isTerminal ? 'text-[#555]' : 'text-[#888]';
+  const rowBorder = isTerminal ? 'border-[#1e1e1e]' : 'border-[#f0f0f0]';
+  const labelBorder = isTerminal ? 'border-[#1e1e1e]' : 'border-[#e5e5e5]';
+  const labelText = isTerminal ? 'text-[#e8e8e8]' : 'text-[#0a0a0a]';
+  const legendText = isTerminal ? 'text-[#555]' : 'text-[#888]';
+  const legendBg = isTerminal ? 'bg-[#0d0d0d] border-[#1e1e1e]' : 'bg-[#fafafa] border-[#e5e5e5]';
 
   return (
     <div className={wrap}>
-      {pairLabels.map((label) => {
+      <div className={`flex items-center justify-between border-b px-5 py-3 ${headerBg}`}>
+        <span className={`font-mono text-[10px] tracking-[0.1em] ${headerText}`}>
+          REGIME HEATMAP - 30 DAYS
+        </span>
+        <span className={`font-mono text-[10px] opacity-60 ${headerText}`}>
+          each cell = 1 trading day
+        </span>
+      </div>
+
+      {pairLabels.map((label, pi) => {
         const series = data.regimes[label] ?? [];
+        const isLast = pi === pairLabels.length - 1;
         return (
-          <div key={label} className={`flex ${row}`}>
-            <div className={labelCell}>
-              <span className={labelText}>{label}</span>
+          <div
+            key={label}
+            className={`grid grid-cols-[80px_minmax(0,1fr)] border-b ${rowBorder} ${isLast ? 'border-b-0' : ''}`}
+          >
+            <div className={`flex items-center border-r px-4 py-3 ${labelBorder}`}>
+              <span className={`font-mono text-[11px] font-bold ${labelText}`}>{label}</span>
             </div>
-            <div className="overflow-x-auto p-2">
-              <div className="grid w-max grid-cols-6 grid-rows-5 gap-px">
+            <div className="overflow-x-auto px-4 py-3">
+              <div className="flex items-center gap-[2px]">
                 {series.slice(0, 30).map((regime, i) => {
                   const dateKey = data.dates[i] ?? `d${i}`;
                   return (
                     <div
                       key={`${label}-${dateKey}`}
-                      className={`h-[18px] w-[28px] shrink-0 ${regimeHeatmapCellClass(regime, colors)}`}
+                      title={`${dateKey}\n${regime}`}
+                      className={`h-[28px] w-[14px] shrink-0 ${regimeHeatmapCellClass(regime, colors)}`}
                     />
                   );
                 })}
@@ -53,6 +64,24 @@ export function RegimeHeatmap({
           </div>
         );
       })}
+
+      <div className={`flex flex-wrap gap-x-4 gap-y-2 border-t px-5 py-3 ${legendBg}`}>
+        {Object.entries(colors)
+          .filter(([key]) => key !== 'UNKNOWN')
+          .map(([regime, hex]) => (
+            <div key={regime} className="flex items-center gap-1.5">
+              <span
+                className={`inline-block h-[10px] w-[10px] shrink-0 ${regimeHeatmapCellClass(regime, {
+                  ...colors,
+                  [regime]: hex,
+                })}`}
+              />
+              <span className={`font-mono text-[9px] tracking-[0.06em] ${legendText}`}>
+                {regime.replace(/_/g, ' ')}
+              </span>
+            </div>
+          ))}
+      </div>
     </div>
   );
 }

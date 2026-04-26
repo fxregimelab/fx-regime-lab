@@ -94,6 +94,12 @@ export default async function HomePage() {
       <section className="mx-auto max-w-[1280px] px-6 py-12 md:py-16">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-16">
           <div>
+            <div className="mb-6 flex items-center gap-2.5">
+              <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#22c55e]" />
+              <span className="font-mono text-[11px] tracking-[0.1em] text-[#737373]">
+                LIVE · G10 FX · DAILY CALLS
+              </span>
+            </div>
             <h1 className="font-sans text-[40px] font-extrabold leading-tight tracking-tight text-[#0a0a0a] sm:text-[52px] sm:leading-tight">
               The FX regime call. Dated and on the record.
             </h1>
@@ -121,8 +127,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-[#e5e5e5] py-6">
-        <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-6 px-6 sm:grid-cols-4">
+      <section className="border-y border-[#e5e5e5]">
+        <div className="mx-auto grid max-w-[1280px] grid-cols-2 sm:grid-cols-4">
           {[
             {
               label: 'CALLS MADE',
@@ -137,10 +143,15 @@ export default async function HomePage() {
               label: 'DAYS LIVE',
               value: stats.daysLive > 0 ? String(stats.daysLive) : '—',
             },
-          ].map((s) => (
-            <div key={s.label}>
-              <p className="font-mono text-[11px] tracking-widest text-[#a0a0a0]">{s.label}</p>
-              <p className="mt-1 font-mono text-[22px] font-semibold text-[#0a0a0a]">{s.value}</p>
+          ].map((s, i) => (
+            <div
+              key={s.label}
+              className={`px-6 py-5 ${i < 3 ? 'border-r border-[#e5e5e5]' : ''} ${i >= 2 ? 'max-sm:border-r-0' : ''}`}
+            >
+              <p className="font-mono text-[24px] font-bold leading-none tracking-[-0.03em] text-[#0a0a0a]">
+                {s.value}
+              </p>
+              <p className="mt-1.5 font-mono text-[10px] tracking-[0.08em] text-[#a0a0a0]">{s.label}</p>
             </div>
           ))}
         </div>
@@ -148,7 +159,7 @@ export default async function HomePage() {
 
       <section className="mx-auto max-w-[1280px] px-6 py-12">
         <h2 className="font-sans text-[18px] font-semibold text-[#0a0a0a]">Live snapshot</h2>
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-px bg-[#e5e5e5] ring-1 ring-[#e5e5e5] sm:grid-cols-3">
           {PAIRS.map((p) => {
             const regime = regimeForPair(regimeRows, p.label);
             const signal = signalByLabel[p.label];
@@ -156,7 +167,7 @@ export default async function HomePage() {
               return (
                 <div
                   key={p.label}
-                  className="border border-[#e5e5e5] bg-[#fafafa] p-4 font-mono text-[12px] text-[#737373]"
+                  className="bg-[#fafafa] p-4 font-mono text-[12px] text-[#737373]"
                 >
                   No regime row for {p.label}
                 </div>

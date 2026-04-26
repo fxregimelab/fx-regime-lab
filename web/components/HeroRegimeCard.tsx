@@ -1,7 +1,7 @@
 import { ConfidenceBar } from '@/components/ConfidenceBar';
 import { pairBgClass, pairTextClass } from '@/lib/pair-styles';
 import type { PairMeta, RegimeCall, SignalRow } from '@/lib/types';
-import { fmt2, fmtChg, fmtSpot } from '@/lib/utils/format';
+import { fmt2, fmtChg, fmtInt, fmtSpot } from '@/lib/utils/format';
 
 export function HeroRegimeCard({
   pair,
@@ -13,35 +13,80 @@ export function HeroRegimeCard({
   signal: SignalRow;
 }) {
   const chg = fmtChg(signal.day_change_pct);
+  const pct = Math.round(regime.confidence * 100);
+
   return (
-    <div className="flex w-full border border-[#e5e5e5] bg-white">
-      <span className={`w-1 shrink-0 ${pairBgClass(pair.label)}`} aria-hidden />
-      <div className="flex-1 p-5">
-        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-          <span className={`font-mono text-[10px] ${pairTextClass(pair.label)}`}>{pair.label}</span>
-          <div className="flex items-baseline gap-3">
-            <span className="font-mono text-[18px] text-[#0a0a0a]">
-              {fmtSpot(signal.spot, pair.label)}
-            </span>
+    <div className="border border-[#1e1e1e] bg-[#080808]">
+      <div className="flex items-center justify-between border-b border-[#1a1a1a] px-5 py-3.5">
+        <div className="flex items-center gap-2">
+          <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${pairBgClass(pair.label)}`} />
+          <span className={`font-mono text-[12px] font-bold tracking-[0.04em] ${pairTextClass(pair.label)}`}>
+            {pair.display}
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          {chg.dir !== 'flat' && (
             <span
-              className={`font-mono text-[11px] ${chg.dir === 'up' ? 'text-[#16a34a]' : chg.dir === 'down' ? 'text-[#dc2626]' : 'text-[#a0a0a0]'}`}
+              className={`font-mono text-[11px] font-semibold ${chg.dir === 'up' ? 'text-[#4ade80]' : 'text-[#f87171]'}`}
             >
               {chg.str}
             </span>
+          )}
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block h-[5px] w-[5px] shrink-0 rounded-full bg-[#4ade80]" />
+            <span className="font-mono text-[10px] text-[#555]">LIVE</span>
           </div>
         </div>
-        <p className="mb-2 font-sans text-[16px] font-semibold uppercase leading-snug text-[#0a0a0a]">
-          {regime.regime}
-        </p>
-        <ConfidenceBar value={regime.confidence} pairColor={pair.pairColor} />
-        <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2 border-t border-[#f0f0f0] pt-4">
-          <span className="font-mono text-[11px] text-[#737373]">
-            Composite {fmt2(regime.signal_composite)}
-          </span>
-          <span className="max-w-[min(100%,280px)] font-sans text-[12px] text-[#737373]">
-            {regime.primary_driver}
-          </span>
+      </div>
+
+      <div className="p-5">
+        <div className="mb-5">
+          <p className="mb-1 font-mono text-[9px] tracking-[0.12em] text-[#999]">SPOT</p>
+          <p className="font-mono text-[32px] font-bold leading-none tracking-[-0.02em] text-white">
+            {fmtSpot(signal.spot, pair.label)}
+          </p>
         </div>
+
+        <div className="mb-5 border-b border-[#1a1a1a] pb-4">
+          <p className="mb-1.5 font-mono text-[9px] tracking-[0.12em] text-[#999]">REGIME</p>
+          <p className="font-mono text-[13px] font-bold leading-snug tracking-[0.04em] text-white">
+            {regime.regime}
+          </p>
+        </div>
+
+        <div className="mb-5">
+          <div className="mb-1.5 flex items-baseline justify-between">
+            <p className="font-mono text-[9px] tracking-[0.12em] text-[#444]">CONFIDENCE</p>
+            <p className={`font-mono text-[28px] font-bold leading-none tracking-[-0.03em] ${pairTextClass(pair.label)}`}>
+              {pct}
+              <span className="text-[14px] font-normal text-[#555]">%</span>
+            </p>
+          </div>
+          <ConfidenceBar value={regime.confidence} pairColor={pair.pairColor} variant="dark" barHeightPx={4} />
+        </div>
+
+        <div className="border-t border-[#141414]">
+          {([
+            ['RATE DIFF 2Y', fmt2(signal.rate_diff_2y)],
+            ['COT PERCENTILE', fmtInt(signal.cot_percentile)],
+            ['REALIZED VOL 20D', fmt2(signal.realized_vol_20d)],
+            ['SIGNAL COMPOSITE', fmt2(regime.signal_composite)],
+          ] as [string, string][]).map(([label, value]) => (
+            <div
+              key={label}
+              className="flex items-center justify-between border-b border-[#111] py-2.5"
+            >
+              <span className="font-mono text-[10px] tracking-[0.06em] text-[#aaa]">{label}</span>
+              <span className="font-mono text-[12px] font-bold text-white">{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {regime.primary_driver && (
+          <p className="mt-3.5 border-t border-[#141414] pt-3 font-mono text-[10px] leading-[1.7] text-[#999]">
+            {regime.primary_driver}
+          </p>
+        )}
       </div>
     </div>
   );

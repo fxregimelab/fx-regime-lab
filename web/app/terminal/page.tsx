@@ -50,7 +50,7 @@ export default async function TerminalIndexPage() {
         Data is read from Supabase after each pipeline run.
       </p>
 
-      <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-10 grid grid-cols-1 gap-px bg-[#1e1e1e] ring-1 ring-[#1e1e1e] sm:grid-cols-3">
         {PAIRS.map((p) => {
           const regime = regimeRows.find((r) => r.pair === p.label);
           const signal = signalByPair[p.label] ?? defaultSignalRow(p.label, '');
@@ -59,7 +59,7 @@ export default async function TerminalIndexPage() {
             return (
               <div
                 key={p.label}
-                className={`border border-[#1e1e1e] bg-[#0c0c0c] p-5 font-mono text-[12px] text-[#737373] ${cardHover[p.label]}`}
+                className={`bg-[#0c0c0c] p-5 font-mono text-[12px] text-[#737373] transition-colors ${cardHover[p.label]}`}
               >
                 No data — run pipeline
               </div>
@@ -70,7 +70,7 @@ export default async function TerminalIndexPage() {
             <Link
               key={p.label}
               href={`/terminal/fx-regime/${p.urlSlug}`}
-              className={`border border-[#1e1e1e] bg-[#0c0c0c] p-5 transition-colors ${cardHover[p.label]}`}
+              className={`bg-[#0c0c0c] p-5 transition-colors ${cardHover[p.label]}`}
             >
               <div className="flex items-baseline justify-between gap-2">
                 <span className={`font-mono text-[11px] ${pairTextClass(p.label)}`}>

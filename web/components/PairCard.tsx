@@ -1,5 +1,5 @@
 import { ConfidenceBar } from '@/components/ConfidenceBar';
-import { pairBgClass, pairTextClass } from '@/lib/pair-styles';
+import { pairTextClass } from '@/lib/pair-styles';
 import type { PairMeta, RegimeCall, SignalRow } from '@/lib/types';
 import { fmt2, fmtChg, fmtInt, fmtSpot } from '@/lib/utils/format';
 import Link from 'next/link';
@@ -14,44 +14,67 @@ export function PairCard({
   signal: SignalRow;
 }) {
   const chg = fmtChg(signal.day_change_pct);
+  const pct = regime ? Math.round(regime.confidence * 100) : null;
+  const topBorderClass =
+    pair.label === 'EURUSD'
+      ? 'border-t-[3px] border-t-[#4BA3E3]'
+      : pair.label === 'USDJPY'
+        ? 'border-t-[3px] border-t-[#F5923A]'
+        : 'border-t-[3px] border-t-[#D94030]';
+
   return (
     <Link
       href={`/pairs/${pair.urlSlug}`}
-      className="group flex min-h-[160px] border border-[#e5e5e5] bg-white transition hover:shadow-sm"
+      className={`group flex min-h-[200px] flex-col border border-[#e5e5e5] bg-white p-5 transition hover:border-[#bbb] hover:bg-[#fafafa] ${topBorderClass}`}
     >
-      <span className={`w-0.5 shrink-0 ${pairBgClass(pair.label)}`} aria-hidden />
-      <div className="min-w-0 flex-1 p-4">
-        <div className="mb-3 flex items-start justify-between gap-2">
-          <span className={`font-mono text-[10px] ${pairTextClass(pair.label)}`}>
-            {pair.display}
-          </span>
-          <span className="font-mono text-[14px] text-[#0a0a0a]">
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <p className="mb-1 font-sans text-[14px] font-bold text-[#0a0a0a]">{pair.display}</p>
+          <p className="font-mono text-[20px] font-bold leading-none tracking-[-0.02em] text-[#0a0a0a]">
             {fmtSpot(signal.spot, pair.label)}
+          </p>
+        </div>
+        {chg.dir !== 'flat' && (
+          <span
+            className={`shrink-0 px-2 py-0.5 font-mono text-[11px] font-semibold ${
+              chg.dir === 'up' ? 'bg-[#f0fdf4] text-[#16a34a]' : 'bg-[#fff5f5] text-[#dc2626]'
+            }`}
+          >
+            {chg.str}
+          </span>
+        )}
+      </div>
+
+      <p className="mb-3 min-h-[2.5rem] font-mono text-[11px] font-bold leading-snug tracking-[0.03em] text-[#111]">
+        {regime.regime}
+      </p>
+
+      <div className="mb-4">
+        <ConfidenceBar value={regime.confidence} pairColor={pair.pairColor} barHeightPx={4} />
+        <div className="mt-1.5 flex items-baseline justify-between">
+          <span className="font-mono text-[9px] tracking-[0.1em] text-[#888]">CONFIDENCE</span>
+          <span className="font-mono text-[11px] font-bold text-[#0a0a0a]">
+            {pct != null ? `${pct}%` : '-'}
           </span>
         </div>
-        <p className="mb-1 min-h-[2.5rem] font-sans text-[13px] font-semibold uppercase text-[#0a0a0a]">
-          {regime.regime}
-        </p>
-        <ConfidenceBar value={regime.confidence} pairColor={pair.pairColor} />
-        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-[#f0f0f0] pt-3">
-          <div>
-            <p className="font-mono text-[9px] text-[#a0a0a0]">RATE DIFF 2Y</p>
-            <p className="font-mono text-[10px] text-[#0a0a0a]">{fmt2(signal.rate_diff_2y)}</p>
+      </div>
+
+      <div className="flex flex-col gap-[7px] border-t border-[#f0f0f0] pt-3">
+        {([
+          ['Rate diff 2Y', fmt2(signal.rate_diff_2y)],
+          ['COT pctile', fmtInt(signal.cot_percentile)],
+          ['Rvol 20d', fmt2(signal.realized_vol_20d)],
+        ] as [string, string][]).map(([lbl, val]) => (
+          <div key={lbl} className="flex items-baseline justify-between">
+            <span className="font-mono text-[10px] text-[#888]">{lbl}</span>
+            <span className="font-mono text-[11px] font-semibold text-[#111]">{val}</span>
           </div>
-          <div>
-            <p className="font-mono text-[9px] text-[#a0a0a0]">COT %</p>
-            <p className="font-mono text-[10px] text-[#0a0a0a]">{fmtInt(signal.cot_percentile)}</p>
-          </div>
-          <div>
-            <p className="font-mono text-[9px] text-[#a0a0a0]">REAL VOL 20D</p>
-            <p className="font-mono text-[10px] text-[#0a0a0a]">{fmt2(signal.realized_vol_20d)}</p>
-          </div>
-        </div>
-        <p
-          className={`mt-2 text-right font-mono text-[10px] ${chg.dir === 'up' ? 'text-[#16a34a]' : chg.dir === 'down' ? 'text-[#dc2626]' : 'text-[#a0a0a0]'}`}
-        >
-          {chg.str}
-        </p>
+        ))}
+      </div>
+
+      <div className="mt-4 flex items-center justify-between border-t border-[#f0f0f0] pt-3">
+        <span className="font-mono text-[9px] tracking-[0.08em] text-[#aaa]">OPEN DESK</span>
+        <span className={`font-mono text-[11px] font-bold ${pairTextClass(pair.label)}`}>→</span>
       </div>
     </Link>
   );

@@ -52,7 +52,7 @@ export function TabController({
 
   return (
     <div>
-      <div className="flex flex-wrap border-b border-[#1e1e1e]">
+      <div className="flex flex-wrap gap-0 border-b border-[#1e1e1e] bg-[#080808]">
         {TABS.map((t) => {
           const isOn = active === t.id;
           return (
@@ -62,8 +62,8 @@ export function TabController({
               onClick={() => setActive(t.id)}
               className={
                 isOn
-                  ? `border-b-2 px-2.5 py-2.5 font-mono text-[10px] font-bold tracking-widest text-[#e8e8e8] sm:px-3 ${borderActive(pairColor)}`
-                  : 'border-b-2 border-transparent px-2.5 py-2.5 font-mono text-[10px] font-normal tracking-widest text-[#555] hover:text-[#999] sm:px-3'
+                  ? `border-b-2 px-3 py-3 font-mono text-[10px] font-bold tracking-widest text-[#e8e8e8] ${borderActive(pairColor)}`
+                  : 'border-b-2 border-transparent px-3 py-3 font-mono text-[10px] font-normal tracking-widest text-[#555] hover:text-[#999]'
               }
             >
               {t.label}
