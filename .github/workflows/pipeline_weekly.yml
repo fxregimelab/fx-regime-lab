@@ -1,0 +1,70 @@
+name: Pipeline — Weekly (COT)
+
+on:
+  schedule:
+    # 03:00 UTC Sunday = 08:30 IST = after CFTC releases Friday COT data
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+concurrency:
+  group: pipeline-weekly
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: pipeline/pyproject.toml
+
+      - name: Install pipeline dependencies
+        run: pip install -e pipeline/
+
+      - name: Write .env
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          NEXT_JS_URL: ${{ secrets.NEXT_JS_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+        run: |
+          [ -z "$FRED_API_KEY" ]              && echo "ERROR: FRED_API_KEY not set" && exit 1 || true
+          [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] && echo "ERROR: SUPABASE_SERVICE_ROLE_KEY not set" && exit 1 || true
+          printf '%s\n' \
+            "FRED_API_KEY=$FRED_API_KEY" \
+            "SUPABASE_URL=$SUPABASE_URL" \
+            "SUPABASE_PROJECT_REF=$SUPABASE_PROJECT_REF" \
+            "SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" \
+            "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" \
+            "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" \
+            "NEXT_JS_URL=$NEXT_JS_URL" \
+            "REVALIDATE_SECRET=$REVALIDATE_SECRET" \
+            > .env
+
+      - name: Run weekly pipeline (COT refresh)
+        run: |
+          set +e
+          python -m src.scheduler.orchestrator weekly
+          EC=$?
+          set -e
+          echo "### Weekly pipeline (COT)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Exit code: \`$EC\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Run date: $(date -u +%Y-%m-%d)" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$EC" -ne 0 ]; then
+            echo "First attempt failed — retrying in 60s"
+            sleep 60
+            python -m src.scheduler.orchestrator weekly
+          fi
+        working-directory: pipeline
