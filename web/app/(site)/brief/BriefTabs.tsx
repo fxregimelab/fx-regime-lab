@@ -47,9 +47,10 @@ export function BriefTabs({
               key={p.label}
               type="button"
               onClick={() => setActive(p.label)}
+              style={active === p.label ? { borderBottomColor: p.pairColor } : undefined}
               className={`border-b-2 px-4 py-3 font-mono text-[11px] font-semibold tracking-widest ${
                 active === p.label
-                  ? 'border-[#F5923A] text-[#0a0a0a]'
+                  ? 'text-[#0a0a0a]'
                   : 'border-transparent text-[#a0a0a0]'
               }`}
             >
@@ -75,9 +76,10 @@ export function BriefTabs({
             key={p.label}
             type="button"
             onClick={() => setActive(p.label)}
+            style={active === p.label ? { borderBottomColor: p.pairColor } : undefined}
             className={`border-b-2 px-4 py-3 font-mono text-[11px] font-semibold tracking-widest ${
               active === p.label
-                ? 'border-[#F5923A] text-[#0a0a0a]'
+                ? 'text-[#0a0a0a]'
                 : 'border-transparent text-[#a0a0a0]'
             }`}
           >

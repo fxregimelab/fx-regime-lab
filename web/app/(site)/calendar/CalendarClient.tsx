@@ -61,7 +61,7 @@ export function CalendarClient({
     return filtered.find((e) => {
       if (e.impact !== 'HIGH') return false;
       const d = daysUntil(e.date, anchorDate);
-      return d >= 1 && d <= 3;
+      return d >= 0 && d <= 3;
     });
   }, [filtered, anchorDate]);
 

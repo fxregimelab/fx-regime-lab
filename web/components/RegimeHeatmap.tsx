@@ -29,7 +29,7 @@ export function RegimeHeatmap({
     <div className={wrap}>
       <div className={`flex items-center justify-between border-b px-5 py-3 ${headerBg}`}>
         <span className={`font-mono text-[10px] tracking-[0.1em] ${headerText}`}>
-          REGIME HEATMAP - 30 DAYS
+          REGIME HEATMAP — 30 DAYS
         </span>
         <span className={`font-mono text-[10px] opacity-60 ${headerText}`}>
           each cell = 1 trading day

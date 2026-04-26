@@ -146,7 +146,7 @@ export default async function HomePage() {
           ].map((s, i) => (
             <div
               key={s.label}
-              className={`px-6 py-5 ${i < 3 ? 'border-r border-[#e5e5e5]' : ''} ${i >= 2 ? 'max-sm:border-r-0' : ''}`}
+              className={`px-6 py-5 ${i < 3 ? (i === 1 ? 'sm:border-r sm:border-[#e5e5e5]' : 'border-r border-[#e5e5e5]') : ''}`}
             >
               <p className="font-mono text-[24px] font-bold leading-none tracking-[-0.03em] text-[#0a0a0a]">
                 {s.value}
@@ -159,7 +159,7 @@ export default async function HomePage() {
 
       <section className="mx-auto max-w-[1280px] px-6 py-12">
         <h2 className="font-sans text-[18px] font-semibold text-[#0a0a0a]">Live snapshot</h2>
-        <div className="mt-6 grid grid-cols-1 gap-px bg-[#e5e5e5] ring-1 ring-[#e5e5e5] sm:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {PAIRS.map((p) => {
             const regime = regimeForPair(regimeRows, p.label);
             const signal = signalByLabel[p.label];
@@ -167,9 +167,13 @@ export default async function HomePage() {
               return (
                 <div
                   key={p.label}
-                  className="bg-[#fafafa] p-4 font-mono text-[12px] text-[#737373]"
+                  className="border border-[#e5e5e5] p-4"
+                  style={{ borderTopWidth: 3, borderTopColor: p.pairColor }}
                 >
-                  No regime row for {p.label}
+                  <EmptyState
+                    title={`No data for ${p.label}`}
+                    subtitle="Pipeline has not published a regime call for this pair yet."
+                  />
                 </div>
               );
             }

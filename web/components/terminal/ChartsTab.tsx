@@ -63,13 +63,19 @@ export function ChartsTab({
     };
   }, [pair.label, pairColor, equityDates, equitySeries]);
 
+  if (equityDates.length === 0) {
+    return (
+      <p className="font-sans text-[12px] text-[#555]">
+        No equity data yet — run the pipeline first.
+      </p>
+    );
+  }
+
   return (
     <div>
       <div ref={ref} className="h-[280px] w-full min-h-0" />
       <p className="mt-3 font-sans text-[12px] text-[#555]">
-        {equityDates.length === 0
-          ? 'No equity data yet — run the pipeline first.'
-          : `${equityDates[0]} → ${equityDates[equityDates.length - 1]}`}
+        {equityDates[0]} → {equityDates[equityDates.length - 1]}
       </p>
     </div>
   );

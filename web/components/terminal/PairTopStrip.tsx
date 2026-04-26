@@ -1,6 +1,6 @@
 import { ConfidenceBar } from '@/components/ConfidenceBar';
 import type { PairMeta, RegimeCall, SignalRow } from '@/lib/types';
-import { fmt2, fmtSpot } from '@/lib/utils/format';
+import { fmt2, fmtChg, fmtSpot } from '@/lib/utils/format';
 
 function compositeClass(v: number, pairColor: string) {
   if (Math.abs(v) < 0.1) return 'text-[#555]';
@@ -21,9 +21,7 @@ export function PairTopStrip({
   regime: RegimeCall;
   signal: SignalRow;
 }) {
-  const chg = signal.day_change;
-  const chgUnknown = chg == null || Number.isNaN(chg);
-  const chgPos = !chgUnknown && chg >= 0;
+  const chg = fmtChg(signal.day_change_pct);
 
   return (
     <div className="grid border-b border-[#1e1e1e] bg-[#0c0c0c] px-4 py-3 sm:px-6 lg:grid-cols-4">
@@ -33,9 +31,9 @@ export function PairTopStrip({
           {fmtSpot(signal.spot, pair.label)}
         </p>
         <p
-          className={`mt-0.5 font-mono text-[11px] ${chgUnknown ? 'text-[#555]' : chgPos ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}
+          className={`mt-0.5 font-mono text-[11px] ${chg.dir === 'up' ? 'text-[#4ade80]' : chg.dir === 'down' ? 'text-[#f87171]' : 'text-[#555]'}`}
         >
-          {chgUnknown ? '—' : `${chgPos ? '+' : ''}${fmt2(chg)} day`}
+          {chg.str}
         </p>
       </div>
       <div className="border-b border-[#1e1e1e] py-2 sm:py-0 lg:border-b-0 lg:border-r lg:px-4">

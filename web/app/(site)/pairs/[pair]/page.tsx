@@ -90,10 +90,10 @@ export default async function PairDetailPage({
   return (
     <div className="mx-auto max-w-[1280px] px-6 py-10">
       <Link
-        href="/brief"
+        href="/"
         className="font-mono text-[11px] text-[#737373] underline decoration-[#e5e5e5]"
       >
-        ← All pairs
+        ← Overview
       </Link>
       <div className="mt-6 flex flex-wrap items-baseline justify-between gap-4">
         <div>

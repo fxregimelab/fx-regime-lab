@@ -20,8 +20,9 @@ export function fmtInt(v: number | null | undefined): string {
 
 export function fmtChg(v: number | null | undefined): { str: string; dir: 'up' | 'down' | 'flat' } {
   if (v == null || isNaN(v)) return { str: '—', dir: 'flat' };
-  const sign = v >= 0 ? '+' : '';
-  return { str: `${sign}${v.toFixed(2)}%`, dir: v > 0 ? 'up' : v < 0 ? 'down' : 'flat' };
+  if (v === 0) return { str: '—', dir: 'flat' };
+  const sign = v > 0 ? '+' : '';
+  return { str: `${sign}${v.toFixed(2)}%`, dir: v > 0 ? 'up' : 'down' };
 }
 
 export function fmtSpot(v: number | null | undefined, pair: string): string {
