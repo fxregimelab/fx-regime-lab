@@ -32,6 +32,8 @@ export function TabController({
   aiAnalysis,
   aiPrimaryDriver,
   aiFetchError,
+  equityDates,
+  equitySeries,
 }: {
   pair: PairMeta;
   pairColor: string;
@@ -43,6 +45,8 @@ export function TabController({
   aiAnalysis: string | null;
   aiPrimaryDriver: string | null;
   aiFetchError: string | null;
+  equityDates: string[];
+  equitySeries: Record<string, number[]>;
 }) {
   const [active, setActive] = useState<DeskTabId>('signals');
 
@@ -72,7 +76,14 @@ export function TabController({
           <SignalsTab pair={pair} regime={regime} signal={signal} signalHistory={signalHistory} />
         )}
         {active === 'history' && <HistoryTab history={history} pairColor={pairColor} />}
-        {active === 'charts' && <ChartsTab pair={pair} pairColor={pairColor} />}
+        {active === 'charts' && (
+          <ChartsTab
+            pair={pair}
+            pairColor={pairColor}
+            equityDates={equityDates}
+            equitySeries={equitySeries}
+          />
+        )}
         {active === 'attribution' && (
           <AttributionTab
             signal={signal}

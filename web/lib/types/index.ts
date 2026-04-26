@@ -25,8 +25,8 @@ export interface SignalRow {
   realized_vol_5d: number;
   implied_vol_30d: number | null;
   spot: number;
-  day_change: number;
-  day_change_pct: number;
+  day_change: number | null;
+  day_change_pct: number | null;
   created_at: string;
 }
 

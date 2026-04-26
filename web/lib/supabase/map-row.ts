@@ -63,8 +63,8 @@ export function defaultSignalRow(pair: string, date: string): SignalRow {
     realized_vol_5d: 0,
     implied_vol_30d: null,
     spot: 0,
-    day_change: 0,
-    day_change_pct: 0,
+    day_change: null,
+    day_change_pct: null,
     created_at: '',
   };
 }
@@ -79,10 +79,26 @@ export function mapSignalRow(row: SignalDb): SignalRow {
     realized_vol_5d: row.realized_vol_5d ?? 0,
     implied_vol_30d: row.implied_vol_30d,
     spot: row.spot ?? 0,
-    day_change: 0,
-    day_change_pct: 0,
+    day_change: null,
+    day_change_pct: null,
     created_at: row.created_at ?? '',
   };
+}
+
+type SignalDbRow = Parameters<typeof mapSignalRow>[0];
+
+/** Map the latest signal row, computing day-over-day spot change from the previous row. */
+export function mapSignalRowWithChange(rows: SignalDbRow[]): SignalRow {
+  const row = rows[0];
+  if (!row) return defaultSignalRow('', '');
+  const prev = rows[1];
+  const dayChange =
+    prev?.spot != null && row?.spot != null ? row.spot - prev.spot : null;
+  const dayChangePct =
+    prev?.spot != null && row?.spot != null && prev.spot !== 0
+      ? ((row.spot - prev.spot) / prev.spot) * 100
+      : null;
+  return { ...mapSignalRow(row), day_change: dayChange, day_change_pct: dayChangePct };
 }
 
 export function mapMacroEventRow(row: MacroDb): MacroEvent {

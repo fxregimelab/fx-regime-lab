@@ -1,7 +1,7 @@
 import { ConfidenceBar } from '@/components/ConfidenceBar';
 import { PAIRS } from '@/lib/mock/data';
 import { pairTextClass } from '@/lib/pair-styles';
-import { defaultSignalRow, mapRegimeCallRow, mapSignalRow } from '@/lib/supabase/map-row';
+import { defaultSignalRow, mapRegimeCallRow, mapSignalRowWithChange } from '@/lib/supabase/map-row';
 import { getLastPipelineRun, getLatestRegimeCalls, getLatestSignals } from '@/lib/supabase/queries';
 import type { RegimeCall, SignalRow } from '@/lib/types';
 import { fmt2, fmtInt, fmtSpot } from '@/lib/utils/format';
@@ -28,7 +28,9 @@ export default async function TerminalIndexPage() {
   PAIRS.forEach((p, i) => {
     const sr = signalResults[i];
     signalByPair[p.label] =
-      sr && !sr.error && sr.data?.[0] ? mapSignalRow(sr.data[0]) : defaultSignalRow(p.label, '');
+      sr && !sr.error && sr.data?.[0]
+        ? mapSignalRowWithChange(sr.data)
+        : defaultSignalRow(p.label, '');
   });
 
   const lastRunTs =

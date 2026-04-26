@@ -24,7 +24,7 @@ export function HeroRegimeCard({
               {fmtSpot(signal.spot, pair.label)}
             </span>
             <span
-              className={`font-mono text-[11px] ${chg.positive ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}
+              className={`font-mono text-[11px] ${chg.dir === 'up' ? 'text-[#16a34a]' : chg.dir === 'down' ? 'text-[#dc2626]' : 'text-[#a0a0a0]'}`}
             >
               {chg.str}
             </span>

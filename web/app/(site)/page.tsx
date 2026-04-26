@@ -8,7 +8,7 @@ import {
   defaultSignalRow,
   mapHeatmapRows,
   mapRegimeCallRow,
-  mapSignalRow,
+  mapSignalRowWithChange,
 } from '@/lib/supabase/map-row';
 import {
   getLatestRegimeCalls,
@@ -71,7 +71,7 @@ export default async function HomePage() {
     const p = PAIRS[i];
     const sr = signalPairs[i];
     if (!sr.error && sr.data?.[0]) {
-      signalByLabel[p.label] = mapSignalRow(sr.data[0]);
+      signalByLabel[p.label] = mapSignalRowWithChange(sr.data);
     } else if (!sr.error && sr.data?.[0] === undefined) {
       const r = regimeForPair(regimeRows, p.label);
       signalByLabel[p.label] = defaultSignalRow(p.label, r?.date ?? '');

@@ -77,7 +77,13 @@ export function EquityChart({ dates, series }: EquityChartProps) {
           <span className="h-px w-4 border-t border-dashed border-[#0a0a0a]" /> ALL
         </span>
       </div>
-      <p className="mt-2 text-center font-mono text-[9px] text-[#bbb]">{dates.join(' · ')}</p>
+      <p className="mt-2 text-center font-mono text-[9px] text-[#bbb]">
+        {dates.length === 0
+          ? ''
+          : dates.length === 1
+            ? dates[0]
+            : `${dates[0]} → ${dates[dates.length - 1]}`}
+      </p>
     </div>
   );
 }

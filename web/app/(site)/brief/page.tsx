@@ -2,7 +2,7 @@ import { type BriefTabPayload, BriefTabs } from '@/app/(site)/brief/BriefTabs';
 import { ErrorBoundaryCard } from '@/components/states';
 import { PAIRS } from '@/lib/mock/data';
 import type { Database } from '@/lib/supabase/database.types';
-import { defaultSignalRow, mapSignalRow, mapValidationRow } from '@/lib/supabase/map-row';
+import { defaultSignalRow, mapSignalRowWithChange, mapValidationRow } from '@/lib/supabase/map-row';
 import { getLatestBrief, getLatestSignals, getValidationLog } from '@/lib/supabase/queries';
 import type { PairMeta, SignalRow, ValidationRow } from '@/lib/types';
 
@@ -65,7 +65,7 @@ export default async function BriefPage() {
     }
     const briefDate = (res.data?.[0] as BriefRow | undefined)?.date ?? utcToday();
     if (!sig.error && sig.data?.[0]) {
-      signalByLabel[label] = mapSignalRow(sig.data[0]);
+      signalByLabel[label] = mapSignalRowWithChange(sig.data);
     } else {
       signalByLabel[label] = defaultSignalRow(label, briefDate);
     }

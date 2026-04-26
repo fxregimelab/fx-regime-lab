@@ -56,7 +56,7 @@ export default async function PerformancePage() {
             label: 'MEDIAN RETURN',
             value:
               stats.callsMade > 0
-                ? `${stats.medianReturn >= 0 ? '+' : ''}${stats.medianReturn.toFixed(2)}%`
+                ? `${stats.medianReturn >= 0 ? '+' : ''}${(stats.medianReturn * 100).toFixed(2)}%`
                 : '—',
           },
           {

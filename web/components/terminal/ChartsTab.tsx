@@ -1,22 +1,27 @@
 'use client';
 
-import { MOCK_EQUITY } from '@/lib/mock/data';
-import { mockEquityDateToYmd } from '@/lib/terminal/parse-mock-dates';
 import type { PairMeta } from '@/lib/types';
-import { LineSeries, createChart } from 'lightweight-charts';
+import { LineSeries, createChart, type Time } from 'lightweight-charts';
 import { useEffect, useRef } from 'react';
 
-const YEAR = 2026;
-
-export function ChartsTab({ pair, pairColor }: { pair: PairMeta; pairColor: string }) {
+export function ChartsTab({
+  pair,
+  pairColor,
+  equityDates,
+  equitySeries,
+}: {
+  pair: PairMeta;
+  pairColor: string;
+  equityDates: string[];
+  equitySeries: Record<string, number[]>;
+}) {
   const ref = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    const seriesKey = pair.label as keyof typeof MOCK_EQUITY;
-    const y = MOCK_EQUITY[seriesKey];
-    if (!Array.isArray(y)) return;
+    const y = equitySeries[pair.label];
+    if (!Array.isArray(y) || y.length === 0) return;
 
     const chart = createChart(el, {
       width: el.clientWidth,
@@ -37,8 +42,8 @@ export function ChartsTab({ pair, pairColor }: { pair: PairMeta; pairColor: stri
       lineWidth: 2,
     });
 
-    const data = MOCK_EQUITY.dates.map((d, i) => ({
-      time: mockEquityDateToYmd(d, YEAR),
+    const data = equityDates.map((d, i) => ({
+      time: d as Time,
       value: y[i] ?? 0,
     }));
     line.setData(data);
@@ -56,13 +61,15 @@ export function ChartsTab({ pair, pairColor }: { pair: PairMeta; pairColor: stri
       ro.disconnect();
       chart.remove();
     };
-  }, [pair.label, pairColor]);
+  }, [pair.label, pairColor, equityDates, equitySeries]);
 
   return (
     <div>
       <div ref={ref} className="h-[280px] w-full min-h-0" />
       <p className="mt-3 font-sans text-[12px] text-[#555]">
-        Historical equity — mock data. Live chart wired in Phase 4.
+        {equityDates.length === 0
+          ? 'No equity data yet — run the pipeline first.'
+          : `${equityDates[0]} → ${equityDates[equityDates.length - 1]}`}
       </p>
     </div>
   );

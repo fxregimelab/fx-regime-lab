@@ -6,7 +6,7 @@ import {
   defaultSignalRow,
   mapHeatmapRows,
   mapRegimeCallRow,
-  mapSignalRow,
+  mapSignalRowWithChange,
 } from '@/lib/supabase/map-row';
 import { getLatestRegimeCalls, getLatestSignals, getRegimeHeatmap } from '@/lib/supabase/queries';
 import type { HeatmapData, RegimeCall, SignalRow } from '@/lib/types';
@@ -34,7 +34,9 @@ export default async function TerminalStrategyPage() {
   PAIRS.forEach((p, i) => {
     const sr = signalResults[i];
     signalByPair[p.label] =
-      sr && !sr.error && sr.data?.[0] ? mapSignalRow(sr.data[0]) : defaultSignalRow(p.label, '');
+      sr && !sr.error && sr.data?.[0]
+        ? mapSignalRowWithChange(sr.data)
+        : defaultSignalRow(p.label, '');
   });
 
   const heatmapData: HeatmapData =

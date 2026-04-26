@@ -7,12 +7,15 @@ import { PAIRS } from '@/lib/mock/data';
 import type { Database } from '@/lib/supabase/database.types';
 import {
   defaultSignalRow,
+  mapEquityCurve,
   mapHistoryRow,
   mapMacroEventRow,
   mapRegimeCallRow,
   mapSignalRow,
+  mapSignalRowWithChange,
 } from '@/lib/supabase/map-row';
 import {
+  getEquityCurve,
   getLatestBrief,
   getLatestRegimeCalls,
   getLatestSignals,
@@ -36,12 +39,13 @@ export default async function TerminalPairDeskPage({
   const pair = PAIRS.find((p) => p.urlSlug === slug);
   if (!pair) notFound();
 
-  const [regimeRes, sigRes, histRes, briefRes, eventsRes] = await Promise.all([
+  const [regimeRes, sigRes, histRes, briefRes, eventsRes, equityRes] = await Promise.all([
     getLatestRegimeCalls(),
     getLatestSignals(pair.label),
     getRegimeHistory(pair.label),
     getLatestBrief(pair.label),
     getUpcomingMacroEvents(),
+    getEquityCurve(),
   ]);
 
   if (regimeRes.error) {
@@ -62,8 +66,25 @@ export default async function TerminalPairDeskPage({
     );
   }
 
-  const signalRows = sigRes.error ? [] : (sigRes.data ?? []).map(mapSignalRow);
-  const signal = signalRows[0] ?? defaultSignalRow(pair.label, regime.date);
+  type EquityDb = { date: string; pair: string; actual_return_1d: number | null };
+  const equityRows = (equityRes.data ?? []) as EquityDb[];
+  const equityData =
+    equityRes.error || !equityRows.length
+      ? { dates: [] as string[], series: {} as Record<string, number[]> }
+      : mapEquityCurve(
+          equityRows.map((r) => ({
+            date: r.date,
+            pair: r.pair,
+            return_pct: r.actual_return_1d,
+          }))
+        );
+
+  const rawSignals = sigRes.error ? [] : (sigRes.data ?? []);
+  const signalRows = rawSignals.map(mapSignalRow);
+  const signal =
+    rawSignals.length > 0
+      ? mapSignalRowWithChange(rawSignals)
+      : defaultSignalRow(pair.label, regime.date);
 
   const history = histRes.error ? [] : (histRes.data ?? []).map(mapHistoryRow);
   const events = eventsRes.error ? [] : (eventsRes.data ?? []).map(mapMacroEventRow);
@@ -93,6 +114,8 @@ export default async function TerminalPairDeskPage({
             aiAnalysis={aiAnalysis}
             aiPrimaryDriver={aiPrimaryDriver}
             aiFetchError={aiFetchError}
+            equityDates={equityData.dates}
+            equitySeries={equityData.series}
           />
         </div>
         <TerminalSidebar

@@ -48,7 +48,7 @@ export function PairCard({
           </div>
         </div>
         <p
-          className={`mt-2 text-right font-mono text-[10px] ${chg.positive ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}
+          className={`mt-2 text-right font-mono text-[10px] ${chg.dir === 'up' ? 'text-[#16a34a]' : chg.dir === 'down' ? 'text-[#dc2626]' : 'text-[#a0a0a0]'}`}
         >
           {chg.str}
         </p>

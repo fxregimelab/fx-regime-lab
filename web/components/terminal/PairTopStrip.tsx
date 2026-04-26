@@ -22,7 +22,8 @@ export function PairTopStrip({
   signal: SignalRow;
 }) {
   const chg = signal.day_change;
-  const chgPos = chg >= 0;
+  const chgUnknown = chg == null || Number.isNaN(chg);
+  const chgPos = !chgUnknown && chg >= 0;
 
   return (
     <div className="grid border-b border-[#1e1e1e] bg-[#0c0c0c] px-4 py-3 sm:px-6 lg:grid-cols-4">
@@ -32,10 +33,9 @@ export function PairTopStrip({
           {fmtSpot(signal.spot, pair.label)}
         </p>
         <p
-          className={`mt-0.5 font-mono text-[11px] ${chgPos ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}
+          className={`mt-0.5 font-mono text-[11px] ${chgUnknown ? 'text-[#555]' : chgPos ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}
         >
-          {chgPos ? '+' : ''}
-          {fmt2(chg)} day
+          {chgUnknown ? '—' : `${chgPos ? '+' : ''}${fmt2(chg)} day`}
         </p>
       </div>
       <div className="border-b border-[#1e1e1e] py-2 sm:py-0 lg:border-b-0 lg:border-r lg:px-4">

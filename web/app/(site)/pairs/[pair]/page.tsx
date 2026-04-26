@@ -10,6 +10,7 @@ import {
   mapMacroEventRow,
   mapRegimeCallRow,
   mapSignalRow,
+  mapSignalRowWithChange,
 } from '@/lib/supabase/map-row';
 import {
   getLatestRegimeCalls,
@@ -53,8 +54,12 @@ export default async function PairDetailPage({
     return <EmptyState title="No regime call" subtitle="Pipeline has not run yet." />;
   }
 
-  const signalRowsRaw = sigRes.error ? [] : (sigRes.data ?? []).map(mapSignalRow);
-  const signal = signalRowsRaw[0] ?? defaultSignalRow(pair.label, regime.date);
+  const rawSignals = sigRes.error ? [] : (sigRes.data ?? []);
+  const signalRowsRaw = rawSignals.map(mapSignalRow);
+  const signal =
+    rawSignals.length > 0
+      ? mapSignalRowWithChange(rawSignals)
+      : defaultSignalRow(pair.label, regime.date);
   const chg = fmtChg(signal.day_change_pct);
 
   const history = histRes.error ? [] : (histRes.data ?? []).map(mapHistoryRow);
@@ -100,7 +105,7 @@ export default async function PairDetailPage({
               {fmtSpot(signal.spot, pair.label)}
             </span>
             <span
-              className={`font-mono text-[11px] ${chg.positive ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}
+              className={`font-mono text-[11px] ${chg.dir === 'up' ? 'text-[#16a34a]' : chg.dir === 'down' ? 'text-[#dc2626]' : 'text-[#a0a0a0]'}`}
             >
               {chg.str}
             </span>
