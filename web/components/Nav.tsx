@@ -34,7 +34,7 @@ export function Nav() {
           </span>
         </Link>
 
-        <div className="hidden items-center gap-0 md:flex">
+        <div className="flex max-md:hidden items-center gap-1">
           {links.map(({ href, label }) => {
             const active = linkActive(pathname, href);
             return (

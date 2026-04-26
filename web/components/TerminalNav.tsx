@@ -42,7 +42,7 @@ export function TerminalNav() {
         </div>
 
         <nav
-          className="hidden min-w-0 items-center justify-center gap-6 md:flex"
+          className="flex max-md:hidden min-w-0 items-center justify-center gap-6"
           aria-label="Terminal"
         >
           {CENTER_LINKS.map(({ href, label }) => (

@@ -45,7 +45,8 @@ export function pairFillHex(label: PairMeta['label']): string {
 
 /** Regime string → Tailwind bg class for heatmap cells */
 export function regimeHeatmapCellClass(regime: string, colors: Record<string, string>): string {
-  const hex = colors[regime] ?? colors.UNKNOWN ?? '#1a1a1a';
+  const key = regime.trim();
+  const hex = colors[key] ?? colors.UNKNOWN ?? '#1a1a1a';
   const map: Record<string, string> = {
     '#1e3a5f': 'bg-[#1e3a5f]',
     '#2d5a8e': 'bg-[#2d5a8e]',

@@ -259,6 +259,8 @@ export const REGIME_HEATMAP_COLORS: Record<string, string> = {
   'MODERATE USD WEAKNESS': '#7a3f1f',
   'STRONG USD WEAKNESS': '#a0522d',
   VOL_EXPANDING: '#7a5c00',
+  /** Pipeline `classifier.py` returns this when vol_expanding and regime is NEUTRAL */
+  'NEUTRAL / VOL_EXPANDING': '#7a5c00',
   'STRONG DEPRECIATION PRESSURE': '#6b1a1a',
   'MODERATE DEPRECIATION PRESSURE': '#8b2a2a',
   'MODERATE APPRECIATION PRESSURE': '#1a5a2a',
