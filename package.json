@@ -1,7 +1,9 @@
 {
   "name": "fx-regime-lab",
   "private": true,
-  "workspaces": ["web"],
+  "workspaces": [
+    "web"
+  ],
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
