@@ -1,95 +1,173 @@
-# FX Regime Lab — project context (humans & AI assistants)
+# AGENTS.md — FX Regime Lab
 
-This file is the canonical map of the repository. Read it before large edits, refactors, or automation changes.
+Read this before reading any other file. This is the complete map of the repo.
 
-## Purpose
+## What This Is
 
-Daily **G10 FX regime** research pipeline: pull public market data (FX, yields, COT, INR-related series), merge into a master dataset, render a **morning brief** (text + interactive HTML with Plotly/iframes), optionally **deploy** to GitHub Pages as `index.html`. **Public product URL:** [fxregimelab.com](https://fxregimelab.com) on **Cloudflare Pages** (live dashboard + site); GitHub Pages remains a static brief channel until cutover (see [contaxt files/PLAN.md](contaxt%20files/PLAN.md) Phase 0).
+Daily G10 FX regime research. Three currency pairs (EUR/USD, USD/JPY, USD/INR).
+A Python pipeline runs each morning, classifies the FX regime for each pair, and
+writes results to Supabase. A Next.js frontend reads from Supabase and displays
+the calls, signals, and validation history.
 
-Nothing here is investment advice; research and learning only.
+## Repo Structure
 
-## Layout (high level)
+fx-regime-lab/
+├── web/                    Next.js 15 app (App Router, TypeScript strict)
+├── pipeline/               Python 3.11 data pipeline
+├── supabase/               Database migrations and config
+├── claude-design/          UI prototype reference (JSX only, not production code)
+├── AGENTS.md               ← YOU ARE HERE
+└── TASK.md                 Current sprint tasks (read second)
 
-| Path | Role |
-|------|------|
-| `run.py` | Preferred orchestrator: `fx`→`cot`→`inr`→`vol`→`oi`→`rr`→`merge`→`text`→`macro`→`ai`→`substack`→`html`→`validate`→`deploy`. |
-| `run_all.py` | **Deprecated** legacy orchestrator (subset of steps + `deploy.py` + `runs/` archive). Prefer `run.py`. |
-| `pipeline.py` | Layer 1: FX + yield ETL, spreads, writes `data/`. |
-| `cot_pipeline.py` | Layer 2: CFTC COT positioning → `data/`. |
-| `inr_pipeline.py` | INR-specific metrics → `data/`. |
-| `macro_pipeline.py` | Optional macro helpers (not in default `run_all` chain unless wired elsewhere). |
-| `morning_brief.py` | Text brief → `briefs/brief_YYYYMMDD.txt`. |
-| `create_html_brief.py` | HTML brief + `charts/*.html` iframes → `briefs/brief_YYYYMMDD.html`. |
-| `deploy.py` | Copies latest brief to repo-root `index.html`, rewrites `../charts/` → `charts/`, `../static/` → `static/`, then git commit/push. |
-| `scripts/publish_brief_for_site.py` | Copies latest `briefs/brief_*.html` → `site/brief/latest.html` (path rewrites), syncs `charts/` → `site/charts/`, `static/` → `site/static/` for **fxregimelab.com** (Cloudflare). Run in CI before `deploy.py`. |
-| `config.py` | Shared constants and configuration. |
-| `create_charts_plotly.py` | Plotly chart builders used by the HTML pipeline. |
-| `check_latest.py` | Data freshness / sanity checks. |
-| `core/` | `paths.py` (`ROOT`, `DATA_DIR`, `BRIEFS_DIR`, `CHARTS_DIR`, `PAGES_DIR`, helpers), `utils.py`. |
-| `site/` | Public **fxregimelab.com** shell (UI v2: light editorial + canvas). Includes `brief/latest.html` (published from pipeline), `site/charts/`, `site/static/` copies for same-origin brief; see `docs/FX_REGIME_LAB_UI_PROMPT_V2.md`. |
-| `charts/` | Generated interactive HTML fragments + `registry.py`, `base.py`, `workspace.py` (tracked for GitHub Pages). |
-| `static/` | CSS/assets referenced by briefs (`static/styles.css` after deploy patch). |
-| `logos/` | Brand PNGs (some gitignored exceptions reversed in `.gitignore` for CI). |
-| `pages/` | **Standalone** narrative/export HTML cards (Chart.js “FX Regime Lab” style), *not* the daily brief. Built by `scripts/dev/build_*.py`. |
-| `scripts/dev/` | One-off builders, phase checks, stress tests, verification scripts (all `os.chdir` to repo root). |
-| `docs/` | Long-form planning; **index:** `docs/README.md`; **pipeline ops:** `docs/PIPELINE_AUDIT_AND_OPERATIONS.md` (`G10_FX_FRAMEWORK_MASTER_PLAN.md`, `FX_REGIME_ROADMAP.md`, etc.). |
-| `.github/workflows/` | e.g. `daily_brief.yml` — CI pipeline (needs `FRED_API_KEY` secret). |
+## Web App (`web/`)
 
-## Generated / local-only (usually not in git)
+**Framework:** Next.js 15, React 19, TypeScript strict, Tailwind CSS v4
+**Linting:** Biome (never ESLint)
+**Charts:** TradingView Lightweight Charts v5 ONLY — no Recharts, Plotly, ECharts, Chart.js
+**Fonts:** Inter (UI text) + JetBrains Mono (data values, labels, timestamps)
 
-Per `.gitignore`: `data/`, `briefs/`, `runs/`, `.venv/`, `__pycache__/`, `.env`. Exception: `charts/` is **intentionally tracked** for Pages. `runs/` may hold `pipeline.log` and bat logs.
+### Key Files
 
-## Path constants
+| File | Purpose |
+|------|---------|
+| `web/app/layout.tsx` | Root layout, fonts |
+| `web/app/globals.css` | Tailwind v4 theme tokens, global keyframes |
+| `web/lib/types/index.ts` | All TypeScript interfaces |
+| `web/lib/utils/format.ts` | fmt2, fmt4, fmtPct, fmtChg, fmtSpot |
+| `web/lib/mock/data.ts` | PAIRS constants + about-page mock only |
+| `web/lib/supabase/client.ts` | Supabase browser client |
+| `web/lib/supabase/queries.ts` | ALL Supabase query functions (never write supabase.from() elsewhere) |
+| `web/lib/supabase/database.types.ts` | GENERATED — never edit manually |
+| `web/lib/cache/redis.ts` | Upstash Redis client |
 
-Use `core.paths` for anything that needs `ROOT` or standard folders — avoids hard-coding and survives moves of this file’s documented layout.
+### Routes
 
-## Deploy, GitHub Pages, and fxregimelab.com
+| Route | File | Description |
+|-------|------|-------------|
+| `/` | `app/(site)/page.tsx` | Homepage |
+| `/brief` | `app/(site)/brief/page.tsx` | Daily brief |
+| `/performance` | `app/(site)/performance/page.tsx` | Validation + track record |
+| `/fx-regime` | `app/(site)/fx-regime/page.tsx` | Strategy overview |
+| `/calendar` | `app/(site)/calendar/page.tsx` | Macro event calendar |
+| `/about` | `app/(site)/about/page.tsx` | Methodology + simulator |
+| `/pairs/[pair]` | `app/(site)/pairs/[pair]/page.tsx` | Pair detail page |
+| `/terminal` | `app/terminal/page.tsx` | Terminal index |
+| `/terminal/fx-regime` | `app/terminal/fx-regime/page.tsx` | Strategy page |
+| `/terminal/fx-regime/[pair]` | `app/terminal/fx-regime/[pair]/page.tsx` | Pair desk |
 
-- **Canonical public site (target):** [https://fxregimelab.com](https://fxregimelab.com) — **Cloudflare Pages** (dashboard `/dashboard`, brief `/brief`, etc.; see PLAN Phase 0).
-- **GitHub Pages** (`deploy.py` still can push repo-root `index.html`): `https://shreyash3007.github.io/G10-FX-Regime-Detection-Framework/` — **legacy mirror** for the Plotly brief. **Canonical public product** is Cloudflare (`fxregimelab.com`, `site/`). Sunset GitHub Pages after a sustained period of clean `/brief` + `/dashboard` on Cloudflare (see PLAN Phase 0.8).
-- **Source of truth for repo-root HTML:** `index.html` (copy of latest brief with path fixes after `deploy.py`).
-- **Brief originals**: `briefs/brief_YYYYMMDD.html` use `../charts/` and `../static/` because they live one level down.
+### Hard Rules
 
-**Orchestrator (`run.py` `STEPS`):** `fx` → `cot` → `inr` → `vol` → `oi` → `rr` → `merge` → `text` → `macro` → `ai` → `substack` → `html` → `validate` → `deploy`. There is no `create_dashboards.py`; charts are produced via `create_html_brief.py` / `create_charts_plotly.py`.
+- ZERO `style={}` inline styles — Tailwind only
+- ZERO `supabase.from()` outside `web/lib/supabase/queries.ts`
+- ZERO AI API calls from frontend — only read cached AI text from Supabase
+- ZERO manual edits to `database.types.ts`
+- Max 300 lines per file
 
-## Standalone pages (`pages/`)
+## Pipeline (`pipeline/`)
 
-If this repository is published with **GitHub Pages from the repo root**, these files are served under the **`/pages/`** path (for example `…/pages/eur_reconnection_journey.html`), not at the root URL. Update any bookmarks or social posts that pointed at the old root-level `.html` paths.
+**Language:** Python 3.11
+**Tooling:** Ruff (lint), mypy (types), pytest (tests), pre-commit
+**Config:** `pipeline/pyproject.toml`
 
-Builders (run from repo root with `python scripts/dev/<script>.py`):
+### Key Layers
 
-- `build_jpy.py` → `pages/jpy_correlation_flip.html` (reads `pages/eur_reconnection_journey.html` for embedded logo).
-- `build_eur.py` → `pages/eur_reconnection_journey.html` (reads `pages/jpy_correlation_flip.html` for logo).
-- `build_usdinr.py` → `pages/usdinr_regime_shift.html` (reads EUR page for logo).
-- `build_hormuz.py` → `pages/hormuz_countdown.html` (reads JPY page for logo).
+| Layer | Location | Purpose |
+|-------|----------|---------|
+| Fetchers | `pipeline/src/fetchers/` | One file per data source |
+| Signals | `pipeline/src/signals/` | rate, cot, volatility, OI per pair |
+| Regime | `pipeline/src/regime/` | composite scorer + label classifier |
+| Validation | `pipeline/src/validation/` | next-day outcome validator |
+| DB Writer | `pipeline/src/db/writer.py` | ALL Supabase writes |
+| AI | `pipeline/src/ai/client.py` | OpenRouter free models, 180 req/day guard |
+| Scheduler | `pipeline/src/scheduler/orchestrator.py` | daily + weekly runs |
 
-Order matters on a clean clone: ensure template/logo source exists (often run JPY → EUR → USDINR, or copy an existing page into `pages/` first).
+### Hard Rules
 
-## Dev / QA scripts (`scripts/dev/`)
+- ALL Supabase writes go through `pipeline/src/db/writer.py` only
+- AI calls ONLY from `pipeline/src/ai/client.py` — never inline
+- AI via OpenRouter free models (MiniMax M1 primary, Llama 3.1 8B fallback)
+- Daily request guard: 180 req/day cap in ai/client.py (OpenRouter free limit ≈ 200)
+- Frontend NEVER calls any AI API directly — reads cached text from Supabase only
 
-Examples:
+## Database (`supabase/`)
 
-- `check_phase1.py`, `check_phase23.py`, `check_phase3.py` — HTML/CSS idempotency and marker checks (invoke `create_html_brief.py`).
-- `check_brand_v2.py` — regenerates brief and asserts brand-v2 HTML/CSS markers.
-- `stress_test.py` — multi-phase presence checks on latest `briefs/brief_*.html`, generated pair chart files, and retired-workspace guards.
-- `verify_html.py`, `verify_full.py` — content checks against **latest** brief (and CSV for `verify_full`).
-- `verify_data_supabase_brief.py` — optional last-row CSV vs Supabase `signals` spot-check (manual; requires `.env` for DB).
-- `check_counts.py`, `idempotency_diff.py` — legacy/debug helpers (some hardcoded brief dates inside).
+**Platform:** Supabase (PostgreSQL + Auth + RLS)
+**Types:** Run `supabase gen types typescript --local > web/lib/supabase/database.types.ts` to regenerate
+**Migrations:** `supabase/migrations/` — numbered, never edited after applied
 
-All assume they are run as `python scripts/dev/<name>.py` (they set cwd to repo root).
+### Key Tables
 
-## Optional / auxiliary
+| Table | Purpose |
+|-------|---------|
+| `regime_calls` | Daily regime call per pair |
+| `signals` | Raw signal values per pair per day |
+| `validation_log` | Next-day outcome for each call |
+| `brief` | Daily AI-generated morning brief |
+| `macro_events` | Macro calendar events with AI context |
+| `ai_usage_log` | Token usage tracking |
 
-- `ai_brief.py`, `notion_sync.py` — integrations; not part of the default `run_all.py` sequence unless you wire them.
-- `reports/` — auxiliary outputs if used by local workflows.
+## Design Reference (`claude-design/`)
 
-## Setup (short)
+**Read-only reference** — these JSX files show the target UI. They use inline styles and prototype patterns. Never import from this folder
+in production code. Use them only to understand what a component should look like.
 
-1. Python 3.9+, `pip install -r requirements.txt`
-2. `.env` with `FRED_API_KEY=...`
-3. `python run.py` (`run_all.py` is deprecated)
+| File | Contains |
+|------|---------|
+| `components.jsx` | Shared components, mock data, brand tokens |
+| `shell-pages.jsx` | HomePage, BriefPage, PerformancePage, FxRegimePage |
+| `terminal-pages.jsx` | Terminal pages, AiAnalysisPanel, calendar tab |
+| `new-pages.jsx` | CalendarPage, PairDetailPage, RegimeHeatmap |
+| `about-page.jsx` | AboutPage with PipelineWalkthrough, CompositeSimulator |
+| `loading-states.jsx` | Skeleton loaders (Phase 4) |
+| `error-states.jsx` | Error/empty states (Phase 4) |
+| `mobile-layouts.jsx` | Mobile responsive designs (Phase 6) |
 
-## Maintenance notes
+## Pairs Config
 
-- Prefer **small, focused diffs**; do not rename `charts/` or repo-root `index.html` without updating `deploy.py` and CI.
-- README’s narrative is user-facing; **this file** is the structural source of truth after the `pages/` + `scripts/dev/` reorganisation (spring 2026).
+```typescript
+const PAIRS = [
+  { label: 'EURUSD', display: 'EUR/USD', urlSlug: 'eurusd', pairColor: '#4BA3E3' },
+  { label: 'USDJPY', display: 'USD/JPY', urlSlug: 'usdjpy', pairColor: '#F5923A' },
+  { label: 'USDINR', display: 'USD/INR', urlSlug: 'usdinr', pairColor: '#D94030' },
+];
+```
+
+## Phases
+
+┌───────┬─────────┬──────────────────────────────────┐
+│ Phase │ Status  │ Focus                            │
+├───────┼─────────┼──────────────────────────────────┤
+│ 0     │ ✅ Done │ Foundation + repo structure      │
+├───────┼─────────┼──────────────────────────────────┤
+│ 1     │ ✅ Done │ Design system + all shell pages  │
+├───────┼─────────┼──────────────────────────────────┤
+│ 2     │ ✅ Done │ Terminal UI                      │
+├───────┼─────────┼──────────────────────────────────┤
+│ 3     │ ✅ Done │ Pipeline rewrite                 │
+├───────┼─────────┼──────────────────────────────────┤
+│ 4     │ ✅ Done │ Live data + loading/error states │
+├───────┼─────────┼──────────────────────────────────┤
+│ 5     │ ✅ Done │ Remaining live data + performance stats │
+├───────┼─────────┼──────────────────────────────────┤
+│ 6     │ ✅ Done │ Mobile + PWA + terminal live data │
+└───────┴─────────┴──────────────────────────────────┘
+
+## Scheduling
+
+To register the daily cron (runs weekdays at 06:30 IST = 01:00 UTC):
+
+- `crontab -e`
+- Add: `0 1 * * 1-5 /home/shreyash/fx_regime_lab/fx-regime-lab/pipeline/run_daily.sh >> /tmp/fxlab_daily.log 2>&1`
+
+To register the weekly AI brief cron (runs Sundays at 08:00 IST = 02:30 UTC):
+
+- `0 2 * * 0 /home/shreyash/fx_regime_lab/fx-regime-lab/pipeline/run_weekly.sh >> /tmp/fxlab_weekly.log 2>&1`
+
+To run manually from repo root:
+
+- `pipeline/run_daily.sh`
+- `pipeline/run_weekly.sh`
+
+### Post-Phase 6 (manual)
+
+After code is merged and verified: production deploy (e.g. Vercel), set `NEXT_PUBLIC_SUPABASE_*`, `REVALIDATE_SECRET`, `NEXT_JS_URL` in the host dashboard; point local `.env` `NEXT_JS_URL` at production for ISR pings; register crontab lines above for daily/weekly pipeline; run a first live pipeline and confirm revalidate logs; replace PWA placeholder icons under `web/public/images/`; audit Supabase RLS for anon write access; rotate any exposed API keys.

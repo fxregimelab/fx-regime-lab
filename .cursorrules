@@ -1,56 +1,50 @@
-FX Regime Lab — Cursor Rules
-Read TASK.md at the start of every session before anything else.
-Then read only the docs/ files listed in TASK.md for the current task.
-Never read all docs at once.
-Session discipline
+# FX Regime Lab — Cursor Rules
 
-Read TASK.md first. Always.
-State which files you will modify before modifying any file.
-Complete one task fully before starting another.
-If scope creep appears mid-task, note it in TASK.md under "Discovered issues" and finish the current task first.
-After completing a task, print: DONE — [task name] — [files modified] — [files created]
+## Read First
+Always read AGENTS.md before starting any task. Then read TASK.md.
 
-What to read for each domain
+## Hard Rules
 
-Frontend task → docs/FRONTEND_ARCHITECTURE.md + docs/DESIGN_SYSTEM.md
-Database/query task → docs/DATABASE_SCHEMA.md
-Pipeline task → docs/PIPELINE_REFERENCE.md
-Signal/regime task → docs/SIGNAL_DEFINITIONS.md
-New feature → docs/FEATURE_REGISTRY.md + docs/PHASES.md
-Unclear → docs/PROJECT_OVERVIEW.md then decide
+### Web
+- ZERO inline style={} — Tailwind CSS only
+- ZERO supabase.from() outside web/lib/supabase/queries.ts
+- ZERO Anthropic API calls from any frontend file
+- ZERO manual edits to web/lib/supabase/database.types.ts
+- TradingView Lightweight Charts v5 ONLY — never Recharts, Plotly, ECharts, Chart.js
+- Max 300 lines per file — split if needed
+- Biome only — never ESLint or Prettier
 
-Hard rules (never violate)
+### Python
+- All Supabase writes through pipeline/src/db/writer.py only
+- All AI calls through pipeline/src/ai/client.py only
+- mypy strict on all pipeline code
+- Ruff lint on all pipeline code
 
-Never use Chart.js, ECharts, Plotly, or Recharts anywhere in web/
-Never write supabase.from() inside components, pages, or hooks — queries.ts only
-Never modify *.py files unless TASK.md explicitly says to modify Python
-Never modify workers/site-entry.js unless TASK.md explicitly says to
-Never modify .github/workflows/ unless TASK.md explicitly says to
-Never use inline styles in web/ — Tailwind only
-Never use any TypeScript type — strict mode enforced
-Never hardcode pair names, regime labels, or route paths — use lib/constants/
-Server components → lib/supabase/server.ts
-Client components → lib/supabase/client.ts
-Every new page route needs loading.tsx and error.tsx siblings
-TradingView Lightweight Charts v5 is the only chart library
+## File Location Map
+| Need to... | Go to... |
+|-----------|---------|
+| Add a query | web/lib/supabase/queries.ts |
+| Add a type | web/lib/types/index.ts |
+| Add a format util | web/lib/utils/format.ts |
+| Change mock data | web/lib/mock/data.ts |
+| Add a fetcher | pipeline/src/fetchers/ |
+| Add a signal | pipeline/src/signals/ |
+| Change regime logic | pipeline/src/regime/ |
+| Change AI prompts | pipeline/src/ai/client.py |
+| Write to DB | pipeline/src/db/writer.py |
+| Understand design | claude-design/FX Regime Lab (2)/ |
 
-Token efficiency rules
+## Design Reference
+claude-design/ files are READ ONLY reference. Never import from them.
+Components.jsx has brand colors and mock data structure.
+Shell-pages.jsx has shell page designs.
+Terminal-pages.jsx has terminal page designs.
+New-pages.jsx has calendar, pair detail, heatmap designs.
+About-page.jsx has about page designs.
 
-Read only the files relevant to the current task
-Do not re-read files already read in this session
-Do not print file contents unless asked
-Do not explain what you are about to do — just do it
-Do not summarise what you just did at length — print the DONE line and stop
-Do not ask clarifying questions if TASK.md and the relevant doc answer them
-If genuinely unclear, ask one specific question, not multiple
-
-Code quality rules
-
-TypeScript strict — no any, no ts-ignore, no type assertions without comment
-Every function needs a return type annotation
-No console.log in production code — use proper error handling
-Wrap all Supabase calls in try/catch
-Handle null/undefined from all Supabase responses before using data
-images.unoptimized must stay true in next.config.js (Cloudflare Pages requirement)
-export const runtime = 'edge' required on dynamic routes and API routes
-compatibility_date must stay 2025-01-01 or later in wrangler.toml
+## Never Do
+- Never use border-radius except for dots/circles (design is sharp-edged)
+- Never use any font except Inter (UI) and JetBrains Mono (data)
+- Never create a page without checking AGENTS.md route table first
+- Never write a Supabase query outside queries.ts
+- Never call Anthropic from frontend

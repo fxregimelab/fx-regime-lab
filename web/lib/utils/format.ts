@@ -1,21 +1,30 @@
-/** ISO date string or Date → locale short date */
-export function formatDate(input: string | Date, locale = 'en-GB'): string {
-  const d = typeof input === 'string' ? new Date(`${input}T12:00:00Z`) : input;
-  return new Intl.DateTimeFormat(locale, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-  }).format(d);
+export function fmt2(v: number | null | undefined): string {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(2);
 }
 
-/** 0.42 → 42% */
-export function formatPercent(value: number | null | undefined, digits = 0): string {
-  if (value == null || Number.isNaN(value)) return '—';
-  return `${(value * 100).toFixed(digits)}%`;
+export function fmt4(v: number | null | undefined): string {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(4);
 }
 
-/** Decimal as basis points string */
-export function formatBps(value: number | null | undefined, digits = 1): string {
-  if (value == null || Number.isNaN(value)) return '—';
-  return `${(value * 10000).toFixed(digits)} bps`;
+export function fmtPct(v: number | null | undefined): string {
+  if (v == null || isNaN(v)) return '—';
+  return `${Math.round(v * 100)}%`;
+}
+
+export function fmtInt(v: number | null | undefined): string {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(0);
+}
+
+export function fmtChg(v: number | null | undefined): { str: string; positive: boolean } {
+  if (v == null || isNaN(v)) return { str: '—', positive: true };
+  const sign = v >= 0 ? '+' : '';
+  return { str: `${sign}${v.toFixed(2)}%`, positive: v >= 0 };
+}
+
+export function fmtSpot(v: number | null | undefined, pair: string): string {
+  if (v == null) return '—';
+  return v.toFixed(pair === 'USDJPY' ? 2 : 4);
 }

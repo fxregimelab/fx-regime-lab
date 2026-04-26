@@ -1,0 +1,27 @@
+node_modules/
+.next/
+.turbo/
+__pycache__/
+*.pyc
+.env
+.env.local
+.env*.local
+*.egg-info/
+dist/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+supabase/.branches/
+supabase/.temp/
+
+# Cursor IDE
+.cursor/
+
+# Build artifacts
+web/tsconfig.tsbuildinfo
+web/.next/
+
+# Legacy archive — tracked separately, not needed in production
+pipeline/src/legacy/

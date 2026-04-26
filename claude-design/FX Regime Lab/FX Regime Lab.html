@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FX Regime Lab — Interactive Prototype</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'shell-bg': '#f5f5f0',
+            'terminal-bg': '#0a0a0a',
+            'terminal-surface': '#1a1a1a',
+            accent: '#e8a045',
+          },
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+          },
+          borderRadius: {
+            shell: '0.75rem',
+            card: '1rem',
+            pill: '9999px',
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- React + Babel -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; background: #ffffff; }
+
+    /* Slim scrollbar for terminal */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #e0e0e0; }
+    .terminal-root ::-webkit-scrollbar-thumb { background: #1f1f1f; }
+
+    /* Selection */
+    ::selection { background: #0a0a0a; color: #fff; }
+
+    /* Route transition */
+    @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .route-enter { animation: fadein 0.15s ease; }
+
+    /* Remove Tailwind interference on buttons */
+    button { cursor: pointer; background: none; border: none; padding: 0; }
+  </style>
+</head>
+<body>
+
+<!-- Shared components (exports to window) -->
+<script type="text/babel" src="components.jsx"></script>
+<!-- Shell pages -->
+<script type="text/babel" src="shell-pages.jsx"></script>
+<!-- Terminal pages -->
+<script type="text/babel" src="terminal-pages.jsx"></script>
+<!-- Tweaks panel -->
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<!-- About page -->
+<script type="text/babel" src="about-page.jsx"></script>
+<!-- New pages: calendar, pair detail, heatmap -->
+<script type="text/babel" src="new-pages.jsx"></script>
+<!-- Loading states / skeletons -->
+<script type="text/babel" src="loading-states.jsx"></script>
+<!-- Error + empty states -->
+<script type="text/babel" src="error-states.jsx"></script>
+<!-- Mobile layouts -->
+<script type="text/babel" src="mobile-layouts.jsx"></script>
+
+<!-- App shell -->
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "shellBg": "#ffffff",
+  "accentColor": "#F5923A",
+  "terminalBg": "#080808",
+  "showPipelineStatus": true,
+  "defaultPair": "eurusd"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [route, setRoute] = React.useState('/');
+  const [tweaks, setTweaks] = useTweaks(TWEAK_DEFAULTS);
+
+  const navigate = React.useCallback((href) => {
+    setRoute(href);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
+
+  // Detect if we're in a terminal route
+  const isTerminal = route.startsWith('/terminal');
+
+  // Parse pair slug from route
+  const pairSlugMatch = route.match(/\/terminal\/fx-regime\/([a-z]+)/);
+  const pairSlug = pairSlugMatch ? pairSlugMatch[1] : null;
+
+  // Inject CSS variables from tweaks
+  React.useEffect(() => {
+    document.documentElement.style.setProperty('--shell-bg', tweaks.shellBg);
+    document.documentElement.style.setProperty('--accent', tweaks.accentColor);
+    document.documentElement.style.setProperty('--terminal-bg', tweaks.terminalBg);
+  }, [tweaks.shellBg, tweaks.accentColor, tweaks.terminalBg]);
+
+  function renderPage() {
+    if (route === '/') return <HomePage navigate={navigate} />;
+    if (route === '/brief') return <BriefPage navigate={navigate} />;
+    if (route === '/about') return <AboutPage navigate={navigate} />;
+    if (route === '/performance') return <PerformancePage navigate={navigate} />;
+    if (route === '/fx-regime') return <FxRegimePage navigate={navigate} />;
+    if (route === '/calendar') return <CalendarPage navigate={navigate} />;
+    if (route === '/demo/loading') return <SkeletonDemo navigate={navigate} />;
+    if (route === '/demo/errors') return <ErrorStatesDemo navigate={navigate} />;
+    if (route === '/demo/mobile') return <MobilePreviewGallery navigate={navigate} />;
+    if (route.startsWith('/pairs/')) return <PairDetailPage pairSlug={route.split('/pairs/')[1]} navigate={navigate} />;
+    if (route === '/terminal') return <TerminalIndexPage navigate={navigate} />;
+    if (route === '/terminal/fx-regime') return <TerminalStrategyPage navigate={navigate} />;
+    if (pairSlug) return <TerminalPairDeskPage pairSlug={pairSlug} navigate={navigate} />;
+    return <NotFoundPage navigate={navigate} />;
+  }
+
+  return (
+    <div>
+      {/* Shell (light) layout */}
+      {!isTerminal && (
+        <div style={{ background: tweaks.shellBg, minHeight: '100vh' }}>
+          <Nav currentRoute={route} navigate={navigate} />
+          <main className="route-enter" key={route}>
+            {renderPage()}
+          </main>
+          <Footer navigate={navigate} />
+        </div>
+      )}
+
+      {/* Terminal (dark) layout */}
+      {isTerminal && (
+        <div style={{ background: tweaks.terminalBg, minHeight: '100vh' }} className="route-enter" key={route}>
+          {renderPage()}
+        </div>
+      )}
+
+      {/* Tweaks panel */}
+      <TweaksPanel tweaks={tweaks} setTweaks={setTweaks}>
+        <TweakSection title="Shell">
+          <TweakColor id="shellBg" label="Background" />
+          <TweakColor id="accentColor" label="Accent color" />
+        </TweakSection>
+        <TweakSection title="Terminal">
+          <TweakColor id="terminalBg" label="Terminal BG" />
+        </TweakSection>
+        <TweakSection title="Navigation">
+          <TweakButton label="→ Home" onClick={() => navigate('/')} />
+          <TweakButton label="→ Brief" onClick={() => navigate('/brief')} />
+          <TweakButton label="→ Performance" onClick={() => navigate('/performance')} />
+          <TweakButton label="→ FX Regime" onClick={() => navigate('/fx-regime')} />
+          <TweakButton label="→ Calendar" onClick={() => navigate('/calendar')} />
+          <TweakButton label="→ About" onClick={() => navigate('/about')} />
+          <TweakButton label="→ EUR/USD Detail" onClick={() => navigate('/pairs/eurusd')} />
+          <TweakButton label="→ USD/JPY Detail" onClick={() => navigate('/pairs/usdjpy')} />
+          <TweakButton label="→ USD/INR Detail" onClick={() => navigate('/pairs/usdinr')} />
+          <TweakButton label="→ Terminal" onClick={() => navigate('/terminal')} />
+          <TweakButton label="→ EUR/USD Desk" onClick={() => navigate('/terminal/fx-regime/eurusd')} />
+          <TweakButton label="→ USD/JPY Desk" onClick={() => navigate('/terminal/fx-regime/usdjpy')} />
+          <TweakButton label="→ USD/INR Desk" onClick={() => navigate('/terminal/fx-regime/usdinr')} />
+          <TweakButton label="⬡ Loading States" onClick={() => navigate('/demo/loading')} />
+          <TweakButton label="⬡ Error States" onClick={() => navigate('/demo/errors')} />
+          <TweakButton label="⬡ Mobile Preview" onClick={() => navigate('/demo/mobile')} />
+        </TweakSection>
+      </TweaksPanel>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+
+<div id="root"></div>
+</body>
+</html>
