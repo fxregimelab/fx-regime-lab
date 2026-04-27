@@ -1,6 +1,6 @@
 # Signal definitions
 
-This document reflects **Python implementations** in `pipeline.py`, `inr_pipeline.py`, `cot_pipeline.py`, `vol_pipeline.py`, `oi_pipeline.py`, `rr_pipeline.py`, `config.py`, and merge helpers in `pipeline.py` (`merge_main`, `_apply_iv_gate`, `_apply_rr_modifier`, `_compute_primary_driver`). The Next.js `RegimeLabel` union in `web/lib/types/regime.ts` is **not** the same set of strings persisted to `regime_calls.regime` (see [[DATABASE_SCHEMA]]).
+This document reflects **Python implementations** in `pipeline.py`, `inr_pipeline.py`, `cot_pipeline.py`, `vol_pipeline.py`, `oi_pipeline.py`, `rr_pipeline.py`, `config.py`, and merge helpers in `pipeline.py` (`merge_main`, `_apply_iv_gate`, `_apply_rr_modifier`, `_compute_primary_driver`). Any strict `RegimeLabel`-style union in a future frontend is **not** the same set of strings persisted to `regime_calls.regime` (see [[DATABASE_SCHEMA]]).
 
 ## Three-layer architecture (as implemented)
 

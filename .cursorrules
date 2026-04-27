@@ -1,50 +1,34 @@
 # FX Regime Lab — Cursor Rules
 
 ## Read First
+
 Always read AGENTS.md before starting any task. Then read TASK.md.
 
-## Hard Rules
+There is **no shipped `web/` frontend** in this repo. Design intent lives in **`claude-design/`**. Prior Supabase read patterns: **`docs/DATA_READS_SPEC.md`**.
 
-### Web
-- ZERO inline style={} — Tailwind CSS only
-- ZERO supabase.from() outside web/lib/supabase/queries.ts
-- ZERO Anthropic API calls from any frontend file
-- ZERO manual edits to web/lib/supabase/database.types.ts
-- TradingView Lightweight Charts v5 ONLY — never Recharts, Plotly, ECharts, Chart.js
-- Max 300 lines per file — split if needed
-- Biome only — never ESLint or Prettier
+## Hard Rules — Python
 
-### Python
-- All Supabase writes through pipeline/src/db/writer.py only
-- All AI calls through pipeline/src/ai/client.py only
+- All Supabase writes through `pipeline/src/db/writer.py` only
+- All AI calls through `pipeline/src/ai/client.py` only
 - mypy strict on all pipeline code
 - Ruff lint on all pipeline code
 
 ## File Location Map
+
 | Need to... | Go to... |
-|-----------|---------|
-| Add a query | web/lib/supabase/queries.ts |
-| Add a type | web/lib/types/index.ts |
-| Add a format util | web/lib/utils/format.ts |
-| Change mock data | web/lib/mock/data.ts |
-| Add a fetcher | pipeline/src/fetchers/ |
-| Add a signal | pipeline/src/signals/ |
-| Change regime logic | pipeline/src/regime/ |
-| Change AI prompts | pipeline/src/ai/client.py |
-| Write to DB | pipeline/src/db/writer.py |
-| Understand design | claude-design/FX Regime Lab (2)/ |
+|------------|----------|
+| Add a fetcher | `pipeline/src/fetchers/` |
+| Add a signal | `pipeline/src/signals/` |
+| Change regime logic | `pipeline/src/regime/` |
+| Change AI prompts | `pipeline/src/ai/client.py` |
+| Write to DB | `pipeline/src/db/writer.py` |
+| Understand target UX | `claude-design/` |
 
 ## Design Reference
-claude-design/ files are READ ONLY reference. Never import from them.
-Components.jsx has brand colors and mock data structure.
-Shell-pages.jsx has shell page designs.
-Terminal-pages.jsx has terminal page designs.
-New-pages.jsx has calendar, pair detail, heatmap designs.
-About-page.jsx has about page designs.
+
+`claude-design/` files are read-only reference. Never import from them into production code until a new app exists.
 
 ## Never Do
-- Never use border-radius except for dots/circles (design is sharp-edged)
-- Never use any font except Inter (UI) and JetBrains Mono (data)
-- Never create a page without checking AGENTS.md route table first
-- Never write a Supabase query outside queries.ts
-- Never call Anthropic from frontend
+
+- Never call AI providers from a future frontend except via explicit product design (today: pipeline only)
+- Never bypass `pipeline/src/db/writer.py` for Supabase writes

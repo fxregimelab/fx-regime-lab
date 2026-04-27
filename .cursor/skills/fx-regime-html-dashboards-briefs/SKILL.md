@@ -9,6 +9,8 @@ description: >-
   global workspace layout, or morning brief section order and copy.
 ---
 
+> **Deprecated for active repo work:** There is no maintained `web/` app or `charts/*.html` product surface in-repo. Use this skill only when the user explicitly asks for HTML dashboard/brief generators or legacy-style outputs.
+
 # FX Regime Lab — HTML dashboards and morning brief
 
 ## Scope

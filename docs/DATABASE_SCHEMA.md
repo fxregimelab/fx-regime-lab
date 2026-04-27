@@ -2,7 +2,7 @@
 
 Primary SQL source in repo: `sql/schema.sql`. **Reality:** none of the live tables include a `strategy_id` column today. Multi-strategy is a **forward** concept; see [[PROJECT_OVERVIEW]].
 
-**Important mismatch with the Next.js type layer:** `web/lib/types/regime.ts` defines a `RegimeLabel` union (`NEUTRAL`, `TRENDING_LONG`, …). The pipeline persists **`regime_calls.regime` from composite label strings** such as `STRONG USD STRENGTH`, `MODERATE USD STRENGTH`, `NEUTRAL`, `VOL_EXPANDING` (IV override), and INR-specific labels from `inr_pipeline.py` (`STRONG DEPRECIATION PRESSURE`, etc.). UI code must treat `regime` as **string** from the database and not assume it matches the TypeScript union until a mapping layer exists.
+**Important for any future typed UI:** Do not assume `regime_calls.regime` matches a small TypeScript enum. The pipeline persists **`regime_calls.regime` from composite label strings** such as `STRONG USD STRENGTH`, `MODERATE USD STRENGTH`, `NEUTRAL`, `VOL_EXPANDING` (IV override), and INR-specific labels from `inr_pipeline.py` (`STRONG DEPRECIATION PRESSURE`, etc.). UI code must treat `regime` as **string** from the database and map explicitly for display.
 
 ## Live tables (in `sql/schema.sql`)
 
@@ -151,7 +151,7 @@ Treat any SQL snippets for these in archived docs under `_archive/v1/docs/` as *
 
 ## Index recommendations aligned to actual queries
 
-Queries in `web/lib/supabase/queries.ts` and hooks:
+Queries summarized in [[DATA_READS_SPEC]] (historically `web/lib/supabase/queries.ts`):
 
 - Latest row per pair ordered by `date` descending: composite index on `(pair, date DESC)` is ideal; repo has `(date, pair)` indexes. Postgres can still use `idx_*_date_pair` efficiently for `eq('pair')` + `order date desc`; verify `EXPLAIN` under load.
 

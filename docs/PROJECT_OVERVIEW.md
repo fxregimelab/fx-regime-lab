@@ -5,11 +5,11 @@ FX Regime Lab is a **personal, public research system** for daily G10 FX regime 
 ## Two layers (conceptual)
 
 - **Research ledger (private, immutable intent):** The durable record of *why* a view existed (hypotheses, rationale, drafts, private notes). In this repo today, that layer is **not** fully modeled in Postgres: there is **no** `call_rationale` or `hypothesis_log` table in the checked-in [[DATABASE_SCHEMA]]. Treat disk artifacts under `runs/`, `briefs/`, and archived `_archive/v1/docs/` as historical research context until those tables ship.
-- **Performance record (public, auto-generated):** What the pipeline and site actually show: `signals`, `regime_calls`, `validation_log`, `brief_log`, and static outputs (`briefs/*.html`, `site/data/pipeline_status.json` when the pipeline creates `site/data/`). The Next.js app in `web/` is being wired to read this layer via the Supabase anon key and RLS read policies.
+- **Performance record (public, auto-generated):** What the pipeline persists: `signals`, `regime_calls`, `validation_log`, `brief`, `macro_events`, and optional JSON under `site/data/` when writers use that path. There is **no** shipped website in this repo; see [[DATA_READS_SPEC]] for the former Next.js read surface and [[HOSTING_AFTER_UI_REMOVAL]] for ops notes.
 
 ## strategy_id
 
-The **product vision** is multiple strategies under one domain. **Reality in Postgres (as of `sql/schema.sql` in this repo):** there is **no** `strategy_id` column on `signals`, `regime_calls`, `validation_log`, or `brief_log`. The only strategy identifier in the Next.js codebase today is the **string** `fx-regime` in `web/lib/constants/strategies.ts`. Until migrations add `strategy_id`, document FX Regime Lab as **strategy 1 of N conceptually**, not in schema.
+The **product vision** is multiple strategies under one domain. **Reality in Postgres (as of `sql/schema.sql` in this repo):** there is **no** `strategy_id` column on `signals`, `regime_calls`, `validation_log`, or `brief_log`. Until migrations add `strategy_id`, document FX Regime Lab as **strategy 1 of N conceptually**, not in schema.
 
 ## North star
 
@@ -19,13 +19,13 @@ Build a **15-year research operating system** for a discretionary macro PM caree
 
 - Not a SaaS product, not a subscription business, not a framework demo.
 - Not a trading tool sold to others.
-- It is a **live practice environment** that happens to be public: the site proves the work exists on a calendar.
+- It is a **live practice environment** that happens to be public: data in Supabase (and future site) proves the work exists on a calendar.
 
 ## Current status (repo reality, April 2026)
 
 - **Pipeline:** Live GitHub Actions cron (see [[docs/PIPELINE_REFERENCE]]). Validation rows are written by `validation_regime.py` when that step succeeds.
-- **Site:** Legacy static `site/` build lives under `_archive/v1/site` after the v2 scaffold; root `web/` is a **Next.js 15.5.2** App Router app in progress (see [[TECH_STACK]]).
-- **Deploy:** CI today still runs `npx wrangler deploy` against the **Workers + `site/` assets** pattern documented in `.github/workflows/daily_brief.yml`. Root `wrangler.toml` at repo root is **Pages-oriented** for the Next app (`pages_build_output_dir`); wiring CI to `wrangler pages deploy` for `web/` is **not** done in the workflow file inspected for this doc.
+- **Site / UI:** No production frontend in-repo. UX reference: `claude-design/`. Worker: API-only [`workers/site-entry.js`](../workers/site-entry.js). See [[HOSTING_AFTER_UI_REMOVAL]].
+- **Deploy:** GitHub Actions run the Python pipeline only (see `.github/workflows/pipeline_*.yml`). Cloudflare Pages / root `wrangler.toml` for the old Next app are removed.
 
 ## Positioning
 

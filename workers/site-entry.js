@@ -1,41 +1,14 @@
 /**
- * Minimal Worker + static assets: enables Cloudflare dashboard Variables/Secrets
- * (asset-only Workers cannot have env vars). Serves /assets/supabase-env.js from env.
+ * API-only Worker (no static HTML / marketing site).
  *
- * REQUIRED Worker env vars (set in Cloudflare dashboard → Workers → Settings → Variables):
- *   SUPABASE_URL - project URL from Worker secrets
- *   SUPABASE_ANON_KEY - public anon key (RLS enforced; browser reads only)
- *
+ * Optional secrets for Yahoo proxy (unchanged): none required for /api/health.
+ * RSS and Yahoo routes work without Supabase env.
  */
 
-/** Injected on HTML responses so the browser can load Supabase + inline methodology scripts. */
-const CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com data:",
-  "img-src 'self' data: https: blob:",
-  "connect-src 'self' https://*.supabase.co",
-  "frame-src 'self' https:",
-].join("; ");
-
-function withHtmlCsp(response) {
-  const ct = response.headers.get("content-type") || "";
-  if (!ct.includes("text/html")) {
-    return response;
-  }
-  const headers = new Headers(response.headers);
-  headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
-}
-
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, _env, _ctx) {
     const url = new URL(request.url);
+
     if (url.pathname === "/api/health") {
       return new Response(
         JSON.stringify({ status: "ok", timestamp: new Date().toISOString() }),
@@ -44,15 +17,16 @@ export default {
             "Content-Type": "application/json",
             "Cache-Control": "no-store",
           },
-        }
+        },
       );
     }
+
     if (url.pathname === "/api/substack-rss") {
       try {
         const rssResp = await fetch("https://fxregimelab.substack.com/feed", {
           headers: {
             "User-Agent": "FXRegimeLab/1.0",
-            "Accept": "application/rss+xml, application/xml",
+            Accept: "application/rss+xml, application/xml",
           },
           cf: { cacheTtl: 3600 },
         });
@@ -64,7 +38,7 @@ export default {
             "Cache-Control": "public, max-age=3600",
           },
         });
-      } catch (e) {
+      } catch (_e) {
         return new Response("RSS fetch failed", { status: 502 });
       }
     }
@@ -84,7 +58,7 @@ export default {
         const resp = await fetch(yahooUrl, {
           headers: {
             "User-Agent": "Mozilla/5.0",
-            "Accept": "application/json",
+            Accept: "application/json",
           },
           signal: AbortSignal.timeout(5000),
         });
@@ -146,7 +120,7 @@ export default {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*",
               },
-            }
+            },
           );
         }
 
@@ -169,44 +143,14 @@ export default {
               "Content-Type": "application/json",
               "Access-Control-Allow-Origin": "*",
             },
-          }
+          },
         );
       }
     }
 
-    const path = url.pathname.replace(/\/+$/, "") || "/";
-    if (path === "/assets/supabase-env.js") {
-      const supabaseUrl = env.SUPABASE_URL ?? "";
-      const supabaseAnon = env.SUPABASE_ANON_KEY ?? "";
-      const body = [
-        "// Injected by Worker from Cloudflare Variables (anon key is public; protected by RLS).",
-        `window.__SUPABASE_URL__ = ${JSON.stringify(supabaseUrl)};`,
-        `window.__SUPABASE_ANON_KEY__ = ${JSON.stringify(supabaseAnon)};`,
-        "",
-      ].join("\n");
-      return new Response(body, {
-        headers: {
-          "content-type": "application/javascript; charset=utf-8",
-          "cache-control": "private, no-store",
-        },
-      });
-    }
-
-    if (path.startsWith("/data/") || path.startsWith("/static/")) {
-      const response = await env.ASSETS.fetch(request);
-      if (path.startsWith("/static/") && path.endsWith(".json")) {
-        const headers = new Headers(response.headers);
-        headers.set("Access-Control-Allow-Origin", "*");
-        headers.set("Cache-Control", "public, max-age=3600");
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers,
-        });
-      }
-      return withHtmlCsp(response);
-    }
-
-    return withHtmlCsp(await env.ASSETS.fetch(request));
+    return new Response(JSON.stringify({ error: "not_found", path: url.pathname }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
   },
 };

@@ -1,8 +1,10 @@
 # FX Regime Lab — Multi-Domain Frontend Audit & Master Action Plan
 
+> **2026-04-28:** The **`web/`** tree referenced throughout this audit was **removed**. Keep the document for UX and data-flow lessons; ignore file paths under `web/` until a new frontend exists.
+
 **Date:** 2026-04-18  
 **Audited by:** 7-agent frontend team (structured critique session)  
-**Scope:** Repo files under `web/`, project docs, and alignment with live product goals (fxregimelab.com).  
+**Scope:** Repo files under `web/` (now deleted), project docs, and alignment with live product goals (fxregimelab.com).  
 **Note:** This document is an audit and planning artifact only; no code was changed in this session.
 
 ---

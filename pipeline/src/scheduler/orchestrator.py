@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import sys
 from datetime import date, timedelta
 from typing import Any
@@ -59,21 +58,6 @@ def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
         rate_signal=str(row.get("rate_signal") or "NEUTRAL"),
         primary_driver=str(row["primary_driver"]) if row.get("primary_driver") else None,
     )
-
-
-def _notify_revalidate() -> None:
-    base = os.getenv("NEXT_JS_URL", "").rstrip("/")
-    secret = os.getenv("REVALIDATE_SECRET", "")
-    if not base or not secret:
-        logger.debug("NEXT_JS_URL or REVALIDATE_SECRET not set — skipping ISR ping")
-        return
-    import requests as _req
-
-    try:
-        r = _req.post(f"{base}/api/revalidate", headers={"x-revalidate-secret": secret}, timeout=10)
-        logger.info("ISR revalidate → %s (%s)", base, r.status_code)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("ISR revalidate failed: %s", exc)
 
 
 def run_daily(date_str: str | None = None) -> None:
@@ -163,7 +147,6 @@ def run_daily(date_str: str | None = None) -> None:
         writer.write_regime_call(call)
 
     logger.info("Daily run complete for %s", date_str)
-    _notify_revalidate()
 
 
 def run_weekly(date_str: str | None = None) -> None:

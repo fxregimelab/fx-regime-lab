@@ -8,6 +8,8 @@ description: >-
   visualizations for this repository.
 ---
 
+> **Deprecated for active repo work:** The shipped web UI and standalone dashboard HTML paths described elsewhere were removed. Use this skill only when the user explicitly asks for Chart.js HTML artifacts or when rebuilding dashboards.
+
 # Chart.js — FX Regime Lab (dashboard / morning brief)
 
 ## When this applies

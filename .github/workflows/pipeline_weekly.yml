@@ -37,8 +37,6 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          NEXT_JS_URL: ${{ secrets.NEXT_JS_URL }}
-          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
         run: |
           [ -z "$FRED_API_KEY" ]              && echo "ERROR: FRED_API_KEY not set" && exit 1 || true
           [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] && echo "ERROR: SUPABASE_SERVICE_ROLE_KEY not set" && exit 1 || true
@@ -49,8 +47,6 @@ jobs:
             "SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" \
             "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" \
             "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" \
-            "NEXT_JS_URL=$NEXT_JS_URL" \
-            "REVALIDATE_SECRET=$REVALIDATE_SECRET" \
             > .env
 
       - name: Run weekly pipeline (COT refresh)

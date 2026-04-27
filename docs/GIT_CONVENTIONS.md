@@ -30,7 +30,7 @@ home, brief, terminal, performance, about — page names
 nav, footer, layout — shell components
 regime, signal, validation — data components
 queries, types, constants — lib changes
-config — next.config.js, wrangler.toml, tailwind.config.ts
+config — wrangler.toml (if reintroduced), framework config in future app package
 ci — GitHub Actions
 
 ## Examples
@@ -48,11 +48,10 @@ fix(terminal): correct pair ID lookup for regime_calls query
 - Updated PAIRS constant pair field to match DB values
 - Tested: pair desks show live regime data, not "No regime call"
 
-deploy: bump compatibility_date to 2025-01-01, fix async_hooks error
+deploy: document Worker API-only deploy after UI removal
 
-- Root cause: nodejs_compat requires date >= 2024-09-23 for v2 polyfills
-- Fixed: wrangler.toml compatibility_date = "2025-01-01"
-- Tested: no async_hooks error in deployment tail logs
+- Removed static asset paths from workers/site-entry.js
+- Tested: curl /api/health returns JSON 200
 
 ## When working with Cursor
 

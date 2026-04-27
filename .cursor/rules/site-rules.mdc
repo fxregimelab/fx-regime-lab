@@ -1,31 +1,12 @@
 ---
-description:
+description: Legacy static site rule — superseded
 globs: site/**/*.js,site/**/*.html,site/**/*.css
 alwaysApply: false
 ---
-# Static Site Rules
+# Static site (legacy)
 
-## Stack
+The **vanilla `site/` HTML shell is not maintained** in this repo. Root `site/data/` may contain JSON status files only.
 
-Vanilla HTML, CSS, JavaScript only. No React. No Node. No bundlers. No frameworks.
-All data is fetched from Supabase public endpoints via the anon key injected by Cloudflare Worker at /assets/supabase-env.js
-No backend logic in the site/ folder. site/ is a static site only.
-Data Access
+**Do not** add new static HTML/CSS/JS under `site/` unless a task explicitly rebuilds a static host.
 
-Always read from Supabase via the injected client. Never read from local CSV files in production paths.
-Supabase credentials arrive via /assets/supabase-env.js — do not hardcode them.
-Always handle Supabase fetch errors gracefully with a visible error state.
-Style
-
-**Marketing shell (`site/` except `/terminal/`):** UI Prompt v2 — light editorial / canvas (`docs/FX_REGIME_LAB_UI_PROMPT_V2.md`): Playfair + DM Sans + JetBrains Mono; light backgrounds. Pair accents stay EUR/USD #4da6ff, USD/JPY #ff9944, USD/INR #e74c3c where applicable.
-
-**Research terminal (`site/terminal/`):** dark desk theme (background ~#0a0e1a, data-dense). Same pair accent hex values.
-
-Do not introduce new fonts, color schemes, or UI frameworks without explicit instruction.
-Anti-Patterns — NEVER Suggest These
-
-React, Vue, Angular, or any JS framework
-Node.js imports or require()
-localStorage for sensitive data
-Hardcoded Supabase keys anywhere in site/ files
-New CDN dependencies without explicit approval
+For UX intent, use **`claude-design/`**. For Supabase read patterns from the removed Next app, see **`docs/DATA_READS_SPEC.md`**.

@@ -20,8 +20,6 @@ supabase/.temp/
 .cursor/
 
 # Build artifacts
-web/tsconfig.tsbuildinfo
-web/.next/
 
 # Legacy archive — tracked separately, not needed in production
 pipeline/src/legacy/

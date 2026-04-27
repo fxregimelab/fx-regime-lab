@@ -1,6 +1,16 @@
 # Pipeline reference
 
-Everything here is tied to **files in this repo**, not an idealized flow.
+## Current state (April 2026)
+
+- **Daily / weekly automation:** `.github/workflows/pipeline_daily.yml` and `pipeline_weekly.yml` run `python -m src.scheduler.orchestrator` from the **`pipeline/`** package (see that tree for the live orchestrator).
+- **No `web/` app** and **no root `wrangler.toml`**. ISR pings to Next were removed from `pipeline/src/scheduler/orchestrator.py`.
+- **Worker:** [`workers/site-entry.js`](../workers/site-entry.js) is **API-only** (no static `ASSETS`, no `/assets/supabase-env.js`). See [[HOSTING_AFTER_UI_REMOVAL]].
+
+The sections below about root `run.py`, `daily_brief.yml`, `deploy_web.yml`, and HTML brief steps are **legacy** documentation; cross-check paths against the repo before using them.
+
+---
+
+Everything below is tied to **historical** or **parallel** pipeline layouts, not an idealized flow.
 
 ## Canonical step order (`run.py`)
 
@@ -60,7 +70,7 @@ CLI:
 - **Path:** `core/paths.py` sets `PIPELINE_STATUS_JSON` to `site/data/pipeline_status.json` (under repo `site/` directory). If `site/` is absent, `os.makedirs` in the writer creates `site/data/`.
 - **Fields:** `last_run_utc`, `last_run_status` (`ok` / `failed`), `steps_completed` (string list), `source` (`fx_regime_pipeline`), optional `error_message`, plus merged fields from `site/data/supabase_sync_sidecar.json` if present: `supabase_write_status`, `supabase_rows_written`, `last_supabase_write`.
 - **Sidecar writer:** `core/signal_write.py` `_write_supabase_sidecar` writes `site/data/supabase_sync_sidecar.json` after signal sync attempts.
-- **Next.js today:** no reader component for `pipeline_status.json` in `web/` (legacy static dashboard used this under the old `site/` shell).
+- **Consumers:** optional operators or a future site; no in-repo Next.js reader.
 
 ## GitHub Actions (`.github/workflows/daily_brief.yml`)
 
@@ -71,26 +81,7 @@ CLI:
 - **Env:** `LAYER3_STRICT=1` in CI (forces strict Layer 3 sidecars per comment in YAML).
 - **Sequence:** `python run.py --skip deploy` (with retry sleep 60s on failure) → verify `briefs/brief_${SLUG}.html` → `python scripts/publish_brief_for_site.py` → `python deploy.py` → `npx wrangler deploy` (Worker + `site/` assets).
 
-## GitHub Actions — Next.js web (`deploy_web.yml`)
-
-- **Trigger:** `push` to `main` when paths under `web/**` change.
-- **Does not** run the Python pipeline.
-- **Build:** Node 20, `npm ci` in `web/`, `npx @cloudflare/next-on-pages`; deploy with `wrangler pages deploy web/.vercel/output/static --project-name=fx-regime-lab`.
-- **Secrets / env:** `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`; `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` must be available at **build time** (see **Frontend Environment Variables** below).
-
-## Frontend Environment Variables
-
-`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` must be available at **Next.js build time**, not only at runtime. Next inlines `NEXT_PUBLIC_*` into the client bundle when `next build` runs (including under `@cloudflare/next-on-pages`). If they are missing during the build, the browser bundle can end up empty and client-side Supabase code fails.
-
-Set them in **all** of these places as appropriate:
-
-1. **`web/.env.local`** — local development (`next dev` / local `pages:build`).
-2. **GitHub Actions secrets** — referenced as `secrets.NEXT_PUBLIC_SUPABASE_*` in `deploy_web.yml` so CI builds embed the values.
-3. **Cloudflare Pages → Settings → Environment variables** — for Connect-to-Git builds or manual `wrangler pages deploy` runs that build on Cloudflare or need the dashboard to inject build env.
-
-**Cloudflare Pages “Secrets” alone are not enough for the client bundle.** Encrypted secrets are for **runtime** (Pages Functions / Workers). They do not replace passing `NEXT_PUBLIC_*` into the **build** environment so Next can embed them in static client JavaScript.
-
-## `workers/site-entry.js` routes (Worker)
+## `workers/site-entry.js` routes (Worker, current)
 
 Exported `fetch` handler branches:
 
@@ -98,11 +89,13 @@ Exported `fetch` handler branches:
 - `GET /api/substack-rss` → proxies Substack feed XML with cache TTL 3600s.
 - `GET /api/fx-price?symbol=...` → Yahoo chart API proxy JSON.
 - `GET /proxy/yahoo` or `/proxy/yahoo/...` → Yahoo REST proxy with CORS `*`.
-- `GET /assets/supabase-env.js` → injects `window.__SUPABASE_URL__` and `window.__SUPABASE_ANON_KEY__` from Worker env.
-- Paths starting `/data/` or `/static/` → `env.ASSETS.fetch` with optional CORS for `.json` under `/static/`.
-- **Default:** `env.ASSETS.fetch(request)` for static site, with HTML CSP helper `withHtmlCsp`.
+- **Any other path** → `404` JSON `{ error: "not_found", path }`.
 
-This Worker is **orthogonal** to the Next.js Pages `wrangler.toml` at repo root unless you explicitly wire both in ops.
+There is **no** static asset binding, HTML CSP injection, or `/assets/supabase-env.js` in the current Worker.
+
+## Frontend environment (when you add a new app)
+
+If you reintroduce Next.js or another SPA, supply public Supabase URL and anon key at **build time** for any `NEXT_PUBLIC_*` pattern the framework uses. See historical notes in git history for Cloudflare Pages + `next-on-pages` pitfalls.
 
 ## `pipeline_errors`
 

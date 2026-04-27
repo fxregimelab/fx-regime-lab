@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  
+  --color-brand-eurusd: #4BA3E3;
+  --color-brand-usdjpy: #F5923A;
+  --color-brand-usdinr: #C84A31;
+  --color-brand-accent: #F5923A;
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .live-indicator {
+    background: radial-gradient(circle, #4ade80 0%, #16a34a 100%);
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+  }
+  @keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+  }
+  .animate-scanline {
+    animation: scanline 8s linear infinite;
+  }
+}
+
+html, body {
+  height: 100%;
+}

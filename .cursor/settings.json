@@ -11,5 +11,16 @@
   "editor": {
     "formatOnSave": true,
     "defaultFormatter": "prettier"
+  },
+  "plugins": {
+    "cloudflare": {
+      "enabled": true
+    },
+    "context7-plugin": {
+      "enabled": true
+    },
+    "vercel": {
+      "enabled": true
+    }
   }
 }

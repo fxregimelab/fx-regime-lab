@@ -1,32 +1,37 @@
 {
-  "name": "fx-regime-lab-web",
+  "name": "web",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": ">=22 <25"
-  },
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start",
-    "lint": "biome check .",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.49.4",
-    "lightweight-charts": "^5.0.7",
-    "next": "^16.2.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@supabase/supabase-js": "^2.105.0",
+    "@tanstack/react-query": "^5.100.5",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "lightweight-charts": "^5.2.0",
+    "lucide-react": "^1.11.0",
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^3.8.1",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.7.0",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "typescript": "^5.4.0",
-    "tailwindcss": "^4.0.0",
-    "@tailwindcss/postcss": "^4.0.0"
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
