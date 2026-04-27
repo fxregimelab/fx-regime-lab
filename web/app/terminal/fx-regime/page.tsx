@@ -63,7 +63,7 @@ export default async function TerminalStrategyPage() {
             return (
               <div
                 key={p.label}
-                className={`border border-[#1e1e1e] bg-[#0c0c0c] p-5 font-mono text-[12px] text-[#737373] ${cardHover[p.label]}`}
+                className={`min-h-[130px] border border-[#1e1e1e] bg-[#0c0c0c] p-5 font-mono text-[12px] text-[#737373] ${cardHover[p.label]}`}
               >
                 No data — run pipeline
               </div>
@@ -74,7 +74,7 @@ export default async function TerminalStrategyPage() {
             <Link
               key={p.label}
               href={`/terminal/fx-regime/${p.urlSlug}`}
-              className={`border border-[#1e1e1e] bg-[#0c0c0c] p-5 transition-colors ${cardHover[p.label]}`}
+              className={`flex min-h-[130px] flex-col border border-[#1e1e1e] bg-[#0c0c0c] p-5 transition-colors ${cardHover[p.label]}`}
             >
               <div className="flex items-baseline justify-between gap-2">
                 <span className={`font-mono text-[11px] ${pairTextClass(p.label)}`}>
@@ -102,9 +102,9 @@ export default async function TerminalStrategyPage() {
         <h2 className="font-sans text-[14px] font-semibold uppercase leading-tight text-[#e8e8e8]">
           30-day regime heatmap
         </h2>
-        <div className="mt-4 border border-[#1e1e1e] bg-[#0c0c0c] p-6">
+        <div className="mt-4">
           {heatmapData.dates.length === 0 ? (
-            <p className="font-mono text-[12px] text-[#555]">
+            <p className="border border-[#1e1e1e] px-4 py-3 font-mono text-[12px] text-[#555]">
               Heatmap available after first pipeline run.
             </p>
           ) : (

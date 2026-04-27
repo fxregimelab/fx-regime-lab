@@ -20,7 +20,7 @@ export function PerformanceFilters({ rows }: Props) {
 
   const chips: { id: Filter; label: string }[] = [
     { id: 'ALL', label: 'ALL' },
-    ...PAIRS.map((p) => ({ id: p.label, label: p.label })),
+    ...PAIRS.map((p) => ({ id: p.label, label: p.display })),
   ];
 
   return (

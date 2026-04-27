@@ -75,3 +75,44 @@ body {
   background-size: 400px 100%;
   animation: shimmer 1.5s infinite linear;
 }
+
+/* Pair accent borders without inline styles (AGENTS.md) */
+.shell-tab-eurusd {
+  border-bottom-color: #4ba3e3;
+}
+.shell-tab-usdjpy {
+  border-bottom-color: #f5923a;
+}
+.shell-tab-usdinr {
+  border-bottom-color: #d94030;
+}
+.shell-pair-top-eurusd {
+  border-top-width: 3px;
+  border-top-style: solid;
+  border-top-color: #4ba3e3;
+}
+.shell-pair-top-usdjpy {
+  border-top-width: 3px;
+  border-top-style: solid;
+  border-top-color: #f5923a;
+}
+.shell-pair-top-usdinr {
+  border-top-width: 3px;
+  border-top-style: solid;
+  border-top-color: #d94030;
+}
+.shell-tab-all {
+  border-bottom-color: #0a0a0a;
+}
+.shell-desk-eurusd {
+  border-color: rgba(75, 163, 227, 0.25);
+  color: #4ba3e3;
+}
+.shell-desk-usdjpy {
+  border-color: rgba(245, 146, 58, 0.25);
+  color: #f5923a;
+}
+.shell-desk-usdinr {
+  border-color: rgba(217, 64, 48, 0.25);
+  color: #d94030;
+}

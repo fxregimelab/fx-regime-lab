@@ -1,5 +1,5 @@
 import { ConfidenceBar } from '@/components/ConfidenceBar';
-import { pairTextClass } from '@/lib/pair-styles';
+import { pairTextClass, pairTopShellClass } from '@/lib/pair-styles';
 import type { PairMeta, RegimeCall, SignalRow } from '@/lib/types';
 import { fmt2, fmtChg, fmtInt, fmtSpot } from '@/lib/utils/format';
 import Link from 'next/link';
@@ -15,17 +15,11 @@ export function PairCard({
 }) {
   const chg = fmtChg(signal.day_change_pct);
   const pct = regime ? Math.round(regime.confidence * 100) : null;
-  const topBorderClass =
-    pair.label === 'EURUSD'
-      ? 'border-t-[3px] border-t-[#4BA3E3]'
-      : pair.label === 'USDJPY'
-        ? 'border-t-[3px] border-t-[#F5923A]'
-        : 'border-t-[3px] border-t-[#D94030]';
 
   return (
     <Link
       href={`/pairs/${pair.urlSlug}`}
-      className={`group flex min-h-[200px] flex-col border border-[#e5e5e5] bg-white p-5 transition hover:border-[#bbb] hover:bg-[#fafafa] ${topBorderClass}`}
+      className={`group flex min-h-[200px] flex-col border border-[#e5e5e5] bg-white p-5 transition hover:border-[#bbb] hover:bg-[#fafafa] ${pairTopShellClass(pair.label)}`}
     >
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>

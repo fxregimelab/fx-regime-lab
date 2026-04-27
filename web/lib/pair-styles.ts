@@ -43,6 +43,38 @@ export function pairFillHex(label: PairMeta['label']): string {
   return pairHex[label];
 }
 
+/** 3px top accent on cards (globals.css — no inline styles). */
+const pairTopShell: Record<PairMeta['label'], string> = {
+  EURUSD: 'shell-pair-top-eurusd',
+  USDJPY: 'shell-pair-top-usdjpy',
+  USDINR: 'shell-pair-top-usdinr',
+};
+
+export function pairTopShellClass(label: PairMeta['label']): string {
+  return pairTopShell[label];
+}
+
+const tabBottomShell: Record<PairMeta['label'], string> = {
+  EURUSD: 'shell-tab-eurusd',
+  USDJPY: 'shell-tab-usdjpy',
+  USDINR: 'shell-tab-usdinr',
+};
+
+export function briefTabBottomClass(tab: 'ALL' | PairMeta['label']): string {
+  if (tab === 'ALL') return 'shell-tab-all';
+  return tabBottomShell[tab];
+}
+
+const deskShell: Record<PairMeta['label'], string> = {
+  EURUSD: 'shell-desk-eurusd',
+  USDJPY: 'shell-desk-usdjpy',
+  USDINR: 'shell-desk-usdinr',
+};
+
+export function shellDeskLinkClass(label: PairMeta['label']): string {
+  return deskShell[label];
+}
+
 /** Regime string → Tailwind bg class for heatmap cells */
 export function regimeHeatmapCellClass(regime: string, colors: Record<string, string>): string {
   const key = regime.trim();

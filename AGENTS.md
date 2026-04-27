@@ -57,7 +57,7 @@ fx-regime-lab/
 
 ### Hard Rules
 
-- ZERO `style={}` inline styles — Tailwind only
+- ZERO `style={}` inline styles — Tailwind only (pair accent borders use `shell-tab-*`, `shell-pair-top-*`, and `shell-desk-*` classes in `web/app/globals.css` plus helpers in `web/lib/pair-styles.ts`)
 - ZERO `supabase.from()` outside `web/lib/supabase/queries.ts`
 - ZERO AI API calls from frontend — only read cached AI text from Supabase
 - ZERO manual edits to `database.types.ts`

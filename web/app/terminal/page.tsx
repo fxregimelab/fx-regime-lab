@@ -59,7 +59,7 @@ export default async function TerminalIndexPage() {
             return (
               <div
                 key={p.label}
-                className={`bg-[#0c0c0c] p-5 font-mono text-[12px] text-[#737373] transition-colors ${cardHover[p.label]}`}
+                className={`min-h-[140px] border border-transparent bg-[#0c0c0c] p-5 font-mono text-[12px] text-[#737373] transition-colors ${cardHover[p.label]}`}
               >
                 No data — run pipeline
               </div>
@@ -70,7 +70,7 @@ export default async function TerminalIndexPage() {
             <Link
               key={p.label}
               href={`/terminal/fx-regime/${p.urlSlug}`}
-              className={`bg-[#0c0c0c] p-5 transition-colors ${cardHover[p.label]}`}
+              className={`flex min-h-[140px] flex-col border border-transparent bg-[#0c0c0c] p-5 transition-colors ${cardHover[p.label]}`}
             >
               <div className="flex items-baseline justify-between gap-2">
                 <span className={`font-mono text-[11px] ${pairTextClass(p.label)}`}>

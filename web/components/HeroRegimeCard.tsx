@@ -14,6 +14,7 @@ export function HeroRegimeCard({
 }) {
   const chg = fmtChg(signal.day_change_pct);
   const pct = Math.round(regime.confidence * 100);
+  const impliedVol = signal.implied_vol_30d == null ? '—' : fmt2(signal.implied_vol_30d);
 
   return (
     <div className="border border-[#1e1e1e] bg-[#080808]">
@@ -66,12 +67,15 @@ export function HeroRegimeCard({
         </div>
 
         <div className="border-t border-[#141414]">
-          {([
-            ['RATE DIFF 2Y', fmt2(signal.rate_diff_2y)],
-            ['COT PERCENTILE', fmtInt(signal.cot_percentile)],
-            ['REALIZED VOL 20D', fmt2(signal.realized_vol_20d)],
-            ['SIGNAL COMPOSITE', fmt2(regime.signal_composite)],
-          ] as [string, string][]).map(([label, value]) => (
+          {(
+            [
+              ['RATE DIFF 2Y', fmt2(signal.rate_diff_2y)],
+              ['COT PERCENTILE', fmtInt(signal.cot_percentile)],
+              ['REALIZED VOL 20D', fmt2(signal.realized_vol_20d)],
+              ['IMPLIED VOL 30D', impliedVol],
+              ['SIGNAL COMPOSITE', fmt2(regime.signal_composite)],
+            ] as [string, string][]
+          ).map(([label, value]) => (
             <div
               key={label}
               className="flex items-center justify-between border-b border-[#111] py-2.5"

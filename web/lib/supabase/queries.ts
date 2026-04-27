@@ -1,4 +1,5 @@
 import { PAIR_LABELS } from '@/lib/pair-styles';
+import { mapEquityCurve } from '@/lib/supabase/map-row';
 import { createClient } from './client';
 import type { Database } from './database.types';
 
@@ -98,9 +99,9 @@ export async function getUpcomingMacroEvents() {
     .order('impact', { ascending: true });
 }
 
-export async function getValidationLog() {
+export async function getValidationLog(limit = 30) {
   const supabase = createClient();
-  return supabase.from('validation_log').select('*').order('date', { ascending: false }).limit(30);
+  return supabase.from('validation_log').select('*').order('date', { ascending: false }).limit(limit);
 }
 
 export async function getValidationStats() {
@@ -163,4 +164,127 @@ export async function getLastPipelineRun() {
     .order('created_at', { ascending: false })
     .limit(1)
     .returns<LastPipelineRunRow[]>();
+}
+
+type ValidationKpiRow = Pick<
+  Database['public']['Tables']['validation_log']['Row'],
+  'date' | 'correct_1d' | 'actual_return_1d' | 'pair'
+>;
+
+/** Homepage stats bar (shell design): pairs, calls since Apr 2026, rolling 7d accuracy, signal families. */
+export async function getHomepageKpis() {
+  const supabase = createClient();
+  const res = await supabase
+    .from('validation_log')
+    .select('date, correct_1d, actual_return_1d')
+    .order('date', { ascending: true });
+  if (res.error) {
+    return { data: null, error: res.error };
+  }
+  const rows = (res.data ?? []) as ValidationKpiRow[];
+  const scored = rows.filter(
+    (r): r is ValidationKpiRow & { correct_1d: boolean; actual_return_1d: number } =>
+      r.correct_1d !== null && r.actual_return_1d !== null
+  );
+  const sinceApr = '2026-04-01';
+  const callsSinceApril2026 = scored.filter((r) => r.date >= sinceApr).length;
+  const cut = new Date();
+  cut.setUTCDate(cut.getUTCDate() - 7);
+  const cutStr = cut.toISOString().slice(0, 10);
+  const last7 = scored.filter((r) => r.date >= cutStr);
+  let accuracy7dPct: number | null = null;
+  if (last7.length > 0) {
+    const c = last7.filter((r) => r.correct_1d).length;
+    accuracy7dPct = (c / last7.length) * 100;
+  }
+  return {
+    data: {
+      pairsTracked: PAIR_LABELS.length,
+      callsSinceApril2026,
+      accuracy7dPct,
+      signalFamilies: 4,
+    },
+    error: null,
+  };
+}
+
+/** Performance hero metrics aligned with shell prototype. */
+export async function getShellPerformanceMetrics() {
+  const supabase = createClient();
+  const vRes = await supabase
+    .from('validation_log')
+    .select('date, correct_1d, actual_return_1d, pair')
+    .order('date', { ascending: true });
+  if (vRes.error) {
+    return { data: null, error: vRes.error };
+  }
+  const rows = (vRes.data ?? []) as ValidationKpiRow[];
+  const scored = rows.filter(
+    (r): r is ValidationKpiRow & { correct_1d: boolean; actual_return_1d: number } =>
+      r.correct_1d !== null && r.actual_return_1d !== null
+  );
+  const total = scored.length;
+  const correct = scored.filter((r) => r.correct_1d).length;
+  const cut7 = new Date();
+  cut7.setUTCDate(cut7.getUTCDate() - 7);
+  const cut7Str = cut7.toISOString().slice(0, 10);
+  const slice7 = scored.filter((r) => r.date >= cut7Str);
+  const rolling7dCorrect = slice7.filter((r) => r.correct_1d).length;
+  const rolling7dTotal = slice7.length;
+  const rolling7dPct =
+    rolling7dTotal > 0 ? (rolling7dCorrect / rolling7dTotal) * 100 : null;
+  const avgNextDayReturn =
+    total > 0 ? scored.reduce((s, r) => s + r.actual_return_1d, 0) / total : null;
+  const eRes = await getEquityCurve();
+  let cumulativeAllLast: number | null = null;
+  if (!eRes.error && eRes.data?.length) {
+    const mapped = mapEquityCurve(
+      (eRes.data as Array<{ date: string; pair: string; actual_return_1d: number | null }>).map((r) => ({
+        date: r.date,
+        pair: r.pair,
+        return_pct: r.actual_return_1d,
+      }))
+    );
+    const all = mapped.series.ALL ?? [];
+    cumulativeAllLast = all.length ? all[all.length - 1] ?? null : null;
+  }
+  const perPairRolling: Record<string, { pct: number | null; n: number }> = {};
+  for (const p of PAIR_LABELS) {
+    const pr = scored.filter((r) => r.pair === p);
+    const slice = pr.filter((r) => r.date >= cut7Str);
+    const use = slice.length > 0 ? slice : pr;
+    perPairRolling[p] = {
+      pct: use.length ? (use.filter((r) => r.correct_1d).length / use.length) * 100 : null,
+      n: use.length,
+    };
+  }
+  return {
+    data: {
+      callsValidated: total,
+      correct,
+      rolling7dPct,
+      rolling7dCorrect,
+      rolling7dTotal,
+      avgNextDayReturn,
+      cumulativeAllLast,
+      perPairRolling,
+    },
+    error: null,
+  };
+}
+
+type RegimeTransitionRow = Pick<RegimeCallRow, 'date' | 'pair' | 'regime'>;
+
+/** Ordered regime history for transition matrix (~2y window, ascending by date). */
+export async function getRegimeCallsForTransitions() {
+  const supabase = createClient();
+  const start = new Date();
+  start.setUTCDate(start.getUTCDate() - 730);
+  return supabase
+    .from('regime_calls')
+    .select('date, pair, regime')
+    .in('pair', PAIR_LABELS)
+    .gte('date', utcDateString(start))
+    .order('date', { ascending: true })
+    .returns<RegimeTransitionRow[]>();
 }
