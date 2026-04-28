@@ -32,6 +32,7 @@ export interface Database {
           cross_asset_vix: number | null
           cross_asset_dxy: number | null
           cross_asset_oil: number | null
+          cross_asset_us10y: number | null
           created_at: string
           day_change: number | null
           day_change_pct: number | null
@@ -58,6 +59,7 @@ export interface Database {
           cross_asset_vix?: number | null
           cross_asset_dxy?: number | null
           cross_asset_oil?: number | null
+          cross_asset_us10y?: number | null
           created_at?: string
           day_change?: number | null
           day_change_pct?: number | null

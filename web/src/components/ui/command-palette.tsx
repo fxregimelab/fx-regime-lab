@@ -76,7 +76,7 @@ export function CommandPalette() {
         setSelectedIndex(0);
       }}
     >
-      <div className="bg-[#0c0c0c] border border-[#1a1a1a] shadow-2xl w-full max-w-[500px] overflow-hidden rounded-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#050505] border border-[#1a1a1a] shadow-none w-full max-w-[500px] overflow-hidden rounded-none" onClick={e => e.stopPropagation()}>
         <input 
           ref={inputRef}
           autoFocus

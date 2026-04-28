@@ -22,7 +22,7 @@ export function ClickToCopy({ value, children }: { value: string | undefined, ch
       </div>
       {copied && (
         <div className="absolute inset-0 flex flex-col items-end justify-center bg-[#080808]">
-          <span className="font-mono text-[10px] font-bold text-[#4ade80] tracking-widest px-2 py-1 border border-[#4ade80]">COPIED</span>
+          <span className="font-mono text-[10px] font-bold text-[#22c55e] tracking-widest px-2 py-1 border border-[#22c55e]">COPIED</span>
         </div>
       )}
     </div>

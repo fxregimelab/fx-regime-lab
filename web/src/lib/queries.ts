@@ -11,7 +11,13 @@ type RegimeCallRow = Database['public']['Tables']['regime_calls']['Row'];
 type SignalRow = Database['public']['Tables']['signals']['Row'];
 type LatestRegimeCallRow = Pick<
   RegimeCallRow,
-  'pair' | 'date' | 'regime' | 'confidence' | 'signal_composite' | 'rate_signal' | 'primary_driver' | 'created_at'
+  'pair' | 'date' | 'regime' | 'confidence' | 'signal_composite'  | 'rate_signal'
+  | 'cot_signal'
+  | 'vol_signal'
+  | 'rr_signal'
+  | 'oi_signal'
+  | 'primary_driver'
+  | 'created_at'
 >;
 type LatestSignalRow = Pick<
   SignalRow,
@@ -23,10 +29,14 @@ type LatestSignalRow = Pick<
   | 'cot_percentile'
   | 'realized_vol_20d'
   | 'realized_vol_5d'
+  | 'implied_vol_30d'
   | 'cross_asset_vix'
   | 'cross_asset_dxy'
   | 'cross_asset_oil'
+  | 'cross_asset_us10y'
   | 'day_change_pct'
+  | 'cot_lev_money_net'
+  | 'oi_delta'
   | 'created_at'
 >;
 
@@ -39,7 +49,7 @@ export function useLatestRegimeCalls() {
     queryFn: async (): Promise<Record<string, LatestRegimeCallRow>> => {
       const { data, error } = await supabase
         .from('regime_calls')
-        .select('pair,date,regime,confidence,signal_composite,rate_signal,primary_driver,created_at')
+        .select('pair,date,regime,confidence,signal_composite,rate_signal,cot_signal,vol_signal,rr_signal,oi_signal,primary_driver,created_at')
         .in('pair', TRACKED_PAIRS)
         .order('date', { ascending: false })
         .limit(20);
@@ -78,6 +88,26 @@ export function useRegimeHeatmap() {
   });
 }
 
+// getRegimeHistory30D — for chart regime bands
+export function useRegimeHistory30D(pair: string) {
+  return useQuery({
+    queryKey: ['regime_calls', 'history30d', pair],
+    queryFn: async (): Promise<{ date: string; regime: string; confidence: number }[]> => {
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+      const { data, error } = await supabase
+        .from('regime_calls')
+        .select('date, regime, confidence')
+        .eq('pair', pair)
+        .gte('date', since.toISOString().split('T')[0])
+        .order('date', { ascending: true });
+      if (error) throw error;
+      return (data as { date: string; regime: string; confidence: number }[]) ?? [];
+    },
+    enabled: !!pair,
+  });
+}
+
 // getRegimeHistory
 export function useRegimeHistory(pair: string) {
   return useQuery({
@@ -104,7 +134,7 @@ export function useLatestSignals() {
       const { data, error } = await supabase
         .from('signals')
         .select(
-          'pair,date,spot,rate_diff_2y,rate_diff_10y,cot_percentile,realized_vol_20d,realized_vol_5d,cross_asset_vix,cross_asset_dxy,cross_asset_oil,day_change_pct,created_at',
+          'pair,date,spot,rate_diff_2y,rate_diff_10y,cot_percentile,realized_vol_20d,realized_vol_5d,implied_vol_30d,cross_asset_vix,cross_asset_dxy,cross_asset_oil,day_change_pct,cot_lev_money_net,oi_delta,created_at',
         )
         .in('pair', TRACKED_PAIRS)
         .order('date', { ascending: false })
@@ -129,17 +159,18 @@ export function useCrossAssetPulse() {
       vix: { value: number | null; change: number | null };
       dxy: { value: number | null; change: number | null };
       oil: { value: number | null; change: number | null };
+      us10y: { value: number | null; change: number | null };
       date: string | null;
     }> => {
       const { data, error } = await supabase
         .from('signals')
-        .select('date,cross_asset_vix,cross_asset_dxy,cross_asset_oil')
+        .select('date,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_us10y')
         .eq('pair', 'EURUSD')
         .order('date', { ascending: false })
         .limit(2);
       if (error) throw error;
       const rows = (data ??
-        []) as Pick<SignalRow, 'date' | 'cross_asset_vix' | 'cross_asset_dxy' | 'cross_asset_oil'>[];
+        []) as Pick<SignalRow, 'date' | 'cross_asset_vix' | 'cross_asset_dxy' | 'cross_asset_oil' | 'cross_asset_us10y'>[];
       const latest = rows[0];
       const prev = rows[1];
       const delta = (a: number | null, b: number | null) =>
@@ -156,6 +187,10 @@ export function useCrossAssetPulse() {
         oil: {
           value: latest?.cross_asset_oil ?? null,
           change: delta(latest?.cross_asset_oil ?? null, prev?.cross_asset_oil ?? null),
+        },
+        us10y: {
+          value: latest?.cross_asset_us10y ?? null,
+          change: delta(latest?.cross_asset_us10y ?? null, prev?.cross_asset_us10y ?? null),
         },
         date: latest?.date ?? null,
       };

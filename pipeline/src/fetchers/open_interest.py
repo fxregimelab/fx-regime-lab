@@ -27,3 +27,17 @@ def compute_oi_from_cot(cot_rows: list[CotRow], pair: str) -> float | None:
     latest = oi_series[-1]
     rank = sum(1 for v in oi_series if v <= latest)
     return round(rank / len(oi_series) * 100, 1)
+
+
+def compute_oi_delta_from_cot(cot_rows: list[CotRow], pair: str) -> int | None:
+    """Return latest week-over-week open-interest delta for a pair."""
+    rows = sorted(
+        [r for r in cot_rows if r.pair == pair and r.open_interest > 0],
+        key=lambda r: r.date,
+    )
+    if len(rows) < 2:
+        logger.debug("Not enough COT rows for OI delta on %s", pair)
+        return None
+    latest = rows[-1].open_interest
+    previous = rows[-2].open_interest
+    return int(latest - previous)

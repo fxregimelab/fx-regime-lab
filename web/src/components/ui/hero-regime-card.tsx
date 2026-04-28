@@ -3,15 +3,18 @@
 import { BRAND } from '@/lib/mockData';
 import { ConfidenceBar } from './confidence-bar';
 import { fmt2, fmtInt, timeAgo } from './utils';
+import { MethodologyPopover } from './methodology-popover';
 
 export function HeroRegimeCard({
   call,
   signals,
   connectionStatus = 'pending',
+  timestamp,
 }: {
   call: Record<string, unknown> | null | undefined;
   signals: Record<string, unknown> | null | undefined;
   connectionStatus?: 'live' | 'error' | 'pending';
+  timestamp?: string;
 }) {
   const pct = call ? Math.round(Number(call.confidence) * 100) : null;
   const chg = signals?.day_change_pct as number | null | undefined;
@@ -29,19 +32,19 @@ export function HeroRegimeCard({
         </div>
         <div className="flex items-center gap-2.5">
           {chg != null && (
-            <span className={`font-mono text-[11px] font-semibold ${chg >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
+            <span className={`font-mono text-[11px] font-semibold ${chg >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
               {chg >= 0 ? '+' : ''}
               {chg.toFixed(2)}%
             </span>
           )}
           <div className="flex items-center gap-1.5">
             <span
-              className={`w-1.5 h-1.5 rounded-full shrink-0 ${err ? 'bg-[#f87171]' : live ? 'live-indicator animate-pulse' : 'bg-[#737373]'}`}
+              className={`w-1.5 h-1.5 rounded-full shrink-0 ${err ? 'bg-[#ef4444]' : live ? 'hidden' : 'bg-[#737373]'}`}
             />
             <span
-              className={`font-mono text-[10px] ${err ? 'text-[#f87171]' : live ? 'text-[#555]' : 'text-[#666]'}`}
+              className={`font-mono text-[10px] ${err ? 'text-[#ef4444]' : live ? 'text-[#555]' : 'text-[#666]'}`}
             >
-              {err ? 'OFFLINE' : live ? 'LIVE' : '…'}
+              {err ? 'OFFLINE' : live ? 'SYNCED DATA' : '…'}
             </span>
           </div>
         </div>
@@ -50,9 +53,12 @@ export function HeroRegimeCard({
       <div className="p-5">
         <div className="mb-5">
           <p className="font-mono text-[9px] text-[#999] tracking-[0.12em] mb-1">SPOT</p>
-          <p className="font-mono text-[32px] font-bold text-white tracking-[-0.02em] leading-none">
+          <p className="font-mono text-[32px] font-bold text-white tracking-[-0.02em] leading-none tabular-nums">
             {signals?.spot != null ? Number(signals.spot).toFixed(4) : '—'}
           </p>
+          {timestamp && (
+            <p className="font-mono text-[9px] text-[#666] tracking-[0.06em] mt-2">SYNCED: {timestamp}</p>
+          )}
         </div>
 
         <div className="mb-5 pb-4 border-b border-[#1a1a1a]">
@@ -75,15 +81,18 @@ export function HeroRegimeCard({
 
         <div className="border-t border-[#141414]">
           {[
-            ['RATE DIFF 2Y', fmt2(signals?.rate_diff_2y as number | null | undefined)],
-            ['COT PERCENTILE', fmtInt(signals?.cot_percentile as number | null | undefined)],
-            ['REALIZED VOL 20D', fmt2(signals?.realized_vol_20d as number | null | undefined)],
-            ['IMPLIED VOL 30D', fmt2(signals?.implied_vol_30d as number | null | undefined)],
-            ['SIGNAL COMPOSITE', fmt2(call?.signal_composite as number | null | undefined)],
-          ].map(([label, value]) => (
-            <div key={label} className="flex justify-between items-center py-2.5 border-b border-[#111]">
-              <span className="font-mono text-[10px] text-[#aaa] tracking-[0.06em]">{label}</span>
-              <span className="font-mono text-xs text-white font-bold">{value as React.ReactNode}</span>
+            ['RATE DIFF 2Y', fmt2(signals?.rate_diff_2y as number | null | undefined), 'rateDiff'],
+            ['COT PERCENTILE', fmtInt(signals?.cot_percentile as number | null | undefined), 'cot'],
+            ['REALIZED VOL 20D', fmt2(signals?.realized_vol_20d as number | null | undefined), 'realizedVol'],
+            ['IMPLIED VOL 30D', fmt2(signals?.implied_vol_30d as number | null | undefined), null],
+            ['SIGNAL COMPOSITE', fmt2(call?.signal_composite as number | null | undefined), 'composite'],
+          ].map(([label, value, key]) => (
+            <div key={label as string} className="flex justify-between items-center py-2.5 border-b border-[#111]">
+              <span className="font-mono text-[10px] text-[#aaa] tracking-[0.06em] flex items-center">
+                {label as string}
+                {key && <MethodologyPopover metricKey={key as 'cot' | 'rateDiff' | 'realizedVol' | 'composite'} />}
+              </span>
+              <span className="font-mono text-xs text-white font-bold tabular-nums">{value as React.ReactNode}</span>
             </div>
           ))}
         </div>

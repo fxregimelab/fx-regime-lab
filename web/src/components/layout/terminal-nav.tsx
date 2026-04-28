@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LogoMark } from '../ui/logo-mark';
 import { PAIRS } from '@/lib/mockData';
 import { useLatestSignals, useLatestRegimeCalls, useLastPipelineRun } from '@/lib/queries';
+import { MacroPulseBar } from '../ui/macro-pulse-bar';
 
 export function TerminalNav() {
   const currentRoute = usePathname() || '';
@@ -32,8 +33,9 @@ export function TerminalNav() {
   const utcClock = lastRunQ.data ? `${new Date(lastRunQ.data).toISOString().slice(11, 16)} UTC` : '—';
 
   return (
-    <header className="border-b border-[#1e1e1e] bg-[#080808] sticky top-0 z-50">
-      <div className="border-b border-[#141414] px-6 h-[38px] flex items-center justify-between max-w-[1152px] mx-auto">
+    <header className="border-b border-[#1a1a1a] bg-[#050505] sticky top-0 z-50">
+      <MacroPulseBar />
+      <div className="border-b border-[#1a1a1a] px-6 h-[38px] flex items-center justify-between max-w-[1152px] mx-auto">
         <div className="flex items-center gap-2.5">
           <LogoMark size={16} />
           <span className="font-sans font-bold text-[13px] text-[#e8e8e8] tracking-tight">FX Regime Lab</span>
@@ -49,10 +51,10 @@ export function TerminalNav() {
           </button>
           <div className="flex items-center gap-1.5">
             <span
-              className={`w-1.5 h-1.5 rounded-full shrink-0 ${err ? 'bg-[#f87171]' : pending ? 'bg-[#737373]' : 'live-indicator animate-pulse'}`}
+              className={`w-1.5 h-1.5 rounded-full shrink-0 ${err ? 'bg-[#ef4444]' : pending ? 'bg-[#737373]' : 'hidden'}`}
             />
-            <span className={`font-mono text-[10px] ${err ? 'text-[#f87171]' : 'text-[#888]'}`}>
-              {err ? 'ERROR' : pending ? 'LOADING' : 'LIVE'} · {asOfDay} {utcClock}
+            <span className={`font-mono text-[10px] ${err ? 'text-[#ef4444]' : 'text-[#737373]'}`}>
+              {err ? 'ERROR' : pending ? 'LOADING' : 'SYNCED'} · {asOfDay} {utcClock}
             </span>
           </div>
         </div>
@@ -107,7 +109,7 @@ export function TerminalNav() {
                   {p.display}
                 </span>
                 {sig && chgPct != null && (
-                  <span className={`${chgPct >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
+                  <span className={`${chgPct >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
                     {chgPct >= 0 ? '+' : ''}
                     {chgPct.toFixed(2)}%
                   </span>

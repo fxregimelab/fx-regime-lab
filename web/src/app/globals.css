@@ -37,3 +37,24 @@
 html, body {
   height: 100%;
 }
+
+@media print {
+  /* Hide all screen chrome */
+  header, footer, nav,
+  .print\\:hidden,
+  button {
+    display: none !important;
+  }
+  /* Ensure print overlay (white bg brief) is shown */
+  .hidden.print\\:block {
+    display: block !important;
+    position: static !important;
+  }
+  body {
+    background: white !important;
+    color: #0a0a0a !important;
+  }
+  @page {
+    margin: 0.75in;
+  }
+}

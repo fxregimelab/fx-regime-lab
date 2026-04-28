@@ -49,17 +49,29 @@ export function Nav() {
                 <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            <div className={`absolute right-0 top-[54px] bg-white border border-[#e5e5e5] min-w-[180px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] z-[1000] transition-all duration-150 ${open ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'}`}>
+            <div className={`absolute right-0 top-[54px] bg-[#050505] border border-[#1a1a1a] min-w-[180px] shadow-none z-[1000] transition-all duration-150 ${open ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'}`}>
               {[
                 ['/performance', 'Performance'],
-                ['/terminal/fx-regime/eurusd', 'FX Regime'],
+                ['/terminal/fx-regime/eurusd', 'Terminal'],
                 ['/calendar', 'Calendar']
-              ].map(([href, label]) => (
-                <Link key={href} href={href} onClick={() => setOpen(false)}
-                  className="flex items-center w-full px-4 py-[11px] font-sans text-[13px] text-[#0a0a0a] border-b border-[#f5f5f5] last:border-b-0 transition-colors hover:bg-[#fafafa]">
-                  {label}
-                </Link>
-              ))}
+              ].map(([href, label]) => {
+                const isLocked = href === '/performance';
+                if (isLocked) {
+                  return (
+                    <div key={href}
+                      className="flex justify-between items-center w-full px-4 py-[11px] font-sans text-[13px] text-[#555] border-b border-[#1a1a1a] last:border-b-0 cursor-not-allowed">
+                      <span>{label}</span>
+                      <span className="text-[9px] font-mono tracking-widest text-[#444]">[LOCKED / COMING SOON]</span>
+                    </div>
+                  );
+                }
+                return (
+                  <Link key={href} href={href} onClick={() => setOpen(false)}
+                    className="flex items-center w-full px-4 py-[11px] font-sans text-[13px] text-[#e8e8e8] border-b border-[#1a1a1a] last:border-b-0 transition-colors hover:bg-[#111]">
+                    {label}
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
@@ -74,7 +86,7 @@ export function Nav() {
 
           <Link href="/terminal"
             className="ml-[14px] bg-[#0a0a0a] text-white font-sans font-semibold text-xs px-4 py-2 tracking-wide flex items-center gap-1.5 transition-opacity hover:opacity-90">
-            <span className="w-1.5 h-1.5 rounded-full live-indicator animate-pulse shrink-0" />
+            <span className="w-1.5 h-1.5 rounded-full shrink-0 hidden" />
             Terminal
           </Link>
         </div>

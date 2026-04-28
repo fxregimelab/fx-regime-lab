@@ -15,7 +15,7 @@ from src.fetchers.cot import fetch_cot
 from src.fetchers.cross_asset import fetch_cross_asset
 from src.fetchers.fx_spot import fetch_fx_spot
 from src.fetchers.macro_calendar import fetch_macro_events
-from src.fetchers.open_interest import compute_oi_from_cot
+from src.fetchers.open_interest import compute_oi_delta_from_cot, compute_oi_from_cot
 from src.fetchers.volatility import fetch_implied_vol, fetch_realized_vol
 from src.fetchers.yields import fetch_yields
 from src.regime.classifier import classify_regime
@@ -105,6 +105,8 @@ def _signal_row_from_db(row: dict[str, Any]) -> SignalRow:
         cross_asset_vix=row.get("cross_asset_vix"),
         cross_asset_dxy=row.get("cross_asset_dxy"),
         cross_asset_oil=row.get("cross_asset_oil"),
+        cross_asset_us10y=row.get("cross_asset_us10y"),
+        oi_delta=row.get("oi_delta"),
     )
 
 
@@ -122,7 +124,11 @@ def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
     )
 
 
-def _upsert_macro_event_briefs(date_str: str, forward_days: int = 7, polymarket_context: str = "") -> None:
+def _upsert_macro_event_briefs(
+    date_str: str,
+    forward_days: int = 7,
+    polymarket_context: str = "",
+) -> None:
     start_d = date.fromisoformat(date_str)
     end_d = start_d + timedelta(days=forward_days)
     macro_rows = writer.list_high_impact_events_needing_brief(
@@ -277,6 +283,7 @@ def run_daily(date_str: str | None = None) -> None:
         vol_exp = is_vol_expanding(rv5, vol_90th) if rv5 is not None else False
 
         oi_pct = compute_oi_from_cot(cot_rows, pair)
+        oi_delta = compute_oi_delta_from_cot(cot_rows, pair)
         oi_norm = compute_oi_signal(oi_pct)
         composite = compute_composite(rate_norm, cot_norm, vol_norm, oi_norm)
         if composite is None:
@@ -309,6 +316,8 @@ def run_daily(date_str: str | None = None) -> None:
             cross_asset_vix=cross.get("vix"),
             cross_asset_dxy=cross.get("dxy"),
             cross_asset_oil=cross.get("oil"),
+            cross_asset_us10y=(today_yields.us_10y if today_yields else None),
+            oi_delta=oi_delta,
         )
 
         if prior_db and str(prior_db.get("date"))[:10] != today_bar.date.isoformat():

@@ -45,6 +45,8 @@ def write_signal_row(row: SignalRow) -> None:
         "cross_asset_vix": row.cross_asset_vix,
         "cross_asset_dxy": row.cross_asset_dxy,
         "cross_asset_oil": row.cross_asset_oil,
+        "cross_asset_us10y": row.cross_asset_us10y,
+        "oi_delta": row.oi_delta,
     }
     _client().table("signals").upsert(payload, on_conflict="pair,date").execute()
 

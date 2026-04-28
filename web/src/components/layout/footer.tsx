@@ -45,6 +45,12 @@ export function Footer() {
               </Link>
             ))}
           </div>
+          <div className="flex flex-col gap-1">
+            <p className="font-mono text-[9px] text-[#444] tracking-wider">SYSTEM STATUS</p>
+            <p className="font-mono text-[9px] text-[#444]">DATA SOURCE: FRED / YAHOO FINANCE</p>
+            <p className="font-mono text-[9px] text-[#444]">AI: OPENROUTER SYSTEM</p>
+            <p className="font-mono text-[9px] text-[#444]">STATUS: OPERATIONAL</p>
+          </div>
         </div>
       </div>
       <div className="border-t border-[#f0f0f0] py-3.5 px-6">

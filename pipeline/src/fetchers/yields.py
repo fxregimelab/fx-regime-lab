@@ -14,6 +14,28 @@ from src.types import RawYields
 
 logger = logging.getLogger(__name__)
 
+YF_2Y_TICKERS: dict[str, str] = {
+    "us_2y": "^UST2Y",
+    "de_2y": "^DE2Y",
+    "jp_2y": "^JP2Y",
+    "in_2y": "^IN2Y",
+}
+
+YF_10Y_TICKERS: dict[str, str] = {
+    "us_10y": "^TNX",
+    "de_10y": "^TGD10Y",
+    "jp_10y": "^JG10Y",
+    "in_10y": "^IN10Y",
+}
+
+FRED_FALLBACK_SERIES: dict[str, tuple[str, ...]] = {
+    "us_2y": ("DGS2",),
+    "us_10y": ("DGS10",),
+    "de_10y": ("IRLTLT01DEM156N",),
+    "jp_10y": ("IRLTLT01JPM156N",),
+    "in_10y": ("INDIRLTLT01STM",),
+}
+
 
 def _yf_leg(ticker: str, label: str, period: str) -> float | None:
     try:
@@ -50,6 +72,19 @@ def _fred_leg(fred: Fred | None, series_ids: tuple[str, ...], label: str) -> flo
     return None
 
 
+def _fetch_yf_legs(
+    tickers: dict[str, str],
+    period: str,
+) -> dict[str, float | None]:
+    legs: dict[str, float | None] = {}
+    total = len(tickers)
+    for idx, (leg_name, ticker) in enumerate(tickers.items()):
+        legs[leg_name] = _yf_leg(ticker, leg_name, period)
+        if idx < total - 1:
+            time.sleep(1.0)
+    return legs
+
+
 def fetch_yields(lookback_days: int = 5) -> list[RawYields]:
     """Fetch latest sovereign yield legs with yfinance first and FRED fallback.
 
@@ -64,42 +99,30 @@ def fetch_yields(lookback_days: int = 5) -> list[RawYields]:
     if fred is None:
         logger.warning("FRED_API_KEY not set — yield fallbacks limited to yfinance only")
 
-    us_2y = _yf_leg("^IRX", "US short-term yield proxy", period)
+    two_year_legs = _fetch_yf_legs(YF_2Y_TICKERS, period)
     time.sleep(1.0)
-    de_2y = _yf_leg("^DE2Y", "DE 2Y", period)
-    time.sleep(1.0)
-    jp_2y = _yf_leg("^JP2Y", "JP 2Y", period)
-    time.sleep(1.0)
-    in_2y = _yf_leg("^IN2Y", "IN 2Y", period)
-    time.sleep(1.0)
+    ten_year_legs = _fetch_yf_legs(YF_10Y_TICKERS, period)
 
-    us_10y = _yf_leg("^TNX", "US 10Y", period)
-    time.sleep(1.0)
-    de_10y = _yf_leg("^TGD10Y", "DE 10Y proxy", period)
-    time.sleep(1.0)
-    jp_10y = _yf_leg("^JG10Y", "JP 10Y proxy", period)
-    time.sleep(1.0)
-    in_10y = _yf_leg("^IN10Y", "IN 10Y proxy", period)
-
-    if us_2y is None:
-        us_2y = _fred_leg(fred, ("DGS2",), "US 2Y")
-    if us_10y is None:
-        us_10y = _fred_leg(fred, ("DGS10",), "US 10Y")
-    if jp_10y is None:
-        jp_10y = _fred_leg(fred, ("IRLTLT01JPM156N",), "JP 10Y")
-    if in_10y is None:
-        in_10y = _fred_leg(fred, ("INDIRLTLT01STM",), "IN 10Y")
-    if de_10y is None:
-        de_10y = _fred_leg(fred, ("IRLTLT01DEM156N",), "DE 10Y")
+    if two_year_legs["us_2y"] is None:
+        two_year_legs["us_2y"] = _fred_leg(fred, FRED_FALLBACK_SERIES["us_2y"], "US 2Y")
+    if ten_year_legs["us_10y"] is None:
+        ten_year_legs["us_10y"] = _fred_leg(fred, FRED_FALLBACK_SERIES["us_10y"], "US 10Y")
+    if ten_year_legs["de_10y"] is None:
+        ten_year_legs["de_10y"] = _fred_leg(fred, FRED_FALLBACK_SERIES["de_10y"], "DE 10Y")
+    if ten_year_legs["jp_10y"] is None:
+        ten_year_legs["jp_10y"] = _fred_leg(fred, FRED_FALLBACK_SERIES["jp_10y"], "JP 10Y")
+    if ten_year_legs["in_10y"] is None:
+        ten_year_legs["in_10y"] = _fred_leg(fred, FRED_FALLBACK_SERIES["in_10y"], "IN 10Y")
 
     # Best effort for EURUSD: if dedicated 2Y is unavailable, use 10Y as tenor proxy.
-    if de_2y is None and de_10y is not None:
-        de_2y = de_10y
+    if two_year_legs["de_2y"] is None and ten_year_legs["de_10y"] is not None:
+        two_year_legs["de_2y"] = ten_year_legs["de_10y"]
 
     # Best effort for USDINR: if dedicated 2Y is unavailable, use 10Y as tenor proxy.
-    if in_2y is None and in_10y is not None:
-        in_2y = in_10y
+    if two_year_legs["in_2y"] is None and ten_year_legs["in_10y"] is not None:
+        two_year_legs["in_2y"] = ten_year_legs["in_10y"]
 
+    us_2y = two_year_legs["us_2y"]
     if us_2y is None:
         logger.warning("US yield leg missing after fallback; returning empty yields list")
         return []
@@ -108,12 +131,12 @@ def fetch_yields(lookback_days: int = 5) -> list[RawYields]:
         RawYields(
             date=today,
             us_2y=us_2y,
-            de_2y=de_2y,
-            jp_2y=jp_2y,
-            in_2y=in_2y,
-            us_10y=us_10y,
-            de_10y=de_10y,
-            jp_10y=jp_10y,
-            in_10y=in_10y,
+            de_2y=two_year_legs["de_2y"],
+            jp_2y=two_year_legs["jp_2y"],
+            in_2y=two_year_legs["in_2y"],
+            us_10y=ten_year_legs["us_10y"],
+            de_10y=ten_year_legs["de_10y"],
+            jp_10y=ten_year_legs["jp_10y"],
+            in_10y=ten_year_legs["in_10y"],
         )
     ]

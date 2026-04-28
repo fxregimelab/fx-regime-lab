@@ -79,9 +79,11 @@ export function PairCard({
         ))}
       </div>
 
-      <div className="mt-3.5 pt-2.5 border-t border-[#f0f0f0] flex justify-between items-center">
-        <span className="font-mono text-[9px] text-[#aaa] tracking-widest">OPEN DESK</span>
-        <span className="font-mono text-[11px] font-bold" style={{ color: pair.pairColor }}>→</span>
+      <div className="mt-5">
+        <div className="bg-[#0a0a0a] border border-[#333] text-white font-mono text-[10px] tracking-widest px-4 py-2 uppercase hover:bg-white hover:text-black transition-all w-full flex justify-between items-center">
+          <span>OPEN DESK</span>
+          <span>→</span>
+        </div>
       </div>
     </div>
   );

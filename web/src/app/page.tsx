@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Nav } from '@/components/layout/nav';
+import { MacroPulseBar } from '@/components/ui/macro-pulse-bar';
 import { Footer } from '@/components/layout/footer';
 import { HeroRegimeCard } from '@/components/ui/hero-regime-card';
 import { PairCard } from '@/components/ui/pair-card';
@@ -63,15 +64,16 @@ export default function Home() {
   return (
     <>
       <Nav />
+      <MacroPulseBar />
       <main className="flex-1 bg-white">
         <section className="max-w-[1152px] mx-auto pt-[72px] px-6 pb-16 grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
           <div>
             <div className="flex items-center gap-2.5 mb-7">
               <span
-                className={`w-1.5 h-1.5 rounded-full shrink-0 ${liveHeader ? 'bg-[#f87171]' : 'bg-[#22c55e] live-indicator animate-pulse'}`}
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${liveHeader ? 'bg-[#ef4444]' : 'hidden'}`}
               />
               <span className="font-mono text-[11px] text-[#737373] tracking-widest">
-                {liveHeader ? 'OFFLINE · G10 FX · DAILY CALLS' : 'LIVE · G10 FX · DAILY CALLS'}
+                {liveHeader ? 'OFFLINE · G10 FX · DAILY CALLS' : 'SYNCED · G10 FX · DAILY CALLS'}
               </span>
             </div>
             <h1 className="font-sans font-extrabold text-[52px] leading-[1.05] text-[#0a0a0a] tracking-tight mb-6">
@@ -101,7 +103,7 @@ export default function Home() {
             </div>
             <div className="mt-9 flex items-center gap-2 pt-6 border-t border-[#f0f0f0]">
               <span
-                className={`w-1.25 h-1.25 rounded-full shrink-0 ${lastRunQ.isError ? 'bg-[#f87171]' : 'bg-[#22c55e] live-indicator animate-pulse'}`}
+                className={`w-1.25 h-1.25 rounded-full shrink-0 ${lastRunQ.isError ? 'bg-[#ef4444]' : 'hidden'}`}
               />
               <span className="font-mono text-[10px] text-[#a0a0a0] tracking-widest">
                 PIPELINE · {asOfDay} {pipelineClock} · 3 pairs tracked
@@ -112,7 +114,7 @@ export default function Home() {
             {regimeQ.isPending || signalsQ.isPending ? (
               <div className="bg-[#080808] border border-[#1e1e1e] h-[420px] animate-pulse" />
             ) : (
-              <HeroRegimeCard call={eurCall} signals={eurSig} connectionStatus={heroStatus} />
+              <HeroRegimeCard call={eurCall} signals={eurSig} connectionStatus={heroStatus} timestamp={`${asOfDay} ${pipelineClock}`} />
             )}
           </div>
         </section>
@@ -240,7 +242,7 @@ export default function Home() {
             {validationQ.isPending ? (
               <div className="h-40 bg-[#111] animate-pulse border border-[#1e1e1e]" />
             ) : validationQ.isError ? (
-              <p className="font-mono text-xs text-[#f87171]">Validation data unavailable.</p>
+              <p className="font-mono text-xs text-[#ef4444]">Validation data unavailable.</p>
             ) : (
               <ValidationTable rows={tableRows} tone="dark" />
             )}

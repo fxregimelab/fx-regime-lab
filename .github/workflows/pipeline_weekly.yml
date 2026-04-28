@@ -1,9 +1,8 @@
-name: Pipeline — Weekly (COT)
+name: Pipeline — Weekly
 
 on:
   schedule:
-    # 03:00 UTC Sunday = 08:30 IST = after CFTC releases Friday COT data
-    - cron: '0 3 * * 0'
+    - cron: '0 22 * * 0'
   workflow_dispatch:
 
 concurrency:
@@ -27,40 +26,12 @@ jobs:
           cache-dependency-path: pipeline/pyproject.toml
 
       - name: Install pipeline dependencies
-        run: pip install -e pipeline/
+        run: pip install -e ./pipeline
 
-      - name: Write .env
+      - name: Run weekly pipeline
         env:
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: |
-          [ -z "$FRED_API_KEY" ]              && echo "ERROR: FRED_API_KEY not set" && exit 1 || true
-          [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] && echo "ERROR: SUPABASE_SERVICE_ROLE_KEY not set" && exit 1 || true
-          printf '%s\n' \
-            "FRED_API_KEY=$FRED_API_KEY" \
-            "SUPABASE_URL=$SUPABASE_URL" \
-            "SUPABASE_PROJECT_REF=$SUPABASE_PROJECT_REF" \
-            "SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" \
-            "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" \
-            "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" \
-            > .env
-
-      - name: Run weekly pipeline (COT refresh)
-        run: |
-          set +e
-          python -m src.scheduler.orchestrator weekly
-          EC=$?
-          set -e
-          echo "### Weekly pipeline (COT)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Exit code: \`$EC\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Run date: $(date -u +%Y-%m-%d)" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$EC" -ne 0 ]; then
-            echo "First attempt failed — retrying in 60s"
-            sleep 60
-            python -m src.scheduler.orchestrator weekly
-          fi
-        working-directory: pipeline
+        run: ./pipeline/run_weekly.sh

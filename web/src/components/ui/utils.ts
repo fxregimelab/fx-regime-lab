@@ -24,7 +24,7 @@ export function fmtInt(v: number | null | undefined) {
 export function fmtChg(v: number | null | undefined) {
   if (v == null || isNaN(v)) return { str: '—', color: '#666' };
   const sign = v >= 0 ? '+' : '';
-  const color = v >= 0 ? '#4ade80' : '#f87171';
+  const color = v >= 0 ? '#22c55e' : '#ef4444';
   return { str: `${sign}${v.toFixed(2)}%`, color };
 }
 

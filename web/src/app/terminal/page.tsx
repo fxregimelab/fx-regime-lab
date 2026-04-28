@@ -61,7 +61,7 @@ export default function TerminalIndex() {
                       {p.display}
                     </span>
                     {chg != null && (
-                      <span className={`font-mono text-[11px] font-bold ${chg >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
+                      <span className={`font-mono text-[11px] font-bold ${chg >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
                         {chg >= 0 ? '+' : ''}
                         {chg.toFixed(2)}%
                       </span>
@@ -131,9 +131,9 @@ export default function TerminalIndex() {
           </div>
           <div className="px-5 py-3 flex items-center gap-1.5">
             <span
-              className={`w-1.5 h-1.5 rounded-full shrink-0 ${err ? 'bg-[#f87171]' : pending ? 'bg-[#737373]' : 'live-indicator animate-pulse'}`}
+              className={`w-1.5 h-1.5 rounded-full shrink-0 ${err ? 'bg-[#ef4444]' : pending ? 'bg-[#737373]' : 'hidden'}`}
             />
-            <span className={`font-mono text-[10px] ${err ? 'text-[#f87171]' : 'text-[#777]'}`}>
+            <span className={`font-mono text-[10px] ${err ? 'text-[#ef4444]' : 'text-[#777]'}`}>
               {err ? 'ERROR' : 'Pipeline'}: {asOfDay} {utcClock}
             </span>
           </div>

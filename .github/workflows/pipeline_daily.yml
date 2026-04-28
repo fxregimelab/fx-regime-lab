@@ -2,8 +2,7 @@ name: Pipeline — Daily
 
 on:
   schedule:
-    # 23:30 UTC Mon–Fri = 05:00 IST = ~1 hr after NY close
-    - cron: '30 23 * * 1-5'
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -29,39 +28,10 @@ jobs:
       - name: Install pipeline dependencies
         run: pip install -e ./pipeline
 
-      - name: Write .env
-        env:
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: |
-          [ -z "$FRED_API_KEY" ]           && echo "ERROR: FRED_API_KEY not set" && exit 1 || true
-          [ -z "$SUPABASE_URL" ]            && echo "ERROR: SUPABASE_URL not set" && exit 1 || true
-          [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] && echo "ERROR: SUPABASE_SERVICE_ROLE_KEY not set" && exit 1 || true
-          printf '%s\n' \
-            "FRED_API_KEY=$FRED_API_KEY" \
-            "SUPABASE_URL=$SUPABASE_URL" \
-            "SUPABASE_PROJECT_REF=$SUPABASE_PROJECT_REF" \
-            "SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" \
-            "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" \
-            "OPENROUTER_API_KEY=$OPENROUTER_API_KEY" \
-            > .env
-
       - name: Run daily pipeline
-        run: |
-          set +e
-          python -m src.scheduler.orchestrator daily
-          EC=$?
-          set -e
-          echo "### Daily pipeline" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Exit code: \`$EC\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Run date: $(date -u +%Y-%m-%d)" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$EC" -ne 0 ]; then
-            echo "First attempt failed — retrying in 60s"
-            sleep 60
-            python -m src.scheduler.orchestrator daily
-          fi
-        working-directory: pipeline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: ./pipeline/run_daily.sh

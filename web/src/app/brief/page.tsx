@@ -46,7 +46,7 @@ export default function BriefPage() {
             <div>
               <div className="flex items-center gap-2.5 mb-2.5">
                 <span
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${regimeQ.isError || signalsQ.isError ? 'bg-[#f87171]' : 'bg-[#22c55e] live-indicator animate-pulse'}`}
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${regimeQ.isError || signalsQ.isError ? 'bg-[#ef4444]' : 'hidden'}`}
                 />
                 <span className="font-mono text-[11px] text-[#888] tracking-widest">MORNING BRIEF</span>
                 <span className="font-mono text-[11px] text-[#ccc]">{TODAY}</span>

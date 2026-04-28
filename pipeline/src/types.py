@@ -58,6 +58,8 @@ class SignalRow:
     cross_asset_vix: float | None
     cross_asset_dxy: float | None
     cross_asset_oil: float | None
+    cross_asset_us10y: float | None
+    oi_delta: int | None
 
 
 @dataclass
