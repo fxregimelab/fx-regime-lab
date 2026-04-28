@@ -38,12 +38,12 @@ export function PairCard({
       <div className="flex justify-between items-start mb-3">
         <div>
           <p className="font-sans font-bold text-[15px] text-[#0a0a0a] mb-0.5">{pair.display}</p>
-          <p className="font-mono text-xl font-bold text-[#0a0a0a] tracking-tight">
+          <p className="font-mono text-xl font-bold text-[#0a0a0a] tracking-tight tabular-nums">
             {signals?.spot?.toFixed(pair.label === 'USDJPY' ? 2 : 4) ?? '—'}
           </p>
         </div>
         {chg != null && (
-          <span className={`font-mono text-xs font-semibold px-2 py-1 ${chg >= 0 ? 'text-[#16a34a] bg-[#f0fdf4]' : 'text-[#dc2626] bg-[#fff5f5]'}`}>
+          <span className={`font-mono text-xs font-semibold px-2 py-1 tabular-nums ${chg >= 0 ? 'text-[#16a34a] bg-[#f0fdf4]' : 'text-[#dc2626] bg-[#fff5f5]'}`}>
             {chg >= 0 ? '+' : ''}{chg.toFixed(2)}%
           </span>
         )}
@@ -62,7 +62,7 @@ export function PairCard({
         <ConfidenceBar value={call?.confidence} tone="light" color={pair.pairColor} />
         <div className="flex justify-between mt-1.5">
           <span className="font-mono text-[9px] text-[#888] tracking-widest">CONFIDENCE</span>
-          <span className="font-mono text-[11px] text-[#0a0a0a] font-bold">{pct != null ? `${pct}%` : '—'}</span>
+          <span className="font-mono text-[11px] text-[#0a0a0a] font-bold tabular-nums">{pct != null ? `${pct}%` : '—'}</span>
         </div>
       </div>
 
@@ -74,13 +74,13 @@ export function PairCard({
         ].map(([lbl, val]) => (
           <div key={lbl} className="flex justify-between">
             <span className="font-mono text-[10px] text-[#888]">{lbl}</span>
-            <span className="font-mono text-[11px] text-[#111] font-semibold">{val}</span>
+            <span className="font-mono text-[11px] text-[#111] font-semibold tabular-nums">{val}</span>
           </div>
         ))}
       </div>
 
       <div className="mt-5">
-        <div className="bg-[#0a0a0a] border border-[#333] text-white font-mono text-[10px] tracking-widest px-4 py-2 uppercase hover:bg-white hover:text-black transition-all w-full flex justify-between items-center">
+        <div className="bg-[#0a0a0a] border border-[#333] text-white font-mono text-[10px] tracking-widest px-4 py-2 uppercase hover:bg-white hover:text-black transition-all w-full flex justify-between items-center rounded-none">
           <span>OPEN DESK</span>
           <span>→</span>
         </div>

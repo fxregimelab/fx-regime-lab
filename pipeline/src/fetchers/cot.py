@@ -6,6 +6,8 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import random
+import time
 import zipfile
 from collections import defaultdict
 from datetime import date
@@ -24,6 +26,10 @@ _K_OIa = "open interest (all)"
 _K_OIb = "open interest all"
 _KL_NEW = ("asset mgr positions long all", "lev money positions long all", "other rept positions long all")  # noqa: E501
 _KS_NEW = ("asset mgr positions short all", "lev money positions short all", "other rept positions short all")  # noqa: E501
+_USER_AGENTS = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+)
 
 def _norm_header(h: str) -> str:
     s = str(h).strip().replace("_", " ")
@@ -96,20 +102,45 @@ def _rows_from_download(content: bytes, *, from_zip: bool) -> list[dict[str, Any
     rows.extend(dict(r) for r in reader)
     return rows
 
+
+def _download_cot_bytes(url: str) -> bytes:
+    last_exc: Exception | None = None
+    for attempt in range(1, 4):
+        headers = {
+            "User-Agent": random.choice(_USER_AGENTS),
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://www.cftc.gov/",
+            "Connection": "keep-alive",
+            "DNT": "1",
+        }
+        try:
+            with requests.Session() as session:
+                response = session.get(url, headers=headers, timeout=60)
+                response.raise_for_status()
+                return response.content
+        except Exception as exc:  # noqa: BLE001
+            last_exc = exc
+            if attempt < 3:
+                time.sleep(1.2 * attempt)
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError(f"Unable to download COT payload: {url}")
+
 def fetch_cot(year: int | None = None) -> list[CotRow]:
     y = year if year is not None else date.today().year
     sources = [
         ("zip", f"https://www.cftc.gov/files/dea/history/fut_fin_txt_{y}.zip"),
         ("zip", "https://www.cftc.gov/files/dea/history/fut_fin_txt_2025.zip"),
         ("txt", "https://www.cftc.gov/dea/newcot/FinFutWk.txt"),
+        ("txt", "https://www.cftc.gov/files/dea/history/deacot2025.txt"),
     ]
     raw_rows: list[dict[str, Any]] = []
     last_err = ""
     for kind, url in sources:
         try:
-            r = requests.get(url, timeout=60)
-            r.raise_for_status()
-            parsed = _rows_from_download(r.content, from_zip=(kind == "zip"))
+            payload = _download_cot_bytes(url)
+            parsed = _rows_from_download(payload, from_zip=(kind == "zip"))
             if parsed:
                 raw_rows = parsed
                 break

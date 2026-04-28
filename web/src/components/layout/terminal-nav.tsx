@@ -6,7 +6,13 @@ import { usePathname } from 'next/navigation';
 import { LogoMark } from '../ui/logo-mark';
 import { PAIRS } from '@/lib/mockData';
 import { useLatestSignals, useLatestRegimeCalls, useLastPipelineRun } from '@/lib/queries';
-import { MacroPulseBar } from '../ui/macro-pulse-bar';
+import { MacroPulseBar, PULSE_BAR_H } from '../ui/macro-pulse-bar';
+
+// Row heights (px) — used to compute total sticky height for scroll offsets
+const NAV_TOP_ROW_H = 38; // brand + status bar
+const NAV_BOTTOM_ROW_H = 38; // breadcrumb + pair tabs
+export const TERMINAL_NAV_H = PULSE_BAR_H + NAV_TOP_ROW_H + NAV_BOTTOM_ROW_H; // 104px total
+const NAV_TOP_OFFSET = 32;
 
 export function TerminalNav() {
   const currentRoute = usePathname() || '';
@@ -33,25 +39,33 @@ export function TerminalNav() {
   const utcClock = lastRunQ.data ? `${new Date(lastRunQ.data).toISOString().slice(11, 16)} UTC` : '—';
 
   return (
-    <header className="border-b border-[#1a1a1a] bg-[#050505] sticky top-0 z-50">
+    <header
+      className="border-b border-[#111] bg-[#000000] sticky z-[90] print:hidden"
+      style={{ minHeight: `${TERMINAL_NAV_H}px`, top: `${NAV_TOP_OFFSET}px` }}
+    >
+      {/* Row 1 — Macro Pulse (fixed h-[28px]) */}
       <MacroPulseBar />
-      <div className="border-b border-[#1a1a1a] px-6 h-[38px] flex items-center justify-between max-w-[1152px] mx-auto">
+
+      {/* Row 2 — Brand + status (fixed h-[38px]) */}
+      <div
+        className="border-b border-[#111] px-6 flex items-center justify-between max-w-[1152px] mx-auto"
+        style={{ height: `${NAV_TOP_ROW_H}px` }}
+      >
         <div className="flex items-center gap-2.5">
-          <LogoMark size={16} />
-          <span className="font-sans font-bold text-[13px] text-[#e8e8e8] tracking-tight">FX Regime Lab</span>
-          <span className="font-mono text-[10px] text-[#333] ml-1">/ Terminal</span>
+          <LogoMark size={24} />
+          <span className="font-mono text-[10px] text-[#333]">/ Terminal</span>
         </div>
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={handleRefresh}
-            className="font-mono text-[9px] text-[#555] hover:text-[#888] transition-colors cursor-pointer border border-[#1a1a1a] px-1.5 py-0.5 bg-[#0a0a0a]"
+            className="font-mono text-[9px] text-[#555] hover:text-[#888] transition-colors cursor-pointer border border-[#111] px-1.5 py-0.5 bg-[#000000]"
             disabled={pending}
           >
             {pending ? 'SYNCING...' : 'REFRESH'}
           </button>
           <div className="flex items-center gap-1.5">
             <span
-              className={`w-1.5 h-1.5 rounded-full shrink-0 ${err ? 'bg-[#ef4444]' : pending ? 'bg-[#737373]' : 'hidden'}`}
+              className={`w-1.5 h-1.5 shrink-0 ${err ? 'bg-[#ef4444]' : pending ? 'bg-[#737373]' : 'hidden'}`}
             />
             <span className={`font-mono text-[10px] ${err ? 'text-[#ef4444]' : 'text-[#737373]'}`}>
               {err ? 'ERROR' : pending ? 'LOADING' : 'SYNCED'} · {asOfDay} {utcClock}
@@ -60,7 +74,11 @@ export function TerminalNav() {
         </div>
       </div>
 
-      <div className="max-w-[1152px] mx-auto px-6 h-[38px] flex items-center justify-between">
+      {/* Row 3 — Breadcrumb + pair tabs (fixed h-[38px]) */}
+      <div
+        className="max-w-[1152px] mx-auto px-6 flex items-center justify-between"
+        style={{ height: `${NAV_BOTTOM_ROW_H}px` }}
+      >
         <div className="flex items-center gap-1.5 font-mono text-[10px]">
           <Link href="/" className="text-[#888] hover:text-[#aaa] transition-colors">
             shell

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Nav } from '@/components/layout/nav';
-import { MacroPulseBar } from '@/components/ui/macro-pulse-bar';
+import { MacroPulseBar, PULSE_BAR_H } from '@/components/ui/macro-pulse-bar';
 import { Footer } from '@/components/layout/footer';
 import { HeroRegimeCard } from '@/components/ui/hero-regime-card';
 import { PairCard } from '@/components/ui/pair-card';
@@ -24,8 +24,11 @@ import {
   callsValidatedSince,
 } from '@/lib/validation-format';
 
+const SHELL_NAV_H = 54;
+const SHELL_TOP_OFFSET = PULSE_BAR_H + SHELL_NAV_H;
+
 function SkeletonBar() {
-  return <div className="h-10 bg-[#f0f0f0] rounded animate-pulse" />;
+  return <div className="h-10 bg-[#f0f0f0] animate-pulse" />;
 }
 
 export default function Home() {
@@ -63,14 +66,14 @@ export default function Home() {
 
   return (
     <>
-      <Nav />
       <MacroPulseBar />
-      <main className="flex-1 bg-white">
+      <Nav />
+      <main className="flex-1 bg-white" style={{ marginTop: `${SHELL_TOP_OFFSET}px` }}>
         <section className="max-w-[1152px] mx-auto pt-[72px] px-6 pb-16 grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
           <div>
             <div className="flex items-center gap-2.5 mb-7">
               <span
-                className={`w-1.5 h-1.5 rounded-full shrink-0 ${liveHeader ? 'bg-[#ef4444]' : 'hidden'}`}
+                className={`w-1.5 h-1.5 shrink-0 ${liveHeader ? 'bg-[#ef4444]' : 'hidden'}`}
               />
               <span className="font-mono text-[11px] text-[#737373] tracking-widest">
                 {liveHeader ? 'OFFLINE · G10 FX · DAILY CALLS' : 'SYNCED · G10 FX · DAILY CALLS'}
@@ -103,7 +106,7 @@ export default function Home() {
             </div>
             <div className="mt-9 flex items-center gap-2 pt-6 border-t border-[#f0f0f0]">
               <span
-                className={`w-1.25 h-1.25 rounded-full shrink-0 ${lastRunQ.isError ? 'bg-[#ef4444]' : 'hidden'}`}
+                className={`w-1.25 h-1.25 shrink-0 ${lastRunQ.isError ? 'bg-[#ef4444]' : 'hidden'}`}
               />
               <span className="font-mono text-[10px] text-[#a0a0a0] tracking-widest">
                 PIPELINE · {asOfDay} {pipelineClock} · 3 pairs tracked

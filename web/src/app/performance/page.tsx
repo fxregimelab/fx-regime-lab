@@ -3,10 +3,14 @@
 import React, { useMemo } from 'react';
 import { Nav } from '@/components/layout/nav';
 import { Footer } from '@/components/layout/footer';
+import { MacroPulseBar, PULSE_BAR_H } from '@/components/ui/macro-pulse-bar';
 import { ValidationTable } from '@/components/ui/validation-table';
 import { PAIRS, BRAND } from '@/lib/mockData';
 import { useValidationLog, useEquityCurve, useLastPipelineRun } from '@/lib/queries';
 import { mapValidationLogToTableRows, rolling7dAccuracyPct, buildEquitySeries } from '@/lib/validation-format';
+
+const SHELL_NAV_H = 54;
+const SHELL_TOP_OFFSET = PULSE_BAR_H + SHELL_NAV_H;
 
 export default function PerformancePage() {
   const [filterPair, setFilterPair] = React.useState<string>('ALL');
@@ -52,8 +56,9 @@ export default function PerformancePage() {
 
   return (
     <>
+      <MacroPulseBar />
       <Nav />
-      <main className="flex-1 bg-white">
+      <main className="flex-1 bg-white" style={{ marginTop: `${SHELL_TOP_OFFSET}px` }}>
         <div className="max-w-[1152px] mx-auto px-6 py-12">
           <div className="mb-10 pb-6 border-b border-[#e5e5e5]">
             <p className="font-mono text-[10px] text-[#a0a0a0] tracking-widest mb-2.5">TRACK RECORD</p>

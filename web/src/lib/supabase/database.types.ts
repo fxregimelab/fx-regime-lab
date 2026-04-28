@@ -203,6 +203,64 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['brief']['Insert']>
       }
+      historical_prices: {
+        Row: {
+          id: number
+          date: string
+          pair: string
+          open: number | null
+          high: number | null
+          low: number | null
+          close: number | null
+          volume: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          date: string
+          pair: string
+          open?: number | null
+          high?: number | null
+          low?: number | null
+          close?: number | null
+          volume?: number | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['historical_prices']['Insert']>
+      }
+      research_analogs: {
+        Row: {
+          id: number
+          as_of_date: string
+          pair: string
+          rank: number
+          match_date: string
+          match_score: number
+          forward_30d_return: number | null
+          regime_stability: number | null
+          context_label: string | null
+          current_trend_5d: number | null
+          matched_trend_5d: number | null
+          current_composite: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          as_of_date: string
+          pair: string
+          rank: number
+          match_date: string
+          match_score: number
+          forward_30d_return?: number | null
+          regime_stability?: number | null
+          context_label?: string | null
+          current_trend_5d?: number | null
+          matched_trend_5d?: number | null
+          current_composite?: number | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['research_analogs']['Insert']>
+      }
     }
   }
 }

@@ -9,6 +9,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 
+from src.analysis.analogs import compute_historical_analogs
 from src.ai.client import generate_brief, generate_event_brief, generate_global_macro_summary
 from src.db import writer
 from src.fetchers.cot import fetch_cot
@@ -225,6 +226,16 @@ def run_daily(date_str: str | None = None) -> None:
             for row in historical_rows
             if (v := row.get("rate_diff_2y")) is not None
         ]
+        historical_us10y = [
+            float(v)
+            for row in historical_rows
+            if (v := row.get("cross_asset_us10y")) is not None
+        ]
+        historical_oi_delta = [
+            int(v)
+            for row in historical_rows
+            if (v := row.get("oi_delta")) is not None
+        ]
         historical_rv5 = [
             float(v)
             for row in historical_rows
@@ -284,6 +295,13 @@ def run_daily(date_str: str | None = None) -> None:
 
         oi_pct = compute_oi_from_cot(cot_rows, pair)
         oi_delta = compute_oi_delta_from_cot(cot_rows, pair)
+        if oi_delta is None and historical_oi_delta:
+            oi_delta = historical_oi_delta[0]
+            logger.warning(
+                "OI delta unavailable for %s; using latest historical value %s",
+                pair,
+                oi_delta,
+            )
         oi_norm = compute_oi_signal(oi_pct)
         composite = compute_composite(rate_norm, cot_norm, vol_norm, oi_norm)
         if composite is None:
@@ -301,6 +319,15 @@ def run_daily(date_str: str | None = None) -> None:
         day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
         iv = fetch_implied_vol(pair)
 
+        us10y_value = today_yields.us_10y if today_yields and today_yields.us_10y is not None else None
+        if us10y_value is None and historical_us10y:
+            us10y_value = historical_us10y[0]
+            logger.warning(
+                "US10Y missing for %s; using latest historical value %.4f",
+                pair,
+                us10y_value,
+            )
+
         signal_row = SignalRow(
             pair=pair,
             date=today_bar.date,
@@ -316,7 +343,7 @@ def run_daily(date_str: str | None = None) -> None:
             cross_asset_vix=cross.get("vix"),
             cross_asset_dxy=cross.get("dxy"),
             cross_asset_oil=cross.get("oil"),
-            cross_asset_us10y=(today_yields.us_10y if today_yields else None),
+            cross_asset_us10y=us10y_value,
             oi_delta=oi_delta,
         )
 
@@ -346,6 +373,38 @@ def run_daily(date_str: str | None = None) -> None:
             primary_driver=driver,
         )
         writer.write_regime_call(call)
+
+        try:
+            deep_history = writer.get_historical_prices(pair, limit=20000)
+            recent_closes = [float(bar.close) for bar in spot_bars[-10:]]
+            analogs = compute_historical_analogs(
+                pair=pair,
+                as_of_date=today_bar.date.isoformat(),
+                current_composite=composite,
+                recent_spot_closes=recent_closes,
+                historical_rows=deep_history,
+            )
+            if analogs:
+                writer.write_research_analogs(
+                    [
+                        {
+                            "as_of_date": today_bar.date.isoformat(),
+                            "pair": pair,
+                            "rank": a.rank,
+                            "match_date": a.match_date,
+                            "match_score": a.match_score,
+                            "forward_30d_return": a.forward_30d_return,
+                            "regime_stability": a.regime_stability,
+                            "context_label": a.context_label,
+                            "current_trend_5d": a.current_trend_5d,
+                            "matched_trend_5d": a.matched_trend_5d,
+                            "current_composite": a.current_composite,
+                        }
+                        for a in analogs
+                    ]
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Analog engine failed for %s: %s", pair, exc)
 
     polymarket_context = ""
     if get_active_economics_markets is not None:

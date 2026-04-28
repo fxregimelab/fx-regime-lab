@@ -32,14 +32,14 @@ export function HeroRegimeCard({
         </div>
         <div className="flex items-center gap-2.5">
           {chg != null && (
-            <span className={`font-mono text-[11px] font-semibold ${chg >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+            <span className={`font-mono text-[11px] font-semibold tabular-nums ${chg >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
               {chg >= 0 ? '+' : ''}
               {chg.toFixed(2)}%
             </span>
           )}
           <div className="flex items-center gap-1.5">
             <span
-              className={`w-1.5 h-1.5 rounded-full shrink-0 ${err ? 'bg-[#ef4444]' : live ? 'hidden' : 'bg-[#737373]'}`}
+              className={`w-1.5 h-1.5 shrink-0 ${err ? 'bg-[#ef4444]' : live ? 'hidden' : 'bg-[#737373]'}`}
             />
             <span
               className={`font-mono text-[10px] ${err ? 'text-[#ef4444]' : live ? 'text-[#555]' : 'text-[#666]'}`}

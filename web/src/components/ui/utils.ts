@@ -21,6 +21,16 @@ export function fmtInt(v: number | null | undefined) {
   return v == null || isNaN(v) ? '—' : v.toFixed(0);
 }
 
+/** Format large numbers as K/M (e.g. 1_234_567 → "1.23M", -45_000 → "-45.0K") */
+export function fmtKM(v: number | null | undefined): string {
+  if (v == null || isNaN(v)) return '—';
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(1)}K`;
+  return `${sign}${abs.toFixed(0)}`;
+}
+
 export function fmtChg(v: number | null | undefined) {
   if (v == null || isNaN(v)) return { str: '—', color: '#666' };
   const sign = v >= 0 ? '+' : '';

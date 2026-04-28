@@ -167,7 +167,7 @@ def get_historical_signals(pair: str, limit: int = 252) -> list[dict[str, Any]]:
     res = (
         _client()
         .table("signals")
-        .select("date,rate_diff_2y,realized_vol_5d")
+        .select("date,rate_diff_2y,realized_vol_5d,cross_asset_us10y,oi_delta")
         .eq("pair", pair)
         .order("date", desc=True)
         .limit(limit)
@@ -199,3 +199,46 @@ def list_high_impact_events_needing_brief(start_iso: str, end_iso: str) -> list[
     )
     rows = cast(list[dict[str, Any]], res.data or [])
     return [r for r in rows if r.get("ai_brief") in (None, "")]
+
+
+def write_historical_prices(rows: list[Mapping[str, Any]]) -> None:
+    if not rows:
+        return
+    payload_rows = [cast(dict[str, Any], dict(r)) for r in rows]
+    _client().table("historical_prices").upsert(payload_rows, on_conflict="pair,date").execute()
+
+
+def get_historical_prices(pair: str, limit: int = 10000) -> list[dict[str, Any]]:
+    res = (
+        _client()
+        .table("historical_prices")
+        .select("date,pair,open,high,low,close,volume")
+        .eq("pair", pair)
+        .order("date", desc=False)
+        .limit(limit)
+        .execute()
+    )
+    return cast(list[dict[str, Any]], res.data or [])
+
+
+def write_research_analogs(rows: list[Mapping[str, Any]]) -> None:
+    if not rows:
+        return
+    payload_rows = [cast(dict[str, Any], dict(r)) for r in rows]
+    _client().table("research_analogs").upsert(payload_rows, on_conflict="pair,as_of_date,rank").execute()
+
+
+def get_latest_research_analogs(pair: str, as_of_date: str) -> list[dict[str, Any]]:
+    res = (
+        _client()
+        .table("research_analogs")
+        .select(
+            "as_of_date,pair,rank,match_date,match_score,forward_30d_return,regime_stability,context_label,current_trend_5d,matched_trend_5d,current_composite",
+        )
+        .eq("pair", pair)
+        .eq("as_of_date", as_of_date)
+        .order("rank", desc=False)
+        .limit(3)
+        .execute()
+    )
+    return cast(list[dict[str, Any]], res.data or [])

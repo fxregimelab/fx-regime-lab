@@ -67,7 +67,7 @@ export default function TerminalIndex() {
                       {p.display}
                     </span>
                     {chg != null && (
-                      <span className={`font-mono text-[11px] font-bold tabular-nums ${chg >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                      <span className={`font-mono text-[11px] font-bold ${chg >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
                         {chg >= 0 ? '+' : ''}
                         {chg.toFixed(2)}%
                       </span>
@@ -108,7 +108,7 @@ export default function TerminalIndex() {
                 FX-REGIME
               </span>
             </div>
-                    <span className="font-mono text-[10px] text-[#666] tabular-nums">Open →</span>
+            <span className="font-mono text-[10px] text-[#666]">Open →</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 border-b border-[#111]">
             {PAIRS.map((p, i) => {
@@ -124,11 +124,11 @@ export default function TerminalIndex() {
                   <div className="flex gap-4">
                     <span className="font-mono text-[10px] text-[#999]">
                       CONF{' '}
-                      <span className="text-[#e0e0e0] font-bold tabular-nums">{fmtPct(call?.confidence as number | undefined)}</span>
+                      <span className="text-[#e0e0e0] font-bold">{fmtPct(call?.confidence as number | undefined)}</span>
                     </span>
                     <span className="font-mono text-[10px] text-[#666]">
                       COMPOSITE{' '}
-                      <span className="text-[#e0e0e0] font-bold tabular-nums">{fmt2(call?.signal_composite as number | undefined)}</span>
+                      <span className="text-[#e0e0e0] font-bold">{fmt2(call?.signal_composite as number | undefined)}</span>
                     </span>
                   </div>
                 </div>

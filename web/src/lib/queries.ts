@@ -341,6 +341,69 @@ export function useSignalHistory(pair: string, limit = 14) {
   });
 }
 
+/** Deep historical daily OHLCV archive for MAX-range chart mode. */
+export function useHistoricalData(pair: string, enabled = false) {
+  return useQuery({
+    queryKey: ['signals', 'historical', pair],
+    queryFn: async (): Promise<
+      Array<{ date: string; pair: string; open: number | null; high: number | null; low: number | null; close: number | null; volume: number | null }>
+    > => {
+      const { data, error } = await supabase
+        .from('historical_prices')
+        .select('date,pair,open,high,low,close,volume')
+        .eq('pair', pair)
+        .order('date', { ascending: true })
+        .limit(25000);
+      if (error) throw error;
+      return (
+        (data as Array<{ date: string; pair: string; open: number | null; high: number | null; low: number | null; close: number | null; volume: number | null }>) ??
+        []
+      );
+    },
+    enabled: enabled && !!pair,
+  });
+}
+
+export function useLatestResearchAnalogs(pair: string) {
+  return useQuery({
+    queryKey: ['research_analogs', 'latest', pair],
+    queryFn: async (): Promise<
+      Array<{
+        as_of_date: string;
+        pair: string;
+        rank: number;
+        match_date: string;
+        match_score: number;
+        forward_30d_return: number | null;
+        regime_stability: number | null;
+        context_label: string | null;
+      }>
+    > => {
+      const { data, error } = await supabase
+        .from('research_analogs')
+        .select('as_of_date,pair,rank,match_date,match_score,forward_30d_return,regime_stability,context_label')
+        .eq('pair', pair)
+        .order('as_of_date', { ascending: false })
+        .order('rank', { ascending: true })
+        .limit(3);
+      if (error) throw error;
+      return (
+        (data as Array<{
+          as_of_date: string;
+          pair: string;
+          rank: number;
+          match_date: string;
+          match_score: number;
+          forward_30d_return: number | null;
+          regime_stability: number | null;
+          context_label: string | null;
+        }>) ?? []
+      );
+    },
+    enabled: !!pair,
+  });
+}
+
 /** Take last `targetLen` values; left-pad with first sample if short. */
 export function sparkNumericSeries(values: number[], targetLen = 7): number[] {
   if (values.length === 0) return Array.from({ length: targetLen }, () => 0);

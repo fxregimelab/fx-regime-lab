@@ -3,9 +3,13 @@
 import { useState } from 'react';
 import { Nav } from '@/components/layout/nav';
 import { Footer } from '@/components/layout/footer';
+import { MacroPulseBar, PULSE_BAR_H } from '@/components/ui/macro-pulse-bar';
 import { useUpcomingMacroEvents } from '@/lib/queries';
 import type { Database } from '@/lib/supabase/database.types';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const SHELL_NAV_H = 54;
+const SHELL_TOP_OFFSET = PULSE_BAR_H + SHELL_NAV_H;
 
 type MacroEventRow = Database['public']['Tables']['macro_events']['Row'];
 
@@ -59,8 +63,9 @@ export default function CalendarPage() {
 
   return (
     <>
+      <MacroPulseBar />
       <Nav />
-      <main className="min-h-screen bg-[#050505] text-[#ececec]">
+      <main className="min-h-screen bg-white text-[#0a0a0a]" style={{ marginTop: `${SHELL_TOP_OFFSET}px` }}>
         <section className="max-w-[1152px] mx-auto px-6 py-10">
           <h1 className="font-sans text-3xl font-bold mb-2 text-white">Macro Event Dossier</h1>
           <p className="font-mono text-[11px] text-[#8a8a8a] tracking-widest mb-6">

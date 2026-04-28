@@ -4,9 +4,13 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Nav } from '@/components/layout/nav';
 import { Footer } from '@/components/layout/footer';
+import { MacroPulseBar, PULSE_BAR_H } from '@/components/ui/macro-pulse-bar';
 import { PAIRS } from '@/lib/mockData';
 import { fmt2, fmtInt } from '@/components/ui/utils';
 import { useLatestRegimeCalls, useLatestSignals, useLatestBrief, usePairBrief, useLastPipelineRun } from '@/lib/queries';
+
+const SHELL_NAV_H = 54;
+const SHELL_TOP_OFFSET = PULSE_BAR_H + SHELL_NAV_H;
 
 export default function BriefPage() {
   const router = useRouter();
@@ -39,14 +43,15 @@ export default function BriefPage() {
 
   return (
     <>
+      <MacroPulseBar />
       <Nav />
-      <main className="flex-1 bg-white">
+      <main className="flex-1 bg-white" style={{ marginTop: `${SHELL_TOP_OFFSET}px` }}>
         <div className="max-w-[1152px] mx-auto px-6 py-12">
           <div className="flex justify-between items-start mb-10 pb-6 border-b border-[#e5e5e5]">
             <div>
               <div className="flex items-center gap-2.5 mb-2.5">
                 <span
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${regimeQ.isError || signalsQ.isError ? 'bg-[#ef4444]' : 'hidden'}`}
+                  className={`w-1.5 h-1.5 shrink-0 ${regimeQ.isError || signalsQ.isError ? 'bg-[#ef4444]' : 'hidden'}`}
                 />
                 <span className="font-mono text-[11px] text-[#888] tracking-widest">MORNING BRIEF</span>
                 <span className="font-mono text-[11px] text-[#ccc]">{TODAY}</span>

@@ -22,15 +22,22 @@
     display: none;
   }
   .live-indicator {
-    background: radial-gradient(circle, #4ade80 0%, #16a34a 100%);
-    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+    background: radial-gradient(circle, #22c55e 0%, #16a34a 100%);
   }
-  @keyframes scanline {
-    0% { transform: translateY(-100%); }
-    100% { transform: translateY(100%); }
+
+  /* MacroPulseBar horizontal marquee */
+  @keyframes pulse-marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
   }
-  .animate-scanline {
-    animation: scanline 8s linear infinite;
+  .animate-pulse-marquee {
+    /* Double-width content; animate exactly 50% so it loops seamlessly */
+    animation: pulse-marquee 30s linear infinite;
+    will-change: transform;
+    /* Pause on hover so analysts can read values */
+  }
+  .animate-pulse-marquee:hover {
+    animation-play-state: paused;
   }
 }
 
@@ -38,23 +45,81 @@ html, body {
   height: 100%;
 }
 
+/* ─── Print styles ─────────────────────────────────────────────────────────── */
 @media print {
-  /* Hide all screen chrome */
-  header, footer, nav,
-  .print\\:hidden,
-  button {
+  /* Hide all web surfaces; report explicitly opts-in */
+  header,
+  footer,
+  nav,
+  aside,
+  button,
+  main,
+  [data-print-hide],
+  .print\:hidden,
+  .no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Kill animated overlays */
+  .animate-pulse-marquee {
     display: none !important;
   }
-  /* Ensure print overlay (white bg brief) is shown */
-  .hidden.print\\:block {
+
+  .research-report,
+  .hidden.print\:block {
     display: block !important;
     position: static !important;
+    visibility: visible !important;
   }
+
+  /* White-page body */
+  html,
   body {
     background: white !important;
     color: #0a0a0a !important;
+    height: auto !important;
   }
+
+  /* Remove decorative web styling */
+  * {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    color: #000 !important;
+  }
+
+  .research-report,
+  .report-page,
+  .bg-white,
+  .bg-\[#fff\] {
+    background-color: white !important;
+  }
+
+  .research-report {
+    font-family: Georgia, "Times New Roman", serif !important;
+  }
+
+  .research-report h1,
+  .research-report h2,
+  .research-report h3,
+  .research-report .font-sans {
+    font-family: Inter, Arial, Helvetica, sans-serif !important;
+  }
+
+  .report-page {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    page-break-after: always;
+    min-height: 92vh;
+    padding: 0;
+  }
+
+  .report-page:last-child {
+    page-break-after: auto;
+  }
+
   @page {
     margin: 0.75in;
+    size: A4 portrait;
   }
 }

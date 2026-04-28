@@ -86,10 +86,11 @@ def _fetch_yf_legs(
 
 
 def fetch_yields(lookback_days: int = 5) -> list[RawYields]:
-    """Fetch latest sovereign yield legs with yfinance first and FRED fallback.
+    """Fetch latest sovereign yield legs with FRED-priority US legs.
 
-    Uses yfinance proxies first, then FRED fallback for missing legs. ``lookback_days`` controls
-    yfinance lookback and remains for API compatibility.
+    US 2Y/10Y are sourced from FRED first (DGS2/DGS10) to avoid unstable Yahoo tickers.
+    Non-US legs still use yfinance first with FRED fallback where configured.
+    ``lookback_days`` controls yfinance lookback and remains for API compatibility.
     """
     window_days = max(lookback_days, 1)
     period = f"{window_days}d"
@@ -103,10 +104,17 @@ def fetch_yields(lookback_days: int = 5) -> list[RawYields]:
     time.sleep(1.0)
     ten_year_legs = _fetch_yf_legs(YF_10Y_TICKERS, period)
 
-    if two_year_legs["us_2y"] is None:
-        two_year_legs["us_2y"] = _fred_leg(fred, FRED_FALLBACK_SERIES["us_2y"], "US 2Y")
-    if ten_year_legs["us_10y"] is None:
-        ten_year_legs["us_10y"] = _fred_leg(fred, FRED_FALLBACK_SERIES["us_10y"], "US 10Y")
+    # Prioritize FRED for US rates; only use Yahoo when FRED is unavailable.
+    fred_us_2y = _fred_leg(fred, FRED_FALLBACK_SERIES["us_2y"], "US 2Y")
+    fred_us_10y = _fred_leg(fred, FRED_FALLBACK_SERIES["us_10y"], "US 10Y")
+    if fred_us_2y is not None:
+        two_year_legs["us_2y"] = fred_us_2y
+    elif two_year_legs["us_2y"] is None:
+        logger.warning("US 2Y unavailable in both FRED and yfinance")
+    if fred_us_10y is not None:
+        ten_year_legs["us_10y"] = fred_us_10y
+    elif ten_year_legs["us_10y"] is None:
+        logger.warning("US 10Y unavailable in both FRED and yfinance")
     if ten_year_legs["de_10y"] is None:
         ten_year_legs["de_10y"] = _fred_leg(fred, FRED_FALLBACK_SERIES["de_10y"], "DE 10Y")
     if ten_year_legs["jp_10y"] is None:

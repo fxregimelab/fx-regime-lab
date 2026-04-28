@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogoMark } from '../ui/logo-mark';
 import { BRAND } from '@/lib/mockData';
+import { PULSE_BAR_H } from '../ui/macro-pulse-bar';
 
 export function Nav() {
   const currentRoute = usePathname();
@@ -19,11 +20,10 @@ export function Nav() {
   const isActive = (href: string) => href === '/' ? currentRoute === '/' : currentRoute.startsWith(href);
 
   return (
-    <header className="border-b border-[#e5e5e5] bg-white sticky top-0 z-50">
+    <header className="border-b border-[#e5e5e5] bg-white sticky z-[90]" style={{ top: `${PULSE_BAR_H}px` }}>
       <nav className="max-w-[1152px] mx-auto px-6 h-[54px] flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5">
-          <LogoMark size={22} />
-          <span className="font-sans font-bold text-[15px] text-[#0a0a0a] tracking-tight">FX Regime Lab</span>
+        <Link href="/" className="flex items-center">
+          <LogoMark size={24} />
         </Link>
 
         <div className="flex items-center gap-0">
@@ -52,16 +52,17 @@ export function Nav() {
             <div className={`absolute right-0 top-[54px] bg-[#050505] border border-[#1a1a1a] min-w-[180px] shadow-none z-[1000] transition-all duration-150 ${open ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'}`}>
               {[
                 ['/performance', 'Performance'],
+                ['/strategy', 'Strategy'],
                 ['/terminal/fx-regime/eurusd', 'Terminal'],
                 ['/calendar', 'Calendar']
               ].map(([href, label]) => {
-                const isLocked = href === '/performance';
+                const isLocked = href === '/performance' || href === '/strategy';
                 if (isLocked) {
                   return (
                     <div key={href}
                       className="flex justify-between items-center w-full px-4 py-[11px] font-sans text-[13px] text-[#555] border-b border-[#1a1a1a] last:border-b-0 cursor-not-allowed">
                       <span>{label}</span>
-                      <span className="text-[9px] font-mono tracking-widest text-[#444]">[LOCKED / COMING SOON]</span>
+                      <span className="text-[9px] font-mono tracking-widest text-[#444]">[ LOCKED ]</span>
                     </div>
                   );
                 }
@@ -86,7 +87,7 @@ export function Nav() {
 
           <Link href="/terminal"
             className="ml-[14px] bg-[#0a0a0a] text-white font-sans font-semibold text-xs px-4 py-2 tracking-wide flex items-center gap-1.5 transition-opacity hover:opacity-90">
-            <span className="w-1.5 h-1.5 rounded-full shrink-0 hidden" />
+            <span className="w-1.5 h-1.5 shrink-0 hidden" />
             Terminal
           </Link>
         </div>

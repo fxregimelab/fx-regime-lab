@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type MetricKey = 'cot' | 'rateDiff' | 'realizedVol' | 'composite';
@@ -31,6 +32,7 @@ const METHODOLOGY_DATA: Record<MetricKey, { def: string; bg: string; action: str
 export function MethodologyPopover({ metricKey }: { metricKey: MetricKey }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -38,7 +40,26 @@ export function MethodologyPopover({ metricKey }: { metricKey: MetricKey }) {
         setOpen(false);
       }
     }
-    if (open) document.addEventListener('mousedown', handleClickOutside);
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+      // Calculate position
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const screenWidth = window.innerWidth;
+        const popoverWidth = 280;
+        
+        let left = rect.left + window.scrollX;
+        // If it would overflow right, shift left
+        if (left + popoverWidth > screenWidth - 20) {
+          left = screenWidth - popoverWidth - 20;
+        }
+
+        setPos({
+          top: rect.bottom + window.scrollY + 8,
+          left: Math.max(20, left),
+        });
+      }
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
@@ -54,37 +75,41 @@ export function MethodologyPopover({ metricKey }: { metricKey: MetricKey }) {
         [?]
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 5 }}
-            transition={{ duration: 0.15 }}
-            className="absolute z-[9999] bottom-full mb-2 right-0 md:left-1/2 md:-translate-x-1/2 w-[280px] bg-[#050505] border border-[#1a1a1a] shadow-none p-4 text-left pointer-events-auto rounded-none"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-3 border-b border-[#222] pb-2">
-              <span className="font-mono text-[10px] text-[#737373] tracking-widest uppercase">Methodology</span>
-            </div>
-            
-            <div className="space-y-3">
-              <div>
-                <span className="block font-mono text-[9px] text-[#555] tracking-widest mb-0.5">[ DEFINITION ]</span>
-                <span className="font-sans text-[12px] text-[#dcdcdc] leading-snug tabular-nums">{data.def}</span>
-              </div>
-              <div>
-                <span className="block font-mono text-[9px] text-[#555] tracking-widest mb-0.5">[ BACKGROUND ]</span>
-                <span className="font-sans text-[12px] text-[#aaa] leading-snug tabular-nums">{data.bg}</span>
-              </div>
-              <div>
-                <span className="block font-mono text-[9px] text-[#555] tracking-widest mb-0.5">[ INTERPRETATION ]</span>
-                <span className="font-sans text-[12px] text-[#22c55e] leading-snug tabular-nums">{data.action}</span>
-              </div>
-            </div>
-          </motion.div>
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 5 }}
+                transition={{ duration: 0.15 }}
+                style={{ top: pos.top, left: pos.left }}
+                className="fixed z-[9999] w-[280px] bg-[#000000] border border-[#111] p-4 text-left pointer-events-auto rounded-none shadow-[0_0_0_1px_#222]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mb-3 border-b border-[#222] pb-2">
+                  <span className="font-mono text-[10px] text-[#737373] tracking-widest uppercase">Methodology</span>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <span className="block font-mono text-[9px] text-[#555] tracking-widest mb-0.5">[ DEFINITION ]</span>
+                    <span className="font-sans text-[12px] text-[#dcdcdc] leading-snug tabular-nums">{data.def}</span>
+                  </div>
+                  <div>
+                    <span className="block font-mono text-[9px] text-[#555] tracking-widest mb-0.5">[ BACKGROUND ]</span>
+                    <span className="font-sans text-[12px] text-[#aaa] leading-snug tabular-nums">{data.bg}</span>
+                  </div>
+                  <div>
+                    <span className="block font-mono text-[9px] text-[#555] tracking-widest mb-0.5">[ INTERPRETATION ]</span>
+                    <span className="font-sans text-[12px] text-[#22c55e] leading-snug tabular-nums">{data.action}</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
     </div>
   );
 }
