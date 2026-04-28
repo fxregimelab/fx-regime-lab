@@ -122,6 +122,32 @@ def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
     )
 
 
+def _upsert_macro_event_briefs(date_str: str, forward_days: int = 7, polymarket_context: str = "") -> None:
+    start_d = date.fromisoformat(date_str)
+    end_d = start_d + timedelta(days=forward_days)
+    macro_rows = writer.list_high_impact_events_needing_brief(
+        start_d.isoformat(),
+        end_d.isoformat(),
+    )
+    for ev in macro_rows:
+        ev_date = str(ev.get("date"))[:10]
+        ev_name = str(ev.get("event"))
+        impact = str(ev.get("impact"))
+        pairs = list(ev.get("pairs") or PAIRS)
+        try:
+            ai_text = generate_event_brief(
+                ev_name,
+                impact,
+                pairs,
+                date_str,
+                polymarket_context=polymarket_context,
+            )
+            writer.update_macro_event_ai_brief(ev_date, ev_name, ai_text)
+        except RuntimeError as exc:
+            logger.warning("Stopping macro AI updates: %s", exc)
+            break
+
+
 def _upsert_pair_briefs_for_date(date_str: str, polymarket_context: str) -> list[str]:
     pair_contexts: list[str] = []
     for pair in PAIRS:
@@ -329,6 +355,9 @@ def run_daily(date_str: str | None = None) -> None:
         )
         writer.write_brief_log(date_str, global_summary, polymarket_context)
 
+    # Populate macro event briefs for the next 3 days immediately
+    _upsert_macro_event_briefs(date_str, forward_days=3, polymarket_context=polymarket_context)
+
     logger.info("Daily run complete for %s", date_str)
 
 
@@ -344,38 +373,8 @@ def run_weekly(date_str: str | None = None) -> None:
         except Exception as exc:  # noqa: BLE001
             logger.warning("Polymarket fetch failed: %s", exc)
 
-    pair_contexts = _upsert_pair_briefs_for_date(date_str, polymarket_context)
-    if pair_contexts:
-        global_summary = generate_global_macro_summary(
-            date_str=date_str,
-            pair_contexts=pair_contexts,
-            macro_context=polymarket_context,
-        )
-        writer.write_brief_log(date_str, global_summary, polymarket_context)
-
-    start_d = date.fromisoformat(date_str)
-    end_d = start_d + timedelta(days=7)
-    macro_rows = writer.list_high_impact_events_needing_brief(
-        start_d.isoformat(),
-        end_d.isoformat(),
-    )
-    for ev in macro_rows:
-        ev_date = str(ev.get("date"))[:10]
-        ev_name = str(ev.get("event"))
-        impact = str(ev.get("impact"))
-        pairs = list(ev.get("pairs") or PAIRS)
-        try:
-            ai_text = generate_event_brief(
-                ev_name,
-                impact,
-                pairs,
-                date_str,
-                polymarket_context=polymarket_context,
-            )
-            writer.update_macro_event_ai_brief(ev_date, ev_name, ai_text)
-        except RuntimeError as exc:
-            logger.warning("Stopping macro AI updates: %s", exc)
-            break
+    _upsert_pair_briefs_for_date(date_str, polymarket_context)
+    _upsert_macro_event_briefs(date_str, forward_days=7, polymarket_context=polymarket_context)
 
     logger.info("Weekly run complete for %s", date_str)
 

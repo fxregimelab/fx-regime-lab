@@ -92,6 +92,10 @@ def fetch_yields(lookback_days: int = 5) -> list[RawYields]:
     if de_10y is None:
         de_10y = _fred_leg(fred, ("IRLTLT01DEM156N",), "DE 10Y")
 
+    # Best effort for EURUSD: if dedicated 2Y is unavailable, use 10Y as tenor proxy.
+    if de_2y is None and de_10y is not None:
+        de_2y = de_10y
+
     # Best effort for USDINR: if dedicated 2Y is unavailable, use 10Y as tenor proxy.
     if in_2y is None and in_10y is not None:
         in_2y = in_10y
