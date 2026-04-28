@@ -41,28 +41,26 @@ export function Nav() {
             </Link>
           ))}
 
-          <div className="relative" onClick={e => e.stopPropagation()}>
+          <div className="relative group" onClick={e => e.stopPropagation()}>
             <button onClick={() => setOpen(v => !v)}
-              className="font-sans text-[13px] font-medium text-[#555] px-[14px] h-[54px] flex items-center gap-1.5 border-b-2 border-transparent">
+              className="font-sans text-[13px] font-medium text-[#555] px-[14px] h-[54px] flex items-center gap-1.5 border-b-2 border-transparent group-hover:text-[#0a0a0a]">
               Research
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className={`opacity-50 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className={`opacity-50 transition-transform duration-150 ${open ? 'rotate-180' : ''} group-hover:rotate-180`}>
                 <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            {open && (
-              <div className="absolute right-0 top-[54px] bg-white border border-[#e5e5e5] min-w-[180px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] z-[100]">
-                {[
-                  ['/performance', 'Performance'],
-                  ['/fx-regime', 'FX Regime'],
-                  ['/calendar', 'Calendar']
-                ].map(([href, label]) => (
-                  <Link key={href} href={href} onClick={() => setOpen(false)}
-                    className="flex items-center w-full px-4 py-[11px] font-sans text-[13px] text-[#0a0a0a] border-b border-[#f5f5f5] transition-colors hover:bg-[#fafafa]">
-                    {label}
-                  </Link>
-                ))}
-              </div>
-            )}
+            <div className={`absolute right-0 top-[54px] bg-white border border-[#e5e5e5] min-w-[180px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] z-[1000] transition-all duration-150 ${open ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'}`}>
+              {[
+                ['/performance', 'Performance'],
+                ['/terminal/fx-regime/eurusd', 'FX Regime'],
+                ['/calendar', 'Calendar']
+              ].map(([href, label]) => (
+                <Link key={href} href={href} onClick={() => setOpen(false)}
+                  className="flex items-center w-full px-4 py-[11px] font-sans text-[13px] text-[#0a0a0a] border-b border-[#f5f5f5] last:border-b-0 transition-colors hover:bg-[#fafafa]">
+                  {label}
+                </Link>
+              ))}
+            </div>
           </div>
 
           <Link href="/about"
