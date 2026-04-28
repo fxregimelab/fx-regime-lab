@@ -7,8 +7,14 @@ import { ConfidenceBar } from './confidence-bar';
 import { fmt2, fmtInt } from './utils';
 
 type PairMeta = { label: string; display: string; urlSlug: string; pairColor: string };
-type RegimeCallRow = Database['public']['Tables']['regime_calls']['Row'];
-type SignalRow = Database['public']['Tables']['signals']['Row'];
+type RegimeCallRow = Pick<
+  Database['public']['Tables']['regime_calls']['Row'],
+  'regime' | 'confidence' | 'primary_driver'
+>;
+type SignalRow = Pick<
+  Database['public']['Tables']['signals']['Row'],
+  'spot' | 'day_change_pct' | 'rate_diff_2y' | 'cot_percentile' | 'realized_vol_20d'
+>;
 
 export function PairCard({
   pair,
@@ -46,6 +52,11 @@ export function PairCard({
       <p className="font-mono text-[11px] font-bold text-[#111] tracking-wide leading-snug mb-3">
         {call?.regime ?? '—'}
       </p>
+      <div className="mb-3">
+        <span className="inline-block border border-[#dcdcdc] px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-[#666]">
+          {call?.primary_driver ?? 'Mixed signals'}
+        </span>
+      </div>
 
       <div className="mb-3.5">
         <ConfidenceBar value={call?.confidence} tone="light" color={pair.pairColor} />

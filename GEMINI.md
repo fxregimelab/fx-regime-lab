@@ -1,56 +1,77 @@
-# GEMINI.md
+# GEMINI.md — FX Regime Lab
 
-This file provides guidance to Gemini CLI when working with the FX Regime Lab repository.
+This document provides foundational instructions and context for the FX Regime Lab project.
 
-## Project Mission
-FX Regime Lab is a personal research system for daily G10 FX regime classification (EUR/USD, USD/JPY, USD/INR). It provides a durable record of macro views, signal scoring, and automated validation.
+## Project Overview
 
-## Architecture Map
-Read **`AGENTS.md`** first for the complete system map. Read **`TASK.md`** for the current sprint state.
+FX Regime Lab is a quantitative research platform focused on G10 FX regime classification. It tracks three primary currency pairs: **EUR/USD**, **USD/JPY**, and **USD/INR**. 
+
+The system consists of a robust Python data pipeline that classifies market regimes daily and an interactive Next.js dashboard for visualizing research, performance, and AI-generated intelligence.
 
 ### Core Stack
-- **Pipeline:** Python 3.11 (Fetchers -> Signals -> Regime -> DB Writer)
-- **Database:** Supabase (PostgreSQL + RLS)
-- **AI:** OpenRouter (MiniMax M1 primary, Llama 3.1 8B fallback)
-- **API/Worker:** Cloudflare Workers (`workers/site-entry.js`)
-- **UI (Reference):** `claude-design/` (JSX prototypes, no production frontend currently)
+- **Pipeline**: Python 3.11+ (yfinance, pandas, fredapi, supabase-py)
+- **Frontend**: Next.js 15+ (App Router, Tailwind CSS 4, TanStack Query, Recharts, Framer Motion)
+- **Database**: Supabase (PostgreSQL + RLS)
+- **AI/LLM**: OpenRouter (MiniMax M1 primary, Gemini 2.0 Flash secondary)
 
-## Hard Rules
-- **Supabase Writes:** ALL writes to Supabase MUST go through `pipeline/src/db/writer.py`. Never write directly using other clients.
-- **AI Calls:** ALL AI interactions MUST go through `pipeline/src/ai/client.py`. This includes a 180 req/day guard for the OpenRouter free tier.
-- **Python Quality:** All pipeline code must pass `mypy --strict` and `ruff check`.
-- **Database Types:** Never edit generated `database.types.ts` by hand. Use the Supabase CLI to regenerate.
+## Repository Structure
 
-## Python Pipeline Commands (`pipeline/`)
-Run these from the `pipeline/` directory:
+- `/pipeline`: Data ingestion, signal calculation, and regime classification.
+- `/web`: Production Next.js 15+ web application.
+- `/supabase`: Database migrations and local development config.
+- `/claude-design`: Read-only UI/UX reference prototypes.
+- `/docs`: Detailed specifications (e.g., `DATA_READS_SPEC.md`).
+
+## Building and Running
+
+### Data Pipeline (`pipeline/`)
+The pipeline handles all data processing and database writes.
 
 ```bash
-pip install -e .                    # install development dependencies
-ruff check src/                     # linting
-mypy src/                           # strict type checking
-pytest                              # run tests (testpaths = tests/)
+# Setup
+cd pipeline
+pip install -e .
 
-# Manual pipeline execution from repo root:
-pipeline/run_daily.sh               # daily regime calls + signals
-pipeline/run_weekly.sh              # weekly AI briefs
+# Manual Execution (from repo root)
+pipeline/run_daily.sh   # Fetches signals and updates regime calls
+pipeline/run_weekly.sh  # Generates AI briefs via OpenRouter
+
+# Development
+ruff check src/         # Linting
+mypy src/               # Type checking (strict)
+pytest                  # Unit tests
 ```
 
-## Data Flow
-1. **Fetchers (`src/fetchers/`):** Ingest from FRED, Yahoo Finance, CFTC.
-2. **Signals (`src/signals/`):** Calculate rate diffs, COT percentiles, volatility, etc.
-3. **Regime (`src/regime/`):** Classify labels (e.g., `STRONG USD STRENGTH`).
-4. **DB Writer (`src/db/writer.py`):** Persist to `regime_calls`, `signals`, `brief`, etc.
-5. **Validation (`src/validation/`):** Next-day outcome tracking.
+### Web Application (`web/`)
+The web app provides the interactive research desk and institutional reports.
 
-## Design & Frontend
-The previous Next.js UI was removed.
-- **UX Intent:** Reference `claude-design/` JSX files.
-- **Read Patterns:** See `docs/DATA_READS_SPEC.md` for historical Supabase query patterns.
-- **New App:** If scaffolding a new frontend, follow `docs/FRONTEND_ARCHITECTURE.md`.
+```bash
+# Setup
+cd web
+npm install
 
-## Key Files
-- `AGENTS.md`: Complete architecture map.
-- `TASK.md`: Current sprint tasks.
-- `docs/DATABASE_SCHEMA.md`: Detailed table structures and RLS policies.
-- `docs/PROJECT_OVERVIEW.md`: High-level vision and "North Star".
-- `docs/SIGNAL_DEFINITIONS.md`: Logic for each market signal.
+# Development
+npm run dev
+
+# Build
+npm run build
+
+# Generate Database Types
+supabase gen types typescript --local > web/src/lib/supabase/database.types.ts
+```
+
+## Development Conventions & Hard Rules
+
+### Data Flow & Integrity
+1. **Surgical Writes**: All Supabase writes MUST go through `pipeline/src/db/writer.py`. Never write directly from the frontend or other scripts.
+2. **AI Centralization**: All AI/LLM calls MUST go through `pipeline/src/ai/client.py`. This ensures proper 180 req/day guarding for the OpenRouter free tier.
+3. **Type Safety**: 
+   - Python: Strict `mypy` is required for all pipeline code.
+   - Web: Strictly use generated Supabase types. Never edit `database.types.ts` manually.
+4. **Cinematic UI**: Follow the "Shell to Terminal" dual-shell design pattern. Light mode "Shell" for reports; Dark mode "Terminal" (#050505) for desks.
+5. **Environment Variables**: Managed via `.env` at the repo root. Required keys include `FRED_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `OPENROUTER_API_KEY`.
+
+### Interactivity Standards
+- Use `framer-motion` for "Power-On" boot sequences when loading terminal desks.
+- Implement fixed-width tabular numbers (`tabular-nums`) for all data points to prevent layout shifts.
+- Favor sharp, 1px border transitions over soft shadows for institutional-grade aesthetic.

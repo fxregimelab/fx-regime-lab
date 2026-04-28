@@ -27,7 +27,7 @@ jobs:
           cache-dependency-path: pipeline/pyproject.toml
 
       - name: Install pipeline dependencies
-        run: pip install -e pipeline/
+        run: pip install -e ./pipeline
 
       - name: Write .env
         env:

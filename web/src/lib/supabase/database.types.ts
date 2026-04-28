@@ -161,6 +161,8 @@ export interface Database {
           impact: string
           pairs: string[]
           category: string | null
+          ai_brief: string | null
+          created_at: string
         }
         Insert: {
           id?: number
@@ -169,6 +171,8 @@ export interface Database {
           impact: string
           pairs: string[]
           category?: string | null
+          ai_brief?: string | null
+          created_at?: string
         }
         Update: Partial<Database['public']['Tables']['macro_events']['Insert']>
       }

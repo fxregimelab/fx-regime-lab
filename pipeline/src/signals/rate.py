@@ -2,45 +2,57 @@
 
 from __future__ import annotations
 
-import numpy as np
+import math
 
 from src.types import RawYields
 
 
-def compute_rate_signal(yields: RawYields | None, pair: str) -> tuple[float | None, str]:
-    """Return (2y spread in percentage points, direction label)."""
+def compute_rate_signal(
+    yields: RawYields | None, pair: str
+) -> tuple[float | None, float | None, str]:
+    """Return (2y spread, 10y spread, direction) in percentage points."""
     if yields is None:
-        return None, "NEUTRAL"
-    spread: float | None = None
+        return None, None, "NEUTRAL"
+    spread_2y: float | None = None
+    spread_10y: float | None = None
     if pair == "EURUSD":
-        if yields.de_2y is None:
-            return None, "NEUTRAL"
-        spread = yields.us_2y - yields.de_2y
+        if yields.de_2y is not None:
+            spread_2y = yields.us_2y - yields.de_2y
+        if yields.us_10y is not None and yields.de_10y is not None:
+            spread_10y = yields.us_10y - yields.de_10y
     elif pair == "USDJPY":
-        if yields.jp_2y is None:
-            return None, "NEUTRAL"
-        spread = yields.us_2y - yields.jp_2y
+        if yields.jp_2y is not None:
+            spread_2y = yields.us_2y - yields.jp_2y
+        if yields.us_10y is not None and yields.jp_10y is not None:
+            spread_10y = yields.us_10y - yields.jp_10y
     elif pair == "USDINR":
-        if yields.in_2y is None:
-            return None, "NEUTRAL"
-        spread = yields.us_2y - yields.in_2y
+        if yields.in_2y is not None:
+            spread_2y = yields.us_2y - yields.in_2y
+        if yields.us_10y is not None and yields.in_10y is not None:
+            spread_10y = yields.us_10y - yields.in_10y
     else:
-        return None, "NEUTRAL"
+        return None, None, "NEUTRAL"
 
-    if spread is None:
-        return None, "NEUTRAL"
-    if spread > 0.5:
+    directional_spread = spread_2y if spread_2y is not None else spread_10y
+    if directional_spread is None:
+        return spread_2y, spread_10y, "NEUTRAL"
+    if directional_spread > 0.5:
         direction = "BULLISH"
-    elif spread < -0.5:
+    elif directional_spread < -0.5:
         direction = "BEARISH"
     else:
         direction = "NEUTRAL"
-    return spread, direction
+    return spread_2y, spread_10y, direction
 
 
-def normalize_rate_signal(spread: float, pair: str) -> float:
-    if pair == "EURUSD":
-        return float(np.clip(spread / 3.0, -1.0, 1.0))
-    if pair in ("USDJPY", "USDINR"):
-        return float(np.clip((spread - 3.0) / 3.0, -1.0, 1.0))
-    return float(np.clip(spread / 3.0, -1.0, 1.0))
+def normalize_rate_signal(spread: float, pair: str, historical_spreads: list[float]) -> float:
+    _ = pair
+    if not historical_spreads:
+        return 0.0
+
+    mean = sum(historical_spreads) / len(historical_spreads)
+    variance = sum((x - mean) ** 2 for x in historical_spreads) / len(historical_spreads)
+    std = math.sqrt(variance)
+    z_score = (spread - mean) / std if std > 0 else 0.0
+    z_clipped = max(-2.0, min(2.0, z_score))
+    return z_clipped / 2.0

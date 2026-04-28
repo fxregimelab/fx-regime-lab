@@ -7,10 +7,13 @@ import { HeroRegimeCard } from '@/components/ui/hero-regime-card';
 import { PairCard } from '@/components/ui/pair-card';
 import { RegimeHeatmap } from '@/components/ui/regime-heatmap';
 import { ValidationTable } from '@/components/ui/validation-table';
+import { fmt2 } from '@/components/ui/utils';
 import { PAIRS, BRAND } from '@/lib/mockData';
 import {
   useLatestRegimeCalls,
   useLatestSignals,
+  useLatestBrief,
+  useCrossAssetPulse,
   useValidationLog,
   useLastPipelineRun,
 } from '@/lib/queries';
@@ -29,6 +32,8 @@ export default function Home() {
   const signalsQ = useLatestSignals();
   const validationQ = useValidationLog(400);
   const lastRunQ = useLastPipelineRun();
+  const latestBriefQ = useLatestBrief();
+  const pulseQ = useCrossAssetPulse();
 
   const calls = regimeQ.data;
   const sigs = signalsQ.data;
@@ -169,6 +174,39 @@ export default function Home() {
                 signals={sigs?.[p.label]}
               />
             ))}
+          </div>
+        </section>
+
+        <section className="max-w-[1152px] mx-auto px-6 pb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="border border-[#e5e5e5] p-5">
+              <p className="font-mono text-[10px] text-[#a0a0a0] tracking-widest mb-2">GLOBAL SENTIMENT</p>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'VIX', v: pulseQ.data?.vix.value, c: pulseQ.data?.vix.change },
+                  { label: 'DXY', v: pulseQ.data?.dxy.value, c: pulseQ.data?.dxy.change },
+                  { label: 'CRUDE OIL', v: pulseQ.data?.oil.value, c: pulseQ.data?.oil.change },
+                ].map((r) => (
+                  <div key={r.label} className="border border-[#f0f0f0] p-3">
+                    <p className="font-mono text-[9px] text-[#888] tracking-widest mb-1">{r.label}</p>
+                    <p className="font-mono text-sm font-bold text-[#0a0a0a]">{fmt2(r.v as number | undefined)}</p>
+                    <p className={`font-mono text-[10px] ${r.c != null && r.c >= 0 ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
+                      {r.c == null ? '—' : `${r.c >= 0 ? '+' : ''}${r.c.toFixed(2)} d/d`}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="border border-[#e5e5e5] p-5">
+              <p className="font-mono text-[10px] text-[#a0a0a0] tracking-widest mb-2">LIVE AI SUMMARY</p>
+              {latestBriefQ.isPending ? (
+                <div className="h-20 bg-[#f7f7f7] animate-pulse" />
+              ) : (
+                <p className="font-sans text-[13px] text-[#525252] leading-relaxed">
+                  {latestBriefQ.data?.brief_text ?? 'No live global brief has been generated yet.'}
+                </p>
+              )}
+            </div>
           </div>
         </section>
 

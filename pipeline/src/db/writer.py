@@ -29,16 +29,22 @@ def _date_iso(d: date | str) -> str:
 
 
 def write_signal_row(row: SignalRow) -> None:
-    """Upsert columns that exist on the live `signals` table (no day_change / day_change_pct)."""
+    """Upsert signal row with all available metrics."""
     payload: dict[str, Any] = {
         "pair": row.pair,
         "date": _date_iso(row.date),
         "rate_diff_2y": row.rate_diff_2y,
+        "rate_diff_10y": row.rate_diff_10y,
         "cot_percentile": row.cot_percentile,
         "realized_vol_20d": row.realized_vol_20d,
         "realized_vol_5d": row.realized_vol_5d,
         "implied_vol_30d": row.implied_vol_30d,
         "spot": row.spot,
+        "day_change": row.day_change,
+        "day_change_pct": row.day_change_pct,
+        "cross_asset_vix": row.cross_asset_vix,
+        "cross_asset_dxy": row.cross_asset_dxy,
+        "cross_asset_oil": row.cross_asset_oil,
     }
     _client().table("signals").upsert(payload, on_conflict="pair,date").execute()
 
@@ -76,6 +82,19 @@ def write_brief(
         },
     )
     _client().table("brief").upsert(payload, on_conflict="pair,date").execute()
+
+
+def write_brief_log(date_str: str, brief_text: str, macro_context: str) -> None:
+    """Upsert unified daily summary into legacy `brief_log` table for UI."""
+    payload = cast(
+        dict[str, Any],
+        {
+            "date": date_str,
+            "brief_text": brief_text,
+            "macro_context": macro_context or None,
+        },
+    )
+    _client().table("brief_log").upsert(payload, on_conflict="date").execute()
 
 
 def write_macro_events(events: list[dict[str, Any]]) -> None:
@@ -140,6 +159,19 @@ def get_signal_for_pair_date(pair: str, date_str: str) -> dict[str, Any] | None:
     )
     data = cast(list[dict[str, Any]], res.data or [])
     return data[0] if data else None
+
+
+def get_historical_signals(pair: str, limit: int = 252) -> list[dict[str, Any]]:
+    res = (
+        _client()
+        .table("signals")
+        .select("date,rate_diff_2y,realized_vol_5d")
+        .eq("pair", pair)
+        .order("date", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return cast(list[dict[str, Any]], res.data or [])
 
 
 def update_macro_event_ai_brief(date_str: str, event: str, ai_brief: str) -> None:

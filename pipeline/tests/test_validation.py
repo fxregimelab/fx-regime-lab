@@ -27,13 +27,13 @@ def make_call(pair: str, regime: str) -> RegimeCall:
 
 def test_strength_correct() -> None:
     spots = {"EURUSD": [make_bar("EURUSD", 0, 1.0700), make_bar("EURUSD", 1, 1.0721)]}
-    result = validate_call(make_call("EURUSD", "STRONG USD STRENGTH"), spots)
+    result = validate_call(make_call("EURUSD", "USD_STRENGTH_STRONG"), spots)
     assert result["correct_1d"] is True
 
 
 def test_weakness_incorrect() -> None:
     spots = {"EURUSD": [make_bar("EURUSD", 0, 1.0700), make_bar("EURUSD", 1, 1.0721)]}
-    result = validate_call(make_call("EURUSD", "STRONG USD WEAKNESS"), spots)
+    result = validate_call(make_call("EURUSD", "USD_WEAKNESS_STRONG"), spots)
     assert result["correct_1d"] is False
 
 
@@ -45,5 +45,11 @@ def test_neutral_correct_small_move() -> None:
 
 def test_inr_depreciation_correct() -> None:
     spots = {"USDINR": [make_bar("USDINR", 0, 83.80), make_bar("USDINR", 1, 83.94)]}
-    result = validate_call(make_call("USDINR", "MODERATE DEPRECIATION PRESSURE"), spots)
+    result = validate_call(make_call("USDINR", "INR_DEPR_MODERATE"), spots)
+    assert result["correct_1d"] is True
+
+
+def test_neutral_dynamic_threshold_with_realized_vol() -> None:
+    spots = {"EURUSD": [make_bar("EURUSD", 0, 1.0700), make_bar("EURUSD", 1, 1.0721)]}
+    result = validate_call(make_call("EURUSD", "NEUTRAL"), spots, realized_vol_20d=10.0)
     assert result["correct_1d"] is True

@@ -7,11 +7,11 @@ from src.regime.confidence import compute_confidence
 
 
 def test_strong_strength() -> None:
-    assert classify_regime(1.5, "EURUSD") == "STRONG USD STRENGTH"
+    assert classify_regime(1.5, "EURUSD") == "USD_STRENGTH_STRONG"
 
 
 def test_moderate_strength() -> None:
-    assert classify_regime(0.7, "EURUSD") == "MODERATE USD STRENGTH"
+    assert classify_regime(0.7, "EURUSD") == "USD_STRENGTH_MODERATE"
 
 
 def test_neutral() -> None:
@@ -19,27 +19,27 @@ def test_neutral() -> None:
 
 
 def test_moderate_weakness() -> None:
-    assert classify_regime(-0.7, "EURUSD") == "MODERATE USD WEAKNESS"
+    assert classify_regime(-0.7, "EURUSD") == "USD_WEAKNESS_MODERATE"
 
 
 def test_strong_weakness() -> None:
-    assert classify_regime(-1.5, "EURUSD") == "STRONG USD WEAKNESS"
+    assert classify_regime(-1.5, "EURUSD") == "USD_WEAKNESS_STRONG"
 
 
 def test_inr_depreciation() -> None:
-    assert classify_regime(0.8, "USDINR") == "MODERATE DEPRECIATION PRESSURE"
+    assert classify_regime(0.8, "USDINR") == "INR_DEPR_MODERATE"
 
 
 def test_inr_appreciation() -> None:
-    assert classify_regime(-0.8, "USDINR") == "MODERATE APPRECIATION PRESSURE"
+    assert classify_regime(-0.8, "USDINR") == "INR_APPR_MODERATE"
 
 
 def test_neutral_vol_expanding() -> None:
-    assert classify_regime(0.0, "EURUSD", vol_expanding=True) == "NEUTRAL / VOL_EXPANDING"
+    assert classify_regime(0.0, "EURUSD", vol_expanding=True) == "NEUTRAL__VOL_EXPANDING"
 
 
 def test_non_neutral_vol_expanding_unchanged() -> None:
-    assert classify_regime(1.5, "EURUSD", vol_expanding=True) == "STRONG USD STRENGTH"
+    assert classify_regime(1.5, "EURUSD", vol_expanding=True) == "USD_STRENGTH_STRONG"
 
 
 def test_confidence_midband() -> None:

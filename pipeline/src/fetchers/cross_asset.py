@@ -15,6 +15,7 @@ def fetch_cross_asset(lookback_days: int = 5) -> dict[str, float | None]:
     period = f"{lookback_days}d"
     vix: float | None = None
     dxy: float | None = None
+    oil: float | None = None
     try:
         df = yf.download("^VIX", period=period, auto_adjust=True, progress=False)
         if not df.empty:
@@ -27,4 +28,10 @@ def fetch_cross_asset(lookback_days: int = 5) -> dict[str, float | None]:
             dxy = last_close(df)
     except Exception as exc:  # noqa: BLE001
         logger.warning("DXY fetch failed: %s", exc)
-    return {"vix": vix, "dxy": dxy}
+    try:
+        df = yf.download("CL=F", period=period, auto_adjust=True, progress=False)
+        if not df.empty:
+            oil = last_close(df)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Oil fetch failed: %s", exc)
+    return {"vix": vix, "dxy": dxy, "oil": oil}

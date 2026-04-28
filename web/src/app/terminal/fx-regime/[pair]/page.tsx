@@ -21,6 +21,8 @@ import {
   useLastPipelineRun,
   sparkNumericSeries,
 } from '@/lib/queries';
+import { CalendarTab } from '@/app/terminal/calendar-tab';
+import type { Database } from '@/lib/supabase/database.types';
 
 const ClientChart = dynamic(() => import('@/components/ui/client-chart'), {
   ssr: false,
@@ -32,6 +34,7 @@ const item = {
   hidden: { opacity: 0, y: 10 },
   show: { opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' as const } },
 };
+type MacroEventRow = Database['public']['Tables']['macro_events']['Row'];
 
 export default function PairDeskPage() {
   const params = useParams();
@@ -76,7 +79,9 @@ export default function PairDeskPage() {
     );
   }, [sigHistQ.data]);
 
-  const events = (eventsQ.data ?? []).filter((e) => !e.pairs?.length || e.pairs.includes(pair.label)).slice(0, 5);
+  const events: MacroEventRow[] = (eventsQ.data ?? [])
+    .filter((e) => !e.pairs?.length || e.pairs.includes(pair.label))
+    .slice(0, 5);
 
   const chgObj = fmtChg(sig?.day_change_pct as number | undefined);
 
@@ -168,6 +173,14 @@ export default function PairDeskPage() {
                 </ClickToCopy>
               </div>
               <div className="flex items-center gap-4 border-l border-[#1a1a1a] pl-10">
+                <div>
+                  <p className="font-mono text-[9px] text-[#666] tracking-[0.1em] mb-1.5 uppercase">Rate Regime</p>
+                  <p className="font-mono text-sm font-bold text-[#f2f2f2]">
+                    {fmt2(sig?.rate_diff_2y as number | undefined)} / {fmt2(sig?.rate_diff_10y as number | undefined)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 border-l border-[#1a1a1a] pl-10">
                 <Sparkline values={volSpark} width={40} height={16} color="#666" />
                 <div>
                   <p className="font-mono text-[9px] text-[#666] tracking-[0.1em] mb-1.5 uppercase">Realized Vol</p>
@@ -229,6 +242,20 @@ export default function PairDeskPage() {
                       </p>
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-px bg-[#1a1a1a] border border-[#1a1a1a] mb-5">
+                    <div className="bg-[#0c0c0c] p-3">
+                      <p className="font-mono text-[9px] text-[#666] mb-1 uppercase tracking-widest">Yield Curve Spread</p>
+                      <p className="font-mono text-xs text-white font-bold">
+                        2Y {fmt2(sig?.rate_diff_2y as number | undefined)}
+                      </p>
+                    </div>
+                    <div className="bg-[#0c0c0c] p-3">
+                      <p className="font-mono text-[9px] text-[#666] mb-1 uppercase tracking-widest">Rate Regime</p>
+                      <p className="font-mono text-xs text-white font-bold">
+                        10Y {fmt2(sig?.rate_diff_10y as number | undefined)}
+                      </p>
+                    </div>
+                  </div>
 
                   <p className="font-sans text-[13px] text-[#aaa] leading-relaxed border-t border-[#141414] pt-4">
                     {(call?.primary_driver as string) ?? '—'}
@@ -248,7 +275,7 @@ export default function PairDeskPage() {
                   }}
                 />
                 <div className="absolute inset-0 z-10">
-                  <ClientChart pairLabel={pair.label} />
+                  <ClientChart pairLabel={pair.label} data={sigHistQ.data as any} color={pair.pairColor} />
                 </div>
               </motion.div>
             </div>
@@ -328,26 +355,7 @@ export default function PairDeskPage() {
             {eventsQ.isPending ? (
               <div className="text-[11px] text-[#555] animate-pulse">Loading…</div>
             ) : (
-              <div className="flex flex-col gap-3">
-                {events.map((e) => {
-                  const isHigh = e.impact === 'HIGH';
-                  const days = Math.ceil((new Date(e.date).getTime() - new Date(TODAY).getTime()) / 86400000);
-                  return (
-                    <div key={`${e.date}-${e.event}`} className="border-l-2 pl-3 py-0.5" style={{ borderColor: isHigh ? '#dc2626' : '#f59e0b' }}>
-                      <div className="flex justify-between items-baseline mb-1">
-                        <span className="font-mono text-[9px] text-[#888]">{e.date.slice(5)}</span>
-                        <span className={`font-mono text-[9px] ${days <= 2 ? 'text-[#fff]' : 'text-[#666]'}`}>
-                          {days === 0 ? 'TODAY' : days === 1 ? 'TOMORROW' : `${days}d`}
-                        </span>
-                      </div>
-                      <p className="font-sans text-xs font-semibold text-[#ddd] leading-tight mb-1">{e.event}</p>
-                      <span className="font-mono text-[8px] tracking-widest" style={{ color: isHigh ? '#dc2626' : '#f59e0b' }}>
-                        {e.impact}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+              <CalendarTab events={events} todayIso={TODAY} />
             )}
             <button
               type="button"
@@ -396,26 +404,7 @@ export default function PairDeskPage() {
               </div>
 
               <p className="font-mono text-[10px] text-[#666] tracking-widest mb-4">UPCOMING EVENTS</p>
-              <div className="flex flex-col gap-4">
-                {events.map((e) => {
-                  const isHigh = e.impact === 'HIGH';
-                  const days = Math.ceil((new Date(e.date).getTime() - new Date(TODAY).getTime()) / 86400000);
-                  return (
-                    <div key={`m-${e.date}-${e.event}`} className="border-l-2 pl-4 py-1" style={{ borderColor: isHigh ? '#dc2626' : '#f59e0b' }}>
-                      <div className="flex justify-between items-baseline mb-1">
-                        <span className="font-mono text-[10px] text-[#888]">{e.date.slice(5)}</span>
-                        <span className={`font-mono text-[9px] ${days <= 2 ? 'text-[#fff]' : 'text-[#666]'}`}>
-                          {days === 0 ? 'TODAY' : days === 1 ? 'TOMORROW' : `${days}d`}
-                        </span>
-                      </div>
-                      <p className="font-sans text-sm font-semibold text-[#ddd] leading-tight mb-1.5">{e.event}</p>
-                      <span className="font-mono text-[9px] tracking-widest" style={{ color: isHigh ? '#dc2626' : '#f59e0b' }}>
-                        {e.impact}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+              <CalendarTab events={events} todayIso={TODAY} compact />
             </div>
           </div>
         </div>

@@ -8,16 +8,23 @@ import { PAIRS } from '@/lib/mockData';
 import { useLatestSignals, useLatestRegimeCalls, useLastPipelineRun } from '@/lib/queries';
 
 export function TerminalNav() {
-  const currentRoute = usePathname();
+  const currentRoute = usePathname() || '';
   const pair = PAIRS.find((p) => currentRoute.includes(p.urlSlug));
 
   const signalsQ = useLatestSignals();
   const regimeQ = useLatestRegimeCalls();
   const lastRunQ = useLastPipelineRun();
 
-  const signals = signalsQ.data;
+  const { data: signals } = signalsQ;
   const err = signalsQ.isError || regimeQ.isError;
   const pending = signalsQ.isPending || regimeQ.isPending;
+
+  const handleRefresh = () => {
+    signalsQ.refetch();
+    regimeQ.refetch();
+    lastRunQ.refetch();
+  };
+
   const asOfDay =
     lastRunQ.data?.slice(0, 10) ??
     (regimeQ.data?.EURUSD as { date?: string } | undefined)?.date ??
@@ -32,13 +39,22 @@ export function TerminalNav() {
           <span className="font-sans font-bold text-[13px] text-[#e8e8e8] tracking-tight">FX Regime Lab</span>
           <span className="font-mono text-[10px] text-[#333] ml-1">/ Terminal</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span
-            className={`w-1.5 h-1.5 rounded-full shrink-0 ${err ? 'bg-[#f87171]' : pending ? 'bg-[#737373]' : 'live-indicator animate-pulse'}`}
-          />
-          <span className={`font-mono text-[10px] ${err ? 'text-[#f87171]' : 'text-[#888]'}`}>
-            {err ? 'ERROR' : pending ? 'LOADING' : 'LIVE'} · {asOfDay} {utcClock}
-          </span>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={handleRefresh}
+            className="font-mono text-[9px] text-[#555] hover:text-[#888] transition-colors cursor-pointer border border-[#1a1a1a] px-1.5 py-0.5 bg-[#0a0a0a]"
+            disabled={pending}
+          >
+            {pending ? 'SYNCING...' : 'REFRESH'}
+          </button>
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`w-1.5 h-1.5 rounded-full shrink-0 ${err ? 'bg-[#f87171]' : pending ? 'bg-[#737373]' : 'live-indicator animate-pulse'}`}
+            />
+            <span className={`font-mono text-[10px] ${err ? 'text-[#f87171]' : 'text-[#888]'}`}>
+              {err ? 'ERROR' : pending ? 'LOADING' : 'LIVE'} · {asOfDay} {utcClock}
+            </span>
+          </div>
         </div>
       </div>
 

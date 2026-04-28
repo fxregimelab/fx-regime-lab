@@ -18,6 +18,10 @@ class RawYields:
     de_2y: float | None
     jp_2y: float | None
     in_2y: float | None
+    us_10y: float | None = None
+    de_10y: float | None = None
+    jp_10y: float | None = None
+    in_10y: float | None = None
 
 
 @dataclass
@@ -43,6 +47,7 @@ class SignalRow:
     pair: str
     date: date
     rate_diff_2y: float | None
+    rate_diff_10y: float | None
     cot_percentile: float | None
     realized_vol_20d: float | None
     realized_vol_5d: float | None
@@ -50,6 +55,9 @@ class SignalRow:
     spot: float | None
     day_change: float | None
     day_change_pct: float | None
+    cross_asset_vix: float | None
+    cross_asset_dxy: float | None
+    cross_asset_oil: float | None
 
 
 @dataclass

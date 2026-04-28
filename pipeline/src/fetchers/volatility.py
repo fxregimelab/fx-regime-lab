@@ -7,7 +7,7 @@ import logging
 import numpy as np
 import yfinance as yf
 
-from src.types import YF_TICKERS, SpotBar
+from src.types import SpotBar
 
 logger = logging.getLogger(__name__)
 
@@ -31,49 +31,24 @@ def fetch_realized_vol(spots: dict[str, list[SpotBar]]) -> dict[str, dict[str, f
 
 
 def fetch_implied_vol(pair: str) -> float | None:
-    """ATM-ish implied vol from nearest listed expiry (>=25d); returns annualized % or None."""
-    try:
-        ticker_sym = YF_TICKERS[pair]
-        t = yf.Ticker(ticker_sym)
-        exps = list(t.options or [])
-        if not exps:
-            return None
-        from datetime import date
+    """Best-effort implied vol proxy from CBOE FX volatility indices."""
+    vol_symbol_by_pair: dict[str, str | None] = {
+        "EURUSD": "^EUV",
+        "USDJPY": "^JXV",
+        "USDINR": None,
+    }
+    symbol = vol_symbol_by_pair.get(pair)
+    if symbol is None:
+        return None
 
-        today = date.today()
-        chosen: str | None = None
-        for exp in exps:
-            try:
-                exp_d = date.fromisoformat(exp[:10])
-            except ValueError:
-                continue
-            if (exp_d - today).days >= 25:
-                chosen = exp
-                break
-        if chosen is None:
-            chosen = exps[-1]
-        chain = t.option_chain(chosen)
-        calls = chain.calls
-        if calls is None or calls.empty:
+    try:
+        history = yf.Ticker(symbol).history(period="5d")
+        if history is None or history.empty or "Close" not in history:
             return None
-        spot = float(t.info.get("regularMarketPrice") or t.fast_info.get("last_price") or 0.0)
-        if spot <= 0:
-            hist = t.history(period="5d")
-            if hist is not None and not hist.empty:
-                spot = float(hist["Close"].iloc[-1])
-        if spot <= 0:
+        closes = history["Close"].dropna()
+        if closes.empty:
             return None
-        strikes = calls["strike"].astype(float)
-        ivs = calls["impliedVolatility"].astype(float)
-        mask = ivs.notna() & (ivs > 0)
-        strikes = strikes[mask]
-        ivs = ivs[mask]
-        if strikes.empty:
-            return None
-        dist = (strikes.to_numpy(dtype=float) - spot).astype(float)
-        order = np.argsort(np.abs(dist))[:5]
-        iv_mean = float(ivs.iloc[order].mean())
-        return iv_mean * 100.0
+        return float(closes.iloc[-1])
     except Exception as exc:  # noqa: BLE001
-        logger.debug("implied vol unavailable for %s: %s", pair, exc)
+        logger.debug("implied vol unavailable for %s via %s: %s", pair, symbol, exc)
         return None

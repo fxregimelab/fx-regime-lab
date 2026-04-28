@@ -9,6 +9,26 @@ type EquityRow = Pick<ValidationLogRow, 'date' | 'pair' | 'actual_return_1d'>;
 type MacroEventRow = Database['public']['Tables']['macro_events']['Row'];
 type RegimeCallRow = Database['public']['Tables']['regime_calls']['Row'];
 type SignalRow = Database['public']['Tables']['signals']['Row'];
+type LatestRegimeCallRow = Pick<
+  RegimeCallRow,
+  'pair' | 'date' | 'regime' | 'confidence' | 'signal_composite' | 'rate_signal' | 'primary_driver' | 'created_at'
+>;
+type LatestSignalRow = Pick<
+  SignalRow,
+  | 'pair'
+  | 'date'
+  | 'spot'
+  | 'rate_diff_2y'
+  | 'rate_diff_10y'
+  | 'cot_percentile'
+  | 'realized_vol_20d'
+  | 'realized_vol_5d'
+  | 'cross_asset_vix'
+  | 'cross_asset_dxy'
+  | 'cross_asset_oil'
+  | 'day_change_pct'
+  | 'created_at'
+>;
 
 export const TRACKED_PAIRS = ['EURUSD', 'USDJPY', 'USDINR'];
 
@@ -16,10 +36,10 @@ export const TRACKED_PAIRS = ['EURUSD', 'USDJPY', 'USDINR'];
 export function useLatestRegimeCalls() {
   return useQuery({
     queryKey: ['regime_calls', 'latest'],
-    queryFn: async (): Promise<Record<string, RegimeCallRow>> => {
+    queryFn: async (): Promise<Record<string, LatestRegimeCallRow>> => {
       const { data, error } = await supabase
         .from('regime_calls')
-        .select('*')
+        .select('pair,date,regime,confidence,signal_composite,rate_signal,primary_driver,created_at')
         .in('pair', TRACKED_PAIRS)
         .order('date', { ascending: false })
         .limit(20);
@@ -27,8 +47,8 @@ export function useLatestRegimeCalls() {
       if (error) throw error;
 
       // Deduplicate to get the latest per pair
-      const latest: Record<string, RegimeCallRow> = {};
-      for (const row of (data as RegimeCallRow[]) || []) {
+      const latest: Record<string, LatestRegimeCallRow> = {};
+      for (const row of (data as LatestRegimeCallRow[]) || []) {
         if (!latest[row.pair]) {
           latest[row.pair] = row;
         }
@@ -80,22 +100,65 @@ export function useRegimeHistory(pair: string) {
 export function useLatestSignals() {
   return useQuery({
     queryKey: ['signals', 'latest'],
-    queryFn: async (): Promise<Record<string, SignalRow>> => {
+    queryFn: async (): Promise<Record<string, LatestSignalRow>> => {
       const { data, error } = await supabase
         .from('signals')
-        .select('*')
+        .select(
+          'pair,date,spot,rate_diff_2y,rate_diff_10y,cot_percentile,realized_vol_20d,realized_vol_5d,cross_asset_vix,cross_asset_dxy,cross_asset_oil,day_change_pct,created_at',
+        )
         .in('pair', TRACKED_PAIRS)
         .order('date', { ascending: false })
         .limit(20);
 
       if (error) throw error;
-      const latest: Record<string, SignalRow> = {};
-      for (const row of (data as SignalRow[]) || []) {
+      const latest: Record<string, LatestSignalRow> = {};
+      for (const row of (data as LatestSignalRow[]) || []) {
         if (!latest[row.pair]) {
           latest[row.pair] = row;
         }
       }
       return latest;
+    },
+  });
+}
+
+export function useCrossAssetPulse() {
+  return useQuery({
+    queryKey: ['signals', 'cross_asset_pulse'],
+    queryFn: async (): Promise<{
+      vix: { value: number | null; change: number | null };
+      dxy: { value: number | null; change: number | null };
+      oil: { value: number | null; change: number | null };
+      date: string | null;
+    }> => {
+      const { data, error } = await supabase
+        .from('signals')
+        .select('date,cross_asset_vix,cross_asset_dxy,cross_asset_oil')
+        .eq('pair', 'EURUSD')
+        .order('date', { ascending: false })
+        .limit(2);
+      if (error) throw error;
+      const rows = (data ??
+        []) as Pick<SignalRow, 'date' | 'cross_asset_vix' | 'cross_asset_dxy' | 'cross_asset_oil'>[];
+      const latest = rows[0];
+      const prev = rows[1];
+      const delta = (a: number | null, b: number | null) =>
+        a != null && b != null ? a - b : null;
+      return {
+        vix: {
+          value: latest?.cross_asset_vix ?? null,
+          change: delta(latest?.cross_asset_vix ?? null, prev?.cross_asset_vix ?? null),
+        },
+        dxy: {
+          value: latest?.cross_asset_dxy ?? null,
+          change: delta(latest?.cross_asset_dxy ?? null, prev?.cross_asset_dxy ?? null),
+        },
+        oil: {
+          value: latest?.cross_asset_oil ?? null,
+          change: delta(latest?.cross_asset_oil ?? null, prev?.cross_asset_oil ?? null),
+        },
+        date: latest?.date ?? null,
+      };
     },
   });
 }
