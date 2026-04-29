@@ -47,9 +47,12 @@ export function MethodologyPopover({ metricKey }: { metricKey: MetricKey }) {
         const rect = containerRef.current.getBoundingClientRect();
         const screenWidth = window.innerWidth;
         const popoverWidth = 280;
-        
-        let left = rect.left + window.scrollX;
-        // If it would overflow right, shift left
+        const rightGap = screenWidth - rect.right;
+        const shouldRightAlign = rightGap < popoverWidth + 20;
+        let left = shouldRightAlign
+          ? rect.right + window.scrollX - popoverWidth
+          : rect.left + window.scrollX;
+
         if (left + popoverWidth > screenWidth - 20) {
           left = screenWidth - popoverWidth - 20;
         }

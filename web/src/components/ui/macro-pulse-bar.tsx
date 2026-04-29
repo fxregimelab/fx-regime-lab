@@ -20,7 +20,7 @@ function PulseItem({
 }) {
   const chg = fmtChg(change);
   return (
-    <div className="flex items-baseline gap-1.5 shrink-0">
+    <div className="flex items-baseline gap-1.5 shrink min-w-0">
       <span className="font-mono text-[9px] text-[#555] tracking-widest">{label}</span>
       <span className="font-mono text-[10px] font-bold text-[#e8e8e8] tabular-nums">
         {value != null ? fmt2(value) + (isPct ? '%' : '') : '—'}
@@ -42,11 +42,11 @@ export function MacroPulseBar() {
   // Fixed height h-[28px] — never grows, never shifts
   return (
     <div
-      className="w-full sticky top-0 z-[100] bg-[#000000] border-b border-[#111] flex items-center overflow-hidden"
+      className="w-full h-[28px] sticky top-0 z-[100] bg-[#000000] border-b border-[#111] flex items-center overflow-hidden whitespace-nowrap"
       style={{ height: `${PULSE_BAR_H}px` }}
     >
       {/* Scrolling marquee so content is never clipped and bar stays one line */}
-      <div className="flex items-center gap-6 px-6 animate-pulse-marquee whitespace-nowrap">
+      <div className="flex w-max min-w-full items-center gap-6 px-6 animate-pulse-marquee whitespace-nowrap">
         {isPending || !data ? (
           <span className="font-mono text-[9px] text-[#333] tracking-widest animate-pulse">
             SYNCING MACRO PULSE...

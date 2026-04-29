@@ -114,10 +114,10 @@ export default function PairDeskPage() {
       <TerminalNav />
 
       <div
-        className="grid grid-cols-1 xl:grid-cols-[72px_minmax(0,1fr)_340px] min-h-[calc(100vh-104px)]"
-        style={{ marginTop: `${TERMINAL_NAV_H}px` }}
+        className="grid grid-cols-1 xl:grid-cols-[72px_minmax(0,1fr)_340px] min-w-0 overflow-hidden"
+        style={{ marginTop: `${TERMINAL_NAV_H}px`, height: 'calc(100vh - 28px - 38px)' }}
       >
-        <aside className="hidden xl:flex flex-col border-r border-[#111] bg-[#000000]">
+        <aside className="hidden xl:flex min-h-0 flex-col border-r border-[#111] bg-[#000000] overflow-y-auto">
           <div className="flex-1 py-4">
             {PAIRS.map((p) => {
               const active = p.urlSlug === pairSlug;
@@ -140,7 +140,7 @@ export default function PairDeskPage() {
           </div>
         </aside>
 
-        <main className="border-r border-[#111] bg-[#000000]">
+        <main className="min-h-0 min-w-0 border-r border-[#111] bg-[#000000] overflow-y-auto">
           <section className="border-b border-[#111] px-6 py-5">
             <div className="flex items-center justify-between mb-2">
               <p className="font-mono text-[9px] text-[#666] tracking-widest">{pair.display}</p>
@@ -175,7 +175,7 @@ export default function PairDeskPage() {
             </div>
           </section>
 
-          <section className="grid grid-cols-1 md:grid-cols-4 gap-0 border-b border-[#111]">
+          <section className="grid grid-cols-4 gap-0 border-b border-[#111] min-w-0">
             {[
               { key: 'RATES', signal: call?.rate_signal as string | null | undefined, value: rateDisplay, extra: <MethodologyPopover metricKey="rateDiff" /> },
               { key: 'COT', signal: call?.cot_signal as string | null | undefined, value: cotDisplay, extra: <MethodologyPopover metricKey="cot" /> },
@@ -195,15 +195,16 @@ export default function PairDeskPage() {
             ].map((box) => {
               const tone = signalTone(box.signal);
               return (
-                <div key={box.key} className="h-[110px] border-r border-b border-[#111] md:border-b-0 md:last:border-r-0 p-4 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] text-[#777] tracking-widest">
-                      {box.key} {box.extra}
+                <div key={box.key} className="h-[60px] min-w-0 border-r border-[#111] last:border-r-0 px-3 py-2 flex flex-col justify-between">
+                  <div className="flex items-center justify-between gap-1 min-w-0">
+                    <span className="font-mono text-[9px] text-[#777] tracking-widest min-w-0 truncate">
+                      {box.key}
                     </span>
+                    {box.extra}
                     <span className={`font-mono text-[11px] ${tone.text} tabular-nums`}>{tone.icon}</span>
                   </div>
-                  <div className="h-[22px] flex items-center">{box.value}</div>
-                  <span className={`font-mono text-[11px] font-extrabold ${tone.text} tabular-nums`}>{box.signal ?? 'NEUTRAL'}</span>
+                  <div className="h-[16px] min-w-0 flex items-center">{box.value}</div>
+                  <span className={`font-mono text-[10px] font-extrabold ${tone.text} tabular-nums truncate`}>{box.signal ?? 'NEUTRAL'}</span>
                 </div>
               );
             })}
@@ -219,7 +220,7 @@ export default function PairDeskPage() {
           </section>
         </main>
 
-        <aside className="bg-[#000000] px-5 py-5">
+        <aside className="min-h-0 min-w-0 bg-[#000000] px-5 py-5 overflow-y-auto">
           <section className="mb-8">
             <p className="font-mono text-[10px] text-[#666] tracking-widest mb-3">AI ANALYSIS</p>
             {briefQ.isPending ? (
