@@ -14,7 +14,8 @@ pull:
       branch: main
   - prefect.deployments.steps.run_shell_script:
       id: install-deps
-      script: pip install -e .
+      # Managed image can ship an older websockets; yfinance.live needs websockets>=13.
+      script: pip install "websockets>=13.0" --upgrade && pip install -e .
       directory: "{{ clone.directory }}/pipeline"
       stream_output: true
   - prefect.deployments.steps.set_working_directory:
@@ -28,3 +29,7 @@ deployments:
       interval: 86400
     work_pool:
       name: default
+      job_variables:
+        # Managed workers: align websockets with yfinance before pull-step pip install.
+        pip_packages:
+          - websockets>=13.0
