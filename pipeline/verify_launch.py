@@ -1,33 +1,45 @@
-import os
+"""Post-run health check: desk_open_cards must exist for UTC today with regimes set."""
+
+from __future__ import annotations
+
+import sys
+from datetime import UTC, datetime
+from typing import Any, cast
+
+from dotenv import load_dotenv
 
 from src.db.writer import _client
-def verify() -> None:
+
+
+def main() -> int:
+    load_dotenv()
+    today = datetime.now(UTC).date()
+    iso = today.isoformat()
     client = _client()
-    print("--- 🚀 PRODUCTION DATA AUDIT ---")
-
-    # Check Signals (Phase 1 & 3 fix)
-    sig_res = client.table("signals").select("*").order("created_at", desc=True).limit(1).execute()
-    if sig_res.data:
-        latest = sig_res.data[0]
-        print(f"✅ Latest Signal: {latest['pair']} at {latest['spot']}")
+    res = (
+        client.table("desk_open_cards")
+        .select("pair,structural_regime")
+        .eq("date", iso)
+        .execute()
+    )
+    rows: list[dict[str, Any]] = cast(list[dict[str, Any]], res.data or [])
+    if not rows:
+        print(f"verify_launch: FAIL — no desk_open_cards rows for {iso}", file=sys.stderr)
+        return 1
+    empty_pairs = [
+        str(r.get("pair") or "?")
+        for r in rows
+        if not str(r.get("structural_regime") or "").strip()
+    ]
+    if empty_pairs:
         print(
-            "✅ Data Integrity Check: "
-            f"day_change={latest.get('day_change')}, vix={latest.get('cross_asset_vix')}"
+            f"verify_launch: FAIL — empty structural_regime for: {empty_pairs} ({iso})",
+            file=sys.stderr,
         )
-    else:
-        print("❌ No signals found")
-
-    # Check AI Briefs (Phase 4 fix)
-    brief_res = client.table("brief").select("*").order("created_at", desc=True).limit(3).execute()
-    print(f"✅ AI Briefs Found: {len(brief_res.data)}/3 pairs generated.")
-    for b in brief_res.data:
-        snippet = b["analysis"][:100].replace("\n", " ")
-        print(f"   ∟ {b['pair']}: {snippet}...")
-
-    # Check Macro Events
-    event_res = client.table("macro_events").select("*").limit(1).execute()
-    print(f"✅ Macro Calendar: {'Online' if event_res.data else 'Offline'}")
+        return 1
+    print(f"verify_launch: OK — {len(rows)} desk row(s) for {iso}")
+    return 0
 
 
 if __name__ == "__main__":
-    verify()
+    raise SystemExit(main())

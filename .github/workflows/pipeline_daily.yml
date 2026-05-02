@@ -2,7 +2,7 @@ name: Pipeline — Daily
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 5 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -28,6 +28,9 @@ jobs:
       - name: Install pipeline dependencies
         run: pip install -e ./pipeline
 
+      - name: Pre-check — executable daily script
+        run: chmod +x pipeline/run_daily.sh
+
       - name: Run daily pipeline
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -35,3 +38,9 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: ./pipeline/run_daily.sh
+
+      - name: Post-check — launch health (desk_open_cards)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: cd pipeline && python verify_launch.py

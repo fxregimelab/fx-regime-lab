@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
-REPO=/home/shreyash/fx_regime_lab/fx-regime-lab
-cd "$REPO"
-if [ -f pipeline/.venv/bin/activate ]; then
-  # Local/dev path.
-  # GitHub Actions uses setup-python + pip install -e ./pipeline instead.
-  source pipeline/.venv/bin/activate
+
+# Repo root (parent of pipeline/), works locally and on GitHub Actions.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT/pipeline"
+
+if [ -f .venv/bin/activate ]; then
+  # Local/dev: optional venv beside pipeline/.
+  # CI: setup-python + pip install -e ./pipeline (no venv).
+  # shellcheck source=/dev/null
+  source .venv/bin/activate
 fi
-python -m src.scheduler.orchestrator daily
+
+python src/scheduler/orchestrator.py daily
+python src/scheduler/overnight_check.py
