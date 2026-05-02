@@ -6,7 +6,6 @@ import logging
 from collections.abc import Sequence
 
 import numpy as np
-import yfinance as yf
 
 from src.types import SpotBar
 
@@ -43,6 +42,8 @@ def fetch_implied_vol(pair: str) -> float | None:
         return None
 
     try:
+        import yfinance as yf
+
         history = yf.Ticker(symbol).history(period="5d")
         if history is None or history.empty or "Close" not in history:
             return None

@@ -11,12 +11,18 @@ from typing import Any
 from urllib.parse import quote
 
 import aiohttp
-import yfinance as yf
 from fredapi import Fred
 
 from src.fetchers.async_engine import AsyncFetcher
 
 logger = logging.getLogger(__name__)
+
+
+def _yfinance() -> Any:
+    import yfinance as yf
+
+    return yf
+
 
 YF_2Y_TICKERS: dict[str, str] = {
     "us_2y": "^UST2Y",
@@ -49,7 +55,7 @@ FRED_FALLBACK_SERIES: dict[str, tuple[str, ...]] = {
 
 def _yf_leg(ticker: str, label: str, period: str) -> float | None:
     try:
-        history = yf.Ticker(ticker).history(period=period)
+        history = _yfinance().Ticker(ticker).history(period=period)
         if history is None or history.empty or "Close" not in history:
             logger.warning("yfinance %s (%s) returned empty history", label, ticker)
             return None
@@ -195,7 +201,7 @@ async def _yahoo_yield_latest_async(
     t0 = time.perf_counter()
 
     def _close() -> float | None:
-        history = yf.Ticker(ticker).history(period=period)
+        history = _yfinance().Ticker(ticker).history(period=period)
         if history is None or history.empty or "Close" not in history:
             logger.warning("yfinance async %s returned empty history", ticker)
             return None

@@ -8,13 +8,18 @@ from typing import Any
 
 import aiohttp
 import pandas as pd
-import yfinance as yf
 
 from src.db import writer
 from src.fetchers.async_engine import AsyncFetcher
 from src.types import spot_tickers_from_universe
 
 logger = logging.getLogger(__name__)
+
+
+def _yfinance() -> Any:
+    import yfinance as yf
+
+    return yf
 
 
 def _yf_row_float(row: Any, attr: str) -> float | None:
@@ -46,17 +51,17 @@ def fetch_cross_asset(lookback_days: int = 5) -> dict[str, float | None]:
     oil: float | None = None
     oil_change_1d: float | None = None
     try:
-        df = yf.download("^VIX", period=period, auto_adjust=True, progress=False)
+        df = _yfinance().download("^VIX", period=period, auto_adjust=True, progress=False)
         vix, _ = _latest_and_change_1d(df)
     except Exception as exc:  # noqa: BLE001
         logger.warning("VIX fetch failed: %s", exc)
     try:
-        df = yf.download("DX-Y.NYB", period=period, auto_adjust=True, progress=False)
+        df = _yfinance().download("DX-Y.NYB", period=period, auto_adjust=True, progress=False)
         dxy, _ = _latest_and_change_1d(df)
     except Exception as exc:  # noqa: BLE001
         logger.warning("DXY fetch failed: %s", exc)
     try:
-        df = yf.download("CL=F", period=period, auto_adjust=True, progress=False)
+        df = _yfinance().download("CL=F", period=period, auto_adjust=True, progress=False)
         oil, oil_change_1d = _latest_and_change_1d(df)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Oil fetch failed: %s", exc)
@@ -64,17 +69,17 @@ def fetch_cross_asset(lookback_days: int = 5) -> dict[str, float | None]:
     copper: float | None = None
     stoxx: float | None = None
     try:
-        df = yf.download("GC=F", period=period, auto_adjust=True, progress=False)
+        df = _yfinance().download("GC=F", period=period, auto_adjust=True, progress=False)
         gold, _ = _latest_and_change_1d(df)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Gold fetch failed: %s", exc)
     try:
-        df = yf.download("HG=F", period=period, auto_adjust=True, progress=False)
+        df = _yfinance().download("HG=F", period=period, auto_adjust=True, progress=False)
         copper, _ = _latest_and_change_1d(df)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Copper fetch failed: %s", exc)
     try:
-        df = yf.download("^STOXX50E", period=period, auto_adjust=True, progress=False)
+        df = _yfinance().download("^STOXX50E", period=period, auto_adjust=True, progress=False)
         stoxx, _ = _latest_and_change_1d(df)
     except Exception as exc:  # noqa: BLE001
         logger.warning("STOXX50E fetch failed: %s", exc)
@@ -107,7 +112,9 @@ async def fetch_cross_asset_async(
 
             def _latest() -> float | None:
                 try:
-                    df = yf.download(ticker, period=period, auto_adjust=True, progress=False)
+                    df = _yfinance().download(
+                        ticker, period=period, auto_adjust=True, progress=False
+                    )
                     latest, _ = _latest_and_change_1d(df)
                     return latest
                 except Exception as exc:  # noqa: BLE001
@@ -161,7 +168,7 @@ def fetch_max_history(pair: str, years_back: int = 30) -> int:
     start_year = max(1970, date.today().year - years_back)
     start_date = f"{start_year}-01-01"
     try:
-        df = yf.download(ticker, start=start_date, auto_adjust=False, progress=False)
+        df = _yfinance().download(ticker, start=start_date, auto_adjust=False, progress=False)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Deep history fetch failed for %s: %s", pair, exc)
         return 0

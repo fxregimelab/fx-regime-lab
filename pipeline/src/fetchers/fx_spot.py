@@ -11,12 +11,17 @@ from typing import Any, cast
 import aiohttp
 import numpy as np
 import pandas as pd
-import yfinance as yf
 
 from src.fetchers.async_engine import AsyncFetcher
 from src.types import SpotBar, spot_tickers_from_universe
 
 logger = logging.getLogger(__name__)
+
+
+def _yfinance() -> Any:
+    import yfinance as yf
+
+    return yf
 
 
 def fetch_fx_spot(lookback_days: int = 30) -> dict[str, list[SpotBar]]:
@@ -27,7 +32,7 @@ def fetch_fx_spot(lookback_days: int = 30) -> dict[str, list[SpotBar]]:
     period = f"{lookback_days}d"
     out: dict[str, list[SpotBar]] = {p: [] for p in yf_map}
     try:
-        raw = yf.download(
+        raw = _yfinance().download(
             tickers,
             period=period,
             auto_adjust=True,
@@ -121,7 +126,7 @@ async def _fetch_one_spot_async(
     def _download() -> pd.DataFrame:
         return cast(
             pd.DataFrame,
-            yf.download(ticker, period=period, auto_adjust=True, progress=False),
+            _yfinance().download(ticker, period=period, auto_adjust=True, progress=False),
         )
 
     async with fetcher.semaphore:

@@ -14,8 +14,10 @@ pull:
       branch: main
   - prefect.deployments.steps.run_shell_script:
       id: install-deps
-      # Managed image can ship an older websockets; yfinance.live needs websockets>=13.
-      script: pip install "websockets>=13.0" --upgrade && pip install -e .
+      # PEP 668 images: upgrade yfinance/websockets in system site-packages before editable install.
+      script: >-
+        pip install "websockets>=14.0" "yfinance>=0.2.65" --upgrade --break-system-packages
+        && pip install -e . --break-system-packages
       directory: "{{ clone.directory }}/pipeline"
       stream_output: true
       shell: true
