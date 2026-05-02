@@ -44,7 +44,7 @@ def test_non_neutral_vol_expanding_unchanged() -> None:
 
 def test_confidence_midband() -> None:
     c = compute_confidence(0.7, 0.6, 0.5)
-    assert 0.50 < c < 0.95
+    assert 0.50 < c < 0.91
 
 
 def test_confidence_minimum() -> None:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 
 import numpy as np
 import yfinance as yf
@@ -12,7 +13,7 @@ from src.types import SpotBar
 logger = logging.getLogger(__name__)
 
 
-def fetch_realized_vol(spots: dict[str, list[SpotBar]]) -> dict[str, dict[str, float]]:
+def fetch_realized_vol(spots: dict[str, Sequence[SpotBar]]) -> dict[str, dict[str, float]]:
     """Annualized realized vol (%) from log returns over 5d and 20d windows."""
     out: dict[str, dict[str, float]] = {}
     for pair, bars in spots.items():

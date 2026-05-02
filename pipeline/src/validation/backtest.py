@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from typing import Any
 
 from src.types import RegimeCall, SpotBar
@@ -28,7 +29,7 @@ def _is_correct_direction(regime: str, return_pct: float, neutral_threshold_pct:
 
 def validate_call(
     prior_call: RegimeCall,
-    today_spots: dict[str, list[SpotBar]],
+    today_spots: dict[str, Sequence[SpotBar]],
     *,
     realized_vol_20d: float | None = None,
 ) -> dict[str, Any]:

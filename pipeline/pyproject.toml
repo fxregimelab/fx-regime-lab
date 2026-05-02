@@ -11,6 +11,7 @@ dependencies = [
     "pandas>=2.2.0",
     "numpy>=1.26.0",
     "requests>=2.31.0",
+    "aiohttp>=3.9.0",
     "python-dotenv>=1.0.0",
     "supabase>=2.4.0",
     "openai>=1.30.0",
@@ -20,6 +21,7 @@ dependencies = [
     "pytest>=8.1.0",
     "pre-commit>=3.7.0",
     "types-requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
 ]
 
 [tool.ruff]
@@ -29,6 +31,10 @@ exclude = ["src/legacy"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"seed_history.py" = ["E402"]
+"seed_macro_history.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.11"

@@ -1,0 +1,9 @@
+{
+  "EURUSD": {"class": "FX", "tickers": {"spot_ticker": "EURUSD=X", "yield_base": "DGS2", "yield_quote": "ECB_RATE", "cot_ticker": "099741"}},
+  "USDJPY": {"class": "FX", "tickers": {"spot_ticker": "JPY=X", "yield_base": "DGS2", "yield_quote": "IRLTLT01JPM156N", "cot_ticker": "097741"}},
+  "USDINR": {"class": "FX", "tickers": {"spot_ticker": "INR=X", "yield_base": "DGS2", "yield_quote": "IN2YT=RR", "cot_ticker": null}},
+  "GBPUSD": {"class": "FX", "tickers": {"spot_ticker": "GBPUSD=X", "yield_base": "DGS2", "yield_quote": "GB2YT=RR", "cot_ticker": "096742"}},
+  "AUDUSD": {"class": "FX", "tickers": {"spot_ticker": "AUDUSD=X", "yield_base": "DGS2", "yield_quote": "AU2YT=RR", "cot_ticker": "232741"}},
+  "USDCAD": {"class": "FX", "tickers": {"spot_ticker": "CAD=X", "yield_base": "DGS2", "yield_quote": "CA2YT=RR", "cot_ticker": "090741"}},
+  "USDCHF": {"class": "FX", "tickers": {"spot_ticker": "CHF=X", "yield_base": "DGS2", "yield_quote": "CH2YT=RR", "cot_ticker": "092741"}}
+}

@@ -19,4 +19,6 @@ def compute_confidence(
             bonus += 0.05
         if abs(rate_norm) > 0.3 and abs(cot_norm) > 0.3:
             bonus += 0.05
-    return float(np.clip(base_conf + bonus, 0.40, 0.95))
+    raw = float(np.clip(base_conf + bonus, 0.40, 0.95))
+    # Institutional −5pp haircut (under-promise / over-deliver).
+    return float(np.clip(raw - 0.05, 0.40, 0.90))

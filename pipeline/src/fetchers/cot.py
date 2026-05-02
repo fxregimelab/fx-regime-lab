@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import logging
@@ -13,11 +14,14 @@ from collections import defaultdict
 from datetime import date
 from typing import Any
 
+import aiohttp
 import requests
 
-from src.types import PAIRS, CotRow
+from src.fetchers.async_engine import AsyncFetcher
+from src.types import CotRow, pairs_from_universe
 
 logger = logging.getLogger(__name__)
+_COT_LOOKBACK_WEEKS = 260
 _K_MKT = "market and exchange names"
 _K_DATE = "as of date in form yymmdd"
 _K_LO = "noncommercial positions-long (all)"
@@ -27,8 +31,14 @@ _K_OIb = "open interest all"
 _KL_NEW = ("asset mgr positions long all", "lev money positions long all", "other rept positions long all")  # noqa: E501
 _KS_NEW = ("asset mgr positions short all", "lev money positions short all", "other rept positions short all")  # noqa: E501
 _USER_AGENTS = (
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+    (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    ),
+    (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5) AppleWebKit/605.1.15 "
+        "(KHTML, like Gecko) Version/17.4 Safari/605.1.15"
+    ),
 )
 
 def _norm_header(h: str) -> str:
@@ -55,7 +65,21 @@ def _parse_yymmdd(s: str) -> date | None:
 
 def _pair_from_market(name: str) -> str | None:
     u = name.upper()
-    return "EURUSD" if "EURO FX" in u else "USDJPY" if "JAPANESE YEN" in u else "USDINR" if "INDIAN RUPEE" in u else None  # noqa: E501
+    if "EURO FX" in u or ("EURO" in u and "FX" in u):
+        return "EURUSD"
+    if "JAPANESE YEN" in u:
+        return "USDJPY"
+    if "INDIAN RUPEE" in u:
+        return "USDINR"
+    if "BRITISH POUND" in u or "STERLING" in u:
+        return "GBPUSD"
+    if "AUSTRALIAN DOLLAR" in u:
+        return "AUDUSD"
+    if "CANADIAN DOLLAR" in u:
+        return "USDCAD"
+    if "SWISS FRANC" in u:
+        return "USDCHF"
+    return None
 
 def _spec_ls(nr: dict[str, str]) -> tuple[int, int] | None:
     lo, sh = nr.get(_K_LO), nr.get(_K_SH)
@@ -150,6 +174,8 @@ def fetch_cot(year: int | None = None) -> list[CotRow]:
     if not raw_rows:
         logger.warning("COT download/parse failed (all sources): %s", last_err or "no rows")
         return []
+    fx_pairs = pairs_from_universe(asset_class="FX")
+    fx_set = frozenset(fx_pairs)
     by_pair: dict[str, list[CotRow]] = defaultdict(list)
     for row in raw_rows:
         try:
@@ -158,7 +184,7 @@ def fetch_cot(year: int | None = None) -> list[CotRow]:
             if not mkt:
                 continue
             pair = _pair_from_market(mkt)
-            if pair is None or pair not in PAIRS:
+            if pair is None or pair not in fx_set:
                 continue
             d = _parse_yymmdd(nr.get(_K_DATE, ""))
             if d is None:
@@ -174,8 +200,25 @@ def fetch_cot(year: int | None = None) -> list[CotRow]:
         except Exception as exc:  # noqa: BLE001
             logger.debug("skip COT row: %s", exc)
     merged: list[CotRow] = []
-    for pair in PAIRS:
+    for pair in fx_pairs:
         rows = sorted(by_pair.get(pair, []), key=lambda x: x.date)
-        merged.extend(rows[-52:])
+        merged.extend(rows[-_COT_LOOKBACK_WEEKS:])
     merged.sort(key=lambda r: (r.date, r.pair))
     return merged
+
+
+async def fetch_cot_async(
+    universe: dict[str, Any],
+    session: aiohttp.ClientSession,
+    *,
+    fetcher: AsyncFetcher | None = None,
+) -> list[CotRow]:
+    """COT via threaded ``fetch_cot`` (ZIP/CSV parse stays sync to avoid regressions)."""
+
+    _ = universe, session
+    gate = fetcher if fetcher is not None else AsyncFetcher()
+    t0 = time.perf_counter()
+    async with gate.semaphore:
+        rows = await asyncio.to_thread(fetch_cot)
+    logger.info("fetch_cot_async rows=%s in %.3fs", len(rows), time.perf_counter() - t0)
+    return rows

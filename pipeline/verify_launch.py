@@ -1,9 +1,6 @@
 import os
 
 from src.db.writer import _client
-from src.types import PAIRS
-
-
 def verify() -> None:
     client = _client()
     print("--- 🚀 PRODUCTION DATA AUDIT ---")

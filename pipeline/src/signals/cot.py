@@ -5,7 +5,7 @@ from __future__ import annotations
 from src.types import CotRow
 
 
-def compute_cot_percentile(rows: list[CotRow], pair: str, window: int = 52) -> float | None:
+def compute_cot_percentile(rows: list[CotRow], pair: str, window: int = 260) -> float | None:
     filtered = [r for r in rows if r.pair == pair]
     filtered.sort(key=lambda r: r.date)
     if len(filtered) < 4:
@@ -17,5 +17,5 @@ def compute_cot_percentile(rows: list[CotRow], pair: str, window: int = 52) -> f
     return float(pct)
 
 
-def normalize_cot_signal(percentile: float) -> float:
+def normalize_cot_signal(percentile: float) -> float | None:
     return float((percentile - 50.0) / 50.0)
