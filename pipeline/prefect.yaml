@@ -18,6 +18,7 @@ pull:
       script: pip install "websockets>=13.0" --upgrade && pip install -e .
       directory: "{{ clone.directory }}/pipeline"
       stream_output: true
+      shell: true
   - prefect.deployments.steps.set_working_directory:
       directory: "{{ clone.directory }}/pipeline"
 
