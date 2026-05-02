@@ -12,6 +12,7 @@ from datetime import date, timedelta
 from typing import Any, cast
 
 from dotenv import load_dotenv
+from prefect import flow, task
 
 from src.ai.client import (
     desk_card_brief_fallback,
@@ -396,12 +397,74 @@ def _upsert_pair_briefs_for_date(
     return pair_contexts
 
 
-def run_daily(date_str: str | None = None) -> None:
+@task(retries=3, retry_delay_seconds=30)
+async def build_master_buffer_task(
+    *,
+    spot_lookback_days: int = 120,
+    yield_lookback_days: int = 5,
+) -> dict[str, Any]:
+    """Concurrent fetch of spots, yields, COT, cross-asset (retries on transient failures)."""
+
+    return await build_master_buffer(
+        spot_lookback_days=spot_lookback_days,
+        yield_lookback_days=yield_lookback_days,
+    )
+
+
+@task
+async def batch_desk_briefs_task(
+    pending_desk_cards: list[dict[str, Any]],
+) -> list[Any]:
+    return await asyncio.gather(
+        *[
+            generate_desk_card_brief_async(**cast(dict[str, Any], item["brief_kw"]))
+            for item in pending_desk_cards
+        ],
+        return_exceptions=True,
+    )
+
+
+@task
+def write_desk_open_cards_bulk_task(rows: list[DeskOpenCardRow]) -> None:
+    writer.write_desk_open_cards_bulk(rows)
+
+
+@task
+def upsert_pair_briefs_task(
+    date_str: str,
+    polymarket_context: str,
+    *,
+    dollar_dominance_pct: float | None = None,
+    polymarket_odds_json: str = "[]",
+) -> list[str]:
+    return _upsert_pair_briefs_for_date(
+        date_str,
+        polymarket_context,
+        dollar_dominance_pct=dollar_dominance_pct,
+        polymarket_odds_json=polymarket_odds_json,
+    )
+
+
+@task
+def upsert_macro_event_briefs_task(
+    date_str: str,
+    forward_days: int = 3,
+    polymarket_context: str = "",
+) -> None:
+    _upsert_macro_event_briefs(
+        date_str,
+        forward_days=forward_days,
+        polymarket_context=polymarket_context,
+    )
+
+
+@flow(name="Daily G10 FX Pipeline", log_prints=True)
+async def run_daily(date_str: str | None = None) -> None:
     if date_str is None:
         date_str = date.today().isoformat()
 
     universe = load_universe()
-    buffer = asyncio.run(build_master_buffer())
+    buffer = await build_master_buffer_task()
     gate = validate_ingestion_buffer(buffer, universe=universe)
     if gate.telemetry_status == "OFFLINE":
         logger.critical(
@@ -882,16 +945,7 @@ def run_daily(date_str: str | None = None) -> None:
                 ta = cast(dict[str, Any], item["card"]["telemetry_audit"])
                 item["card"]["telemetry_audit"] = apply_cluster_to_telemetry(ta, systemic_cluster)
 
-        async def _batch_desk_briefs() -> list[Any]:
-            return await asyncio.gather(
-                *[
-                    generate_desk_card_brief_async(**cast(dict[str, Any], item["brief_kw"]))
-                    for item in pending_desk_cards
-                ],
-                return_exceptions=True,
-            )
-
-        brief_outcomes = asyncio.run(_batch_desk_briefs())
+        brief_outcomes = await batch_desk_briefs_task(pending_desk_cards)
         bulk_desk: list[DeskOpenCardRow] = []
         for idx, item in enumerate(pending_desk_cards):
             raw_brief = brief_outcomes[idx]
@@ -937,7 +991,7 @@ def run_daily(date_str: str | None = None) -> None:
                     regime_age=cast(int | None, card.get("regime_age")),
                 )
             )
-        writer.write_desk_open_cards_bulk(bulk_desk)
+        write_desk_open_cards_bulk_task(bulk_desk)
 
     run_as_of = date.fromisoformat(date_str[:10])
     for mtm_pair in PAIRS:
@@ -1007,7 +1061,7 @@ def run_daily(date_str: str | None = None) -> None:
     }
 
     pm_json = _polymarket_json_for_llm(markets)
-    pair_contexts = _upsert_pair_briefs_for_date(
+    pair_contexts = upsert_pair_briefs_task(
         date_str,
         polymarket_context,
         dollar_dominance_pct=dollar_pct,
@@ -1035,7 +1089,11 @@ def run_daily(date_str: str | None = None) -> None:
     )
 
     # Populate macro event briefs for the next 3 days immediately
-    _upsert_macro_event_briefs(date_str, forward_days=3, polymarket_context=polymarket_context)
+    upsert_macro_event_briefs_task(
+        date_str,
+        forward_days=3,
+        polymarket_context=polymarket_context,
+    )
 
     logger.info("Daily run complete for %s", date_str)
 
@@ -1135,4 +1193,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     load_dotenv()
     _m = sys.argv[1] if len(sys.argv) > 1 else "daily"
-    (run_weekly if _m == "weekly" else run_daily)()
+    if _m == "weekly":
+        run_weekly()
+    else:
+        asyncio.run(run_daily())

@@ -1,0 +1,30 @@
+# Prefect Cloud: deploy from this directory after `prefect cloud login`.
+# Pull uses public clone of main. work_pool must exist (e.g. `prefect work-pool create
+# default --type prefect:managed` on plans without hybrid/process pools).
+# Flow runs still need worker env vars (SUPABASE_*, FRED_API_KEY, OPENROUTER_API_KEY) via
+# work-pool job variables or Prefect blocks — do not commit secrets here.
+
+prefect-version: "3.0"
+name: fx-regime-lab-pipeline
+
+pull:
+  - prefect.deployments.steps.git_clone:
+      id: clone
+      repository: https://github.com/fxregimelab/fx-regime-lab.git
+      branch: main
+  - prefect.deployments.steps.run_shell_script:
+      id: install-deps
+      script: pip install -e .
+      directory: "{{ clone.directory }}/pipeline"
+      stream_output: true
+  - prefect.deployments.steps.set_working_directory:
+      directory: "{{ clone.directory }}/pipeline"
+
+deployments:
+  - name: Daily_G10_Alpha_Engine
+    description: Automated 24h G10 FX Regime Context Generation
+    entrypoint: src/scheduler/orchestrator.py:run_daily
+    schedule:
+      interval: 86400
+    work_pool:
+      name: default

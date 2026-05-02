@@ -46,8 +46,9 @@ def _openrouter_client() -> OpenAI:
     )
 
 
+# Deferred secret: allow `prefect deploy` / static import without env; calls still require the key.
 async_client = AsyncOpenAI(
-    api_key=os.environ["OPENROUTER_API_KEY"],
+    api_key=os.environ.get("OPENROUTER_API_KEY", ""),
     base_url="https://openrouter.ai/api/v1",
     default_headers=_openrouter_headers(),
 )
