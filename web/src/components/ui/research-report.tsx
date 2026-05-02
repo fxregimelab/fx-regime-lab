@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { fmt2, fmtPct, fmtKM } from './utils';
+import { fmtPct } from './utils';
 
 type PairMeta = {
   label: string;
@@ -177,7 +177,13 @@ export function ResearchReport({
             </p>
           </div>
         ) : (
-          <p className="font-serif text-[13px]">Historical analogs are unavailable for this cycle.</p>
+          <div className="border-2 border-dashed border-[#b0b0b0] bg-[#f7f7f7] px-6 py-8 text-center">
+            <p className="font-mono text-[11px] font-bold tracking-[0.2em] text-[#4a4a4a]">[ RESEARCH ARCHIVE PENDING ]</p>
+            <p className="font-serif text-[12px] text-[#555] mt-3 leading-relaxed max-w-lg mx-auto">
+              Historical analog matches are not yet available for this pair and reporting date. Deep price history backfill or
+              the daily analog job may still be in progress.
+            </p>
+          </div>
         )}
 
         <h2 className="font-sans text-[16px] font-bold mt-6 mb-2">4. Technical Snapshots</h2>

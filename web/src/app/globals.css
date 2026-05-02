@@ -8,6 +8,9 @@
   --color-brand-usdjpy: #F5923A;
   --color-brand-usdinr: #C84A31;
   --color-brand-accent: #F5923A;
+  /* Institutional terminal: muted bull / bear (replaces neon greens & reds) */
+  --color-bullish: #4ade80;
+  --color-bearish: #f87171;
 }
 
 @layer utilities {
@@ -22,7 +25,15 @@
     display: none;
   }
   .live-indicator {
-    background: radial-gradient(circle, #22c55e 0%, #16a34a 100%);
+    background: radial-gradient(circle, var(--color-bullish) 0%, #22c55e99 100%);
+  }
+
+  @keyframes tail-risk-pulse {
+    0%, 100% { opacity: 0.55; box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.35); }
+    50% { opacity: 1; box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.12); }
+  }
+  .animate-tail-risk-ring {
+    animation: tail-risk-pulse 2.2s ease-in-out infinite;
   }
 
   /* MacroPulseBar horizontal marquee */
@@ -43,6 +54,11 @@
 
 html, body {
   height: 100%;
+}
+
+:root {
+  /* Fallback until TerminalNav measures sticky header */
+  --terminal-nav-h: 104px;
 }
 
 /* ─── Print styles ─────────────────────────────────────────────────────────── */

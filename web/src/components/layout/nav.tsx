@@ -7,7 +7,12 @@ import { LogoMark } from '../ui/logo-mark';
 import { BRAND } from '@/lib/mockData';
 import { PULSE_BAR_H } from '../ui/macro-pulse-bar';
 
-export function Nav() {
+type NavProps = {
+  /** Extra offset below macro pulse (e.g. systemic banner height). */
+  belowPulseExtraPx?: number;
+};
+
+export function Nav({ belowPulseExtraPx = 0 }: NavProps) {
   const currentRoute = usePathname();
   const [open, setOpen] = React.useState(false);
 
@@ -20,9 +25,12 @@ export function Nav() {
   const isActive = (href: string) => href === '/' ? currentRoute === '/' : currentRoute.startsWith(href);
 
   return (
-    <header className="border-b border-[#e5e5e5] bg-white sticky z-[90]" style={{ top: `${PULSE_BAR_H}px` }}>
+    <header
+      className="border-b border-[#e5e5e5] bg-white sticky z-[90]"
+      style={{ top: `${PULSE_BAR_H + belowPulseExtraPx}px` }}
+    >
       <nav className="max-w-[1152px] mx-auto px-6 h-[54px] flex items-center justify-between">
-        <Link href="/" className="flex items-center">
+        <Link href="/" className="flex items-center justify-center h-[54px] shrink-0">
           <LogoMark size={24} />
         </Link>
 
@@ -31,7 +39,9 @@ export function Nav() {
             ['/', 'Home'],
             ['/brief', 'Brief']
           ].map(([href, label]) => (
-            <Link key={href} href={href}
+            <Link
+              key={href}
+              href={href}
               className={`font-sans text-[13px] font-medium px-[14px] h-[54px] flex items-center border-b-2 transition-colors ${
                 isActive(href) ? 'text-[#0a0a0a] border-accent' : 'text-[#555] border-transparent'
               }`}

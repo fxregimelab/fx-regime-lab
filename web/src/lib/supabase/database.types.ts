@@ -33,6 +33,9 @@ export interface Database {
           cross_asset_dxy: number | null
           cross_asset_oil: number | null
           cross_asset_us10y: number | null
+          cross_asset_gold: number | null
+          cross_asset_copper: number | null
+          cross_asset_stoxx: number | null
           created_at: string
           day_change: number | null
           day_change_pct: number | null
@@ -60,11 +63,72 @@ export interface Database {
           cross_asset_dxy?: number | null
           cross_asset_oil?: number | null
           cross_asset_us10y?: number | null
+          cross_asset_gold?: number | null
+          cross_asset_copper?: number | null
+          cross_asset_stoxx?: number | null
           created_at?: string
           day_change?: number | null
           day_change_pct?: number | null
         }
         Update: Partial<Database['public']['Tables']['signals']['Insert']>
+      }
+      strategy_ledger: {
+        Row: {
+          id: string
+          date: string
+          pair: string
+          regime: string
+          primary_driver: string
+          direction: string
+          entry_close: number | null
+          confidence: number | null
+          t1_close: number | null
+          t3_close: number | null
+          t5_close: number | null
+          t1_hit: number | null
+          t3_hit: number | null
+          t5_hit: number | null
+          brier_score_t5: number | null
+        }
+        Insert: {
+          id?: string
+          date: string
+          pair: string
+          regime: string
+          primary_driver: string
+          direction: string
+          entry_close?: number | null
+          confidence?: number | null
+          t1_close?: number | null
+          t3_close?: number | null
+          t5_close?: number | null
+          t1_hit?: number | null
+          t3_hit?: number | null
+          t5_hit?: number | null
+          brier_score_t5?: number | null
+        }
+        Update: Partial<Database['public']['Tables']['strategy_ledger']['Insert']>
+      }
+      universe: {
+        Row: {
+          id: string
+          pair: string
+          class: string
+          spot_ticker: string | null
+          yield_base: string | null
+          yield_quote: string | null
+          cot_ticker: string | null
+        }
+        Insert: {
+          id?: string
+          pair: string
+          class: string
+          spot_ticker?: string | null
+          yield_base?: string | null
+          yield_quote?: string | null
+          cot_ticker?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['universe']['Insert']>
       }
       regime_calls: {
         Row: {
@@ -141,6 +205,9 @@ export interface Database {
           usdjpy_regime: string | null
           usdinr_regime: string | null
           macro_context: string | null
+          dollar_dominance: number | null
+          idiosyncratic_outlier: string | null
+          sentiment_json: Json | null
           created_at: string
         }
         Insert: {
@@ -151,6 +218,9 @@ export interface Database {
           usdjpy_regime?: string | null
           usdinr_regime?: string | null
           macro_context?: string | null
+          dollar_dominance?: number | null
+          idiosyncratic_outlier?: string | null
+          sentiment_json?: Json | null
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['brief_log']['Insert']>
@@ -261,6 +331,164 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['research_analogs']['Insert']>
       }
+      research_memos: {
+        Row: {
+          id: string
+          date: string
+          title: string
+          raw_content: string
+          ai_thesis_summary: Json
+          link_url: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          date: string
+          title: string
+          raw_content: string
+          ai_thesis_summary?: Json
+          link_url: string
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['research_memos']['Insert']>
+      }
+      webhook_subscriptions: {
+        Row: {
+          id: string
+          webhook_url_encrypted: string
+          pair_filter: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          webhook_url_encrypted: string
+          pair_filter?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          webhook_url_encrypted?: string
+          pair_filter?: string | null
+          created_at?: string
+        }
+      }
+      desk_open_cards: {
+        Row: {
+          date: string
+          pair: string
+          structural_regime: string
+          dominance_array: Json | null
+          pain_index: number | null
+          markov_probabilities: Json | null
+          ai_brief: string | null
+          telemetry_audit: Json | null
+          invalidation_triggered: boolean | null
+          telemetry_status: string | null
+          global_rank: number | null
+          apex_score: number | null
+          regime_age: number | null
+        }
+        Insert: {
+          date: string
+          pair: string
+          structural_regime: string
+          dominance_array?: Json | null
+          pain_index?: number | null
+          markov_probabilities?: Json | null
+          ai_brief?: string | null
+          telemetry_audit?: Json | null
+          invalidation_triggered?: boolean | null
+          telemetry_status?: string | null
+          global_rank?: number | null
+          apex_score?: number | null
+          regime_age?: number | null
+        }
+        Update: Partial<Database['public']['Tables']['desk_open_cards']['Insert']>
+      }
+      event_aliases: {
+        Row: {
+          id: string
+          canonical_name: string
+          alias_name: string
+        }
+        Insert: {
+          id?: string
+          canonical_name: string
+          alias_name: string
+        }
+        Update: Partial<Database['public']['Tables']['event_aliases']['Insert']>
+      }
+      event_risk_matrices: {
+        Row: {
+          id: string
+          date: string
+          pair: string
+          event_name: string
+          active_regime: string
+          sample_size: number
+          median_mie_multiplier: number | null
+          beat_median_return: number | null
+          miss_median_return: number | null
+          inline_median_return: number | null
+          asymmetry_ratio: number | null
+          asymmetry_direction: string | null
+          t1_exhaustion_p2_5: number | null
+          t1_exhaustion_p16: number | null
+          t1_exhaustion_p84: number | null
+          t1_exhaustion_p97_5: number | null
+          t1_tail_risk_p95: number | null
+          t1_tail_risk_p05: number | null
+          ai_context: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          date: string
+          pair: string
+          event_name: string
+          active_regime: string
+          sample_size: number
+          median_mie_multiplier?: number | null
+          beat_median_return?: number | null
+          miss_median_return?: number | null
+          inline_median_return?: number | null
+          asymmetry_ratio?: number | null
+          asymmetry_direction?: string | null
+          t1_exhaustion_p2_5?: number | null
+          t1_exhaustion_p16?: number | null
+          t1_exhaustion_p84?: number | null
+          t1_exhaustion_p97_5?: number | null
+          t1_tail_risk_p95?: number | null
+          t1_tail_risk_p05?: number | null
+          ai_context?: string | null
+          created_at?: string | null
+        }
+        Update: Partial<Database['public']['Tables']['event_risk_matrices']['Insert']>
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      historical_prices_for_max_chart: {
+        Args: {
+          p_pair: string
+          p_cutoff: string
+        }
+        Returns: Array<{
+          date: string
+          pair: string
+          open: number | null
+          high: number | null
+          low: number | null
+          close: number | null
+          volume: number | null
+          created_at: string
+        }>
+      }
+    }
+    Enums: {
+      [_ in never]: never
     }
   }
 }

@@ -2,14 +2,19 @@
 
 import { useRouter } from 'next/navigation';
 import { PAIRS, REGIME_HEATMAP_COLORS } from '@/lib/mockData';
-import { useRegimeHeatmap, pivotRegimeHeatmapRows, TRACKED_PAIRS } from '@/lib/queries';
+import { useRegimeHeatmap, pivotRegimeHeatmapRows, useUniverse } from '@/lib/queries';
 
 export function RegimeHeatmap() {
   const router = useRouter();
+  const universeQ = useUniverse();
+  const pairLabels = universeQ.data ?? [];
   const { data, isLoading, isError } = useRegimeHeatmap();
-  const { dates, regimes } = pivotRegimeHeatmapRows(data ?? [], TRACKED_PAIRS);
+  const { dates, regimes } = pivotRegimeHeatmapRows(data ?? [], pairLabels);
+  const displayPairs = pairLabels
+    .map((label) => PAIRS.find((p) => p.label === label))
+    .filter((p): p is (typeof PAIRS)[number] => Boolean(p));
 
-  if (isLoading) {
+  if (isLoading || universeQ.isLoading) {
     return (
       <div className="border border-[#e5e5e5] p-8 animate-pulse bg-[#fafafa]">
         <div className="font-mono text-[10px] text-[#aaa] tracking-widest">LOADING HEATMAP…</div>
@@ -31,8 +36,12 @@ export function RegimeHeatmap() {
         <span className="font-mono text-[10px] text-[#888] tracking-widest">REGIME HEATMAP — 30 DAYS</span>
         <span className="font-mono text-[10px] text-[#bbb]">each cell = 1 trading day</span>
       </div>
-      {PAIRS.map((p, pi) => (
-        <div key={p.label} className="grid grid-cols-[80px_1fr]" style={{ borderBottom: pi < PAIRS.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+      {displayPairs.map((p, pi) => (
+        <div
+          key={p.label}
+          className="grid grid-cols-[80px_1fr]"
+          style={{ borderBottom: pi < displayPairs.length - 1 ? '1px solid #f0f0f0' : 'none' }}
+        >
           <div className="px-4 py-3 border-r border-[#f0f0f0] flex items-center">
             <button
               type="button"

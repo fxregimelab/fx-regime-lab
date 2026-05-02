@@ -10,6 +10,7 @@ import {
   LineStyle,
 } from 'lightweight-charts';
 import { useHistoricalData } from '@/lib/queries';
+import type { ChartRange } from '@/hooks/useLocalSettings';
 
 type SignalPoint = {
   date: string;
@@ -24,7 +25,7 @@ type RegimePoint = {
   regime: string;
 };
 
-type RangeKey = '1M' | '3M' | '1Y' | '5Y' | 'MAX';
+type RangeKey = ChartRange;
 
 const REGIME_BAND_COLOR: Record<string, string> = {
   BULLISH: '#22c55e11',
@@ -34,26 +35,39 @@ const REGIME_BAND_COLOR: Record<string, string> = {
   VOL_CONTRACTING: '#f59e0b11',
 };
 
-const RANGE_BTNS: RangeKey[] = ['1M', '3M', '1Y', '5Y', 'MAX'];
+const RANGE_BTNS: RangeKey[] = ['1M', '1Y', 'MAX'];
 
 interface TradingViewChartProps {
   pairLabel: string;
   data?: SignalPoint[];
   regimeData?: RegimePoint[];
   color?: string;
+  /** Controlled range from vault / local settings */
+  chartRange?: ChartRange;
+  onChartRangeChange?: (r: ChartRange) => void;
 }
 
 function rangeSinceDate(range: Exclude<RangeKey, 'MAX'>) {
   const d = new Date();
   if (range === '1M') d.setMonth(d.getMonth() - 1);
-  if (range === '3M') d.setMonth(d.getMonth() - 3);
   if (range === '1Y') d.setFullYear(d.getFullYear() - 1);
-  if (range === '5Y') d.setFullYear(d.getFullYear() - 5);
   return d.toISOString().slice(0, 10);
 }
 
-export default function TradingViewChart({ pairLabel, data, regimeData, color = '#4BA3E3' }: TradingViewChartProps) {
-  const [range, setRange] = useState<RangeKey>('1Y');
+export default function TradingViewChart({
+  pairLabel,
+  data,
+  regimeData,
+  color = '#4BA3E3',
+  chartRange: chartRangeProp,
+  onChartRangeChange,
+}: TradingViewChartProps) {
+  const [rangeUncontrolled, setRangeUncontrolled] = useState<RangeKey>('1Y');
+  const range = chartRangeProp ?? rangeUncontrolled;
+  const setRange = (r: RangeKey) => {
+    onChartRangeChange?.(r);
+    if (chartRangeProp === undefined) setRangeUncontrolled(r);
+  };
   const archiveQ = useHistoricalData(pairLabel, range === 'MAX');
 
   const pricePaneRef = useRef<HTMLDivElement>(null);
@@ -124,23 +138,23 @@ export default function TradingViewChart({ pairLabel, data, regimeData, color = 
     };
 
     const priceChart = createChart(pricePaneRef.current, {
-      ...sharedOptions,
+      ...(sharedOptions as Parameters<typeof createChart>[1]),
       height: 280,
     });
     const yieldChart = createChart(yieldPaneRef.current, {
-      ...sharedOptions,
+      ...(sharedOptions as Parameters<typeof createChart>[1]),
       height: 120,
     });
     const cotChart = createChart(cotPaneRef.current, {
-      ...sharedOptions,
+      ...(sharedOptions as Parameters<typeof createChart>[1]),
       height: 120,
     });
 
-    // Ensure consistent Y-axis width for horizontal sync
+    // Ensure consistent Y-axis width for horizontal sync (v5: avoid deprecated width on price scale)
     [priceChart, yieldChart, cotChart].forEach((c) => {
       c.applyOptions({
         rightPriceScale: {
-          width: 80,
+          minimumWidth: 80,
           autoScale: true,
           borderColor: '#111111',
         },

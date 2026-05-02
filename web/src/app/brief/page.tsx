@@ -22,11 +22,19 @@ export default function BriefPage() {
   const pairBriefEur = usePairBrief('EURUSD');
   const pairBriefJpy = usePairBrief('USDJPY');
   const pairBriefInr = usePairBrief('USDINR');
+  const pairBriefGbp = usePairBrief('GBPUSD');
+  const pairBriefAud = usePairBrief('AUDUSD');
+  const pairBriefCad = usePairBrief('USDCAD');
+  const pairBriefChf = usePairBrief('USDCHF');
 
   const pairBriefMap: Record<string, ReturnType<typeof usePairBrief>> = {
     EURUSD: pairBriefEur,
     USDJPY: pairBriefJpy,
     USDINR: pairBriefInr,
+    GBPUSD: pairBriefGbp,
+    AUDUSD: pairBriefAud,
+    USDCAD: pairBriefCad,
+    USDCHF: pairBriefChf,
   };
 
   const calls = regimeQ.data;
@@ -97,6 +105,7 @@ export default function BriefPage() {
               const call = calls?.[p.label];
               const sig = sigs?.[p.label];
               const pb = pairBriefMap[p.label];
+              if (!pb) return null;
               const analysis = (pb.data?.analysis as string | null) ?? '';
               const paras = analysis ? analysis.split(/\n\n+/).filter(Boolean) : [];
               const pct = call ? Math.round(Number(call.confidence) * 100) : null;

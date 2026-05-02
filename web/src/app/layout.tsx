@@ -28,6 +28,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans bg-white text-[#0a0a0a]">
         <Providers>
+          {/* Pair-desk systemic banner + dollar/Polymarket strip: `app/terminal/layout.tsx` + TerminalNav */}
           {children}
           <CommandPalette />
         </Providers>

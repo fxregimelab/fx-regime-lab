@@ -465,7 +465,7 @@ export default function About() {
                   {[
                     { label: 'CALENDAR ACCURACY', value: '78.2%', color: '#16a34a' },
                     { label: 'CALLS LOGGED', value: '250+', color: '#0a0a0a' },
-                    { label: 'PAIRS COVERED', value: '3', color: BRAND.eurusd },
+                    { label: 'PAIRS COVERED', value: '7', color: BRAND.eurusd },
                   ].map(m => (
                     <div key={m.label} className="bg-white p-5">
                       <p className="font-mono text-[9px] text-[#aaa] tracking-widest mb-2 uppercase">{m.label}</p>

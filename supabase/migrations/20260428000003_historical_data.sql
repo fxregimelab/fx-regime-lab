@@ -39,12 +39,14 @@ CREATE INDEX IF NOT EXISTS idx_research_analogs_pair_asof
 ALTER TABLE historical_prices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE research_analogs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "anon_read_historical_prices" ON historical_prices;
 CREATE POLICY "anon_read_historical_prices"
   ON historical_prices
   FOR SELECT
   TO anon
   USING (true);
 
+DROP POLICY IF EXISTS "anon_read_research_analogs" ON research_analogs;
 CREATE POLICY "anon_read_research_analogs"
   ON research_analogs
   FOR SELECT

@@ -1,12 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { TerminalNav, TERMINAL_NAV_H } from '@/components/layout/terminal-nav';
 import { ConfidenceBar } from '@/components/ui/confidence-bar';
-import { PAIRS, BRAND } from '@/lib/mockData';
-import { fmtPct, fmt2 } from '@/components/ui/utils';
+import { PAIRS } from '@/lib/mockData';
+import { fmtPct } from '@/components/ui/utils';
 import { motion } from 'framer-motion';
-import { useLatestRegimeCalls, useLatestSignals, useLastPipelineRun } from '@/lib/queries';
+import { useLatestRegimeCalls, useLatestSignals } from '@/lib/queries';
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
 const item = {
@@ -14,32 +14,42 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' as const } },
 };
 
-export default function TerminalIndex() {
+/** Pair selection grid — matches the main terminal index cards, without the strategies panel. */
+export default function FxRegimePairSelectionPage() {
   const router = useRouter();
   const regimeQ = useLatestRegimeCalls();
   const signalsQ = useLatestSignals();
-  const lastRunQ = useLastPipelineRun();
 
   const calls = regimeQ.data;
   const sigs = signalsQ.data;
   const err = regimeQ.isError || signalsQ.isError;
   const pending = regimeQ.isPending || signalsQ.isPending;
-  const asOfDay =
-    lastRunQ.data?.slice(0, 10) ??
-    (calls?.EURUSD as { date?: string } | undefined)?.date ??
-    new Date().toISOString().slice(0, 10);
-  const utcClock = lastRunQ.data ? `${new Date(lastRunQ.data).toISOString().slice(11, 16)} UTC` : '—';
 
   return (
     <div className="min-h-screen bg-[#000000] text-[#e8e8e8] font-sans">
-      <TerminalNav />
       <motion.div
         variants={container}
         initial="hidden"
         animate="show"
         className="max-w-[1200px] mx-auto py-10 px-6"
-        style={{ marginTop: `${TERMINAL_NAV_H}px` }}
+        style={{ marginTop: 'var(--terminal-nav-h, 104px)' }}
       >
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+          <div>
+            <p className="font-mono text-[9px] text-[#666] tracking-widest mb-2">FX REGIME</p>
+            <h1 className="font-mono text-lg font-bold text-white tracking-tight">Pair selection</h1>
+            <p className="font-mono text-[10px] text-[#777] mt-1 max-w-md">
+              Choose a pair to open the regime terminal. Same layout as the main terminal index.
+            </p>
+          </div>
+          <Link
+            href="/terminal"
+            className="font-mono text-[10px] text-[#888] hover:text-[#ccc] transition-colors shrink-0"
+          >
+            ← Terminal overview
+          </Link>
+        </div>
+
         {pending ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-0.5 mb-8">
             {[0, 1, 2].map((i) => (
@@ -67,7 +77,9 @@ export default function TerminalIndex() {
                       {p.display}
                     </span>
                     {chg != null && (
-                      <span className={`font-mono text-[11px] font-bold ${chg >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                      <span
+                        className={`font-mono text-[11px] font-bold tabular-nums ${chg >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}
+                      >
                         {chg >= 0 ? '+' : ''}
                         {chg.toFixed(2)}%
                       </span>
@@ -89,65 +101,9 @@ export default function TerminalIndex() {
           </div>
         )}
 
-        <motion.p variants={item} className="font-mono text-[9px] text-[#666] tracking-widest mb-3">
-          STRATEGIES
-        </motion.p>
-
-        <motion.div
-          variants={item}
-          className="border border-[#111] cursor-pointer hover:border-[#222] transition-colors"
-          onClick={() => router.push('/terminal/fx-regime')}
-          onKeyDown={(e) => e.key === 'Enter' && router.push('/terminal/fx-regime')}
-          role="button"
-          tabIndex={0}
-        >
-          <div className="px-5 py-3.5 border-b border-[#111] flex justify-between bg-[#0c0c0c]">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-[9px] text-[#777] tracking-widest">ACTIVE STRATEGY</span>
-              <span className="font-mono text-[11px] font-bold" style={{ color: BRAND.accent }}>
-                FX-REGIME
-              </span>
-            </div>
-            <span className="font-mono text-[10px] text-[#666]">Open →</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 border-b border-[#111]">
-            {PAIRS.map((p, i) => {
-              const call = calls?.[p.label];
-              return (
-                <div key={p.label} className={`p-4 ${i < 2 ? 'border-b md:border-b-0 md:border-r border-[#111]' : ''}`}>
-                  <p className="font-mono text-[10px] font-bold mb-1.5" style={{ color: p.pairColor }}>
-                    {p.display}
-                  </p>
-                  <p className="font-mono text-[10px] text-[#c0c0c0] font-bold tracking-wide mb-2">
-                    {(call?.regime as string) ?? '—'}
-                  </p>
-                  <div className="flex gap-4">
-                    <span className="font-mono text-[10px] text-[#999]">
-                      CONF{' '}
-                      <span className="text-[#e0e0e0] font-bold">{fmtPct(call?.confidence as number | undefined)}</span>
-                    </span>
-                    <span className="font-mono text-[10px] text-[#666]">
-                      COMPOSITE{' '}
-                      <span className="text-[#e0e0e0] font-bold">{fmt2(call?.signal_composite as number | undefined)}</span>
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="px-5 py-3 flex items-center gap-1.5">
-            <span
-              className={`w-1.5 h-1.5 shrink-0 ${err ? 'bg-[#ef4444]' : pending ? 'bg-[#737373]' : 'hidden'}`}
-            />
-            <span className={`font-mono text-[10px] ${err ? 'text-[#ef4444]' : 'text-[#777]'}`}>
-              {err ? 'ERROR' : 'Pipeline'}: {asOfDay} {utcClock}
-            </span>
-          </div>
-        </motion.div>
-
-        <motion.div variants={item} className="border border-dashed border-[#111] mt-0.5 px-5 py-3.5">
-          <span className="font-mono text-[9px] text-[#222] tracking-widest">MORE STRATEGIES — PHASE 2+</span>
-        </motion.div>
+        {err && (
+          <p className="font-mono text-[10px] text-[#ef4444] mb-4">Live data failed to load — cards may be incomplete.</p>
+        )}
       </motion.div>
     </div>
   );

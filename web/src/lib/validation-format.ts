@@ -14,6 +14,10 @@ const PAIR_DISPLAY: Record<string, string> = {
   EURUSD: 'EUR/USD',
   USDJPY: 'USD/JPY',
   USDINR: 'USD/INR',
+  GBPUSD: 'GBP/USD',
+  AUDUSD: 'AUD/USD',
+  USDCAD: 'USD/CAD',
+  USDCHF: 'USD/CHF',
 };
 
 export function mapValidationLogToTableRows(

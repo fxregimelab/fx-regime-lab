@@ -1,0 +1,25 @@
+# FX Regime Lab — search vs social preview policy
+# General crawlers: index memos only; do not scrape live terminal HUD.
+User-agent: *
+Disallow: /terminal/
+Allow: /memo/
+
+User-agent: Googlebot
+Allow: /memo/
+Disallow: /terminal/
+
+User-agent: Googlebot-Image
+Disallow: /terminal/
+
+# Social link-preview bots: must fetch /terminal/ and /memo/ for OG + cards.
+User-agent: LinkedInBot
+Allow: /terminal/
+Allow: /memo/
+
+User-agent: Twitterbot
+Allow: /terminal/
+Allow: /memo/
+
+User-agent: facebookexternalhit
+Allow: /terminal/
+Allow: /memo/
