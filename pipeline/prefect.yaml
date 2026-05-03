@@ -1,8 +1,13 @@
-# Prefect Cloud: deploy from this directory after `prefect cloud login`.
-# Pull uses public clone of main. work_pool must exist (e.g. `prefect work-pool create
-# default --type prefect:managed` on plans without hybrid/process pools).
-# Flow runs still need worker env vars (SUPABASE_*, FRED_API_KEY, OPENROUTER_API_KEY) via
-# work-pool job variables or Prefect blocks — do not commit secrets here.
+# Prefect Cloud: deploy from `pipeline/` after `prefect cloud login`.
+# Pull clones public `main`. Work pool must exist (e.g. `prefect work-pool create default
+# --type prefect:managed`).
+#
+# Managed workers do not read repo `.env`. Secrets are passed as `job_variables.env` below,
+# using deploy-time shell substitution (`{{ $VAR }}`). Before `prefect deploy`, load the same
+# keys you use locally (do not commit real values into git):
+#   cd repo-root && set -a && source .env && set +a && cd pipeline && prefect deploy --prefect-file prefect.yaml --name Daily_G10_Alpha_Engine
+# Optional Alpha Vantage: add `ALPHAVANTAGE_API_KEY` under `job_variables.env` in the Prefect
+# UI (or extend this file with `{{ $ALPHAVANTAGE_API_KEY }}` once that var is always set when deploying).
 
 prefect-version: "3.0"
 name: fx-regime-lab-pipeline
@@ -36,3 +41,9 @@ deployments:
         # Managed workers: align websockets with yfinance before pull-step pip install.
         pip_packages:
           - websockets>=13.0
+        # Injected into the flow run process (required by `run_daily` / `_require_pipeline_runtime_env`).
+        env:
+          SUPABASE_URL: "{{ $SUPABASE_URL }}"
+          SUPABASE_SERVICE_ROLE_KEY: "{{ $SUPABASE_SERVICE_ROLE_KEY }}"
+          FRED_API_KEY: "{{ $FRED_API_KEY }}"
+          OPENROUTER_API_KEY: "{{ $OPENROUTER_API_KEY }}"

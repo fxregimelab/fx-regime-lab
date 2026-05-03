@@ -3,6 +3,7 @@
 ## Current state (April 2026)
 
 - **Daily / weekly automation:** **Prefect Cloud** deployment `Daily_G10_Alpha_Engine` (see `pipeline/prefect.yaml`) runs `run_daily` / `run_weekly` from `src.scheduler.orchestrator`. GitHub Actions cron workflows for the pipeline were removed in favor of Prefect-only scheduling.
+- **Prefect managed workers:** runtime API keys are **not** read from the cloned repo. `pipeline/prefect.yaml` maps `job_variables.env` from shell at **deploy** time (`{{ $SUPABASE_URL }}`, etc.). After changing keys, redeploy from a shell that has them exported (see the comment block at the top of `prefect.yaml`), or set equivalent env on the deployment / work pool in the Prefect UI.
 - **No `web/` app** and **no root `wrangler.toml`**. ISR pings to Next were removed from `pipeline/src/scheduler/orchestrator.py`.
 - **Worker:** [`workers/site-entry.js`](../workers/site-entry.js) is **API-only** (no static `ASSETS`, no `/assets/supabase-env.js`). See [[HOSTING_AFTER_UI_REMOVAL]].
 

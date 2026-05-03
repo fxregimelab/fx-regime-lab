@@ -85,7 +85,10 @@ def _require_pipeline_runtime_env() -> None:
         raise RuntimeError(
             "Missing required environment variables for the FX pipeline:\n"
             f"{detail}\n"
-            "Set them on the Prefect deployment (e.g. job_variables.env) or in .env for local runs."
+            "Prefect managed workers: ensure deployment `job_variables.env` includes these keys "
+            "(see `pipeline/prefect.yaml`; redeploy with `set -a && source .env && set +a` before "
+            "`prefect deploy`, or set env in the deployment / work pool UI). "
+            "For local runs, use repo-root `.env` or export the variables."
         )
 
 
