@@ -135,7 +135,7 @@ export default async function MemoArchivePage({ params }: { params: Promise<{ da
         </div>
       </header>
 
-      <main className="max-w-[1152px] mx-auto px-6 py-10 space-y-10">
+      <main className="w-full px-6 md:px-8 py-10 space-y-10">
         <section>
           <p className="font-mono text-[10px] text-[#666] tracking-widest mb-4 m-0">[ G10 SYSTEMIC MATRIX ]</p>
           <div className="border border-[#111] bg-[#000000] grid grid-cols-1 md:grid-cols-2 gap-8 px-6 py-10">

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Read First
 
-Read `AGENTS.md` before starting any task — it is the complete architecture map. Then read `TASK.md` for the current sprint state. This file adds commands and non-obvious patterns not covered there.
+Read `ULTIMATE_MASTER_PLAN.md` before starting any task — it is the absolute source of truth for the 5-Pillar Engine and 4-Chapter GTM Shell. This file codifies the "Tactical Execution Engine" identity and the mandatory 6-Step Adversarial Alpha Protocol. Read `AGENTS.md` for the original architecture map. Then read `TASK.md` for the current sprint state. This file adds commands and non-obvious patterns not covered there.
 
 **There is no `web/` package.** The shipped Next.js UI was removed. Use `claude-design/` for UX intent and `docs/DATA_READS_SPEC.md` for prior Supabase read patterns.
 
@@ -47,6 +47,15 @@ Pipeline uses a `.env` file at the repo root. Required vars are documented in `.
 - mypy strict + Ruff lint on all pipeline code
 
 When a new frontend is added, reintroduce frontend-specific rules in `.cursorrules` / Cursor rules for that stack.
+
+**AI Brainstorming & Simulation Protocol (The God-Tier Playbook):**
+Whenever a new Pillar, feature, or complex model is proposed, you MUST explicitly execute the **6-Step Adversarial Alpha Methodology** by default:
+1. **Alpha Pitch:** Define base premise.
+2. **Pentagon Protocol:** Simulate experts (Quant, UI/UX, Data, CRO, Microstructure, SRE) stress-testing for math purity, cognitive bias, and execution reality.
+3. **Leo Optimization:** Prompt Engineer translates the survivor into a strict, XML-tagged, zero-ambiguity execution prompt.
+4. **Execution:** Handled by user.
+5. **Team Zeta Verification:** You perform a line-by-line code audit of the executed files.
+6. **Red Team Polish:** Analyze the integrated feature against the existing codebase to hunt for feedback loops and sequential contamination.
 
 ## Data Flow
 

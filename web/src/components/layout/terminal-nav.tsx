@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Clock } from 'lucide-react';
 import { LogoMark } from '../ui/logo-mark';
 import { PAIRS } from '@/lib/mockData';
 import {
@@ -14,6 +15,7 @@ import {
 } from '@/lib/queries';
 import { MacroPulseBar, PULSE_BAR_H } from '../ui/macro-pulse-bar';
 import { SystemicClusterBanner } from '../ui/systemic-cluster-banner';
+import { formatCountdownHms, getNextPipelineRunUtc } from './ny-pipeline-run';
 
 // Row heights (px) — used to compute total sticky height for scroll offsets
 const NAV_TOP_ROW_H = 38; // brand + status bar
@@ -47,6 +49,43 @@ function formatPmProb(p: number | null): string {
   if (p == null) return '';
   const pct = p > 0 && p <= 1 ? p * 100 : p;
   return `${pct.toFixed(0)}%`;
+}
+
+/** Countdown to next 17:05 America/New_York; client-only to avoid SSR clock drift. */
+function PipelineHeartbeatTimer() {
+  const [mounted, setMounted] = useState(false);
+  const [label, setLabel] = useState('--:--:--');
+  const nextRunRef = useRef<Date | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const tick = () => {
+      const now = Date.now();
+      let next = nextRunRef.current;
+      if (!next || now >= next.getTime()) {
+        next = getNextPipelineRunUtc(new Date(now));
+        nextRunRef.current = next;
+      }
+      setLabel(formatCountdownHms(next.getTime() - now));
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [mounted]);
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 font-mono text-[9px] text-[#666] tabular-nums shrink-0"
+      title="Next pipeline run: 17:05 America/New_York (NYSE close + 5m)"
+    >
+      <Clock className="h-3 w-3 shrink-0 opacity-90" strokeWidth={1.75} aria-hidden />
+      <span suppressHydrationWarning>{mounted ? `[ NEXT RUN: ${label} ]` : '[ NEXT RUN: --:--:-- ]'}</span>
+    </span>
+  );
 }
 
 export function TerminalNav() {
@@ -112,7 +151,7 @@ export function TerminalNav() {
 
       {cmdBrief ? (
         <div
-          className="border-b border-[#222] bg-[#050505] px-4 sm:px-6 py-2.5 font-mono text-[10px] text-[#b0b0b0] tabular-nums tracking-wide max-w-[1152px] mx-auto w-full flex flex-col lg:flex-row lg:items-stretch lg:justify-between gap-3"
+          className="w-full border-b border-[#222] bg-[#050505] px-6 md:px-8 py-2.5 font-mono text-[10px] text-[#b0b0b0] tabular-nums tracking-wide flex flex-col lg:flex-row lg:items-stretch lg:justify-between gap-3"
           style={{ minHeight: `${COMMAND_STRIP_MIN_H}px` }}
         >
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
@@ -150,14 +189,15 @@ export function TerminalNav() {
 
       {/* Row 2 — Brand + status (fixed h-[38px]) */}
       <div
-        className="border-b border-[#111] px-6 flex items-center justify-between max-w-[1152px] mx-auto h-[38px] overflow-hidden shrink-0"
+        className="w-full border-b border-[#111] px-6 md:px-8 flex items-center justify-between h-[38px] overflow-hidden shrink-0"
         style={{ height: `${NAV_TOP_ROW_H}px` }}
       >
         <div className="flex items-center gap-2.5">
           <LogoMark size={24} />
           <span className="font-mono text-[10px] text-[#333]">/ Terminal</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <PipelineHeartbeatTimer />
           <button
             onClick={handleRefresh}
             className="font-mono text-[9px] text-[#555] hover:text-[#888] transition-colors cursor-pointer border border-[#111] px-1.5 py-0.5 bg-[#000000]"
@@ -178,7 +218,7 @@ export function TerminalNav() {
 
       {/* Row 3 — Breadcrumb + pair tabs (fixed h-[38px]) */}
       <div
-        className="max-w-[1152px] mx-auto px-6 flex items-center justify-between h-[38px] overflow-hidden shrink-0"
+        className="w-full px-6 md:px-8 flex items-center justify-between h-[38px] overflow-hidden shrink-0"
         style={{ height: `${NAV_BOTTOM_ROW_H}px` }}
       >
         <div className="flex items-center gap-1.5 font-mono text-[10px]">

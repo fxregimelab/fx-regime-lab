@@ -43,7 +43,7 @@ export function DeskCardTelemetryRow({
   const modelUnstable =
     parameterInstability ?? Boolean(telemetryAudit?.parameter_instability);
   return (
-    <div className="relative border border-[#111] bg-[#000000] px-2 py-2 grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 items-baseline text-[#e8e8e8]">
+    <div className="relative border border-[#111] border-t border-t-white/10 bg-[#000000] px-2 py-2 grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 items-baseline text-[#e8e8e8]">
       {apexScoreDisplay != null ? (
         <span className="absolute top-1.5 right-2 font-mono text-[10px] font-bold tabular-nums text-[#fafafa] z-10">
           {apexScoreDisplay}
@@ -133,7 +133,7 @@ export function DeskCard({
   const confPct = confidence != null ? Math.round(confidence * 100) : null;
 
   return (
-    <section className={`relative border ${toneBorder} bg-[#000000] ${muted}`}>
+    <section className={`relative border ${toneBorder} border-t border-t-white/10 bg-[#000000] ${muted}`}>
       {apexScoreDisplay != null ? (
         <span className="absolute top-3 right-3 font-mono text-[12px] font-bold tabular-nums text-[#fafafa] z-10">
           {apexScoreDisplay}
@@ -295,7 +295,7 @@ export function DeskCard({
                     setLiErr(e instanceof Error ? e.message : 'Copy failed');
                   }
                 }}
-                className={`border bg-[#000000] px-2 py-1.5 font-mono text-[9px] tracking-widest cursor-pointer disabled:cursor-not-allowed ${
+                className={`border bg-[#000000] px-2 py-1.5 font-mono text-[9px] tracking-widest cursor-pointer transition-transform disabled:cursor-not-allowed active:scale-[0.98] ${
                   liPhase === 'success'
                     ? 'border-[#10b981] text-[#34d399]'
                     : 'border-[#333] text-[#c8c8c8] hover:border-[#555] hover:text-white'

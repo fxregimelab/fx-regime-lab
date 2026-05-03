@@ -18,12 +18,16 @@ export function HomeGatewayShell({
   const [gate, setGate] = useState(true);
 
   return (
-    <div className="relative min-h-screen bg-[#000000]">
+    <div className="relative min-h-[100dvh] bg-[#000000]">
       <motion.div
-        className="relative z-10 min-h-screen bg-[#000000]"
+        className="relative z-10 min-h-[100dvh] bg-[#000000] will-change-[filter,transform]"
         initial={false}
-        animate={gate ? { opacity: 0, scale: 1.05 } : { opacity: 1, scale: 1 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: gate ? 0 : 0.06 }}
+        animate={
+          gate
+            ? { opacity: 1, scale: 1.05, filter: 'blur(10px)' }
+            : { opacity: 1, scale: 1, filter: 'blur(0px)' }
+        }
+        transition={{ duration: 0.4, ease: 'easeOut' }}
         aria-hidden={gate}
       >
         <TerminalNav />
@@ -35,9 +39,9 @@ export function HomeGatewayShell({
           <motion.div
             key="gateway-overlay"
             className="fixed inset-0 z-[200] bg-[#000000] overflow-y-auto"
-            initial={{ y: 0, opacity: 1 }}
-            exit={{ y: '-100%', opacity: 0 }}
-            transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
           >
             <HomeLandingBody initial={initial} memosSlot={children} onAccessTerminal={() => setGate(false)} />
           </motion.div>

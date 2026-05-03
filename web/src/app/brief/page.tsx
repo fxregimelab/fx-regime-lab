@@ -54,7 +54,7 @@ export default function BriefPage() {
       <MacroPulseBar />
       <Nav />
       <main className="flex-1 bg-white" style={{ marginTop: `${SHELL_TOP_OFFSET}px` }}>
-        <div className="max-w-[1152px] mx-auto px-6 py-12">
+        <div className="w-full px-6 md:px-8 py-12">
           <div className="flex justify-between items-start mb-10 pb-6 border-b border-[#e5e5e5]">
             <div>
               <div className="flex items-center gap-2.5 mb-2.5">

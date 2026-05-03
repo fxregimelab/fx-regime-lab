@@ -85,6 +85,7 @@ export function useStrategyLedger(pair: string) {
     | 't3_hit'
     | 't5_hit'
     | 'brier_score_t5'
+    | 'max_pain_bps'
   >;
   return useQuery({
     queryKey: ['strategy_ledger', pair],
@@ -92,7 +93,7 @@ export function useStrategyLedger(pair: string) {
       const { data, error } = await supabase
         .from('strategy_ledger')
         .select(
-          'id,date,pair,regime,primary_driver,direction,entry_close,confidence,t1_close,t3_close,t5_close,t1_hit,t3_hit,t5_hit,brier_score_t5',
+          'id,date,pair,regime,primary_driver,direction,entry_close,confidence,t1_close,t3_close,t5_close,t1_hit,t3_hit,t5_hit,brier_score_t5,max_pain_bps',
         )
         .eq('pair', pair)
         .neq('direction', 'NEUTRAL')
@@ -133,7 +134,19 @@ export type TelemetryAuditPayload = {
   overnight_vix_triggered?: boolean;
 };
 
-// getLatestRegimeCalls
+/** Rows ordered by date desc; take contiguous block for the newest `date` (latest NY-close slice). */
+function sliceLatestCalendarDate<T extends { date: string }>(rows: T[] | null | undefined): T[] {
+  if (!rows?.length) return [];
+  const newest = rows[0].date;
+  const out: T[] = [];
+  for (const r of rows) {
+    if (r.date === newest) out.push(r);
+    else break;
+  }
+  return out;
+}
+
+// getLatestRegimeCalls — latest calendar date in DB, not “today()”
 export function useLatestRegimeCalls() {
   const universeQ = useUniverse();
   const pairs = universeQ.data ?? [];
@@ -145,13 +158,13 @@ export function useLatestRegimeCalls() {
         .select('pair,date,regime,confidence,signal_composite,rate_signal,cot_signal,vol_signal,rr_signal,oi_signal,primary_driver,created_at')
         .in('pair', pairs)
         .order('date', { ascending: false })
-        .limit(20);
+        .limit(64);
 
       if (error) throw error;
 
-      // Deduplicate to get the latest per pair
+      const slice = sliceLatestCalendarDate(data as LatestRegimeCallRow[] | null);
       const latest: Record<string, LatestRegimeCallRow> = {};
-      for (const row of (data as LatestRegimeCallRow[]) || []) {
+      for (const row of slice) {
         if (!latest[row.pair]) {
           latest[row.pair] = row;
         }
@@ -223,7 +236,7 @@ export function useRegimeHistory(pair: string) {
   });
 }
 
-// getLatestSignals
+// getLatestSignals — latest calendar date in DB, not “today()”
 export function useLatestSignals() {
   const universeQ = useUniverse();
   const pairs = universeQ.data ?? [];
@@ -237,11 +250,12 @@ export function useLatestSignals() {
         )
         .in('pair', pairs)
         .order('date', { ascending: false })
-        .limit(20);
+        .limit(64);
 
       if (error) throw error;
+      const slice = sliceLatestCalendarDate(data as LatestSignalRow[] | null);
       const latest: Record<string, LatestSignalRow> = {};
-      for (const row of (data as LatestSignalRow[]) || []) {
+      for (const row of slice) {
         if (!latest[row.pair]) {
           latest[row.pair] = row;
         }
@@ -298,7 +312,7 @@ export function useCrossAssetPulse() {
   });
 }
 
-// getLatestBrief
+// getLatestBrief — newest `brief_log` row (latest verified run), not tied to browser “today”
 export function useLatestBrief() {
   return useQuery({
     queryKey: ['brief_log', 'latest'],

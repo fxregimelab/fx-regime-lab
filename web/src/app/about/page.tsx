@@ -147,7 +147,7 @@ export default function About() {
       <MacroPulseBar />
       <Nav />
       <main className="flex-1 bg-white" style={{ marginTop: `${SHELL_TOP_OFFSET}px` }}>
-        <div className="max-w-[1152px] mx-auto px-6 pt-14 pb-20">
+        <div className="w-full px-6 md:px-8 pt-14 pb-20">
           
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-16 lg:gap-20 mb-20 pb-16 border-b border-[#e5e5e5]">
             <div>

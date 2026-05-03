@@ -29,7 +29,7 @@ export function Nav({ belowPulseExtraPx = 0 }: NavProps) {
       className="border-b border-[#e5e5e5] bg-white sticky z-[90]"
       style={{ top: `${PULSE_BAR_H + belowPulseExtraPx}px` }}
     >
-      <nav className="max-w-[1152px] mx-auto px-6 h-[54px] flex items-center justify-between">
+      <nav className="w-full px-6 md:px-8 h-[54px] flex items-center justify-between">
         <Link href="/" className="flex items-center justify-center h-[54px] shrink-0">
           <LogoMark size={24} />
         </Link>

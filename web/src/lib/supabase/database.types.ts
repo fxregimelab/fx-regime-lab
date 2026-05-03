@@ -89,6 +89,7 @@ export interface Database {
           t3_hit: number | null
           t5_hit: number | null
           brier_score_t5: number | null
+          max_pain_bps: number | null
         }
         Insert: {
           id?: string
@@ -106,6 +107,7 @@ export interface Database {
           t3_hit?: number | null
           t5_hit?: number | null
           brier_score_t5?: number | null
+          max_pain_bps?: number | null
         }
         Update: Partial<Database['public']['Tables']['strategy_ledger']['Insert']>
       }

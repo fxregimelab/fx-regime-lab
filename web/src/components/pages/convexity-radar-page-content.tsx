@@ -25,7 +25,7 @@ export function ConvexityRadarPageContent() {
     (signalsQ.data?.[selectedPair]?.spot as number | null | undefined) ?? null;
 
   return (
-    <section className="max-w-[1152px] mx-auto px-6 py-10">
+    <section className="w-full px-6 md:px-8 py-10">
       <h1 className="font-sans text-3xl font-bold mb-2 text-white">Convexity Radar</h1>
       <p className="font-mono text-[11px] text-[#8a8a8a] tracking-widest mb-6">
         MIE · T+1 EXHAUSTION BANDS · REGIME-CONDITIONED ASYMMETRY

@@ -25,8 +25,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans bg-white text-[#0a0a0a]">
+    <html
+      lang="en"
+      data-fxrl-app="omega"
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+    >
+      <body className="relative z-[1] min-h-[100dvh] flex flex-col font-sans bg-[#000000] text-[#e8e8e8] antialiased">
         <Providers>
           {/* Pair-desk systemic banner + dollar/Polymarket strip: `app/terminal/layout.tsx` + TerminalNav */}
           {children}

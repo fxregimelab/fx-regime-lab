@@ -26,7 +26,7 @@ export function PerformanceLedgerPageContent() {
   const last10 = useMemo(() => rows.slice(0, 10), [rows]);
 
   return (
-    <section className="mx-auto max-w-[1152px] px-6 py-10">
+    <section className="w-full px-6 md:px-8 py-10">
       <p className="mb-2 text-[9px] tracking-widest text-[#777]">ALPHA LEDGER · OOS</p>
       <h1 className="mb-1 font-sans text-3xl font-bold text-white">Performance</h1>
       <p className="mb-6 font-mono text-[11px] tracking-wide text-[#8a8a8a]">

@@ -6,7 +6,7 @@ import type { StrategyLedgerRow } from '@/lib/queries';
 /** Rows from useStrategyLedger (non-neutral directional ledger). */
 export type AlphaLedgerRow = Pick<
   StrategyLedgerRow,
-  'regime' | 'date' | 't1_hit' | 't3_hit' | 't5_hit' | 'brier_score_t5'
+  'regime' | 'date' | 't1_hit' | 't3_hit' | 't5_hit' | 'brier_score_t5' | 'max_pain_bps'
 >;
 
 /** Brier at p=0.5 forecast is 0.25; scores above this imply worse-than-chance calibration. */
@@ -28,6 +28,14 @@ function hitWinRatePct(rows: AlphaLedgerRow[], key: 't1_hit' | 't3_hit' | 't5_hi
 function avgBrier(rows: AlphaLedgerRow[]): number | null {
   const vals = rows
     .map((r) => r.brier_score_t5)
+    .filter((x): x is number => typeof x === 'number' && !Number.isNaN(x));
+  if (vals.length === 0) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+function avgMaxPainBps(rows: AlphaLedgerRow[]): number | null {
+  const vals = rows
+    .map((r) => r.max_pain_bps)
     .filter((x): x is number => typeof x === 'number' && !Number.isNaN(x));
   if (vals.length === 0) return null;
   return vals.reduce((a, b) => a + b, 0) / vals.length;
@@ -111,6 +119,11 @@ function formatBrier(v: number | null): string {
   return v.toFixed(3);
 }
 
+function formatMaxPainBps(v: number | null): string {
+  if (v == null) return 'N/A';
+  return `${v.toFixed(1)}`;
+}
+
 function statusFor(
   t5Edge: number | null,
   n: number,
@@ -131,6 +144,7 @@ export type RegimeAgg = {
   t3: number | null;
   t5: number | null;
   brier: number | null;
+  maxPainBps: number | null;
   spark90: number[];
   spark5: number[];
   degraded: boolean;
@@ -157,6 +171,7 @@ export function aggregateLedgerByRegime(rows: AlphaLedgerRow[]): RegimeAgg[] {
       t3: hitWinRatePct(list, 't3_hit'),
       t5: hitWinRatePct(list, 't5_hit'),
       brier: avgBrier(list),
+      maxPainBps: avgMaxPainBps(list),
       spark90,
       spark5,
       degraded,
@@ -177,7 +192,7 @@ export function AlphaLedger({ rows }: AlphaLedgerProps) {
     <div
       className="grid w-full border border-solid border-[#111] bg-[#000000] text-white rounded-none"
       style={{
-        gridTemplateColumns: '1.15fr 0.55fr 0.62fr 0.62fr 0.62fr 0.58fr 1.05fr 1fr',
+        gridTemplateColumns: '1.12fr 0.5fr 0.55fr 0.55fr 0.55fr 0.52fr 0.58fr 1.05fr 1fr',
       }}
     >
       {(
@@ -188,6 +203,7 @@ export function AlphaLedger({ rows }: AlphaLedgerProps) {
           'T+3 Edge',
           'T+5 Edge',
           'Brier',
+          'Max Pain (BPS)',
           'Fidelity',
           'Status',
         ] as const
@@ -201,7 +217,7 @@ export function AlphaLedger({ rows }: AlphaLedgerProps) {
       ))}
 
       {agg.length === 0 ? (
-        <div className="col-span-8 border-t border-solid border-[#111] px-2 py-6 text-center text-[11px] text-[#777] tabular-nums">
+        <div className="col-span-9 border-t border-solid border-[#111] px-2 py-6 text-center text-[11px] text-[#777] tabular-nums">
           No ledger rows for this pair.
         </div>
       ) : (
@@ -244,6 +260,14 @@ export function AlphaLedger({ rows }: AlphaLedgerProps) {
               className={`border-b border-r border-solid border-[#111] px-2 py-2 text-[11px] tabular-nums text-white ${rowDim}`}
             >
               {formatBrier(row.brier)}
+            </div>,
+            <div
+              key={`${row.regime}-mp`}
+              className={`border-b border-r border-solid border-[#111] px-2 py-2 text-[11px] tabular-nums ${rowDim} ${
+                row.maxPainBps != null && row.maxPainBps > 150 ? 'text-[#ef4444]' : 'text-white'
+              }`}
+            >
+              {formatMaxPainBps(row.maxPainBps)}
             </div>,
             <div
               key={`${row.regime}-spark`}

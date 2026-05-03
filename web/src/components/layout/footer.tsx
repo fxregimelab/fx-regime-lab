@@ -7,7 +7,7 @@ import { LogoMark } from '../ui/logo-mark';
 export function Footer() {
   return (
     <footer className="border-t border-[#e5e5e5] bg-white mt-20">
-      <div className="max-w-[1152px] mx-auto py-12 px-6 flex flex-wrap justify-between gap-10">
+      <div className="w-full px-6 md:px-8 py-12 flex flex-wrap justify-between gap-10">
         <div>
           <div className="flex items-center gap-2.5 mb-2.5">
             <LogoMark size={20} />
@@ -54,7 +54,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-[#f0f0f0] py-3.5 px-6">
-        <p className="max-w-[1152px] mx-auto font-mono text-[11px] text-[#aaa]">
+        <p className="w-full px-6 md:px-8 font-mono text-[11px] text-[#aaa]">
           Research and learning only. Not investment advice. Shreyash Sakhare — Discretionary Macro Research.
         </p>
       </div>

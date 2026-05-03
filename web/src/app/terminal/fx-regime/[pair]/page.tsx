@@ -99,7 +99,7 @@ export default function PairDeskPage() {
       className={`min-h-screen bg-[#000000] ${bodyTone}`}
     >
       <div
-        className="grid grid-cols-1 xl:grid-cols-[72px_minmax(0,1fr)_340px] min-w-0 overflow-hidden"
+        className="grid grid-cols-1 xl:grid-cols-[72px_minmax(0,1fr)_minmax(320px,22vw)] min-w-0 overflow-hidden"
         style={{
           marginTop: 'var(--terminal-nav-h, 104px)',
           height: 'calc(100dvh - var(--terminal-nav-h, 104px))',

@@ -31,7 +31,7 @@ export default function FxRegimePairSelectionPage() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="max-w-[1200px] mx-auto py-10 px-6"
+        className="w-full px-6 md:px-8 py-10"
         style={{ marginTop: 'var(--terminal-nav-h, 104px)' }}
       >
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">

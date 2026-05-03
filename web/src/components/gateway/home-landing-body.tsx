@@ -145,7 +145,7 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
   return (
     <main className="flex-1 bg-[#000000] text-[#e8e8e8]">
       <section className="bg-[#000000] text-[#e8e8e8] border-b border-[#111]">
-        <div className="max-w-[1152px] mx-auto px-6 pt-10 pb-12">
+        <div className="w-full px-6 md:px-8 pt-10 pb-12">
           <div className="flex flex-wrap items-center gap-2.5 mb-8">
             <span
               className={`w-1.5 h-1.5 shrink-0 ${
@@ -168,14 +168,13 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
             </span>
           </div>
 
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-4">
-            <h1 className="font-sans font-extrabold text-[40px] leading-[1.08] text-[#f5f5f5] tracking-tight m-0">
-              Lead Researcher &amp; Founder
-            </h1>
-            <span className="font-mono text-[10px] text-[#a3a3a3] tracking-widest border border-[#333] px-2 py-1 tabular-nums self-start">
-              [ VERIFIED 90D EDGE: {edgePct != null ? `${edgePct}%` : '—'} ]
-            </span>
+          <div className="min-h-[60vh] flex flex-col justify-center py-8 md:py-12">
+            <p className="font-mono text-[9px] tracking-[0.2em] text-[#666] m-0">[ FX REGIME LAB v1.0 ]</p>
+            <p className="font-serif text-4xl md:text-6xl text-[#e5e5e5] leading-[1.05] tracking-tight mt-5 mb-0 max-w-5xl">
+              Signal, Not Noise. Institutional context for the G10 macro universe.
+            </p>
           </div>
+
           <p className="font-mono text-[10px] text-[#666] tracking-widest mb-8 max-w-xl">
             Anonymous-first gateway. Ranked structural asymmetry, validated ledger, vault terminal.
           </p>
@@ -316,7 +315,7 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
             <button
               type="button"
               onClick={onAccessTerminal}
-              className="bg-[#f5f5f5] text-[#000000] font-sans font-semibold text-[13px] px-5 py-2.5 transition-opacity hover:opacity-90 border-0 cursor-pointer"
+              className="bg-[#f5f5f5] text-[#000000] font-sans font-semibold text-[13px] px-5 py-2.5 transition-[opacity,transform] hover:opacity-90 active:scale-[0.98] border-0 cursor-pointer"
             >
               [ ACCESS TERMINAL ]
             </button>
@@ -339,7 +338,7 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
       <div className="border-t border-[#111]" />
 
       <section className="border-b border-[#111] bg-[#000000]">
-        <div className="max-w-[1152px] mx-auto px-6 grid grid-cols-2 lg:grid-cols-4">
+        <div className="w-full px-6 md:px-8 grid grid-cols-2 lg:grid-cols-4">
           {[
             { label: 'Pairs tracked', value: '7' },
             {
@@ -369,7 +368,7 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
         </div>
       </section>
 
-      <section className="max-w-[1152px] mx-auto px-6 pb-12 pt-12 bg-[#000000]">
+      <section className="w-full px-6 md:px-8 pb-12 pt-12 bg-[#000000]">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="border border-[#111] p-5 bg-[#000000]">
             <p className="font-mono text-[10px] text-[#737373] tracking-widest mb-2">GLOBAL SENTIMENT</p>
@@ -402,7 +401,7 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
         </div>
       </section>
 
-      <section className="max-w-[1152px] mx-auto px-6 pb-12 bg-[#000000]">
+      <section className="w-full px-6 md:px-8 pb-12 bg-[#000000]">
         <div className="flex items-baseline justify-between mb-5">
           <div>
             <h2 className="font-sans font-bold text-xl text-[#f0f0f0] tracking-tight m-0">30-Day Regime View</h2>
@@ -413,7 +412,7 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
       </section>
 
       <section className="bg-[#000000] border-y border-[#111]">
-        <div className="max-w-[1152px] mx-auto py-14 px-6">
+        <div className="w-full px-6 md:px-8 py-14">
           <div className="flex items-start justify-between mb-7 flex-wrap gap-5">
             <div>
               <p className="font-mono text-[10px] text-[#555] tracking-widest mb-2">VALIDATION LOG</p>
@@ -445,7 +444,7 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
         </div>
       </section>
 
-      <section className="max-w-[1152px] mx-auto py-16 px-6 bg-[#000000]">
+      <section className="w-full px-6 md:px-8 py-16 bg-[#000000]">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-16 items-start">
           <div>
             <p className="font-mono text-[10px] text-[#737373] tracking-widest mb-3.5">SIGNAL ARCHITECTURE</p>
@@ -501,32 +500,39 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
         </div>
       </section>
 
-      <section className="border-y border-[#111] bg-[#000000]">
-        <div className="max-w-[1152px] mx-auto py-12 px-6 grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-16 items-start">
-          <div>
-            <p className="font-mono text-[10px] text-[#737373] tracking-widest mb-3.5">IDENTITY</p>
-            <h2 className="font-sans font-bold text-[22px] text-[#f0f0f0] tracking-tight m-0">Lead Researcher &amp; Founder</h2>
-            <p className="font-mono text-[11px] text-[#737373] mt-1.5">G10 FX · Forward-walking validation · Obsidian desk</p>
-          </div>
-          <div>
-            <p className="font-sans text-[15px] text-[#a3a3a3] leading-relaxed max-w-[580px] mb-5">
-              Research into how G10 FX regimes form and break — rate differentials, COT, volatility, and microstructure. Public trace:
-              dated calls, validated outcomes, no narrative added after the fact.
-            </p>
-            <div className="flex gap-5 flex-wrap">
-              <Link
-                href="/about"
-                className="font-sans text-[13px] font-medium text-[#e8e8e8] bg-transparent border border-[#333] px-4 py-2 hover:border-[#555] transition-colors"
-              >
-                About this project
-              </Link>
-              <Link
-                href="/brief"
-                className="font-sans text-[13px] font-medium text-[#737373] bg-transparent border-none py-2 underline decoration-[#444] underline-offset-4 hover:decoration-[#737373] transition-colors"
-              >
-                Today&apos;s brief →
-              </Link>
+      <section className="border-t border-[#111] bg-[#000000]">
+        <div className="w-full px-6 md:px-8 py-16 md:py-20 flex flex-col gap-8">
+          <p className="font-mono text-[9px] tracking-[0.12em] text-[#666] m-0 order-1">
+            [ SYSTEM GENESIS: 10-ROUND ADVERSARIAL CRUCIBLE ]
+          </p>
+          <div className="order-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-8">
+            <div>
+              <h2 className="font-sans font-bold text-[22px] md:text-[26px] text-[#f0f0f0] tracking-tight m-0">
+                Lead Researcher &amp; Founder
+              </h2>
+              <p className="font-mono text-[11px] text-[#737373] mt-2 m-0">G10 FX · Forward-walking validation · Obsidian desk</p>
             </div>
+            <span className="font-mono text-[10px] text-[#a3a3a3] tracking-widest border border-[#333] px-2 py-1.5 tabular-nums self-start md:self-end shrink-0">
+              [ VERIFIED 90D EDGE: {edgePct != null ? `${edgePct}%` : '—'} ]
+            </span>
+          </div>
+          <p className="font-sans text-[15px] text-[#a3a3a3] leading-relaxed max-w-[720px] m-0 order-3">
+            Research into how G10 FX regimes form and break — rate differentials, COT, volatility, and microstructure. Public trace:
+            dated calls, validated outcomes, no narrative added after the fact.
+          </p>
+          <div className="flex gap-5 flex-wrap order-4">
+            <Link
+              href="/about"
+              className="font-sans text-[13px] font-medium text-[#e8e8e8] bg-transparent border border-[#333] px-4 py-2 hover:border-[#555] transition-all active:scale-[0.98]"
+            >
+              About this project
+            </Link>
+            <Link
+              href="/brief"
+              className="font-sans text-[13px] font-medium text-[#737373] bg-transparent border-none py-2 underline decoration-[#444] underline-offset-4 hover:decoration-[#737373] transition-colors"
+            >
+              Today&apos;s brief →
+            </Link>
           </div>
         </div>
       </section>
