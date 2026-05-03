@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
@@ -67,6 +68,25 @@ from src.validation.backtest import validate_call
 from src.validation.ingestion_buffer import validate_ingestion_buffer
 
 logger = logging.getLogger(__name__)
+
+
+def _require_pipeline_runtime_env() -> None:
+    """Fail fast with actionable errors when Prefect/worker env is incomplete."""
+
+    required: dict[str, str] = {
+        "SUPABASE_URL": "Supabase project URL (Prefect job_variables.env or secrets).",
+        "SUPABASE_SERVICE_ROLE_KEY": "Service role key for pipeline DB writes.",
+        "FRED_API_KEY": "FRED API key for yields and macro series.",
+        "OPENROUTER_API_KEY": "OpenRouter key for AI briefs and desk card copy.",
+    }
+    missing = [name for name in required if not os.environ.get(name)]
+    if missing:
+        detail = "\n".join(f"  - {k}: {required[k]}" for k in missing)
+        raise RuntimeError(
+            "Missing required environment variables for the FX pipeline:\n"
+            f"{detail}\n"
+            "Set them on the Prefect deployment (e.g. job_variables.env) or in .env for local runs."
+        )
 
 
 async def _ingest_weekly_research_memo(iso_date: str) -> None:
@@ -415,6 +435,29 @@ async def build_master_buffer_task(
 async def batch_desk_briefs_task(
     pending_desk_cards: list[dict[str, Any]],
 ) -> list[Any]:
+    """Generate desk-card AI briefs; optional sequential mode for OpenRouter burst safety."""
+
+    raw_cd = (os.environ.get("FORCE_SYNC_DESK_PAIR_COOLDOWN_SEC") or "").strip()
+    if raw_cd:
+        try:
+            pair_sleep = max(0.0, float(raw_cd))
+        except ValueError:
+            pair_sleep = 0.0
+        if pair_sleep > 0.0:
+            outcomes: list[Any] = []
+            for i, item in enumerate(pending_desk_cards):
+                if i > 0:
+                    await asyncio.sleep(pair_sleep)
+                try:
+                    outcomes.append(
+                        await generate_desk_card_brief_async(
+                            **cast(dict[str, Any], item["brief_kw"]),
+                        ),
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    outcomes.append(exc)
+            return outcomes
+
     return await asyncio.gather(
         *[
             generate_desk_card_brief_async(**cast(dict[str, Any], item["brief_kw"]))
@@ -462,6 +505,8 @@ def upsert_macro_event_briefs_task(
 async def run_daily(date_str: str | None = None) -> None:
     if date_str is None:
         date_str = date.today().isoformat()
+
+    _require_pipeline_runtime_env()
 
     universe = load_universe()
     buffer = await build_master_buffer_task()
@@ -1101,6 +1146,8 @@ async def run_daily(date_str: str | None = None) -> None:
 def run_weekly(date_str: str | None = None) -> None:
     if date_str is None:
         date_str = date.today().isoformat()
+
+    _require_pipeline_runtime_env()
 
     load_universe()
 

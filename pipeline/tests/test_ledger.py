@@ -39,12 +39,12 @@ def test_brier_neutral_skipped() -> None:
 
 def test_mark_to_market_writes_updates() -> None:
     prices = [
-        {"date": "2026-04-20", "close": 100.0},
-        {"date": "2026-04-21", "close": 101.0},
-        {"date": "2026-04-22", "close": 102.0},
-        {"date": "2026-04-23", "close": 103.0},
-        {"date": "2026-04-24", "close": 104.0},
-        {"date": "2026-04-25", "close": 105.0},
+        {"date": "2026-04-20", "close": 100.0, "low": 100.0, "high": 100.0},
+        {"date": "2026-04-21", "close": 101.0, "low": 99.5, "high": 101.0},
+        {"date": "2026-04-22", "close": 102.0, "low": 98.0, "high": 102.0},
+        {"date": "2026-04-23", "close": 103.0, "low": 99.0, "high": 103.0},
+        {"date": "2026-04-24", "close": 104.0, "low": 100.0, "high": 104.0},
+        {"date": "2026-04-25", "close": 105.0, "low": 101.0, "high": 105.0},
     ]
     open_row: dict[str, Any] = {
         "id": "00000000-0000-4000-8000-000000000001",
@@ -62,6 +62,7 @@ def test_mark_to_market_writes_updates() -> None:
         "t3_hit": None,
         "t5_hit": None,
         "brier_score_t5": None,
+        "max_pain_bps": None,
     }
     captured: list[list[dict[str, Any]]] = []
 
@@ -88,17 +89,19 @@ def test_mark_to_market_writes_updates() -> None:
     assert out["t5_hit"] == 1
     assert out["brier_score_t5"] is not None
     assert abs(float(out["brier_score_t5"]) - (1.0 - 0.7) ** 2) < 1e-9
+    # Max adverse excursion vs entry 100: deepest low 98 on T+2 -> 200 bps
+    assert out["max_pain_bps"] == pytest.approx(200.0)
 
 
 def test_mark_to_market_fences_future_horizons() -> None:
     """Do not fill T+3/T+5 when their bar dates are after as_of (chronological fence)."""
     prices = [
-        {"date": "2026-04-20", "close": 100.0},
-        {"date": "2026-04-21", "close": 101.0},
-        {"date": "2026-04-22", "close": 102.0},
-        {"date": "2026-04-23", "close": 103.0},
-        {"date": "2026-04-24", "close": 104.0},
-        {"date": "2026-04-25", "close": 105.0},
+        {"date": "2026-04-20", "close": 100.0, "low": 100.0, "high": 100.0},
+        {"date": "2026-04-21", "close": 101.0, "low": 101.0, "high": 101.0},
+        {"date": "2026-04-22", "close": 102.0, "low": 102.0, "high": 102.0},
+        {"date": "2026-04-23", "close": 103.0, "low": 103.0, "high": 103.0},
+        {"date": "2026-04-24", "close": 104.0, "low": 104.0, "high": 104.0},
+        {"date": "2026-04-25", "close": 105.0, "low": 105.0, "high": 105.0},
     ]
     open_row: dict[str, Any] = {
         "id": "00000000-0000-4000-8000-000000000002",
@@ -116,6 +119,7 @@ def test_mark_to_market_fences_future_horizons() -> None:
         "t3_hit": None,
         "t5_hit": None,
         "brier_score_t5": None,
+        "max_pain_bps": None,
     }
     captured: list[list[dict[str, Any]]] = []
 
@@ -137,6 +141,55 @@ def test_mark_to_market_fences_future_horizons() -> None:
     assert out["t1_hit"] == 1
     assert out.get("t3_close") is None
     assert out.get("t5_close") is None
+    # T+1 only: lows >= entry -> no adverse excursion
+    assert out.get("max_pain_bps") == pytest.approx(0.0)
+
+
+def test_mark_to_market_mae_bearish() -> None:
+    prices = [
+        {"date": "2026-04-20", "close": 100.0, "low": 100.0, "high": 100.0},
+        {"date": "2026-04-21", "close": 99.0, "low": 98.5, "high": 101.5},
+        {"date": "2026-04-22", "close": 98.0, "low": 97.0, "high": 102.0},
+        {"date": "2026-04-23", "close": 97.0, "low": 96.0, "high": 103.0},
+        {"date": "2026-04-24", "close": 96.0, "low": 95.0, "high": 104.0},
+        {"date": "2026-04-25", "close": 95.0, "low": 94.0, "high": 105.0},
+    ]
+    open_row: dict[str, Any] = {
+        "id": "00000000-0000-4000-8000-000000000003",
+        "date": "2026-04-20",
+        "pair": "EURUSD",
+        "regime": "R1",
+        "primary_driver": "Rate",
+        "direction": "BEARISH",
+        "entry_close": 100.0,
+        "confidence": 0.7,
+        "t1_close": None,
+        "t3_close": None,
+        "t5_close": None,
+        "t1_hit": None,
+        "t3_hit": None,
+        "t5_hit": None,
+        "brier_score_t5": None,
+        "max_pain_bps": None,
+    }
+    captured: list[list[dict[str, Any]]] = []
+
+    def fake_update(rows: list[dict[str, Any]]) -> None:
+        captured.append(rows)
+
+    with (
+        patch.object(ledger_mod.writer, "get_open_ledger_entries", return_value=[open_row]),
+        patch.object(ledger_mod.writer, "update_ledger_entries", side_effect=fake_update),
+    ):
+        ledger_mod.mark_to_market_ledger(
+            "EURUSD",
+            prices,
+            as_of_date=datetime.date(2026, 4, 25),
+        )
+
+    out = captured[0][0]
+    # Adverse for bearish: high vs entry; max high in window is 105 on T+5 -> 500 bps
+    assert out["max_pain_bps"] == pytest.approx(500.0)
 
 
 def test_log_initial_signal_merges_forward_fields() -> None:
@@ -148,6 +201,7 @@ def test_log_initial_signal_merges_forward_fields() -> None:
         "t5_close": None,
         "t5_hit": None,
         "brier_score_t5": None,
+        "max_pain_bps": 42.5,
     }
 
     with (
@@ -171,3 +225,4 @@ def test_log_initial_signal_merges_forward_fields() -> None:
         payload = w.call_args[0][0]
         assert payload["t1_close"] == 1.1
         assert payload["t1_hit"] == 1
+        assert payload["max_pain_bps"] == 42.5

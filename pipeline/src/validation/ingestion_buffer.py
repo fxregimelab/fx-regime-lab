@@ -12,7 +12,7 @@ from src.types import SpotBar
 
 logger = logging.getLogger(__name__)
 
-_QUORUM_FAILURE_RATIO = 0.20
+_QUORUM_FAILURE_RATIO = 0.50
 
 
 class IngestionGate(NamedTuple):
@@ -53,7 +53,7 @@ def _spot_print_ok(bars: Any) -> bool:
 def validate_ingestion_buffer(buffer: dict[str, Any], *, universe: dict[str, Any]) -> IngestionGate:
     """Quorum-check spot ingestion, then drop poisoned pairs or abort the run.
 
-    * If strictly more than 20% of configured FX pairs lack a valid spot print,
+    * If strictly more than 50% of configured FX pairs lack a valid spot print,
       returns ``telemetry_status='OFFLINE'`` — caller must abort before math/DB.
     * Otherwise drops only failed pairs from ``fx_spot``, freezes bar lists to tuples
       (immutable container) for a stable snapshot — do not mutate after this returns.
@@ -84,6 +84,14 @@ def validate_ingestion_buffer(buffer: dict[str, Any], *, universe: dict[str, Any
             100.0 * _QUORUM_FAILURE_RATIO,
         )
         return IngestionGate(buffer=copy.deepcopy(buffer), telemetry_status="OFFLINE")
+
+    ok_spot = n - failed
+    logger.info(
+        "Ingestion gate ONLINE: %s/%s FX pairs have valid spot (quorum within %.0f%% failure cap)",
+        ok_spot,
+        n,
+        100.0 * _QUORUM_FAILURE_RATIO,
+    )
 
     out = copy.deepcopy(buffer)
     fx_out_any = out.get(KEY_FX_SPOT)

@@ -21,6 +21,9 @@ def _universe_rows_to_dict(rows: list[dict[str, Any]]) -> dict[str, Any]:
         if not pair:
             continue
         cls = str(row.get("class") or "FX")
+        # spot_ticker: Yahoo-style symbol for yfinance fallback (e.g. EURUSD=X).
+        # Alpha Vantage FX_DAILY uses ISO legs derived from the pair key via
+        # ``alphavantage_fx_legs_from_pair`` (e.g. EURUSD → from EUR, to USD).
         out[pair] = {
             "class": cls,
             "tickers": {
@@ -92,8 +95,21 @@ def _sync_pairs() -> None:
     PAIRS[:] = pairs_from_universe(asset_class="FX")
 
 
+def alphavantage_fx_legs_from_pair(pair: str) -> tuple[str, str]:
+    """Map universe FX pair key to Alpha Vantage ``FX_DAILY`` legs (from, to).
+
+    Expects a 6-character BASEQUOTE key (e.g. ``EURUSD``, ``USDJPY``), not a
+    Yahoo suffix ticker like ``EURUSD=X``.
+    """
+
+    p = pair.upper().replace("/", "").strip()
+    if len(p) != 6:
+        raise ValueError(f"Alpha Vantage FX legs need a 6-char pair key, got {pair!r}")
+    return p[:3], p[3:6]
+
+
 def spot_tickers_from_universe() -> dict[str, str]:
-    """Yahoo spot symbols keyed by pair (from loaded universe)."""
+    """Yahoo spot symbols keyed by pair (from loaded universe; yfinance fallback)."""
 
     out: dict[str, str] = {}
     for sym, meta in load_universe().items():

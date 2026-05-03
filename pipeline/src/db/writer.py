@@ -17,10 +17,15 @@ from src.types import DeskOpenCardRow, RegimeCall, SignalRow
 
 @lru_cache(maxsize=1)
 def _client() -> Client:
-    return create_client(
-        os.environ["SUPABASE_URL"],
-        os.environ["SUPABASE_SERVICE_ROLE_KEY"],
-    )
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not (key and str(key).strip()):
+        raise RuntimeError(
+            "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in the environment "
+            "(Prefect: deployment job_variables.env, or local .env). "
+            f"SUPABASE_URL set: {bool(url)}, SUPABASE_SERVICE_ROLE_KEY set: {bool(key)}."
+        )
+    return create_client(url, key)
 
 
 def fetch_universe_registry() -> list[dict[str, Any]]:

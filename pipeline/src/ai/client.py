@@ -38,20 +38,32 @@ def _openrouter_headers() -> dict[str, str]:
     }
 
 
+def _openrouter_api_key() -> str:
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key or not str(key).strip():
+        raise RuntimeError(
+            "OPENROUTER_API_KEY is not set. Configure it in Prefect job_variables.env "
+            "(managed workers) or in .env for local runs before calling OpenRouter."
+        )
+    return str(key).strip()
+
+
 def _openrouter_client() -> OpenAI:
     return OpenAI(
-        api_key=os.environ["OPENROUTER_API_KEY"],
+        api_key=_openrouter_api_key(),
         base_url="https://openrouter.ai/api/v1",
         default_headers=_openrouter_headers(),
     )
 
 
-# Deferred secret: allow `prefect deploy` / static import without env; calls still require the key.
-async_client = AsyncOpenAI(
-    api_key=os.environ.get("OPENROUTER_API_KEY", ""),
-    base_url="https://openrouter.ai/api/v1",
-    default_headers=_openrouter_headers(),
-)
+def _async_openrouter_client() -> AsyncOpenAI:
+    """Build async client at call time so missing keys raise with a clear message."""
+
+    return AsyncOpenAI(
+        api_key=_openrouter_api_key(),
+        base_url="https://openrouter.ai/api/v1",
+        default_headers=_openrouter_headers(),
+    )
 
 
 def _check_limit(date_str: str) -> None:
@@ -97,7 +109,7 @@ async def _call_async(
         try:
             _check_limit(date_str)
             logger.info("Attempting async AI call with model: %s", model)
-            resp = await async_client.chat.completions.create(
+            resp = await _async_openrouter_client().chat.completions.create(
                 model=model,
                 messages=cast(Any, messages),
                 max_tokens=max_tokens,
@@ -126,7 +138,7 @@ async def _call_preferred_model_async(
     _check_limit(date_str)
     try:
         logger.info("Attempting async AI call with preferred model: %s", model)
-        resp = await async_client.chat.completions.create(
+        resp = await _async_openrouter_client().chat.completions.create(
             model=model,
             messages=cast(Any, messages),
             max_tokens=max_tokens,
@@ -352,14 +364,14 @@ async def generate_desk_card_brief_async(
     founder_instructions = ""
     stale_signal_gating = ""
     if thesis_bullets:
+        thesis_block = "\n".join(f"- {b}" for b in thesis_bullets)
         founder_instructions = (
-            "Cross-reference today's MAD Z-Scores (RATE_Z_TACTICAL_MAD and "
-            "RATE_Z_STRUCTURAL_MAD) and PAIN_INDEX against the following Structural Thesis "
-            "from the Project Founder:\n"
-            + "\n".join(f"- {b}" for b in thesis_bullets)
-            + "\nIf the math contradicts the human thesis, headline the divergence as a primary "
-            "risk in key_divergence or swing_factor as appropriate. Do not attempt to hide the "
-            "conflict.\n\n"
+            "You are the Lead Researcher's Adversary. Cross-reference today's MAD Z-Scores "
+            "(RATE_Z_TACTICAL_MAD and RATE_Z_STRUCTURAL_MAD) and PAIN_INDEX against the "
+            f"following Structural Thesis:\n{thesis_block}\n"
+            "Your primary directive is to find mathematical evidence that CONTRADICTS the thesis. "
+            "If the math disputes the thesis, you MUST headline the divergence. If the math "
+            "confirms the thesis, state the alignment briefly.\n\n"
         )
     else:
         stale_signal_gating = (

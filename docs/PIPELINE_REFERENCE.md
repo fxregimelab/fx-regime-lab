@@ -2,7 +2,7 @@
 
 ## Current state (April 2026)
 
-- **Daily / weekly automation:** `.github/workflows/pipeline_daily.yml` and `pipeline_weekly.yml` run `python -m src.scheduler.orchestrator` from the **`pipeline/`** package (see that tree for the live orchestrator).
+- **Daily / weekly automation:** **Prefect Cloud** deployment `Daily_G10_Alpha_Engine` (see `pipeline/prefect.yaml`) runs `run_daily` / `run_weekly` from `src.scheduler.orchestrator`. GitHub Actions cron workflows for the pipeline were removed in favor of Prefect-only scheduling.
 - **No `web/` app** and **no root `wrangler.toml`**. ISR pings to Next were removed from `pipeline/src/scheduler/orchestrator.py`.
 - **Worker:** [`workers/site-entry.js`](../workers/site-entry.js) is **API-only** (no static `ASSETS`, no `/assets/supabase-env.js`). See [[HOSTING_AFTER_UI_REMOVAL]].
 

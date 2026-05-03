@@ -18,9 +18,11 @@ def _bar(close: float = 1.0) -> SpotBar:
     return SpotBar(date=d, pair="PX", open=close, high=close, low=close, close=close)
 
 
-def test_quorum_offline_when_gt_20pct_missing() -> None:
+def test_quorum_offline_when_gt_half_missing() -> None:
     u = _universe_stub(n=7)
-    spots = {f"P{i}": [_bar()] for i in range(5)}
+    spots = {f"P{i}": [_bar()] for i in range(3)}
+    spots["P3"] = []
+    spots["P4"] = []
     spots["P5"] = []
     spots["P6"] = []
     buf = {KEY_FX_SPOT: spots}
@@ -41,12 +43,26 @@ def test_quorum_online_drops_poisoned_pair() -> None:
     assert isinstance(fx["P0"], tuple)
 
 
-def test_quorum_online_when_failures_at_20pct_boundary() -> None:
-    """1/5 = 20% is not *greater than* 20%, so we stay ONLINE and drop the bad row."""
-    u = _universe_stub(n=5)
-    spots = {f"P{i}": [_bar()] for i in range(4)}
-    spots["P4"] = []
+def test_quorum_online_when_failures_below_half() -> None:
+    """2/7 missing (~29%) is not greater than 50%, so we stay ONLINE and drop bad rows."""
+    u = _universe_stub(n=7)
+    spots = {f"P{i}": [_bar()] for i in range(5)}
+    spots["P5"] = []
+    spots["P6"] = []
     buf = {KEY_FX_SPOT: spots}
     gate = validate_ingestion_buffer(buf, universe=u)
     assert gate.telemetry_status == "ONLINE"
-    assert "P4" not in gate.buffer[KEY_FX_SPOT]
+    assert "P5" not in gate.buffer[KEY_FX_SPOT]
+    assert "P6" not in gate.buffer[KEY_FX_SPOT]
+
+
+def test_quorum_offline_when_three_of_five_missing() -> None:
+    """3/5 = 60% > 50% threshold → OFFLINE."""
+    u = _universe_stub(n=5)
+    spots = {f"P{i}": [_bar()] for i in range(2)}
+    spots["P2"] = []
+    spots["P3"] = []
+    spots["P4"] = []
+    buf = {KEY_FX_SPOT: spots}
+    gate = validate_ingestion_buffer(buf, universe=u)
+    assert gate.telemetry_status == "OFFLINE"

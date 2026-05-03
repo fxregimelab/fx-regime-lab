@@ -1,21 +1,26 @@
-"""yfinance FX spot OHLC for configured pairs."""
+"""FX spot OHLC: Alpha Vantage FX_DAILY (primary) with yfinance fallback."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, cast
 
 import aiohttp
 import numpy as np
 import pandas as pd
+import requests
 
 from src.fetchers.async_engine import AsyncFetcher
-from src.types import SpotBar, spot_tickers_from_universe
+from src.types import SpotBar, alphavantage_fx_legs_from_pair, spot_tickers_from_universe
 
 logger = logging.getLogger(__name__)
+
+_AV_BASE = "https://www.alphavantage.co/query"
+_AV_REQUEST_TIMEOUT_S = 75.0
 
 
 def _yfinance() -> Any:
@@ -24,13 +29,130 @@ def _yfinance() -> Any:
     return yf
 
 
-def fetch_fx_spot(lookback_days: int = 30) -> dict[str, list[SpotBar]]:
-    """Download spot history for all pairs; returns bars sorted by date ascending."""
-    yf_map = spot_tickers_from_universe()
-    ticker_to_pair = {v: k for k, v in yf_map.items()}
-    tickers = list(yf_map.values())
+def _alphavantage_payload_suggests_stop(data: dict[str, Any]) -> bool:
+    """True when AV returns throttle / premium / error messaging (no usable series)."""
+
+    if "Error Message" in data:
+        return True
+    note = data.get("Note")
+    if isinstance(note, str) and note.strip():
+        return True
+    info = data.get("Information")
+    if isinstance(info, str) and info.strip():
+        return True
+    return False
+
+
+def _trim_lookback(bars: list[SpotBar], lookback_days: int) -> list[SpotBar]:
+    if not bars or lookback_days <= 0:
+        return bars
+    ordered = sorted(bars, key=lambda b: b.date)
+    last = ordered[-1].date
+    start = last - timedelta(days=lookback_days)
+    return [b for b in ordered if b.date >= start]
+
+
+def _parse_av_fx_daily(pair: str, data: dict[str, Any]) -> list[SpotBar]:
+    ts = data.get("Time Series FX (Daily)")
+    if not isinstance(ts, dict) or not ts:
+        return []
+    bars: list[SpotBar] = []
+    for day_s, row in ts.items():
+        if not isinstance(row, dict):
+            continue
+        try:
+            d = date.fromisoformat(str(day_s)[:10])
+            o = float(str(row.get("1. open", "nan")))
+            h = float(str(row.get("2. high", "nan")))
+            lo = float(str(row.get("3. low", "nan")))
+            c = float(str(row.get("4. close", "nan")))
+        except (TypeError, ValueError):
+            continue
+        if any(np.isnan(v) for v in (o, h, lo, c)):
+            continue
+        bars.append(
+            SpotBar(date=d, pair=pair, open=o, high=h, low=lo, close=c),
+        )
+    bars.sort(key=lambda b: b.date)
+    return bars
+
+
+def _alphavantage_fx_daily_request(
+    pair: str,
+    *,
+    api_key: str,
+    lookback_days: int,
+) -> tuple[list[SpotBar], bool]:
+    """GET FX_DAILY; returns (bars, stop_av_chain)."""
+
+    try:
+        from_sym, to_sym = alphavantage_fx_legs_from_pair(pair)
+    except ValueError as exc:
+        logger.warning("Alpha Vantage skip %s: %s", pair, exc)
+        return [], False
+
+    params = {
+        "function": "FX_DAILY",
+        "from_symbol": from_sym,
+        "to_symbol": to_sym,
+        "outputsize": "compact",
+        "apikey": api_key,
+    }
+    try:
+        resp = requests.get(_AV_BASE, params=params, timeout=_AV_REQUEST_TIMEOUT_S)
+        resp.raise_for_status()
+        raw: Any = resp.json()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Alpha Vantage HTTP/json failed pair=%s: %s", pair, exc)
+        return [], False
+
+    if not isinstance(raw, dict):
+        logger.warning("Alpha Vantage non-object JSON pair=%s", pair)
+        return [], False
+
+    if _alphavantage_payload_suggests_stop(raw) and "Time Series FX (Daily)" not in raw:
+        logger.warning(
+            "Alpha Vantage throttle/limit pair=%s; yfinance fallback for rest",
+            pair,
+        )
+        return [], True
+
+    bars = _parse_av_fx_daily(pair, raw)
+    bars = _trim_lookback(bars, lookback_days)
+    if bars:
+        logger.info(
+            "Alpha Vantage FX_DAILY pair=%s legs=%s/%s bars=%s",
+            pair,
+            from_sym,
+            to_sym,
+            len(bars),
+        )
+    return bars, False
+
+
+def fetch_fx_spot_alphavantage(pair: str, *, lookback_days: int = 30) -> list[SpotBar]:
+    """Fetch FX daily OHLC from Alpha Vantage ``FX_DAILY`` (uses ``ALPHAVANTAGE_API_KEY``)."""
+
+    api_key = (os.environ.get("ALPHAVANTAGE_API_KEY") or "").strip()
+    if not api_key:
+        return []
+    bars, _ = _alphavantage_fx_daily_request(pair, api_key=api_key, lookback_days=lookback_days)
+    return bars
+
+
+def _fetch_fx_spot_yfinance_batch(
+    yf_map: dict[str, str],
+    pairs_subset: list[str],
+    lookback_days: int,
+) -> dict[str, list[SpotBar]]:
+    """Batch yfinance download for a subset of pairs (Yahoo tickers from ``yf_map``)."""
+
+    out: dict[str, list[SpotBar]] = {p: [] for p in pairs_subset}
+    if not pairs_subset:
+        return out
+    tickers = [yf_map[p] for p in pairs_subset]
+    ticker_to_pair = {yf_map[p]: p for p in pairs_subset}
     period = f"{lookback_days}d"
-    out: dict[str, list[SpotBar]] = {p: [] for p in yf_map}
     try:
         raw = _yfinance().download(
             tickers,
@@ -76,13 +198,48 @@ def fetch_fx_spot(lookback_days: int = 30) -> dict[str, list[SpotBar]]:
                         high=float(h),
                         low=float(lo),
                         close=float(c),
-                    )
+                    ),
                 )
         except Exception as exc:  # noqa: BLE001
             logger.warning("parse failed for %s: %s", ticker, exc)
 
     for pair in out:
         out[pair].sort(key=lambda b: b.date)
+    return out
+
+
+def fetch_fx_spot(lookback_days: int = 30) -> dict[str, list[SpotBar]]:
+    """Download spot history for all pairs; Alpha Vantage first, then yfinance for gaps."""
+
+    yf_map = spot_tickers_from_universe()
+    out: dict[str, list[SpotBar]] = {p: [] for p in yf_map}
+    pairs = list(yf_map.keys())
+    api_key = (os.environ.get("ALPHAVANTAGE_API_KEY") or "").strip()
+
+    if api_key:
+        av_stop = False
+        for i, pair in enumerate(pairs):
+            if av_stop:
+                break
+            if i > 0:
+                time.sleep(12)
+            bars, stop = _alphavantage_fx_daily_request(
+                pair,
+                api_key=api_key,
+                lookback_days=lookback_days,
+            )
+            if bars:
+                out[pair] = bars
+            if stop:
+                av_stop = True
+
+    missing = [p for p in pairs if not out.get(p)]
+    if missing:
+        yf_part = _fetch_fx_spot_yfinance_batch(yf_map, missing, lookback_days)
+        for p in missing:
+            if yf_part.get(p):
+                out[p] = yf_part[p]
+
     return out
 
 
@@ -107,7 +264,7 @@ def _bars_from_yf_frame(raw: pd.DataFrame, pair: str, ticker: str) -> list[SpotB
                     high=float(h),
                     low=float(lo),
                     close=float(c),
-                )
+                ),
             )
     except Exception as exc:  # noqa: BLE001
         logger.warning("parse failed for %s (%s): %s", pair, ticker, exc)
@@ -168,7 +325,7 @@ async def fetch_fx_spot_async(
     lookback_days: int = 30,
     fetcher: AsyncFetcher | None = None,
 ) -> dict[str, list[SpotBar]]:
-    """Concurrent spot history per universe instrument; returns normalized in-memory bars only."""
+    """Spot per instrument: Alpha Vantage (sequential, rate-limited), then yfinance."""
 
     _ = session  # reserved for future HTTP-backed spot providers
     period = f"{max(lookback_days, 1)}d"
@@ -186,18 +343,44 @@ async def fetch_fx_spot_async(
             continue
         tasks.append((sym, spot_t))
 
-    t_batch = time.perf_counter()
-    results = await asyncio.gather(
-        *[_fetch_one_spot_async(pair, t, period, gate) for pair, t in tasks],
-        return_exceptions=True,
-    )
     out: dict[str, list[SpotBar]] = {}
-    for res in results:
-        if isinstance(res, BaseException):
-            logger.error("fetch_fx_spot_async task failed: %s", res)
-            continue
-        pair, bars = res
-        out[pair] = bars
+    api_key = (os.environ.get("ALPHAVANTAGE_API_KEY") or "").strip()
+
+    if api_key:
+        av_stop = False
+        for i, (pair, _yf_ticker) in enumerate(tasks):
+            if av_stop:
+                break
+            if i > 0:
+                await asyncio.sleep(12)
+
+            def _av_sync() -> tuple[list[SpotBar], bool]:
+                return _alphavantage_fx_daily_request(
+                    pair,
+                    api_key=api_key,
+                    lookback_days=lookback_days,
+                )
+
+            bars, stop = await asyncio.to_thread(_av_sync)
+            if bars:
+                out[pair] = bars
+            if stop:
+                av_stop = True
+
+    missing_tasks = [(p, t) for p, t in tasks if not out.get(p)]
+    t_batch = time.perf_counter()
+    if missing_tasks:
+        results = await asyncio.gather(
+            *[_fetch_one_spot_async(pair, t, period, gate) for pair, t in missing_tasks],
+            return_exceptions=True,
+        )
+        for res in results:
+            if isinstance(res, BaseException):
+                logger.error("fetch_fx_spot_async task failed: %s", res)
+                continue
+            pair, bars = res
+            out[pair] = bars
+
     logger.info(
         "fetch_fx_spot_async batch pairs=%s total_wall=%.3fs",
         len(out),

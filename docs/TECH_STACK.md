@@ -6,7 +6,7 @@ The **shipped Next.js app** (`web/`) and root **`wrangler.toml`** have been remo
 
 | Layer | Choice | Notes |
 |-------|--------|--------|
-| Pipeline | Python 3.11 | CI: `.github/workflows/pipeline_daily.yml`, `pipeline_weekly.yml` |
+| Pipeline | Python 3.11 | **Prefect Cloud** (`pipeline/prefect.yaml`); local: `pipeline/run_daily.sh` / `run_weekly.sh` |
 | Database | Supabase (Postgres + RLS) | Writes via `pipeline/src/db/writer.py` only |
 | Worker (optional deploy) | Cloudflare Worker | [`workers/site-entry.js`](../workers/site-entry.js) — **API-only** (`/api/health`, RSS, Yahoo proxy). No static HTML site. Add a minimal `wrangler.toml` with `main = "workers/site-entry.js"` if you deploy it. |
 | UX reference | `claude-design/` | Prototype JSX — not production |

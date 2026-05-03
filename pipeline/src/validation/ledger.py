@@ -18,6 +18,7 @@ _FORWARD_FIELDS = (
     "t3_hit",
     "t5_hit",
     "brier_score_t5",
+    "max_pain_bps",
 )
 
 HistoricalPriceBars = list[dict[str, Any]]
@@ -60,17 +61,45 @@ def _brier_t5(direction: str, t5_hit: int | None, confidence_raw: Any) -> float 
     return (y - p) ** 2
 
 
-def _price_index_map(historical_prices: HistoricalPriceBars) -> tuple[list[str], list[float]]:
+def _ohlc_index_map(
+    historical_prices: HistoricalPriceBars,
+) -> tuple[list[str], list[float], list[float], list[float]]:
+    """Align dates with close, high, low; missing OHLC limbs default to close."""
     dates: list[str] = []
     closes: list[float] = []
+    highs: list[float] = []
+    lows: list[float] = []
     for row in historical_prices:
         d = _normalize_date(row.get("date"))
         c = row.get("close")
         if c is None:
             continue
+        close_f = float(c)
+        h_raw, l_raw = row.get("high"), row.get("low")
+        high_f = float(h_raw) if h_raw is not None else close_f
+        low_f = float(l_raw) if l_raw is not None else close_f
         dates.append(d)
-        closes.append(float(c))
-    return dates, closes
+        closes.append(close_f)
+        highs.append(high_f)
+        lows.append(low_f)
+    return dates, closes, highs, lows
+
+
+def _adverse_bps_for_bar(
+    direction: str,
+    entry_close: float,
+    high: float,
+    low: float,
+) -> float | None:
+    """MAE in basis points vs entry for one session bar (non-negative)."""
+    d = direction.strip().upper()
+    if entry_close <= 0:
+        return None
+    if d == "BULLISH":
+        return max(0.0, (entry_close - low) / entry_close * 10_000.0)
+    if d == "BEARISH":
+        return max(0.0, (high - entry_close) / entry_close * 10_000.0)
+    return None
 
 
 def log_initial_signal(
@@ -114,7 +143,7 @@ def mark_to_market_ledger(
     as_of_date: date | None = None,
 ) -> None:
     """Resolve T+1 / T+3 / T+5 EOD closes and hits for open ledger rows (no lookahead)."""
-    dates, closes = _price_index_map(historical_prices)
+    dates, closes, highs, lows = _ohlc_index_map(historical_prices)
     if not dates:
         logger.warning("mark_to_market_ledger(%s): no price rows", pair)
         return
@@ -159,6 +188,30 @@ def mark_to_market_ledger(
                 merged[key_close] = close_v
             if hit_v is not None:
                 merged[key_hit] = hit_v
+
+        direction_u = direction.strip().upper()
+        mae_max: float | None = None
+        if direction_u in ("BULLISH", "BEARISH") and entry_close is not None:
+            for day_offset in range(1, 6):
+                j = idx + day_offset
+                if j >= len(dates):
+                    break
+                bar_d = date.fromisoformat(dates[j])
+                if bar_d > fence:
+                    break
+                adv = _adverse_bps_for_bar(
+                    direction_u,
+                    float(entry_close),
+                    highs[j],
+                    lows[j],
+                )
+                if adv is None:
+                    continue
+                mae_max = adv if mae_max is None else max(mae_max, adv)
+        if mae_max is not None:
+            merged["max_pain_bps"] = mae_max
+        elif direction_u == "NEUTRAL":
+            merged["max_pain_bps"] = None
 
         brier = _brier_t5(
             direction,
