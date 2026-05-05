@@ -7,7 +7,7 @@ export default function TerminalLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-[var(--color-void)] text-[var(--color-text)] overflow-hidden">
       <GlobalMacroPulse />
       <TerminalNav />
-      <main className="max-w-[1200px] mx-auto px-6 py-10 pt-[64px]">
+      <main id="main-content" className="max-w-[1152px] mx-auto px-6 py-10 pt-[64px]">
         {children}
       </main>
     </div>

@@ -393,7 +393,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
-      <main>
+      <main id="main-content">
         <Hero />
         <LiveSnapshot calls={calls} signals={signals} />
         <SignalArchitecture />

@@ -4,7 +4,7 @@ import { MemoSidebar } from '@/components/ui/memo-sidebar';
 
 export default function TerminalMemosPage() {
   return (
-    <main
+    <main id="main-content"
       className="min-h-screen bg-[#000000] text-white"
       style={{ marginTop: 'var(--terminal-nav-h, 76px)' }}
     >

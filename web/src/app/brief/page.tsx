@@ -14,7 +14,7 @@ export default async function BriefPage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
-      <main className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
+      <main id="main-content" className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
         {/* Header */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-start gap-8 mb-10 pb-6 border-b border-[var(--color-border)]">
           <div>

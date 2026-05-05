@@ -37,6 +37,12 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable} ${manifestoSerif.variable} antialiased`}
     >
       <body className="relative min-h-screen w-full bg-[var(--color-void)] text-[var(--color-text)] font-sans">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[var(--color-surface)] focus:border focus:border-[var(--color-border)] focus:text-[var(--color-text)] focus:font-sans focus:text-[13px]"
+        >
+          Skip to content
+        </a>
         <Providers>
           {children}
           <CommandPalette />

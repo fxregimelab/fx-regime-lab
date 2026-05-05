@@ -46,7 +46,7 @@ export default function MethodologyPage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
-      <main className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
+      <main id="main-content" className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
         <div className="reveal mb-10 pb-6 border-b border-[var(--color-border)]">
           <SectionLabel>Methodology</SectionLabel>
           <h1 className="font-sans font-semibold text-[32px] text-[var(--color-text)] tracking-tight">

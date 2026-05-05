@@ -7,9 +7,9 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase mb-4">
+    <span className="block font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase mb-4">
       {children}
-    </p>
+    </span>
   );
 }
 
@@ -19,7 +19,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
-      <main className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
+      <main id="main-content" className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
         {/* Header */}
         <div className="reveal grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-20 mb-24 pb-16 border-b border-[var(--color-border)]">
           <div>
@@ -248,9 +248,9 @@ export default function AboutPage() {
               </p>
               <div className="grid grid-cols-3 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
                 {[
-                  { label: "7D ACCURACY", value: "77.8%" },
-                  { label: "CALLS LOGGED", value: "27" },
-                  { label: "PAIRS COVERED", value: "3" },
+                  { label: "7D ACCURACY", value: "—", sub: "Live on Performance" },
+                  { label: "CALLS LOGGED", value: "—", sub: "Live on Performance" },
+                  { label: "PAIRS COVERED", value: "3", sub: "EUR/USD, USD/JPY, USD/INR" },
                 ].map((m) => (
                   <div key={m.label} className="bg-[var(--color-surface)] p-5">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase mb-2">
@@ -258,6 +258,9 @@ export default function AboutPage() {
                     </p>
                     <p className="font-mono text-[26px] font-medium text-[var(--color-text)] tracking-tight tabular-nums">
                       {m.value}
+                    </p>
+                    <p className="font-mono text-[9px] text-[var(--color-text-muted)] mt-1">
+                      {m.sub}
                     </p>
                   </div>
                 ))}

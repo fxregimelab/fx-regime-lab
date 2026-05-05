@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getValidationLog } from "@/lib/supabase/queries";
 import { PAIRS } from "@/lib/constants";
 import type { ValidationRow } from "@/lib/supabase/queries";
+import Link from "next/link";
 
 /* ─── helpers ───────────────────────────────────────────────────────────── */
 
@@ -241,8 +242,8 @@ export default async function PerformancePage() {
       hits: correct,
       trials: totalCalls,
     },
-    { horizon: "T+5" as const, label: "1 week", hits: 0, trials: 0 },
-    { horizon: "T+20" as const, label: "1 month", hits: 0, trials: 0 },
+    { horizon: "T+5" as const, label: "1 week", hits: 0, trials: 0, insufficient: true as const },
+    { horizon: "T+20" as const, label: "1 month", hits: 0, trials: 0, insufficient: true as const },
   ];
 
   // per-pair accuracy
@@ -340,7 +341,7 @@ export default async function PerformancePage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
-      <main className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
+      <main id="main-content" className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="mb-10 pb-6 border-b border-[var(--color-border)]">
           <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -468,10 +469,10 @@ export default async function PerformancePage() {
                   </div>
                   <div className="w-[100px] text-right">
                     <p className="font-mono text-[13px] tabular-nums text-[var(--color-text)]">
-                      {h.trials > 0 ? `${rate.toFixed(1)}%` : "—"}
+                      {(h as any).insufficient ? "—" : h.trials > 0 ? `${rate.toFixed(1)}%` : "—"}
                     </p>
                     <p className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">
-                      {h.trials > 0 ? `${h.hits}/${h.trials}` : "0/0"}
+                      {(h as any).insufficient ? "insufficient data" : h.trials > 0 ? `${h.hits}/${h.trials}` : "0/0"}
                     </p>
                   </div>
                 </div>
@@ -538,6 +539,7 @@ export default async function PerformancePage() {
                   ].map((h) => (
                     <th
                       key={h}
+                      scope="col"
                       className="px-4 py-2.5 text-left text-[9px] text-[var(--color-text-muted)] tracking-[0.15em] font-semibold uppercase whitespace-nowrap"
                     >
                       {h}
@@ -631,6 +633,7 @@ export default async function PerformancePage() {
                   ].map((h) => (
                     <th
                       key={h}
+                      scope="col"
                       className="px-4 py-2.5 text-left text-[9px] text-[var(--color-text-muted)] tracking-[0.15em] font-semibold uppercase whitespace-nowrap"
                     >
                       {h}

@@ -18,7 +18,7 @@ export default function AuditPage() {
   const sections = readFailed ? [] : raw.split(/\n(?=## )/);
 
   return (
-    <main className="min-h-screen bg-[#000000] text-[#c0c0c0]">
+    <main id="main-content" className="min-h-screen bg-[var(--color-void)] text-[var(--color-text-secondary)]">
       <header className="border-b border-solid border-[#222] bg-[#000000] px-4 py-4">
         <a
           href="/terminal"

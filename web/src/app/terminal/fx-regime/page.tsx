@@ -67,30 +67,30 @@ function MosaicCell({
   const lum =
     tier === 'apex'
       ? {
-          title: 'text-white',
-          spot: 'text-white',
-          regime: 'text-[#e0e0e0]',
-          meta: 'text-[#888]',
+          title: 'text-[var(--color-text)]',
+          spot: 'text-[var(--color-text)]',
+          regime: 'text-[var(--color-text-secondary)]',
+          meta: 'text-[var(--color-text-muted)]',
         }
       : tier === 'bench'
         ? {
-            title: 'text-[#e8e8e8]',
-            spot: 'text-[#eaeaea]',
-            regime: 'text-[#b8b8b8]',
-            meta: 'text-[#666]',
+            title: 'text-[var(--color-text-secondary)]',
+            spot: 'text-[var(--color-text-secondary)]',
+            regime: 'text-[var(--color-text-secondary)]',
+            meta: 'text-[var(--color-text-dim)]',
           }
         : {
-            title: 'text-[#9a9a9a]',
-            spot: 'text-[#a3a3a3]',
-            regime: 'text-[#8a8a8a]',
-            meta: 'text-[#555]',
+            title: 'text-[var(--color-text-muted)]',
+            spot: 'text-[var(--color-text-muted)]',
+            regime: 'text-[var(--color-text-muted)]',
+            meta: 'text-[var(--color-text-dim)]',
           };
 
   if (!card) {
     return (
       <div
         className={`relative flex min-h-[120px] flex-1 flex-col justify-center border-0 border-t-[0.5px] border-t-white/[0.06] border-l-[0.5px] border-l-white/[0.03] px-3 py-3 transition-colors duration-200 ${
-          corrGlow ? 'bg-emerald-500/[0.06]' : 'bg-[#080808]'
+          corrGlow ? 'bg-[var(--color-up)]/[0.06]' : 'bg-[var(--color-void)]'
         }`}
       >
         <p className={`font-mono text-[9px] tracking-widest ${lum.meta}`}>RANK · EMPTY</p>
@@ -112,8 +112,8 @@ function MosaicCell({
       onClick={() => onOpen(p.urlSlug)}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
-      className={`flex min-h-[120px] flex-1 flex-col overflow-hidden border-0 border-l-[0.5px] border-l-white/[0.03] text-left shadow-none transition-all duration-200 hover:bg-[#000000] will-change-transform omega-haptic ${
-        corrGlow ? 'bg-emerald-500/[0.06]' : 'bg-[#080808]'
+      className={`flex min-h-[120px] flex-1 flex-col overflow-hidden border-0 border-l-[0.5px] border-l-white/[0.03] text-left shadow-none transition-all duration-200 hover:bg-[var(--color-surface)] will-change-transform omega-haptic ${
+        corrGlow ? 'bg-[var(--color-up)]/[0.06]' : 'bg-[var(--color-void)]'
       }`}
     >
       <div className="h-[2px] w-full shrink-0" style={{ backgroundColor: p.pairColor }} aria-hidden />
@@ -128,7 +128,7 @@ function MosaicCell({
         <div className="min-h-[16px]">
           {chg != null && (
             <span
-              className={`font-mono text-[10px] font-bold tabular-nums ${chg >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}
+              className={`font-mono text-[10px] font-bold tabular-nums ${chg >= 0 ? 'text-[var(--color-up)]' : 'text-[var(--color-down)]'}`}
             >
               {chg >= 0 ? '+' : ''}
               {chg.toFixed(2)}%
@@ -158,7 +158,7 @@ function MosaicCell({
         </div>
       </div>
       {corrLockedWhisper ? (
-        <div className="shrink-0 border-t-[0.5px] border-t-[#111] px-2 py-1.5">
+        <div className="shrink-0 border-t-[0.5px] border-t-[var(--color-border)] px-2 py-1.5">
           <GhostResolve
             value={corrLockedWhisper}
             resolveKey={corrLockedWhisper}
@@ -281,7 +281,7 @@ export default function FxRegimePairSelectionPage() {
   const rank1Block = rank1 ? (
     <div
       className={`flex min-h-0 flex-1 flex-col overflow-hidden border-0 border-t-[0.5px] border-t-white/[0.08] border-l-[0.5px] border-l-white/[0.03] transition-colors duration-200 ${
-        cellGlow(rank1.pair) ? 'bg-emerald-500/[0.06]' : 'bg-[#080808]'
+        cellGlow(rank1.pair) ? 'bg-[var(--color-up)]/[0.06]' : 'bg-[var(--color-void)]'
       }`}
       onMouseEnter={() => setHoveredLabel(rank1.pair)}
       onMouseLeave={() => setHoveredLabel(null)}
@@ -319,7 +319,7 @@ export default function FxRegimePairSelectionPage() {
       <button
         type="button"
         onClick={() => openPair(pairMeta(rank1.pair).urlSlug)}
-        className="border-0 border-t-[0.5px] border-t-[#111] bg-[#080808] px-3 py-2 font-mono text-[9px] tracking-widest text-[#888] shadow-none hover:bg-[#000000] hover:text-[#ccc]"
+        className="border-0 border-t-[0.5px] border-t-[var(--color-border)] bg-[var(--color-void)] px-3 py-2 font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] shadow-none hover:bg-[var(--color-surface)] hover:text-[var(--color-text-secondary)]"
       >
         [ OPEN DESK → ]
       </button>
@@ -342,7 +342,7 @@ export default function FxRegimePairSelectionPage() {
   const macroCell = <MacroDriftEngine className="min-h-[140px] h-full" />;
 
   return (
-    <div className="h-screen max-h-screen overflow-hidden bg-[#000000] font-sans text-[#e8e8e8]">
+    <div className="h-screen max-h-screen overflow-hidden bg-[var(--color-void)] font-sans text-[var(--color-text-secondary)]">
       <motion.div
         variants={container}
         initial="hidden"
@@ -352,15 +352,15 @@ export default function FxRegimePairSelectionPage() {
       >
         <div className="mb-6 flex shrink-0 flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <p className="mb-1.5 font-mono text-[9px] tracking-widest text-[#666]">FX REGIME · MOSAIC</p>
-            <h1 className="font-mono text-lg font-bold tracking-tight text-white uppercase">G10 Systemic Pulse</h1>
-            <p className="mt-1 max-w-md font-mono text-[10px] text-[#555]">
+            <p className="mb-1.5 font-mono text-[9px] tracking-widest text-[var(--color-text-dim)]">FX REGIME · MOSAIC</p>
+            <h1 className="font-mono text-lg font-bold tracking-tight text-[var(--color-text)] uppercase">G10 Systemic Pulse</h1>
+            <p className="mt-1 max-w-md font-mono text-[10px] text-[var(--color-text-dim)]">
               3×3 lattice: ranks 1–7 + correlation ingress + macro drift.
             </p>
           </div>
           <Link
             href="/terminal"
-            className="shrink-0 font-mono text-[10px] text-[#888] transition-colors hover:text-[#ccc]"
+            className="shrink-0 font-mono text-[10px] text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-secondary)]"
           >
             ← Terminal overview
           </Link>
@@ -372,7 +372,7 @@ export default function FxRegimePairSelectionPage() {
               {Array.from({ length: 9 }).map((_, i) => (
                 <div
                   key={i}
-                  className="animate-pulse border-0 border-t-[0.5px] border-t-white/[0.06] border-l-[0.5px] border-l-white/[0.03] bg-[#080808]"
+                  className="animate-pulse border-0 border-t-[0.5px] border-t-white/[0.06] border-l-[0.5px] border-l-white/[0.03] bg-[var(--color-void)]"
                 />
               ))}
             </div>
@@ -416,7 +416,7 @@ export default function FxRegimePairSelectionPage() {
         </div>
 
         {err ? (
-          <p className="mt-4 shrink-0 font-mono text-[10px] text-[#ef4444]">
+          <p className="mt-4 shrink-0 font-mono text-[10px] text-[var(--color-down)]">
             [ DATA_FLOW_INTERRUPTED: SYSTEMIC_SYNC_FAILED ]
           </p>
         ) : null}

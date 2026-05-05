@@ -4,7 +4,7 @@ import { ConvexityRadarPageContent } from '@/components/pages/convexity-radar-pa
 
 export default function TerminalCalendarPage() {
   return (
-    <main
+    <main id="main-content"
       className="min-h-screen bg-[#000000] text-white"
       style={{ marginTop: 'var(--terminal-nav-h, 76px)' }}
     >

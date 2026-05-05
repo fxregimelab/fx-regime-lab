@@ -4,7 +4,7 @@ import { PerformanceLedgerPageContent } from '@/components/pages/performance-led
 
 export default function TerminalPerformancePage() {
   return (
-    <main
+    <main id="main-content"
       className="min-h-screen bg-[#000000] text-white rounded-none"
       style={{ marginTop: 'var(--terminal-nav-h, 76px)' }}
     >

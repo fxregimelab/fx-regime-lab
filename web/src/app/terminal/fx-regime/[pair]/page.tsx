@@ -110,10 +110,10 @@ function arrowColor(arrow: string): string {
 }
 
 const SIGNAL_ARCH = [
-  { label: "RATE", weight: 40, color: "color-mix(in srgb, var(--color-up) 35%, var(--color-surface))" },
-  { label: "COT", weight: 30, color: "color-mix(in srgb, var(--color-accent) 35%, var(--color-surface))" },
-  { label: "VOL", weight: 20, color: "color-mix(in srgb, var(--color-down) 35%, var(--color-surface))" },
-  { label: "OI", weight: 10, color: "color-mix(in srgb, var(--color-text-secondary) 35%, var(--color-surface))" },
+  { label: "RATE", weight: 40 },
+  { label: "COT", weight: 30 },
+  { label: "VOL", weight: 20 },
+  { label: "OI", weight: 10 },
 ];
 
 export default async function PairDeskPage({ params }: PairDeskPageProps) {
@@ -171,7 +171,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
   return (
     <div>
       {/* Top strip: spot + regime + confidence + composite */}
-      <div className="grid gap-px mb-px bg-[var(--color-border)]" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-px bg-[var(--color-border)]">
         <div className="bg-[var(--color-elevated)] px-5 py-5">
           <p className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.15em] mb-2">
             SPOT PRICE
@@ -312,7 +312,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               key={s.label}
               style={{
                 width: `${s.weight}%`,
-                background: s.color,
+                background: `color-mix(in srgb, ${pairMeta.pairColor} 80%, transparent)`,
               }}
               title={`${s.label} ~${s.weight}%`}
             />
@@ -323,7 +323,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             <div key={s.label} className="flex items-center gap-1.5">
               <div
                 className="w-2 h-2"
-                style={{ background: s.color }}
+                style={{ background: `color-mix(in srgb, ${pairMeta.pairColor} 80%, transparent)` }}
               />
               <span className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-wider">
                 {s.label} {s.weight}%
@@ -416,7 +416,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           </span>
         )}
         <span className="ml-auto font-mono text-[9px] text-[var(--color-text-dim)]">
-          {new Date().toISOString().slice(0, 10)}
+          {call?.date ?? sig?.date ?? "—"}
         </span>
       </div>
 
@@ -432,16 +432,16 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           <table className="w-full border-collapse font-mono">
             <thead>
               <tr className="border-b border-[var(--color-border-subtle)] bg-[var(--color-void)]">
-                <th className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                <th scope="col" className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
                   SIGNAL
                 </th>
-                <th className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                <th scope="col" className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
                   VALUE
                 </th>
-                <th className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                <th scope="col" className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
                   SCORE
                 </th>
-                <th className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                <th scope="col" className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
                   TREND
                 </th>
               </tr>
@@ -538,7 +538,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             <Sparkline
               data={confidenceHistory.slice(-14)}
               width={260}
-              height={50}
+              height={70}
               color={pairMeta.pairColor}
               fillOpacity={0.15}
             />
@@ -567,7 +567,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                     className="group relative"
                   >
                     <div
-                      className="w-[7px] h-[7px]"
+                      className="w-[9px] h-[9px]"
                       style={{
                         background: regimeDotColor(h.regime),
                         opacity: 0.85,

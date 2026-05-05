@@ -5,11 +5,17 @@ import React from "react";
 
 export function Footer() {
   const [email, setEmail] = React.useState("");
+  const [status, setStatus] = React.useState<"idle" | "success" | "error">("idle");
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: wire to newsletter API
+    if (!email) return;
+    // Redirect to Substack subscribe page with pre-filled email
+    const substackUrl = `https://fxregimelab.substack.com/subscribe?email=${encodeURIComponent(email)}`;
+    window.open(substackUrl, "_blank", "noopener,noreferrer");
+    setStatus("success");
     setEmail("");
+    setTimeout(() => setStatus("idle"), 3000);
   };
 
   return (
@@ -31,7 +37,7 @@ export function Footer() {
                 <Link
                   key={href}
                   href={href}
-                  className="font-sans text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors duration-300"
+                  className="font-sans text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors duration-300 py-0.5"
                 >
                   {label}
                 </Link>
@@ -53,7 +59,7 @@ export function Footer() {
                 <Link
                   key={href}
                   href={href}
-                  className="font-sans text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors duration-300"
+                  className="font-sans text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors duration-300 py-0.5"
                 >
                   {label}
                 </Link>
@@ -71,7 +77,8 @@ export function Footer() {
                 href="https://fxregimelab.substack.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-sans text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors duration-300"
+                aria-label="Substack (opens in new tab)"
+                className="font-sans text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors duration-300 py-0.5"
               >
                 Substack
               </a>
@@ -92,6 +99,7 @@ export function Footer() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
+                  aria-describedby={status !== "idle" ? "subscribe-status" : undefined}
                   className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2 font-sans text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] outline-none focus:border-[var(--color-accent)] transition-colors duration-300"
                 />
                 <button
@@ -101,6 +109,11 @@ export function Footer() {
                   Subscribe
                 </button>
               </div>
+              {status === "success" && (
+                <p id="subscribe-status" className="font-mono text-[10px] text-[var(--color-up)]">
+                  Opening Substack…
+                </p>
+              )}
             </form>
           </div>
         </div>
