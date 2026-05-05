@@ -22,6 +22,33 @@
   /* Institutional terminal: muted bull / bear (replaces neon greens & reds) */
   --color-bullish: #4ade80;
   --color-bearish: #f87171;
+
+  /* Shell / Terminal split design tokens */
+  --color-shell-bg: #ffffff;
+  --color-shell-text: #0a0a0a;
+  --color-shell-secondary: #525252;
+  --color-shell-muted: #a0a0a0;
+  --color-shell-border: #e5e5e5;
+
+  --color-terminal-bg: #080808;
+  --color-terminal-surface: #0c0c0c;
+  --color-terminal-elevated: #0d0d0d;
+  --color-terminal-border: #1e1e1e;
+  --color-terminal-border-subtle: #141414;
+  --color-terminal-text: #e8e8e8;
+  --color-terminal-muted: #888888;
+  --color-terminal-dim: #555555;
+
+  --color-pair-eurusd: #4BA3E3;
+  --color-pair-usdjpy: #F5923A;
+  --color-pair-usdinr: #D94030;
+  --color-accent: #F5923A;
+
+  --color-up: #4ade80;
+  --color-down: #f87171;
+  --color-up-shell: #16a34a;
+  --color-down-shell: #dc2626;
+  --color-warn: #fbbf24;
 }
 
 @layer utilities {
