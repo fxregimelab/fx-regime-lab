@@ -106,7 +106,7 @@ export default async function BriefPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {PAIRS.map((p) => {
                 const regimeKey = `${p.urlSlug}_regime` as const;
-                const regime = (brief as Record<string, string>)[regimeKey];
+                const regime = (brief as unknown as Record<string, string>)[regimeKey];
                 return (
                   <div
                     key={p.label}
