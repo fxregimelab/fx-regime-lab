@@ -23,3 +23,4 @@ supabase/.temp/
 
 # Legacy archive — tracked separately, not needed in production
 pipeline/src/legacy/
+.vercel
