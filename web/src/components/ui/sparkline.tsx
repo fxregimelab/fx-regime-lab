@@ -1,15 +1,64 @@
-import React from 'react';
+"use client";
 
-export function Sparkline({ values, color = '#4BA3E3', height = 24, width = 60 }: { values: number[], color?: string, height?: number, width?: number }) {
-  if (!values || values.length < 2) return <div style={{ height, width }} />;
-  const mn = Math.min(...values), mx = Math.max(...values);
-  const range = mx - mn || 0.01;
-  const n = values.length;
-  const pts = values.map((v, i) => [i / (n - 1) * width, (height - 2) - ((v - mn) / range) * (height - 4)]);
-  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+interface SparklineProps {
+  data: number[];
+  width?: number;
+  height?: number;
+  color?: string;
+  fillOpacity?: number;
+}
+
+export function Sparkline({
+  data,
+  width = 120,
+  height = 40,
+  color = "var(--color-stone-500)",
+  fillOpacity = 0.1,
+}: SparklineProps) {
+  if (data.length < 2) return <div style={{ width, height }} />;
+
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const padding = 2;
+
+  const points = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * (width - padding * 2) + padding;
+    const y = height - padding - ((v - min) / range) * (height - padding * 2);
+    return `${x},${y}`;
+  });
+
+  const areaPath =
+    points.length > 0
+      ? `M${points[0]} L${points.join(" L")} L${width - padding},${height - padding} L${padding},${height - padding} Z`
+      : "";
+
+  const linePath =
+    points.length > 0 ? `M${points[0]} L${points.join(" L")}` : "";
+
+  const isUp = data[data.length - 1] >= data[0];
+  const strokeColor = color === "var(--color-stone-500)"
+    ? isUp
+      ? "#7a9e7a"
+      : "#b87a7a"
+    : color;
+
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="block overflow-visible">
-      <path d={line} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className="overflow-visible"
+    >
+      <path d={areaPath} fill={strokeColor} opacity={fillOpacity} />
+      <path
+        d={linePath}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

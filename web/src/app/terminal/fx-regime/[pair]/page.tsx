@@ -6,6 +6,7 @@ import {
   getHistoricalRegimeCalls,
 } from "@/lib/supabase/queries";
 import { RegimeCard } from "@/components/regime/RegimeCard";
+import { Sparkline } from "@/components/ui/sparkline";
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
 import { fmt2, fmtInt, fmtPct } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
@@ -52,24 +53,23 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           : null
       : null;
 
+  const confidenceHistory = history.map((h) => h.confidence).reverse();
+
   return (
     <div>
       {/* Top strip: spot + regime + confidence + composite */}
-      <div
-        className="grid gap-0.5 mb-0.5 border border-terminal-border"
-        style={{ gridTemplateColumns: "repeat(4, 1fr)" }}
-      >
-        <div className="bg-[#0d0d0d] px-5 py-4 border-r border-[#1a1a1a]">
-          <p className="font-mono text-[9px] text-terminal-dim tracking-[0.12em] mb-1.5">
+      <div className="grid gap-px mb-px bg-terminal-border" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+        <div className="bg-terminal-elevated px-5 py-5">
+          <p className="font-mono text-[9px] text-terminal-dim tracking-[0.15em] mb-2">
             SPOT PRICE
           </p>
-          <p className="font-mono text-[30px] font-bold text-white tracking-tight leading-none">
+          <p className="font-mono text-[28px] font-medium text-white tracking-tight leading-none tabular-nums">
             {sig?.spot?.toFixed(pairMeta.label === "USDJPY" ? 2 : 4) ?? "—"}
           </p>
           {chg != null && (
             <p
-              className={`font-mono text-[11px] font-bold mt-1.5 ${
-                chg >= 0 ? "text-bullish" : "text-bearish"
+              className={`font-mono text-[11px] font-medium mt-2 ${
+                chg >= 0 ? "text-[#7a9e7a]" : "text-[#b87a7a]"
               }`}
             >
               {chg >= 0 ? "+" : ""}
@@ -77,58 +77,58 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             </p>
           )}
         </div>
-        <div className="bg-[#0d0d0d] px-5 py-4 border-r border-[#1a1a1a]">
-          <p className="font-mono text-[9px] text-terminal-dim tracking-[0.12em] mb-1.5">
+        <div className="bg-terminal-elevated px-5 py-5">
+          <p className="font-mono text-[9px] text-terminal-dim tracking-[0.15em] mb-2">
             REGIME
           </p>
           <p
             className={`font-mono text-[13px] font-bold tracking-wider leading-snug ${
-              regimeAccent ? "text-brand-accent" : "text-white"
+              regimeAccent ? "text-terminal-text" : "text-[#a0a0a0]"
             }`}
           >
             {call?.regime ?? "—"}
           </p>
-          <p className="font-mono text-[9px] text-terminal-muted mt-2">
-            {call?.primary_driver?.slice(0, 45)}…
+          <p className="font-mono text-[9px] text-terminal-muted mt-2 truncate">
+            {call?.primary_driver?.slice(0, 50)}…
           </p>
         </div>
-        <div className="bg-[#0d0d0d] px-5 py-4 border-r border-[#1a1a1a]">
-          <p className="font-mono text-[9px] text-terminal-dim tracking-[0.12em] mb-1.5">
+        <div className="bg-terminal-elevated px-5 py-5">
+          <p className="font-mono text-[9px] text-terminal-dim tracking-[0.15em] mb-2">
             CONFIDENCE
           </p>
-          <p className="font-mono text-[36px] font-bold tracking-tight leading-none" style={{ color: pairMeta.pairColor }}>
+          <p className="font-mono text-[32px] font-medium tracking-tight leading-none" style={{ color: pairMeta.pairColor }}>
             {call ? Math.round(call.confidence * 100) : "—"}
-            <span className="text-base text-[#444] font-normal">
+            <span className="text-base text-terminal-dim font-normal">
               {call ? "%" : ""}
             </span>
           </p>
-          <div className="mt-2">
+          <div className="mt-3">
             <ConfidenceBar value={call?.confidence} tone="dark" color={pairMeta.pairColor} />
           </div>
         </div>
-        <div className="bg-[#0d0d0d] px-5 py-4">
-          <p className="font-mono text-[9px] text-terminal-dim tracking-[0.12em] mb-1.5">
-            COMPOSITE SCORE
+        <div className="bg-terminal-elevated px-5 py-5">
+          <p className="font-mono text-[9px] text-terminal-dim tracking-[0.15em] mb-2">
+            COMPOSITE
           </p>
           <p
-            className={`font-mono text-[36px] font-bold tracking-tight leading-none ${
-              composite >= 0 ? "text-bullish" : "text-bearish"
+            className={`font-mono text-[32px] font-medium tracking-tight leading-none ${
+              composite >= 0 ? "text-[#7a9e7a]" : "text-[#b87a7a]"
             }`}
           >
             {composite >= 0 ? "+" : ""}
             {fmt2(call?.signal_composite)}
           </p>
-          <div className="mt-2 bg-[#1a1a1a] h-[3px] relative">
-            <div className="absolute left-1/2 top-[-1px] w-px h-[5px] bg-[#333]" />
+          <div className="mt-3 bg-[#1a1a1a] h-[2px] relative">
+            <div className="absolute left-1/2 top-[-1px] w-px h-[4px] bg-[#333]" />
             <div
               className="h-full"
               style={{
                 width: `${compPct}%`,
-                background: composite >= 0 ? "#4ade80" : "#f87171",
+                background: composite >= 0 ? "#7a9e7a" : "#b87a7a",
               }}
             />
           </div>
-          <div className="flex justify-between mt-1">
+          <div className="flex justify-between mt-1.5">
             <span className="font-mono text-[8px] text-[#333]">BEAR -2</span>
             <span className="font-mono text-[8px] text-[#333]">BULL +2</span>
           </div>
@@ -136,8 +136,8 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
       </div>
 
       {/* Signal chips */}
-      <div className="bg-[#0c0c0c] border border-[#1a1a1a] border-t-0 px-5 py-2.5 flex gap-2 items-center mb-4 flex-wrap">
-        <span className="font-mono text-[9px] text-[#666] tracking-[0.1em] mr-1">
+      <div className="bg-terminal-surface border border-terminal-border px-5 py-3 flex gap-2 items-center mb-4 flex-wrap">
+        <span className="font-mono text-[9px] text-terminal-dim tracking-[0.1em] mr-1">
           SIGNALS:
         </span>
         {[
@@ -145,10 +145,10 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             "RATE",
             call?.rate_signal,
             call?.rate_signal === "BULLISH"
-              ? "#4ade80"
+              ? "#7a9e7a"
               : call?.rate_signal === "BEARISH"
-                ? "#f87171"
-                : "#888",
+                ? "#b87a7a"
+                : "#666",
           ],
           [
             "COT",
@@ -161,11 +161,11 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               : null,
             cotPct != null
               ? cotPct > 60
-                ? "#4ade80"
+                ? "#7a9e7a"
                 : cotPct < 40
-                  ? "#f87171"
-                  : "#888"
-              : "#888",
+                  ? "#b87a7a"
+                  : "#666"
+              : "#666",
           ],
           [
             "VOL",
@@ -175,8 +175,8 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                 : "NORMAL"
               : null,
             sig?.realized_vol_20d != null && sig.realized_vol_20d > 8
-              ? "#fbbf24"
-              : "#4ade80",
+              ? "#a8947a"
+              : "#7a9e7a",
           ],
           [
             "IV",
@@ -187,19 +187,19 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               : null,
             sig?.implied_vol_30d != null &&
             sig.implied_vol_30d > (sig.realized_vol_20d ?? 0)
-              ? "#fbbf24"
-              : "#888",
+              ? "#a8947a"
+              : "#666",
           ],
         ]
           .filter(([, dir]) => dir)
           .map(([lbl, dir, color]) => (
             <span
               key={lbl}
-              className="font-mono text-[10px] px-2.5 py-1 font-bold tracking-wider"
+              className="font-mono text-[10px] px-2.5 py-1 font-medium tracking-wider"
               style={{
                 color: color as string,
-                border: `1px solid ${(color as string)}30`,
-                background: `${(color as string)}10`,
+                border: `1px solid ${(color as string)}25`,
+                background: `${(color as string)}08`,
               }}
             >
               {lbl}: {dir}
@@ -207,11 +207,11 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           ))}
         {crowding && (
           <span
-            className="font-mono text-[10px] px-2.5 py-1 font-bold"
+            className="font-mono text-[10px] px-2.5 py-1 font-medium"
             style={{
-              color: "#fbbf24",
-              border: "1px solid #fbbf2430",
-              background: "#fbbf2410",
+              color: "#a8947a",
+              border: "1px solid #a8947a25",
+              background: "#a8947a08",
             }}
           >
             COT: {crowding}
@@ -223,11 +223,11 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
       </div>
 
       {/* Main grid: signals table + sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-0.5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-px bg-terminal-border">
         {/* Left panel */}
-        <div className="border border-[#1a1a1a]">
-          <div className="px-4 py-3 border-b border-[#1a1a1a] bg-[#0c0c0c]">
-            <span className="font-mono text-[9px] text-[#777] tracking-[0.12em]">
+        <div className="bg-terminal-surface border border-terminal-border">
+          <div className="px-4 py-3 border-b border-terminal-border-subtle bg-terminal-surface">
+            <span className="font-mono text-[9px] text-terminal-muted tracking-[0.15em]">
               SIGNALS TABLE
             </span>
           </div>
@@ -244,13 +244,13 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               ].map(([label, value], i) => (
                 <tr
                   key={label}
-                  className="border-b border-[#0f0f0f]"
+                  className="border-b border-terminal-border-subtle"
                   style={{
                     background: i % 2 === 0 ? "#0a0a0a" : "#0c0c0c",
                   }}
                 >
-                  <td className="px-4 py-3 text-[11px] text-[#aaa]">{label}</td>
-                  <td className="px-4 py-3 text-[13px] text-white font-bold text-left">
+                  <td className="px-4 py-3 text-[11px] text-terminal-muted">{label}</td>
+                  <td className="px-4 py-3 text-[13px] text-white font-medium text-left tabular-nums">
                     {value}
                   </td>
                 </tr>
@@ -258,8 +258,8 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             </tbody>
           </table>
           {call?.primary_driver && (
-            <div className="px-4 py-3 border-t border-[#141414] bg-[#0c0c0c]">
-              <span className="font-mono text-[9px] text-[#777] tracking-[0.1em] mr-3">
+            <div className="px-4 py-3 border-t border-terminal-border-subtle bg-terminal-surface">
+              <span className="font-mono text-[9px] text-terminal-muted tracking-[0.1em] mr-3">
                 PRIMARY DRIVER
               </span>
               <span className="font-mono text-[11px] text-[#bbb]">
@@ -270,13 +270,13 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
         </div>
 
         {/* Right sidebar */}
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-px bg-terminal-border">
           {/* Other Desks */}
-          <div className="border border-[#1a1a1a] bg-[#0c0c0c] p-3">
-            <p className="font-mono text-[9px] text-[#777] tracking-[0.12em] mb-2.5">
+          <div className="bg-terminal-surface p-4 border border-terminal-border">
+            <p className="font-mono text-[9px] text-terminal-muted tracking-[0.15em] mb-3">
               OTHER DESKS
             </p>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-px">
               {PAIRS.filter((p) => p.label !== pairMeta.label).map((p) => (
                 <RegimeCard
                   key={p.label}
@@ -288,24 +288,24 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             </div>
           </div>
 
-          {/* History mini-table */}
-          <div className="border border-[#1a1a1a] bg-[#0c0c0c] p-3">
-            <p className="font-mono text-[9px] text-[#777] tracking-[0.12em] mb-2.5">
+          {/* Regime History */}
+          <div className="bg-terminal-surface p-4 border border-terminal-border">
+            <p className="font-mono text-[9px] text-terminal-muted tracking-[0.15em] mb-3">
               REGIME HISTORY (7D)
             </p>
             {history.slice(0, 7).map((h, i) => (
               <div
                 key={i}
-                className="flex justify-between items-center py-1.5 border-b border-[#111] last:border-b-0"
+                className="flex justify-between items-center py-1.5 border-b border-terminal-border-subtle last:border-b-0"
               >
-                <span className="font-mono text-[10px] text-[#999]">
+                <span className="font-mono text-[10px] text-terminal-muted">
                   {h.date}
                 </span>
-                <span className="font-mono text-[10px] text-[#e0e0e0] font-bold">
+                <span className="font-mono text-[10px] text-terminal-text font-medium">
                   {h.regime}
                 </span>
                 <span
-                  className="font-mono text-[10px] font-bold"
+                  className="font-mono text-[10px] font-medium"
                   style={{ color: pairMeta.pairColor }}
                 >
                   {Math.round(h.confidence * 100)}%
@@ -314,27 +314,25 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             ))}
           </div>
 
-          {/* Signal sparkline placeholder */}
-          <div className="border border-[#1a1a1a] bg-[#0c0c0c] p-3">
-            <p className="font-mono text-[9px] text-[#777] tracking-[0.12em] mb-2">
-              CONFIDENCE TREND
+          {/* Confidence Trend Sparkline */}
+          <div className="bg-terminal-surface p-4 border border-terminal-border">
+            <p className="font-mono text-[9px] text-terminal-muted tracking-[0.15em] mb-3">
+              CONFIDENCE TREND (14D)
             </p>
-            <div className="h-16 flex items-end gap-1">
-              {history
-                .slice(0, 14)
-                .reverse()
-                .map((h, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 rounded-sm"
-                    style={{
-                      height: `${h.confidence * 100}%`,
-                      background: pairMeta.pairColor,
-                      opacity: 0.7,
-                      minHeight: "4px",
-                    }}
-                  />
-                ))}
+            <Sparkline
+              data={confidenceHistory.slice(-14)}
+              width={260}
+              height={50}
+              color={pairMeta.pairColor}
+              fillOpacity={0.15}
+            />
+            <div className="flex justify-between mt-2">
+              <span className="font-mono text-[9px] text-terminal-dim">
+                {history.slice(-14)[0]?.date ?? ""}
+              </span>
+              <span className="font-mono text-[9px] text-terminal-dim">
+                {history[0]?.date ?? ""}
+              </span>
             </div>
           </div>
         </div>
