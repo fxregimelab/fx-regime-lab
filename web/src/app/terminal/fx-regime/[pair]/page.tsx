@@ -16,6 +16,106 @@ interface PairDeskPageProps {
   params: Promise<{ pair: string }>;
 }
 
+function getBias(call: LatestRegimeCall | undefined, composite: number): string {
+  if (call?.rate_signal) return call.rate_signal;
+  if (composite > 0.3) return "BULLISH";
+  if (composite < -0.3) return "BEARISH";
+  return "NEUTRAL";
+}
+
+function getInvalidation(
+  bias: string,
+  spot: number | null | undefined
+): string {
+  if (!spot || bias === "NEUTRAL") return "—";
+  const buffer = spot * 0.005;
+  const inv = bias === "BULLISH" ? spot - buffer : spot + buffer;
+  return inv.toFixed(4);
+}
+
+function getWatchlist(sig: LatestSignal | undefined, call: LatestRegimeCall | undefined): string[] {
+  const items: string[] = [];
+  if (sig?.realized_vol_20d != null && sig.realized_vol_20d > 8) {
+    items.push("RVOL ELEVATED");
+  }
+  if (sig?.implied_vol_30d != null && sig.realized_vol_20d != null && sig.implied_vol_30d > sig.realized_vol_20d) {
+    items.push("IV PREM");
+  }
+  if (sig?.cot_percentile != null && (sig.cot_percentile > 85 || sig.cot_percentile < 15)) {
+    items.push("COT EXTREME");
+  }
+  if (call?.rate_signal && call.rate_signal !== "NEUTRAL") {
+    items.push("RATE DIVERGENCE");
+  }
+  if (items.length === 0) items.push("NO MAJOR ALERTS");
+  return items;
+}
+
+function regimeDotColor(regime: string): string {
+  if (regime.includes("STRENGTH")) return "var(--color-up)";
+  if (regime.includes("WEAKNESS")) return "var(--color-down)";
+  if (regime.includes("PRESSURE")) return "var(--color-down)";
+  if (regime === "VOL_EXPANDING") return "var(--color-text-secondary)";
+  return "var(--color-text-muted)";
+}
+
+function pseudoZScore(
+  label: string,
+  value: number | null | undefined,
+  sig: LatestSignal | undefined
+): string {
+  if (value == null) return "—";
+  if (label === "Rate differential 2Y") {
+    return (value / 0.75).toFixed(2);
+  }
+  if (label === "COT net position pctile") {
+    return ((value - 50) / 16.67).toFixed(2);
+  }
+  if (label === "Signal composite") {
+    return value.toFixed(2);
+  }
+  if (label === "Realized vol 20d" && sig?.realized_vol_5d != null) {
+    const z = ((value - sig.realized_vol_5d) / Math.max(value * 0.3, 0.5));
+    return z.toFixed(2);
+  }
+  return "—";
+}
+
+function trendArrow(
+  label: string,
+  value: number | null | undefined,
+  sig: LatestSignal | undefined
+): string {
+  if (value == null) return "—";
+  if (label === "Rate differential 2Y") return value > 0 ? "↑" : value < 0 ? "↓" : "→";
+  if (label === "COT net position pctile") {
+    return value > 60 ? "↑" : value < 40 ? "↓" : "→";
+  }
+  if (label === "Signal composite") {
+    return value > 0.3 ? "↑" : value < -0.3 ? "↓" : "→";
+  }
+  if (label === "Realized vol 20d" && sig?.realized_vol_5d != null) {
+    return value > sig.realized_vol_5d ? "↑" : value < sig.realized_vol_5d ? "↓" : "→";
+  }
+  if (label === "Implied vol 30d" && sig?.realized_vol_20d != null) {
+    return value > sig.realized_vol_20d ? "↑" : value < sig.realized_vol_20d ? "↓" : "→";
+  }
+  return "—";
+}
+
+function arrowColor(arrow: string): string {
+  if (arrow === "↑") return "var(--color-up)";
+  if (arrow === "↓") return "var(--color-down)";
+  return "var(--color-text-dim)";
+}
+
+const SIGNAL_ARCH = [
+  { label: "RATE", weight: 40, color: "color-mix(in srgb, var(--color-up) 35%, var(--color-surface))" },
+  { label: "COT", weight: 30, color: "color-mix(in srgb, var(--color-accent) 35%, var(--color-surface))" },
+  { label: "VOL", weight: 20, color: "color-mix(in srgb, var(--color-down) 35%, var(--color-surface))" },
+  { label: "OI", weight: 10, color: "color-mix(in srgb, var(--color-text-secondary) 35%, var(--color-surface))" },
+];
+
 export default async function PairDeskPage({ params }: PairDeskPageProps) {
   const { pair: pairSlug } = await params;
   const pairMeta = PAIRS.find((p) => p.urlSlug === pairSlug);
@@ -54,6 +154,19 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
       : null;
 
   const confidenceHistory = history.map((h) => h.confidence).reverse();
+  const bias = getBias(call, composite);
+  const invalidation = getInvalidation(bias, sig?.spot);
+  const watchlist = getWatchlist(sig, call);
+
+  const tableRows = [
+    ["Rate differential 2Y", fmt2(sig?.rate_diff_2y), sig?.rate_diff_2y],
+    ["COT net position pctile", fmtInt(cotPct ?? null), cotPct ?? null],
+    ["Realized vol 20d", fmt2(sig?.realized_vol_20d), sig?.realized_vol_20d],
+    ["Realized vol 5d", fmt2(sig?.realized_vol_5d), sig?.realized_vol_5d],
+    ["Implied vol 30d", sig?.implied_vol_30d != null ? fmt2(sig.implied_vol_30d) : "—", sig?.implied_vol_30d ?? null],
+    ["Signal composite", fmt2(call?.signal_composite), call?.signal_composite ?? null],
+    ["Spot", sig?.spot?.toFixed(pairMeta.label === "USDJPY" ? 2 : 4) ?? "—", sig?.spot ?? null],
+  ] as const;
 
   return (
     <div>
@@ -135,6 +248,91 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
         </div>
       </div>
 
+      {/* Trader's TL;DR */}
+      <div className="bg-[var(--color-elevated)] border border-[var(--color-border)] px-5 py-3.5 mb-px flex flex-wrap gap-x-6 gap-y-2 items-center">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">BIAS</span>
+          <span
+            className="font-mono text-[11px] font-bold tracking-wider"
+            style={{
+              color:
+                bias === "BULLISH"
+                  ? "var(--color-up)"
+                  : bias === "BEARISH"
+                    ? "var(--color-down)"
+                    : "var(--color-text-muted)",
+            }}
+          >
+            {bias}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">DRIVER</span>
+          <span className="font-mono text-[11px] text-[var(--color-text-secondary)] truncate max-w-[240px]">
+            {call?.primary_driver ?? "—"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">INVALIDATION</span>
+          <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">{invalidation}</span>
+        </div>
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">WATCHLIST</span>
+          <div className="flex gap-1.5">
+            {watchlist.map((w) => (
+              <span
+                key={w}
+                className="font-mono text-[9px] px-1.5 py-0.5 tracking-wider"
+                style={{
+                  color: "var(--color-text-muted)",
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-surface)",
+                }}
+              >
+                {w}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Signal Architecture Visualization */}
+      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] px-5 py-3 mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.15em]">
+            SIGNAL ARCHITECTURE
+          </span>
+          <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+            WEIGHTED COMPOSITE
+          </span>
+        </div>
+        <div className="flex h-[6px] w-full overflow-hidden" style={{ background: "var(--color-void)" }}>
+          {SIGNAL_ARCH.map((s) => (
+            <div
+              key={s.label}
+              style={{
+                width: `${s.weight}%`,
+                background: s.color,
+              }}
+              title={`${s.label} ~${s.weight}%`}
+            />
+          ))}
+        </div>
+        <div className="flex justify-between mt-2">
+          {SIGNAL_ARCH.map((s) => (
+            <div key={s.label} className="flex items-center gap-1.5">
+              <div
+                className="w-2 h-2"
+                style={{ background: s.color }}
+              />
+              <span className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-wider">
+                {s.label} {s.weight}%
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Signal chips */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] px-5 py-3 flex gap-2 items-center mb-4 flex-wrap">
         <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] mr-1">
@@ -198,8 +396,8 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               className="font-mono text-[10px] px-2.5 py-1 font-medium tracking-wider"
               style={{
                 color: color as string,
-                border: `1px solid color-mix(in srgb, ${color as string} 25%, transparent)`,
-                background: `color-mix(in srgb, ${color as string} 8%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${color as string} 20%, transparent)`,
+                background: `color-mix(in srgb, ${color as string} 6%, transparent)`,
               }}
             >
               {lbl}: {dir}
@@ -210,8 +408,8 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             className="font-mono text-[10px] px-2.5 py-1 font-medium"
             style={{
               color: "var(--color-text-secondary)",
-              border: "1px solid color-mix(in srgb, var(--color-text-secondary) 25%, transparent)",
-              background: "color-mix(in srgb, var(--color-text-secondary) 8%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--color-text-secondary) 20%, transparent)",
+              background: "color-mix(in srgb, var(--color-text-secondary) 6%, transparent)",
             }}
           >
             COT: {crowding}
@@ -232,29 +430,47 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             </span>
           </div>
           <table className="w-full border-collapse font-mono">
+            <thead>
+              <tr className="border-b border-[var(--color-border-subtle)] bg-[var(--color-void)]">
+                <th className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                  SIGNAL
+                </th>
+                <th className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                  VALUE
+                </th>
+                <th className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                  SCORE
+                </th>
+                <th className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                  TREND
+                </th>
+              </tr>
+            </thead>
             <tbody>
-              {[
-                ["Rate differential 2Y", fmt2(sig?.rate_diff_2y)],
-                ["COT net position pctile", fmtInt(cotPct ?? null)],
-                ["Realized vol 20d", fmt2(sig?.realized_vol_20d)],
-                ["Realized vol 5d", fmt2(sig?.realized_vol_5d)],
-                ["Implied vol 30d", sig?.implied_vol_30d != null ? fmt2(sig.implied_vol_30d) : "—"],
-                ["Signal composite", fmt2(call?.signal_composite)],
-                ["Spot", sig?.spot?.toFixed(pairMeta.label === "USDJPY" ? 2 : 4) ?? "—"],
-              ].map(([label, value], i) => (
-                <tr
-                  key={label}
-                  className="border-b border-[var(--color-border-subtle)]"
-                  style={{
-                    background: i % 2 === 0 ? "var(--color-void)" : "var(--color-surface)",
-                  }}
-                >
-                  <td className="px-4 py-3 text-[11px] text-[var(--color-text-muted)]">{label}</td>
-                  <td className="px-4 py-3 text-[13px] text-[var(--color-text)] font-medium text-left tabular-nums">
-                    {value}
-                  </td>
-                </tr>
-              ))}
+              {tableRows.map(([label, value, raw], i) => {
+                const arrow = trendArrow(label, raw, sig);
+                const z = pseudoZScore(label, raw, sig);
+                return (
+                  <tr
+                    key={label}
+                    className="border-b border-[var(--color-border-subtle)]"
+                    style={{
+                      background: i % 2 === 0 ? "var(--color-void)" : "var(--color-surface)",
+                    }}
+                  >
+                    <td className="px-4 py-3 text-[11px] text-[var(--color-text-muted)]">{label}</td>
+                    <td className="px-4 py-3 text-[13px] text-[var(--color-text)] font-medium text-left tabular-nums">
+                      {value}
+                    </td>
+                    <td className="px-4 py-3 text-[11px] text-[var(--color-text-secondary)] tabular-nums">
+                      {z}
+                    </td>
+                    <td className="px-4 py-3 text-[13px] font-medium" style={{ color: arrowColor(arrow) }}>
+                      {arrow}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {call?.primary_driver && (
@@ -333,6 +549,63 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               <span className="font-mono text-[9px] text-[var(--color-text-dim)]">
                 {history[0]?.date ?? ""}
               </span>
+            </div>
+          </div>
+
+          {/* 30-Day Regime Timeline */}
+          <div className="bg-[var(--color-surface)] p-4 border border-[var(--color-border)]">
+            <p className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-[0.15em] mb-3">
+              REGIME TIMELINE (30D)
+            </p>
+            <div className="flex flex-wrap gap-[3px]">
+              {history
+                .slice(0, 30)
+                .reverse()
+                .map((h, i) => (
+                  <div
+                    key={i}
+                    className="group relative"
+                  >
+                    <div
+                      className="w-[7px] h-[7px]"
+                      style={{
+                        background: regimeDotColor(h.regime),
+                        opacity: 0.85,
+                      }}
+                      title={`${h.date}: ${h.regime} (${Math.round(h.confidence * 100)}%)`}
+                    />
+                    {/* Tooltip on hover */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10 whitespace-nowrap">
+                      <div className="bg-[var(--color-elevated)] border border-[var(--color-border)] px-2 py-1">
+                        <span className="font-mono text-[9px] text-[var(--color-text-secondary)]">
+                          {h.date} · {h.regime}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+            <div className="flex justify-between mt-3">
+              <span className="font-mono text-[8px] text-[var(--color-text-dim)]">
+                {history.slice(0, 30).reverse()[0]?.date ?? ""}
+              </span>
+              <span className="font-mono text-[8px] text-[var(--color-text-dim)]">
+                {history[0]?.date ?? ""}
+              </span>
+            </div>
+            {/* Legend */}
+            <div className="flex gap-3 mt-2">
+              {[
+                ["STRENGTH", "var(--color-up)"],
+                ["WEAKNESS", "var(--color-down)"],
+                ["VOL", "var(--color-text-secondary)"],
+                ["OTHER", "var(--color-text-muted)"],
+              ].map(([lbl, col]) => (
+                <div key={lbl} className="flex items-center gap-1">
+                  <div className="w-[6px] h-[6px]" style={{ background: col }} />
+                  <span className="font-mono text-[8px] text-[var(--color-text-dim)]">{lbl}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

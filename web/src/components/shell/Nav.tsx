@@ -3,10 +3,12 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 export function Nav() {
   const currentRoute = usePathname();
   const [scrolled, setScrolled] = React.useState(false);
+  const [terminalOpen, setTerminalOpen] = React.useState(false);
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -14,14 +16,26 @@ export function Nav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useScrollReveal();
+
   const isActive = (href: string) =>
     href === "/" ? currentRoute === "/" : currentRoute.startsWith(href);
 
   const links = [
-    { href: "/", label: "Home" },
-    { href: "/brief", label: "Brief" },
+    { href: "/performance", label: "Performance" },
     { href: "/methodology", label: "Methodology" },
+    { href: "/brief", label: "Brief" },
     { href: "/about", label: "About" },
+  ];
+
+  const terminalDropdown = [
+    { href: "/terminal", label: "Overview" },
+    { href: "/terminal/fx-regime/eurusd", label: "EUR/USD" },
+    { href: "/terminal/fx-regime/usdjpy", label: "USD/JPY" },
+    { href: "/terminal/fx-regime/usdinr", label: "USD/INR" },
+    { href: "/terminal/calendar", label: "Calendar" },
+    { href: "/terminal/memos", label: "Memos" },
+    { href: "/terminal/performance", label: "Alpha Ledger" },
   ];
 
   return (
@@ -58,12 +72,46 @@ export function Nav() {
             </Link>
           ))}
 
-          <Link
-            href="/terminal"
-            className="ml-4 px-4 py-1.5 bg-[var(--color-elevated)] text-[var(--color-text)] font-sans text-[12px] tracking-wide border border-[var(--color-border)] transition-all duration-300 hover:bg-[var(--color-surface)] hover:border-[var(--color-border)]"
+          {/* Terminal dropdown */}
+          <div
+            className="relative"
+            onMouseEnter={() => setTerminalOpen(true)}
+            onMouseLeave={() => setTerminalOpen(false)}
           >
-            Terminal
-          </Link>
+            <Link
+              href="/terminal"
+              className={`relative px-3 py-1.5 font-sans text-[13px] transition-colors duration-300 ${
+                isActive("/terminal")
+                  ? "text-[var(--color-text)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+              }`}
+            >
+              Terminal
+              {isActive("/terminal") && (
+                <span className="absolute bottom-0 left-3 right-3 h-px bg-[var(--color-accent)] animate-line-grow" />
+              )}
+            </Link>
+
+            {terminalOpen && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2">
+                <div className="border border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-md min-w-[180px] py-2 shadow-lg">
+                  {terminalDropdown.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`block px-4 py-2 font-sans text-[13px] transition-colors duration-200 ${
+                        currentRoute === item.href
+                          ? "text-[var(--color-text)]"
+                          : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-elevated)]"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
     </header>

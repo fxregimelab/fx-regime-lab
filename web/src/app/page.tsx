@@ -1,8 +1,12 @@
-"use client";
-
-import { Footer } from "@/components/shell/Footer";
+import { createClient } from "@/lib/supabase/server";
+import {
+  getLatestRegimeCalls,
+  getLatestSignals,
+  getValidationLog,
+} from "@/lib/supabase/queries";
+import { PAIRS } from "@/lib/constants";
 import { Nav } from "@/components/shell/Nav";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { Footer } from "@/components/shell/Footer";
 import Link from "next/link";
 
 /* ------------------------------------------------------------------ */
@@ -10,7 +14,7 @@ import Link from "next/link";
 /* ------------------------------------------------------------------ */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase mb-4">
+    <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase mb-4">
       {children}
     </p>
   );
@@ -33,7 +37,7 @@ function Hero() {
       <div className="max-w-[1152px] mx-auto px-6 w-full">
         <div className="max-w-[640px]">
           <div className="flex items-center gap-3 mb-8 animate-fade-in">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-text-secondary)] animate-gentle-pulse" />
+            <span className="w-2 h-2 rounded-full bg-[var(--color-up)] animate-gentle-pulse" />
             <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase">
               Live · G10 FX · Daily Calls
             </span>
@@ -73,10 +77,10 @@ function Hero() {
 
       {/* Scroll hint */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-fade-in delay-700">
-        <span className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-dim)] uppercase">
+        <span className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
           Scroll
         </span>
-        <div className="w-px h-8 bg-gradient-to-b from-[var(--color-text-dim)] to-transparent" />
+        <div className="w-px h-8 bg-gradient-to-b from-[var(--color-text-muted)] to-transparent" />
       </div>
     </section>
   );
@@ -107,7 +111,7 @@ function SnapshotCard({
         <span className="font-mono text-[11px] tracking-[0.15em] text-[var(--color-text-secondary)] uppercase font-medium">
           {pair}
         </span>
-        <span className="font-mono text-[10px] text-[var(--color-text-dim)]">
+        <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
           Spot
         </span>
       </div>
@@ -122,16 +126,16 @@ function SnapshotCard({
         </p>
       </div>
 
-      <div className="pt-4 border-t border-[var(--color-border-subtle)]">
+      <div className="pt-4 border-t border-[var(--color-border)]">
         <div className="flex items-center justify-between mb-2">
-          <span className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-dim)] uppercase">
+          <span className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
             Confidence
           </span>
           <span className="font-mono text-[13px] text-[var(--color-text-secondary)] font-medium">
             {Math.round(confidence * 100)}%
           </span>
         </div>
-        <div className="h-[2px] bg-[var(--color-border-subtle)] overflow-hidden">
+        <div className="h-[2px] bg-[var(--color-border)] overflow-hidden">
           <div
             className="h-full bg-[var(--color-accent)] transition-all duration-1000 ease-out"
             style={{ width: `${confidence * 100}%` }}
@@ -142,7 +146,13 @@ function SnapshotCard({
   );
 }
 
-function LiveSnapshot() {
+function LiveSnapshot({
+  calls,
+  signals,
+}: {
+  calls: Awaited<ReturnType<typeof getLatestRegimeCalls>>;
+  signals: Awaited<ReturnType<typeof getLatestSignals>>;
+}) {
   return (
     <section className="py-24">
       <div className="max-w-[1152px] mx-auto px-6">
@@ -160,27 +170,20 @@ function LiveSnapshot() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SnapshotCard
-            pair="EUR/USD"
-            spot="1.0847"
-            regime="MODERATE USD STRENGTH"
-            confidence={0.62}
-            delay={100}
-          />
-          <SnapshotCard
-            pair="USD/JPY"
-            spot="147.32"
-            regime="NEUTRAL"
-            confidence={0.48}
-            delay={200}
-          />
-          <SnapshotCard
-            pair="USD/INR"
-            spot="83.42"
-            regime="MODERATE DEPRECIATION PRESSURE"
-            confidence={0.71}
-            delay={300}
-          />
+          {PAIRS.map((pair, i) => {
+            const call = calls[pair.label];
+            const signal = signals[pair.label];
+            return (
+              <SnapshotCard
+                key={pair.label}
+                pair={pair.display}
+                spot={signal?.spot?.toFixed(4) ?? "—"}
+                regime={call?.regime ?? "—"}
+                confidence={call?.confidence ?? 0}
+                delay={(i + 1) * 100}
+              />
+            );
+          })}
         </div>
       </div>
     </section>
@@ -242,10 +245,10 @@ function SignalArchitecture() {
               style={{ transitionDelay: `${(i + 1) * 100}ms` }}
             >
               <div className="flex items-start justify-between mb-6">
-                <span className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-dim)]">
+                <span className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)]">
                   {s.n}
                 </span>
-                <span className="font-mono text-[10px] tracking-[0.1em] text-[var(--color-text-dim)]">
+                <span className="font-mono text-[10px] tracking-[0.1em] text-[var(--color-text-muted)]">
                   {s.weight}
                 </span>
               </div>
@@ -266,11 +269,17 @@ function SignalArchitecture() {
 /* ------------------------------------------------------------------ */
 /*  Validation trust strip                                             */
 /* ------------------------------------------------------------------ */
-function ValidationTrust() {
+function ValidationTrust({
+  accuracy,
+  totalCalls,
+}: {
+  accuracy: number;
+  totalCalls: number;
+}) {
   const stats = [
-    { label: "Pairs tracked", value: "3" },
-    { label: "Calls since April 2026", value: "27" },
-    { label: "7-day accuracy", value: "72.4%" },
+    { label: "Pairs tracked", value: String(PAIRS.length) },
+    { label: "Calls since April 2026", value: String(totalCalls) },
+    { label: "Accuracy", value: `${accuracy.toFixed(1)}%` },
     { label: "Signal families", value: "4" },
   ];
 
@@ -292,7 +301,7 @@ function ValidationTrust() {
               <p className="font-mono text-[clamp(24px,3vw,32px)] font-medium text-[var(--color-text)] tracking-tight leading-none mb-2 tabular-nums">
                 {s.value}
               </p>
-              <p className="font-mono text-[9px] tracking-[0.12em] text-[var(--color-text-dim)] uppercase">
+              <p className="font-mono text-[9px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
                 {s.label}
               </p>
             </div>
@@ -365,17 +374,30 @@ function AboutSnippet() {
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
-export default function HomePage() {
-  useScrollReveal();
+export default async function HomePage() {
+  const supabase = await createClient();
+
+  const [calls, signals, validation] = await Promise.all([
+    getLatestRegimeCalls(supabase),
+    getLatestSignals(supabase),
+    getValidationLog(supabase),
+  ]);
+
+  const { count } = await supabase
+    .from("regime_calls")
+    .select("*", { count: "exact", head: true });
+
+  const correctCount = validation.filter((r) => r.outcome === "correct").length;
+  const accuracy = validation.length > 0 ? (correctCount / validation.length) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
       <main>
         <Hero />
-        <LiveSnapshot />
+        <LiveSnapshot calls={calls} signals={signals} />
         <SignalArchitecture />
-        <ValidationTrust />
+        <ValidationTrust accuracy={accuracy} totalCalls={count ?? 0} />
         <AboutSnippet />
       </main>
       <Footer />
