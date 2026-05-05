@@ -14,3 +14,5 @@ fi
 
 python src/scheduler/orchestrator.py daily
 python src/scheduler/overnight_check.py
+python -m src.validation.engine
+python -m src.validation.aggregate

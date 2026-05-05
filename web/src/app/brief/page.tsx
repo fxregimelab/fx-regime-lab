@@ -4,13 +4,9 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Nav } from '@/components/layout/nav';
 import { Footer } from '@/components/layout/footer';
-import { MacroPulseBar, PULSE_BAR_H } from '@/components/ui/macro-pulse-bar';
 import { PAIRS } from '@/lib/mockData';
 import { fmt2, fmtInt } from '@/components/ui/utils';
 import { useLatestRegimeCalls, useLatestSignals, useLatestBrief, usePairBrief, useLastPipelineRun } from '@/lib/queries';
-
-const SHELL_NAV_H = 54;
-const SHELL_TOP_OFFSET = PULSE_BAR_H + SHELL_NAV_H;
 
 export default function BriefPage() {
   const router = useRouter();
@@ -51,9 +47,8 @@ export default function BriefPage() {
 
   return (
     <>
-      <MacroPulseBar />
       <Nav />
-      <main className="flex-1 bg-white" style={{ marginTop: `${SHELL_TOP_OFFSET}px` }}>
+      <main className="flex-1 bg-white">
         <div className="w-full px-6 md:px-8 py-12">
           <div className="flex justify-between items-start mb-10 pb-6 border-b border-[#e5e5e5]">
             <div>

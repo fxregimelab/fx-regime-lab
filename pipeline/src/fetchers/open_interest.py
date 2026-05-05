@@ -14,11 +14,14 @@ from src.types import CotRow
 
 logger = logging.getLogger(__name__)
 
+_USER_AGENTS = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0",
+)
+
 CME_BROWSER_HEADERS: dict[str, str] = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    ),
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://www.cmegroup.com/",
@@ -26,16 +29,20 @@ CME_BROWSER_HEADERS: dict[str, str] = {
 
 
 def cme_http_get(url: str, *, timeout: float = 60.0) -> requests.Response:
-    """GET with institutional headers; on HTTP 403, wait 2s and retry once."""
+    """GET with institutional headers; on HTTP 403, wait 2s and retry up to 5 times."""
+    import random
     session = requests.Session()
     response: requests.Response | None = None
-    for attempt in (1, 2):
-        response = session.get(url, headers=CME_BROWSER_HEADERS, timeout=timeout)
+    for attempt in range(1, 6):
+        headers = CME_BROWSER_HEADERS.copy()
+        headers["User-Agent"] = random.choice(_USER_AGENTS)
+        response = session.get(url, headers=headers, timeout=timeout)
         if response.status_code != 403:
             return response
-        if attempt == 1:
-            logger.warning("CME HTTP 403 for %s — retrying after 2s", url)
-            time.sleep(2.0)
+        if attempt < 5:
+            sleep_time = 2.0 * attempt
+            logger.warning("CME HTTP 403 for %s — retrying after %ss", url, sleep_time)
+            time.sleep(sleep_time)
     assert response is not None
     return response
 

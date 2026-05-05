@@ -1,4 +1,8 @@
-"""Next-day (or latest bar) validation for stored regime calls."""
+"""Next-day (or latest bar) validation for stored regime calls.
+
+DEPRECATED for new track-record entries — retained for backward compatibility
+with existing validation_log rows. Round 3+ uses src.validation.engine.
+"""
 
 from __future__ import annotations
 
@@ -52,11 +56,26 @@ def validate_call(
 
     bars_sorted = sorted(bars, key=lambda b: b.date)
     call_idx = next(
-        (idx for idx, bar in enumerate(bars_sorted) if bar.date == prior_call.date),
-        max(0, len(bars_sorted) - 2),
+        (idx for idx, bar in enumerate(bars_sorted) if bar.date >= prior_call.date),
+        None,
     )
+
+    if call_idx is None or call_idx >= len(bars_sorted) - 1:
+        return {
+            "date": prior_call.date.isoformat(),
+            "pair": pair,
+            "predicted_regime": prior_call.regime,
+            "predicted_direction": prior_call.rate_signal,
+            "confidence": prior_call.confidence,
+            "correct_1d": None,
+            "actual_return_1d": None,
+            "correct_5d": None,
+            "actual_return_5d": None,
+            "actual_direction": "flat",
+        }
+
     base_bar = bars_sorted[call_idx]
-    one_day_idx = min(call_idx + 1, len(bars_sorted) - 1)
+    one_day_idx = call_idx + 1
     one_day_bar = bars_sorted[one_day_idx]
 
     if base_bar.close == 0:

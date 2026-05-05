@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation';
 import { BarChart2, LayoutGrid, Radar } from 'lucide-react';
 
 const items = [
-  { href: '/', label: 'APEX', Icon: LayoutGrid },
-  { href: '/calendar', label: 'RADAR', Icon: Radar },
-  { href: '/performance', label: 'TRUTH', Icon: BarChart2 },
+  { href: '/terminal', label: 'APEX', Icon: LayoutGrid },
+  { href: '/terminal/calendar', label: 'RADAR', Icon: Radar },
+  { href: '/terminal/performance', label: 'TRUTH', Icon: BarChart2 },
 ] as const;
 
 export function TerminalMobileBottomNav() {
@@ -15,12 +15,17 @@ export function TerminalMobileBottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 w-full border-t border-[#111] bg-[#000000]"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 w-full border-t border-[var(--bg-hover)] bg-[var(--bg-void)]"
       aria-label="Terminal mobile navigation"
     >
       <div className="flex h-full w-full items-stretch justify-around px-6 md:px-8">
         {items.map(({ href, label, Icon }) => {
-          const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
+          const active =
+            href === '/terminal'
+              ? pathname === '/terminal' ||
+                pathname === '/terminal/' ||
+                pathname.startsWith('/terminal/fx-regime')
+              : pathname.startsWith(href);
           return (
             <Link
               key={href}

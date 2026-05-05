@@ -1,4 +1,9 @@
-"""Weighted composite score and dynamic Spearman betas (signal return vs spot return)."""
+"""
+@agent_context: Calculates weighted composite scores and dynamic Spearman betas (signal return vs spot return) for FX regime classification.
+@allowed_imports: [logging, math, dataclasses, datetime, typing, numpy, src.types]
+@forbidden_imports: [src.db.writer, src.ai.client]
+@obsidian_link: [[Regime Classification#Composite Scores]]
+"""
 
 from __future__ import annotations
 
@@ -282,6 +287,6 @@ def get_primary_driver(betas: dict[str, float]) -> str:
 
     best = max(("rate", "cot", "vol", "oi"), key=lambda f: abs(float(betas.get(f, 0.0))))
     mag = abs(float(betas.get(best, 0.0)))
-    if mag < 1e-9:
+    if mag < 0.1:
         return "Mixed signals — no single dominant factor"
     return _DRIVER_LABELS.get(best, "Mixed signals — no single dominant factor")

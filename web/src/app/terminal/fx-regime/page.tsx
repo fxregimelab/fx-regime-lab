@@ -2,11 +2,26 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useMemo, useState, type ReactNode } from 'react';
+import { BinaryResolve } from '@/components/ui/BinaryResolve';
 import { ConfidenceBar } from '@/components/ui/confidence-bar';
+import { CorrelationMatrix } from '@/components/ui/correlation-matrix';
+import { DeskCard } from '@/components/ui/desk-card';
+import { GhostResolve } from '@/components/ui/GhostResolve';
+import { MacroDriftEngine } from '@/components/ui/macro-drift-engine';
 import { PAIRS } from '@/lib/mockData';
-import { fmtPct } from '@/components/ui/utils';
+import { G10_MATRIX_ORDER, topCorrelatedPeer } from '@/lib/g10Correlation';
+import { fmt2, fmtPct } from '@/components/ui/utils';
 import { motion } from 'framer-motion';
-import { useLatestRegimeCalls, useLatestSignals } from '@/lib/queries';
+import { TerminalLabel } from '@/components/ui/TerminalLabel';
+import {
+  useG10CorrelationMatrix,
+  useLatestDeskOpenCardsSnapshot,
+  useLatestRegimeCalls,
+  useLatestSignals,
+  type DeskOpenCardSnapshotRow,
+  type DeskOpenCardsSnapshot,
+} from '@/lib/queries';
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
 const item = {
@@ -14,96 +29,397 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' as const } },
 };
 
-/** Pair selection grid — matches the main terminal index cards, without the strategies panel. */
+function pairMeta(label: string) {
+  return PAIRS.find((p) => p.label === label) ?? PAIRS[0];
+}
+
+function cardAtRank(cards: DeskOpenCardSnapshotRow[], rank: number): DeskOpenCardSnapshotRow | undefined {
+  return cards.find((c) => c.global_rank === rank);
+}
+
+type MosaicTier = 'apex' | 'bench' | 'outlier';
+
+const G10_SET = new Set<string>(G10_MATRIX_ORDER);
+
+function MosaicCell({
+  tier,
+  card,
+  calls,
+  sigs,
+  onOpen,
+  isDimmed,
+  onHover,
+  corrGlow,
+  corrLockedWhisper,
+  pausedBinaryResolve,
+}: {
+  tier: MosaicTier;
+  card: DeskOpenCardSnapshotRow | undefined;
+  calls: ReturnType<typeof useLatestRegimeCalls>['data'];
+  sigs: ReturnType<typeof useLatestSignals>['data'];
+  onOpen: (slug: string) => void;
+  isDimmed: boolean;
+  onHover: (hover: boolean) => void;
+  corrGlow?: boolean;
+  corrLockedWhisper?: string | null;
+  pausedBinaryResolve?: boolean;
+}) {
+  const lum =
+    tier === 'apex'
+      ? {
+          title: 'text-white',
+          spot: 'text-white',
+          regime: 'text-[#e0e0e0]',
+          meta: 'text-[#888]',
+        }
+      : tier === 'bench'
+        ? {
+            title: 'text-[#e8e8e8]',
+            spot: 'text-[#eaeaea]',
+            regime: 'text-[#b8b8b8]',
+            meta: 'text-[#666]',
+          }
+        : {
+            title: 'text-[#9a9a9a]',
+            spot: 'text-[#a3a3a3]',
+            regime: 'text-[#8a8a8a]',
+            meta: 'text-[#555]',
+          };
+
+  if (!card) {
+    return (
+      <div
+        className={`relative flex min-h-[120px] flex-1 flex-col justify-center border-0 border-t-[0.5px] border-t-white/[0.06] border-l-[0.5px] border-l-white/[0.03] px-3 py-3 transition-colors duration-200 ${
+          corrGlow ? 'bg-emerald-500/[0.06]' : 'bg-[#080808]'
+        }`}
+      >
+        <p className={`font-mono text-[9px] tracking-widest ${lum.meta}`}>RANK · EMPTY</p>
+        <p className={`font-mono text-[11px] ${lum.title}`}>—</p>
+      </div>
+    );
+  }
+
+  const p = pairMeta(card.pair);
+  const call = calls?.[card.pair];
+  const sig = sigs?.[card.pair];
+  const chg = sig?.day_change_pct as number | undefined;
+  const spotNum = sig?.spot != null ? Number(sig.spot) : null;
+
+  return (
+    <motion.button
+      variants={item}
+      type="button"
+      onClick={() => onOpen(p.urlSlug)}
+      onMouseEnter={() => onHover(true)}
+      onMouseLeave={() => onHover(false)}
+      className={`flex min-h-[120px] flex-1 flex-col overflow-hidden border-0 border-l-[0.5px] border-l-white/[0.03] text-left shadow-none transition-all duration-200 hover:bg-[#000000] will-change-transform omega-haptic ${
+        corrGlow ? 'bg-emerald-500/[0.06]' : 'bg-[#080808]'
+      }`}
+    >
+      <div className="h-[2px] w-full shrink-0" style={{ backgroundColor: p.pairColor }} aria-hidden />
+      <div className="flex min-h-0 flex-1 flex-col border-t-[0.5px] border-t-white/[0.08] px-3 py-3 grid grid-rows-[auto_16px_auto_auto_1fr] gap-y-0.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className={`font-mono text-[10px] font-bold tracking-wide ${lum.title}`} style={{ color: p.pairColor }}>
+            {p.display}
+          </span>
+          <span className={`font-mono text-[9px] tabular-nums ${lum.meta}`}>#{card.global_rank ?? '—'}</span>
+        </div>
+        
+        <div className="min-h-[16px]">
+          {chg != null && (
+            <span
+              className={`font-mono text-[10px] font-bold tabular-nums ${chg >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}
+            >
+              {chg >= 0 ? '+' : ''}
+              {chg.toFixed(2)}%
+            </span>
+          )}
+        </div>
+
+        <p className={`font-mono text-xl font-bold tabular-nums leading-none ${lum.spot}`}>
+          <BinaryResolve
+            value={spotNum != null ? fmt2(spotNum) : '—'}
+            resolveKey={spotNum}
+            paused={pausedBinaryResolve ?? isDimmed}
+          />
+        </p>
+        <TerminalLabel className={`font-bold ${lum.regime}`} limit={24}>
+          {(call?.regime as string) ?? card.structural_regime ?? '—'}
+        </TerminalLabel>
+        <div className="mt-2 self-end w-full">
+          <ConfidenceBar
+            value={call?.confidence != null ? Number(call.confidence) : null}
+            tone="dark"
+            color={p.pairColor}
+          />
+          <p className={`font-mono text-[8px] tabular-nums ${lum.meta} mt-1`}>
+            CONF {fmtPct(call?.confidence as number | undefined)}
+          </p>
+        </div>
+      </div>
+      {corrLockedWhisper ? (
+        <div className="shrink-0 border-t-[0.5px] border-t-[#111] px-2 py-1.5">
+          <GhostResolve
+            value={corrLockedWhisper}
+            resolveKey={corrLockedWhisper}
+            active
+            paused={isDimmed}
+            className="!text-[8px]"
+          />
+        </div>
+      ) : null}
+    </motion.button>
+  );
+}
+
+function tierForRank(rank: number): MosaicTier {
+  if (rank <= 1) return 'apex';
+  if (rank <= 4) return 'bench';
+  return 'outlier';
+}
+
+const sectorMotion = { duration: 0.2, ease: 'easeOut' as const };
+
+function SectorCell({
+  col,
+  focusedSector,
+  onSectorEnter,
+  children,
+}: {
+  col: 0 | 1 | 2;
+  focusedSector: 0 | 1 | 2;
+  onSectorEnter: (c: 0 | 1 | 2) => void;
+  children: ReactNode;
+}) {
+  const isFocused = col === focusedSector;
+  return (
+    <motion.div
+      variants={item}
+      className="flex min-h-0 min-w-0 flex-col will-change-[opacity,filter]"
+      onMouseEnter={() => onSectorEnter(col)}
+      animate={{
+        opacity: isFocused ? 1 : 0.3,
+        filter: isFocused ? 'grayscale(0%)' : 'grayscale(100%)',
+      }}
+      transition={sectorMotion}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+
+/** 3×3 spatial grid: ranks 1–7, correlation matrix, macro drift — lenticular column luminance. */
 export default function FxRegimePairSelectionPage() {
   const router = useRouter();
+  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
+  const [focusedSector, setFocusedSector] = useState<0 | 1 | 2>(0);
   const regimeQ = useLatestRegimeCalls();
   const signalsQ = useLatestSignals();
+  const deskSnapQ = useLatestDeskOpenCardsSnapshot();
+  const matrixQ = useG10CorrelationMatrix();
+  const deskData = deskSnapQ.data as DeskOpenCardsSnapshot | undefined;
 
   const calls = regimeQ.data;
   const sigs = signalsQ.data;
-  const err = regimeQ.isError || signalsQ.isError;
-  const pending = regimeQ.isPending || signalsQ.isPending;
+  const err = regimeQ.isError || signalsQ.isError || deskSnapQ.isError;
+  const pending =
+    regimeQ.isPending || signalsQ.isPending || (deskSnapQ.isPending && !(deskData?.cards?.length));
+
+  const cards = useMemo(() => {
+    const raw = deskData?.cards ?? [];
+    return [...raw].sort((a, b) => (a.global_rank ?? 999) - (b.global_rank ?? 999));
+  }, [deskData?.cards]);
+
+  const rank1 = cardAtRank(cards, 1);
+
+  const validHover = useMemo(() => {
+    if (!hoveredLabel || hoveredLabel === 'apex-empty') return null;
+    return G10_SET.has(hoveredLabel) ? hoveredLabel : null;
+  }, [hoveredLabel]);
+
+  const topPeer = useMemo(() => {
+    if (!validHover) return null;
+    const m = matrixQ.data;
+    if (!m || Object.keys(m).length === 0) return null;
+    return topCorrelatedPeer(m, validHover);
+  }, [validHover, matrixQ.data]);
+
+  const glowPeer =
+    validHover && topPeer && topPeer !== validHover ? topPeer : null;
+  const cellGlow = (pair: string | undefined) => !!(glowPeer && pair === glowPeer);
+
+  const corrLockWhisper = (forPair: string | null | undefined) => {
+    if (!forPair || !validHover || !topPeer) return null;
+    if (forPair !== validHover) return null;
+    return `[ CORR_LOCKED: ${topPeer} ]`;
+  };
+
+  const openPair = (slug: string) => {
+    router.push(`/terminal/fx-regime/${slug}`);
+  };
+
+  const rankSlot = (rank: number) => {
+    const c = cardAtRank(cards, rank);
+    return (
+      <MosaicCell
+        key={rank}
+        tier={tierForRank(rank)}
+        card={c}
+        calls={calls}
+        sigs={sigs}
+        onOpen={openPair}
+        isDimmed={!!validHover && validHover !== c?.pair}
+        onHover={(h) => setHoveredLabel(h && c ? c.pair : null)}
+        corrGlow={cellGlow(c?.pair)}
+        corrLockedWhisper={corrLockWhisper(c?.pair)}
+        pausedBinaryResolve={!!validHover && validHover !== c?.pair}
+      />
+    );
+  };
+
+  const rank1Block = rank1 ? (
+    <div
+      className={`flex min-h-0 flex-1 flex-col overflow-hidden border-0 border-t-[0.5px] border-t-white/[0.08] border-l-[0.5px] border-l-white/[0.03] transition-colors duration-200 ${
+        cellGlow(rank1.pair) ? 'bg-emerald-500/[0.06]' : 'bg-[#080808]'
+      }`}
+      onMouseEnter={() => setHoveredLabel(rank1.pair)}
+      onMouseLeave={() => setHoveredLabel(null)}
+    >
+      <DeskCard
+        variant="hero"
+        pairDisplay={pairMeta(rank1.pair).display}
+        spot={sigs?.[rank1.pair]?.spot != null ? Number(sigs[rank1.pair]!.spot) : null}
+        confidence={
+          calls?.[rank1.pair]?.confidence != null ? Number(calls[rank1.pair]!.confidence) : null
+        }
+        rankJump={deskData?.rankJumpByPair[rank1.pair]}
+        regimeAge={rank1.regime_age}
+        apexScoreDisplay={rank1.apex_score != null ? Math.round(rank1.apex_score * 100) : null}
+        structuralRegime={rank1.structural_regime}
+        invalidationTriggered={rank1.invalidation_triggered}
+        telemetryStatus={rank1.telemetry_status}
+        dominanceArray={rank1.dominance_array}
+        painIndex={rank1.pain_index}
+        markovProbabilities={rank1.markov_probabilities}
+        aiBrief={rank1.ai_brief}
+        telemetryAudit={rank1.telemetry_audit}
+        parameterInstability={rank1.parameter_instability}
+        mathRateZTactical={
+          sigs?.[rank1.pair]?.rate_diff_zscore != null
+            ? Number(sigs[rank1.pair]!.rate_diff_zscore)
+            : null
+        }
+        mathRateZStructural={rank1.telemetry_audit?.rate_z_structural_mad ?? null}
+        mathDynamicBeta={rank1.dominance_array[0]?.beta ?? null}
+        pausedBinaryResolve={!!validHover && validHover !== rank1.pair}
+        whisper={`GHOST_CHANNEL_${rank1.pair}`}
+        corrLockedWhisper={corrLockWhisper(rank1.pair)}
+      />
+      <button
+        type="button"
+        onClick={() => openPair(pairMeta(rank1.pair).urlSlug)}
+        className="border-0 border-t-[0.5px] border-t-[#111] bg-[#080808] px-3 py-2 font-mono text-[9px] tracking-widest text-[#888] shadow-none hover:bg-[#000000] hover:text-[#ccc]"
+      >
+        [ OPEN DESK → ]
+      </button>
+    </div>
+  ) : (
+    <MosaicCell
+      tier="apex"
+      card={undefined}
+      calls={calls}
+      sigs={sigs}
+      onOpen={openPair}
+      isDimmed={!!validHover}
+      onHover={(h) => setHoveredLabel(h ? 'apex-empty' : null)}
+    />
+  );
+
+  const matrixCell = (
+    <CorrelationMatrix matrix={matrixQ.data ?? null} pending={matrixQ.isPending} className="min-h-[140px] h-full" />
+  );
+  const macroCell = <MacroDriftEngine className="min-h-[140px] h-full" />;
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#e8e8e8] font-sans">
+    <div className="h-screen max-h-screen overflow-hidden bg-[#000000] font-sans text-[#e8e8e8]">
       <motion.div
         variants={container}
         initial="hidden"
         animate="show"
-        className="w-full px-6 md:px-8 py-10"
-        style={{ marginTop: 'var(--terminal-nav-h, 104px)' }}
+        className="flex h-full w-full flex-col px-6 md:px-8 py-6"
+        style={{ paddingTop: 'calc(var(--terminal-nav-h, 76px) + 24px)' }}
       >
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+        <div className="mb-6 flex shrink-0 flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <p className="font-mono text-[9px] text-[#666] tracking-widest mb-2">FX REGIME</p>
-            <h1 className="font-mono text-lg font-bold text-white tracking-tight">Pair selection</h1>
-            <p className="font-mono text-[10px] text-[#777] mt-1 max-w-md">
-              Choose a pair to open the regime terminal. Same layout as the main terminal index.
+            <p className="mb-1.5 font-mono text-[9px] tracking-widest text-[#666]">FX REGIME · MOSAIC</p>
+            <h1 className="font-mono text-lg font-bold tracking-tight text-white uppercase">G10 Systemic Pulse</h1>
+            <p className="mt-1 max-w-md font-mono text-[10px] text-[#555]">
+              3×3 lattice: ranks 1–7 + correlation ingress + macro drift.
             </p>
           </div>
           <Link
             href="/terminal"
-            className="font-mono text-[10px] text-[#888] hover:text-[#ccc] transition-colors shrink-0"
+            className="shrink-0 font-mono text-[10px] text-[#888] transition-colors hover:text-[#ccc]"
           >
             ← Terminal overview
           </Link>
         </div>
 
-        {pending ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-0.5 mb-8">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="bg-[#0d0d0d] border border-[#111] p-4 h-36 animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-0.5 mb-8">
-            {PAIRS.map((p) => {
-              const call = calls?.[p.label];
-              const sig = sigs?.[p.label];
-              const chg = sig?.day_change_pct as number | undefined;
+        <div className="flex-1 min-h-0">
+          {pending ? (
+            <div className="grid h-full grid-cols-3 grid-rows-3 gap-px">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="animate-pulse border-0 border-t-[0.5px] border-t-white/[0.06] border-l-[0.5px] border-l-white/[0.03] bg-[#080808]"
+                />
+              ))}
+            </div>
+          ) : (
+            <div
+              className="grid h-full grid-cols-1 gap-px lg:grid-cols-3 lg:grid-rows-3"
+              onMouseLeave={() => {
+                setFocusedSector(0);
+                setHoveredLabel(null);
+              }}
+            >
+              <SectorCell col={0} focusedSector={focusedSector} onSectorEnter={setFocusedSector}>
+                {rank1Block}
+              </SectorCell>
+              <SectorCell col={1} focusedSector={focusedSector} onSectorEnter={setFocusedSector}>
+                {rankSlot(2)}
+              </SectorCell>
+              <SectorCell col={2} focusedSector={focusedSector} onSectorEnter={setFocusedSector}>
+                {rankSlot(3)}
+              </SectorCell>
+              <SectorCell col={0} focusedSector={focusedSector} onSectorEnter={setFocusedSector}>
+                {rankSlot(4)}
+              </SectorCell>
+              <SectorCell col={1} focusedSector={focusedSector} onSectorEnter={setFocusedSector}>
+                {rankSlot(5)}
+              </SectorCell>
+              <SectorCell col={2} focusedSector={focusedSector} onSectorEnter={setFocusedSector}>
+                {rankSlot(6)}
+              </SectorCell>
+              <SectorCell col={0} focusedSector={focusedSector} onSectorEnter={setFocusedSector}>
+                {rankSlot(7)}
+              </SectorCell>
+              <SectorCell col={1} focusedSector={focusedSector} onSectorEnter={setFocusedSector}>
+                {matrixCell}
+              </SectorCell>
+              <SectorCell col={2} focusedSector={focusedSector} onSectorEnter={setFocusedSector}>
+                {macroCell}
+              </SectorCell>
+            </div>
+          )}
+        </div>
 
-              return (
-                <motion.button
-                  variants={item}
-                  key={p.label}
-                  type="button"
-                  onClick={() => router.push(`/terminal/fx-regime/${p.urlSlug}`)}
-                  className="bg-[#0d0d0d] border border-[#111] p-4 text-left transition-colors cursor-pointer hover:bg-[#111]"
-                  style={{ borderTop: `2px solid ${p.pairColor}` }}
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-mono text-xs font-bold tracking-wide" style={{ color: p.pairColor }}>
-                      {p.display}
-                    </span>
-                    {chg != null && (
-                      <span
-                        className={`font-mono text-[11px] font-bold tabular-nums ${chg >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}
-                      >
-                        {chg >= 0 ? '+' : ''}
-                        {chg.toFixed(2)}%
-                      </span>
-                    )}
-                  </div>
-                  <p className="font-mono text-[26px] font-bold text-white tracking-tight leading-none mb-1.5">
-                    {sig?.spot != null ? Number(sig.spot).toFixed(p.label === 'USDJPY' ? 2 : 4) : '—'}
-                  </p>
-                  <p className="font-mono text-[10px] font-bold text-[#c0c0c0] tracking-wide mb-2.5">
-                    {(call?.regime as string) ?? '—'}
-                  </p>
-                  <ConfidenceBar value={call?.confidence != null ? Number(call.confidence) : null} tone="dark" color={p.pairColor} />
-                  <p className="font-mono text-[9px] text-[#555] mt-1.5 tracking-widest">
-                    CONF {fmtPct(call?.confidence as number | undefined)}
-                  </p>
-                </motion.button>
-              );
-            })}
-          </div>
-        )}
-
-        {err && (
-          <p className="font-mono text-[10px] text-[#ef4444] mb-4">Live data failed to load — cards may be incomplete.</p>
-        )}
+        {err ? (
+          <p className="mt-4 shrink-0 font-mono text-[10px] text-[#ef4444]">
+            [ DATA_FLOW_INTERRUPTED: SYSTEMIC_SYNC_FAILED ]
+          </p>
+        ) : null}
       </motion.div>
     </div>
   );

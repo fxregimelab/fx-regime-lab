@@ -1,4 +1,9 @@
-"""Daily and weekly pipeline orchestration."""
+"""
+@agent_context: High-level Prefect workflow orchestrator for daily and weekly FX regime classification and intelligence pipelines.
+@allowed_imports: [asyncio, json, logging, os, sys, collections.abc, dataclasses, datetime, typing, dotenv, prefect, src.*]
+@forbidden_imports: []
+@obsidian_link: [[Orchestration#Pipeline Flow]]
+"""
 
 from __future__ import annotations
 
@@ -41,7 +46,9 @@ from src.fetchers.macro_calendar import fetch_macro_events
 from src.fetchers.open_interest import compute_oi_delta_from_cot, compute_oi_from_cot
 from src.fetchers.substack import fetch_latest_substack_memo
 from src.fetchers.volatility import fetch_implied_vol, fetch_realized_vol
-from src.regime.classifier import VOL_EXPANDING_SUFFIX, classify_regime
+from src.logic.layer2_directional import run_layer2_directional
+from src.logic.layer3_execution import run_layer3_execution
+from src.regime.classifier import VOL_EXPANDING_SUFFIX, classify_regime_layer1
 from src.regime.composite import (
     TRADING_DAYS_3Y,
     compute_composite,
@@ -61,8 +68,25 @@ from src.signals.rate import (
     rate_direction_from_spreads,
     structural_instability_from_carry_history,
 )
-from src.signals.volatility import compute_vol_signal, is_vol_expanding
-from src.types import PAIRS, CotRow, DeskOpenCardRow, RegimeCall, SignalRow, SpotBar, load_universe
+from src.signals.volatility import (
+    TRADING_DAYS_3Y_VOL_RANK,
+    compute_realized_vol_rank_from_closes,
+    compute_rvol,
+    compute_vol_signal,
+    is_vol_expanding,
+)
+from src.types import (
+    PAIRS,
+    CotRow,
+    DeskOpenCardRow,
+    Layer1ClassifierContext,
+    Layer3EntryTiming,
+    Layer3PositionSize,
+    RegimeCall,
+    SignalRow,
+    SpotBar,
+    load_universe,
+)
 from src.validation import ledger
 from src.validation.backtest import validate_call
 from src.validation.ingestion_buffer import validate_ingestion_buffer
@@ -223,6 +247,36 @@ def _to_float(value: Any) -> float:
     return 0.0
 
 
+def _breakeven_series_chronological(
+    historical_rows: list[dict[str, Any]],
+    *,
+    today_be: float | None,
+) -> tuple[float, ...] | None:
+    """Oldest-first breakeven points for Δπ telemetry (optional when history is sparse)."""
+
+    parsed: list[tuple[date, float]] = []
+    for row in historical_rows:
+        dt_raw = row.get("date")
+        if dt_raw is None:
+            continue
+        try:
+            d_co = date.fromisoformat(str(dt_raw)[:10])
+        except ValueError:
+            continue
+        b = row.get("breakeven_inflation_10y")
+        if b is None:
+            continue
+        try:
+            parsed.append((d_co, float(b)))
+        except (TypeError, ValueError):
+            continue
+    parsed.sort(key=lambda x: x[0])
+    series = [float(v) for _, v in parsed]
+    if today_be is not None:
+        series.append(float(today_be))
+    return tuple(series) if series else None
+
+
 def _polymarket_json_for_llm(markets: list[dict[str, Any]]) -> str:
     if polymarket_odds_json_for_prompt is not None:
         return polymarket_odds_json_for_prompt(markets)
@@ -278,15 +332,35 @@ def _signal_row_from_db(row: dict[str, Any]) -> SignalRow:
         cross_asset_copper=row.get("cross_asset_copper"),
         cross_asset_stoxx=row.get("cross_asset_stoxx"),
         oi_delta=row.get("oi_delta"),
-        structural_instability=bool(row.get("structural_instability", False)),
+        volume_rvol=row.get("volume_rvol"),
+        structural_instability=row.get("structural_instability", False),
+
         breakeven_inflation_10y=row.get("breakeven_inflation_10y"),
         rate_diff_10y_real=row.get("rate_diff_10y_real"),
         rate_z_tactical=row.get("rate_z_tactical"),
         rate_z_structural=row.get("rate_z_structural"),
+        realized_vol_rank=row.get("realized_vol_rank"),
+        skew_alignment=int(row["skew_alignment"])
+        if row.get("skew_alignment") is not None
+        else None,
     )
 
 
 def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
+    et_raw = row.get("entry_timing")
+    entry_timing: Layer3EntryTiming | None
+    if et_raw == "ENTER" or et_raw == "WAIT":
+        entry_timing = et_raw
+    else:
+        entry_timing = None
+    ps_raw = row.get("position_size")
+    position_size: Layer3PositionSize | None
+    if ps_raw == "FULL" or ps_raw == "HALF":
+        position_size = ps_raw
+    else:
+        position_size = None
+    sl_raw = row.get("stop_level")
+    stop_level = float(sl_raw) if sl_raw is not None else None
     return RegimeCall(
         pair=str(row["pair"]),
         date=date.fromisoformat(str(row["date"])[:10]),
@@ -297,6 +371,9 @@ def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
         ),
         rate_signal=str(row.get("rate_signal") or "NEUTRAL"),
         primary_driver=str(row["primary_driver"]) if row.get("primary_driver") else None,
+        entry_timing=entry_timing,
+        position_size=position_size,
+        stop_level=stop_level,
     )
 
 
@@ -559,10 +636,10 @@ async def run_daily(date_str: str | None = None) -> None:
 
     for pair in PAIRS:
         prior_db = writer.get_latest_regime_call(pair)
-        historical_rows = writer.get_historical_signals(pair, limit=1260)
-        historical_carry = build_carry_history_from_rows(historical_rows, max_points=1260)
+        historical_rows = writer.get_historical_signals(pair, limit=2520)
+        historical_carry = build_carry_history_from_rows(historical_rows, max_points=2520)
         historical_real_10y = build_real_yield_10y_spread_history_from_rows(
-            historical_rows, max_points=1260
+            historical_rows, max_points=2520
         )
         structural_instability = structural_instability_from_carry_history(historical_carry)
         historical_us10y = [
@@ -605,8 +682,8 @@ async def run_daily(date_str: str | None = None) -> None:
         rate_dir = rate_direction_from_spreads(rate_spread_2y, rate_spread_10y_real)
         rate_spread_for_norm = rate_spread_2y if rate_spread_2y is not None else rate_spread_10y
 
-        cot_pct = compute_cot_percentile(cot_rows, pair)
-        cot_norm = normalize_cot_signal(cot_pct) if cot_pct is not None else None
+        cot_pct = compute_cot_percentile(cot_rows, pair, as_of=today_bar.date)
+        cot_norm = normalize_cot_signal(cot_pct)
 
         rv = vol_data.get(pair, {})
         rv5 = rv.get("realized_vol_5d")
@@ -701,8 +778,63 @@ async def run_daily(date_str: str | None = None) -> None:
             driver,
             float(betas_5y.get(driver_family, 0.0)),
         )
-        regime = classify_regime(composite, pair, vol_expanding=vol_exp)
+        prior_label = (
+            str(prior_db["regime"])
+            if prior_db and prior_db.get("regime") is not None
+            else None
+        )
+        spot_closes = tuple(float(bar.close) for bar in spot_bars)
+        carry_gate: tuple[float, ...] = tuple(float(x) for x in historical_carry)
+        if risk_adjusted_carry is not None:
+            carry_gate = carry_gate + (float(risk_adjusted_carry),)
+        bei_series = _breakeven_series_chronological(historical_rows, today_be=bei)
+        gate_out = classify_regime_layer1(
+            Layer1ClassifierContext(
+                pair=pair,
+                composite=float(composite),
+                vol_expanding=vol_exp,
+                structural_instability=structural_instability,
+                prior_regime_label=prior_label,
+                carry_risk_adjusted_chronological=carry_gate,
+                spot_closes_chronological=spot_closes,
+                breakeven_inflation_chronological=bei_series,
+                rate_diff_2y=rate_spread_2y,
+                realized_vol_20d=rv20,
+            ),
+        )
+        regime = gate_out["regime"]
+        if gate_out["invalidated"]:
+            rate_dir = "NEUTRAL"
+            confidence = float(max(0.40, confidence * 0.50))
+            logger.warning(
+                "Layer 1 invalidated for %s (stale: %s) — directional bias flattened",
+                pair,
+                ",".join(gate_out["stale_fields"]),
+            )
 
+        layer2_out = run_layer2_directional(
+            composite=float(composite),
+            z_tactical=rate_norm,
+            z_structural=rate_z_structural_val,
+            rate_direction=rate_dir,
+            positioning_percentile=cot_pct,
+            layer1_invalidated=bool(gate_out["invalidated"]),
+        )
+        rv_rank_layer3 = compute_realized_vol_rank_from_closes(
+            tuple(float(b.close) for b in spot_bars),
+            window=TRADING_DAYS_3Y_VOL_RANK,
+        )
+        layer3_out = run_layer3_execution(
+            layer2=layer2_out,
+            spot=float(today_bar.close) if today_bar.close else None,
+            spot_bars=spot_bars,
+            realized_vol_rank=rv_rank_layer3,
+            risk_reversal_series_bps=(),
+        )
+        confidence = min(
+            float(confidence),
+            0.35 + 0.11 * float(layer2_out["conviction"]),
+        )
         day_change = today_bar.close - yest_bar.close
         day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
         iv = fetch_implied_vol(pair)
@@ -715,6 +847,10 @@ async def run_daily(date_str: str | None = None) -> None:
                 pair,
                 us10y_value,
             )
+
+        # Pillar 2: RVOL calculation (Institutional Proxy)
+        volumes = [b.volume for b in spot_bars if b.volume > 0]
+        rvol = compute_rvol(volumes)
 
         signal_row = SignalRow(
             pair=pair,
@@ -736,11 +872,14 @@ async def run_daily(date_str: str | None = None) -> None:
             cross_asset_copper=cross.get("copper"),
             cross_asset_stoxx=cross.get("stoxx"),
             oi_delta=oi_delta,
+            volume_rvol=rvol,
             structural_instability=structural_instability,
             breakeven_inflation_10y=bei,
             rate_diff_10y_real=rate_spread_10y_real,
             rate_z_tactical=rate_norm,
             rate_z_structural=rate_z_structural_val,
+            realized_vol_rank=layer3_out["realized_vol_rank"],
+            skew_alignment=layer3_out["skew_alignment"],
         )
 
         if prior_db and str(prior_db.get("date"))[:10] != today_bar.date.isoformat():
@@ -767,6 +906,9 @@ async def run_daily(date_str: str | None = None) -> None:
             signal_composite=composite,
             rate_signal=rate_dir,
             primary_driver=driver,
+            entry_timing=layer3_out["entry_timing"],
+            position_size=layer3_out["position_size"],
+            stop_level=layer3_out["stop_level"],
         )
         writer.write_regime_call(call)
         ledger.log_initial_signal(
@@ -844,6 +986,7 @@ async def run_daily(date_str: str | None = None) -> None:
                 realized_vol_20d=rv20,
                 implied_vol_30d=iv,
                 carry_by_date=carry_by_date,
+                rvol=rvol,
             )
             logger.info("Pain index (%s): %s", pair, pain)
         except Exception as exc:  # noqa: BLE001
@@ -891,6 +1034,8 @@ async def run_daily(date_str: str | None = None) -> None:
                 markov.weighted_sample_size if markov is not None else 0.0
             ),
             "parameter_instability": parameter_instability,
+            "layer2_directional": dict(layer2_out),
+            "layer3_execution": dict(layer3_out),
         }
         todays_event_matrix = _first_todays_high_impact_matrix_for_pair(
             events,
@@ -907,6 +1052,7 @@ async def run_daily(date_str: str | None = None) -> None:
                     "date_str": today_bar.date.isoformat(),
                     "primary_driver": driver,
                     "pain_index": pain.pain_index if pain is not None else None,
+                    "rvol": rvol,
                     "todays_event_matrix": todays_event_matrix,
                     "dollar_dominance_score": None,
                     "dollar_bias": None,

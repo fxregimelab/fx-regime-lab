@@ -1,24 +1,31 @@
 'use client';
 
-type ErrorProps = {
+import { useEffect } from 'react';
+
+export default function AppError({
+  error,
+  reset,
+}: {
   error: Error & { digest?: string };
   reset: () => void;
-};
+}) {
+  useEffect(() => {
+    console.error('App-level Error caught:', error);
+  }, [error]);
 
-export default function Error({ error, reset }: ErrorProps) {
   return (
-    <div className="min-h-screen bg-[#000000] text-[#e8e8e8] flex items-center justify-center px-6">
-      <div className="w-full max-w-2xl border border-[#222] bg-[#000000] p-6">
-        <p className="font-mono text-[12px] tracking-widest text-[#f59e0b]">[ DATA OFFLINE ]</p>
-        <p className="font-mono text-[11px] text-[#888] mt-2 break-all">
-          {error.message || 'Unexpected terminal fault'}
+    <div className="flex h-full w-full flex-col items-center justify-center bg-[#000000] p-6 font-mono shadow-none">
+      <div className="border border-[#222] bg-[#030303] p-8 text-center shadow-none">
+        <p className="mb-4 text-[10px] tracking-widest text-[#f59e0b] shadow-none">[ RENDER EXCEPTION ]</p>
+        <h2 className="mb-4 text-xl font-light text-white shadow-none">Component Failure Detected</h2>
+        <p className="mb-8 text-[11px] text-[#666] shadow-none">
+          {error.message || 'The terminal module failed to render correctly.'}
         </p>
         <button
-          type="button"
           onClick={() => reset()}
-          className="mt-4 border border-[#333] bg-[#000000] px-3 py-2 font-mono text-[10px] text-[#d4d4d4] tracking-widest hover:text-[#ffffff]"
+          className="border border-[#333] bg-transparent px-4 py-2 text-[10px] tracking-widest text-[#d4d4d4] transition-colors hover:bg-[#111] shadow-none"
         >
-          [ RETRY ]
+          [ RETRY MODULE ]
         </button>
       </div>
     </div>

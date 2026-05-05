@@ -42,3 +42,6 @@ Git
 Large or irrelevant docs
 *.canvas
 reports/
+_docs/legacy/
+_docs/archive/
+/_archive/

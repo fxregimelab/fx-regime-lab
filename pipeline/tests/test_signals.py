@@ -19,7 +19,9 @@ from src.types import CotRow
 
 
 def make_date(n: int) -> datetime.date:
-    return datetime.date(2026, 1, n + 1)
+    # Start from 2025-06-01 to safely accommodate 200+ weekly offsets
+    base = datetime.date(2025, 6, 1)
+    return base + datetime.timedelta(weeks=n)
 
 
 def test_rate_normalize_eurusd() -> None:
@@ -98,6 +100,52 @@ def test_cot_percentile_max() -> None:
 def test_cot_percentile_too_few_rows() -> None:
     rows = [CotRow(make_date(0), "EURUSD", net_long=100, open_interest=1000)]
     assert compute_cot_percentile(rows, "EURUSD") is None
+
+
+def test_cot_percentile_three_year_window_uses_last_156() -> None:
+    # 200 weekly points: an ancient outlier outside the trailing 156 should not affect π.
+    rows: list[CotRow] = []
+    for i in range(200):
+        nl = 10_000 if i < 44 else i
+        rows.append(CotRow(make_date(i), "EURUSD", net_long=nl, open_interest=1000))
+    p = compute_cot_percentile(rows, "EURUSD")
+    assert p is not None
+    assert p == pytest.approx(100.0)
+
+
+def test_cot_percentile_as_of_excludes_future_reports() -> None:
+    rows = [
+        CotRow(datetime.date(2024, 1, 5), "EURUSD", net_long=0, open_interest=1),
+        CotRow(datetime.date(2024, 1, 12), "EURUSD", net_long=0, open_interest=1),
+        CotRow(datetime.date(2024, 1, 19), "EURUSD", net_long=0, open_interest=1),
+        CotRow(datetime.date(2024, 1, 26), "EURUSD", net_long=0, open_interest=1),
+        CotRow(datetime.date(2024, 2, 2), "EURUSD", net_long=0, open_interest=1),
+        CotRow(datetime.date(2024, 2, 9), "EURUSD", net_long=0, open_interest=1),
+        CotRow(datetime.date(2024, 2, 16), "EURUSD", net_long=0, open_interest=1),
+        CotRow(datetime.date(2024, 2, 23), "EURUSD", net_long=100, open_interest=1),
+        CotRow(datetime.date(2024, 3, 1), "EURUSD", net_long=0, open_interest=1),
+        CotRow(datetime.date(2024, 3, 8), "EURUSD", net_long=50, open_interest=1),
+    ]
+    p_cut = compute_cot_percentile(rows, "EURUSD", as_of=datetime.date(2024, 2, 23))
+    p_full = compute_cot_percentile(rows, "EURUSD")
+    assert p_cut is not None and p_full is not None
+    assert p_cut == pytest.approx(100.0)
+    assert p_full == pytest.approx(90.0)
+
+
+def test_cot_duplicate_report_date_last_wins() -> None:
+    d = datetime.date(2024, 1, 5)
+    rows = [
+        CotRow(d, "EURUSD", net_long=0, open_interest=1),
+        CotRow(d, "EURUSD", net_long=100, open_interest=1),
+        *[CotRow(make_date(i + 1), "EURUSD", net_long=i * 10, open_interest=1) for i in range(8)],
+    ]
+    p = compute_cot_percentile(rows, "EURUSD")
+    assert p is not None
+
+
+def test_cot_normalize_none() -> None:
+    assert normalize_cot_signal(None) is None
 
 
 def test_cot_normalize() -> None:

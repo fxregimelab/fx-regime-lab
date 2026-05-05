@@ -4,11 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Nav } from '@/components/layout/nav';
 import { Footer } from '@/components/layout/footer';
-import { MacroPulseBar, PULSE_BAR_H } from '@/components/ui/macro-pulse-bar';
 import { BRAND, PAIRS } from '@/lib/mockData';
-
-const SHELL_NAV_H = 54;
-const SHELL_TOP_OFFSET = PULSE_BAR_H + SHELL_NAV_H;
 
 const PIPELINE_STEPS = [
   {
@@ -144,9 +140,8 @@ export default function About() {
 
   return (
     <>
-      <MacroPulseBar />
       <Nav />
-      <main className="flex-1 bg-white" style={{ marginTop: `${SHELL_TOP_OFFSET}px` }}>
+      <main className="flex-1 bg-white">
         <div className="w-full px-6 md:px-8 pt-14 pb-20">
           
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-16 lg:gap-20 mb-20 pb-16 border-b border-[#e5e5e5]">

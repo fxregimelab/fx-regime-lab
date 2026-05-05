@@ -36,13 +36,23 @@ function PulseItem({
 
 const DIVIDER = <div className="w-[1px] h-2.5 bg-[#1a1a1a] shrink-0" />;
 
-export function MacroPulseBar() {
+type MacroPulseBarProps = {
+  /** Rendered inside `GlobalMacroPulse` (fixed shell); omit sticky — parent is `fixed top-0`. */
+  embeddedInGlobalChrome?: boolean;
+};
+
+export function MacroPulseBar({ embeddedInGlobalChrome = false }: MacroPulseBarProps) {
   const { data, isPending } = useCrossAssetPulse();
+
+  const shell =
+    embeddedInGlobalChrome
+      ? 'w-full h-[28px] shrink-0 bg-[#000000] flex items-center overflow-hidden whitespace-nowrap'
+      : 'w-full h-[28px] shrink-0 sticky top-0 z-[100] bg-[#000000] border-b border-[#111] flex items-center overflow-hidden whitespace-nowrap';
 
   // Fixed height h-[28px] — never grows, never shifts
   return (
     <div
-      className="w-full h-[28px] shrink-0 sticky top-0 z-[100] bg-[#000000] border-b border-[#111] flex items-center overflow-hidden whitespace-nowrap"
+      className={shell}
       style={{ height: `${PULSE_BAR_H}px`, maxHeight: `${PULSE_BAR_H}px` }}
     >
       {/* Scrolling marquee — bar height is fixed; inner row must not expand the track */}

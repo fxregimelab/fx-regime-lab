@@ -46,6 +46,7 @@ class EventRiskResult:
     t1_exhaustion_p97_5: float | None
     t1_tail_risk_p95: float | None
     t1_tail_risk_p05: float | None
+    mean_reversion_prob: float | None = None
 
 
 def _to_date(value: Any) -> date | None:
@@ -208,6 +209,7 @@ def compute_event_risk_matrix(
     miss_returns: list[float] = []
     inline_returns: list[float] = []
     all_t1_returns: list[float] = []
+    reversion_hits: list[bool] = []
 
     for surprise in historical_surprises:
         row_canon = normalize_event_name(str(surprise.get("event_name", "")))
@@ -228,6 +230,12 @@ def compute_event_risk_matrix(
             continue
 
         open_px, high_px, low_px, close_px = price_row
+        # Mean Reversion Logic: Did price return to within 20% of the day's range of the Open?
+        daily_range = abs(high_px - low_px)
+        if daily_range > 0:
+            reverted = abs(close_px - open_px) < (0.20 * daily_range)
+            reversion_hits.append(reverted)
+
         baseline_1h = _median_prior_daily_range(prices_by_date, sorted_price_dates, dt) * 0.25
         mie_raw = max(abs(high_px - open_px), abs(low_px - open_px))
         mie_refined = max(0.0, mie_raw - baseline_1h)
@@ -344,6 +352,10 @@ def compute_event_risk_matrix(
     p975 = _quantile_q(all_t1_returns, 0.975) if n_t1 >= 5 else None
     p95_tail = _quantile_q(all_t1_returns, 0.95) if n_t1 >= 5 else None
     p05_tail = _quantile_q(all_t1_returns, 0.05) if n_t1 >= 5 else None
+    
+    rev_prob: float | None = None
+    if len(reversion_hits) >= 5:
+        rev_prob = (sum(1 for h in reversion_hits if h) / len(reversion_hits)) * 100.0
 
     return EventRiskResult(
         date=target_date.isoformat(),
@@ -363,4 +375,5 @@ def compute_event_risk_matrix(
         t1_exhaustion_p97_5=p975,
         t1_tail_risk_p95=p95_tail,
         t1_tail_risk_p05=p05_tail,
+        mean_reversion_prob=rev_prob,
     )

@@ -2,9 +2,9 @@
 
 ## Read First
 
-Always read AGENTS.md before starting any task. Then read TASK.md.
+Always read ARCHITECTURAL_BLUEPRINT.md before starting any task. Use MOC.md for navigation.
 
-There is **no shipped `web/` frontend** in this repo. Design intent lives in **`claude-design/`**. Prior Supabase read patterns: **`docs/DATA_READS_SPEC.md`**.
+Production Next.js frontend is in **`/web`**. Design prototypes are in **`claude-design/`**.
 
 ## Hard Rules — Python
 
@@ -12,6 +12,12 @@ There is **no shipped `web/` frontend** in this repo. Design intent lives in **`
 - All AI calls through `pipeline/src/ai/client.py` only
 - mypy strict on all pipeline code
 - Ruff lint on all pipeline code
+
+## Hard Rules — Web
+
+- Strictly use generated Supabase types from `web/src/lib/supabase/database.types.ts`.
+- No soft shadows, no rounded corners (Institutional Aesthetic).
+- All financial data must use `tabular-nums`.
 
 ## File Location Map
 
@@ -22,13 +28,5 @@ There is **no shipped `web/` frontend** in this repo. Design intent lives in **`
 | Change regime logic | `pipeline/src/regime/` |
 | Change AI prompts | `pipeline/src/ai/client.py` |
 | Write to DB | `pipeline/src/db/writer.py` |
+| Change Frontend | `web/src/` |
 | Understand target UX | `claude-design/` |
-
-## Design Reference
-
-`claude-design/` files are read-only reference. Never import from them into production code until a new app exists.
-
-## Never Do
-
-- Never call AI providers from a future frontend except via explicit product design (today: pipeline only)
-- Never bypass `pipeline/src/db/writer.py` for Supabase writes

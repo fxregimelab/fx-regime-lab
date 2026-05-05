@@ -254,7 +254,8 @@ def _bars_from_yf_frame(raw: pd.DataFrame, pair: str, ticker: str) -> list[SpotB
             h = row.get("High", np.nan)
             lo = row.get("Low", np.nan)
             c = row.get("Close", np.nan)
-            if any(pd.isna(v) for v in (o, h, lo, c)):
+            v = row.get("Volume", 0.0)
+            if any(pd.isna(val) for val in (o, h, lo, c)):
                 continue
             bars.append(
                 SpotBar(
@@ -264,6 +265,7 @@ def _bars_from_yf_frame(raw: pd.DataFrame, pair: str, ticker: str) -> list[SpotB
                     high=float(h),
                     low=float(lo),
                     close=float(c),
+                    volume=float(v) if not pd.isna(v) else 0.0,
                 ),
             )
     except Exception as exc:  # noqa: BLE001
@@ -386,4 +388,34 @@ async def fetch_fx_spot_async(
         len(out),
         time.perf_counter() - t_batch,
     )
+
+    # Pillar 2: Fetch institutional volume proxies (CME Futures) for RVOL gating
+    vol_tasks: list[tuple[str, str]] = []
+    for sym, meta in universe.items():
+        if not isinstance(meta, dict) or meta.get("class") != "FX":
+            continue
+        tickers = meta.get("tickers") or {}
+        vt = tickers.get("volume_ticker")
+        if isinstance(vt, str) and vt.strip():
+            vol_tasks.append((sym, vt.strip()))
+
+    if vol_tasks:
+        logger.info("fetch_fx_spot_async: fetching volume proxies for %s pairs", len(vol_tasks))
+        vol_results = await asyncio.gather(
+            *[_fetch_one_spot_async(pair, t, period, gate) for pair, t in vol_tasks],
+            return_exceptions=True,
+        )
+        for res in vol_results:
+            if isinstance(res, BaseException) or not res:
+                continue
+            pair, vol_bars = res
+            if not vol_bars or pair not in out:
+                continue
+            # Merge volume into spot bars by matching date
+            vol_map = {b.date: b.volume for b in vol_bars if b.volume > 0}
+            for bar in out[pair]:
+                if bar.date in vol_map:
+                    bar.volume = vol_map[bar.date]
+
     return out
+

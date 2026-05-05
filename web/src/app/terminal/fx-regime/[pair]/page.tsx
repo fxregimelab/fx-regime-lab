@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { useParams } from 'next/navigation';
+import { BinaryResolve } from '@/components/ui/BinaryResolve';
 import { DeskCard } from '@/components/ui/desk-card';
 import { WeeklyThesisHud } from '@/components/ui/weekly-thesis-hud';
+import { EventRadar } from '@/components/ui/event-radar';
 import { PAIRS } from '@/lib/mockData';
-import { fmtPct, fmtChg } from '@/components/ui/utils';
+import { fmt4, fmtPct, fmtChg } from '@/components/ui/utils';
 import {
   useDeskOpenCard,
   useTelemetryStatus,
@@ -17,9 +19,45 @@ import {
   useRegimeHistory30D,
   useLatestRegimeCalls,
   useResearchMemosList,
+  useUpcomingMacroEvents,
+  useEventRiskMatrices,
 } from '@/lib/queries';
 import { isSameWeekUtc, parseThesisBulletsFromJson } from '@/lib/research-memo-thesis';
 import { useLocalSettings } from '@/hooks/useLocalSettings';
+
+type SideTab = 'radar' | 'thesis' | 'raw';
+
+function flattenTelemetryAudit(obj: unknown, prefix = ''): { k: string; v: string }[] {
+  if (obj == null) return [{ k: prefix || 'telemetry_audit', v: '—' }];
+  if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') {
+    return [{ k: prefix || 'value', v: String(obj) }];
+  }
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return [{ k: prefix, v: '[]' }];
+    return obj.flatMap((item, i) => flattenTelemetryAudit(item, `${prefix}[${i}]`));
+  }
+  if (typeof obj === 'object') {
+    const entries = Object.entries(obj as Record<string, unknown>);
+    if (entries.length === 0) return [{ k: prefix, v: '{}' }];
+    return entries.flatMap(([key, val]) => {
+      const k = prefix ? `${prefix}.${key}` : key;
+      if (val !== null && typeof val === 'object') {
+        return flattenTelemetryAudit(val, k);
+      }
+      return [{ k, v: val == null ? '—' : String(val) }];
+    });
+  }
+  return [{ k: prefix, v: String(obj) }];
+}
+
+function thesisBulletMentionsPair(text: string, pair: { label: string; display: string }): boolean {
+  const u = text.toUpperCase();
+  if (text.includes(pair.display)) return true;
+  if (u.includes(pair.label.toUpperCase())) return true;
+  const compact = pair.display.replace(/\s*\/?\s*/g, '');
+  if (compact && u.includes(compact.toUpperCase())) return true;
+  return false;
+}
 
 const TradingViewChart = dynamic(() => import('@/components/ui/trading-view-chart'), {
   ssr: false,
@@ -38,7 +76,10 @@ export default function PairDeskPage() {
   const lastRunQ = useLastPipelineRun();
   const regimeLatestQ = useLatestRegimeCalls();
   const memosQ = useResearchMemosList();
+  const eventsQ = useUpcomingMacroEvents();
+  const matricesQ = useEventRiskMatrices(pair.label);
   const { chartRange, setSettings, hydrated: settingsHydrated } = useLocalSettings();
+  const [sideTab, setSideTab] = useState<SideTab>('radar');
 
   const card = deskCardQ.data;
   const telemetry = telemetryQ.data;
@@ -59,16 +100,33 @@ export default function PairDeskPage() {
   const confNum = liveConf != null ? Number(liveConf) : null;
 
   const latestMemo = memosQ.data?.[0];
-  const weeklyThesisBullets = useMemo(() => {
+  const weeklyThesisBulletsAll = useMemo(() => {
     if (!latestMemo || !isSameWeekUtc(latestMemo.date, today)) return [];
     const bullets = parseThesisBulletsFromJson(latestMemo.ai_thesis_summary);
     return bullets.length === 5 ? bullets : [];
   }, [latestMemo, today]);
 
+  const pairThesisBullets = useMemo(
+    () => weeklyThesisBulletsAll.filter((b) => thesisBulletMentionsPair(b, pair)),
+    [weeklyThesisBulletsAll, pair],
+  );
+
+  const rawTelemetryRows = useMemo(
+    () => flattenTelemetryAudit(card?.telemetry_audit ?? null),
+    [card?.telemetry_audit],
+  );
+
+  const radarEvents = eventsQ.data ?? [];
+  const radarMatrices = matricesQ.data ?? [];
+
   useEffect(() => {
     if (!settingsHydrated) return;
     setSettings({ selectedPair: pair.label });
   }, [settingsHydrated, pair.label, setSettings]);
+
+  useEffect(() => {
+    setSideTab('radar');
+  }, [pairSlug]);
 
   const linkedinCardData =
     card && !isOffline
@@ -99,10 +157,10 @@ export default function PairDeskPage() {
       className={`min-h-screen bg-[#000000] ${bodyTone}`}
     >
       <div
-        className="grid grid-cols-1 xl:grid-cols-[72px_minmax(0,1fr)_minmax(320px,22vw)] min-w-0 overflow-hidden"
+        className="grid grid-cols-1 min-w-0 xl:h-[calc(100dvh-var(--global-pulse-h,28px)-var(--terminal-nav-h,76px))] xl:grid-cols-[72px_minmax(0,1fr)_minmax(320px,22vw)] xl:overflow-hidden"
         style={{
-          marginTop: 'var(--terminal-nav-h, 104px)',
-          height: 'calc(100dvh - var(--terminal-nav-h, 104px))',
+          marginTop: 'var(--terminal-nav-h, 76px)',
+          minHeight: 'calc(100dvh - var(--global-pulse-h, 28px) - var(--terminal-nav-h, 76px))',
         }}
       >
         <aside className="hidden xl:flex min-h-0 flex-col border-r border-[#111] bg-[#000000] overflow-y-auto">
@@ -132,7 +190,7 @@ export default function PairDeskPage() {
           <section className={`border-b ${borderTone} px-6 py-5`}>
             <div className="flex items-center justify-between mb-2">
               <p className="font-mono text-[9px] text-[#666] tracking-widest">{pair.display}</p>
-              <span className="font-mono text-[9px] font-bold text-[#d4d4d4] tracking-widest border border-[#111] bg-[#000000] px-2 py-1">
+              <span className="font-mono text-[9px] font-bold text-[#d4d4d4] tracking-widest border-0 border-t-[0.5px] border-t-white/[0.08] border-l-[0.5px] border-l-white/[0.03] bg-[#080808] px-2 py-1">
                 [ PIPELINE VERIFIED ]
               </span>
             </div>
@@ -148,8 +206,17 @@ export default function PairDeskPage() {
             ) : null}
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h1 className="font-mono text-6xl leading-none font-bold text-white tabular-nums">
-                  {sig?.spot != null ? Number(sig.spot).toFixed(pair.label === 'USDJPY' ? 2 : 4) : '--'}
+                <h1 className="font-mono text-6xl leading-none font-bold text-white tabular-nums will-change-[contents]">
+                  <BinaryResolve
+                    value={
+                      sig?.spot != null
+                        ? pair.label === 'USDJPY'
+                          ? Number(sig.spot).toFixed(2)
+                          : fmt4(Number(sig.spot))
+                        : '—'
+                    }
+                    resolveKey={sig?.spot ?? null}
+                  />
                 </h1>
                 <p className={`font-mono text-[12px] tabular-nums mt-2 ${chgObj.color}`}>{chgObj.str}</p>
               </div>
@@ -252,10 +319,100 @@ export default function PairDeskPage() {
               apexScoreDisplay={
                 card?.apex_score != null ? Math.round(card.apex_score * 100) : null
               }
+              mathRateZTactical={sig?.rate_diff_zscore ?? null}
+              mathRateZStructural={card?.telemetry_audit?.rate_z_structural_mad ?? null}
+              mathDynamicBeta={topDominance?.beta ?? null}
               linkedinCardData={linkedinCardData}
+              whisper={`GHOST_CHANNEL_${pair.label}`}
             />
           </div>
-          <WeeklyThesisHud bullets={weeklyThesisBullets} />
+
+          <div className="omega-gutter flex min-h-0 flex-1 flex-col border-0 border-t-[0.5px] border-t-white/[0.08] border-l-[0.5px] border-l-white/[0.03] bg-[#080808] will-change-[background]">
+            <div
+              className="flex shrink-0 border-b border-[#111] font-mono text-[9px] tracking-widest"
+              role="tablist"
+            >
+              {(
+                [
+                  ['radar', '[ RADAR ]'],
+                  ['thesis', '[ THESIS ]'],
+                  ['raw', '[ RAW ]'],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={sideTab === id}
+                  onClick={() => setSideTab(id)}
+                  className={`min-w-0 flex-1 px-2 py-2.5 text-center transition-colors ${
+                    sideTab === id
+                      ? 'bg-[#080808] text-[#f0f0f0] border-b-2 border-b-white/30'
+                      : 'text-[#666] hover:text-[#a3a3a3]'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-3" role="tabpanel">
+              {sideTab === 'radar' ? (
+                eventsQ.isPending || matricesQ.isPending ? (
+                  <p className="font-mono text-[10px] text-[#666] tabular-nums">
+                    [ LOADING EVENT RADAR… ]
+                  </p>
+                ) : eventsQ.isError || matricesQ.isError ? (
+                  <p className="font-mono text-[10px] text-[#ef4444] tabular-nums">
+                    [ RADAR DATA ERROR ]
+                  </p>
+                ) : (
+                  <EventRadar
+                    pair={pair.label}
+                    events={radarEvents}
+                    matrices={radarMatrices}
+                    telemetryStatus={
+                      telemetry
+                        ? {
+                            invalidation_triggered: telemetry.invalidation_triggered,
+                            telemetry_status: telemetry.telemetry_status,
+                          }
+                        : null
+                    }
+                  />
+                )
+              ) : null}
+
+              {sideTab === 'thesis' ? (
+                pairThesisBullets.length > 0 ? (
+                  <WeeklyThesisHud bullets={pairThesisBullets} />
+                ) : (
+                  <p className="font-mono text-[10px] leading-relaxed text-[#666]">
+                    No Sunday memo lines scoped to {pair.display} for this week.
+                  </p>
+                )
+              ) : null}
+
+              {sideTab === 'raw' ? (
+                rawTelemetryRows.length === 0 ? (
+                  <p className="font-mono text-[10px] text-[#666] tabular-nums">
+                    [ NO TELEMETRY AUDIT ]
+                  </p>
+                ) : (
+                  <ul className="m-0 list-none space-y-1.5 p-0">
+                    {rawTelemetryRows.map(({ k, v }) => (
+                      <li
+                        key={k}
+                        className="flex gap-2 border-b border-[#111] border-dotted pb-1.5 font-mono text-[10px] tabular-nums text-[#a3a3a3] last:border-0"
+                      >
+                        <span className="min-w-0 shrink text-[#666] break-all">{k}</span>
+                        <span className="min-w-0 flex-1 break-all text-[#d4d4d4]">{v}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              ) : null}
+            </div>
+          </div>
         </aside>
       </div>
     </motion.div>

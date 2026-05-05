@@ -7,7 +7,7 @@ import logging
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, Required, TypedDict, cast
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +132,7 @@ class SpotBar:
     high: float
     low: float
     close: float
+    volume: float = 0.0
 
 
 @dataclass
@@ -163,17 +164,84 @@ class SignalRow:
     cross_asset_copper: float | None
     cross_asset_stoxx: float | None
     oi_delta: int | None
+    volume_rvol: float | None = None
     structural_instability: bool = False
     breakeven_inflation_10y: float | None = None
     rate_diff_10y_real: float | None = None
     rate_z_tactical: float | None = None
     rate_z_structural: float | None = None
+    realized_vol_rank: float | None = None
+    skew_alignment: int | None = None
 
     @property
     def breakeven_inflation(self) -> float | None:
         """FRED T10YIE (10Y breakeven inflation, %); alias of ``breakeven_inflation_10y``."""
 
         return self.breakeven_inflation_10y
+
+
+class Layer1GateOutput(TypedDict):
+    """Deterministic Layer 1 state vector (Marcus gate + hysteresis-adjusted label)."""
+
+    regime: Required[str]
+    invalidated: Required[bool]
+    z_rate: Required[float | None]
+    m_rate: Required[float | None]
+    delta_pi: Required[float | None]
+    d_spot: Required[float | None]
+    stale_fields: Required[list[str]]
+    raw_regime: Required[str]
+
+
+Layer2DirectionalBias = Literal["LONG", "SHORT", "NEUTRAL"]
+
+
+class Layer2DirectionalOutput(TypedDict):
+    """Layer 2 conviction + directional bias (COT percentile, crowding, Marcus B clash veto)."""
+
+    positioning_percentile: Required[float | None]
+    crowd_flag: Required[bool]
+    crowd_penalty: Required[float]
+    crowd_veto: Required[bool]
+    conviction_multiplier: Required[float]
+    conviction: Required[int]
+    directional_bias: Required[Layer2DirectionalBias]
+    rate_positioning_clash: Required[bool]
+
+
+Layer3EntryTiming = Literal["ENTER", "WAIT"]
+Layer3PositionSize = Literal["FULL", "HALF"]
+
+
+class Layer3ExecutionOutput(TypedDict):
+    """Layer 3 execution HUD: timing, sizing, stop, and skew/vol diagnostics."""
+
+    entry_timing: Required[Layer3EntryTiming]
+    position_size: Required[Layer3PositionSize]
+    stop_level: Required[float | None]
+    realized_vol_rank: Required[float | None]
+    skew_alignment: Required[int]
+    skew_reversal_flag: Required[bool]
+    risk_reversal_z: Required[float | None]
+    adr: Required[float | None]
+    mie_proxy: Required[float | None]
+    stop_buffer: Required[float | None]
+
+
+@dataclass(frozen=True)
+class Layer1ClassifierContext:
+    """Inputs for ``run_layer1_gate`` (Chamber 1). Series are oldest → newest."""
+
+    pair: str
+    composite: float
+    vol_expanding: bool
+    structural_instability: bool
+    prior_regime_label: str | None
+    carry_risk_adjusted_chronological: tuple[float, ...]
+    spot_closes_chronological: tuple[float, ...]
+    breakeven_inflation_chronological: tuple[float, ...] | None
+    rate_diff_2y: float | None
+    realized_vol_20d: float | None
 
 
 @dataclass
@@ -185,6 +253,9 @@ class RegimeCall:
     signal_composite: float
     rate_signal: str
     primary_driver: str | None = None
+    entry_timing: Layer3EntryTiming | None = None
+    position_size: Layer3PositionSize | None = None
+    stop_level: float | None = None
 
 
 @dataclass

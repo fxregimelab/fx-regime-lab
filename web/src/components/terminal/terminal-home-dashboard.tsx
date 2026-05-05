@@ -37,7 +37,7 @@ export function TerminalHomeDashboard() {
         initial="hidden"
         animate="show"
         className="w-full px-6 md:px-8 py-10"
-        style={{ marginTop: 'var(--terminal-nav-h, 104px)' }}
+        style={{ marginTop: 'var(--terminal-nav-h, 76px)' }}
       >
         {pending ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-0.5 mb-8">

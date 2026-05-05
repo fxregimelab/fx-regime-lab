@@ -472,6 +472,10 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
+      get_g10_correlation_matrix: {
+        Args: Record<string, never>
+        Returns: Json
+      }
       historical_prices_for_max_chart: {
         Args: {
           p_pair: string

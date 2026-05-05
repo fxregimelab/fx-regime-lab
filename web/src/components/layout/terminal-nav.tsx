@@ -4,6 +4,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Clock } from 'lucide-react';
+import { GhostResolve } from '../ui/GhostResolve';
 import { LogoMark } from '../ui/logo-mark';
 import { PAIRS } from '@/lib/mockData';
 import {
@@ -13,18 +14,18 @@ import {
   useLatestDeskOpenCardsSnapshot,
   useLatestBrief,
 } from '@/lib/queries';
-import { MacroPulseBar, PULSE_BAR_H } from '../ui/macro-pulse-bar';
 import { SystemicClusterBanner } from '../ui/systemic-cluster-banner';
 import { formatCountdownHms, getNextPipelineRunUtc } from './ny-pipeline-run';
 
 // Row heights (px) — used to compute total sticky height for scroll offsets
 const NAV_TOP_ROW_H = 38; // brand + status bar
 const NAV_BOTTOM_ROW_H = 38; // breadcrumb + pair tabs
-/** Minimum height before optional systemic + command rows (pulse + two nav rows). */
-export const TERMINAL_NAV_MIN_H = PULSE_BAR_H + NAV_TOP_ROW_H + NAV_BOTTOM_ROW_H;
+/** Minimum height before optional systemic + command rows (two fixed nav rows; macro pulse is global). */
+export const TERMINAL_NAV_MIN_H = NAV_TOP_ROW_H + NAV_BOTTOM_ROW_H;
 /** @deprecated Prefer CSS variable `--terminal-nav-h` (set by TerminalNav after layout). */
 export const TERMINAL_NAV_H = TERMINAL_NAV_MIN_H;
-const NAV_TOP_OFFSET = 32;
+/** Sticky offset below fixed global macro pulse (28px). */
+const NAV_TOP_OFFSET = 28;
 const COMMAND_STRIP_MIN_H = 56;
 
 type PmTopItem = { label: string; prob: number | null };
@@ -115,14 +116,14 @@ export function TerminalNav() {
 
   const { data: signals } = signalsQ;
   const err = signalsQ.isError || regimeQ.isError;
-  const pending = signalsQ.isPending || regimeQ.isPending;
+  const heartbeatPending = signalsQ.isPending || regimeQ.isPending;
 
   useLayoutEffect(() => {
     const el = headerRef.current;
     if (!el) return;
     const h = el.offsetHeight;
     document.documentElement.style.setProperty('--terminal-nav-h', `${h}px`);
-  }, [showSystemic, cmdBrief, deskSnapQ.data, pending, err]);
+  }, [showSystemic, cmdBrief, deskSnapQ.data, heartbeatPending, err]);
 
   const handleRefresh = () => {
     signalsQ.refetch();
@@ -144,9 +145,6 @@ export function TerminalNav() {
       className="border-b border-[#111] bg-[#000000] sticky z-[90] print:hidden overflow-hidden"
       style={{ top: `${NAV_TOP_OFFSET}px` }}
     >
-      {/* Row 1 — Macro Pulse (fixed h-[28px]) */}
-      <MacroPulseBar />
-
       {showSystemic ? <SystemicClusterBanner embedded /> : null}
 
       {cmdBrief ? (
@@ -156,6 +154,19 @@ export function TerminalNav() {
         >
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
             <span className="text-[#777] tracking-widest">SYSTEMIC COMMAND</span>
+            <span className="hidden sm:inline text-[#333]">|</span>
+            <span className="hidden min-w-0 max-w-[320px] truncate sm:inline" title="Ghost insight">
+              <span className="text-[#444] tracking-widest">GHOST · </span>
+              <GhostResolve
+                value={
+                  showSystemic
+                    ? 'MARKET_STRUCTURE_SHIFT_DETECTED'
+                    : 'REGIME_TELEMETRY_NOMINAL'
+                }
+                resolveKey={showSystemic ? 'cluster' : 'nominal'}
+                active
+              />
+            </span>
             <span className="hidden sm:inline text-[#333]">|</span>
             <span>
               DOLLAR DOMINANCE:{' '}
@@ -193,7 +204,7 @@ export function TerminalNav() {
         style={{ height: `${NAV_TOP_ROW_H}px` }}
       >
         <div className="flex items-center gap-2.5">
-          <LogoMark size={24} />
+          <LogoMark size={24} heartbeat={heartbeatPending} />
           <span className="font-mono text-[10px] text-[#333]">/ Terminal</span>
         </div>
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
@@ -201,16 +212,16 @@ export function TerminalNav() {
           <button
             onClick={handleRefresh}
             className="font-mono text-[9px] text-[#555] hover:text-[#888] transition-colors cursor-pointer border border-[#111] px-1.5 py-0.5 bg-[#000000]"
-            disabled={pending}
+            disabled={heartbeatPending}
           >
-            {pending ? 'SYNCING...' : 'REFRESH'}
+            {heartbeatPending ? 'SYNCING...' : 'REFRESH'}
           </button>
           <div className="flex items-center gap-1.5">
             <span
-              className={`w-1.5 h-1.5 shrink-0 ${err ? 'bg-[var(--color-bearish)]' : pending ? 'bg-[#737373]' : 'hidden'}`}
+              className={`w-1.5 h-1.5 shrink-0 ${err ? 'bg-[var(--color-bearish)]' : heartbeatPending ? 'bg-[#737373]' : 'hidden'}`}
             />
             <span className={`font-mono text-[10px] ${err ? 'text-[var(--color-bearish)]' : 'text-[#737373]'}`}>
-              {err ? 'ERROR' : pending ? 'LOADING' : 'SYNCED'} · {asOfDay} {utcClock}
+              {err ? 'ERROR' : heartbeatPending ? 'LOADING' : 'SYNCED'} · {asOfDay} {utcClock}
             </span>
           </div>
         </div>
@@ -239,7 +250,7 @@ export function TerminalNav() {
           )}
         </div>
 
-        <div className="flex gap-0.5">
+        <div className="hidden md:flex gap-0.5">
           {PAIRS.map((p) => {
             const active = currentRoute.includes(p.urlSlug);
             const sig = signals?.[p.label];

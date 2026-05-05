@@ -1,4 +1,11 @@
-"""OpenRouter AI client — Free model selection. Zero cost."""
+"""
+@agent_context: Centralized OpenRouter AI client for generating research briefs 
+and event risk summaries using free-tier LLMs.
+@allowed_imports: [asyncio, json, logging, os, dataclasses, typing, openai, 
+src.analysis, src.db, src.types]
+@forbidden_imports: [src.fetchers]
+@obsidian_link: [[AI Intelligence#OpenRouter Integration]]
+"""
 
 from __future__ import annotations
 
@@ -80,20 +87,26 @@ def _call(messages: list[dict[str, str]], max_tokens: int, date_str: str, purpos
     from src.db import writer
 
     _check_limit(date_str)
-    for model in FREE_MODELS:
-        try:
-            logger.info("Attempting AI call with model: %s", model)
-            resp = _openrouter_client().chat.completions.create(
-                model=model,
-                messages=cast(Any, messages),
-                max_tokens=max_tokens,
-                temperature=0.3,
-            )
-            writer.write_ai_request(date_str, purpose, model)
-            return resp.choices[0].message.content or ""
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("OpenRouter model %s failed: %s", model, exc)
-    raise RuntimeError("All OpenRouter free models failed")
+    for attempt in range(1, 4):
+        for model in FREE_MODELS:
+            try:
+                logger.info("Attempting AI call with model: %s (attempt %s)", model, attempt)
+                resp = _openrouter_client().chat.completions.create(
+                    model=model,
+                    messages=cast(Any, messages),
+                    max_tokens=max_tokens,
+                    temperature=0.3,
+                )
+                writer.write_ai_request(date_str, purpose, model)
+                return resp.choices[0].message.content or ""
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("OpenRouter model %s failed: %s", model, exc)
+        if attempt < 3:
+            sleep_time = 5 * attempt
+            logger.warning("All OpenRouter free models failed on attempt %s. Retrying in %s seconds.", attempt, sleep_time)
+            import time
+            time.sleep(sleep_time)
+    raise RuntimeError("All OpenRouter free models failed after retries")
 
 
 async def _call_async(
@@ -105,21 +118,27 @@ async def _call_async(
     """Try available free models in order (async)."""
     from src.db import writer
 
-    for model in FREE_MODELS:
-        try:
-            _check_limit(date_str)
-            logger.info("Attempting async AI call with model: %s", model)
-            resp = await _async_openrouter_client().chat.completions.create(
-                model=model,
-                messages=cast(Any, messages),
-                max_tokens=max_tokens,
-                temperature=0.3,
-            )
-            writer.write_ai_request(date_str, purpose, model)
-            return resp.choices[0].message.content or ""
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("OpenRouter model %s failed: %s", model, exc)
-    raise RuntimeError("All OpenRouter free models failed")
+    for attempt in range(1, 4):
+        for model in FREE_MODELS:
+            try:
+                _check_limit(date_str)
+                logger.info("Attempting async AI call with model: %s (attempt %s)", model, attempt)
+                resp = await _async_openrouter_client().chat.completions.create(
+                    model=model,
+                    messages=cast(Any, messages),
+                    max_tokens=max_tokens,
+                    temperature=0.3,
+                )
+                writer.write_ai_request(date_str, purpose, model)
+                return resp.choices[0].message.content or ""
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("OpenRouter model %s failed: %s", model, exc)
+        if attempt < 3:
+            sleep_time = 5 * attempt
+            logger.warning("All OpenRouter free models failed on attempt %s. Retrying in %s seconds.", attempt, sleep_time)
+            import asyncio
+            await asyncio.sleep(sleep_time)
+    raise RuntimeError("All OpenRouter free models failed after retries")
 
 
 async def _call_preferred_model_async(
@@ -188,39 +207,43 @@ def _deterministic_desk_card_brief(
     regime: str,
     primary_driver: str | None,
     pain_index: float | None,
-    *,
+    rvol: float | None = None,
     todays_event_matrix: dict[str, Any] | None = None,
     dollar_dominance_score: float | None = None,
     dollar_bias: str | None = None,
 ) -> str:
-    pain_text = (
-        "unknown due to stale/failed positioning input"
-        if pain_index is None
-        else f"{pain_index:.1f}"
-    )
-    regime_state = f"Regime remains {regime}."
-    if (
+    dom_ok = (
         dollar_dominance_score is not None
-        and dollar_dominance_score > 0.7
+        and float(dollar_dominance_score) > 0.7
         and dollar_bias in ("Strength", "Weakness")
-    ):
-        regime_state += (
-            f" This setup is driven by broad-based Dollar {dollar_bias}."
-        )
+    )
+    bias_suffix = f" (DOLLAR {str(dollar_bias).upper()})" if dom_ok else ""
+    bias_summary = f"{regime}{bias_suffix}".upper()
+    driver_u = (primary_driver or "UNKNOWN").strip().upper()
+    catalyst_driver = driver_u if driver_u else "UNKNOWN"
+
+    squeeze_bits: list[str] = []
+    if pain_index is None:
+        squeeze_bits.append("PAIN INDEX NULL")
+    else:
+        tag = "ELEVATED" if float(pain_index) >= 80 else "CONTROLLED"
+        squeeze_bits.append(f"{tag} (PAIN {float(pain_index):.1f})")
+    
+    if rvol is not None:
+        squeeze_bits.append(f"RVOL {float(rvol):.2f}X")
+
+    if todays_event_matrix is not None:
+        evn = str(todays_event_matrix.get("event_name") or "MACRO EVENT")
+        ar = todays_event_matrix.get("asymmetry_ratio")
+        ar_txt = f"{float(ar):.2f}" if ar is not None else "N/A"
+        squeeze_bits.append(f"EVENT: {evn} · ASYM {ar_txt}")
+    squeeze_risk = " · ".join(squeeze_bits) if squeeze_bits else "UNAVAILABLE"
+
     payload: dict[str, str] = {
-        "regime_state": regime_state,
-        "key_divergence": f"Primary driver: {primary_driver or 'unknown'}.",
+        "bias_summary": bias_summary[:180],
+        "catalyst_driver": catalyst_driver[:180],
+        "squeeze_risk": squeeze_risk[:220],
     }
-    if pain_index is not None or todays_event_matrix is not None:
-        ev_part = ""
-        if todays_event_matrix is not None:
-            evn = str(todays_event_matrix.get("event_name") or "macro event")
-            ar = todays_event_matrix.get("asymmetry_ratio")
-            ar_txt = f"{float(ar):.4f}" if ar is not None else "N/A"
-            ev_part = f" High-impact event today ({evn}); historical asymmetry ratio {ar_txt}."
-        payload["swing_factor"] = (
-            f"Pain index is {pain_text}.{ev_part} Size for event risk vs positioning."
-        )
     return json.dumps(payload)
 
 
@@ -269,6 +292,7 @@ def desk_card_brief_fallback(
     regime: str,
     primary_driver: str | None,
     pain_index: float | None,
+    rvol: float | None = None,
     todays_event_matrix: dict[str, Any] | None = None,
     dollar_dominance_score: float | None = None,
     dollar_bias: str | None = None,
@@ -279,10 +303,12 @@ def desk_card_brief_fallback(
         regime,
         primary_driver,
         pain_index,
+        rvol=rvol,
         todays_event_matrix=todays_event_matrix,
         dollar_dominance_score=dollar_dominance_score,
         dollar_bias=dollar_bias,
     )
+
 
 
 def _parse_weekly_memo_thesis(payload_text: str) -> list[str]:
@@ -346,6 +372,7 @@ async def generate_desk_card_brief_async(
     date_str: str,
     primary_driver: str | None,
     pain_index: float | None,
+    rvol: float | None = None,
     todays_event_matrix: dict[str, Any] | None = None,
     dollar_dominance_score: float | None = None,
     dollar_bias: str | None = None,
@@ -370,25 +397,22 @@ async def generate_desk_card_brief_async(
             "(RATE_Z_TACTICAL_MAD and RATE_Z_STRUCTURAL_MAD) and PAIN_INDEX against the "
             f"following Structural Thesis:\n{thesis_block}\n"
             "Your primary directive is to find mathematical evidence that CONTRADICTS the thesis. "
-            "If the math disputes the thesis, you MUST headline the divergence. If the math "
-            "confirms the thesis, state the alignment briefly.\n\n"
+            "If the math disputes the thesis, encode the contradiction in catalyst_driver or "
+            "squeeze_risk (terse labels only); put the directional read in bias_summary. "
+            "If the math confirms the thesis, align bias_summary accordingly—still no prose "
+            "paragraphs.\n\n"
         )
     else:
         stale_signal_gating = (
             "No weekly Structural Thesis is available for this run. Do NOT invent, assume, or "
             "reference a 'Project Founder' view, 'macro memo', or any off-book narrative. "
-            "Ground regime_state, key_divergence, and swing_factor ONLY in the explicit numeric "
+            "Ground bias_summary, catalyst_driver, and squeeze_risk ONLY in the explicit numeric "
             "and categorical fields above (REGIME, PRIMARY_DRIVER, PAIN_INDEX, RATE_Z_*_MAD, "
             "DOLLAR_*). If a field is null or telemetry is stale, say so plainly—do not fill "
             "gaps with speculative macro story.\n\n"
         )
 
-    require_swing = pain_index is not None or todays_event_matrix is not None
-    keys_literal = (
-        '{"regime_state":"","key_divergence":"","swing_factor":""}'
-        if require_swing
-        else '{"regime_state":"","key_divergence":""}'
-    )
+    keys_literal = '{"bias_summary":"","catalyst_driver":"","squeeze_risk":""}'
     event_context = ""
     if todays_event_matrix is not None:
         evn = str(todays_event_matrix.get("event_name") or "unknown")
@@ -397,20 +421,14 @@ async def generate_desk_card_brief_async(
         event_context = (
             f"There is a high-impact event today: {evn}. "
             f"The historical Asymmetry Ratio is {ar_txt}. "
-            "In swing_factor, you MUST synthesize how today's event interacts with the current "
-            "PAIN_INDEX.\n"
+            "squeeze_risk MUST reference this event together with PAIN_INDEX "
+            "(use NULL/UNAVAILABLE wording if PAIN_INDEX is null).\n"
         )
-    swing_rules = (
-        (
-            "- swing_factor: one concise sentence that MUST reference PAIN_INDEX "
-            "(use null/unavailable wording if PAIN_INDEX is null) and its risk implication.\n"
-            f"{event_context}"
-        )
-        if require_swing
-        else (
-            "- Do NOT include swing_factor or any key other than regime_state "
-            "and key_divergence (PAIN_INDEX is unavailable).\n"
-        )
+    squeeze_rules = (
+        "- squeeze_risk: ONE terse institutional line (no multi-sentence prose). "
+        "MUST encode pain / squeeze / vol risk from PAIN_INDEX "
+        "(e.g. 'ELEVATED (PAIN 82)' or 'CONTROLLED (PAIN 41)' or 'NULL (PAIN INDEX UNAVAILABLE)'). "
+        f"{event_context}"
     )
     dscore_txt = (
         "null" if dollar_dominance_score is None else f"{float(dollar_dominance_score):.4f}"
@@ -424,40 +442,41 @@ async def generate_desk_card_brief_async(
     )
     if dom_ok:
         dollar_rule = (
-            "- If DOLLAR_DOMINANCE_SCORE is greater than 0.70, you MUST include this exact "
-            f'sentence as its own sentence in regime_state or key_divergence: '
-            f'"This setup is driven by broad-based Dollar {dollar_bias}."\n'
+            "- bias_summary MUST be a short uppercase label that includes the regime AND "
+            f"'(DOLLAR {str(dollar_bias).upper()})' when DOLLAR_DOMINANCE_SCORE > 0.70.\n"
+            "  Example shape: 'MODERATE USD STRENGTH (DOLLAR STRENGTH)'.\n"
         )
     prompt = (
-        "You are a deterministic FX research writer.\n"
+        "You are a deterministic FX desk-card encoder. Output machine-readable labels only—"
+        "NO paragraphs, NO narrative sentences, NO filler words like 'Regime remains'.\n"
         "Return ONLY a strict JSON object with exactly these keys:\n"
         f"{keys_literal}\n"
         f"PAIR:{pair} DATE:{date_str} REGIME:{regime}\n"
         f"PRIMARY_DRIVER:{primary_driver or 'unknown'}\n"
         f"PAIN_INDEX:{'null' if pain_index is None else f'{pain_index:.2f}'}\n"
+        f"RVOL:{'null' if rvol is None else f'{rvol:.2f}x'}\n"
         f"DOLLAR_DOMINANCE_SCORE:{dscore_txt} DOLLAR_BIAS:{dbias_txt}\n"
         f"{z_line}"
         f"{stale_signal_gating}"
         f"{founder_instructions}"
         "Constraints:\n"
-        "- regime_state: one concise sentence describing the current regime.\n"
-        "- key_divergence: one concise sentence that MUST reference PRIMARY_DRIVER.\n"
+        "- bias_summary: ONE line, mostly UPPERCASE, bias + regime read "
+        "(e.g. 'BULLISH (DOLLAR STRENGTH)' or 'NEUTRAL / RANGE'). Max ~120 chars.\n"
+        "- catalyst_driver: ONE line, UPPERCASE shorthand for the structural catalyst; "
+        "MUST reference PRIMARY_DRIVER (e.g. '8-WEEK VWAP BREACH', '2Y SPREAD COMPRESSION'). "
+        "Max ~120 chars.\n"
+        f"{squeeze_rules}"
         f"{dollar_rule}"
-        f"{swing_rules}"
         "- Do not add markdown, prose wrappers, or extra keys.\n"
     )
-    required_keys: tuple[str, ...] = (
-        ("regime_state", "key_divergence", "swing_factor")
-        if require_swing
-        else ("regime_state", "key_divergence")
-    )
+    required_keys: tuple[str, ...] = ("bias_summary", "catalyst_driver", "squeeze_risk")
     messages = [{"role": "user", "content": prompt}]
     for attempt in range(2):
         try:
             raw = await _call_preferred_model_async(
                 model=PRIMARY_MODEL,
                 messages=messages,
-                max_tokens=180,
+                max_tokens=220,
                 date_str=date_str,
                 purpose=f"desk_card_{pair}",
                 response_format={"type": "json_object"},
@@ -471,17 +490,15 @@ async def generate_desk_card_brief_async(
             else:
                 logger.warning("Desk card JSON parse/call failure for %s: %s", pair, exc)
     logger.warning("Falling back to deterministic desk card brief for %s", pair)
-    return (
-        _deterministic_desk_card_brief(
-            regime,
-            primary_driver,
-            pain_index,
-            todays_event_matrix=todays_event_matrix,
-            dollar_dominance_score=dollar_dominance_score,
-            dollar_bias=dollar_bias,
-        ),
-        human_grounding_active,
-    )
+    return _deterministic_desk_card_brief(
+        regime,
+        primary_driver,
+        pain_index,
+        rvol=rvol,
+        todays_event_matrix=todays_event_matrix,
+        dollar_dominance_score=dollar_dominance_score,
+        dollar_bias=dollar_bias,
+    ), human_grounding_active
 
 
 def generate_brief(

@@ -1,6 +1,10 @@
-"""Macro calendar: ForexFactory weekly XML (primary) with programmatic fallback.
+"""
+@agent_context: Ingests weekly macro economic event data from ForexFactory XML feed with programmatic fallback.
+@allowed_imports: [logging, xml.etree.ElementTree, datetime, typing, requests, src.types]
+@forbidden_imports: [src.db.writer]
+@obsidian_link: [[Data Ingestion#Macro Calendar]]
 
-FRED ``releases/dates`` is deprecated for this module — use the free NFS weekly feed.
+Note: FRED ``releases/dates`` is deprecated for this module — use the free NFS weekly feed.
 """
 
 from __future__ import annotations
@@ -234,12 +238,20 @@ def _match_forexfactory_event(country: str, title: str) -> str | None:
         return None
 
     if c == "EUR":
+        if "cpi" in t or "consumer price" in t:
+            return "EU CPI YoY"
+        if "gdp" in t or "gross domestic product" in t:
+            return "EU GDP"
         if "ecb" in t:
             if any(k in t for k in ("rate", "interest", "deposit", "refinancing", "monetary")):
                 return "ECB Rate Decision"
         return None
 
     if c in ("GBP", "UK"):
+        if "cpi" in t or "consumer price" in t:
+            return "UK CPI YoY"
+        if "gdp" in t or "gross domestic product" in t:
+            return "UK GDP"
         if "boe" in t or "bank of england" in t:
             if any(k in t for k in ("rate", "interest", "bank", "monetary", "mpc")):
                 return "BoE Rate Decision"
@@ -264,11 +276,17 @@ def _match_forexfactory_event(country: str, title: str) -> str | None:
         return None
 
     if c == "JPY":
+        if "cpi" in t or "consumer price" in t:
+            return "JP CPI YoY"
+        if "gdp" in t or "gross domestic product" in t:
+            return "JP GDP"
         if "boj" in t or "bank of japan" in t:
             return "BoJ Rate Decision"
         return None
 
     if c == "INR" or c == "IN":
+        if "cpi" in t or "consumer price" in t:
+            return "IN CPI YoY"
         if "rbi" in t:
             return "RBI MPC Decision"
         return None

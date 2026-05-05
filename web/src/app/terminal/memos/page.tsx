@@ -6,7 +6,7 @@ export default function TerminalMemosPage() {
   return (
     <main
       className="min-h-screen bg-[#000000] text-white"
-      style={{ marginTop: 'var(--terminal-nav-h, 104px)' }}
+      style={{ marginTop: 'var(--terminal-nav-h, 76px)' }}
     >
       <div className="px-4 pb-8 pt-2">
         <MemoSidebar />

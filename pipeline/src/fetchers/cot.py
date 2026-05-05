@@ -153,11 +153,12 @@ def _download_cot_bytes(url: str) -> bytes:
 
 def fetch_cot(year: int | None = None) -> list[CotRow]:
     y = year if year is not None else date.today().year
+    y_prev = y - 1
     sources = [
         ("zip", f"https://www.cftc.gov/files/dea/history/fut_fin_txt_{y}.zip"),
-        ("zip", "https://www.cftc.gov/files/dea/history/fut_fin_txt_2025.zip"),
+        ("zip", f"https://www.cftc.gov/files/dea/history/fut_fin_txt_{y_prev}.zip"),
         ("txt", "https://www.cftc.gov/dea/newcot/FinFutWk.txt"),
-        ("txt", "https://www.cftc.gov/files/dea/history/deacot2025.txt"),
+        ("txt", f"https://www.cftc.gov/files/dea/history/deacot{y_prev}.txt"),
     ]
     raw_rows: list[dict[str, Any]] = []
     last_err = ""

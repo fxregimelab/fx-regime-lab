@@ -27,6 +27,7 @@ class PainIndexResult:
     realized_vol_20d: float | None
     vwap_distance_pct: float | None
     underwater_vol_buffer_pct: float | None
+    rvol: float | None = None
 
 
 def _regime_direction(regime: str) -> int:
@@ -78,6 +79,7 @@ def compute_pain_index(
     realized_vol_20d: float | None = None,
     implied_vol_30d: float | None = None,
     carry_by_date: Mapping[date, float] | None = None,
+    rvol: float | None = None,
 ) -> PainIndexResult:
     direction = _regime_direction(regime)
     latest_cot = max((r.date for r in cot_rows if r.pair == pair), default=None)
@@ -99,6 +101,7 @@ def compute_pain_index(
             realized_vol_20d=realized_vol_20d,
             vwap_distance_pct=None,
             underwater_vol_buffer_pct=None,
+            rvol=rvol,
         )
 
     if cot_percentile is None:
@@ -117,6 +120,7 @@ def compute_pain_index(
             realized_vol_20d=realized_vol_20d,
             vwap_distance_pct=None,
             underwater_vol_buffer_pct=None,
+            rvol=rvol,
         )
 
     directional_crowding = ((cot_percentile - 50.0) / 50.0) * -1.0
@@ -159,11 +163,16 @@ def compute_pain_index(
         else:
             buffer_pct = 0.5 * float(realized_vol_20d)
         premium_ok = vol_premium is not None and vol_premium > 0.0
+        
+        # Pillar 2: RVOL Gate (1.5x threshold for institutional conviction)
+        rvol_ok = rvol is None or rvol >= 1.5
+
         underwater = (
             wrong_side
             and buffer_pct is not None
             and vwap_distance_pct >= buffer_pct
             and premium_ok
+            and rvol_ok
         )
 
     if base_pain > 80.0 and not underwater:
@@ -184,4 +193,5 @@ def compute_pain_index(
         realized_vol_20d=realized_vol_20d,
         vwap_distance_pct=vwap_distance_pct,
         underwater_vol_buffer_pct=buffer_pct,
+        rvol=rvol,
     )

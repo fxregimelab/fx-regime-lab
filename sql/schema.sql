@@ -54,6 +54,16 @@ CREATE TABLE IF NOT EXISTS validation_log (
   correct_1d BOOLEAN,
   correct_5d BOOLEAN,
   notes TEXT,
+  call_date DATE,
+  actual_direction_t5 VARCHAR(10),
+  actual_direction_t20 VARCHAR(10),
+  log_return_t5_bps FLOAT,
+  log_return_t20_bps FLOAT,
+  correct_t5 BOOLEAN,
+  correct_t20 BOOLEAN,
+  brier_score_t5 FLOAT,
+  brier_score_t20 FLOAT,
+  is_superseded BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -106,9 +116,45 @@ CREATE INDEX IF NOT EXISTS idx_regime_calls_date_pair ON regime_calls(date, pair
 CREATE INDEX IF NOT EXISTS idx_validation_date_pair ON validation_log(date, pair);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_signals_unique ON signals(date, pair);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_regime_unique ON regime_calls(date, pair);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_validation_unique ON validation_log(date, pair);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_validation_call_pair ON validation_log(call_date, pair);
+CREATE INDEX IF NOT EXISTS idx_validation_date_pair ON validation_log(date, pair);
 CREATE INDEX IF NOT EXISTS idx_pipeline_errors_date_source ON pipeline_errors(date, source);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_brief_log_date ON brief_log(date);
+
+CREATE TABLE IF NOT EXISTS validation_stats (
+  id SERIAL PRIMARY KEY,
+  as_of_date DATE NOT NULL,
+  pair VARCHAR(10) NOT NULL,
+  computed_at DATE NOT NULL DEFAULT CURRENT_DATE,
+  t5_total_calls INT DEFAULT 0,
+  t5_directional_calls INT DEFAULT 0,
+  t5_wins INT DEFAULT 0,
+  t5_win_rate FLOAT,
+  t5_mean_brier FLOAT,
+  t5_brier_skill FLOAT,
+  t5_mean_log_return_bps FLOAT,
+  t5_return_std_bps FLOAT,
+  t5_sharpe_like FLOAT,
+  t5_max_drawdown_bps FLOAT,
+  t5_calibration_json JSONB,
+  t20_total_calls INT DEFAULT 0,
+  t20_directional_calls INT DEFAULT 0,
+  t20_wins INT DEFAULT 0,
+  t20_win_rate FLOAT,
+  t20_mean_brier FLOAT,
+  t20_brier_skill FLOAT,
+  t20_mean_log_return_bps FLOAT,
+  t20_return_std_bps FLOAT,
+  t20_sharpe_like FLOAT,
+  t20_max_drawdown_bps FLOAT,
+  t20_calibration_json JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_validation_stats_as_of_pair
+  ON validation_stats (as_of_date, pair);
+CREATE INDEX IF NOT EXISTS idx_validation_stats_pair
+  ON validation_stats (pair, as_of_date DESC);
 
 ALTER TABLE signals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE regime_calls ENABLE ROW LEVEL SECURITY;

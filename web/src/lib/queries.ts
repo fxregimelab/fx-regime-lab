@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from './supabase/client';
 import type { Database } from './supabase/database.types';
+import { parseG10CorrelationJson, type G10CorrelationJson } from './g10Correlation';
 
 type BriefLogRow = Database['public']['Tables']['brief_log']['Row'];
 type BriefRow = Database['public']['Tables']['brief']['Row'];
@@ -30,6 +31,7 @@ export type LatestSignalRow = Pick<
   | 'spot'
   | 'rate_diff_2y'
   | 'rate_diff_10y'
+  | 'rate_diff_zscore'
   | 'cot_percentile'
   | 'realized_vol_20d'
   | 'realized_vol_5d'
@@ -132,6 +134,10 @@ export type TelemetryAuditPayload = {
   overnight_vix?: number | null;
   overnight_dxy?: number | null;
   overnight_vix_triggered?: boolean;
+  /** Optional pipeline MAD z-scores (JSON may include keys beyond this type). */
+  rate_z_tactical_mad?: number | null;
+  rate_z_structural_mad?: number | null;
+  dynamic_beta?: number | null;
 };
 
 /** Rows ordered by date desc; take contiguous block for the newest `date` (latest NY-close slice). */
@@ -246,7 +252,7 @@ export function useLatestSignals() {
       const { data, error } = await supabase
         .from('signals')
         .select(
-          'pair,date,spot,rate_diff_2y,rate_diff_10y,cot_percentile,realized_vol_20d,realized_vol_5d,implied_vol_30d,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_us10y,cross_asset_gold,cross_asset_copper,cross_asset_stoxx,day_change_pct,cot_lev_money_net,oi_delta,created_at',
+          'pair,date,spot,rate_diff_2y,rate_diff_10y,rate_diff_zscore,cot_percentile,realized_vol_20d,realized_vol_5d,implied_vol_30d,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_us10y,cross_asset_gold,cross_asset_copper,cross_asset_stoxx,day_change_pct,cot_lev_money_net,oi_delta,created_at',
         )
         .in('pair', pairs)
         .order('date', { ascending: false })
@@ -326,6 +332,37 @@ export function useLatestBrief() {
       if (error) throw error;
       return data as BriefLogRow | null;
     },
+  });
+}
+
+/** Last N `brief_log` rows (oldest → newest) for USD dominance drift sparkline. */
+export function useBriefLogDominanceSeries(limit = 5) {
+  return useQuery({
+    queryKey: ['brief_log', 'dollar_dominance_series', limit],
+    queryFn: async (): Promise<Array<{ date: string; dollar_dominance: number | null }>> => {
+      const { data, error } = await supabase
+        .from('brief_log')
+        .select('date,dollar_dominance')
+        .order('date', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      const rows = ((data ?? []) as Array<{ date: string; dollar_dominance: number | null }>).slice();
+      return rows.reverse();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Pairwise return correlations (JSON from `get_g10_correlation_matrix` RPC). */
+export function useG10CorrelationMatrix() {
+  return useQuery({
+    queryKey: ['g10', 'correlation_matrix'],
+    queryFn: async (): Promise<G10CorrelationJson> => {
+      const { data, error } = await supabase.rpc('get_g10_correlation_matrix');
+      if (error) throw error;
+      return parseG10CorrelationJson(data);
+    },
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -559,17 +596,19 @@ function utcPrevCalendarDay(isoDate: string): string {
   return d.toISOString().slice(0, 10);
 }
 
+export type DeskOpenCardsSnapshot = {
+  asOfDate: string | null;
+  cards: DeskOpenCardSnapshotRow[];
+  rankJumpByPair: Record<string, number>;
+};
+
 /** Latest desk_open_cards snapshot: all tracked pairs for max(date), plus rank jumps vs prior calendar day. */
 export function useLatestDeskOpenCardsSnapshot() {
   const universeQ = useUniverse();
   const pairs = universeQ.data ?? [];
-  return useQuery({
+  return useQuery<DeskOpenCardsSnapshot>({
     queryKey: ['desk_open_cards', 'snapshot', pairs],
-    queryFn: async (): Promise<{
-      asOfDate: string | null;
-      cards: DeskOpenCardSnapshotRow[];
-      rankJumpByPair: Record<string, number>;
-    }> => {
+    queryFn: async (): Promise<DeskOpenCardsSnapshot> => {
       const { data: head, error: headErr } = await supabase
         .from('desk_open_cards')
         .select('date')
@@ -679,13 +718,13 @@ export function useHistoricalData(pair: string, enabled = false) {
       );
       if (error) throw error;
       return (
-        (data as Array<{ date: string; pair: string; open: number | null; high: number | null; low: number | null; close: number | null; volume: number | null }>) ??
-        []
+        (data as Array<{ date: string; pair: string; open: number | null; high: number | null; low: number | null; close: number | null; volume: number | null }>) ?? []
       );
-    },
-    enabled: enabled && !!pair,
-  });
-}
+      },
+      enabled: !!pair && enabled,
+      staleTime: Infinity,
+      });
+      }
 
 export function useLatestResearchAnalogs(pair: string) {
   return useQuery({
@@ -837,7 +876,7 @@ async function fetchLatestSignalsMapServer(pairs: string[]): Promise<Record<stri
   const { data, error } = await supabase
     .from('signals')
     .select(
-      'pair,date,spot,rate_diff_2y,rate_diff_10y,cot_percentile,realized_vol_20d,realized_vol_5d,implied_vol_30d,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_us10y,cross_asset_gold,cross_asset_copper,cross_asset_stoxx,day_change_pct,cot_lev_money_net,oi_delta,created_at',
+      'pair,date,spot,rate_diff_2y,rate_diff_10y,rate_diff_zscore,cot_percentile,realized_vol_20d,realized_vol_5d,implied_vol_30d,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_us10y,cross_asset_gold,cross_asset_copper,cross_asset_stoxx,day_change_pct,cot_lev_money_net,oi_delta,created_at',
     )
     .in('pair', pairs)
     .order('date', { ascending: false })

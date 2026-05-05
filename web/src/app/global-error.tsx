@@ -1,25 +1,30 @@
 'use client';
 
-type GlobalErrorProps = {
+import { useEffect } from 'react';
+
+export default function GlobalError({
+  error,
+  reset,
+}: {
   error: Error & { digest?: string };
   reset: () => void;
-};
+}) {
+  useEffect(() => {
+    console.error('Global Error caught:', error);
+  }, [error]);
 
-export default function GlobalError({ error, reset }: GlobalErrorProps) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-[#000000] text-[#e8e8e8] flex items-center justify-center px-6">
-        <div className="w-full max-w-2xl border border-[#222] bg-[#000000] p-6">
-          <p className="font-mono text-[12px] tracking-widest text-[#f59e0b]">[ DATA OFFLINE ]</p>
-          <p className="font-mono text-[11px] text-[#888] mt-2 break-all">
-            {error.message || 'Global terminal failure'}
-          </p>
+      <body className="bg-[#000000] text-white min-h-screen flex items-center justify-center font-mono">
+        <div className="border border-[#333] bg-[#050505] p-8 max-w-2xl text-center">
+          <p className="text-[10px] tracking-widest text-[#f59e0b] mb-4">[ FATAL SYSTEM EXCEPTION ]</p>
+          <h1 className="text-2xl font-light mb-4">The Omega Terminal Encountered an Error</h1>
+          <p className="text-[12px] text-[#888] mb-6">{error.message || 'An unexpected runtime exception occurred.'}</p>
           <button
-            type="button"
             onClick={() => reset()}
-            className="mt-4 border border-[#333] bg-[#000000] px-3 py-2 font-mono text-[10px] text-[#d4d4d4] tracking-widest hover:text-[#ffffff]"
+            className="border border-[#333] hover:bg-[#111] px-6 py-2 text-[11px] tracking-widest transition-colors"
           >
-            [ RETRY SYSTEM ]
+            [ REBOOT SEQUENCE ]
           </button>
         </div>
       </body>

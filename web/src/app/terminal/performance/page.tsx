@@ -6,7 +6,7 @@ export default function TerminalPerformancePage() {
   return (
     <main
       className="min-h-screen bg-[#000000] text-white rounded-none"
-      style={{ marginTop: 'var(--terminal-nav-h, 104px)' }}
+      style={{ marginTop: 'var(--terminal-nav-h, 76px)' }}
     >
       <PerformanceLedgerPageContent />
     </main>

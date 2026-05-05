@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { type RefObject } from 'react';
 import Link from 'next/link';
-import { DeskCard, DeskCardTelemetryRow } from '@/components/ui/desk-card';
+import { motion, useMotionTemplate, useScroll, useTransform } from 'framer-motion';
+import { DeskCard, DeskCardTelemetryRow, parseDeskAiBriefRows } from '@/components/ui/desk-card';
 import { RegimeHeatmap } from '@/components/ui/regime-heatmap';
 import { ValidationTable } from '@/components/ui/validation-table';
 import { fmt2 } from '@/components/ui/utils';
@@ -15,6 +16,7 @@ import {
   useValidationLog,
   useLastPipelineRun,
   useLatestDeskOpenCardsSnapshot,
+  useVerified90dEdge,
 } from '@/lib/queries';
 import type { GatewayLandingPayload } from '@/lib/queries';
 import {
@@ -22,6 +24,12 @@ import {
   rolling7dAccuracyPct,
   callsValidatedSince,
 } from '@/lib/validation-format';
+
+/** Audit seal byline — override with `NEXT_PUBLIC_SITE_ARCHITECT`. */
+const AUDIT_SEAL_ARCHITECT =
+  process.env.NEXT_PUBLIC_SITE_ARCHITECT?.trim() || 'SHREYASH / FOUNDER';
+
+const INSTITUTIONAL_SETTLE = [0.16, 1, 0.3, 1] as const;
 
 function pairDisplay(label: string): string {
   return PAIRS.find((p) => p.label === label)?.display ?? label;
@@ -39,18 +47,18 @@ function G10SystemicMatrix({
   outlier: string | null;
 }) {
   return (
-    <div className="border border-[#111] bg-[#000000] min-h-[280px] flex flex-col justify-center px-6 py-10">
-      <p className="font-mono text-[10px] text-[#666] tracking-widest mb-6 m-0">[ G10 SYSTEMIC MATRIX ]</p>
+    <div className="omega-gutter min-h-[280px] flex flex-col justify-center border-0 border-t-[0.5px] border-t-white/[0.08] border-l-[0.5px] border-l-white/[0.03] px-6 py-10 will-change-[background]">
+      <p className="font-mono text-[10px] text-[var(--text-muted)] tracking-widest mb-6 m-0">[ G10 SYSTEMIC MATRIX ]</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <p className="font-mono text-[9px] text-[#555] tracking-widest m-0 mb-2">DOLLAR DOMINANCE</p>
-          <p className="font-mono text-[36px] font-bold text-[#f5f5f5] tabular-nums leading-none m-0">
+          <p className="font-mono text-[9px] text-[var(--text-micro)] tracking-widest m-0 mb-2">DOLLAR DOMINANCE</p>
+          <p className="font-mono text-[36px] font-bold text-[var(--text-muted)] tabular-nums leading-none m-0">
             {dollarDominance == null ? '—' : `${dollarDominance.toFixed(1)}%`}
           </p>
         </div>
         <div>
-          <p className="font-mono text-[9px] text-[#555] tracking-widest m-0 mb-2">OUTLIER</p>
-          <p className="font-mono text-[16px] font-bold text-[#f5f5f5] leading-snug m-0 break-words">
+          <p className="font-mono text-[9px] text-[var(--text-micro)] tracking-widest m-0 mb-2">OUTLIER</p>
+          <p className="font-mono text-[16px] font-bold text-[var(--text-muted)] leading-snug m-0 break-words">
             {outlier ?? '—'}
           </p>
         </div>
@@ -63,9 +71,15 @@ type HomeLandingBodyProps = {
   initial: GatewayLandingPayload;
   memosSlot: React.ReactNode;
   onAccessTerminal: () => void;
+  scrollContainerRef: RefObject<HTMLDivElement | null>;
 };
 
-export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLandingBodyProps) {
+export function HomeLandingBody({
+  initial,
+  memosSlot,
+  onAccessTerminal,
+  scrollContainerRef,
+}: HomeLandingBodyProps) {
   const regimeQ = useLatestRegimeCalls();
   const signalsQ = useLatestSignals();
   const validationQ = useValidationLog(400);
@@ -73,6 +87,7 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
   const latestBriefQ = useLatestBrief();
   const pulseQ = useCrossAssetPulse();
   const deskSnapQ = useLatestDeskOpenCardsSnapshot();
+  const verified90dQ = useVerified90dEdge();
 
   const deskMerged = React.useMemo(() => {
     const live = deskSnapQ.data;
@@ -137,52 +152,80 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
   const callsSinceApr = callsValidatedSince(valRows, '2026-04-01');
   const statsLoading = validationQ.isPending;
 
-  const edgePct =
-    initial.verifiedEdgePct != null ? initial.verifiedEdgePct.toFixed(1) : null;
+  const hitRate90dPct =
+    verified90dQ.data?.hitRatePct != null
+      ? verified90dQ.data.hitRatePct.toFixed(1)
+      : initial.verifiedEdgePct != null
+        ? initial.verifiedEdgePct.toFixed(1)
+        : null;
 
   const [universeOpen, setUniverseOpen] = React.useState(false);
 
+  const liveBriefGridRows = React.useMemo(
+    () => parseDeskAiBriefRows(latestBriefQ.data?.brief_text ?? null),
+    [latestBriefQ.data?.brief_text],
+  );
+
+  const { scrollY } = useScroll({ container: scrollContainerRef });
+  /* Crisp through 100px, then evaporate (opacity + lift + blur). */
+  const manifestoOpacity = useTransform(scrollY, [0, 100, 350], [1, 1, 0]);
+  const manifestoY = useTransform(scrollY, [0, 100, 350], [0, 0, -60]);
+  const manifestoBlurPx = useTransform(scrollY, [0, 100, 350], [0, 0, 12]);
+  const manifestoFilter = useMotionTemplate`blur(${manifestoBlurPx}px)`;
+  /* Hold reveal through the 100px reading beat, then ease in with manifesto fade. */
+  const revealOpacity = useTransform(scrollY, [0, 100, 280], [0.55, 0.55, 1]);
+  const revealY = useTransform(scrollY, [0, 100, 300], [56, 56, 0]);
+
   return (
-    <main className="flex-1 bg-[#000000] text-[#e8e8e8]">
-      <section className="bg-[#000000] text-[#e8e8e8] border-b border-[#111]">
-        <div className="w-full px-6 md:px-8 pt-10 pb-12">
-          <div className="flex flex-wrap items-center gap-2.5 mb-8">
-            <span
-              className={`w-1.5 h-1.5 shrink-0 ${
-                syncError
-                  ? 'bg-[var(--color-bearish)]'
+    <main className="flex-1 bg-[var(--bg-void)] text-[#e8e8e8]">
+      <motion.section
+        style={{ opacity: manifestoOpacity, y: manifestoY, filter: manifestoFilter }}
+        className="min-h-[50vh] flex flex-col justify-center items-center text-center bg-[var(--bg-void)] px-4 pt-8 pb-10 will-change-[transform,opacity,filter]"
+      >
+        <p className="font-mono text-[9px] text-[var(--text-micro)] tracking-[0.3em] uppercase mb-4 m-0">
+          [ FX REGIME LAB v1.0 ]
+        </p>
+        <p className="font-serif text-3xl md:text-5xl font-light text-[#E5E5E5] tracking-[-0.04em] leading-[1.1] m-0 max-w-3xl">
+          The market is a state machine. We decode the state.
+        </p>
+      </motion.section>
+
+      <motion.div
+        style={{ opacity: revealOpacity, y: revealY }}
+        className="border-t border-[var(--bg-hover)] will-change-transform"
+      >
+        <section className="bg-[var(--bg-void)] text-[#e8e8e8] border-b border-[var(--bg-hover)]">
+          <div className="w-full px-6 md:px-8 pt-10 pb-12">
+            <div className="flex flex-wrap items-center gap-2.5 mb-8">
+              <span
+                className={`w-1.5 h-1.5 shrink-0 ${
+                  syncError
+                    ? 'bg-[var(--color-bearish)]'
+                    : bootLoading
+                      ? 'bg-[#737373]'
+                      : 'bg-[var(--color-bullish)]'
+                }`}
+              />
+              <span className="font-mono text-[11px] text-[var(--text-muted)] tracking-widest">
+                {syncError
+                  ? 'OFFLINE · G10 DESK · UNIVERSE'
                   : bootLoading
-                    ? 'bg-[#737373]'
-                    : 'bg-[var(--color-bullish)]'
-              }`}
-            />
-            <span className="font-mono text-[11px] text-[#737373] tracking-widest">
-              {syncError
-                ? 'OFFLINE · G10 DESK · UNIVERSE'
-                : bootLoading
-                  ? 'LOADING · G10 DESK · UNIVERSE'
-                  : 'SYNCED · G10 DESK · UNIVERSE'}
-            </span>
-            <span className="font-mono text-[10px] text-[#555] tracking-widest tabular-nums">
-              · {asOfDay} {pipelineClock}
-            </span>
-          </div>
+                    ? 'LOADING · G10 DESK · UNIVERSE'
+                    : 'SYNCED · G10 DESK · UNIVERSE'}
+              </span>
+              <span className="font-mono text-[10px] text-[var(--text-micro)] tracking-widest tabular-nums">
+                · {asOfDay} {pipelineClock}
+              </span>
+            </div>
 
-          <div className="min-h-[60vh] flex flex-col justify-center py-8 md:py-12">
-            <p className="font-mono text-[9px] tracking-[0.2em] text-[#666] m-0">[ FX REGIME LAB v1.0 ]</p>
-            <p className="font-serif text-4xl md:text-6xl text-[#e5e5e5] leading-[1.05] tracking-tight mt-5 mb-0 max-w-5xl">
-              Signal, Not Noise. Institutional context for the G10 macro universe.
+            <p className="font-mono text-[10px] text-[var(--text-muted)] tracking-widest mb-8 max-w-xl">
+              Anonymous-first gateway. Ranked structural asymmetry, validated ledger, vault terminal.
             </p>
-          </div>
 
-          <p className="font-mono text-[10px] text-[#666] tracking-widest mb-8 max-w-xl">
-            Anonymous-first gateway. Ranked structural asymmetry, validated ledger, vault terminal.
-          </p>
-
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 mb-8">
             <div className="min-w-0">
               {bootLoading && !initial.desk.cards.length ? (
-                <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
                   <div className="lg:flex-[7] min-h-[320px] bg-[#0a0a0a] border border-[#1a1a1a] animate-pulse" />
                   <div className="lg:flex-[3] flex flex-col gap-2">
                     <div className="h-16 bg-[#0a0a0a] border border-[#1a1a1a] animate-pulse" />
@@ -193,7 +236,13 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
                 <p className="font-mono text-[12px] text-[#888] tracking-wide">No desk open cards for the universe yet.</p>
               ) : (
                 <>
-                  <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+                  <motion.div
+                    key={`${rank1?.pair ?? 'none'}-${showSystemicFallback ? 'sys' : 'hero'}`}
+                    initial={{ opacity: 0, y: 64 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.88, ease: INSTITUTIONAL_SETTLE }}
+                    className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-stretch"
+                  >
                     <div className="lg:flex-[7] min-w-0 min-h-0">
                       {showSystemicFallback ? (
                         <G10SystemicMatrix
@@ -220,6 +269,11 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
                           aiBrief={rank1.ai_brief}
                           telemetryAudit={rank1.telemetry_audit}
                           parameterInstability={rank1.parameter_instability}
+                          mathRateZTactical={sigs?.[rank1.pair]?.rate_diff_zscore ?? null}
+                          mathRateZStructural={
+                            rank1.telemetry_audit?.rate_z_structural_mad ?? null
+                          }
+                          mathDynamicBeta={rank1.dominance_array?.[0]?.beta ?? null}
                           linkedinCardData={{
                             date: rank1.date,
                             pair: rank1.pair,
@@ -240,6 +294,7 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
                             rank_jump: deskMerged.rankJumpByPair[rank1.pair] ?? null,
                             desk_as_of: asOfDay,
                           }}
+                          whisper={`SUBAUDIBLE_TRACE_${rank1.pair}`}
                         />
                       )}
                     </div>
@@ -263,7 +318,7 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
                           )
                         : null}
                     </div>
-                  </div>
+                  </motion.div>
 
                   <button
                     type="button"
@@ -334,8 +389,9 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
           </div>
         </div>
       </section>
+      </motion.div>
 
-      <div className="border-t border-[#111]" />
+      <div className="border-t border-[var(--bg-hover)]" />
 
       <section className="border-b border-[#111] bg-[#000000]">
         <div className="w-full px-6 md:px-8 grid grid-cols-2 lg:grid-cols-4">
@@ -389,13 +445,25 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
             </div>
           </div>
           <div className="border border-[#111] p-5 bg-[#000000]">
-            <p className="font-mono text-[10px] text-[#737373] tracking-widest mb-2">LIVE AI SUMMARY</p>
+            <p className="font-mono text-[10px] text-[var(--text-muted)] tracking-widest mb-2">LIVE AI SUMMARY</p>
             {latestBriefQ.isPending ? (
               <div className="h-20 bg-[#111] animate-pulse" />
-            ) : (
-              <p className="font-sans text-[13px] text-[#a3a3a3] leading-relaxed">
-                {latestBriefQ.data?.brief_text ?? 'No live global brief has been generated yet.'}
+            ) : liveBriefGridRows.length === 0 ? (
+              <p className="font-mono text-[11px] text-[var(--text-muted)] m-0">
+                No live global brief has been generated yet.
               </p>
+            ) : (
+              <div className="grid gap-2.5 font-mono text-[11px] leading-snug">
+                {liveBriefGridRows.map(({ label, value }, idx) => (
+                  <div
+                    key={`${label}-${idx}`}
+                    className="grid grid-cols-[minmax(0,92px)_minmax(0,1fr)] gap-x-3 items-baseline"
+                  >
+                    <span className="text-[var(--text-muted)] tracking-widest shrink-0">[ {label} ]</span>
+                    <span className="text-[var(--text-primary)] min-w-0 break-words">{value}</span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -500,30 +568,42 @@ export function HomeLandingBody({ initial, memosSlot, onAccessTerminal }: HomeLa
         </div>
       </section>
 
-      <section className="border-t border-[#111] bg-[#000000]">
-        <div className="w-full px-6 md:px-8 py-16 md:py-20 flex flex-col gap-8">
-          <p className="font-mono text-[9px] tracking-[0.12em] text-[#666] m-0 order-1">
-            [ SYSTEM GENESIS: 10-ROUND ADVERSARIAL CRUCIBLE ]
-          </p>
-          <div className="order-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-8">
-            <div>
-              <h2 className="font-sans font-bold text-[22px] md:text-[26px] text-[#f0f0f0] tracking-tight m-0">
-                Lead Researcher &amp; Founder
-              </h2>
-              <p className="font-mono text-[11px] text-[#737373] mt-2 m-0">G10 FX · Forward-walking validation · Obsidian desk</p>
+      <section className="mt-auto border-t border-[#222] bg-[var(--bg-void)]">
+        <div className="w-full px-6 md:px-8 py-10 md:py-12">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-6">
+            <div className="min-w-0">
+              <p className="m-0 font-mono text-[10px] uppercase tracking-widest text-[var(--text-micro)]">
+                [ system architect ]
+              </p>
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-widest text-[#a3a3a3]">
+                {AUDIT_SEAL_ARCHITECT}
+              </p>
             </div>
-            <span className="font-mono text-[10px] text-[#a3a3a3] tracking-widest border border-[#333] px-2 py-1.5 tabular-nums self-start md:self-end shrink-0">
-              [ VERIFIED 90D EDGE: {edgePct != null ? `${edgePct}%` : '—'} ]
-            </span>
+            <div className="min-w-0">
+              <p className="m-0 font-mono text-[10px] uppercase tracking-widest text-[var(--text-micro)]">
+                [ integrity log ]
+              </p>
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-widest text-[#a3a3a3]">
+                10-round adversarial crucible
+              </p>
+            </div>
+            <div className="min-w-0">
+              <p className="m-0 font-mono text-[10px] uppercase tracking-widest text-[var(--text-micro)]">
+                [ verified 90d edge ]
+              </p>
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-widest text-[#a3a3a3] tabular-nums">
+                {verified90dQ.isPending && hitRate90dPct == null
+                  ? '—'
+                  : hitRate90dPct != null
+                    ? `${hitRate90dPct}%`
+                    : '—'}
+              </p>
+            </div>
           </div>
-          <p className="font-sans text-[15px] text-[#a3a3a3] leading-relaxed max-w-[720px] m-0 order-3">
-            Research into how G10 FX regimes form and break — rate differentials, COT, volatility, and microstructure. Public trace:
-            dated calls, validated outcomes, no narrative added after the fact.
-          </p>
-          <div className="flex gap-5 flex-wrap order-4">
+          <div className="mt-10 flex flex-wrap gap-5 border-t border-[#111] pt-8">
             <Link
               href="/about"
-              className="font-sans text-[13px] font-medium text-[#e8e8e8] bg-transparent border border-[#333] px-4 py-2 hover:border-[#555] transition-all active:scale-[0.98]"
+              className="font-sans text-[13px] font-medium text-[#e8e8e8] bg-transparent border border-[#333] px-4 py-2 hover:border-[#555] transition-opacity active:opacity-90"
             >
               About this project
             </Link>

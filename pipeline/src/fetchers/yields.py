@@ -92,12 +92,28 @@ def _fetch_yf_legs(
     tickers: dict[str, str],
     period: str,
 ) -> dict[str, float | None]:
-    legs: dict[str, float | None] = {}
-    total = len(tickers)
-    for idx, (leg_name, ticker) in enumerate(tickers.items()):
-        legs[leg_name] = _yf_leg(ticker, leg_name, period)
-        if idx < total - 1:
-            time.sleep(1.0)
+    legs: dict[str, float | None] = {leg_name: None for leg_name in tickers}
+    if not tickers:
+        return legs
+    try:
+        ticker_list = list(tickers.values())
+        # yfinance 0.2.x download returns a multi-index dataframe if >1 ticker
+        df = _yfinance().download(ticker_list, period=period, auto_adjust=True, progress=False)
+        if df.empty or "Close" not in df:
+            return legs
+        closes = df["Close"]
+        for leg_name, ticker in tickers.items():
+            try:
+                if len(ticker_list) == 1:
+                    series = closes.dropna()
+                else:
+                    series = closes[ticker].dropna()
+                if not series.empty:
+                    legs[leg_name] = float(series.iloc[-1])
+            except Exception as exc:
+                logger.warning("yfinance batch parse failed for %s (%s): %s", leg_name, ticker, exc)
+    except Exception as exc:
+        logger.warning("yfinance batch download failed: %s", exc)
     return legs
 
 

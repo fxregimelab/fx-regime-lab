@@ -6,178 +6,56 @@ import type { StrategyLedgerRow } from '@/lib/queries';
 /** Rows from useStrategyLedger (non-neutral directional ledger). */
 export type AlphaLedgerRow = Pick<
   StrategyLedgerRow,
-  'regime' | 'date' | 't1_hit' | 't3_hit' | 't5_hit' | 'brier_score_t5' | 'max_pain_bps'
+  | 'id'
+  | 'regime'
+  | 'date'
+  | 'direction'
+  | 't1_hit'
+  | 't3_hit'
+  | 't5_hit'
+  | 'brier_score_t5'
+  | 'max_pain_bps'
 >;
 
-/** Brier at p=0.5 forecast is 0.25; scores above this imply worse-than-chance calibration. */
-const BRIER_COIN_FLIP = 0.25;
-const SPARK_W = 88;
-const SPARK_H = 22;
-
-function isHitScored(v: number | null | undefined): v is number {
-  return v != null && v !== -1;
+/** Swiss audit: hit / miss / neutral as luminance + weight only. */
+export function hitAuditMark(v: number | null | undefined): string {
+  if (v === 1) return '[ ✓ ]';
+  if (v === 0) return '[ ✕ ]';
+  return '[ = ]';
 }
 
-function hitWinRatePct(rows: AlphaLedgerRow[], key: 't1_hit' | 't3_hit' | 't5_hit'): number | null {
-  const scored = rows.filter((r) => isHitScored(r[key]));
-  if (scored.length === 0) return null;
-  const wins = scored.filter((r) => r[key] === 1).length;
-  return (wins / scored.length) * 100;
+function hitAuditClass(v: number | null | undefined): string {
+  if (v === 1) return 'text-white font-bold';
+  if (v === 0) return 'text-[#555] font-light';
+  return 'text-[#888] font-normal';
 }
 
-function avgBrier(rows: AlphaLedgerRow[]): number | null {
-  const vals = rows
-    .map((r) => r.brier_score_t5)
-    .filter((x): x is number => typeof x === 'number' && !Number.isNaN(x));
-  if (vals.length === 0) return null;
-  return vals.reduce((a, b) => a + b, 0) / vals.length;
+function regimeCycleTitle(regime: string): string {
+  const t = regime.trim();
+  if (!t) return 'UNKNOWN CYCLE';
+  return `${t.toUpperCase()} CYCLE`;
 }
 
-function avgMaxPainBps(rows: AlphaLedgerRow[]): number | null {
-  const vals = rows
-    .map((r) => r.max_pain_bps)
-    .filter((x): x is number => typeof x === 'number' && !Number.isNaN(x));
-  if (vals.length === 0) return null;
-  return vals.reduce((a, b) => a + b, 0) / vals.length;
-}
+type RegimeGroup = { regime: string; items: AlphaLedgerRow[] };
 
-function rollingMean(vals: number[], window: number): number[] {
-  if (vals.length === 0) return [];
-  const w = Math.max(1, window);
-  const out: number[] = [];
-  for (let i = 0; i < vals.length; i++) {
-    const start = Math.max(0, i - w + 1);
-    const slice = vals.slice(start, i + 1);
-    out.push(slice.reduce((a, b) => a + b, 0) / slice.length);
-  }
-  return out;
-}
-
-function brierSeriesForRegime(rows: AlphaLedgerRow[], regime: string): number[] {
-  const subset = rows
-    .filter((r) => r.regime === regime)
-    .filter((r) => typeof r.brier_score_t5 === 'number' && !Number.isNaN(r.brier_score_t5))
-    .sort((a, b) => a.date.localeCompare(b.date));
-  return subset.map((r) => r.brier_score_t5 as number);
-}
-
-function sparkPathYs(series: number[], width: number, height: number): string {
-  if (series.length === 0) return '';
-  const n = series.length;
-  const pts: string[] = [];
-  for (let i = 0; i < n; i++) {
-    const x = n === 1 ? width / 2 : (i / (n - 1)) * width;
-    const v = Math.min(1, Math.max(0, series[i]!));
-    const y = height - v * height;
-    pts.push(`${x.toFixed(2)},${y.toFixed(2)}`);
-  }
-  return `M ${pts.join(' L ')}`;
-}
-
-function DualBrierSparkline({ s90, s5 }: { s90: number[]; s5: number[] }) {
-  if (s90.length === 0 && s5.length === 0) {
-    return (
-      <span className="text-[9px] text-[#555] tabular-nums" aria-hidden>
-        —
-      </span>
-    );
-  }
-  const p90 = sparkPathYs(s90, SPARK_W, SPARK_H);
-  const p5 = sparkPathYs(s5, SPARK_W, SPARK_H);
-  return (
-    <svg
-      width={SPARK_W}
-      height={SPARK_H}
-      viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
-      className="tabular-nums"
-      aria-label="Rolling Brier: white 90-observation, amber 5-observation"
-    >
-      {p90 ? (
-        <path d={p90} fill="none" stroke="#f5f5f5" strokeWidth={1.1} vectorEffect="non-scaling-stroke" />
-      ) : null}
-      {p5 ? (
-        <path d={p5} fill="none" stroke="#f59e0b" strokeWidth={1.1} vectorEffect="non-scaling-stroke" />
-      ) : null}
-    </svg>
-  );
-}
-
-function edgeTone(pct: number | null): string {
-  if (pct == null) return 'text-white';
-  if (pct > 50) return 'text-[#22c55e]';
-  if (pct < 50) return 'text-[#ef4444]';
-  return 'text-white';
-}
-
-function formatEdge(pct: number | null): string {
-  if (pct == null) return 'N/A';
-  return `${pct.toFixed(1)}%`;
-}
-
-function formatBrier(v: number | null): string {
-  if (v == null) return 'N/A';
-  return v.toFixed(3);
-}
-
-function formatMaxPainBps(v: number | null): string {
-  if (v == null) return 'N/A';
-  return `${v.toFixed(1)}`;
-}
-
-function statusFor(
-  t5Edge: number | null,
-  n: number,
-  degraded: boolean,
-): { label: string; className: string } {
-  if (degraded) return { label: '[ SIGNAL DEGRADED ]', className: 'text-[#f59e0b]' };
-  if (n >= 5 && t5Edge != null) {
-    if (t5Edge < 50) return { label: '[ DECAYED ]', className: 'text-[#ef4444]' };
-    if (t5Edge >= 60) return { label: '[ HIGH CONVICTION ]', className: 'text-[#22c55e]' };
-  }
-  return { label: '[ ACTIVE ]', className: 'text-[#a3a3a3]' };
-}
-
-export type RegimeAgg = {
-  regime: string;
-  n: number;
-  t1: number | null;
-  t3: number | null;
-  t5: number | null;
-  brier: number | null;
-  maxPainBps: number | null;
-  spark90: number[];
-  spark5: number[];
-  degraded: boolean;
-};
-
-export function aggregateLedgerByRegime(rows: AlphaLedgerRow[]): RegimeAgg[] {
-  const map = new Map<string, AlphaLedgerRow[]>();
+function groupByRegime(rows: AlphaLedgerRow[]): RegimeGroup[] {
+  const m = new Map<string, AlphaLedgerRow[]>();
   for (const r of rows) {
-    const list = map.get(r.regime) ?? [];
+    const key = r.regime || 'UNKNOWN';
+    const list = m.get(key) ?? [];
     list.push(r);
-    map.set(r.regime, list);
+    m.set(key, list);
   }
-  const out: RegimeAgg[] = [];
-  for (const [regime, list] of map) {
-    const series = brierSeriesForRegime(rows, regime);
-    const spark90 = rollingMean(series, 90);
-    const spark5 = rollingMean(series, 5);
-    const lastAcute = spark5.length > 0 ? spark5[spark5.length - 1]! : null;
-    const degraded = lastAcute != null && lastAcute > BRIER_COIN_FLIP;
-    out.push({
-      regime,
-      n: list.length,
-      t1: hitWinRatePct(list, 't1_hit'),
-      t3: hitWinRatePct(list, 't3_hit'),
-      t5: hitWinRatePct(list, 't5_hit'),
-      brier: avgBrier(list),
-      maxPainBps: avgMaxPainBps(list),
-      spark90,
-      spark5,
-      degraded,
-    });
+  const out: RegimeGroup[] = [];
+  for (const [regime, items] of m) {
+    items.sort((a, b) => b.date.localeCompare(a.date));
+    out.push({ regime, items });
   }
-  out.sort((a, b) => b.n - a.n || a.regime.localeCompare(b.regime));
+  out.sort((a, b) => {
+    const da = a.items[0]?.date ?? '';
+    const db = b.items[0]?.date ?? '';
+    return db.localeCompare(da);
+  });
   return out;
 }
 
@@ -185,105 +63,153 @@ type AlphaLedgerProps = {
   rows: AlphaLedgerRow[];
 };
 
-export function AlphaLedger({ rows }: AlphaLedgerProps) {
-  const agg = useMemo(() => aggregateLedgerByRegime(rows), [rows]);
+/** Fixed audit columns: date / regime / direction / T+1 / T+3 / T+5 / Brier (90d). */
+const LEDGER_GRID =
+  'minmax(5.5rem,1fr) minmax(7rem,1.15fr) minmax(4.25rem,0.85fr) 4.25rem 4.25rem 4.25rem 100px' as const;
+
+function BrierSparkline({ dataPoints }: { dataPoints: number[] }) {
+  if (!dataPoints || dataPoints.length === 0) return <div className="h-[30px] w-[100px] bg-[#111] opacity-20" />;
+
+  const w = 100;
+  const h = 30;
+  
+  // Brier score is 0..1 (0 is best, 1 is worst)
+  const minVal = 0;
+  const maxVal = 1;
+
+  const pts = dataPoints.map((val, i) => {
+    const x = dataPoints.length > 1 ? (i / (dataPoints.length - 1)) * w : w;
+    // Lower Brier is better. Brier 0 at bottom (y=h), Brier 1 at top (y=0)
+    const y = h - ((val - minVal) / (maxVal - minVal)) * h;
+    return `${x},${y}`;
+  });
+
+  const latestBrier = dataPoints[dataPoints.length - 1];
+  const color = latestBrier < 0.25 ? '#10b981' : latestBrier > 0.5 ? '#ef4444' : '#666666';
 
   return (
-    <div
-      className="grid w-full border border-solid border-[#111] bg-[#000000] text-white rounded-none"
-      style={{
-        gridTemplateColumns: '1.12fr 0.5fr 0.55fr 0.55fr 0.55fr 0.52fr 0.58fr 1.05fr 1fr',
-      }}
-    >
-      {(
-        [
-          'Regime',
-          'Sample (N)',
-          'T+1 Edge',
-          'T+3 Edge',
-          'T+5 Edge',
-          'Brier',
-          'Max Pain (BPS)',
-          'Fidelity',
-          'Status',
-        ] as const
-      ).map((h) => (
-        <div
-          key={h}
-          className="border-b border-r border-solid border-[#222] px-2 py-2 text-[9px] tracking-widest text-[#777] last:border-r-0"
-        >
-          {h}
-        </div>
-      ))}
+    <div className="flex flex-col items-center">
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+        {/* Baseline (Brier = 0.25, arbitrary "good" threshold) */}
+        <line x1={0} y1={h * 0.75} x2={w} y2={h * 0.75} stroke="#333" strokeWidth={1} strokeDasharray="2 2" strokeOpacity={0.5} />
+        {dataPoints.length === 1 ? (
+          <circle cx={w} cy={h - ((latestBrier - minVal) / (maxVal - minVal)) * h} r={1.5} fill={color} />
+        ) : (
+          <polyline fill="none" stroke={color} strokeWidth={1.5} points={pts.join(' ')} />
+        )}
+      </svg>
+    </div>
+  );
+}
 
-      {agg.length === 0 ? (
-        <div className="col-span-9 border-t border-solid border-[#111] px-2 py-6 text-center text-[11px] text-[#777] tabular-nums">
-          No ledger rows for this pair.
-        </div>
-      ) : (
-        agg.flatMap((row) => {
-          const st = statusFor(row.t5, row.n, row.degraded);
-          const rowDim = row.degraded ? 'opacity-40' : '';
-          return [
+export function AlphaLedger({ rows }: AlphaLedgerProps) {
+  const groups = useMemo(() => groupByRegime(rows), [rows]);
+  
+  // Pre-calculate 90-day Brier sliding window for all rows in O(N log N)
+  const brierMap = useMemo(() => {
+    const map = new Map<string, number[]>();
+    const parsed = rows
+      .map((r) => ({
+        id: r.id,
+        time: new Date(r.date).getTime(),
+        brier: r.brier_score_t5,
+      }))
+      .sort((a, b) => a.time - b.time);
+
+    const msIn90Days = 90 * 24 * 60 * 60 * 1000;
+    
+    let left = 0;
+    for (let right = 0; right < parsed.length; right++) {
+      while (parsed[right].time - parsed[left].time > msIn90Days) {
+        left++;
+      }
+      const window: number[] = [];
+      for (let i = left; i <= right; i++) {
+        const val = parsed[i].brier;
+        if (val !== null && val !== undefined) {
+          window.push(val);
+        }
+      }
+      map.set(parsed[right].id, window);
+    }
+    return map;
+  }, [rows]);
+
+  if (groups.length === 0) {
+    return (
+      <div className="border border-solid border-[#111] bg-[#000000] px-4 py-8 text-center font-mono text-[11px] tabular-nums text-[var(--text-muted)] shadow-none">
+        No ledger rows for this pair.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-12 shadow-none">
+      {groups.map((g, gi) => (
+        <section key={g.regime} className="w-full shadow-none">
+          <h2
+            className={`mb-4 border-0 font-serif text-2xl font-light tracking-tight text-[#d4d4d4] shadow-none md:text-3xl ${gi === 0 ? 'mt-0' : ''}`}
+          >
+            {regimeCycleTitle(g.regime)}
+          </h2>
+          <div className="w-full overflow-x-auto border border-solid border-[#111] bg-[#000000] shadow-none">
             <div
-              key={`${row.regime}-r`}
-              className={`border-b border-r border-solid border-[#111] px-2 py-2 text-[11px] tabular-nums ${rowDim}`}
+              className="grid w-full min-w-[700px]"
+              style={{
+                gridTemplateColumns: LEDGER_GRID,
+              }}
             >
-              {row.regime}
-            </div>,
-            <div
-              key={`${row.regime}-n`}
-              className={`border-b border-r border-solid border-[#111] px-2 py-2 text-[11px] tabular-nums ${rowDim}`}
-            >
-              {row.n}
-            </div>,
-            <div
-              key={`${row.regime}-t1`}
-              className={`border-b border-r border-solid border-[#111] px-2 py-2 text-[11px] tabular-nums ${edgeTone(row.t1)} ${rowDim}`}
-            >
-              {formatEdge(row.t1)}
-            </div>,
-            <div
-              key={`${row.regime}-t3`}
-              className={`border-b border-r border-solid border-[#111] px-2 py-2 text-[11px] tabular-nums ${edgeTone(row.t3)} ${rowDim}`}
-            >
-              {formatEdge(row.t3)}
-            </div>,
-            <div
-              key={`${row.regime}-t5`}
-              className={`border-b border-r border-solid border-[#111] px-2 py-2 text-[11px] tabular-nums ${edgeTone(row.t5)} ${rowDim}`}
-            >
-              {formatEdge(row.t5)}
-            </div>,
-            <div
-              key={`${row.regime}-b`}
-              className={`border-b border-r border-solid border-[#111] px-2 py-2 text-[11px] tabular-nums text-white ${rowDim}`}
-            >
-              {formatBrier(row.brier)}
-            </div>,
-            <div
-              key={`${row.regime}-mp`}
-              className={`border-b border-r border-solid border-[#111] px-2 py-2 text-[11px] tabular-nums ${rowDim} ${
-                row.maxPainBps != null && row.maxPainBps > 150 ? 'text-[#ef4444]' : 'text-white'
-              }`}
-            >
-              {formatMaxPainBps(row.maxPainBps)}
-            </div>,
-            <div
-              key={`${row.regime}-spark`}
-              className={`border-b border-r border-solid border-[#111] px-1 py-1 flex items-center justify-center ${rowDim}`}
-            >
-              <DualBrierSparkline s90={row.spark90} s5={row.spark5} />
-            </div>,
-            <div
-              key={`${row.regime}-s`}
-              className={`border-b border-solid border-[#111] px-2 py-2 font-mono text-[10px] tracking-wide tabular-nums ${st.className} ${rowDim}`}
-            >
-              {st.label}
-            </div>,
-          ];
-        })
-      )}
+              {(['Date', 'Regime', 'Direction', 'T+1', 'T+3', 'T+5', 'Brier (90d)'] as const).map((h) => (
+                <div
+                  key={h}
+                  className="border-b border-r border-solid border-[#222] px-2 py-2 font-mono text-[9px] tracking-widest text-[var(--text-muted)] shadow-none last:border-r-0"
+                >
+                  {h}
+                </div>
+              ))}
+              {g.items.flatMap((r) => {
+                const baseCell =
+                  'border-b border-r border-solid border-[#111] px-2 py-2 flex items-center font-mono text-[11px] tabular-nums text-[#e8e8e8] shadow-none';
+                return [
+                  <div key={`${r.id}-d`} className={baseCell}>
+                    {r.date}
+                  </div>,
+                  <div key={`${r.id}-reg`} className={baseCell}>
+                    {r.regime}
+                  </div>,
+                  <div key={`${r.id}-dir`} className={baseCell}>
+                    {r.direction}
+                  </div>,
+                  <div
+                    key={`${r.id}-t1`}
+                    className={`${baseCell} justify-center font-mono tabular-nums ${hitAuditClass(r.t1_hit)}`}
+                  >
+                    {hitAuditMark(r.t1_hit)}
+                  </div>,
+                  <div
+                    key={`${r.id}-t3`}
+                    className={`${baseCell} justify-center font-mono tabular-nums ${hitAuditClass(r.t3_hit)}`}
+                  >
+                    {hitAuditMark(r.t3_hit)}
+                  </div>,
+                  <div
+                    key={`${r.id}-t5`}
+                    className={`${baseCell} justify-center font-mono tabular-nums ${hitAuditClass(r.t5_hit)}`}
+                  >
+                    {hitAuditMark(r.t5_hit)}
+                  </div>,
+                  <div
+                    key={`${r.id}-brier`}
+                    className={`${baseCell} justify-center border-r-0 p-0`}
+                  >
+                    <BrierSparkline dataPoints={brierMap.get(r.id) ?? []} />
+                  </div>,
+                ];
+              })}
+            </div>
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

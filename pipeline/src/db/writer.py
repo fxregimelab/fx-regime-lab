@@ -1,4 +1,9 @@
-"""Supabase writes and reads used by the pipeline (service role)."""
+"""
+@agent_context: Primary database interface for Supabase, handling all authenticated writes and service-role reads for the pipeline.
+@allowed_imports: [json, os, collections.abc, dataclasses, datetime, functools, typing, supabase, src.types]
+@forbidden_imports: [src.ai, src.regime, src.signals]
+@obsidian_link: [[Infrastructure#Supabase Persistence]]
+"""
 
 from __future__ import annotations
 
@@ -69,11 +74,14 @@ def write_signal_row(row: SignalRow) -> None:
         "cross_asset_copper": row.cross_asset_copper,
         "cross_asset_stoxx": row.cross_asset_stoxx,
         "oi_delta": row.oi_delta,
+        "volume_rvol": row.volume_rvol,
         "structural_instability": row.structural_instability,
         "breakeven_inflation_10y": row.breakeven_inflation_10y,
         "rate_diff_10y_real": row.rate_diff_10y_real,
         "rate_z_tactical": row.rate_z_tactical,
         "rate_z_structural": row.rate_z_structural,
+        "realized_vol_rank": row.realized_vol_rank,
+        "skew_alignment": row.skew_alignment,
     }
     _client().table("signals").upsert(payload, on_conflict="pair,date").execute()
 
@@ -213,9 +221,38 @@ def update_desk_open_card_telemetry_audit(
     )
 
 
+def get_validation_log_entry(call_date: date | str, pair: str) -> dict[str, Any] | None:
+    """Fetch existing validation_log row for a given call_date + pair."""
+    iso = _date_iso(call_date)
+    res = (
+        _client()
+        .table("validation_log")
+        .select("*")
+        .eq("call_date", iso)
+        .eq("pair", pair)
+        .maybe_single()
+        .execute()
+    )
+    if res is None:
+        return None
+    raw = res.data
+    if not isinstance(raw, dict):
+        return None
+    return cast(dict[str, Any], raw)
+
+
 def write_validation_row(row: Mapping[str, Any]) -> None:
+    """Insert or update validation_log row.
+
+    NOTE: The unique index on (date, pair) is being dropped in the migration.
+    This function now uses upsert on (call_date, pair) if that index exists,
+    otherwise falls back to plain upsert on (date, pair) for compatibility.
+    """
     payload = cast(dict[str, Any], dict(row))
-    _client().table("validation_log").upsert(payload, on_conflict="pair,date").execute()
+    if payload.get("call_date") is not None:
+        _client().table("validation_log").upsert(payload, on_conflict="pair,call_date").execute()
+    else:
+        _client().table("validation_log").upsert(payload, on_conflict="pair,date").execute()
 
 
 def write_brief(
@@ -298,11 +335,10 @@ def write_macro_events(events: list[dict[str, Any]]) -> None:
 
 
 def write_ai_request(date_str: str, purpose: str, model: str) -> None:
-    row = cast(
-        dict[str, Any],
-        {"date": date_str, "request_count": 1, "purpose": purpose, "model": model},
-    )
-    _client().table("ai_usage_log").insert(row).execute()
+    _client().rpc(
+        "increment_ai_usage",
+        {"p_date": date_str, "p_purpose": purpose, "p_model": model}
+    ).execute()
 
 
 def get_ai_request_count_today(date_str: str) -> int:
@@ -391,7 +427,7 @@ def get_historical_regime_calls(pair: str, limit: int = 5000) -> list[dict[str, 
     res = (
         _client()
         .table("regime_calls")
-        .select("date,regime,signal_composite")
+        .select("date,regime,signal_composite,rate_signal,confidence")
         .eq("pair", pair)
         .order("date", desc=True)
         .limit(limit)
@@ -709,3 +745,45 @@ def get_latest_research_memo_thesis_bullets() -> list[str]:
         if isinstance(x, str) and x.strip():
             out.append(x.strip())
     return out[:5]
+
+
+# ---------------------------------------------------------------------------
+# Round 3 Phase 2 — Aggregate stats read/write
+# ---------------------------------------------------------------------------
+
+
+def get_validation_log_for_stats(
+    pair_filter: str | None = None,
+    lookback_days: int | None = None,
+) -> list[dict[str, Any]]:
+    """Fetch validation rows for aggregate statistics.
+
+    Returns rows with T+5/T+20 horizons populated (non-superseded only).
+    If ``lookback_days`` is set, filter to calls within that window.
+    """
+    query = (
+        _client()
+        .table("validation_log")
+        .select(
+            "pair,predicted_direction,confidence,call_date,"
+            "actual_direction_t5,log_return_t5_bps,correct_t5,brier_score_t5,"
+            "actual_direction_t20,log_return_t20_bps,correct_t20,brier_score_t20"
+        )
+        .eq("is_superseded", False)
+    )
+    if pair_filter:
+        query = query.eq("pair", pair_filter)
+    if lookback_days is not None and lookback_days > 0:
+        cutoff = date.today() - __import__("datetime").timedelta(days=lookback_days)
+        query = query.gte("call_date", cutoff.isoformat())
+
+    res = query.execute()
+    return cast(list[dict[str, Any]], res.data or [])
+
+
+def write_validation_stats(row: Mapping[str, Any]) -> None:
+    """Upsert aggregate stats into ``validation_stats`` on (as_of_date, pair)."""
+    payload = cast(dict[str, Any], dict(row))
+    _client().table("validation_stats").upsert(
+        payload, on_conflict="as_of_date,pair"
+    ).execute()
