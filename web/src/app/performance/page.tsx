@@ -24,64 +24,54 @@ export default async function PerformancePage() {
       : "0.00";
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen bg-[var(--color-cream)]">
       <Nav />
-      <main className="flex-1 max-w-[1152px] mx-auto px-6 py-12 w-full">
+      <main className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
         {/* Header */}
-        <div className="mb-10 pb-6 border-b border-shell-border">
-          <p className="font-mono text-[10px] text-shell-muted tracking-[0.12em] mb-2.5">
-            TRACK RECORD
+        <div className="mb-10 pb-6 border-b border-[var(--color-stone-200)]">
+          <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-stone-400)] uppercase mb-2.5">
+            Track Record
           </p>
-          <h1 className="font-sans font-extrabold text-[32px] text-shell-text tracking-tight">
+          <h1 className="font-sans font-semibold text-[32px] text-[var(--color-stone-900)] tracking-tight">
             Performance
           </h1>
-          <p className="font-sans text-sm text-shell-secondary mt-2">
+          <p className="font-sans text-[15px] text-[var(--color-stone-500)] mt-2 leading-[1.6]">
             Next-day directional validation. Updated daily after market close.
           </p>
         </div>
 
         {/* Top metrics */}
-        <div
-          className="grid grid-cols-2 md:grid-cols-4 gap-px mb-8"
-          style={{ background: "#e5e5e5", boxShadow: "0 0 0 1px #e5e5e5" }}
-        >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-stone-200)] border border-[var(--color-stone-200)] mb-10">
           {[
             {
               label: "7D ACCURACY",
               value: `${accuracy}%`,
-              color: "#16a34a",
               sub: `${correct}/${total} correct`,
             },
             {
               label: "AVG NEXT-DAY RET",
               value: `${Number(avgReturn) >= 0 ? "+" : ""}${avgReturn}%`,
-              color: "#F5923A",
               sub: "Per call directional",
             },
             {
               label: "CUMULATIVE RET",
               value: `+${avgReturn}%`,
-              color: "#4BA3E3",
               sub: "Since Apr 2026",
             },
             {
               label: "CALLS VALIDATED",
               value: `${total}`,
-              color: "#0a0a0a",
               sub: `${PAIRS.length} pairs`,
             },
           ].map((m) => (
-            <div key={m.label} className="bg-white p-5">
-              <p className="font-mono text-[9px] text-[#999] tracking-[0.12em] mb-2.5">
+            <div key={m.label} className="bg-white p-6">
+              <p className="font-mono text-[9px] tracking-[0.12em] text-[var(--color-stone-400)] uppercase mb-2.5">
                 {m.label}
               </p>
-              <p
-                className="font-mono text-[30px] font-bold tracking-tight leading-none"
-                style={{ color: m.color }}
-              >
+              <p className="font-mono text-[clamp(24px,3vw,30px)] font-medium text-[var(--color-stone-900)] tracking-tight leading-none tabular-nums">
                 {m.value}
               </p>
-              <p className="font-mono text-[10px] text-[#bbb] mt-1.5">
+              <p className="font-mono text-[10px] text-[var(--color-stone-400)] mt-1.5">
                 {m.sub}
               </p>
             </div>
@@ -89,13 +79,13 @@ export default async function PerformancePage() {
         </div>
 
         {/* Per-pair accuracy */}
-        <div className="border border-shell-border mb-6">
-          <div className="px-5 py-4 border-b border-[#f0f0f0]">
-            <p className="font-mono text-[10px] text-[#888] tracking-[0.1em]">
-              ROLLING 7-DAY ACCURACY
+        <div className="border border-[var(--color-stone-200)] mb-10 bg-white">
+          <div className="px-5 py-4 border-b border-[var(--color-stone-100)]">
+            <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-stone-400)] uppercase">
+              Rolling 7-Day Accuracy
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 border-b border-[#f0f0f0]">
+          <div className="grid grid-cols-1 md:grid-cols-3">
             {PAIRS.map((p, i) => {
               const pRows = validation.filter(
                 (r: ValidationRow) => r.pair === p.display
@@ -109,30 +99,21 @@ export default async function PerformancePage() {
               return (
                 <div
                   key={p.label}
-                  className="px-5 py-4"
-                  style={{
-                    borderRight: i < PAIRS.length - 1 ? "1px solid #f0f0f0" : "none",
-                  }}
+                  className={`px-5 py-5 ${i < PAIRS.length - 1 ? "border-b md:border-b-0 md:border-r" : ""} border-[var(--color-stone-100)]`}
                 >
-                  <p
-                    className="font-mono text-[10px] font-bold mb-1"
-                    style={{ color: p.pairColor }}
-                  >
+                  <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-stone-600)] uppercase font-medium mb-2">
                     {p.display}
                   </p>
-                  <p className="font-mono text-[26px] font-bold text-shell-text tracking-tight">
+                  <p className="font-mono text-[26px] font-medium text-[var(--color-stone-900)] tracking-tight tabular-nums">
                     {pAcc}%
                   </p>
-                  <p className="font-mono text-[10px] text-[#bbb] mt-0.5">
+                  <p className="font-mono text-[10px] text-[var(--color-stone-400)] mt-0.5">
                     {pRows.length} calls
                   </p>
-                  <div className="mt-2.5 bg-[#f0f0f0] h-[3px]">
+                  <div className="mt-3 bg-[var(--color-stone-100)] h-[2px] overflow-hidden">
                     <div
-                      className="h-full"
-                      style={{
-                        width: `${pAcc === "—" ? 0 : Number(pAcc)}%`,
-                        background: p.pairColor,
-                      }}
+                      className="h-full bg-[var(--color-stone-500)] transition-all duration-700 ease-out"
+                      style={{ width: `${pAcc === "—" ? 0 : Number(pAcc)}%` }}
                     />
                   </div>
                 </div>
@@ -143,19 +124,19 @@ export default async function PerformancePage() {
 
         {/* Validation table */}
         <div className="mb-16">
-          <p className="font-mono text-[10px] text-shell-muted tracking-[0.12em] mb-4">
-            VALIDATION LOG — ALL CALLS
+          <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-stone-400)] uppercase mb-4">
+            Validation Log — All Calls
           </p>
           <ValidationTable rows={validation} tone="light" />
         </div>
 
         {/* Regime transition matrix */}
-        <div className="border border-shell-border mb-6">
-          <div className="px-5 py-4 border-b border-[#f0f0f0]">
-            <p className="font-mono text-[10px] text-[#888] tracking-[0.1em] mb-1">
-              REGIME TRANSITION MATRIX
+        <div className="border border-[var(--color-stone-200)] mb-6 bg-white">
+          <div className="px-5 py-4 border-b border-[var(--color-stone-100)]">
+            <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-stone-400)] uppercase mb-1">
+              Regime Transition Matrix
             </p>
-            <p className="font-sans text-[13px] text-[#aaa]">
+            <p className="font-sans text-[13px] text-[var(--color-stone-400)]">
               How often each regime transitions to another (based on available
               history)
             </p>
@@ -163,15 +144,15 @@ export default async function PerformancePage() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse font-mono text-[10px]">
               <thead>
-                <tr className="border-b border-[#f0f0f0]">
-                  <th className="px-3.5 py-2.5 text-left text-[#aaa] font-medium min-w-[180px]">
+                <tr className="border-b border-[var(--color-stone-100)]">
+                  <th className="px-3.5 py-2.5 text-left text-[var(--color-stone-400)] font-medium min-w-[180px]">
                     FROM \ TO
                   </th>
                   {["STRONG STR", "MOD STR", "NEUTRAL", "MOD WEAK", "VOL EXP"].map(
                     (h) => (
                       <th
                         key={h}
-                        className="px-2.5 py-2.5 text-center text-[#aaa] font-medium min-w-[80px]"
+                        className="px-2.5 py-2.5 text-center text-[var(--color-stone-400)] font-medium min-w-[80px]"
                       >
                         {h}
                       </th>
@@ -193,8 +174,10 @@ export default async function PerformancePage() {
                   ],
                   ["VOL_EXPANDING", ["15%", "30%", "35%", "20%", null]],
                 ].map(([regime, probs], ri) => (
-                  <tr key={String(regime)} className="border-b border-[#f8f8f8]">
-                    <td className="px-3.5 py-2.5 text-[#555]">{String(regime)}</td>
+                  <tr key={String(regime)} className="border-b border-[var(--color-stone-100)] last:border-b-0">
+                    <td className="px-3.5 py-2.5 text-[var(--color-stone-600)]">
+                      {String(regime)}
+                    </td>
                     {(probs as (string | null)[]).map((p, ci) => (
                       <td
                         key={ci}
@@ -202,16 +185,15 @@ export default async function PerformancePage() {
                         style={{
                           color:
                             p === null
-                              ? "#f0f0f0"
+                              ? "transparent"
                               : parseInt(p) > 50
-                                ? "#0a0a0a"
-                                : "#888",
-                          fontWeight:
-                            p && parseInt(p) > 40 ? 700 : 400,
+                                ? "var(--color-stone-900)"
+                                : "var(--color-stone-500)",
+                          fontWeight: p && parseInt(p) > 40 ? 600 : 400,
                           background:
                             p === null
-                              ? "#f8f8f8"
-                              : `rgba(75,163,227,${parseInt(p) / 200})`,
+                              ? "var(--color-parchment)"
+                              : `rgba(87,83,78,${parseInt(p) / 250})`,
                         }}
                       >
                         {p ?? "—"}
@@ -224,7 +206,7 @@ export default async function PerformancePage() {
           </div>
         </div>
 
-        <p className="font-mono text-[10px] text-[#c0c0c0] tracking-wider leading-relaxed pt-5 mt-5 border-t border-shell-border">
+        <p className="font-mono text-[10px] text-[var(--color-stone-400)] tracking-wider leading-relaxed pt-5 mt-5 border-t border-[var(--color-stone-200)]">
           NEXT-DAY DIRECTIONAL OUTCOME. RETURN % IS NEXT-DAY CLOSE-TO-CLOSE
           SPOT MOVE IN DIRECTION OF CALL. RESEARCH ONLY — NOT INVESTMENT
           ADVICE.

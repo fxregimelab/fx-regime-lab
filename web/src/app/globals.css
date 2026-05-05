@@ -1,34 +1,45 @@
 @import "tailwindcss";
 
-/* Obsidian Mute — instrument palette */
+/* ─── Unified soothing palette ───────────────────────────────────────────── */
 :root {
+  /* Light shell — warm stone, never cold grey */
+  --color-cream: #fafaf9;
+  --color-parchment: #f5f5f4;
+  --color-stone-50: #fafaf9;
+  --color-stone-100: #f5f5f4;
+  --color-stone-200: #e7e5e4;
+  --color-stone-300: #d6d3d1;
+  --color-stone-400: #a8a29e;
+  --color-stone-500: #78716c;
+  --color-stone-600: #57534e;
+  --color-stone-700: #44403c;
+  --color-stone-800: #292524;
+  --color-stone-900: #1c1917;
+  --color-stone-950: #0c0a09;
+
+  /* Terminal dark (unchanged functional palette) */
   --bg-void: #000000;
   --bg-surface: #080808;
   --bg-hover: #111111;
   --text-primary: #ffffff;
   --text-muted: #666666;
   --text-micro: #444444;
-}
 
-@theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --font-serif: var(--font-playfair), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  
-  --color-brand-eurusd: #4BA3E3;
-  --color-brand-usdjpy: #F5923A;
-  --color-brand-usdinr: #C84A31;
-  --color-brand-accent: #F5923A;
-  /* Institutional terminal: muted bull / bear (replaces neon greens & reds) */
-  --color-bullish: #4ade80;
-  --color-bearish: #f87171;
+  /* Pair accents — ONLY for terminal data differentiation */
+  --color-brand-eurusd: #8b9dc3;
+  --color-brand-usdjpy: #c4a574;
+  --color-brand-usdinr: #b87a7a;
+  --color-brand-accent: #78716c;
+
+  --color-bullish: #7a9e7a;
+  --color-bearish: #b87a7a;
 
   /* Shell / Terminal split design tokens */
-  --color-shell-bg: #ffffff;
-  --color-shell-text: #0a0a0a;
-  --color-shell-secondary: #525252;
-  --color-shell-muted: #a0a0a0;
-  --color-shell-border: #e5e5e5;
+  --color-shell-bg: #fafaf9;
+  --color-shell-text: #1c1917;
+  --color-shell-secondary: #57534e;
+  --color-shell-muted: #a8a29e;
+  --color-shell-border: #e7e5e4;
 
   --color-terminal-bg: #080808;
   --color-terminal-surface: #0c0c0c;
@@ -39,105 +50,27 @@
   --color-terminal-muted: #888888;
   --color-terminal-dim: #555555;
 
-  --color-pair-eurusd: #4BA3E3;
-  --color-pair-usdjpy: #F5923A;
-  --color-pair-usdinr: #D94030;
-  --color-accent: #F5923A;
+  --color-pair-eurusd: #8b9dc3;
+  --color-pair-usdjpy: #c4a574;
+  --color-pair-usdinr: #b87a7a;
+  --color-accent: #78716c;
 
-  --color-up: #4ade80;
-  --color-down: #f87171;
-  --color-up-shell: #16a34a;
-  --color-down-shell: #dc2626;
-  --color-warn: #fbbf24;
+  --color-up: #7a9e7a;
+  --color-down: #b87a7a;
+  --color-up-shell: #57534e;
+  --color-down-shell: #78716c;
+  --color-warn: #a8a29e;
 }
 
-@layer utilities {
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
-  }
-  .hide-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
-  }
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .live-indicator {
-    background: radial-gradient(circle, var(--color-bullish) 0%, #22c55e99 100%);
-  }
-
-  @keyframes tail-risk-pulse {
-    0%, 100% { opacity: 0.55; box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.35); }
-    50% { opacity: 1; box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.12); }
-  }
-  .animate-tail-risk-ring {
-    animation: tail-risk-pulse 2.2s ease-in-out infinite;
-  }
-
-  /* MacroPulseBar horizontal marquee */
-  @keyframes pulse-marquee {
-    0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
-  .animate-pulse-marquee {
-    /* Double-width content; animate exactly 50% so it loops seamlessly */
-    animation: pulse-marquee 30s linear infinite;
-    will-change: transform;
-    /* Pause on hover so analysts can read values */
-  }
-  .animate-pulse-marquee:hover {
-    animation-play-state: paused;
-  }
-
-  /**
-   * OMEGA gutter — inset radial depth on machined panels (obsidian only).
-   */
-  .omega-gutter {
-    background-color: #080808;
-    background-image: radial-gradient(
-      ellipse 120% 80% at 50% 0%,
-      rgba(17, 17, 17, 0.55) 0%,
-      rgba(8, 8, 8, 0.98) 45%,
-      #080808 100%
-    );
-  }
-
-  /* OMEGA Haptics — physical depress and bevel-swap on click */
-  .omega-haptic {
-    transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1), 
-                box-shadow 0.1s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .omega-haptic:active {
-    transform: translateY(0.5px) scale(0.995);
-    /* Bevel-swap: Move top-left light to bottom-right or invert it */
-    box-shadow: 
-      inset 0 -0.5px 0 rgba(255, 255, 255, 0.08), 
-      inset -0.5px 0 0 rgba(255, 255, 255, 0.03);
-  }
-
-  .omega-depress:active {
-    transform: translateY(1px);
-  }
-
-  /** Hardware heartbeat — logo pulse while live queries fetch. */
-  @keyframes omega-heartbeat {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.3;
-    }
-  }
-  .omega-heartbeat {
-    animation: omega-heartbeat 0.8s ease-in-out infinite;
-    will-change: opacity;
-  }
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
-/* Matte obsidian: micro-noise over #000 (opacity via SVG feColorMatrix) */
+/* ─── Base ───────────────────────────────────────────────────────────────── */
 html {
+  scroll-behavior: smooth;
   height: 100%;
   overflow-x: hidden;
   width: 100%;
@@ -149,33 +82,22 @@ body {
   overflow-x: hidden;
   width: 100%;
   max-width: 100vw;
-  background-color: var(--bg-void);
-  color: #e8e8e8;
+  background-color: var(--color-cream);
+  color: var(--color-stone-900);
   position: relative;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Digital grain: kills gradient banding; matte void surface (no shadows). */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.04;
-  will-change: opacity, transform;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-}
-
-/* Scrollbar eradication — 2px rail, no horizontal chrome */
+/* ─── Scrollbar — minimal neutral ────────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 2px;
-  height: 2px;
+  width: 4px;
+  height: 4px;
 }
 
 *::-webkit-scrollbar-track {
@@ -183,11 +105,171 @@ body::before {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 0;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
 }
 
-/* Terminal route: mono + tabular numerals on text containers (override with font-sans / font-serif utilities) */
+/* ─── Animation keyframes ────────────────────────────────────────────────── */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes gentle-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes line-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ─── Animation utilities ────────────────────────────────────────────────── */
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-fade-in {
+    animation: fade-in 0.6s ease-out forwards;
+  }
+  .animate-slide-in-left {
+    animation: slide-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-gentle-pulse {
+    animation: gentle-pulse 3s ease-in-out infinite;
+  }
+  .animate-line-grow {
+    animation: line-grow 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform-origin: left;
+  }
+
+  /* Stagger delays */
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+  .delay-600 { animation-delay: 600ms; }
+  .delay-700 { animation-delay: 700ms; }
+
+  /* Initial state for scroll-triggered animations */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal.revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Hover lift */
+  .hover-lift {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Terminal-specific (preserved) */
+  .live-indicator {
+    background: radial-gradient(circle, var(--color-bullish) 0%, rgba(122, 158, 122, 0.6) 100%);
+  }
+
+  @keyframes tail-risk-pulse {
+    0%, 100% { opacity: 0.55; box-shadow: 0 0 0 0 rgba(184, 122, 122, 0.35); }
+    50% { opacity: 1; box-shadow: 0 0 0 4px rgba(184, 122, 122, 0.12); }
+  }
+  .animate-tail-risk-ring {
+    animation: tail-risk-pulse 2.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-pulse-marquee {
+    animation: pulse-marquee 30s linear infinite;
+    will-change: transform;
+  }
+  .animate-pulse-marquee:hover {
+    animation-play-state: paused;
+  }
+
+  .omega-gutter {
+    background-color: #080808;
+    background-image: radial-gradient(
+      ellipse 120% 80% at 50% 0%,
+      rgba(17, 17, 17, 0.55) 0%,
+      rgba(8, 8, 8, 0.98) 45%,
+      #080808 100%
+    );
+  }
+
+  .omega-haptic {
+    transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.1s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .omega-haptic:active {
+    transform: translateY(0.5px) scale(0.995);
+    box-shadow:
+      inset 0 -0.5px 0 rgba(255, 255, 255, 0.08),
+      inset -0.5px 0 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .omega-depress:active {
+    transform: translateY(1px);
+  }
+
+  @keyframes omega-heartbeat {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .omega-heartbeat {
+    animation: omega-heartbeat 0.8s ease-in-out infinite;
+    will-change: opacity;
+  }
+}
+
+/* ─── Terminal route overrides ───────────────────────────────────────────── */
 @layer base {
   [data-fxrl-terminal] p,
   [data-fxrl-terminal] span,
@@ -198,76 +280,46 @@ body::before {
 }
 
 :root {
-  /* Fallback until TerminalNav measures header (macro pulse is global, excluded). */
   --terminal-nav-h: 76px;
   --global-pulse-h: 28px;
 }
 
-/* ─── Print styles ─────────────────────────────────────────────────────────── */
+/* ─── Print styles ───────────────────────────────────────────────────────── */
 @media print {
-  /* Hide all web surfaces; report explicitly opts-in */
-  header,
-  footer,
-  nav,
-  aside,
-  button,
-  main,
-  [data-print-hide],
-  .print\:hidden,
-  .no-print {
+  header, footer, nav, aside, button, main, [data-print-hide], .print\:hidden, .no-print {
     display: none !important;
     visibility: hidden !important;
   }
-
-  /* Kill animated overlays */
   .animate-pulse-marquee {
     display: none !important;
   }
-
-  .research-report,
-  .hidden.print\:block {
+  .research-report, .hidden.print\:block {
     display: block !important;
     position: static !important;
     visibility: visible !important;
   }
-
-  /* White-page body */
-  html,
-  body {
+  html, body {
     background: white !important;
     color: #0a0a0a !important;
     height: auto !important;
   }
-
   body::before {
     display: none !important;
   }
-
-  /* Remove decorative web styling */
   * {
     background-color: transparent !important;
     box-shadow: none !important;
     color: #000 !important;
   }
-
-  .research-report,
-  .report-page,
-  .bg-white,
-  .bg-\[#fff\] {
+  .research-report, .report-page, .bg-white, .bg-\[#fff\] {
     background-color: white !important;
   }
-
   .research-report {
     font-family: Georgia, "Times New Roman", serif !important;
   }
-
-  .research-report h1,
-  .research-report h2,
-  .research-report h3,
-  .research-report .font-sans {
+  .research-report h1, .research-report h2, .research-report h3, .research-report .font-sans {
     font-family: Inter, Arial, Helvetica, sans-serif !important;
   }
-
   .report-page {
     break-inside: avoid;
     page-break-inside: avoid;
@@ -275,11 +327,9 @@ body::before {
     min-height: 92vh;
     padding: 0;
   }
-
   .report-page:last-child {
     page-break-after: auto;
   }
-
   @page {
     margin: 0.75in;
     size: A4 portrait;
