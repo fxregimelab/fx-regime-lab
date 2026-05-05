@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { PAIRS } from '@/lib/mockData';
+import { PAIRS } from '@/lib/constants';
 
 export async function generateMetadata({ params }: { params: Promise<{ pair: string }> }): Promise<Metadata> {
   const resolvedParams = await params;

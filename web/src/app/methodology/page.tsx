@@ -1,25 +1,35 @@
+"use client";
+
 import { Nav } from "@/components/shell/Nav";
 import { Footer } from "@/components/shell/Footer";
 import "katex/dist/katex.min.css";
+import { useEffect, useState } from "react";
 
 function KatexMath({ latex }: { latex: string }) {
-  const html =
-    typeof window === "undefined"
-      ? latex
-      : (() => {
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const katex = require("katex");
-            return katex.renderToString(latex, {
-              throwOnError: false,
-              displayMode: true,
-            });
-          } catch {
-            return latex;
-          }
-        })();
+  const [html, setHtml] = useState<string>("");
 
-  return <div className="my-6" dangerouslySetInnerHTML={{ __html: html }} />;
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const katex = require("katex");
+      setHtml(
+        katex.renderToString(latex, {
+          throwOnError: false,
+          displayMode: true,
+        })
+      );
+    } catch {
+      setHtml(latex);
+    }
+  }, [latex]);
+
+  return (
+    <div
+      className="my-6"
+      suppressHydrationWarning
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
 }
 
 export default function MethodologyPage() {

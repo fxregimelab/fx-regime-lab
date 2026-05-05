@@ -4,7 +4,6 @@ import {
   getLatestRegimeCalls,
   getLatestSignals,
   getHistoricalRegimeCalls,
-  getSignalHistory,
 } from "@/lib/supabase/queries";
 import { RegimeCard } from "@/components/regime/RegimeCard";
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
