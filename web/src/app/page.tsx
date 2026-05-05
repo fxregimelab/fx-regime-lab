@@ -9,14 +9,23 @@ import { Nav } from "@/components/shell/Nav";
 import { Footer } from "@/components/shell/Footer";
 import Link from "next/link";
 
-/* ------------------------------------------------------------------ */
-/*  Reusable section heading                                           */
-/* ------------------------------------------------------------------ */
+/* ─── Types ─────────────────────────────────────────────────────────── */
+
+interface ValidationRow {
+  date: string;
+  pair: string;
+  call: string;
+  outcome: "correct" | "incorrect";
+  return_pct: number;
+}
+
+/* ─── Section primitives ────────────────────────────────────────────── */
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase mb-4">
+    <span className="block font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase mb-4">
       {children}
-    </p>
+    </span>
   );
 }
 
@@ -28,75 +37,246 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Hero                                                               */
-/* ------------------------------------------------------------------ */
-function Hero() {
+/* ─── Hero ──────────────────────────────────────────────────────────── */
+
+function Hero({
+  latestCallDate,
+  totalCalls,
+  accuracy7d,
+  streak,
+}: {
+  latestCallDate: string | null;
+  totalCalls: number;
+  accuracy7d: number;
+  streak: { type: "W" | "L"; count: number } | null;
+}) {
   return (
-    <section className="min-h-[92vh] flex flex-col justify-center relative">
-      <div className="max-w-[1152px] mx-auto px-6 w-full">
-        <div className="max-w-[640px]">
-          <div className="flex items-center gap-3 mb-8 animate-fade-in">
-            <span className="w-2 h-2 rounded-full bg-[var(--color-up)] animate-gentle-pulse" />
-            <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase">
-              Live · G10 FX · Daily Calls
+    <section className="min-h-[100dvh] flex flex-col justify-between relative">
+      <div className="max-w-[1152px] mx-auto px-6 w-full pt-28">
+        {/* Brand mark + rule */}
+        <div className="mb-10 animate-fade-in">
+          <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase block mb-4">
+            FX Regime Lab
+          </span>
+          <div className="w-[96px] h-px bg-[var(--color-border)] animate-line-grow" />
+        </div>
+
+        {/* H1 */}
+        <h1 className="font-sans font-semibold text-[clamp(44px,5.5vw,72px)] text-[var(--color-text)] leading-[1.05] tracking-tight mb-8 max-w-[720px] animate-fade-up delay-100">
+          I call regimes before the open.
+          <br />
+          The record is public.
+        </h1>
+
+        {/* Manifesto paragraph */}
+        <p className="font-sans text-[17px] text-[var(--color-text-secondary)] leading-[1.6] max-w-[560px] mb-10 animate-fade-up delay-200">
+          Every morning, I publish a directional view on EUR/USD, USD/JPY, and
+          USD/INR before the first London print. The call is timestamped, the
+          math is open, and the next-day validation is automatic. I am an EE
+          undergrad running a discretionary macro research system that happens
+          to be public — not the other way around.
+        </p>
+
+        {/* System status strip */}
+        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2 mb-10 animate-fade-up delay-300">
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-[11px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
+              Latest call
+            </span>
+            <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
+              {latestCallDate ?? "—"}
             </span>
           </div>
-
-          <h1 className="font-sans font-semibold text-[clamp(40px,6vw,72px)] text-[var(--color-text)] leading-[1.08] tracking-tight mb-7 animate-fade-up delay-100">
-            Daily regime
-            <br />
-            calls. On the
-            <br />
-            record.
-          </h1>
-
-          <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[440px] mb-10 animate-fade-up delay-200">
-            G10 FX regime classification across EUR/USD, USD/JPY, and USD/INR.
-            Composite signal from rate differentials, COT positioning, realized
-            volatility, and open interest. Every call public before market open.
-            Every outcome validated.
-          </p>
-
-          <div className="flex gap-4 items-center animate-fade-up delay-300">
-            <Link
-              href="/brief"
-              className="px-6 py-2.5 bg-[var(--color-text)] text-[var(--color-void)] font-sans text-[13px] tracking-wide transition-all duration-300 hover:bg-[var(--color-accent-hover)]"
-            >
-              Read today&apos;s brief
-            </Link>
-            <Link
-              href="/terminal"
-              className="font-sans text-[13px] text-[var(--color-text-muted)] underline decoration-[var(--color-border)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-text)]"
-            >
-              Open terminal →
-            </Link>
+          <span className="text-[var(--color-border)]">·</span>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-[11px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
+              Pairs tracked
+            </span>
+            <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
+              {PAIRS.length}
+            </span>
           </div>
+          <span className="text-[var(--color-border)]">·</span>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-[11px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
+              Calls validated
+            </span>
+            <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
+              {totalCalls}
+            </span>
+          </div>
+          <span className="text-[var(--color-border)]">·</span>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-[11px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
+              7D accuracy
+            </span>
+            <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
+              {accuracy7d.toFixed(1)}%
+            </span>
+          </div>
+          {streak && (
+            <>
+              <span className="text-[var(--color-border)]">·</span>
+              <div className="flex items-baseline gap-2">
+                <span className="font-mono text-[11px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
+                  Streak
+                </span>
+                <span
+                  className="font-mono text-[11px] font-medium tabular-nums"
+                  style={{
+                    color:
+                      streak.type === "W"
+                        ? "var(--color-up)"
+                        : "var(--color-down)",
+                  }}
+                >
+                  {streak.type}
+                  {streak.count}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Single CTA */}
+        <div className="animate-fade-up delay-400">
+          <Link
+            href="/terminal"
+            className="inline-block px-7 py-3.5 bg-[var(--color-text)] text-[var(--color-void)] font-sans text-[14px] font-medium tracking-[0.02em] transition-all duration-200 hover:bg-[var(--color-accent)]"
+          >
+            Open the terminal
+          </Link>
         </div>
       </div>
 
       {/* Scroll hint */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-fade-in delay-700">
-        <span className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
-          Scroll
-        </span>
-        <div className="w-px h-8 bg-gradient-to-b from-[var(--color-text-muted)] to-transparent" />
+      <div className="max-w-[1152px] mx-auto px-6 w-full pb-10">
+        <div className="flex justify-center animate-fade-in delay-700">
+          <span className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
+            Scroll
+          </span>
+        </div>
       </div>
     </section>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Live snapshot cards                                                */
-/* ------------------------------------------------------------------ */
+/* ─── Validation Ticker ─────────────────────────────────────────────── */
+
+const PAIR_COLOR: Record<string, string> = {
+  EURUSD: "#7a8fa3",
+  USDJPY: "#a8947a",
+  USDINR: "#9e7a7a",
+  "EUR/USD": "#7a8fa3",
+  "USD/JPY": "#a8947a",
+  "USD/INR": "#9e7a7a",
+};
+
+function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
+  const recent = rows.slice(0, 16);
+  if (recent.length === 0) return null;
+
+  const items = recent.map((r) => {
+    const pairKey = r.pair.replace(/\//g, "");
+    const pairDisplay = PAIR_DISPLAY[r.pair] ?? r.pair;
+    const color = PAIR_COLOR[pairKey] ?? PAIR_COLOR[r.pair] ?? "var(--color-text-secondary)";
+    const sign = r.return_pct >= 0 ? "+" : "";
+    return {
+      date: r.date,
+      pair: pairDisplay,
+      pairColor: color,
+      regime: r.call,
+      outcome: r.outcome,
+      outcomeLabel: r.outcome === "correct" ? "✓ CORRECT" : "✗ INCORRECT",
+      returnPct: `${sign}${r.return_pct.toFixed(2)}%`,
+      returnPositive: r.return_pct >= 0,
+    };
+  });
+
+  const Item = ({
+    item,
+  }: {
+    item: (typeof items)[number];
+  }) => (
+    <div className="inline-flex items-center gap-4 px-6 shrink-0">
+      <span className="font-mono text-[11px] tabular-nums text-[var(--color-text-muted)]">
+        {item.date}
+      </span>
+      <span
+        className="font-mono text-[11px] font-medium tracking-wide uppercase"
+        style={{ color: item.pairColor }}
+      >
+        {item.pair}
+      </span>
+      <span className="font-mono text-[11px] text-[var(--color-text-secondary)] tracking-wide max-w-[180px] truncate">
+        {item.regime}
+      </span>
+      <span
+        className="font-mono text-[11px] font-medium tracking-wide uppercase"
+        style={{
+          color:
+            item.outcome === "correct"
+              ? "var(--color-up)"
+              : "var(--color-down)",
+        }}
+      >
+        {item.outcomeLabel}
+      </span>
+      <span
+        className="font-mono text-[11px] font-medium tabular-nums"
+        style={{
+          color: item.returnPositive
+            ? "var(--color-up)"
+            : "var(--color-down)",
+        }}
+      >
+        {item.returnPct}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="border-y border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden h-[48px] flex items-center">
+      <div className="flex animate-ticker-marquee hover:[animation-play-state:paused]">
+        {items.map((item, i) => (
+          <div key={`a-${i}`} className="inline-flex items-center">
+            <Item item={item} />
+            <span className="text-[var(--color-border)] font-mono text-[11px] px-2">
+              ◆
+            </span>
+          </div>
+        ))}
+        {items.map((item, i) => (
+          <div key={`b-${i}`} className="inline-flex items-center">
+            <Item item={item} />
+            <span className="text-[var(--color-border)] font-mono text-[11px] px-2">
+              ◆
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const PAIR_DISPLAY: Record<string, string> = {
+  EURUSD: "EUR/USD",
+  USDJPY: "USD/JPY",
+  USDINR: "USD/INR",
+};
+
+/* ─── Live snapshot cards ───────────────────────────────────────────── */
+
 function SnapshotCard({
   pair,
+  pairColor,
   spot,
   regime,
   confidence,
   delay,
 }: {
   pair: string;
+  pairColor: string;
   spot: string;
   regime: string;
   confidence: number;
@@ -104,11 +284,19 @@ function SnapshotCard({
 }) {
   return (
     <div
-      className="reveal border border-[var(--color-border)] bg-[var(--color-surface)] p-6 hover-lift transition-all duration-500"
+      className="reveal border border-[var(--color-border)] bg-[var(--color-surface)] p-8 hover-lift transition-all duration-500"
       style={{ transitionDelay: `${delay}ms` }}
     >
+      {/* Pair-colored top border */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[1px]"
+        style={{ backgroundColor: pairColor }}
+      />
       <div className="flex items-baseline justify-between mb-6">
-        <span className="font-mono text-[11px] tracking-[0.15em] text-[var(--color-text-secondary)] uppercase font-medium">
+        <span
+          className="font-mono text-[11px] tracking-[0.15em] uppercase font-medium"
+          style={{ color: pairColor }}
+        >
           {pair}
         </span>
         <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
@@ -135,7 +323,7 @@ function SnapshotCard({
             {Math.round(confidence * 100)}%
           </span>
         </div>
-        <div className="h-[2px] bg-[var(--color-border)] overflow-hidden">
+        <div className="h-[3px] bg-[var(--color-border)] overflow-hidden">
           <div
             className="h-full bg-[var(--color-accent)] transition-all duration-1000 ease-out"
             style={{ width: `${confidence * 100}%` }}
@@ -154,7 +342,7 @@ function LiveSnapshot({
   signals: Awaited<ReturnType<typeof getLatestSignals>>;
 }) {
   return (
-    <section className="py-24">
+    <section className="py-28">
       <div className="max-w-[1152px] mx-auto px-6">
         <div className="reveal mb-14">
           <SectionLabel>Live Snapshot</SectionLabel>
@@ -177,6 +365,7 @@ function LiveSnapshot({
               <SnapshotCard
                 key={pair.label}
                 pair={pair.display}
+                pairColor={pair.pairColor}
                 spot={signal?.spot?.toFixed(4) ?? "—"}
                 regime={call?.regime ?? "—"}
                 confidence={call?.confidence ?? 0}
@@ -190,9 +379,34 @@ function LiveSnapshot({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Signal architecture                                                */
-/* ------------------------------------------------------------------ */
+/* ─── Manifesto ─────────────────────────────────────────────────────── */
+
+function Manifesto() {
+  return (
+    <section className="py-28 bg-[var(--color-elevated)]">
+      <div className="max-w-[1152px] mx-auto px-6">
+        <div className="reveal max-w-[720px]">
+          <SectionLabel>Principle</SectionLabel>
+          <blockquote
+            className="font-serif font-light text-[clamp(24px,3.5vw,40px)] text-[var(--color-text)] leading-[1.3] tracking-tight"
+            style={{ fontFamily: "var(--font-playfair), ui-serif, Georgia, serif" }}
+          >
+            Credibility compounds through calendar discipline and honest
+            validation, not marketing.
+          </blockquote>
+          <p className="font-sans text-[13px] text-[var(--color-text-muted)] mt-8 leading-relaxed max-w-[480px]">
+            Any discretionary framework can be constructed to look correct in
+            hindsight. The only meaningful test is publishing the call before
+            the outcome is known — and logging the result without revision.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Signal architecture ───────────────────────────────────────────── */
+
 function SignalArchitecture() {
   const signals = [
     {
@@ -222,7 +436,7 @@ function SignalArchitecture() {
   ];
 
   return (
-    <section className="py-24 bg-[var(--color-elevated)]">
+    <section className="py-28">
       <div className="max-w-[1152px] mx-auto px-6">
         <div className="reveal mb-14">
           <SectionLabel>Signal Architecture</SectionLabel>
@@ -266,25 +480,26 @@ function SignalArchitecture() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Validation trust strip                                             */
-/* ------------------------------------------------------------------ */
+/* ─── Validation trust ──────────────────────────────────────────────── */
+
 function ValidationTrust({
   accuracy,
+  accuracy7d,
   totalCalls,
 }: {
   accuracy: number;
+  accuracy7d: number;
   totalCalls: number;
 }) {
   const stats = [
     { label: "Pairs tracked", value: String(PAIRS.length) },
     { label: "Calls since April 2026", value: String(totalCalls) },
-    { label: "Accuracy", value: `${accuracy.toFixed(1)}%` },
-    { label: "Signal families", value: "4" },
+    { label: "All-time accuracy", value: `${accuracy.toFixed(1)}%` },
+    { label: "7D accuracy", value: `${accuracy7d.toFixed(1)}%` },
   ];
 
   return (
-    <section className="py-24">
+    <section className="py-28 bg-[var(--color-elevated)]">
       <div className="max-w-[1152px] mx-auto px-6">
         <div className="reveal mb-14">
           <SectionLabel>Validation</SectionLabel>
@@ -295,13 +510,13 @@ function ValidationTrust({
           {stats.map((s, i) => (
             <div
               key={s.label}
-              className="reveal bg-[var(--color-surface)] p-6 transition-all duration-500"
+              className="reveal bg-[var(--color-surface)] py-10 px-8 transition-all duration-500"
               style={{ transitionDelay: `${(i + 1) * 100}ms` }}
             >
-              <p className="font-mono text-[clamp(24px,3vw,32px)] font-medium text-[var(--color-text)] tracking-tight leading-none mb-2 tabular-nums">
+              <p className="font-mono text-[clamp(36px,5vw,56px)] font-medium text-[var(--color-text)] tracking-tight leading-none mb-3 tabular-nums">
                 {s.value}
               </p>
-              <p className="font-mono text-[9px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
+              <p className="font-mono text-[9px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase">
                 {s.label}
               </p>
             </div>
@@ -325,12 +540,11 @@ function ValidationTrust({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  About snippet                                                      */
-/* ------------------------------------------------------------------ */
+/* ─── About snippet ─────────────────────────────────────────────────── */
+
 function AboutSnippet() {
   return (
-    <section className="py-24 bg-[var(--color-elevated)]">
+    <section className="py-28">
       <div className="max-w-[1152px] mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-16 items-start">
           <div className="reveal">
@@ -371,9 +585,8 @@ function AboutSnippet() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Page                                                               */
-/* ------------------------------------------------------------------ */
+/* ─── Page ──────────────────────────────────────────────────────────── */
+
 export default async function HomePage() {
   const supabase = await createClient();
 
@@ -388,16 +601,59 @@ export default async function HomePage() {
     .select("*", { count: "exact", head: true });
 
   const correctCount = validation.filter((r) => r.outcome === "correct").length;
-  const accuracy = validation.length > 0 ? (correctCount / validation.length) * 100 : 0;
+  const accuracy =
+    validation.length > 0 ? (correctCount / validation.length) * 100 : 0;
+
+  // 7D accuracy
+  const cut7 = new Date();
+  cut7.setUTCDate(cut7.getUTCDate() - 7);
+  const cut7Str = cut7.toISOString().slice(0, 10);
+  const last7 = validation.filter((r) => r.date >= cut7Str);
+  const correct7 = last7.filter((r) => r.outcome === "correct").length;
+  const accuracy7d = last7.length > 0 ? (correct7 / last7.length) * 100 : 0;
+
+  // Latest call date from calls
+  const latestCallDate = Object.values(calls)
+    .map((c) => c.date)
+    .sort()
+    .pop() ?? null;
+
+  // Streak
+  const streak = (() => {
+    if (validation.length === 0) return null;
+    const sorted = [...validation].sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+    const last = sorted[sorted.length - 1];
+    const type: "W" | "L" = last.outcome === "correct" ? "W" : "L";
+    let count = 0;
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      const expected = type === "W" ? "correct" : "incorrect";
+      if (sorted[i].outcome === expected) count++;
+      else break;
+    }
+    return { type, count };
+  })();
 
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
       <main id="main-content">
-        <Hero />
+        <Hero
+          latestCallDate={latestCallDate}
+          totalCalls={count ?? 0}
+          accuracy7d={accuracy7d}
+          streak={streak}
+        />
+        <ValidationTicker rows={validation} />
         <LiveSnapshot calls={calls} signals={signals} />
+        <Manifesto />
         <SignalArchitecture />
-        <ValidationTrust accuracy={accuracy} totalCalls={count ?? 0} />
+        <ValidationTrust
+          accuracy={accuracy}
+          accuracy7d={accuracy7d}
+          totalCalls={count ?? 0}
+        />
         <AboutSnippet />
       </main>
       <Footer />

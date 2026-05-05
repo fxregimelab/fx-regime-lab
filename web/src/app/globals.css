@@ -276,6 +276,19 @@ body {
     animation-play-state: paused;
   }
 
+  .animate-ticker-marquee {
+    animation: ticker-marquee 40s linear infinite;
+    will-change: transform;
+  }
+  .animate-ticker-marquee:hover {
+    animation-play-state: paused;
+  }
+
+@keyframes ticker-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
   .omega-gutter {
     background-color: #080808;
     background-image: radial-gradient(
