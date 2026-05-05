@@ -12,28 +12,28 @@ export default async function BriefPage() {
   const date = brief?.date ?? new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="min-h-screen bg-[var(--color-cream)]">
+    <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
       <main className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
         {/* Header */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-start gap-8 mb-10 pb-6 border-b border-[var(--color-stone-200)]">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-start gap-8 mb-10 pb-6 border-b border-[var(--color-border)]">
           <div>
             <div className="flex items-center gap-2.5 mb-2.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-stone-500)] animate-gentle-pulse" />
-              <span className="font-mono text-[11px] text-[var(--color-stone-500)] tracking-[0.1em]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-text-muted)] animate-gentle-pulse" />
+              <span className="font-mono text-[11px] text-[var(--color-text-muted)] tracking-[0.1em]">
                 MORNING BRIEF
               </span>
-              <span className="font-mono text-[11px] text-[var(--color-stone-400)]">
+              <span className="font-mono text-[11px] text-[var(--color-text-dim)]">
                 {date}
               </span>
             </div>
-            <h1 className="font-sans font-semibold text-[32px] text-[var(--color-stone-900)] tracking-tight">
+            <h1 className="font-sans font-semibold text-[32px] text-[var(--color-text)] tracking-tight">
               Daily Brief — {date}
             </h1>
           </div>
           <Link
             href="/terminal"
-            className="font-mono text-[11px] text-[var(--color-stone-600)] border border-[var(--color-stone-300)] px-4 py-2 whitespace-nowrap transition-all duration-300 hover:bg-[var(--color-stone-800)] hover:text-[var(--color-stone-100)] hover:border-[var(--color-stone-800)]"
+            className="font-mono text-[11px] text-[var(--color-text-secondary)] border border-[var(--color-border)] px-4 py-2 whitespace-nowrap transition-all duration-300 hover:bg-[var(--color-elevated)] hover:text-[var(--color-text)] hover:border-[var(--color-border)]"
           >
             Open terminal →
           </Link>
@@ -48,7 +48,7 @@ export default async function BriefPage() {
                   return (
                     <h2
                       key={i}
-                      className="font-sans font-semibold text-lg text-[var(--color-stone-800)] tracking-tight mt-8 mb-3"
+                      className="font-sans font-semibold text-lg text-[var(--color-text)] tracking-tight mt-8 mb-3"
                     >
                       {para.replace("## ", "")}
                     </h2>
@@ -58,7 +58,7 @@ export default async function BriefPage() {
                   return (
                     <h1
                       key={i}
-                      className="font-sans font-semibold text-2xl text-[var(--color-stone-900)] tracking-tight mt-8 mb-3"
+                      className="font-sans font-semibold text-2xl text-[var(--color-text)] tracking-tight mt-8 mb-3"
                     >
                       {para.replace("# ", "")}
                     </h1>
@@ -66,7 +66,7 @@ export default async function BriefPage() {
                 }
                 if (para.startsWith("---")) {
                   return (
-                    <hr key={i} className="border-[var(--color-stone-200)] my-6" />
+                    <hr key={i} className="border-[var(--color-border)] my-6" />
                   );
                 }
                 if (para.trim() === "") {
@@ -76,12 +76,12 @@ export default async function BriefPage() {
                 return (
                   <p
                     key={i}
-                    className="font-sans text-[15px] text-[var(--color-stone-500)] leading-[1.7] mb-4"
+                    className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] mb-4"
                   >
                     {parts.map((part, j) => {
                       if (part.startsWith("**") && part.endsWith("**")) {
                         return (
-                          <strong key={j} className="text-[var(--color-stone-800)]">
+                          <strong key={j} className="text-[var(--color-text)]">
                             {part.slice(2, -2)}
                           </strong>
                         );
@@ -95,7 +95,7 @@ export default async function BriefPage() {
           </div>
         ) : (
           <div className="py-20 text-center">
-            <p className="font-mono text-sm text-[var(--color-stone-400)]">
+            <p className="font-mono text-sm text-[var(--color-text-muted)]">
               No brief available for today.
             </p>
           </div>
@@ -103,8 +103,8 @@ export default async function BriefPage() {
 
         {/* Pair regimes */}
         {brief && (
-          <div className="mt-12 pt-8 border-t border-[var(--color-stone-200)]">
-            <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-stone-400)] uppercase mb-4">
+          <div className="mt-12 pt-8 border-t border-[var(--color-border)]">
+            <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
               Regime Snapshot
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -114,12 +114,12 @@ export default async function BriefPage() {
                 return (
                   <div
                     key={p.label}
-                    className="border border-[var(--color-stone-200)] bg-white p-5 hover-lift"
+                    className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5 hover-lift"
                   >
-                    <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-stone-600)] uppercase font-medium mb-2">
+                    <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-secondary)] uppercase font-medium mb-2">
                       {p.display}
                     </p>
-                    <p className="font-mono text-[13px] font-medium text-[var(--color-stone-800)]">
+                    <p className="font-mono text-[13px] font-medium text-[var(--color-text)]">
                       {regime ?? "—"}
                     </p>
                   </div>
@@ -129,8 +129,8 @@ export default async function BriefPage() {
           </div>
         )}
 
-        <div className="mt-10 pt-6 border-t border-[var(--color-stone-200)]">
-          <p className="font-mono text-[10px] text-[var(--color-stone-400)] tracking-wider leading-relaxed">
+        <div className="mt-10 pt-6 border-t border-[var(--color-border)]">
+          <p className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider leading-relaxed">
             RESEARCH AND LEARNING ONLY. NOT INVESTMENT ADVICE. ALL CALLS LOGGED
             PRIOR TO MARKET OPEN. OUTCOMES VALIDATED NEXT TRADING DAY.
           </p>

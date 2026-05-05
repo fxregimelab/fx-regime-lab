@@ -1,18 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
-import { Nav } from "@/components/shell/Nav";
 import { Footer } from "@/components/shell/Footer";
-import { ConfidenceBar } from "@/components/ui/confidence-bar";
-import { PAIRS } from "@/lib/constants";
+import { Nav } from "@/components/shell/Nav";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
+import Link from "next/link";
 
 /* ------------------------------------------------------------------ */
-/*  Reusable soothing section heading                                  */
+/*  Reusable section heading                                           */
 /* ------------------------------------------------------------------ */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-stone-400)] uppercase mb-4">
+    <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase mb-4">
       {children}
     </p>
   );
@@ -20,7 +18,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="font-sans font-semibold text-[28px] text-[var(--color-stone-800)] tracking-tight leading-snug">
+    <h2 className="font-sans font-semibold text-[28px] text-[var(--color-text)] tracking-tight leading-snug">
       {children}
     </h2>
   );
@@ -35,13 +33,13 @@ function Hero() {
       <div className="max-w-[1152px] mx-auto px-6 w-full">
         <div className="max-w-[640px]">
           <div className="flex items-center gap-3 mb-8 animate-fade-in">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-stone-500)] animate-gentle-pulse" />
-            <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-stone-500)] uppercase">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-text-secondary)] animate-gentle-pulse" />
+            <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase">
               Live · G10 FX · Daily Calls
             </span>
           </div>
 
-          <h1 className="font-sans font-semibold text-[clamp(40px,6vw,72px)] text-[var(--color-stone-900)] leading-[1.08] tracking-tight mb-7 animate-fade-up delay-100">
+          <h1 className="font-sans font-semibold text-[clamp(40px,6vw,72px)] text-[var(--color-text)] leading-[1.08] tracking-tight mb-7 animate-fade-up delay-100">
             Daily regime
             <br />
             calls. On the
@@ -49,7 +47,7 @@ function Hero() {
             record.
           </h1>
 
-          <p className="font-sans text-[15px] text-[var(--color-stone-500)] leading-[1.7] max-w-[440px] mb-10 animate-fade-up delay-200">
+          <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[440px] mb-10 animate-fade-up delay-200">
             G10 FX regime classification across EUR/USD, USD/JPY, and USD/INR.
             Composite signal from rate differentials, COT positioning, realized
             volatility, and open interest. Every call public before market open.
@@ -59,13 +57,13 @@ function Hero() {
           <div className="flex gap-4 items-center animate-fade-up delay-300">
             <Link
               href="/brief"
-              className="px-6 py-2.5 bg-[var(--color-stone-800)] text-[var(--color-stone-100)] font-sans text-[13px] tracking-wide transition-all duration-300 hover:bg-[var(--color-stone-700)]"
+              className="px-6 py-2.5 bg-[var(--color-text)] text-[var(--color-void)] font-sans text-[13px] tracking-wide transition-all duration-300 hover:bg-[var(--color-accent-hover)]"
             >
               Read today&apos;s brief
             </Link>
             <Link
               href="/terminal"
-              className="font-sans text-[13px] text-[var(--color-stone-600)] underline decoration-[var(--color-stone-300)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-stone-900)]"
+              className="font-sans text-[13px] text-[var(--color-text-muted)] underline decoration-[var(--color-border)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-text)]"
             >
               Open terminal →
             </Link>
@@ -75,10 +73,10 @@ function Hero() {
 
       {/* Scroll hint */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-fade-in delay-700">
-        <span className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-stone-400)] uppercase">
+        <span className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-dim)] uppercase">
           Scroll
         </span>
-        <div className="w-px h-8 bg-gradient-to-b from-[var(--color-stone-400)] to-transparent" />
+        <div className="w-px h-8 bg-gradient-to-b from-[var(--color-text-dim)] to-transparent" />
       </div>
     </section>
   );
@@ -102,39 +100,40 @@ function SnapshotCard({
 }) {
   return (
     <div
-      className={`reveal border border-[var(--color-stone-200)] bg-white p-6 hover-lift transition-all duration-500 delay-${delay}`}
+      className="reveal border border-[var(--color-border)] bg-[var(--color-surface)] p-6 hover-lift transition-all duration-500"
+      style={{ transitionDelay: `${delay}ms` }}
     >
       <div className="flex items-baseline justify-between mb-6">
-        <span className="font-mono text-[11px] tracking-[0.15em] text-[var(--color-stone-600)] uppercase font-medium">
+        <span className="font-mono text-[11px] tracking-[0.15em] text-[var(--color-text-secondary)] uppercase font-medium">
           {pair}
         </span>
-        <span className="font-mono text-[10px] text-[var(--color-stone-400)]">
+        <span className="font-mono text-[10px] text-[var(--color-text-dim)]">
           Spot
         </span>
       </div>
 
-      <p className="font-mono text-[32px] font-medium text-[var(--color-stone-900)] tracking-tight leading-none mb-6 tabular-nums">
+      <p className="font-mono text-[32px] font-medium text-[var(--color-text)] tracking-tight leading-none mb-6 tabular-nums">
         {spot}
       </p>
 
       <div className="mb-4">
-        <p className="font-mono text-[11px] font-medium text-[var(--color-stone-700)] tracking-wide leading-snug mb-1">
+        <p className="font-mono text-[11px] font-medium text-[var(--color-text-secondary)] tracking-wide leading-snug mb-1">
           {regime}
         </p>
       </div>
 
-      <div className="pt-4 border-t border-[var(--color-stone-100)]">
+      <div className="pt-4 border-t border-[var(--color-border-subtle)]">
         <div className="flex items-center justify-between mb-2">
-          <span className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-stone-400)] uppercase">
+          <span className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-dim)] uppercase">
             Confidence
           </span>
-          <span className="font-mono text-[13px] text-[var(--color-stone-700)] font-medium">
+          <span className="font-mono text-[13px] text-[var(--color-text-secondary)] font-medium">
             {Math.round(confidence * 100)}%
           </span>
         </div>
-        <div className="h-[2px] bg-[var(--color-stone-100)] overflow-hidden">
+        <div className="h-[2px] bg-[var(--color-border-subtle)] overflow-hidden">
           <div
-            className="h-full bg-[var(--color-stone-500)] transition-all duration-1000 ease-out"
+            className="h-full bg-[var(--color-accent)] transition-all duration-1000 ease-out"
             style={{ width: `${confidence * 100}%` }}
           />
         </div>
@@ -153,7 +152,7 @@ function LiveSnapshot() {
             <SectionTitle>Today&apos;s regime calls</SectionTitle>
             <Link
               href="/terminal"
-              className="font-sans text-[13px] text-[var(--color-stone-500)] underline decoration-[var(--color-stone-300)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-stone-900)]"
+              className="font-sans text-[13px] text-[var(--color-text-muted)] underline decoration-[var(--color-border)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-text)]"
             >
               Open full terminal →
             </Link>
@@ -220,7 +219,7 @@ function SignalArchitecture() {
   ];
 
   return (
-    <section className="py-24 bg-[var(--color-parchment)]">
+    <section className="py-24 bg-[var(--color-elevated)]">
       <div className="max-w-[1152px] mx-auto px-6">
         <div className="reveal mb-14">
           <SectionLabel>Signal Architecture</SectionLabel>
@@ -229,30 +228,31 @@ function SignalArchitecture() {
             <br />
             One composite.
           </SectionTitle>
-          <p className="font-sans text-[15px] text-[var(--color-stone-500)] leading-[1.7] max-w-[480px] mt-4">
-            Each family is normalized to a percentile rank before weighting.
-            The composite drives the regime label.
+          <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[480px] mt-4">
+            Each family is normalized to a percentile rank before weighting. The
+            composite drives the regime label.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--color-stone-200)] border border-[var(--color-stone-200)]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
           {signals.map((s, i) => (
             <div
               key={s.n}
-              className={`reveal bg-[var(--color-cream)] p-8 transition-all duration-500 delay-${(i + 1) * 100}`}
+              className="reveal bg-[var(--color-surface)] p-8 transition-all duration-500"
+              style={{ transitionDelay: `${(i + 1) * 100}ms` }}
             >
               <div className="flex items-start justify-between mb-6">
-                <span className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-stone-400)]">
+                <span className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-dim)]">
                   {s.n}
                 </span>
-                <span className="font-mono text-[10px] tracking-[0.1em] text-[var(--color-stone-400)]">
+                <span className="font-mono text-[10px] tracking-[0.1em] text-[var(--color-text-dim)]">
                   {s.weight}
                 </span>
               </div>
-              <h3 className="font-sans font-semibold text-[15px] text-[var(--color-stone-800)] mb-2">
+              <h3 className="font-sans font-semibold text-[15px] text-[var(--color-text)] mb-2">
                 {s.label}
               </h3>
-              <p className="font-sans text-[13px] text-[var(--color-stone-500)] leading-[1.6]">
+              <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.6]">
                 {s.desc}
               </p>
             </div>
@@ -282,30 +282,31 @@ function ValidationTrust() {
           <SectionTitle>Every call validated. No ex-post edits.</SectionTitle>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-stone-200)] border border-[var(--color-stone-200)] mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-12">
           {stats.map((s, i) => (
             <div
               key={s.label}
-              className={`reveal bg-white p-6 transition-all duration-500 delay-${(i + 1) * 100}`}
+              className="reveal bg-[var(--color-surface)] p-6 transition-all duration-500"
+              style={{ transitionDelay: `${(i + 1) * 100}ms` }}
             >
-              <p className="font-mono text-[clamp(24px,3vw,32px)] font-medium text-[var(--color-stone-900)] tracking-tight leading-none mb-2 tabular-nums">
+              <p className="font-mono text-[clamp(24px,3vw,32px)] font-medium text-[var(--color-text)] tracking-tight leading-none mb-2 tabular-nums">
                 {s.value}
               </p>
-              <p className="font-mono text-[9px] tracking-[0.12em] text-[var(--color-stone-400)] uppercase">
+              <p className="font-mono text-[9px] tracking-[0.12em] text-[var(--color-text-dim)] uppercase">
                 {s.label}
               </p>
             </div>
           ))}
         </div>
 
-        <div className="reveal flex items-center justify-between flex-wrap gap-4 pt-6 border-t border-[var(--color-stone-200)]">
-          <p className="font-sans text-[13px] text-[var(--color-stone-500)]">
-            Outcomes measured against next-day spot with a 5bps dead-band.
-            Brier scores computed for directional calls.
+        <div className="reveal flex items-center justify-between flex-wrap gap-4 pt-6 border-t border-[var(--color-border)]">
+          <p className="font-sans text-[13px] text-[var(--color-text-secondary)]">
+            Outcomes measured against next-day spot with a 5bps dead-band. Brier
+            scores computed for directional calls.
           </p>
           <Link
             href="/performance"
-            className="font-sans text-[13px] text-[var(--color-stone-600)] underline decoration-[var(--color-stone-300)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-stone-900)]"
+            className="font-sans text-[13px] text-[var(--color-text-muted)] underline decoration-[var(--color-border)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-text)]"
           >
             View full ledger →
           </Link>
@@ -320,21 +321,21 @@ function ValidationTrust() {
 /* ------------------------------------------------------------------ */
 function AboutSnippet() {
   return (
-    <section className="py-24 bg-[var(--color-parchment)]">
+    <section className="py-24 bg-[var(--color-elevated)]">
       <div className="max-w-[1152px] mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-16 items-start">
           <div className="reveal">
             <SectionLabel>About</SectionLabel>
-            <h3 className="font-sans font-semibold text-[22px] text-[var(--color-stone-800)] tracking-tight leading-snug">
+            <h3 className="font-sans font-semibold text-[22px] text-[var(--color-text)] tracking-tight leading-snug">
               Shreyash Sakhare
             </h3>
-            <p className="font-mono text-[11px] text-[var(--color-stone-400)] mt-2 tracking-wide">
+            <p className="font-mono text-[11px] text-[var(--color-text-muted)] mt-2 tracking-wide">
               EE Undergrad · Discretionary Macro Research
             </p>
           </div>
 
           <div className="reveal">
-            <p className="font-sans text-[15px] text-[var(--color-stone-500)] leading-[1.7] max-w-[560px] mb-6">
+            <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[560px] mb-6">
               Studying how G10 FX regimes form and break using rate
               differentials, COT positioning, and volatility. This site is the
               public trace of that work — dated calls, validated outcomes, no
@@ -343,13 +344,13 @@ function AboutSnippet() {
             <div className="flex gap-5">
               <Link
                 href="/about"
-                className="px-5 py-2 border border-[var(--color-stone-300)] font-sans text-[13px] text-[var(--color-stone-700)] transition-all duration-300 hover:bg-[var(--color-stone-800)] hover:text-[var(--color-stone-100)] hover:border-[var(--color-stone-800)]"
+                className="px-5 py-2 border border-[var(--color-border)] font-sans text-[13px] text-[var(--color-text-secondary)] transition-all duration-300 hover:bg-[var(--color-text)] hover:text-[var(--color-void)] hover:border-[var(--color-text)]"
               >
                 About this project
               </Link>
               <Link
                 href="/methodology"
-                className="font-sans text-[13px] text-[var(--color-stone-500)] underline decoration-[var(--color-stone-300)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-stone-900)] py-2"
+                className="font-sans text-[13px] text-[var(--color-text-muted)] underline decoration-[var(--color-border)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-text)] py-2"
               >
                 Methodology →
               </Link>
@@ -368,7 +369,7 @@ export default function HomePage() {
   useScrollReveal();
 
   return (
-    <div className="min-h-screen bg-[var(--color-cream)]">
+    <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
       <main>
         <Hero />

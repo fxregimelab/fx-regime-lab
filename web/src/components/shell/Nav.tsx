@@ -28,14 +28,14 @@ export function Nav() {
     <header
       className={`fixed top-0 left-0 right-0 z-[90] transition-all duration-500 ${
         scrolled
-          ? "bg-[var(--color-cream)]/90 backdrop-blur-md border-b border-[var(--color-stone-200)]"
+          ? "bg-[var(--color-surface)]/80 backdrop-blur-md border-b border-[var(--color-border)]"
           : "bg-transparent"
       }`}
     >
       <nav className="max-w-[1152px] mx-auto px-6 h-[56px] flex items-center justify-between">
         <Link
           href="/"
-          className="font-mono text-[11px] tracking-[0.2em] text-[var(--color-stone-700)] uppercase font-medium"
+          className="font-mono text-[11px] tracking-[0.2em] text-[var(--color-text)] uppercase font-medium"
         >
           FX Regime Lab
         </Link>
@@ -47,20 +47,20 @@ export function Nav() {
               href={link.href}
               className={`relative px-3 py-1.5 font-sans text-[13px] transition-colors duration-300 ${
                 isActive(link.href)
-                  ? "text-[var(--color-stone-900)]"
-                  : "text-[var(--color-stone-500)] hover:text-[var(--color-stone-700)]"
+                  ? "text-[var(--color-text)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
               }`}
             >
               {link.label}
               {isActive(link.href) && (
-                <span className="absolute bottom-0 left-3 right-3 h-px bg-[var(--color-stone-400)] animate-line-grow" />
+                <span className="absolute bottom-0 left-3 right-3 h-px bg-[var(--color-accent)] animate-line-grow" />
               )}
             </Link>
           ))}
 
           <Link
             href="/terminal"
-            className="ml-4 px-4 py-1.5 bg-[var(--color-stone-800)] text-[var(--color-stone-100)] font-sans text-[12px] tracking-wide transition-all duration-300 hover:bg-[var(--color-stone-700)]"
+            className="ml-4 px-4 py-1.5 bg-[var(--color-elevated)] text-[var(--color-text)] font-sans text-[12px] tracking-wide border border-[var(--color-border)] transition-all duration-300 hover:bg-[var(--color-surface)] hover:border-[var(--color-border)]"
           >
             Terminal
           </Link>

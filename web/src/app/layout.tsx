@@ -36,7 +36,7 @@ export default function RootLayout({
       data-fxrl-app="omega"
       className={`${inter.variable} ${jetbrainsMono.variable} ${manifestoSerif.variable} antialiased`}
     >
-      <body className="relative min-h-screen w-full bg-[var(--color-cream)] text-[var(--color-stone-900)] font-sans">
+      <body className="relative min-h-screen w-full bg-[var(--color-void)] text-[var(--color-text)] font-sans">
         <Providers>
           {children}
           <CommandPalette />
