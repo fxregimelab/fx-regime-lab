@@ -28,8 +28,8 @@ CME_BROWSER_HEADERS: dict[str, str] = {
 }
 
 
-def cme_http_get(url: str, *, timeout: float = 60.0) -> requests.Response:
-    """GET with institutional headers; on HTTP 403, wait 2s and retry up to 5 times."""
+def cme_http_get(url: str, *, timeout: float = 60.0) -> requests.Response | None:
+    """GET with institutional headers; on HTTP 403, wait and retry. Returns None if blocked."""
     import random
     session = requests.Session()
     response: requests.Response | None = None
@@ -43,8 +43,8 @@ def cme_http_get(url: str, *, timeout: float = 60.0) -> requests.Response:
             sleep_time = 2.0 * attempt
             logger.warning("CME HTTP 403 for %s — retrying after %ss", url, sleep_time)
             time.sleep(sleep_time)
-    assert response is not None
-    return response
+    logger.warning("CME HTTP 403 persisted for %s after 5 attempts — IP likely blocked", url)
+    return None
 
 
 def compute_oi_from_cot(cot_rows: list[CotRow], pair: str) -> float | None:

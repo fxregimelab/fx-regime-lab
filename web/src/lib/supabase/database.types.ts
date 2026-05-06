@@ -146,6 +146,11 @@ export interface Database {
           rr_signal: string | null
           oi_signal: string | null
           primary_driver: string | null
+          special_signal_value: number | null
+          special_signal_label: string | null
+          model_version: string | null
+          data_quality_score: number | null
+          stress_level: string | null
           created_at: string
         }
         Insert: {
@@ -161,6 +166,11 @@ export interface Database {
           rr_signal?: string | null
           oi_signal?: string | null
           primary_driver?: string | null
+          special_signal_value?: number | null
+          special_signal_label?: string | null
+          model_version?: string | null
+          data_quality_score?: number | null
+          stress_level?: string | null
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['regime_calls']['Insert']>
@@ -178,6 +188,11 @@ export interface Database {
           actual_return_5d: number | null
           correct_1d: boolean | null
           correct_5d: boolean | null
+          dxy_return_1d: number | null
+          alpha_return_1d: number | null
+          max_intraday_adverse_bps: number | null
+          vol_regime_at_call: string | null
+          regime_at_call: string | null
           notes: string | null
           created_at: string
         }
@@ -193,6 +208,11 @@ export interface Database {
           actual_return_5d?: number | null
           correct_1d?: boolean | null
           correct_5d?: boolean | null
+          dxy_return_1d?: number | null
+          alpha_return_1d?: number | null
+          max_intraday_adverse_bps?: number | null
+          vol_regime_at_call?: string | null
+          regime_at_call?: string | null
           notes?: string | null
           created_at?: string
         }
@@ -206,6 +226,11 @@ export interface Database {
           eurusd_regime: string | null
           usdjpy_regime: string | null
           usdinr_regime: string | null
+          gbpusd_regime: string | null
+          audusd_regime: string | null
+          usdcad_regime: string | null
+          usdchf_regime: string | null
+          pair_regimes: Json | null
           macro_context: string | null
           dollar_dominance: number | null
           idiosyncratic_outlier: string | null
@@ -219,6 +244,11 @@ export interface Database {
           eurusd_regime?: string | null
           usdjpy_regime?: string | null
           usdinr_regime?: string | null
+          gbpusd_regime?: string | null
+          audusd_regime?: string | null
+          usdcad_regime?: string | null
+          usdchf_regime?: string | null
+          pair_regimes?: Json | null
           macro_context?: string | null
           dollar_dominance?: number | null
           idiosyncratic_outlier?: string | null
@@ -226,6 +256,33 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Database['public']['Tables']['brief_log']['Insert']>
+      }
+      health_checks: {
+        Row: {
+          id: number
+          pipeline_date: string
+          completed_at: string | null
+          data_quality_score: number | null
+          stress_level: string | null
+          pairs_published: number | null
+          sources_used: number | null
+          sources_failed: number | null
+          error_log: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          pipeline_date: string
+          completed_at?: string | null
+          data_quality_score?: number | null
+          stress_level?: string | null
+          pairs_published?: number | null
+          sources_used?: number | null
+          sources_failed?: number | null
+          error_log?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['health_checks']['Insert']>
       }
       macro_events: {
         Row: {

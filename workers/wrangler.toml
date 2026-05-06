@@ -1,0 +1,9 @@
+name = "fx-regime-lab-api"
+main = "site-entry.js"
+compatibility_date = "2025-05-06"
+
+[env.production]
+name = "fx-regime-lab-api"
+
+# No secrets required — RSS and Yahoo routes are stateless.
+# Optional: bind a KV namespace for caching if desired.

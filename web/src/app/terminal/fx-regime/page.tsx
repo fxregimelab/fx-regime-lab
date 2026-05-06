@@ -92,10 +92,7 @@ function MosaicCell({
         className={`relative flex min-h-[120px] flex-1 flex-col justify-center border-0 border-t-[0.5px] border-t-white/[0.06] border-l-[0.5px] border-l-white/[0.03] px-3 py-3 transition-colors duration-200 ${
           corrGlow ? 'bg-[var(--color-up)]/[0.06]' : 'bg-[var(--color-void)]'
         }`}
-      >
-        <p className={`font-mono text-[9px] tracking-widest ${lum.meta}`}>RANK · EMPTY</p>
-        <p className={`font-mono text-[11px] ${lum.title}`}>—</p>
-      </div>
+      />
     );
   }
 

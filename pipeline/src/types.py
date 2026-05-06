@@ -14,6 +14,26 @@ logger = logging.getLogger(__name__)
 _universe_cache: dict[str, Any] | None = None
 
 
+def normalize_fx_pair_key(pair: str | None) -> str | None:
+    """Normalize universe FX keys (e.g. ``EUR/USD`` → ``EURUSD``)."""
+
+    if pair is None:
+        return None
+    cleaned = str(pair).upper().replace("/", "").strip()
+    return cleaned or None
+
+
+@dataclass(frozen=True)
+class PairWeightConfig:
+    """Composite blend weights for a pair (must sum to 1.0 for full participation)."""
+
+    rate: float
+    cot: float
+    vol: float
+    oi: float
+    special: float
+
+
 def _universe_rows_to_dict(rows: list[dict[str, Any]]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for row in rows:
@@ -256,6 +276,8 @@ class RegimeCall:
     entry_timing: Layer3EntryTiming | None = None
     position_size: Layer3PositionSize | None = None
     stop_level: float | None = None
+    data_quality_score: float | None = None
+    stress_level: str | None = None
 
 
 @dataclass

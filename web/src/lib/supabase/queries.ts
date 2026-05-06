@@ -13,6 +13,11 @@ export interface LatestRegimeCall {
   signal_composite: number;
   rate_signal: string | null;
   primary_driver: string | null;
+  special_signal_value: number | null;
+  special_signal_label: string | null;
+  model_version: string | null;
+  data_quality_score: number | null;
+  stress_level: string | null;
   created_at: string;
 }
 
@@ -47,6 +52,11 @@ function toLatestRegimeCall(row: RegimeCallRow): LatestRegimeCall {
     signal_composite: row.signal_composite,
     rate_signal: row.rate_signal,
     primary_driver: row.primary_driver,
+    special_signal_value: row.special_signal_value,
+    special_signal_label: row.special_signal_label,
+    model_version: row.model_version,
+    data_quality_score: row.data_quality_score,
+    stress_level: row.stress_level,
     created_at: row.created_at,
   };
 }

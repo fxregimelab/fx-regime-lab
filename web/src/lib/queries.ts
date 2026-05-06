@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from './supabase/client';
 import type { Database } from './supabase/database.types';
 import { parseG10CorrelationJson, type G10CorrelationJson } from './g10Correlation';
+import { PAIRS as CANONICAL_PAIRS } from './constants';
 
 type BriefLogRow = Database['public']['Tables']['brief_log']['Row'];
 type BriefRow = Database['public']['Tables']['brief']['Row'];
@@ -62,7 +63,10 @@ export function useUniverse() {
         .eq('class', 'FX')
         .order('pair', { ascending: true });
       if (error) throw error;
-      return ((data ?? []) as { pair: string }[]).map((r) => r.pair);
+      const canonical = new Set<string>(CANONICAL_PAIRS.map((p) => p.label));
+      return ((data ?? []) as { pair: string }[])
+        .map((r) => r.pair)
+        .filter((p) => canonical.has(p));
     },
     staleTime: 60 * 60 * 1000,
   });

@@ -4,6 +4,80 @@ import { Footer } from "@/components/shell/Footer";
 import { createClient } from "@/lib/supabase/server";
 import { getLatestBrief } from "@/lib/supabase/queries";
 import { PAIRS } from "@/lib/constants";
+import { getDriverTag } from "@/lib/pairProfiles";
+
+function DollarDominanceIndex({ brief }: { brief: { pair_regimes?: unknown; dollar_dominance?: number | null } }) {
+  const pairRegimes = brief.pair_regimes as Record<string, string> | null;
+  
+  let usdStrength = 0;
+  let usdWeakness = 0;
+  let neutral = 0;
+  
+  PAIRS.forEach((p) => {
+    const regime = pairRegimes?.[p.urlSlug] ?? "";
+    if (regime.includes("STRENGTH")) usdStrength++;
+    else if (regime.includes("WEAKNESS")) usdWeakness++;
+    else neutral++;
+  });
+  
+  const total = usdStrength + usdWeakness + neutral;
+  if (total === 0) return null;
+  
+  const strengthPct = (usdStrength / total) * 100;
+  const weaknessPct = (usdWeakness / total) * 100;
+  const neutralPct = (neutral / total) * 100;
+  
+  const dominanceLabel = brief.dollar_dominance != null 
+    ? `${(brief.dollar_dominance * 100).toFixed(0)}%` 
+    : `${Math.round(strengthPct)}%`;
+  
+  return (
+    <div className="border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+      <div className="flex items-center justify-between mb-4">
+        <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
+          Dollar Dominance
+        </p>
+        <span className="font-mono text-[11px] text-[var(--color-text)] font-medium">
+          {dominanceLabel}
+        </span>
+      </div>
+      <div className="flex h-2 bg-[var(--color-elevated)] overflow-hidden">
+        {usdStrength > 0 && (
+          <div 
+            className="h-full bg-[var(--color-up)]" 
+            style={{ width: `${strengthPct}%` }}
+          />
+        )}
+        {neutral > 0 && (
+          <div 
+            className="h-full bg-[var(--color-text-muted)]" 
+            style={{ width: `${neutralPct}%` }}
+          />
+        )}
+        {usdWeakness > 0 && (
+          <div 
+            className="h-full bg-[var(--color-down)]" 
+            style={{ width: `${weaknessPct}%` }}
+          />
+        )}
+      </div>
+      <div className="flex gap-6 mt-3">
+        <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+          <span className="inline-block w-1.5 h-1.5 bg-[var(--color-up)] mr-1.5" />
+          USD STRONG: {usdStrength}
+        </span>
+        <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+          <span className="inline-block w-1.5 h-1.5 bg-[var(--color-text-muted)] mr-1.5" />
+          NEUTRAL: {neutral}
+        </span>
+        <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+          <span className="inline-block w-1.5 h-1.5 bg-[var(--color-down)] mr-1.5" />
+          USD WEAK: {usdWeakness}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default async function BriefPage() {
   const supabase = await createClient();
@@ -101,26 +175,50 @@ export default async function BriefPage() {
           </div>
         )}
 
+        {/* Dollar Dominance Index */}
+        {brief && (
+          <div className="mt-10">
+            <DollarDominanceIndex brief={brief} />
+          </div>
+        )}
+
         {/* Pair regimes */}
         {brief && (
-          <div className="mt-12 pt-8 border-t border-[var(--color-border)]">
+          <div className="mt-10 pt-8 border-t border-[var(--color-border)]">
             <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
               Regime Snapshot
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {PAIRS.map((p) => {
-                const regimeKey = `${p.urlSlug}_regime` as const;
-                const regime = (brief as unknown as Record<string, string>)[regimeKey];
+                // Read from JSON first, fallback to hardcoded column
+                const pairRegimes = brief.pair_regimes as Record<string, string> | null;
+                const regime = pairRegimes?.[p.urlSlug] ?? 
+                  (brief as unknown as Record<string, string>)[`${p.urlSlug}_regime`] ?? 
+                  "—";
+                const driverTag = getDriverTag(p.label);
                 return (
                   <div
                     key={p.label}
-                    className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5 hover-lift"
+                    className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5 hover-lift relative"
                   >
-                    <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-secondary)] uppercase font-medium mb-2">
-                      {p.display}
-                    </p>
+                    {/* Pair-colored top accent */}
+                    <div
+                      className="absolute top-0 left-0 right-0 h-[2px]"
+                      style={{ backgroundColor: p.pairColor }}
+                    />
+                    <div className="flex items-center justify-between mb-2">
+                      <p
+                        className="font-mono text-[10px] tracking-[0.15em] uppercase font-bold"
+                        style={{ color: p.pairColor }}
+                      >
+                        {p.display}
+                      </p>
+                      <span className="font-mono text-[9px] px-2 py-0.5 bg-[var(--color-elevated)] text-[var(--color-text-muted)] tracking-wider">
+                        {driverTag}
+                      </span>
+                    </div>
                     <p className="font-mono text-[13px] font-medium text-[var(--color-text)]">
-                      {regime ?? "—"}
+                      {regime}
                     </p>
                   </div>
                 );

@@ -1,0 +1,13 @@
+# Locked to pipeline/pyproject.toml — install in CI with:
+#   pip install -r requirements.txt
+prefect>=3.0.0
+yfinance>=0.2.40
+pandas>=2.2.0
+numpy>=1.26.0
+requests>=2.31.0
+aiohttp>=3.9.0
+python-dotenv>=1.0.0
+supabase>=2.4.0
+openai>=1.30.0
+fredapi>=0.5.1
+beautifulsoup4>=4.12.0

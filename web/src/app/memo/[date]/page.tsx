@@ -14,12 +14,7 @@ function pairDisplay(label: string): string {
 }
 
 function assertMemoDateOpen(date: string): void {
-  const today = new Date().toISOString().slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) notFound();
-  if (date >= today) notFound();
-  const memoStart = new Date(`${date}T00:00:00.000Z`);
-  const openAt = memoStart.getTime() + 24 * 60 * 60 * 1000;
-  if (Date.now() < openAt) notFound();
+  notFound();  // memo viewer disabled until desk_open_cards + strategy_ledger are verified
 }
 
 function mapDesk(row: DeskRow) {

@@ -4,11 +4,19 @@ from __future__ import annotations
 
 import numpy as np
 
+from src.types import normalize_fx_pair_key
+
 
 def compute_confidence(
     composite: float,
     rate_norm: float | None,
     cot_norm: float | None,
+    *,
+    pair: str | None = None,
+    special_signal: float | None = None,
+    commodity_components_agree: bool | None = None,
+    wti_wcs_agree: bool | None = None,
+    brent_above_p80: bool | None = None,
 ) -> float:
     thresholds = (-1.0, -0.4, 0.4, 1.0)
     distance = min(abs(composite - t) for t in thresholds)
@@ -19,6 +27,28 @@ def compute_confidence(
             bonus += 0.05
         if abs(rate_norm) > 0.3 and abs(cot_norm) > 0.3:
             bonus += 0.05
-    raw = float(np.clip(base_conf + bonus, 0.40, 0.95))
+
+    pair_adj = 0.0
+    key = normalize_fx_pair_key(pair)
+    if key == "USDJPY":
+        if special_signal is not None and special_signal > 0.5:
+            pair_adj += 0.05
+    elif key == "GBPUSD":
+        if special_signal is not None and special_signal > 0.5:
+            pair_adj -= 0.05
+    elif key == "AUDUSD":
+        if commodity_components_agree is True:
+            pair_adj += 0.05
+    elif key == "USDCAD":
+        if wti_wcs_agree is True:
+            pair_adj += 0.05
+    elif key == "USDCHF":
+        if special_signal is not None and abs(special_signal) > 0.5:
+            pair_adj -= 0.10
+    elif key == "USDINR":
+        if brent_above_p80 is True:
+            pair_adj -= 0.05
+
+    raw = float(np.clip(base_conf + bonus + pair_adj, 0.40, 0.95))
     # Institutional −5pp haircut (under-promise / over-deliver).
     return float(np.clip(raw - 0.05, 0.40, 0.90))

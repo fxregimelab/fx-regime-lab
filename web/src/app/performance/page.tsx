@@ -488,11 +488,11 @@ export default async function PerformancePage() {
               Rolling 7-Day Accuracy
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3">
-            {pairStats.map((p, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px bg-[var(--color-border-subtle)]">
+            {pairStats.map((p) => (
               <div
                 key={p.label}
-                className={`px-5 py-5 ${i < PAIRS.length - 1 ? "border-b md:border-b-0 md:border-r" : ""} border-[var(--color-border-subtle)]`}
+                className="px-5 py-5 bg-[var(--color-surface)]"
               >
                 <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-secondary)] uppercase font-medium mb-2">
                   {p.display}

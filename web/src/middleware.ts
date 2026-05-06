@@ -6,10 +6,6 @@ const PAIR_SLUGS = new Set([
   'eurusd',
   'usdjpy',
   'usdinr',
-  'gbpusd',
-  'audusd',
-  'usdcad',
-  'usdchf',
 ]);
 
 export function middleware(request: NextRequest) {

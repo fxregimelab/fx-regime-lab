@@ -3,10 +3,6 @@ export const G10_MATRIX_ORDER = [
   'EURUSD',
   'USDJPY',
   'USDINR',
-  'GBPUSD',
-  'AUDUSD',
-  'USDCAD',
-  'USDCHF',
 ] as const;
 
 /** Nested JSON from `get_g10_correlation_matrix`: only `pa < pb` keys populated. */

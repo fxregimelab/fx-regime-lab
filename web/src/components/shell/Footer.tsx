@@ -54,7 +54,7 @@ export function Footer() {
               {[
                 ["/about", "About"],
                 ["/performance", "Track Record"],
-                ["/audit", "Audit"],
+                // ["/audit", "Audit"],  // hidden — internal dev log
               ].map(([href, label]) => (
                 <Link
                   key={href}

@@ -129,7 +129,7 @@ async def build_master_buffer(
                 fetcher=fetcher,
             ),
             fetch_cot_async(universe, session, fetcher=fetcher),
-            fetch_cross_asset_async(session, fetcher),
+            fetch_cross_asset_async(session, fetcher, percentile_lookback=60),
             asyncio.to_thread(fetch_legacy_10y_legs, yield_lookback_days),
             fetch_t10yie_breakeven_async(session, fetcher),
             return_exceptions=True,

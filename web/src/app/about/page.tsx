@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Nav } from "@/components/shell/Nav";
 import { Footer } from "@/components/shell/Footer";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { PAIRS } from "@/lib/constants";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -250,7 +251,7 @@ export default function AboutPage() {
                 {[
                   { label: "7D ACCURACY", value: "—", sub: "Live on Performance" },
                   { label: "CALLS LOGGED", value: "—", sub: "Live on Performance" },
-                  { label: "PAIRS COVERED", value: "3", sub: "EUR/USD, USD/JPY, USD/INR" },
+                  { label: "PAIRS COVERED", value: String(PAIRS.length), sub: PAIRS.map(p => p.display).join(", ") },
                 ].map((m) => (
                   <div key={m.label} className="bg-[var(--color-surface)] p-5">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase mb-2">

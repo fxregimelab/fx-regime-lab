@@ -101,23 +101,15 @@ def run_validation(as_of_date: date | None = None) -> None:
 
             if existing:
                 # Carry forward existing T20 if already written
-                for key in (
-                    "actual_direction_t20",
-                    "log_return_t20_bps",
-                    "correct_t20",
-                    "brier_score_t20",
-                ):
+                for key in ("actual_return_5d", "correct_5d"):
                     if existing.get(key) is not None:
                         payload[key] = existing[key]
 
             # T+5 horizon
-            if existing and existing.get("actual_direction_t5") is not None:
+            if existing and existing.get("actual_return_5d") is not None:
                 # Already validated T+5; carry forward
-                payload["actual_direction_t5"] = existing["actual_direction_t5"]
-                payload["log_return_t5_bps"] = existing["log_return_t5_bps"]
-                payload["correct_t5"] = existing["correct_t5"]
-                payload["brier_score_t5"] = existing.get("brier_score_t5")
-                payload["actual_direction"] = existing.get("actual_direction_t5")
+                payload["actual_return_5d"] = existing["actual_return_5d"]
+                payload["correct_5d"] = existing["correct_5d"]
             else:
                 sh_row = writer.get_signal_for_pair_date(pair, t5_date.isoformat())
                 if sh_row is not None and sh_row.get("spot") is not None:
@@ -126,15 +118,8 @@ def run_validation(as_of_date: date | None = None) -> None:
                     realized = realized_direction(bps)
                     predicted = str(call.get("rate_signal") or "")
                     correct = is_correct(predicted, realized)
-                    brier = (
-                        brier_score(float(call.get("confidence") or 0.0), correct)
-                        if predicted.upper() != "NEUTRAL"
-                        else None
-                    )
-                    payload["actual_direction_t5"] = realized
-                    payload["log_return_t5_bps"] = bps
-                    payload["correct_t5"] = correct
-                    payload["brier_score_t5"] = brier
+                    payload["actual_return_5d"] = bps / 10_000.0
+                    payload["correct_5d"] = correct
                     payload["actual_direction"] = realized
                 else:
                     logger.warning(
@@ -143,41 +128,27 @@ def run_validation(as_of_date: date | None = None) -> None:
                         t5_date.isoformat(),
                     )
 
-            # T+20 horizon
+            # T+20 horizon (map to same columns for now — latest write wins)
             if as_of_date >= t20_date:
-                if existing and existing.get("actual_direction_t20") is not None:
-                    payload["actual_direction_t20"] = existing["actual_direction_t20"]
-                    payload["log_return_t20_bps"] = existing["log_return_t20_bps"]
-                    payload["correct_t20"] = existing["correct_t20"]
-                    payload["brier_score_t20"] = existing.get("brier_score_t20")
+                sh_row = writer.get_signal_for_pair_date(pair, t20_date.isoformat())
+                if sh_row is not None and sh_row.get("spot") is not None:
+                    sh = float(sh_row["spot"])
+                    bps = log_return_bps(s0, sh)
+                    realized = realized_direction(bps)
+                    predicted = str(call.get("rate_signal") or "")
+                    correct = is_correct(predicted, realized)
+                    payload["actual_return_5d"] = bps / 10_000.0
+                    payload["correct_5d"] = correct
+                    payload["actual_direction"] = realized
                 else:
-                    sh_row = writer.get_signal_for_pair_date(pair, t20_date.isoformat())
-                    if sh_row is not None and sh_row.get("spot") is not None:
-                        sh = float(sh_row["spot"])
-                        bps = log_return_bps(s0, sh)
-                        realized = realized_direction(bps)
-                        predicted = str(call.get("rate_signal") or "")
-                        correct = is_correct(predicted, realized)
-                        brier = (
-                            brier_score(float(call.get("confidence") or 0.0), correct)
-                            if predicted.upper() != "NEUTRAL"
-                            else None
-                        )
-                        payload["actual_direction_t20"] = realized
-                        payload["log_return_t20_bps"] = bps
-                        payload["correct_t20"] = correct
-                        payload["brier_score_t20"] = brier
-                    else:
-                        logger.warning(
-                            "Validation skip: missing T+20 spot for %s on %s",
-                            pair,
-                            t20_date.isoformat(),
-                        )
-
-            payload["is_superseded"] = False
+                    logger.warning(
+                        "Validation skip: missing T+20 spot for %s on %s",
+                        pair,
+                        t20_date.isoformat(),
+                    )
 
             # Only write if we have at least one horizon populated
-            has_t5 = payload.get("actual_direction_t5") is not None
-            has_t20 = payload.get("actual_direction_t20") is not None
+            has_t5 = payload.get("actual_return_5d") is not None
+            has_t20 = payload.get("correct_5d") is not None
             if has_t5 or has_t20:
                 writer.write_validation_row(payload)

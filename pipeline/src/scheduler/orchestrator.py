@@ -15,7 +15,7 @@ import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import date, timedelta
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from dotenv import load_dotenv
 from prefect import flow, task
@@ -60,6 +60,7 @@ from src.regime.composite import (
 from src.regime.confidence import compute_confidence
 from src.signals.cot import compute_cot_percentile, normalize_cot_signal
 from src.signals.open_interest import compute_oi_signal
+from src.signals.special import compute_special_signal
 from src.signals.rate import (
     build_carry_history_from_rows,
     build_real_yield_10y_spread_history_from_rows,
@@ -89,9 +90,146 @@ from src.types import (
 )
 from src.validation import ledger
 from src.validation.backtest import validate_call
-from src.validation.ingestion_buffer import validate_ingestion_buffer
+from src.validation.ingestion_buffer import compute_dqs, fx_pairs_from_universe, validate_ingestion_buffer
 
 logger = logging.getLogger(__name__)
+
+
+def _yfinance_dl() -> Any:
+    import yfinance as yf
+
+    return yf
+
+
+def _dxy_overnight_pct_abs() -> float | None:
+    """Absolute overnight % move for DXY (DX-Y.NYB last vs prior close)."""
+
+    try:
+        import pandas as pd
+
+        df = _yfinance_dl().download(
+            "DX-Y.NYB",
+            period="5d",
+            auto_adjust=True,
+            progress=False,
+        )
+        if df.empty or "Close" not in df:
+            return None
+        close_values = df["Close"]
+        close_series = (
+            close_values.iloc[:, 0] if isinstance(close_values, pd.DataFrame) else close_values
+        )
+        close_series = close_series.dropna()
+        if close_series.empty or len(close_series) < 2:
+            return None
+        latest = float(close_series.iloc[-1])
+        prev = float(close_series.iloc[-2])
+        if prev == 0.0:
+            return None
+        return abs((latest - prev) / prev * 100.0)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("DXY overnight %% move unavailable: %s", exc)
+        return None
+
+
+def _max_abs_pair_overnight_pct(
+    spots: dict[str, Sequence[SpotBar]],
+    universe: dict[str, Any],
+) -> float | None:
+    mx: float | None = None
+    for p in fx_pairs_from_universe(universe):
+        bars = spots.get(p)
+        if not bars or len(bars) < 2:
+            continue
+        today_bar = bars[-1]
+        yest_bar = bars[-2]
+        yc = float(yest_bar.close) if yest_bar.close else 0.0
+        if yc == 0.0:
+            continue
+        tc = float(today_bar.close) if today_bar.close else 0.0
+        pct = abs((tc - yc) / yc * 100.0)
+        mx = pct if mx is None else max(mx, pct)
+    return mx
+
+
+def assess_stress(
+    *,
+    vix: float | None,
+    dxy_overnight_pct_abs: float | None,
+    max_pair_overnight_pct_abs: float | None,
+) -> tuple[int, Literal["GREEN", "AMBER", "RED"]]:
+    """Stress score from cross-asset volatility and gap risk; maps to circuit-breaker color."""
+
+    score = 0
+    if vix is not None:
+        if vix >= 35.0:
+            score += 2
+        elif vix >= 25.0:
+            score += 1
+    if dxy_overnight_pct_abs is not None:
+        if dxy_overnight_pct_abs >= 1.0:
+            score += 2
+        elif dxy_overnight_pct_abs >= 0.7:
+            score += 1
+    if max_pair_overnight_pct_abs is not None and max_pair_overnight_pct_abs >= 2.0:
+        score += 1
+
+    if score >= 3:
+        return score, "RED"
+    if score >= 1:
+        return score, "AMBER"
+    return score, "GREEN"
+
+
+def _dqs_confidence_cap(dqs: float) -> float | None:
+    if dqs >= 0.90:
+        return None
+    if dqs >= 0.75:
+        return 0.85
+    if dqs >= 0.60:
+        return 0.70
+    if dqs >= 0.50:
+        return 0.55
+    return None
+
+
+def _log_dqs_band(dqs: float) -> None:
+    if dqs >= 0.90:
+        logger.info("DQS interpretation: EXCELLENT (>=0.90) — publish normally")
+    elif dqs >= 0.75:
+        logger.info("DQS interpretation: GOOD — confidence capped at 85%%")
+    elif dqs >= 0.60:
+        logger.warning(
+            "DQS interpretation: FAIR — confidence capped at 70%%, flagged for review",
+        )
+    elif dqs >= 0.50:
+        logger.warning(
+            "DQS interpretation: POOR — stale-data warning; directional confidence tightened",
+        )
+
+
+def _market_dislocation_notice_brief(
+    *,
+    date_str: str,
+    stress_score: int,
+    cross: dict[str, float | None],
+    dxy_move_pct: float | None,
+    max_pair_move_pct: float | None,
+    dqs_score: float,
+) -> str:
+    vix_disp = f"{cross['vix']:.2f}" if cross.get("vix") is not None else "n/a"
+    dxy_disp = f"{cross['dxy']:.4f}" if cross.get("dxy") is not None else "n/a"
+    dxy_m = f"{dxy_move_pct:.3f}%" if dxy_move_pct is not None else "n/a"
+    pair_m = f"{max_pair_move_pct:.3f}%" if max_pair_move_pct is not None else "n/a"
+    return (
+        f"MARKET DISLOCATION NOTICE ({date_str}). "
+        f"Stress Mode RED (score={stress_score}). "
+        f"Directional regime calls were withheld today due to elevated systemic gap risk. "
+        f"Telemetry snapshot: VIX={vix_disp}, DXY spot={dxy_disp}, "
+        f"|overnight DXY|={dxy_m}, max |overnight FX pair|={pair_m}. "
+        f"Run health: DQS={dqs_score:.3f}. "
+        f"Resume standard publication when stress score falls below 3."
+    )
 
 
 def _require_pipeline_runtime_env() -> None:
@@ -117,13 +255,13 @@ def _require_pipeline_runtime_env() -> None:
 
 
 async def _ingest_weekly_research_memo(iso_date: str) -> None:
+    """Weekly memo ingestion — AI summarization on hold."""
     memo = fetch_latest_substack_memo()
-    bullets = await summarize_weekly_memo_async(str(memo["raw_content"]), date_str=iso_date)
     writer.write_research_memo(
         date_str=str(memo["date"])[:10],
         title=str(memo["title"]),
         raw_content=str(memo["raw_content"]),
-        ai_thesis_summary=bullets,
+        ai_thesis_summary=None,
         link_url=str(memo["link_url"]),
     )
 
@@ -374,6 +512,12 @@ def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
         entry_timing=entry_timing,
         position_size=position_size,
         stop_level=stop_level,
+        data_quality_score=(
+            float(row["data_quality_score"])
+            if row.get("data_quality_score") is not None
+            else None
+        ),
+        stress_level=str(row["stress_level"]) if row.get("stress_level") else None,
     )
 
 
@@ -404,40 +548,8 @@ def _upsert_macro_event_briefs(
     forward_days: int = 7,
     polymarket_context: str = "",
 ) -> None:
-    start_d = date.fromisoformat(date_str)
-    end_d = start_d + timedelta(days=forward_days)
-    macro_rows = writer.list_high_impact_events_needing_brief(
-        start_d.isoformat(),
-        end_d.isoformat(),
-    )
-    for ev in macro_rows:
-        ev_date = str(ev.get("date"))[:10]
-        ev_name = str(ev.get("event"))
-        pairs = list(ev.get("pairs") or PAIRS)
-        try:
-            pair_briefs: dict[str, str] = {}
-            for pair in pairs:
-                matrix_row = writer.get_event_risk_matrix(ev_date, pair, ev_name)
-                if matrix_row is None:
-                    logger.info(
-                        "Skipping event brief matrix lookup miss for %s %s %s",
-                        ev_date,
-                        pair,
-                        ev_name,
-                    )
-                    continue
-                pair_briefs[pair] = generate_event_brief(
-                    matrix_row,
-                    ev_date,
-                    polymarket_context=polymarket_context,
-                )
-            if pair_briefs:
-                writer.update_macro_event_ai_brief(ev_date, ev_name, json.dumps(pair_briefs))
-        except RuntimeError as exc:
-            logger.warning("Stopping macro AI updates: %s", exc)
-            break
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Macro event brief failed for %s %s: %s", ev_date, ev_name, exc)
+    """Macro event AI briefs — on hold. Telemetry-only pass."""
+    logger.info("Macro event AI briefs skipped (AI on hold).")
 
 
 def _upsert_pair_briefs_for_date(
@@ -447,6 +559,7 @@ def _upsert_pair_briefs_for_date(
     dollar_dominance_pct: float | None = None,
     polymarket_odds_json: str = "[]",
 ) -> list[str]:
+    """Pair AI briefs — on hold. Returns telemetry context only."""
     pair_contexts: list[str] = []
     for pair in PAIRS:
         prior = writer.get_latest_regime_call(pair)
@@ -460,39 +573,11 @@ def _upsert_pair_briefs_for_date(
             continue
         signal_row = _signal_row_from_db(sig)
 
-        cached = writer.get_brief_for_date(pair, date_str)
-        if cached:
-            analysis = cached
-        else:
-            analysis = generate_brief(
-                pair,
-                str(prior["regime"]),
-                float(prior["confidence"]),
-                float(prior["signal_composite"]),
-                signal_row,
-                date_str,
-                primary_driver=(
-                    str(prior.get("primary_driver")) if prior.get("primary_driver") else None
-                ),
-                polymarket_context=polymarket_context,
-                dollar_dominance_pct=dollar_dominance_pct,
-                polymarket_odds_json=polymarket_odds_json,
-            )
-            writer.write_brief(
-                date_str,
-                pair,
-                str(prior["regime"]),
-                float(prior["confidence"]),
-                float(prior["signal_composite"]),
-                analysis,
-                str(prior.get("primary_driver") or ""),
-            )
-
         pair_contexts.append(
             f"{pair} regime={prior.get('regime')} conf={float(prior['confidence']):.2f} "
             f"driver={prior.get('primary_driver') or 'unknown'} "
             f"r2y={signal_row.rate_diff_2y} r10y={signal_row.rate_diff_10y} "
-            f"oil={signal_row.cross_asset_oil} spot={signal_row.spot} brief={analysis[:180]}"
+            f"oil={signal_row.cross_asset_oil} spot={signal_row.spot}"
         )
     return pair_contexts
 
@@ -515,36 +600,22 @@ async def build_master_buffer_task(
 async def batch_desk_briefs_task(
     pending_desk_cards: list[dict[str, Any]],
 ) -> list[Any]:
-    """Generate desk-card AI briefs; optional sequential mode for OpenRouter burst safety."""
+    """Generate desk-card briefs — AI on hold; deterministic fallback only."""
 
-    raw_cd = (os.environ.get("FORCE_SYNC_DESK_PAIR_COOLDOWN_SEC") or "").strip()
-    if raw_cd:
-        try:
-            pair_sleep = max(0.0, float(raw_cd))
-        except ValueError:
-            pair_sleep = 0.0
-        if pair_sleep > 0.0:
-            outcomes: list[Any] = []
-            for i, item in enumerate(pending_desk_cards):
-                if i > 0:
-                    await asyncio.sleep(pair_sleep)
-                try:
-                    outcomes.append(
-                        await generate_desk_card_brief_async(
-                            **cast(dict[str, Any], item["brief_kw"]),
-                        ),
-                    )
-                except Exception as exc:  # noqa: BLE001
-                    outcomes.append(exc)
-            return outcomes
-
-    return await asyncio.gather(
-        *[
-            generate_desk_card_brief_async(**cast(dict[str, Any], item["brief_kw"]))
-            for item in pending_desk_cards
-        ],
-        return_exceptions=True,
-    )
+    outcomes: list[Any] = []
+    for item in pending_desk_cards:
+        bkw = cast(dict[str, Any], item["brief_kw"])
+        fb = desk_card_brief_fallback(
+            regime=str(bkw.get("regime") or ""),
+            primary_driver=bkw.get("primary_driver"),
+            pain_index=bkw.get("pain_index"),
+            rvol=bkw.get("rvol"),
+            todays_event_matrix=bkw.get("todays_event_matrix"),
+            dollar_dominance_score=bkw.get("dollar_dominance_score"),
+            dollar_bias=bkw.get("dollar_bias"),
+        )
+        outcomes.append((fb, False))
+    return outcomes
 
 
 @task
@@ -599,6 +670,28 @@ async def run_daily(date_str: str | None = None) -> None:
         return
     buffer = gate.buffer
 
+    as_of_day = date.fromisoformat(date_str[:10])
+    dqs_out = compute_dqs(buffer, universe, as_of_day)
+    logger.info(
+        "DQS=%.4f (rates=%.3f spots=%.3f cot=%.3f comm=%.3f cross=%.3f penalty=%s spot_obs=%s cot_obs=%s)",
+        dqs_out.score,
+        dqs_out.rates_freshness,
+        dqs_out.spots_freshness,
+        dqs_out.cot_freshness,
+        dqs_out.commodities_freshness,
+        dqs_out.cross_asset_freshness,
+        dqs_out.critical_penalty_applied,
+        dqs_out.spot_observation_date,
+        dqs_out.cot_observation_date,
+    )
+    if dqs_out.score < 0.50:
+        logger.critical(
+            "Pipeline aborted: DQS %.4f below CRITICAL threshold 0.50 — refusing to publish",
+            dqs_out.score,
+        )
+        raise RuntimeError(f"Data Quality Score critical: {dqs_out.score:.4f} < 0.50")
+    _log_dqs_band(dqs_out.score)
+
     spots_raw = buffer.get(KEY_FX_SPOT)
     spots: dict[str, Sequence[SpotBar]] = (
         cast(dict[str, Sequence[SpotBar]], spots_raw) if isinstance(spots_raw, dict) else {}
@@ -614,7 +707,7 @@ async def run_daily(date_str: str | None = None) -> None:
 
     cross_raw = buffer.get(KEY_CROSS_ASSET)
     cross: dict[str, float | None] = (
-        cross_raw
+        {k: v for k, v in cross_raw.items() if k != "hist"}
         if isinstance(cross_raw, dict)
         else {
             "vix": None,
@@ -625,8 +718,32 @@ async def run_daily(date_str: str | None = None) -> None:
             "stoxx": None,
         }
     )
+    cross_for_special: dict[str, Any] = dict(cross_raw) if isinstance(cross_raw, dict) else {}
 
     logger.info("Cross-asset snapshot: %s", cross)
+    dxy_overnight_pct = _dxy_overnight_pct_abs()
+    max_pair_overnight_pct = _max_abs_pair_overnight_pct(spots, universe)
+    vix_raw = cross.get("vix")
+    vix_val: float | None = None
+    if vix_raw is not None:
+        try:
+            vix_val = float(vix_raw)
+        except (TypeError, ValueError):
+            vix_val = None
+    stress_score, stress_level = assess_stress(
+        vix=vix_val,
+        dxy_overnight_pct_abs=dxy_overnight_pct,
+        max_pair_overnight_pct_abs=max_pair_overnight_pct,
+    )
+    stress_red = stress_level == "RED"
+    logger.info(
+        "Stress Mode: score=%s level=%s (|overnight DXY|=%s max |pair overnight|=%s)",
+        stress_score,
+        stress_level,
+        dxy_overnight_pct,
+        max_pair_overnight_pct,
+    )
+
     vol_data = fetch_realized_vol(spots)
 
     events = fetch_macro_events()
@@ -740,9 +857,12 @@ async def run_daily(date_str: str | None = None) -> None:
                 len(historical_rows),
                 TRADING_DAYS_3Y,
             )
-        top_5y = dominance_top_family(betas_5y, rate_norm, cot_norm, vol_norm, oi_norm)
+        special_signal = compute_special_signal(pair, cross_for_special)
+        special_norm = special_signal if special_signal is not None else 0.0
+
+        top_5y = dominance_top_family(betas_5y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm)
         top_3y = (
-            dominance_top_family(betas_3y, rate_norm, cot_norm, vol_norm, oi_norm)
+            dominance_top_family(betas_3y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm)
             if betas_3y is not None
             else None
         )
@@ -757,13 +877,41 @@ async def run_daily(date_str: str | None = None) -> None:
             vol_norm=vol_norm,
             oi_norm=oi_norm,
             betas=betas_5y,
+            special_norm=special_norm,
         )
-        composite = compute_composite(rate_norm, cot_norm, vol_norm, oi_norm)
+        composite = compute_composite(
+            rate_norm, cot_norm, vol_norm, oi_norm,
+            pair=pair,
+            special_signal=special_signal,
+        )
         if composite is None:
             logger.warning("Not enough data for %s — skipping", pair)
             continue
 
-        confidence = compute_confidence(composite, rate_norm, cot_norm)
+        # Pair-specific confidence adjustments
+        commodity_components_agree = None
+        wti_wcs_agree = None
+        brent_above_p80 = None
+        if pair == "AUDUSD":
+            # Commodity convergence: all 3 components same sign and non-neutral
+            hist = cross_for_special.get("hist", {})
+            if hist:
+                oil_p = special_norm  # proxy using already-computed special
+                # Simplified: if special_signal is strong, components likely agree
+                commodity_components_agree = abs(special_signal or 0.0) > 0.5
+        elif pair == "USDCAD":
+            wti_wcs_agree = abs(special_signal or 0.0) > 0.5
+        elif pair == "USDINR":
+            brent_above_p80 = (cross.get("oil") or 0) > 80  # crude proxy
+
+        confidence = compute_confidence(
+            composite, rate_norm, cot_norm,
+            pair=pair,
+            special_signal=special_signal,
+            commodity_components_agree=commodity_components_agree,
+            wti_wcs_agree=wti_wcs_agree,
+            brent_above_p80=brent_above_p80,
+        )
         if pair == "USDINR" and cot_pct is None:
             # Best-effort mode when INR COT is unavailable: keep call, reduce confidence.
             confidence = max(0.40, confidence - 0.15)
@@ -835,6 +983,11 @@ async def run_daily(date_str: str | None = None) -> None:
             float(confidence),
             0.35 + 0.11 * float(layer2_out["conviction"]),
         )
+        dqs_cap = _dqs_confidence_cap(dqs_out.score)
+        if dqs_cap is not None:
+            confidence = min(float(confidence), dqs_cap)
+        if stress_level == "AMBER":
+            confidence = min(float(confidence), 0.70)
         day_change = today_bar.close - yest_bar.close
         day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
         iv = fetch_implied_vol(pair)
@@ -909,17 +1062,25 @@ async def run_daily(date_str: str | None = None) -> None:
             entry_timing=layer3_out["entry_timing"],
             position_size=layer3_out["position_size"],
             stop_level=layer3_out["stop_level"],
+            data_quality_score=round(float(dqs_out.score), 2),
+            stress_level=stress_level,
         )
-        writer.write_regime_call(call)
-        ledger.log_initial_signal(
-            pair=pair,
-            target_date=today_bar.date,
-            regime=call.regime,
-            primary_driver=str(call.primary_driver or ""),
-            direction=call.rate_signal,
-            entry_close=float(today_bar.close),
-            confidence=float(call.confidence),
-        )
+        if stress_red:
+            logger.warning(
+                "RED Stress Mode — withholding regime call publication for %s (signals still saved)",
+                pair,
+            )
+        else:
+            writer.write_regime_call(call)
+            ledger.log_initial_signal(
+                pair=pair,
+                target_date=today_bar.date,
+                regime=call.regime,
+                primary_driver=str(call.primary_driver or ""),
+                direction=call.rate_signal,
+                entry_close=float(today_bar.close),
+                confidence=float(call.confidence),
+            )
 
         try:
             recent_closes = [float(bar.close) for bar in spot_bars[-10:]]
@@ -1036,6 +1197,10 @@ async def run_daily(date_str: str | None = None) -> None:
             "parameter_instability": parameter_instability,
             "layer2_directional": dict(layer2_out),
             "layer3_execution": dict(layer3_out),
+            "data_quality_score": float(dqs_out.score),
+            "stress_level": stress_level,
+            "dqs_stale_data_warning": 0.50 <= dqs_out.score < 0.60,
+            "dqs_flag_review": 0.60 <= dqs_out.score < 0.75,
         }
         todays_event_matrix = _first_todays_high_impact_matrix_for_pair(
             events,
@@ -1043,34 +1208,35 @@ async def run_daily(date_str: str | None = None) -> None:
             as_of=today_bar.date,
         )
         regime_age = get_regime_age(pair, regime, as_of=today_bar.date)
-        pending_desk_cards.append(
-            {
-                "confidence": confidence,
-                "brief_kw": {
-                    "pair": pair,
-                    "regime": regime,
-                    "date_str": today_bar.date.isoformat(),
-                    "primary_driver": driver,
-                    "pain_index": pain.pain_index if pain is not None else None,
-                    "rvol": rvol,
-                    "todays_event_matrix": todays_event_matrix,
-                    "dollar_dominance_score": None,
-                    "dollar_bias": None,
-                },
-                "card": {
-                    "date": today_bar.date,
-                    "pair": pair,
-                    "structural_regime": regime,
-                    "dominance_array": dominance_array,
-                    "pain_index": pain.pain_index if pain is not None else None,
-                    "markov_probabilities": markov_probabilities,
-                    "telemetry_audit": telemetry_audit,
-                    "invalidation_triggered": False,
-                    "telemetry_status": "ONLINE",
-                    "regime_age": regime_age,
-                },
-            }
-        )
+        if not stress_red:
+            pending_desk_cards.append(
+                {
+                    "confidence": confidence,
+                    "brief_kw": {
+                        "pair": pair,
+                        "regime": regime,
+                        "date_str": today_bar.date.isoformat(),
+                        "primary_driver": driver,
+                        "pain_index": pain.pain_index if pain is not None else None,
+                        "rvol": rvol,
+                        "todays_event_matrix": todays_event_matrix,
+                        "dollar_dominance_score": None,
+                        "dollar_bias": None,
+                    },
+                    "card": {
+                        "date": today_bar.date,
+                        "pair": pair,
+                        "structural_regime": regime,
+                        "dominance_array": dominance_array,
+                        "pain_index": pain.pain_index if pain is not None else None,
+                        "markov_probabilities": markov_probabilities,
+                        "telemetry_audit": telemetry_audit,
+                        "invalidation_triggered": False,
+                        "telemetry_status": "ONLINE",
+                        "regime_age": regime_age,
+                    },
+                }
+            )
 
     if pending_desk_cards:
         pair_regimes_today = {
@@ -1255,23 +1421,30 @@ async def run_daily(date_str: str | None = None) -> None:
     }
 
     pm_json = _polymarket_json_for_llm(markets)
-    pair_contexts = upsert_pair_briefs_task(
-        date_str,
-        polymarket_context,
-        dollar_dominance_pct=dollar_pct,
-        polymarket_odds_json=pm_json,
-    )
-    if pair_contexts:
-        global_summary = generate_global_macro_summary(
+    if stress_red:
+        pair_contexts: list[str] = []
+        global_summary = _market_dislocation_notice_brief(
             date_str=date_str,
-            pair_contexts=pair_contexts,
-            macro_context=polymarket_context,
+            stress_score=stress_score,
+            cross=cross,
+            dxy_move_pct=dxy_overnight_pct,
+            max_pair_move_pct=max_pair_overnight_pct,
+            dqs_score=dqs_out.score,
+        )
+        logger.warning("RED Stress Mode — publishing dislocation notice only")
+    else:
+        pair_contexts = upsert_pair_briefs_task(
+            date_str,
+            polymarket_context,
             dollar_dominance_pct=dollar_pct,
             polymarket_odds_json=pm_json,
         )
-    else:
         global_summary = (
-            "Insufficient pair briefs for unified summary; systemic telemetry still updated."
+            f"FX Regime Lab telemetry for {date_str}. "
+            f"Active pairs: {', '.join(pair_regimes.keys())}. "
+            f"Dollar dominance: {dollar_pct:.1f}%. "
+            f"Idiosyncratic outlier: {outlier_pair or 'none'}. "
+            f"AI brief generation on hold; regime telemetry available in terminal."
         )
     writer.write_brief_log(
         date_str,

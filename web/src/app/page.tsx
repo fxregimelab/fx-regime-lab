@@ -62,19 +62,14 @@ function Hero({
         </div>
 
         {/* H1 */}
-        <h1 className="font-sans font-semibold text-[clamp(44px,5.5vw,72px)] text-[var(--color-text)] leading-[1.05] tracking-tight mb-8 max-w-[720px] animate-fade-up delay-100">
-          I call regimes before the open.
-          <br />
-          The record is public.
+        <h1 className="font-sans font-semibold text-[clamp(40px,5vw,68px)] text-[var(--color-text)] leading-[1.08] tracking-tight mb-8 max-w-[640px] animate-fade-up delay-100">
+          G10 FX regime calls.
         </h1>
 
         {/* Manifesto paragraph */}
-        <p className="font-sans text-[17px] text-[var(--color-text-secondary)] leading-[1.6] max-w-[560px] mb-10 animate-fade-up delay-200">
-          Every morning, I publish a directional view on EUR/USD, USD/JPY, and
-          USD/INR before the first London print. The call is timestamped, the
-          math is open, and the next-day validation is automatic. I am an EE
-          undergrad running a discretionary macro research system that happens
-          to be public — not the other way around.
+        <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[480px] mb-10 animate-fade-up delay-200">
+          Published before market open. Validated the next day. Seven pairs,
+          four signal families, one composite. The record is open.
         </p>
 
         {/* System status strip */}
@@ -102,7 +97,7 @@ function Hero({
               Calls validated
             </span>
             <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
-              {totalCalls}
+              {totalCalls > 0 ? totalCalls : "—"}
             </span>
           </div>
           <span className="text-[var(--color-border)]">·</span>
@@ -111,7 +106,7 @@ function Hero({
               7D accuracy
             </span>
             <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
-              {accuracy7d.toFixed(1)}%
+              {totalCalls > 0 ? `${accuracy7d.toFixed(1)}%` : "—"}
             </span>
           </div>
           {streak && (
@@ -163,14 +158,12 @@ function Hero({
 
 /* ─── Validation Ticker ─────────────────────────────────────────────── */
 
-const PAIR_COLOR: Record<string, string> = {
-  EURUSD: "#7a8fa3",
-  USDJPY: "#a8947a",
-  USDINR: "#9e7a7a",
-  "EUR/USD": "#7a8fa3",
-  "USD/JPY": "#a8947a",
-  "USD/INR": "#9e7a7a",
-};
+const PAIR_COLOR: Record<string, string> = Object.fromEntries(
+  PAIRS.flatMap((p) => [
+    [p.label, p.pairColor],
+    [p.display, p.pairColor],
+  ])
+);
 
 function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
   const recent = rows.slice(0, 16);
@@ -259,11 +252,9 @@ function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
   );
 }
 
-const PAIR_DISPLAY: Record<string, string> = {
-  EURUSD: "EUR/USD",
-  USDJPY: "USD/JPY",
-  USDINR: "USD/INR",
-};
+const PAIR_DISPLAY: Record<string, string> = Object.fromEntries(
+  PAIRS.map((p) => [p.label, p.display])
+);
 
 /* ─── Live snapshot cards ───────────────────────────────────────────── */
 
@@ -341,6 +332,8 @@ function LiveSnapshot({
   calls: Awaited<ReturnType<typeof getLatestRegimeCalls>>;
   signals: Awaited<ReturnType<typeof getLatestSignals>>;
 }) {
+  const hasAnyData = PAIRS.some((p) => calls[p.label] || signals[p.label]);
+
   return (
     <section className="py-28">
       <div className="max-w-[1152px] mx-auto px-6">
@@ -357,23 +350,35 @@ function LiveSnapshot({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {PAIRS.map((pair, i) => {
-            const call = calls[pair.label];
-            const signal = signals[pair.label];
-            return (
-              <SnapshotCard
-                key={pair.label}
-                pair={pair.display}
-                pairColor={pair.pairColor}
-                spot={signal?.spot?.toFixed(4) ?? "—"}
-                regime={call?.regime ?? "—"}
-                confidence={call?.confidence ?? 0}
-                delay={(i + 1) * 100}
-              />
-            );
-          })}
-        </div>
+        {!hasAnyData ? (
+          <div className="reveal border border-[var(--color-border)] bg-[var(--color-surface)] px-8 py-12">
+            <p className="font-mono text-[11px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-2">
+              Awaiting data
+            </p>
+            <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[480px]">
+              No regime calls logged for today yet. The pipeline runs before
+              market open — check back after 06:00 UTC.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {PAIRS.map((pair, i) => {
+              const call = calls[pair.label];
+              const signal = signals[pair.label];
+              return (
+                <SnapshotCard
+                  key={pair.label}
+                  pair={pair.display}
+                  pairColor={pair.pairColor}
+                  spot={signal?.spot?.toFixed(4) ?? "—"}
+                  regime={call?.regime ?? "—"}
+                  confidence={call?.confidence ?? 0}
+                  delay={(i + 1) * 100}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -493,9 +498,9 @@ function ValidationTrust({
 }) {
   const stats = [
     { label: "Pairs tracked", value: String(PAIRS.length) },
-    { label: "Calls since April 2026", value: String(totalCalls) },
-    { label: "All-time accuracy", value: `${accuracy.toFixed(1)}%` },
-    { label: "7D accuracy", value: `${accuracy7d.toFixed(1)}%` },
+    { label: "Calls since April 2026", value: totalCalls > 0 ? String(totalCalls) : "—" },
+    { label: "All-time accuracy", value: totalCalls > 0 ? `${accuracy.toFixed(1)}%` : "—" },
+    { label: "7D accuracy", value: totalCalls > 0 ? `${accuracy7d.toFixed(1)}%` : "—" },
   ];
 
   return (

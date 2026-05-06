@@ -26,9 +26,9 @@
   --color-warn: #a8947a;
 
   /* Pair identifiers — visible on dark but never neon */
-  --color-pair-eurusd: #8fa8bc;
-  --color-pair-usdjpy: #b8a67a;
-  --color-pair-usdinr: #b08080;
+  --color-pair-eurusd: #4BA3E3;
+  --color-pair-usdjpy: #F5923A;
+  --color-pair-usdinr: #FB923C;
 
   /* Terminal-specific aliases */
   --color-terminal-bg: #0c0a09;
