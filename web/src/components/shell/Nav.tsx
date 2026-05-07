@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import React from "react";
 
 export function Nav() {
   const currentRoute = usePathname();
@@ -134,7 +134,7 @@ export function Nav() {
                   <span className="absolute bottom-0 left-3 right-3 h-px bg-[var(--color-accent)] animate-line-grow" />
                 )}
               </Link>
-            )
+            ),
           )}
         </div>
       </nav>

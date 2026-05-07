@@ -1,22 +1,25 @@
-import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import {
-  getLatestRegimeCalls,
-  getLatestSignals,
-  getHistoricalRegimeCalls,
-} from "@/lib/supabase/queries";
 import { RegimeCard } from "@/components/regime/RegimeCard";
-import { Sparkline } from "@/components/ui/sparkline";
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
+import { Sparkline } from "@/components/ui/sparkline";
 import { fmt2, fmtInt, fmtPct } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
+import {
+  getHistoricalRegimeCalls,
+  getLatestRegimeCalls,
+  getLatestSignals,
+} from "@/lib/supabase/queries";
 import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
 
 interface PairDeskPageProps {
   params: Promise<{ pair: string }>;
 }
 
-function getBias(call: LatestRegimeCall | undefined, composite: number): string {
+function getBias(
+  call: LatestRegimeCall | undefined,
+  composite: number,
+): string {
   if (call?.rate_signal) return call.rate_signal;
   if (composite > 0.3) return "BULLISH";
   if (composite < -0.3) return "BEARISH";
@@ -25,7 +28,7 @@ function getBias(call: LatestRegimeCall | undefined, composite: number): string 
 
 function getInvalidation(
   bias: string,
-  spot: number | null | undefined
+  spot: number | null | undefined,
 ): string {
   if (!spot || bias === "NEUTRAL") return "—";
   const buffer = spot * 0.005;
@@ -33,15 +36,25 @@ function getInvalidation(
   return inv.toFixed(4);
 }
 
-function getWatchlist(sig: LatestSignal | undefined, call: LatestRegimeCall | undefined): string[] {
+function getWatchlist(
+  sig: LatestSignal | undefined,
+  call: LatestRegimeCall | undefined,
+): string[] {
   const items: string[] = [];
   if (sig?.realized_vol_20d != null && sig.realized_vol_20d > 8) {
     items.push("RVOL ELEVATED");
   }
-  if (sig?.implied_vol_30d != null && sig.realized_vol_20d != null && sig.implied_vol_30d > sig.realized_vol_20d) {
+  if (
+    sig?.implied_vol_30d != null &&
+    sig.realized_vol_20d != null &&
+    sig.implied_vol_30d > sig.realized_vol_20d
+  ) {
     items.push("IV PREM");
   }
-  if (sig?.cot_percentile != null && (sig.cot_percentile > 85 || sig.cot_percentile < 15)) {
+  if (
+    sig?.cot_percentile != null &&
+    (sig.cot_percentile > 85 || sig.cot_percentile < 15)
+  ) {
     items.push("COT EXTREME");
   }
   if (call?.rate_signal && call.rate_signal !== "NEUTRAL") {
@@ -62,7 +75,7 @@ function regimeDotColor(regime: string): string {
 function pseudoZScore(
   label: string,
   value: number | null | undefined,
-  sig: LatestSignal | undefined
+  sig: LatestSignal | undefined,
 ): string {
   if (value == null) return "—";
   if (label === "Rate differential 2Y") {
@@ -75,7 +88,7 @@ function pseudoZScore(
     return value.toFixed(2);
   }
   if (label === "Realized vol 20d" && sig?.realized_vol_5d != null) {
-    const z = ((value - sig.realized_vol_5d) / Math.max(value * 0.3, 0.5));
+    const z = (value - sig.realized_vol_5d) / Math.max(value * 0.3, 0.5);
     return z.toFixed(2);
   }
   return "—";
@@ -84,10 +97,11 @@ function pseudoZScore(
 function trendArrow(
   label: string,
   value: number | null | undefined,
-  sig: LatestSignal | undefined
+  sig: LatestSignal | undefined,
 ): string {
   if (value == null) return "—";
-  if (label === "Rate differential 2Y") return value > 0 ? "↑" : value < 0 ? "↓" : "→";
+  if (label === "Rate differential 2Y")
+    return value > 0 ? "↑" : value < 0 ? "↓" : "→";
   if (label === "COT net position pctile") {
     return value > 60 ? "↑" : value < 40 ? "↓" : "→";
   }
@@ -95,10 +109,18 @@ function trendArrow(
     return value > 0.3 ? "↑" : value < -0.3 ? "↓" : "→";
   }
   if (label === "Realized vol 20d" && sig?.realized_vol_5d != null) {
-    return value > sig.realized_vol_5d ? "↑" : value < sig.realized_vol_5d ? "↓" : "→";
+    return value > sig.realized_vol_5d
+      ? "↑"
+      : value < sig.realized_vol_5d
+        ? "↓"
+        : "→";
   }
   if (label === "Implied vol 30d" && sig?.realized_vol_20d != null) {
-    return value > sig.realized_vol_20d ? "↑" : value < sig.realized_vol_20d ? "↓" : "→";
+    return value > sig.realized_vol_20d
+      ? "↑"
+      : value < sig.realized_vol_20d
+        ? "↓"
+        : "→";
   }
   return "—";
 }
@@ -163,9 +185,21 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
     ["COT net position pctile", fmtInt(cotPct ?? null), cotPct ?? null],
     ["Realized vol 20d", fmt2(sig?.realized_vol_20d), sig?.realized_vol_20d],
     ["Realized vol 5d", fmt2(sig?.realized_vol_5d), sig?.realized_vol_5d],
-    ["Implied vol 30d", sig?.implied_vol_30d != null ? fmt2(sig.implied_vol_30d) : "—", sig?.implied_vol_30d ?? null],
-    ["Signal composite", fmt2(call?.signal_composite), call?.signal_composite ?? null],
-    ["Spot", sig?.spot?.toFixed(pairMeta.label === "USDJPY" ? 2 : 4) ?? "—", sig?.spot ?? null],
+    [
+      "Implied vol 30d",
+      sig?.implied_vol_30d != null ? fmt2(sig.implied_vol_30d) : "—",
+      sig?.implied_vol_30d ?? null,
+    ],
+    [
+      "Signal composite",
+      fmt2(call?.signal_composite),
+      call?.signal_composite ?? null,
+    ],
+    [
+      "Spot",
+      sig?.spot?.toFixed(pairMeta.label === "USDJPY" ? 2 : 4) ?? "—",
+      sig?.spot ?? null,
+    ],
   ] as const;
 
   return (
@@ -196,7 +230,9 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           </p>
           <p
             className={`font-mono text-[13px] font-bold tracking-wider leading-snug ${
-              regimeAccent ? "text-[var(--color-text)]" : "text-[var(--color-text-secondary)]"
+              regimeAccent
+                ? "text-[var(--color-text)]"
+                : "text-[var(--color-text-secondary)]"
             }`}
           >
             {call?.regime ?? "—"}
@@ -209,14 +245,21 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           <p className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.15em] mb-2">
             CONFIDENCE
           </p>
-          <p className="font-mono text-[32px] font-medium tracking-tight leading-none" style={{ color: pairMeta.pairColor }}>
+          <p
+            className="font-mono text-[32px] font-medium tracking-tight leading-none"
+            style={{ color: pairMeta.pairColor }}
+          >
             {call ? Math.round(call.confidence * 100) : "—"}
             <span className="text-base text-[var(--color-text-dim)] font-normal">
               {call ? "%" : ""}
             </span>
           </p>
           <div className="mt-3">
-            <ConfidenceBar value={call?.confidence} tone="dark" color={pairMeta.pairColor} />
+            <ConfidenceBar
+              value={call?.confidence}
+              tone="dark"
+              color={pairMeta.pairColor}
+            />
           </div>
         </div>
         <div className="bg-[var(--color-elevated)] px-5 py-5">
@@ -225,7 +268,9 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           </p>
           <p
             className={`font-mono text-[32px] font-medium tracking-tight leading-none ${
-              composite >= 0 ? "text-[var(--color-up)]" : "text-[var(--color-down)]"
+              composite >= 0
+                ? "text-[var(--color-up)]"
+                : "text-[var(--color-down)]"
             }`}
           >
             {composite >= 0 ? "+" : ""}
@@ -237,13 +282,18 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               className="h-full"
               style={{
                 width: `${compPct}%`,
-                background: composite >= 0 ? "var(--color-up)" : "var(--color-down)",
+                background:
+                  composite >= 0 ? "var(--color-up)" : "var(--color-down)",
               }}
             />
           </div>
           <div className="flex justify-between mt-1.5">
-            <span className="font-mono text-[8px] text-[var(--color-text-dim)]">BEAR -2</span>
-            <span className="font-mono text-[8px] text-[var(--color-text-dim)]">BULL +2</span>
+            <span className="font-mono text-[8px] text-[var(--color-text-dim)]">
+              BEAR -2
+            </span>
+            <span className="font-mono text-[8px] text-[var(--color-text-dim)]">
+              BULL +2
+            </span>
           </div>
         </div>
       </div>
@@ -251,7 +301,9 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
       {/* Trader's TL;DR */}
       <div className="bg-[var(--color-elevated)] border border-[var(--color-border)] px-5 py-3.5 mb-px flex flex-wrap gap-x-6 gap-y-2 items-center">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">BIAS</span>
+          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">
+            BIAS
+          </span>
           <span
             className="font-mono text-[11px] font-bold tracking-wider"
             style={{
@@ -267,17 +319,25 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">DRIVER</span>
+          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">
+            DRIVER
+          </span>
           <span className="font-mono text-[11px] text-[var(--color-text-secondary)] truncate max-w-[240px]">
             {call?.primary_driver ?? "—"}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">INVALIDATION</span>
-          <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">{invalidation}</span>
+          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">
+            INVALIDATION
+          </span>
+          <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
+            {invalidation}
+          </span>
         </div>
         <div className="flex items-center gap-2 ml-auto">
-          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">WATCHLIST</span>
+          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">
+            WATCHLIST
+          </span>
           <div className="flex gap-1.5">
             {watchlist.map((w) => (
               <span
@@ -306,7 +366,10 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             WEIGHTED COMPOSITE
           </span>
         </div>
-        <div className="flex h-[6px] w-full overflow-hidden" style={{ background: "var(--color-void)" }}>
+        <div
+          className="flex h-[6px] w-full overflow-hidden"
+          style={{ background: "var(--color-void)" }}
+        >
           {SIGNAL_ARCH.map((s) => (
             <div
               key={s.label}
@@ -323,7 +386,9 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             <div key={s.label} className="flex items-center gap-1.5">
               <div
                 className="w-2 h-2"
-                style={{ background: `color-mix(in srgb, ${pairMeta.pairColor} 80%, transparent)` }}
+                style={{
+                  background: `color-mix(in srgb, ${pairMeta.pairColor} 80%, transparent)`,
+                }}
               />
               <span className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-wider">
                 {s.label} {s.weight}%
@@ -408,8 +473,10 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             className="font-mono text-[10px] px-2.5 py-1 font-medium"
             style={{
               color: "var(--color-text-secondary)",
-              border: "1px solid color-mix(in srgb, var(--color-text-secondary) 20%, transparent)",
-              background: "color-mix(in srgb, var(--color-text-secondary) 6%, transparent)",
+              border:
+                "1px solid color-mix(in srgb, var(--color-text-secondary) 20%, transparent)",
+              background:
+                "color-mix(in srgb, var(--color-text-secondary) 6%, transparent)",
             }}
           >
             COT: {crowding}
@@ -432,16 +499,28 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           <table className="w-full border-collapse font-mono">
             <thead>
               <tr className="border-b border-[var(--color-border-subtle)] bg-[var(--color-void)]">
-                <th scope="col" className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                <th
+                  scope="col"
+                  className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
+                >
                   SIGNAL
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                <th
+                  scope="col"
+                  className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
+                >
                   VALUE
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                <th
+                  scope="col"
+                  className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
+                >
                   SCORE
                 </th>
-                <th scope="col" className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal">
+                <th
+                  scope="col"
+                  className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
+                >
                   TREND
                 </th>
               </tr>
@@ -455,17 +534,25 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                     key={label}
                     className="border-b border-[var(--color-border-subtle)]"
                     style={{
-                      background: i % 2 === 0 ? "var(--color-void)" : "var(--color-surface)",
+                      background:
+                        i % 2 === 0
+                          ? "var(--color-void)"
+                          : "var(--color-surface)",
                     }}
                   >
-                    <td className="px-4 py-3 text-[11px] text-[var(--color-text-muted)]">{label}</td>
+                    <td className="px-4 py-3 text-[11px] text-[var(--color-text-muted)]">
+                      {label}
+                    </td>
                     <td className="px-4 py-3 text-[13px] text-[var(--color-text)] font-medium text-left tabular-nums">
                       {value}
                     </td>
                     <td className="px-4 py-3 text-[11px] text-[var(--color-text-secondary)] tabular-nums">
                       {z}
                     </td>
-                    <td className="px-4 py-3 text-[13px] font-medium" style={{ color: arrowColor(arrow) }}>
+                    <td
+                      className="px-4 py-3 text-[13px] font-medium"
+                      style={{ color: arrowColor(arrow) }}
+                    >
                       {arrow}
                     </td>
                   </tr>
@@ -496,8 +583,12 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               {PAIRS.filter((p) => p.label !== pairMeta.label).map((p) => (
                 <RegimeCard
                   key={p.label}
-                  call={(calls[p.label] as LatestRegimeCall | undefined) ?? null}
-                  signals={(signals[p.label] as LatestSignal | undefined) ?? null}
+                  call={
+                    (calls[p.label] as LatestRegimeCall | undefined) ?? null
+                  }
+                  signals={
+                    (signals[p.label] as LatestSignal | undefined) ?? null
+                  }
                   pairDisplay={p.display}
                 />
               ))}
@@ -509,9 +600,9 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             <p className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-[0.15em] mb-3">
               REGIME HISTORY (7D)
             </p>
-            {history.slice(0, 7).map((h, i) => (
+            {history.slice(0, 7).map((h) => (
               <div
-                key={i}
+                key={h.date}
                 className="flex justify-between items-center py-1.5 border-b border-[var(--color-border-subtle)] last:border-b-0"
               >
                 <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
@@ -561,11 +652,8 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               {history
                 .slice(0, 30)
                 .reverse()
-                .map((h, i) => (
-                  <div
-                    key={i}
-                    className="group relative"
-                  >
+                .map((h) => (
+                  <div key={h.date} className="group relative">
                     <div
                       className="w-[9px] h-[9px]"
                       style={{
@@ -602,8 +690,13 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                 ["OTHER", "var(--color-text-muted)"],
               ].map(([lbl, col]) => (
                 <div key={lbl} className="flex items-center gap-1">
-                  <div className="w-[6px] h-[6px]" style={{ background: col }} />
-                  <span className="font-mono text-[8px] text-[var(--color-text-dim)]">{lbl}</span>
+                  <div
+                    className="w-[6px] h-[6px]"
+                    style={{ background: col }}
+                  />
+                  <span className="font-mono text-[8px] text-[var(--color-text-dim)]">
+                    {lbl}
+                  </span>
                 </div>
               ))}
             </div>

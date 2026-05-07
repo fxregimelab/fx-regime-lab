@@ -1,7 +1,22 @@
 export const PAIRS = [
-  { label: "EURUSD" as const, display: "EUR/USD", urlSlug: "eurusd", pairColor: "#4BA3E3" },
-  { label: "USDJPY" as const, display: "USD/JPY", urlSlug: "usdjpy", pairColor: "#F5923A" },
-  { label: "USDINR" as const, display: "USD/INR", urlSlug: "usdinr", pairColor: "#FB923C" },
+  {
+    label: "EURUSD" as const,
+    display: "EUR/USD",
+    urlSlug: "eurusd",
+    pairColor: "#4BA3E3",
+  },
+  {
+    label: "USDJPY" as const,
+    display: "USD/JPY",
+    urlSlug: "usdjpy",
+    pairColor: "#F5923A",
+  },
+  {
+    label: "USDINR" as const,
+    display: "USD/INR",
+    urlSlug: "usdinr",
+    pairColor: "#FB923C",
+  },
 ];
 
 export type PairMeta = (typeof PAIRS)[number];

@@ -1,26 +1,26 @@
 /** Next daily pipeline anchor: 17:05 America/New_York (NYSE cash close + 5m). */
 
-const NY_TZ = 'America/New_York';
+const NY_TZ = "America/New_York";
 
 function nyKeyAtUtc(ms: number): number {
-  const fmt = new Intl.DateTimeFormat('en-US', {
+  const fmt = new Intl.DateTimeFormat("en-US", {
     timeZone: NY_TZ,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
     hour12: false,
   });
   const parts = fmt.formatToParts(new Date(ms));
   const g = (t: Intl.DateTimeFormatPartTypes) =>
-    Number(parts.find((p) => p.type === t)!.value);
+    Number(parts.find((p) => p.type === t)?.value);
   return (
-    g('year') * 1e8 +
-    g('month') * 1e6 +
-    g('day') * 1e4 +
-    g('hour') * 100 +
-    g('minute')
+    g("year") * 1e8 +
+    g("month") * 1e6 +
+    g("day") * 1e4 +
+    g("hour") * 100 +
+    g("minute")
   );
 }
 
@@ -55,18 +55,18 @@ function nyWallToUtc(
 
 /** UTC instant of the next 17:05 America/New_York strictly after `from`. */
 export function getNextPipelineRunUtc(from: Date = new Date()): Date {
-  const fmt = new Intl.DateTimeFormat('en-US', {
+  const fmt = new Intl.DateTimeFormat("en-US", {
     timeZone: NY_TZ,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
   let probeMs = from.getTime();
   for (let i = 0; i < 16; i++) {
     const parts = fmt.formatToParts(new Date(probeMs));
-    const y = Number(parts.find((p) => p.type === 'year')!.value);
-    const m = Number(parts.find((p) => p.type === 'month')!.value);
-    const d = Number(parts.find((p) => p.type === 'day')!.value);
+    const y = Number(parts.find((p) => p.type === "year")?.value);
+    const m = Number(parts.find((p) => p.type === "month")?.value);
+    const d = Number(parts.find((p) => p.type === "day")?.value);
     const targetMs = nyWallToUtc(y, m, d, 17, 5);
     if (targetMs > from.getTime()) {
       return new Date(targetMs);
@@ -81,5 +81,5 @@ export function formatCountdownHms(msRemaining: number): string {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const r = s % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
 }

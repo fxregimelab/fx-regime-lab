@@ -1,4 +1,4 @@
-import type { Database } from '@/lib/supabase/database.types';
+import type { Database } from "@/lib/supabase/database.types";
 
 export type ValidationTableRow = {
   date: string;
@@ -8,12 +8,12 @@ export type ValidationTableRow = {
   return_pct: number;
 };
 
-type VRow = Database['public']['Tables']['validation_log']['Row'];
+type VRow = Database["public"]["Tables"]["validation_log"]["Row"];
 
 const PAIR_DISPLAY: Record<string, string> = {
-  EURUSD: 'EUR/USD',
-  USDJPY: 'USD/JPY',
-  USDINR: 'USD/INR',
+  EURUSD: "EUR/USD",
+  USDJPY: "USD/JPY",
+  USDINR: "USD/INR",
 };
 
 export function mapValidationLogToTableRows(
@@ -27,13 +27,15 @@ export function mapValidationLogToTableRows(
     .map((r) => ({
       date: r.date,
       pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-      call: r.predicted_regime ?? '—',
-      outcome: r.correct_1d ? 'correct' : 'incorrect',
+      call: r.predicted_regime ?? "—",
+      outcome: r.correct_1d ? "correct" : "incorrect",
       return_pct: Number(r.actual_return_1d),
     }));
 }
 
-export function rolling7dAccuracyPct(rows: VRow[] | null | undefined): number | null {
+export function rolling7dAccuracyPct(
+  rows: VRow[] | null | undefined,
+): number | null {
   if (!rows?.length) return null;
   const scored = rows.filter((r) => r.correct_1d !== null && r.date);
   if (!scored.length) return null;
@@ -46,16 +48,23 @@ export function rolling7dAccuracyPct(rows: VRow[] | null | undefined): number | 
   return (ok / slice.length) * 100;
 }
 
-export function callsValidatedSince(rows: VRow[] | null | undefined, sinceIsoDate: string): number {
+export function callsValidatedSince(
+  rows: VRow[] | null | undefined,
+  sinceIsoDate: string,
+): number {
   if (!rows?.length) return 0;
-  return rows.filter((r) => r.date >= sinceIsoDate && r.correct_1d !== null).length;
+  return rows.filter((r) => r.date >= sinceIsoDate && r.correct_1d !== null)
+    .length;
 }
 
 export type EquityPoint = { date: string; cum: number };
 
 /** Daily mean of `actual_return_1d` across tracked pairs, then cumulative sum. */
 export function buildEquitySeries(
-  rows: { date: string; pair: string; actual_return_1d: number | null }[] | null | undefined,
+  rows:
+    | { date: string; pair: string; actual_return_1d: number | null }[]
+    | null
+    | undefined,
 ): { ALL: EquityPoint[]; byPair: Record<string, EquityPoint[]> } {
   if (!rows?.length) return { ALL: [], byPair: {} };
   const byDate = new Map<string, number[]>();
@@ -67,12 +76,13 @@ export function buildEquitySeries(
     arr.push(v);
     byDate.set(r.date, arr);
     if (!byPairDate.has(r.pair)) byPairDate.set(r.pair, new Map());
-    byPairDate.get(r.pair)!.set(r.date, v);
+    byPairDate.get(r.pair)?.set(r.date, v);
   }
   const dates = [...byDate.keys()].sort();
   let cum = 0;
   const ALL: EquityPoint[] = dates.map((d) => {
-    const xs = byDate.get(d)!;
+    const xs = byDate.get(d);
+    if (!xs) return { date: d, cum };
     cum += xs.reduce((a, b) => a + b, 0) / xs.length;
     return { date: d, cum };
   });

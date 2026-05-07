@@ -11,7 +11,7 @@ interface RegimeCardProps {
 
 export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
   const pairMeta = PAIRS.find(
-    (p) => p.display === pairDisplay || p.label === call?.pair
+    (p) => p.display === pairDisplay || p.label === call?.pair,
   );
   const regimeAccent =
     call &&

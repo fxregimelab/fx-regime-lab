@@ -1,15 +1,17 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { useBriefLogDominanceSeries, useLatestBrief } from '@/lib/queries';
+import { useBriefLogDominanceSeries, useLatestBrief } from "@/lib/queries";
+import { motion } from "framer-motion";
+import { useMemo } from "react";
 
 function padDominanceSeries(
   rows: Array<{ dollar_dominance: number | null }>,
   targetLen: number,
 ): number[] {
   const raw = rows.map((r) =>
-    r.dollar_dominance != null && Number.isFinite(r.dollar_dominance) ? r.dollar_dominance : NaN,
+    r.dollar_dominance != null && Number.isFinite(r.dollar_dominance)
+      ? r.dollar_dominance
+      : Number.NaN,
   );
   const nums = raw.filter((n) => !Number.isNaN(n));
   if (nums.length === 0) return Array.from({ length: targetLen }, () => 50);
@@ -25,7 +27,7 @@ type MacroDriftEngineProps = {
   className?: string;
 };
 
-export function MacroDriftEngine({ className = '' }: MacroDriftEngineProps) {
+export function MacroDriftEngine({ className = "" }: MacroDriftEngineProps) {
   const briefQ = useLatestBrief();
   const seriesQ = useBriefLogDominanceSeries(5);
 
@@ -34,9 +36,11 @@ export function MacroDriftEngine({ className = '' }: MacroDriftEngineProps) {
     [seriesQ.data],
   );
 
-  const delta =
-    values.length >= 2 ? values[values.length - 1]! - values[values.length - 2]! : null;
-  const latest = briefQ.data?.dollar_dominance ?? values[values.length - 1] ?? null;
+  const last = values.length >= 2 ? values[values.length - 1] : undefined;
+  const prev = values.length >= 2 ? values[values.length - 2] : undefined;
+  const delta = last !== undefined && prev !== undefined ? last - prev : null;
+  const latest =
+    briefQ.data?.dollar_dominance ?? values[values.length - 1] ?? null;
   const outlier = briefQ.data?.idiosyncratic_outlier?.trim() || null;
 
   const pending = briefQ.isPending || seriesQ.isPending;
@@ -45,7 +49,7 @@ export function MacroDriftEngine({ className = '' }: MacroDriftEngineProps) {
     const w = 100;
     const h = 36;
     const pad = 4;
-    if (values.length === 0) return '';
+    if (values.length === 0) return "";
     let min = Math.min(...values);
     let max = Math.max(...values);
     if (max === min) {
@@ -58,14 +62,16 @@ export function MacroDriftEngine({ className = '' }: MacroDriftEngineProps) {
       const y = pad + (1 - (v - min) / (max - min)) * (h - pad * 2);
       return `${x},${y}`;
     });
-    return `M ${pts.join(' L ')}`;
+    return `M ${pts.join(" L ")}`;
   }, [values]);
 
   return (
     <div
       className={`flex min-h-[140px] flex-col overflow-hidden border-0 border-t-[0.5px] border-t-white/[0.08] border-l-[0.5px] border-l-white/[0.03] bg-[#050505] p-2 ${className}`.trim()}
     >
-      <p className="m-0 mb-2 font-mono text-[8px] tracking-[0.2em] text-[#555]">MACRO · DRIFT</p>
+      <p className="m-0 mb-2 font-mono text-[8px] tracking-[0.2em] text-[#555]">
+        MACRO · DRIFT
+      </p>
       {pending ? (
         <div className="flex flex-1 animate-pulse items-center justify-center font-mono text-[9px] text-[#444]">
           SYNCING_BRIEF_LOG…
@@ -74,12 +80,18 @@ export function MacroDriftEngine({ className = '' }: MacroDriftEngineProps) {
         <div className="flex min-h-0 flex-1 flex-col gap-2">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="m-0 font-mono text-[8px] tracking-widest text-[#666]">USD_DOMINANCE_DELTA</p>
+              <p className="m-0 font-mono text-[8px] tracking-widest text-[#666]">
+                USD_DOMINANCE_DELTA
+              </p>
               <p className="m-0 mt-0.5 font-mono text-[11px] tabular-nums text-[#a8a8a8]">
                 {delta != null && Number.isFinite(delta) ? (
                   <>
-                    <span className={delta >= 0 ? 'text-emerald-400/90' : 'text-rose-400/90'}>
-                      {delta >= 0 ? '+' : ''}
+                    <span
+                      className={
+                        delta >= 0 ? "text-emerald-400/90" : "text-rose-400/90"
+                      }
+                    >
+                      {delta >= 0 ? "+" : ""}
                       {delta.toFixed(1)}
                     </span>
                     <span className="text-[#555]"> pts / 1d</span>
@@ -90,7 +102,8 @@ export function MacroDriftEngine({ className = '' }: MacroDriftEngineProps) {
               </p>
               {latest != null ? (
                 <p className="m-0 mt-1 font-mono text-[9px] tabular-nums text-[#777]">
-                  NOW <span className="text-[#bbb]">{latest.toFixed(0)}</span> / 100
+                  NOW <span className="text-[#bbb]">{latest.toFixed(0)}</span> /
+                  100
                 </p>
               ) : null}
             </div>
@@ -100,6 +113,7 @@ export function MacroDriftEngine({ className = '' }: MacroDriftEngineProps) {
               preserveAspectRatio="none"
               aria-hidden
             >
+              <title>Drift Engine</title>
               <path
                 d={pathD}
                 fill="none"
@@ -110,12 +124,18 @@ export function MacroDriftEngine({ className = '' }: MacroDriftEngineProps) {
             </svg>
           </div>
           <div className="border-t-[0.5px] border-t-[#151515] pt-2">
-            <p className="m-0 font-mono text-[8px] tracking-widest text-[#666]">G10_IDIO_OUTLIER</p>
+            <p className="m-0 font-mono text-[8px] tracking-widest text-[#666]">
+              G10_IDIO_OUTLIER
+            </p>
             {outlier ? (
               <motion.span
                 className="mt-1 inline-block font-mono text-[10px] font-bold tracking-widest text-white"
                 animate={{ opacity: [1, 0.35, 1] }}
-                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                transition={{
+                  duration: 1.4,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                }}
               >
                 {outlier}
               </motion.span>

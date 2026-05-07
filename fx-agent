@@ -11,8 +11,13 @@
 #   fx-agent run <spec.md>         # Execute single spec via Cursor
 #   fx-agent run --queue           # Process all queued specs
 #   fx-agent verify                # Run full test suite
+#   fx-agent verify --quick        # Run pytest + ruff only (fast)
+#   fx-agent review                # Show recently completed specs
+#   fx-agent cleanup               # Archive old queued specs
+#   fx-agent self-test             # Run agent system self-test
 #   fx-agent maps                  # Regenerate all maps
 #   fx-agent predict <spec.md>     # Predict failure modes in spec
+#   fx-agent help                  # Show this help
 #
 
 set -euo pipefail
@@ -36,17 +41,30 @@ log_err()   { echo -e "${R}[fx-agent]${NC} ✗ $1"; }
 
 cmd_init() {
   log_info "Initializing FX Regime Lab agent system..."
-  
+
   # Dependencies
   for dep in python3 node npm git agent jq; do
     if command -v "$dep" >/dev/null 2>&1; then
       log_ok "$dep installed"
     else
-      log_err "$dep not found — install before proceeding"
+      if [[ "$dep" == "agent" ]]; then
+        log_err "$dep not found — install Cursor Agent CLI before proceeding"
+        echo ""
+        echo "  To install Cursor CLI:"
+        echo "    npm install -g @anthropic-ai/cursor-agent"
+        echo "  Or visit: https://docs.cursor.com/agent"
+        echo ""
+      else
+        log_err "$dep not found — install before proceeding"
+      fi
       exit 1
     fi
   done
-  
+
+  # Ensure delegation directories exist
+  mkdir -p .cursor/delegation/{queue,completed,archive,logs,sessions,specs}
+  log_ok "Delegation directories ready"
+
   # Git hooks
   mkdir -p .git/hooks
   cat > .git/hooks/post-commit << 'HOOKEOF'
@@ -55,7 +73,7 @@ cmd_init() {
 HOOKEOF
   chmod +x .git/hooks/post-commit
   log_ok "post-commit hook installed"
-  
+
   cat > .git/hooks/pre-commit << 'HOOKEOF'
 #!/bin/bash
 set -e
@@ -72,14 +90,14 @@ fi
 HOOKEOF
   chmod +x .git/hooks/pre-commit
   log_ok "pre-commit hook installed"
-  
+
   # Initial maps
   ./.agent/scripts/regenerate-maps.sh init
   log_ok "Maps generated"
-  
+
   # Make everything executable
   chmod +x .agent/scripts/*.sh scripts/*.sh 2>/dev/null || true
-  
+
   log_ok "Initialization complete. Run 'fx-agent status' to verify."
 }
 
@@ -89,14 +107,14 @@ cmd_status() {
   echo "  FX Regime Lab Agent System"
   echo "═══════════════════════════════════════════════════"
   echo ""
-  
+
   # Quick health
   local errors=0
-  
+
   [[ -f ".agent/maps/CODEMAP.json" ]] && log_ok "CODEMAP" || { log_err "CODEMAP missing"; errors=$((errors+1)); }
   [[ -f ".agent/maps/SKILLMAP.json" ]] && log_ok "SKILLMAP" || { log_err "SKILLMAP missing"; errors=$((errors+1)); }
   [[ -f ".agent/maps/RULEMAP.json" ]] && log_ok "RULEMAP" || { log_err "RULEMAP missing"; errors=$((errors+1)); }
-  
+
   # Map freshness
   local map_age=$(( $(date +%s) - $(stat -c %Y .agent/maps/CODEMAP.json 2>/dev/null || echo 0) ))
   if [[ $map_age -lt 3600 ]]; then
@@ -104,11 +122,11 @@ cmd_status() {
   else
     log_warn "Maps stale (${map_age}s old) — run 'fx-agent maps'"
   fi
-  
+
   # Hooks
   [[ -x .git/hooks/post-commit ]] && log_ok "post-commit hook" || log_warn "post-commit hook missing"
   [[ -x .git/hooks/pre-commit ]] && log_ok "pre-commit hook" || log_warn "pre-commit hook missing"
-  
+
   # Test suite
   if (cd pipeline && pytest -q --tb=line >/dev/null 2>&1); then
     log_ok "pytest passes"
@@ -116,7 +134,14 @@ cmd_status() {
     log_err "pytest fails"
     errors=$((errors+1))
   fi
-  
+
+  # Queue stats
+  local queue_count=$(ls .cursor/delegation/queue/*.md 2>/dev/null | wc -l)
+  local completed_count=$(ls .cursor/delegation/completed/*.md 2>/dev/null | wc -l)
+  echo ""
+  echo "Delegation queue:  $queue_count pending"
+  echo "Completed specs:   $completed_count"
+
   echo ""
   echo "Quick stats:"
   echo "  Files mapped: $(python3 -c "
@@ -129,11 +154,12 @@ for name, section in d.items():
         for cat, files in section.items():
             total += len(files)
 print(total)
-")"
+"
+  )"
   echo "  Skills:       $(python3 -c "import json; print(len(json.load(open('.agent/maps/SKILLMAP.json'))['skills']))")"
   echo "  Rules:        $(python3 -c "import json; print(len(json.load(open('.agent/maps/RULEMAP.json'))['rules']))")"
   echo "  Scripts:      $(ls .agent/scripts/*.sh scripts/*.sh 2>/dev/null | wc -l)"
-  
+
   echo ""
   if [[ $errors -eq 0 ]]; then
     echo -e "  ${G}System is healthy ✓${NC}"
@@ -146,7 +172,7 @@ print(total)
 cmd_spec_create() {
   local type="${1:-}"
   local template=""
-  
+
   case "$type" in
     signal|pipeline)  template=".agent/templates/pipeline-signal.md" ;;
     page|web)         template=".agent/templates/nextjs-page.md" ;;
@@ -157,7 +183,7 @@ cmd_spec_create() {
       exit 1
       ;;
   esac
-  
+
   local out=".cursor/delegation/queue/spec-$(date +%s).md"
   mkdir -p "$(dirname "$out")"
   cp "$template" "$out"
@@ -182,13 +208,24 @@ cmd_run() {
     ./scripts/kimi-cursor-orchestrator.sh --process-queue --parallel 3 --yolo
     return
   fi
-  
+
   local spec="${1:-}"
   if [[ -z "$spec" ]]; then
     log_err "Usage: fx-agent run <spec.md> | fx-agent run --queue"
     exit 1
   fi
-  
+
+  # Check if agent command is available
+  if ! command -v agent >/dev/null 2>&1; then
+    log_err "Cursor Agent CLI (agent) not found"
+    echo ""
+    echo "  To install:"
+    echo "    npm install -g @anthropic-ai/cursor-agent"
+    echo "  Or visit: https://docs.cursor.com/agent"
+    echo ""
+    exit 1
+  fi
+
   # Validate first
   log_info "Validating spec..."
   if ! ./.agent/scripts/spec-validator.sh "$spec" >/dev/null 2>&1; then
@@ -197,68 +234,125 @@ cmd_run() {
     exit 1
   fi
   log_ok "Spec valid"
-  
+
   # Predict failures
   log_info "Predicting failure modes..."
   ./.agent/scripts/predict-failures.sh "$spec" || true
   echo ""
-  
+
   # Execute
   log_info "Delegating to Cursor Agent..."
-  ./scripts/cursor-delegate.sh --spec "$spec" --yolo
-  
+  if ./scripts/cursor-delegate.sh --spec "$spec" --yolo; then
+    log_ok "Delegation completed"
+
+    # Move to completed
+    local completed=".cursor/delegation/completed/$(basename "$spec")"
+    mv "$spec" "$completed" 2>/dev/null || true
+    log_ok "Spec archived to completed/"
+  else
+    log_err "Delegation failed — check logs above"
+    exit 1
+  fi
+
   # Verify
   log_info "Running verification..."
-  ./scripts/cursor-verify.sh --spec "$spec" || true
+  ./scripts/cursor-verify.sh --spec "$completed" || true
 }
 
 cmd_verify() {
-  log_info "Running full verification suite..."
-  
-  local failed=0
-  
-  echo ""
-  echo "Pipeline tests:"
-  if (cd pipeline && pytest -q --tb=short); then
-    log_ok "pytest"
+  local quick_flag=""
+  if [[ "${1:-}" == "--quick" ]]; then
+    quick_flag="--quick"
+    log_info "Running quick verification (pytest + ruff)..."
   else
-    log_err "pytest"
-    failed=1
+    log_info "Running full verification suite..."
   fi
-  
+
+  ./scripts/cursor-verify.sh --all $quick_flag
+}
+
+cmd_review() {
   echo ""
-  echo "Frontend build:"
-  if (cd web && npm run build 2>/dev/null); then
-    log_ok "npm run build"
-  else
-    log_err "npm run build"
-    failed=1
-  fi
-  
+  echo "═══════════════════════════════════════════════════"
+  echo "  Recently Completed Delegation Specs"
+  echo "═══════════════════════════════════════════════════"
   echo ""
-  echo "Frontend lint:"
-  if (cd web && npm run lint 2>/dev/null); then
-    log_ok "npm run lint"
-  else
-    log_err "npm run lint"
-    failed=1
+
+  local completed_dir=".cursor/delegation/completed"
+  if [[ ! -d "$completed_dir" ]]; then
+    log_warn "No completed directory found"
+    return
   fi
-  
+
+  local count=0
+  for spec in $(ls -t "$completed_dir"/*.md 2>/dev/null | head -10); do
+    local name=$(basename "$spec")
+    local age=$(( $(date +%s) - $(stat -c %Y "$spec" 2>/dev/null || echo 0) ))
+    local age_str
+    if [[ $age -lt 60 ]]; then
+      age_str="${age}s ago"
+    elif [[ $age -lt 3600 ]]; then
+      age_str="$((age / 60))m ago"
+    elif [[ $age -lt 86400 ]]; then
+      age_str="$((age / 3600))h ago"
+    else
+      age_str="$((age / 86400))d ago"
+    fi
+    echo -e "  ${G}✓${NC} $name  (${age_str})"
+    count=$((count + 1))
+  done
+
+  if [[ $count -eq 0 ]]; then
+    echo "  No completed specs yet."
+    echo ""
+    echo "  Run 'fx-agent run <spec.md>' to execute a spec."
+  else
+    echo ""
+    echo "  Showing $count most recent (newest first)"
+  fi
   echo ""
-  echo "Python lint:"
-  if (cd pipeline && ruff check . 2>/dev/null); then
-    log_ok "ruff check"
-  else
-    log_err "ruff check"
-    failed=1
-  fi
-  
+}
+
+cmd_cleanup() {
   echo ""
-  if [[ $failed -eq 0 ]]; then
-    log_ok "All verification checks passed"
+  echo "═══════════════════════════════════════════════════"
+  echo "  Archive Old Queued Specs"
+  echo "═══════════════════════════════════════════════════"
+  echo ""
+
+  local queue_dir=".cursor/delegation/queue"
+  local archive_dir=".cursor/delegation/archive"
+  mkdir -p "$archive_dir"
+
+  local archived=0
+  local kept=0
+  local now=$(date +%s)
+  local max_age=604800  # 7 days in seconds
+
+  for spec in "$queue_dir"/*.md; do
+    [[ -f "$spec" ]] || continue
+    local age=$(( now - $(stat -c %Y "$spec" 2>/dev/null || echo now) ))
+    if [[ $age -gt $max_age ]]; then
+      local dest="$archive_dir/$(basename "$spec")"
+      mv "$spec" "$dest"
+      archived=$((archived + 1))
+    else
+      kept=$((kept + 1))
+    fi
+  done
+
+  if [[ $archived -gt 0 ]]; then
+    log_ok "Archived $archived old spec(s) to .cursor/delegation/archive/"
   else
-    log_err "Some checks failed"
+    log_info "No old specs to archive"
   fi
+  log_info "Kept $kept recent spec(s) in queue"
+  echo ""
+}
+
+cmd_self_test() {
+  log_info "Running agent system self-test..."
+  ./.agent/scripts/self-test.sh
 }
 
 cmd_maps() {
@@ -292,14 +386,20 @@ COMMANDS:
   run <spec.md>           Execute single spec via Cursor
   run --queue             Process all queued specs
   verify                  Run full test/build/lint suite
+  verify --quick          Run pytest + ruff only (fast)
+  review                  Show recently completed specs
+  cleanup                 Archive old specs from queue
+  self-test               Run agent system self-test
   maps                    Regenerate all agent maps
   predict <spec.md>       Predict failure modes in spec
+  help                    Show this help
 
 WORKFLOW:
   1. fx-agent spec create signal    # write your spec
   2. fx-agent run spec.md           # delegate to Cursor
   3. fx-agent verify                # verify everything
-  4. git commit                     # hooks auto-update maps
+  4. fx-agent review                # see completed specs
+  5. git commit                     # hooks auto-update maps
 
 AGENTS:
   Kimi  = Strategy (plans, researches, decides)
@@ -317,7 +417,7 @@ shift || true
 case "$COMMAND" in
   init)           cmd_init "$@" ;;
   status)         cmd_status "$@" ;;
-  spec)           
+  spec)
     SUB="${1:-}"
     shift || true
     case "$SUB" in
@@ -328,6 +428,9 @@ case "$COMMAND" in
     ;;
   run)            cmd_run "$@" ;;
   verify)         cmd_verify "$@" ;;
+  review)         cmd_review "$@" ;;
+  cleanup)        cmd_cleanup "$@" ;;
+  self-test)      cmd_self_test "$@" ;;
   maps)           cmd_maps "$@" ;;
   predict)        cmd_predict "$@" ;;
   help|--help|-h) cmd_help ;;

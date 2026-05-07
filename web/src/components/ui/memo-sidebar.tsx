@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useResearchMemoReader, useResearchMemosList } from '@/lib/queries';
+import { useResearchMemoReader, useResearchMemosList } from "@/lib/queries";
+import { useState } from "react";
 
-const SUBSTACK_EMBED = 'https://fxregimelab.substack.com/embed';
+const SUBSTACK_EMBED = "https://fxregimelab.substack.com/embed";
 
 /** Vertical memo feed + reader overlay + Substack subscribe embed (terminal [M] rail). */
 export function MemoSidebar() {
@@ -22,7 +22,9 @@ export function MemoSidebar() {
             <p className="font-mono text-[10px] text-[#666]">Loading…</p>
           )}
           {listQ.isError && (
-            <p className="font-mono text-[10px] text-[#c45]">Could not load memos.</p>
+            <p className="font-mono text-[10px] text-[#c45]">
+              Could not load memos.
+            </p>
           )}
           <ul className="list-none space-y-2 p-0">
             {(listQ.data ?? []).map((m) => (
@@ -33,27 +35,30 @@ export function MemoSidebar() {
                   className="w-full border border-transparent bg-transparent text-left font-mono text-[11px] text-[#e0e0e0] transition-colors hover:border-[#333] hover:bg-[#0a0a0a]"
                 >
                   <span className="block truncate">{m.title}</span>
-                  <span className="block text-[9px] tracking-wider text-[#666]">{m.date}</span>
+                  <span className="block text-[9px] tracking-wider text-[#666]">
+                    {m.date}
+                  </span>
                 </button>
               </li>
             ))}
           </ul>
         </div>
         <footer className="shrink-0 border-t border-[#1a1a1a] p-3">
-          <p className="mb-2 font-mono text-[9px] tracking-widest text-[#555]">SUBSCRIBE</p>
+          <p className="mb-2 font-mono text-[9px] tracking-widest text-[#555]">
+            SUBSCRIBE
+          </p>
           <iframe
             src={SUBSTACK_EMBED}
             title="Substack subscription"
             className="h-[140px] w-full border border-[#222] bg-[#0a0a0a]"
-            style={{ filter: 'grayscale(1)' }}
+            style={{ filter: "grayscale(1)" }}
           />
         </footer>
       </div>
 
       {readerId ? (
-        <div
+        <dialog
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 p-4"
-          role="dialog"
           aria-modal="true"
           aria-label="Memo reader"
         >
@@ -82,17 +87,21 @@ export function MemoSidebar() {
                 <p className="mb-4 font-mono text-[10px] tracking-widest text-[#666]">
                   {readerQ.data.date}
                 </p>
-                <h1 className="mb-6 text-xl font-normal leading-snug">{readerQ.data.title}</h1>
+                <h1 className="mb-6 text-xl font-normal leading-snug">
+                  {readerQ.data.title}
+                </h1>
                 <div className="whitespace-pre-wrap text-[15px] leading-relaxed">
                   {readerQ.data.raw_content}
                 </div>
               </>
             ) : null}
             {!readerQ.isLoading && readerId && !readerQ.data ? (
-              <p className="font-mono text-[11px] text-[#888]">Memo not found.</p>
+              <p className="font-mono text-[11px] text-[#888]">
+                Memo not found.
+              </p>
             ) : null}
           </div>
-        </div>
+        </dialog>
       ) : null}
     </>
   );

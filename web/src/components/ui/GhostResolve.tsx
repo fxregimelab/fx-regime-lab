@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-const HEX = '0123456789ABCDEF';
+const HEX = "0123456789ABCDEF";
 
 type GhostResolveProps = {
   value: string;
@@ -24,7 +24,7 @@ function resolvedLen(s: string): number {
 }
 
 function randomHex(len: number): string {
-  let out = '';
+  let out = "";
   for (let i = 0; i < len; i++) out += HEX[Math.floor(Math.random() * 16)];
   return out;
 }
@@ -32,30 +32,30 @@ function randomHex(len: number): string {
 /** Slower BinaryResolve variant — terminal whispers, muted final luminance. */
 export function GhostResolve({
   value,
-  className = '',
+  className = "",
   resolveKey,
   active = true,
   paused = false,
 }: GhostResolveProps) {
   const [display, setDisplay] = useState(value);
-  const [phase, setPhase] = useState<'idle' | 'flicker' | 'resolved'>('idle');
+  const [phase, setPhase] = useState<"idle" | "flicker" | "resolved">("idle");
 
   useEffect(() => {
     const trimmed = value.trim();
     if (paused || !active) {
       setDisplay(trimmed);
-      setPhase('resolved');
+      setPhase("resolved");
       return;
     }
     if (!trimmed) {
-      setDisplay('');
-      setPhase('idle');
+      setDisplay("");
+      setPhase("idle");
       return;
     }
 
     const len = resolvedLen(value);
     let elapsed = 0;
-    setPhase('flicker');
+    setPhase("flicker");
     setDisplay(randomHex(len));
 
     const iv = setInterval(() => {
@@ -63,22 +63,22 @@ export function GhostResolve({
       if (elapsed >= FLICKER_MS) {
         clearInterval(iv);
         setDisplay(trimmed);
-        setPhase('resolved');
+        setPhase("resolved");
       } else {
         setDisplay(randomHex(len));
       }
     }, TICK_MS);
 
     return () => clearInterval(iv);
-  }, [value, resolveKey, active, paused]);
+  }, [value, active, paused]);
 
-  const ghostMuted = phase === 'resolved' || !active;
-  const flickerStyle = phase === 'flicker' ? 'text-[#555] opacity-50' : '';
+  const ghostMuted = phase === "resolved" || !active;
+  const flickerStyle = phase === "flicker" ? "text-[#555] opacity-50" : "";
 
   return (
     <span
       className={`inline-block font-mono text-[10px] tracking-widest tabular-nums will-change-[contents,opacity,color] ${
-        ghostMuted ? 'text-[#888] opacity-60' : flickerStyle
+        ghostMuted ? "text-[#888] opacity-60" : flickerStyle
       } ${className}`.trim()}
     >
       {display}

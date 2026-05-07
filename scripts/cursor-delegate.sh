@@ -128,6 +128,16 @@ echo "Model: $MODEL" >&2
 [[ "$YOLO" == true ]] && echo "Yolo: enabled (auto-approve all)" >&2
 echo "" >&2
 
+if ! command -v agent >/dev/null 2>&1; then
+  echo "✗ Cursor Agent CLI (agent) not found" >&2
+  echo "" >&2
+  echo "  To install:" >&2
+  echo "    npm install -g @anthropic-ai/cursor-agent" >&2
+  echo "  Or visit: https://docs.cursor.com/agent" >&2
+  echo "" >&2
+  exit 1
+fi
+
 if [[ -n "$OUTPUT_FILE" ]]; then
   echo "Running Cursor Agent... output → $OUTPUT_FILE" >&2
   "${CMD[@]}" > "$OUTPUT_FILE" 2>&1

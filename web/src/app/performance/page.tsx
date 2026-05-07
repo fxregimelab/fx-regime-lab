@@ -1,10 +1,10 @@
-import { Nav } from "@/components/shell/Nav";
-import { Footer } from "@/components/shell/Footer";
 import { ValidationTable } from "@/components/regime/ValidationTable";
-import { createClient } from "@/lib/supabase/server";
-import { getValidationLog } from "@/lib/supabase/queries";
+import { Footer } from "@/components/shell/Footer";
+import { Nav } from "@/components/shell/Nav";
 import { PAIRS } from "@/lib/constants";
+import { getValidationLog } from "@/lib/supabase/queries";
 import type { ValidationRow } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
 /* ─── helpers ───────────────────────────────────────────────────────────── */
@@ -61,7 +61,7 @@ function EquityCurveSVG({
 
   // running peak for drawdown shading
   const peak: number[] = [];
-  let p = -Infinity;
+  let p = Number.NEGATIVE_INFINITY;
   for (const v of values) {
     if (v > p) p = v;
     peak.push(p);
@@ -80,28 +80,23 @@ function EquityCurveSVG({
     .join(" ");
 
   // area below equity line
-  const areaD =
-    `M ${pts[0].x.toFixed(1)} ${padT + chartH} ` +
-    pts.map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ") +
-    ` L ${pts[pts.length - 1].x.toFixed(1)} ${padT + chartH} Z`;
+  const areaD = `M ${pts[0].x.toFixed(1)} ${padT + chartH} ${pts.map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ")} L ${pts[pts.length - 1].x.toFixed(1)} ${padT + chartH} Z`;
 
   // drawdown fill (between equity and peak)
-  const ddD =
-    lineD +
-    " " +
-    pts
-      .slice()
-      .reverse()
-      .map((p) => `L ${p.x.toFixed(1)} ${p.yPeak.toFixed(1)}`)
-      .join(" ") +
-    " Z";
+  const ddD = `${lineD} ${pts
+    .slice()
+    .reverse()
+    .map((p) => `L ${p.x.toFixed(1)} ${p.yPeak.toFixed(1)}`)
+    .join(" ")} Z`;
 
   // y ticks
   const yTicks = [maxV, (minV + maxV) / 2, minV];
 
   // x labels (show ~5 evenly spaced)
   const xStep = Math.max(1, Math.floor(data.length / 5));
-  const xLabels = pts.filter((_, i) => i % xStep === 0 || i === data.length - 1);
+  const xLabels = pts.filter(
+    (_, i) => i % xStep === 0 || i === data.length - 1,
+  );
 
   return (
     <svg
@@ -109,6 +104,7 @@ function EquityCurveSVG({
       preserveAspectRatio="none"
       className="w-full h-[240px] md:h-[320px] lg:h-[400px] block"
     >
+      <title>Performance Chart</title>
       {/* background */}
       <rect width={W} height={H} fill="#000000" />
 
@@ -117,7 +113,7 @@ function EquityCurveSVG({
         const y = padT + chartH - ((v - minV) / range) * chartH;
         return (
           <line
-            key={`h-${i}`}
+            key={`grid-${v}`}
             x1={padL}
             y1={y}
             x2={W - padR}
@@ -148,7 +144,7 @@ function EquityCurveSVG({
         const y = padT + chartH - ((v - minV) / range) * chartH;
         return (
           <text
-            key={`yl-${i}`}
+            key={`ylabel-${v}`}
             x={padL - 8}
             y={y + 3}
             textAnchor="end"
@@ -165,7 +161,7 @@ function EquityCurveSVG({
       {/* x-axis labels */}
       {xLabels.map((p, i) => (
         <text
-          key={`xl-${i}`}
+          key={`xlabel-${p.date}`}
           x={p.x}
           y={H - 10}
           textAnchor="middle"
@@ -189,17 +185,19 @@ export default async function PerformancePage() {
 
   const totalCalls = validation.length;
   const correct = validation.filter(
-    (r: ValidationRow) => r.outcome === "correct"
+    (r: ValidationRow) => r.outcome === "correct",
   ).length;
   const accuracy = totalCalls > 0 ? (correct / totalCalls) * 100 : 0;
   const avgReturn =
     totalCalls > 0
-      ? validation.reduce((s: number, r: ValidationRow) => s + r.return_pct, 0) /
-        totalCalls
+      ? validation.reduce(
+          (s: number, r: ValidationRow) => s + r.return_pct,
+          0,
+        ) / totalCalls
       : 0;
   const cumulativeReturn = validation.reduce(
     (s: number, r: ValidationRow) => s + r.return_pct,
-    0
+    0,
   );
 
   // 7D accuracy
@@ -208,12 +206,14 @@ export default async function PerformancePage() {
   const cut7Str = cut7.toISOString().slice(0, 10);
   const last7 = validation.filter((r: ValidationRow) => r.date >= cut7Str);
   const correct7 = last7.filter(
-    (r: ValidationRow) => r.outcome === "correct"
+    (r: ValidationRow) => r.outcome === "correct",
   ).length;
   const accuracy7d = last7.length > 0 ? (correct7 / last7.length) * 100 : 0;
 
   // equity curve: sum daily returns, cumulative
-  const sortedAsc = [...validation].sort((a, b) => a.date.localeCompare(b.date));
+  const sortedAsc = [...validation].sort((a, b) =>
+    a.date.localeCompare(b.date),
+  );
   const byDate = new Map<string, number>();
   for (const r of sortedAsc) {
     byDate.set(r.date, (byDate.get(r.date) ?? 0) + r.return_pct);
@@ -221,12 +221,13 @@ export default async function PerformancePage() {
   const dates = [...byDate.keys()].sort();
   let cum = 0;
   const equityCurve = dates.map((d) => {
-    cum += byDate.get(d)!;
+    const daily = byDate.get(d);
+    if (daily != null) cum += daily;
     return { date: d, value: cum };
   });
 
   // max drawdown from equity curve
-  let peakVal = -Infinity;
+  let peakVal = Number.NEGATIVE_INFINITY;
   let maxDD = 0;
   for (const pt of equityCurve) {
     if (pt.value > peakVal) peakVal = pt.value;
@@ -242,15 +243,27 @@ export default async function PerformancePage() {
       hits: correct,
       trials: totalCalls,
     },
-    { horizon: "T+5" as const, label: "1 week", hits: 0, trials: 0, insufficient: true as const },
-    { horizon: "T+20" as const, label: "1 month", hits: 0, trials: 0, insufficient: true as const },
+    {
+      horizon: "T+5" as const,
+      label: "1 week",
+      hits: 0,
+      trials: 0,
+      insufficient: true as const,
+    },
+    {
+      horizon: "T+20" as const,
+      label: "1 month",
+      hits: 0,
+      trials: 0,
+      insufficient: true as const,
+    },
   ];
 
   // per-pair accuracy
   const pairStats = PAIRS.map((p) => {
     const rows = validation.filter((r: ValidationRow) => r.pair === p.display);
     const pCorrect = rows.filter(
-      (r: ValidationRow) => r.outcome === "correct"
+      (r: ValidationRow) => r.outcome === "correct",
     ).length;
     const pAcc = rows.length ? (pCorrect / rows.length) * 100 : 0;
     return { ...p, rows, correct: pCorrect, accuracy: pAcc };
@@ -272,9 +285,7 @@ export default async function PerformancePage() {
       const rMin = rTotal > 0 ? Math.min(...rows.map((r) => r.return_pct)) : 0;
 
       // current streak for this regime (chronological)
-      const sortedRows = [...rows].sort((a, b) =>
-        a.date.localeCompare(b.date)
-      );
+      const sortedRows = [...rows].sort((a, b) => a.date.localeCompare(b.date));
       let streak: { type: "W" | "L"; count: number } | null = null;
       if (sortedRows.length > 0) {
         const last = sortedRows[sortedRows.length - 1];
@@ -311,7 +322,7 @@ export default async function PerformancePage() {
   const monthsAsc = [...monthMap.keys()].sort();
   let runningCum = 0;
   const monthlyAsc = monthsAsc.map((m) => {
-    const rows = monthMap.get(m)!;
+    const rows = monthMap.get(m) ?? [];
     const mCorrect = rows.filter((r) => r.outcome === "correct").length;
     const mTotal = rows.length;
     const mAvg =
@@ -334,14 +345,16 @@ export default async function PerformancePage() {
   // freshness
   const lastDate = dates.length > 0 ? dates[dates.length - 1] : null;
   const isStale = lastDate
-    ? new Date().getTime() - new Date(lastDate).getTime() >
-      24 * 60 * 60 * 1000
+    ? new Date().getTime() - new Date(lastDate).getTime() > 24 * 60 * 60 * 1000
     : true;
 
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
-      <main id="main-content" className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
+      <main
+        id="main-content"
+        className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full"
+      >
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="mb-10 pb-6 border-b border-[var(--color-border)]">
           <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -416,10 +429,7 @@ export default async function PerformancePage() {
               sub: "Per call directional",
             },
           ].map((m) => (
-            <div
-              key={m.label}
-              className="bg-[var(--color-surface)] p-5 md:p-6"
-            >
+            <div key={m.label} className="bg-[var(--color-surface)] p-5 md:p-6">
               <p className="font-mono text-[9px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase mb-2.5">
                 {m.label}
               </p>
@@ -469,10 +479,18 @@ export default async function PerformancePage() {
                   </div>
                   <div className="w-[100px] text-right">
                     <p className="font-mono text-[13px] tabular-nums text-[var(--color-text)]">
-                      {(h as any).insufficient ? "—" : h.trials > 0 ? `${rate.toFixed(1)}%` : "—"}
+                      {"insufficient" in h && h.insufficient
+                        ? "—"
+                        : h.trials > 0
+                          ? `${rate.toFixed(1)}%`
+                          : "—"}
                     </p>
                     <p className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">
-                      {(h as any).insufficient ? "insufficient data" : h.trials > 0 ? `${h.hits}/${h.trials}` : "0/0"}
+                      {"insufficient" in h && h.insufficient
+                        ? "insufficient data"
+                        : h.trials > 0
+                          ? `${h.hits}/${h.trials}`
+                          : "0/0"}
                     </p>
                   </div>
                 </div>
@@ -508,8 +526,7 @@ export default async function PerformancePage() {
                     className="h-full bg-[var(--color-text-muted)] transition-all duration-700 ease-out"
                     style={{
                       width: `${p.rows.length ? p.accuracy : 0}%`,
-                      transitionTimingFunction:
-                        "cubic-bezier(0.16, 1, 0.3, 1)",
+                      transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
                     }}
                   />
                 </div>
@@ -704,9 +721,8 @@ export default async function PerformancePage() {
 
         {/* ── Disclaimer ─────────────────────────────────────────────────── */}
         <p className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider leading-relaxed pt-5 mt-5 border-t border-[var(--color-border)]">
-          NEXT-DAY DIRECTIONAL OUTCOME. RETURN % IS NEXT-DAY CLOSE-TO-CLOSE
-          SPOT MOVE IN DIRECTION OF CALL. RESEARCH ONLY — NOT INVESTMENT
-          ADVICE.
+          NEXT-DAY DIRECTIONAL OUTCOME. RETURN % IS NEXT-DAY CLOSE-TO-CLOSE SPOT
+          MOVE IN DIRECTION OF CALL. RESEARCH ONLY — NOT INVESTMENT ADVICE.
         </p>
       </main>
       <Footer />

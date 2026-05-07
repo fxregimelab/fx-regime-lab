@@ -1,28 +1,28 @@
-import type { Metadata } from 'next';
-import { Cormorant, Inter, JetBrains_Mono } from 'next/font/google';
-import './globals.css';
-import { Providers } from './providers';
-import { CommandPalette } from '@/components/layout/command-palette';
+import type { Metadata } from "next";
+import { Cormorant, Inter, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
+import { CommandPalette } from "@/components/layout/command-palette";
+import { Providers } from "./providers";
 
 const inter = Inter({
-  variable: '--font-inter',
-  subsets: ['latin'],
+  variable: "--font-inter",
+  subsets: ["latin"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
-  variable: '--font-jetbrains-mono',
-  subsets: ['latin'],
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
 });
 
 const manifestoSerif = Cormorant({
-  variable: '--font-playfair',
-  subsets: ['latin'],
-  weight: ['300'],
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  weight: ["300"],
 });
 
 export const metadata: Metadata = {
-  title: 'FX Regime Lab',
-  description: 'Daily regime calls. On the record.',
+  title: "FX Regime Lab",
+  description: "Daily regime calls. On the record.",
 };
 
 export default function RootLayout({

@@ -1,12 +1,13 @@
-'use client';
+"use client";
 
-import { PerformanceLedgerPageContent } from '@/components/pages/performance-ledger-page-content';
+import { PerformanceLedgerPageContent } from "@/components/pages/performance-ledger-page-content";
 
 export default function TerminalPerformancePage() {
   return (
-    <main id="main-content"
+    <main
+      id="main-content"
       className="min-h-screen bg-[#000000] text-white rounded-none"
-      style={{ marginTop: 'var(--terminal-nav-h, 76px)' }}
+      style={{ marginTop: "var(--terminal-nav-h, 76px)" }}
     >
       <PerformanceLedgerPageContent />
     </main>

@@ -5,10 +5,7 @@ interface ValidationTableProps {
   tone?: "light" | "dark";
 }
 
-export function ValidationTable({
-  rows,
-  tone = "dark",
-}: ValidationTableProps) {
+export function ValidationTable({ rows, tone = "dark" }: ValidationTableProps) {
   const isD = tone === "dark";
   const bg = isD ? "bg-[var(--color-surface)]" : "bg-white";
   const border = isD ? "border-[var(--color-border)]" : "border-shell-border";
@@ -22,7 +19,10 @@ export function ValidationTable({
 
   return (
     <div className={`border ${border} overflow-hidden`}>
-      <table className="w-full border-collapse font-mono" aria-label="Validation log — all directional calls and outcomes">
+      <table
+        className="w-full border-collapse font-mono"
+        aria-label="Validation log — all directional calls and outcomes"
+      >
         <thead>
           <tr className={`border-b ${border} ${headBg}`}>
             {["DATE", "PAIR", "REGIME", "OUTCOME", "RET %"].map((h) => (
@@ -39,25 +39,19 @@ export function ValidationTable({
         <tbody>
           {rows.map((row, i) => (
             <tr
-              key={i}
+              key={row.date}
               className={`border-b ${border} ${i % 2 === 1 ? stripe : bg}`}
             >
               <td className={`px-4 py-2 text-[11px] ${muted}`}>{row.date}</td>
-              <td
-                className={`px-4 py-2 text-[11px] ${text} font-bold`}
-              >
+              <td className={`px-4 py-2 text-[11px] ${text} font-bold`}>
                 {row.pair}
               </td>
-              <td
-                className={`px-4 py-2 text-[10px] ${muted} max-w-[200px]`}
-              >
+              <td className={`px-4 py-2 text-[10px] ${muted} max-w-[200px]`}>
                 {row.call}
               </td>
               <td
                 className={`px-4 py-2 text-[11px] font-bold ${
-                  row.outcome === "correct"
-                    ? upColor
-                    : downColor
+                  row.outcome === "correct" ? upColor : downColor
                 }`}
               >
                 {row.outcome === "correct" ? "✓ CORRECT" : "✗ INCORRECT"}

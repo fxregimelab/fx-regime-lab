@@ -1,7 +1,9 @@
-import type { Metadata } from 'next';
-import { PAIRS } from '@/lib/constants';
+import { PAIRS } from "@/lib/constants";
+import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ pair: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: { params: Promise<{ pair: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const pairSlug = resolvedParams.pair;
   const pair = PAIRS.find((p) => p.urlSlug === pairSlug) ?? PAIRS[0];
@@ -11,6 +13,8 @@ export async function generateMetadata({ params }: { params: Promise<{ pair: str
   };
 }
 
-export default function PairDeskLayout({ children }: { children: React.ReactNode }) {
+export default function PairDeskLayout({
+  children,
+}: { children: React.ReactNode }) {
   return <>{children}</>;
 }

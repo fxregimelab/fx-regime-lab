@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { Nav } from "@/components/shell/Nav";
 import { Footer } from "@/components/shell/Footer";
+import { Nav } from "@/components/shell/Nav";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { PAIRS } from "@/lib/constants";
+import Link from "next/link";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -20,7 +20,10 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
-      <main id="main-content" className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
+      <main
+        id="main-content"
+        className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full"
+      >
         {/* Header */}
         <div className="reveal grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-20 mb-24 pb-16 border-b border-[var(--color-border)]">
           <div>
@@ -249,9 +252,21 @@ export default function AboutPage() {
               </p>
               <div className="grid grid-cols-3 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
                 {[
-                  { label: "7D ACCURACY", value: "—", sub: "Live on Performance" },
-                  { label: "CALLS LOGGED", value: "—", sub: "Live on Performance" },
-                  { label: "PAIRS COVERED", value: String(PAIRS.length), sub: PAIRS.map(p => p.display).join(", ") },
+                  {
+                    label: "7D ACCURACY",
+                    value: "—",
+                    sub: "Live on Performance",
+                  },
+                  {
+                    label: "CALLS LOGGED",
+                    value: "—",
+                    sub: "Live on Performance",
+                  },
+                  {
+                    label: "PAIRS COVERED",
+                    value: String(PAIRS.length),
+                    sub: PAIRS.map((p) => p.display).join(", "),
+                  },
                 ].map((m) => (
                   <div key={m.label} className="bg-[var(--color-surface)] p-5">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase mb-2">

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useCrossAssetPulse } from '@/lib/queries';
-import { fmt2, fmtChg } from './utils';
+import { useCrossAssetPulse } from "@/lib/queries";
+import React from "react";
+import { fmt2, fmtChg } from "./utils";
 
 // Exact bar height constant — import this in TerminalNav to offset sticky positioning
 export const PULSE_BAR_H = 28; // px
@@ -21,12 +21,17 @@ function PulseItem({
   const chg = fmtChg(change);
   return (
     <div className="flex items-baseline gap-1.5 shrink min-w-0">
-      <span className="font-mono text-[9px] text-[#555] tracking-widest">{label}</span>
+      <span className="font-mono text-[9px] text-[#555] tracking-widest">
+        {label}
+      </span>
       <span className="font-mono text-[10px] font-bold text-[#e8e8e8] tabular-nums">
-        {value != null ? fmt2(value) + (isPct ? '%' : '') : '—'}
+        {value != null ? fmt2(value) + (isPct ? "%" : "") : "—"}
       </span>
       {change != null && (
-        <span className="font-mono text-[9px] tabular-nums" style={{ color: chg.color }}>
+        <span
+          className="font-mono text-[9px] tabular-nums"
+          style={{ color: chg.color }}
+        >
           {chg.str}
         </span>
       )}
@@ -41,13 +46,14 @@ type MacroPulseBarProps = {
   embeddedInGlobalChrome?: boolean;
 };
 
-export function MacroPulseBar({ embeddedInGlobalChrome = false }: MacroPulseBarProps) {
+export function MacroPulseBar({
+  embeddedInGlobalChrome = false,
+}: MacroPulseBarProps) {
   const { data, isPending } = useCrossAssetPulse();
 
-  const shell =
-    embeddedInGlobalChrome
-      ? 'w-full h-[28px] shrink-0 bg-[#000000] flex items-center overflow-hidden whitespace-nowrap'
-      : 'w-full h-[28px] shrink-0 sticky top-0 z-[100] bg-[#000000] border-b border-[#111] flex items-center overflow-hidden whitespace-nowrap';
+  const shell = embeddedInGlobalChrome
+    ? "w-full h-[28px] shrink-0 bg-[#000000] flex items-center overflow-hidden whitespace-nowrap"
+    : "w-full h-[28px] shrink-0 sticky top-0 z-[100] bg-[#000000] border-b border-[#111] flex items-center overflow-hidden whitespace-nowrap";
 
   // Fixed height h-[28px] — never grows, never shifts
   return (
@@ -63,22 +69,58 @@ export function MacroPulseBar({ embeddedInGlobalChrome = false }: MacroPulseBarP
           </span>
         ) : (
           <>
-            <PulseItem label="DXY" value={data.dxy.value} change={data.dxy.change} />
+            <PulseItem
+              label="DXY"
+              value={data.dxy.value}
+              change={data.dxy.change}
+            />
             {DIVIDER}
-            <PulseItem label="US10Y" value={data.us10y.value} change={data.us10y.change} isPct />
+            <PulseItem
+              label="US10Y"
+              value={data.us10y.value}
+              change={data.us10y.change}
+              isPct
+            />
             {DIVIDER}
-            <PulseItem label="VIX" value={data.vix.value} change={data.vix.change} />
+            <PulseItem
+              label="VIX"
+              value={data.vix.value}
+              change={data.vix.change}
+            />
             {DIVIDER}
-            <PulseItem label="WTI" value={data.oil.value} change={data.oil.change} />
+            <PulseItem
+              label="WTI"
+              value={data.oil.value}
+              change={data.oil.change}
+            />
             {/* Duplicate for seamless loop */}
-            <span className="mx-6 text-[#1a1a1a] font-mono text-[9px]">·····</span>
-            <PulseItem label="DXY" value={data.dxy.value} change={data.dxy.change} />
+            <span className="mx-6 text-[#1a1a1a] font-mono text-[9px]">
+              ·····
+            </span>
+            <PulseItem
+              label="DXY"
+              value={data.dxy.value}
+              change={data.dxy.change}
+            />
             {DIVIDER}
-            <PulseItem label="US10Y" value={data.us10y.value} change={data.us10y.change} isPct />
+            <PulseItem
+              label="US10Y"
+              value={data.us10y.value}
+              change={data.us10y.change}
+              isPct
+            />
             {DIVIDER}
-            <PulseItem label="VIX" value={data.vix.value} change={data.vix.change} />
+            <PulseItem
+              label="VIX"
+              value={data.vix.value}
+              change={data.vix.change}
+            />
             {DIVIDER}
-            <PulseItem label="WTI" value={data.oil.value} change={data.oil.change} />
+            <PulseItem
+              label="WTI"
+              value={data.oil.value}
+              change={data.oil.change}
+            />
           </>
         )}
       </div>

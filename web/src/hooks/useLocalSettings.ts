@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
 /** Persisted chart range (GTM vault / Open Vault). */
-export type ChartRange = '1M' | '1Y' | 'MAX';
+export type ChartRange = "1M" | "1Y" | "MAX";
 
 export type LocalSettings = {
   selectedPair: string;
@@ -11,14 +11,14 @@ export type LocalSettings = {
   sidebarExpanded: boolean;
 };
 
-export const FX_VAULT_STORAGE_KEY = 'fx_regime_lab_local_settings_v1';
-export const FX_VAULT_IMPORT_EVENT = 'fx-regime-vault-imported';
+export const FX_VAULT_STORAGE_KEY = "fx_regime_lab_local_settings_v1";
+export const FX_VAULT_IMPORT_EVENT = "fx-regime-vault-imported";
 /** Fired after a successful vault import write (UI pulse on import control). */
-export const FX_VAULT_STATUS_SUCCESS = 'fx-regime-vault-status-success';
+export const FX_VAULT_STATUS_SUCCESS = "fx-regime-vault-status-success";
 
 const DEFAULT_SETTINGS: LocalSettings = {
-  selectedPair: 'EURUSD',
-  chartRange: '1Y',
+  selectedPair: "EURUSD",
+  chartRange: "1Y",
   sidebarExpanded: false,
 };
 
@@ -27,13 +27,19 @@ function parseStored(raw: string | null): LocalSettings {
   try {
     const p = JSON.parse(raw) as Partial<LocalSettings>;
     const chartRange =
-      p.chartRange === '1M' || p.chartRange === '1Y' || p.chartRange === 'MAX'
+      p.chartRange === "1M" || p.chartRange === "1Y" || p.chartRange === "MAX"
         ? p.chartRange
         : DEFAULT_SETTINGS.chartRange;
     return {
-      selectedPair: typeof p.selectedPair === 'string' && p.selectedPair ? p.selectedPair : DEFAULT_SETTINGS.selectedPair,
+      selectedPair:
+        typeof p.selectedPair === "string" && p.selectedPair
+          ? p.selectedPair
+          : DEFAULT_SETTINGS.selectedPair,
       chartRange,
-      sidebarExpanded: typeof p.sidebarExpanded === 'boolean' ? p.sidebarExpanded : DEFAULT_SETTINGS.sidebarExpanded,
+      sidebarExpanded:
+        typeof p.sidebarExpanded === "boolean"
+          ? p.sidebarExpanded
+          : DEFAULT_SETTINGS.sidebarExpanded,
     };
   } catch {
     return { ...DEFAULT_SETTINGS };
@@ -41,12 +47,12 @@ function parseStored(raw: string | null): LocalSettings {
 }
 
 function readFromStorage(): LocalSettings {
-  if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS };
+  if (typeof window === "undefined") return { ...DEFAULT_SETTINGS };
   return parseStored(localStorage.getItem(FX_VAULT_STORAGE_KEY));
 }
 
 function writeToStorage(next: LocalSettings) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   localStorage.setItem(FX_VAULT_STORAGE_KEY, JSON.stringify(next));
 }
 
@@ -55,7 +61,8 @@ function writeToStorage(next: LocalSettings) {
  * read settings only after hydrated to avoid hydration mismatches.
  */
 export function useLocalSettings() {
-  const [settings, setSettingsState] = useState<LocalSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettingsState] =
+    useState<LocalSettings>(DEFAULT_SETTINGS);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -95,11 +102,14 @@ export function buildVaultExportJson(): string {
 }
 
 /** Apply imported vault file; dispatches import event so hooks reload. */
-export function applyVaultImportJson(text: string): { ok: true } | { ok: false; error: string } {
+export function applyVaultImportJson(
+  text: string,
+): { ok: true } | { ok: false; error: string } {
   try {
-    const data = JSON.parse(text) as Partial<VaultExportFile> & Partial<LocalSettings>;
+    const data = JSON.parse(text) as Partial<VaultExportFile> &
+      Partial<LocalSettings>;
     const settingsRaw =
-      data.settings && typeof data.settings === 'object'
+      data.settings && typeof data.settings === "object"
         ? data.settings
         : {
             selectedPair: data.selectedPair,
@@ -108,12 +118,12 @@ export function applyVaultImportJson(text: string): { ok: true } | { ok: false; 
           };
     const merged = parseStored(JSON.stringify(settingsRaw));
     writeToStorage(merged);
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       window.dispatchEvent(new Event(FX_VAULT_IMPORT_EVENT));
       window.dispatchEvent(new Event(FX_VAULT_STATUS_SUCCESS));
     }
     return { ok: true };
   } catch {
-    return { ok: false, error: 'Invalid vault file' };
+    return { ok: false, error: "Invalid vault file" };
   }
 }

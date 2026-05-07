@@ -1,13 +1,10 @@
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import {
-  getLatestRegimeCalls,
-  getLatestSignals,
-} from "@/lib/supabase/queries";
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
 import { fmt2, fmtPct } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
+import { getLatestRegimeCalls, getLatestSignals } from "@/lib/supabase/queries";
 import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export default async function TerminalIndexPage() {
   const supabase = await createClient();
@@ -48,7 +45,9 @@ export default async function TerminalIndexPage() {
                   {chg != null && (
                     <span
                       className={`font-mono text-[10px] font-medium ${
-                        chg >= 0 ? "text-[var(--color-up)]" : "text-[var(--color-down)]"
+                        chg >= 0
+                          ? "text-[var(--color-up)]"
+                          : "text-[var(--color-down)]"
                       }`}
                     >
                       {chg >= 0 ? "+" : ""}
@@ -94,7 +93,9 @@ export default async function TerminalIndexPage() {
                 FX-REGIME
               </span>
             </div>
-            <span className="font-mono text-[10px] text-[var(--color-text-dim)]">Open →</span>
+            <span className="font-mono text-[10px] text-[var(--color-text-dim)]">
+              Open →
+            </span>
           </div>
           <div
             className="grid gap-px bg-[var(--color-border-subtle)]"
@@ -107,7 +108,10 @@ export default async function TerminalIndexPage() {
                   key={p.label}
                   className="px-5 py-4 bg-[var(--color-surface)]"
                 >
-                  <p className="font-mono text-[10px] font-bold mb-1.5" style={{ color: p.pairColor }}>
+                  <p
+                    className="font-mono text-[10px] font-bold mb-1.5"
+                    style={{ color: p.pairColor }}
+                  >
                     {p.display}
                   </p>
                   <p className="font-mono text-[10px] text-[var(--color-text-secondary)] font-medium tracking-wider mb-2">

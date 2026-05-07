@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ConvexityRadar } from '@/components/ui/convexity-radar';
+import { ConvexityRadar } from "@/components/ui/convexity-radar";
 import {
   useEventRiskMatrices,
   useLatestSignals,
   useTelemetryStatus,
-  useUpcomingMacroEvents,
   useUniverse,
-} from '@/lib/queries';
+  useUpcomingMacroEvents,
+} from "@/lib/queries";
+import { useState } from "react";
 
 /** Shared body for event radar (terminal + legacy shell). */
 export function ConvexityRadarPageContent() {
-  const [selectedPair, setSelectedPair] = useState<string>('EURUSD');
+  const [selectedPair, setSelectedPair] = useState<string>("EURUSD");
   const eventsQ = useUpcomingMacroEvents();
   const matricesQ = useEventRiskMatrices(selectedPair);
   const signalsQ = useLatestSignals();
@@ -26,7 +26,9 @@ export function ConvexityRadarPageContent() {
 
   return (
     <section className="w-full px-6 md:px-8 py-10">
-      <h1 className="font-sans text-3xl font-bold mb-2 text-white">Convexity Radar</h1>
+      <h1 className="font-sans text-3xl font-bold mb-2 text-white">
+        Convexity Radar
+      </h1>
       <p className="font-mono text-[11px] text-[#8a8a8a] tracking-widest mb-6">
         MIE · T+1 EXHAUSTION BANDS · REGIME-CONDITIONED ASYMMETRY
       </p>
@@ -39,8 +41,8 @@ export function ConvexityRadarPageContent() {
             onClick={() => setSelectedPair(pair)}
             className={`border px-3 py-1 text-[10px] tracking-widest tabular-nums rounded-none shadow-none ${
               selectedPair === pair
-                ? 'border-[#222] bg-[#111] text-white'
-                : 'border-[#111] bg-[#000] text-[#888]'
+                ? "border-[#222] bg-[#111] text-white"
+                : "border-[#111] bg-[#000] text-[#888]"
             }`}
           >
             {pair}
@@ -50,7 +52,9 @@ export function ConvexityRadarPageContent() {
 
       {eventsQ.isPending || matricesQ.isPending || signalsQ.isPending ? (
         <div className="border border-[#111] bg-[#000] px-4 py-8">
-          <span className="font-mono text-[11px] text-[#666] tabular-nums">LOADING CONVEXITY RADAR...</span>
+          <span className="font-mono text-[11px] text-[#666] tabular-nums">
+            LOADING CONVEXITY RADAR...
+          </span>
         </div>
       ) : (
         <ConvexityRadar
@@ -61,7 +65,8 @@ export function ConvexityRadarPageContent() {
           telemetryStatus={
             telemetryQ.data
               ? {
-                  invalidation_triggered: telemetryQ.data.invalidation_triggered,
+                  invalidation_triggered:
+                    telemetryQ.data.invalidation_triggered,
                   telemetry_status: telemetryQ.data.telemetry_status,
                 }
               : null
@@ -69,7 +74,9 @@ export function ConvexityRadarPageContent() {
         />
       )}
       {(eventsQ.isError || matricesQ.isError || signalsQ.isError) && (
-        <p className="mt-3 text-[11px] text-[#ef4444] tabular-nums">Failed to load convexity radar data.</p>
+        <p className="mt-3 text-[11px] text-[#ef4444] tabular-nums">
+          Failed to load convexity radar data.
+        </p>
       )}
     </section>
   );

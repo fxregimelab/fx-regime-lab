@@ -1,36 +1,39 @@
-import Link from "next/link";
-import { Nav } from "@/components/shell/Nav";
 import { Footer } from "@/components/shell/Footer";
-import { createClient } from "@/lib/supabase/server";
-import { getLatestBrief } from "@/lib/supabase/queries";
+import { Nav } from "@/components/shell/Nav";
 import { PAIRS } from "@/lib/constants";
 import { getDriverTag } from "@/lib/pairProfiles";
+import { getLatestBrief } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
-function DollarDominanceIndex({ brief }: { brief: { pair_regimes?: unknown; dollar_dominance?: number | null } }) {
+function DollarDominanceIndex({
+  brief,
+}: { brief: { pair_regimes?: unknown; dollar_dominance?: number | null } }) {
   const pairRegimes = brief.pair_regimes as Record<string, string> | null;
-  
+
   let usdStrength = 0;
   let usdWeakness = 0;
   let neutral = 0;
-  
-  PAIRS.forEach((p) => {
+
+  for (const p of PAIRS) {
     const regime = pairRegimes?.[p.urlSlug] ?? "";
     if (regime.includes("STRENGTH")) usdStrength++;
     else if (regime.includes("WEAKNESS")) usdWeakness++;
     else neutral++;
-  });
-  
+  }
+
   const total = usdStrength + usdWeakness + neutral;
   if (total === 0) return null;
-  
+
   const strengthPct = (usdStrength / total) * 100;
   const weaknessPct = (usdWeakness / total) * 100;
   const neutralPct = (neutral / total) * 100;
-  
-  const dominanceLabel = brief.dollar_dominance != null 
-    ? `${(brief.dollar_dominance * 100).toFixed(0)}%` 
-    : `${Math.round(strengthPct)}%`;
-  
+
+  const dominanceLabel =
+    brief.dollar_dominance != null
+      ? `${(brief.dollar_dominance * 100).toFixed(0)}%`
+      : `${Math.round(strengthPct)}%`;
+
   return (
     <div className="border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
       <div className="flex items-center justify-between mb-4">
@@ -43,20 +46,20 @@ function DollarDominanceIndex({ brief }: { brief: { pair_regimes?: unknown; doll
       </div>
       <div className="flex h-2 bg-[var(--color-elevated)] overflow-hidden">
         {usdStrength > 0 && (
-          <div 
-            className="h-full bg-[var(--color-up)]" 
+          <div
+            className="h-full bg-[var(--color-up)]"
             style={{ width: `${strengthPct}%` }}
           />
         )}
         {neutral > 0 && (
-          <div 
-            className="h-full bg-[var(--color-text-muted)]" 
+          <div
+            className="h-full bg-[var(--color-text-muted)]"
             style={{ width: `${neutralPct}%` }}
           />
         )}
         {usdWeakness > 0 && (
-          <div 
-            className="h-full bg-[var(--color-down)]" 
+          <div
+            className="h-full bg-[var(--color-down)]"
             style={{ width: `${weaknessPct}%` }}
           />
         )}
@@ -88,7 +91,10 @@ export default async function BriefPage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
-      <main id="main-content" className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
+      <main
+        id="main-content"
+        className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full"
+      >
         {/* Header */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-start gap-8 mb-10 pb-6 border-b border-[var(--color-border)]">
           <div>
@@ -117,11 +123,12 @@ export default async function BriefPage() {
         {brief?.brief_text ? (
           <div className="max-w-[720px]">
             <article className="prose prose-sm max-w-none">
-              {brief.brief_text.split("\n").map((para, i) => {
+              {brief.brief_text.split("\n").map((para) => {
+                const paraKey = para.slice(0, 20) || "empty";
                 if (para.startsWith("## ")) {
                   return (
                     <h2
-                      key={i}
+                      key={`h2-${paraKey}`}
                       className="font-sans font-semibold text-lg text-[var(--color-text)] tracking-tight mt-8 mb-3"
                     >
                       {para.replace("## ", "")}
@@ -131,7 +138,7 @@ export default async function BriefPage() {
                 if (para.startsWith("# ")) {
                   return (
                     <h1
-                      key={i}
+                      key={`h1-${paraKey}`}
                       className="font-sans font-semibold text-2xl text-[var(--color-text)] tracking-tight mt-8 mb-3"
                     >
                       {para.replace("# ", "")}
@@ -140,27 +147,34 @@ export default async function BriefPage() {
                 }
                 if (para.startsWith("---")) {
                   return (
-                    <hr key={i} className="border-[var(--color-border)] my-6" />
+                    <hr
+                      key={`hr-${paraKey}`}
+                      className="border-[var(--color-border)] my-6"
+                    />
                   );
                 }
                 if (para.trim() === "") {
-                  return <div key={i} className="h-2" />;
+                  return <div key={`sp-${paraKey}`} className="h-2" />;
                 }
                 const parts = para.split(/(\*\*.*?\*\*)/g);
                 return (
                   <p
-                    key={i}
+                    key={`p-${paraKey}`}
                     className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] mb-4"
                   >
-                    {parts.map((part, j) => {
+                    {parts.map((part) => {
+                      const partKey = part.slice(0, 10) || "empty";
                       if (part.startsWith("**") && part.endsWith("**")) {
                         return (
-                          <strong key={j} className="text-[var(--color-text)]">
+                          <strong
+                            key={`s-${partKey}`}
+                            className="text-[var(--color-text)]"
+                          >
                             {part.slice(2, -2)}
                           </strong>
                         );
                       }
-                      return <span key={j}>{part}</span>;
+                      return <span key={`sp-${partKey}`}>{part}</span>;
                     })}
                   </p>
                 );
@@ -191,9 +205,15 @@ export default async function BriefPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {PAIRS.map((p) => {
                 // Read from JSON first, fallback to hardcoded column
-                const pairRegimes = brief.pair_regimes as Record<string, string> | null;
-                const regime = pairRegimes?.[p.urlSlug] ?? 
-                  (brief as unknown as Record<string, string>)[`${p.urlSlug}_regime`] ?? 
+                const pairRegimes = brief.pair_regimes as Record<
+                  string,
+                  string
+                > | null;
+                const regime =
+                  pairRegimes?.[p.urlSlug] ??
+                  (brief as unknown as Record<string, string>)[
+                    `${p.urlSlug}_regime`
+                  ] ??
                   "—";
                 const driverTag = getDriverTag(p.label);
                 return (

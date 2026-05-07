@@ -1,12 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
+import { Footer } from "@/components/shell/Footer";
+import { Nav } from "@/components/shell/Nav";
+import { PAIRS } from "@/lib/constants";
 import {
   getLatestRegimeCalls,
   getLatestSignals,
   getValidationLog,
 } from "@/lib/supabase/queries";
-import { PAIRS } from "@/lib/constants";
-import { Nav } from "@/components/shell/Nav";
-import { Footer } from "@/components/shell/Footer";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
@@ -162,7 +162,7 @@ const PAIR_COLOR: Record<string, string> = Object.fromEntries(
   PAIRS.flatMap((p) => [
     [p.label, p.pairColor],
     [p.display, p.pairColor],
-  ])
+  ]),
 );
 
 function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
@@ -172,7 +172,10 @@ function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
   const items = recent.map((r) => {
     const pairKey = r.pair.replace(/\//g, "");
     const pairDisplay = PAIR_DISPLAY[r.pair] ?? r.pair;
-    const color = PAIR_COLOR[pairKey] ?? PAIR_COLOR[r.pair] ?? "var(--color-text-secondary)";
+    const color =
+      PAIR_COLOR[pairKey] ??
+      PAIR_COLOR[r.pair] ??
+      "var(--color-text-secondary)";
     const sign = r.return_pct >= 0 ? "+" : "";
     return {
       date: r.date,
@@ -218,9 +221,7 @@ function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
       <span
         className="font-mono text-[11px] font-medium tabular-nums"
         style={{
-          color: item.returnPositive
-            ? "var(--color-up)"
-            : "var(--color-down)",
+          color: item.returnPositive ? "var(--color-up)" : "var(--color-down)",
         }}
       >
         {item.returnPct}
@@ -231,16 +232,22 @@ function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
   return (
     <div className="border-y border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden h-[48px] flex items-center">
       <div className="flex animate-ticker-marquee hover:[animation-play-state:paused]">
-        {items.map((item, i) => (
-          <div key={`a-${i}`} className="inline-flex items-center">
+        {items.map((item) => (
+          <div
+            key={`a-${item.outcomeLabel}`}
+            className="inline-flex items-center"
+          >
             <Item item={item} />
             <span className="text-[var(--color-border)] font-mono text-[11px] px-2">
               ◆
             </span>
           </div>
         ))}
-        {items.map((item, i) => (
-          <div key={`b-${i}`} className="inline-flex items-center">
+        {items.map((item) => (
+          <div
+            key={`b-${item.outcomeLabel}`}
+            className="inline-flex items-center"
+          >
             <Item item={item} />
             <span className="text-[var(--color-border)] font-mono text-[11px] px-2">
               ◆
@@ -253,7 +260,7 @@ function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
 }
 
 const PAIR_DISPLAY: Record<string, string> = Object.fromEntries(
-  PAIRS.map((p) => [p.label, p.display])
+  PAIRS.map((p) => [p.label, p.display]),
 );
 
 /* ─── Live snapshot cards ───────────────────────────────────────────── */
@@ -394,7 +401,9 @@ function Manifesto() {
           <SectionLabel>Principle</SectionLabel>
           <blockquote
             className="font-serif font-light text-[clamp(24px,3.5vw,40px)] text-[var(--color-text)] leading-[1.3] tracking-tight"
-            style={{ fontFamily: "var(--font-playfair), ui-serif, Georgia, serif" }}
+            style={{
+              fontFamily: "var(--font-playfair), ui-serif, Georgia, serif",
+            }}
           >
             Credibility compounds through calendar discipline and honest
             validation, not marketing.
@@ -498,9 +507,18 @@ function ValidationTrust({
 }) {
   const stats = [
     { label: "Pairs tracked", value: String(PAIRS.length) },
-    { label: "Calls since April 2026", value: totalCalls > 0 ? String(totalCalls) : "—" },
-    { label: "All-time accuracy", value: totalCalls > 0 ? `${accuracy.toFixed(1)}%` : "—" },
-    { label: "7D accuracy", value: totalCalls > 0 ? `${accuracy7d.toFixed(1)}%` : "—" },
+    {
+      label: "Calls since April 2026",
+      value: totalCalls > 0 ? String(totalCalls) : "—",
+    },
+    {
+      label: "All-time accuracy",
+      value: totalCalls > 0 ? `${accuracy.toFixed(1)}%` : "—",
+    },
+    {
+      label: "7D accuracy",
+      value: totalCalls > 0 ? `${accuracy7d.toFixed(1)}%` : "—",
+    },
   ];
 
   return (
@@ -618,17 +636,16 @@ export default async function HomePage() {
   const accuracy7d = last7.length > 0 ? (correct7 / last7.length) * 100 : 0;
 
   // Latest call date from calls
-  const latestCallDate = Object.values(calls)
-    .map((c) => c.date)
-    .sort()
-    .pop() ?? null;
+  const latestCallDate =
+    Object.values(calls)
+      .map((c) => c.date)
+      .sort()
+      .pop() ?? null;
 
   // Streak
   const streak = (() => {
     if (validation.length === 0) return null;
-    const sorted = [...validation].sort((a, b) =>
-      a.date.localeCompare(b.date)
-    );
+    const sorted = [...validation].sort((a, b) => a.date.localeCompare(b.date));
     const last = sorted[sorted.length - 1];
     const type: "W" | "L" = last.outcome === "correct" ? "W" : "L";
     let count = 0;

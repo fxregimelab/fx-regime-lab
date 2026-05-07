@@ -37,11 +37,8 @@ export function Sparkline({
     points.length > 0 ? `M${points[0]} L${points.join(" L")}` : "";
 
   const isUp = data[data.length - 1] >= data[0];
-  const strokeColor = color === "var(--color-stone-500)"
-    ? isUp
-      ? "#7a9e7a"
-      : "#b87a7a"
-    : color;
+  const strokeColor =
+    color === "var(--color-stone-500)" ? (isUp ? "#7a9e7a" : "#b87a7a") : color;
 
   return (
     <svg
@@ -50,6 +47,7 @@ export function Sparkline({
       viewBox={`0 0 ${width} ${height}`}
       className="overflow-visible"
     >
+      <title>Sparkline</title>
       <path d={areaPath} fill={strokeColor} opacity={fillOpacity} />
       <path
         d={linePath}

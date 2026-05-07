@@ -1,53 +1,62 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { supabase } from './supabase/client';
-import type { Database } from './supabase/database.types';
-import { parseG10CorrelationJson, type G10CorrelationJson } from './g10Correlation';
-import { PAIRS as CANONICAL_PAIRS } from './constants';
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { PAIRS as CANONICAL_PAIRS } from "./constants";
+import {
+  type G10CorrelationJson,
+  parseG10CorrelationJson,
+} from "./g10Correlation";
+import { supabase } from "./supabase/client";
+import type { Database } from "./supabase/database.types";
 
-type BriefLogRow = Database['public']['Tables']['brief_log']['Row'];
-type BriefRow = Database['public']['Tables']['brief']['Row'];
-type ValidationLogRow = Database['public']['Tables']['validation_log']['Row'];
-type EquityRow = Pick<ValidationLogRow, 'date' | 'pair' | 'actual_return_1d'>;
-type MacroEventRow = Database['public']['Tables']['macro_events']['Row'];
-type EventRiskMatrixRow = Database['public']['Tables']['event_risk_matrices']['Row'];
-type RegimeCallRow = Database['public']['Tables']['regime_calls']['Row'];
-type SignalRow = Database['public']['Tables']['signals']['Row'];
-type StrategyLedgerRow = Database['public']['Tables']['strategy_ledger']['Row'];
-type DeskOpenCardRow = Database['public']['Tables']['desk_open_cards']['Row'];
-type ResearchMemoRow = Database['public']['Tables']['research_memos']['Row'];
+type BriefLogRow = Database["public"]["Tables"]["brief_log"]["Row"];
+type BriefRow = Database["public"]["Tables"]["brief"]["Row"];
+type ValidationLogRow = Database["public"]["Tables"]["validation_log"]["Row"];
+type EquityRow = Pick<ValidationLogRow, "date" | "pair" | "actual_return_1d">;
+type MacroEventRow = Database["public"]["Tables"]["macro_events"]["Row"];
+type EventRiskMatrixRow =
+  Database["public"]["Tables"]["event_risk_matrices"]["Row"];
+type RegimeCallRow = Database["public"]["Tables"]["regime_calls"]["Row"];
+type SignalRow = Database["public"]["Tables"]["signals"]["Row"];
+type StrategyLedgerRow = Database["public"]["Tables"]["strategy_ledger"]["Row"];
+type DeskOpenCardRow = Database["public"]["Tables"]["desk_open_cards"]["Row"];
+type ResearchMemoRow = Database["public"]["Tables"]["research_memos"]["Row"];
 export type LatestRegimeCallRow = Pick<
   RegimeCallRow,
-  'pair' | 'date' | 'regime' | 'confidence' | 'signal_composite'  | 'rate_signal'
-  | 'cot_signal'
-  | 'vol_signal'
-  | 'rr_signal'
-  | 'oi_signal'
-  | 'primary_driver'
-  | 'created_at'
+  | "pair"
+  | "date"
+  | "regime"
+  | "confidence"
+  | "signal_composite"
+  | "rate_signal"
+  | "cot_signal"
+  | "vol_signal"
+  | "rr_signal"
+  | "oi_signal"
+  | "primary_driver"
+  | "created_at"
 >;
 export type LatestSignalRow = Pick<
   SignalRow,
-  | 'pair'
-  | 'date'
-  | 'spot'
-  | 'rate_diff_2y'
-  | 'rate_diff_10y'
-  | 'rate_diff_zscore'
-  | 'cot_percentile'
-  | 'realized_vol_20d'
-  | 'realized_vol_5d'
-  | 'implied_vol_30d'
-  | 'cross_asset_vix'
-  | 'cross_asset_dxy'
-  | 'cross_asset_oil'
-  | 'cross_asset_us10y'
-  | 'cross_asset_gold'
-  | 'cross_asset_copper'
-  | 'cross_asset_stoxx'
-  | 'day_change_pct'
-  | 'cot_lev_money_net'
-  | 'oi_delta'
-  | 'created_at'
+  | "pair"
+  | "date"
+  | "spot"
+  | "rate_diff_2y"
+  | "rate_diff_10y"
+  | "rate_diff_zscore"
+  | "cot_percentile"
+  | "realized_vol_20d"
+  | "realized_vol_5d"
+  | "implied_vol_30d"
+  | "cross_asset_vix"
+  | "cross_asset_dxy"
+  | "cross_asset_oil"
+  | "cross_asset_us10y"
+  | "cross_asset_gold"
+  | "cross_asset_copper"
+  | "cross_asset_stoxx"
+  | "day_change_pct"
+  | "cot_lev_money_net"
+  | "oi_delta"
+  | "created_at"
 >;
 
 export type { StrategyLedgerRow };
@@ -55,13 +64,13 @@ export type { StrategyLedgerRow };
 /** DB-backed FX universe (pair list). Prefer this over hardcoded arrays. */
 export function useUniverse() {
   return useQuery({
-    queryKey: ['universe', 'fx_pairs'],
+    queryKey: ["universe", "fx_pairs"],
     queryFn: async (): Promise<string[]> => {
       const { data, error } = await supabase
-        .from('universe')
-        .select('pair')
-        .eq('class', 'FX')
-        .order('pair', { ascending: true });
+        .from("universe")
+        .select("pair")
+        .eq("class", "FX")
+        .order("pair", { ascending: true });
       if (error) throw error;
       const canonical = new Set<string>(CANONICAL_PAIRS.map((p) => p.label));
       return ((data ?? []) as { pair: string }[])
@@ -76,34 +85,34 @@ export function useUniverse() {
 export function useStrategyLedger(pair: string) {
   type Row = Pick<
     StrategyLedgerRow,
-    | 'id'
-    | 'date'
-    | 'pair'
-    | 'regime'
-    | 'primary_driver'
-    | 'direction'
-    | 'entry_close'
-    | 'confidence'
-    | 't1_close'
-    | 't3_close'
-    | 't5_close'
-    | 't1_hit'
-    | 't3_hit'
-    | 't5_hit'
-    | 'brier_score_t5'
-    | 'max_pain_bps'
+    | "id"
+    | "date"
+    | "pair"
+    | "regime"
+    | "primary_driver"
+    | "direction"
+    | "entry_close"
+    | "confidence"
+    | "t1_close"
+    | "t3_close"
+    | "t5_close"
+    | "t1_hit"
+    | "t3_hit"
+    | "t5_hit"
+    | "brier_score_t5"
+    | "max_pain_bps"
   >;
   return useQuery({
-    queryKey: ['strategy_ledger', pair],
+    queryKey: ["strategy_ledger", pair],
     queryFn: async (): Promise<Row[]> => {
       const { data, error } = await supabase
-        .from('strategy_ledger')
+        .from("strategy_ledger")
         .select(
-          'id,date,pair,regime,primary_driver,direction,entry_close,confidence,t1_close,t3_close,t5_close,t1_hit,t3_hit,t5_hit,brier_score_t5,max_pain_bps',
+          "id,date,pair,regime,primary_driver,direction,entry_close,confidence,t1_close,t3_close,t5_close,t1_hit,t3_hit,t5_hit,brier_score_t5,max_pain_bps",
         )
-        .eq('pair', pair)
-        .neq('direction', 'NEUTRAL')
-        .order('date', { ascending: false })
+        .eq("pair", pair)
+        .neq("direction", "NEUTRAL")
+        .order("date", { ascending: false })
         .limit(1000);
       if (error) throw error;
       return (data as Row[]) ?? [];
@@ -145,7 +154,9 @@ export type TelemetryAuditPayload = {
 };
 
 /** Rows ordered by date desc; take contiguous block for the newest `date` (latest NY-close slice). */
-function sliceLatestCalendarDate<T extends { date: string }>(rows: T[] | null | undefined): T[] {
+function sliceLatestCalendarDate<T extends { date: string }>(
+  rows: T[] | null | undefined,
+): T[] {
   if (!rows?.length) return [];
   const newest = rows[0].date;
   const out: T[] = [];
@@ -161,18 +172,22 @@ export function useLatestRegimeCalls() {
   const universeQ = useUniverse();
   const pairs = universeQ.data ?? [];
   return useQuery({
-    queryKey: ['regime_calls', 'latest', pairs],
+    queryKey: ["regime_calls", "latest", pairs],
     queryFn: async (): Promise<Record<string, LatestRegimeCallRow>> => {
       const { data, error } = await supabase
-        .from('regime_calls')
-        .select('pair,date,regime,confidence,signal_composite,rate_signal,cot_signal,vol_signal,rr_signal,oi_signal,primary_driver,created_at')
-        .in('pair', pairs)
-        .order('date', { ascending: false })
+        .from("regime_calls")
+        .select(
+          "pair,date,regime,confidence,signal_composite,rate_signal,cot_signal,vol_signal,rr_signal,oi_signal,primary_driver,created_at",
+        )
+        .in("pair", pairs)
+        .order("date", { ascending: false })
         .limit(64);
 
       if (error) throw error;
 
-      const slice = sliceLatestCalendarDate(data as LatestRegimeCallRow[] | null);
+      const slice = sliceLatestCalendarDate(
+        data as LatestRegimeCallRow[] | null,
+      );
       const latest: Record<string, LatestRegimeCallRow> = {};
       for (const row of slice) {
         if (!latest[row.pair]) {
@@ -190,16 +205,18 @@ export function useRegimeHeatmap() {
   const universeQ = useUniverse();
   const pairs = universeQ.data ?? [];
   return useQuery({
-    queryKey: ['regime_calls', 'heatmap', pairs],
-    queryFn: async (): Promise<{ date: string; pair: string; regime: string }[]> => {
+    queryKey: ["regime_calls", "heatmap", pairs],
+    queryFn: async (): Promise<
+      { date: string; pair: string; regime: string }[]
+    > => {
       const d = new Date();
       d.setDate(d.getDate() - 30);
       const { data, error } = await supabase
-        .from('regime_calls')
-        .select('date, pair, regime')
-        .in('pair', pairs)
-        .gte('date', d.toISOString().split('T')[0])
-        .order('date', { ascending: true });
+        .from("regime_calls")
+        .select("date, pair, regime")
+        .in("pair", pairs)
+        .gte("date", d.toISOString().split("T")[0])
+        .order("date", { ascending: true });
 
       if (error) throw error;
       return (data as { date: string; pair: string; regime: string }[]) ?? [];
@@ -211,18 +228,22 @@ export function useRegimeHeatmap() {
 // getRegimeHistory30D — for chart regime bands
 export function useRegimeHistory30D(pair: string) {
   return useQuery({
-    queryKey: ['regime_calls', 'history30d', pair],
-    queryFn: async (): Promise<{ date: string; regime: string; confidence: number }[]> => {
+    queryKey: ["regime_calls", "history30d", pair],
+    queryFn: async (): Promise<
+      { date: string; regime: string; confidence: number }[]
+    > => {
       const since = new Date();
       since.setDate(since.getDate() - 30);
       const { data, error } = await supabase
-        .from('regime_calls')
-        .select('date, regime, confidence')
-        .eq('pair', pair)
-        .gte('date', since.toISOString().split('T')[0])
-        .order('date', { ascending: true });
+        .from("regime_calls")
+        .select("date, regime, confidence")
+        .eq("pair", pair)
+        .gte("date", since.toISOString().split("T")[0])
+        .order("date", { ascending: true });
       if (error) throw error;
-      return (data as { date: string; regime: string; confidence: number }[]) ?? [];
+      return (
+        (data as { date: string; regime: string; confidence: number }[]) ?? []
+      );
     },
     enabled: !!pair,
   });
@@ -231,16 +252,20 @@ export function useRegimeHistory30D(pair: string) {
 // getRegimeHistory
 export function useRegimeHistory(pair: string) {
   return useQuery({
-    queryKey: ['regime_calls', 'history', pair],
-    queryFn: async (): Promise<{ date: string; regime: string; confidence: number }[]> => {
+    queryKey: ["regime_calls", "history", pair],
+    queryFn: async (): Promise<
+      { date: string; regime: string; confidence: number }[]
+    > => {
       const { data, error } = await supabase
-        .from('regime_calls')
-        .select('date, regime, confidence')
-        .eq('pair', pair)
-        .order('date', { ascending: false })
+        .from("regime_calls")
+        .select("date, regime, confidence")
+        .eq("pair", pair)
+        .order("date", { ascending: false })
         .limit(90);
       if (error) throw error;
-      return (data as { date: string; regime: string; confidence: number }[]) ?? [];
+      return (
+        (data as { date: string; regime: string; confidence: number }[]) ?? []
+      );
     },
     enabled: !!pair,
   });
@@ -251,15 +276,15 @@ export function useLatestSignals() {
   const universeQ = useUniverse();
   const pairs = universeQ.data ?? [];
   return useQuery({
-    queryKey: ['signals', 'latest', pairs],
+    queryKey: ["signals", "latest", pairs],
     queryFn: async (): Promise<Record<string, LatestSignalRow>> => {
       const { data, error } = await supabase
-        .from('signals')
+        .from("signals")
         .select(
-          'pair,date,spot,rate_diff_2y,rate_diff_10y,rate_diff_zscore,cot_percentile,realized_vol_20d,realized_vol_5d,implied_vol_30d,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_us10y,cross_asset_gold,cross_asset_copper,cross_asset_stoxx,day_change_pct,cot_lev_money_net,oi_delta,created_at',
+          "pair,date,spot,rate_diff_2y,rate_diff_10y,rate_diff_zscore,cot_percentile,realized_vol_20d,realized_vol_5d,implied_vol_30d,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_us10y,cross_asset_gold,cross_asset_copper,cross_asset_stoxx,day_change_pct,cot_lev_money_net,oi_delta,created_at",
         )
-        .in('pair', pairs)
-        .order('date', { ascending: false })
+        .in("pair", pairs)
+        .order("date", { ascending: false })
         .limit(64);
 
       if (error) throw error;
@@ -278,7 +303,7 @@ export function useLatestSignals() {
 
 export function useCrossAssetPulse() {
   return useQuery({
-    queryKey: ['signals', 'cross_asset_pulse'],
+    queryKey: ["signals", "cross_asset_pulse"],
     queryFn: async (): Promise<{
       vix: { value: number | null; change: number | null };
       dxy: { value: number | null; change: number | null };
@@ -287,14 +312,22 @@ export function useCrossAssetPulse() {
       date: string | null;
     }> => {
       const { data, error } = await supabase
-        .from('signals')
-        .select('date,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_us10y')
-        .eq('pair', 'EURUSD')
-        .order('date', { ascending: false })
+        .from("signals")
+        .select(
+          "date,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_us10y",
+        )
+        .eq("pair", "EURUSD")
+        .order("date", { ascending: false })
         .limit(2);
       if (error) throw error;
-      const rows = (data ??
-        []) as Pick<SignalRow, 'date' | 'cross_asset_vix' | 'cross_asset_dxy' | 'cross_asset_oil' | 'cross_asset_us10y'>[];
+      const rows = (data ?? []) as Pick<
+        SignalRow,
+        | "date"
+        | "cross_asset_vix"
+        | "cross_asset_dxy"
+        | "cross_asset_oil"
+        | "cross_asset_us10y"
+      >[];
       const latest = rows[0];
       const prev = rows[1];
       const delta = (a: number | null, b: number | null) =>
@@ -302,19 +335,31 @@ export function useCrossAssetPulse() {
       return {
         vix: {
           value: latest?.cross_asset_vix ?? null,
-          change: delta(latest?.cross_asset_vix ?? null, prev?.cross_asset_vix ?? null),
+          change: delta(
+            latest?.cross_asset_vix ?? null,
+            prev?.cross_asset_vix ?? null,
+          ),
         },
         dxy: {
           value: latest?.cross_asset_dxy ?? null,
-          change: delta(latest?.cross_asset_dxy ?? null, prev?.cross_asset_dxy ?? null),
+          change: delta(
+            latest?.cross_asset_dxy ?? null,
+            prev?.cross_asset_dxy ?? null,
+          ),
         },
         oil: {
           value: latest?.cross_asset_oil ?? null,
-          change: delta(latest?.cross_asset_oil ?? null, prev?.cross_asset_oil ?? null),
+          change: delta(
+            latest?.cross_asset_oil ?? null,
+            prev?.cross_asset_oil ?? null,
+          ),
         },
         us10y: {
           value: latest?.cross_asset_us10y ?? null,
-          change: delta(latest?.cross_asset_us10y ?? null, prev?.cross_asset_us10y ?? null),
+          change: delta(
+            latest?.cross_asset_us10y ?? null,
+            prev?.cross_asset_us10y ?? null,
+          ),
         },
         date: latest?.date ?? null,
       };
@@ -325,12 +370,12 @@ export function useCrossAssetPulse() {
 // getLatestBrief — newest `brief_log` row (latest verified run), not tied to browser “today”
 export function useLatestBrief() {
   return useQuery({
-    queryKey: ['brief_log', 'latest'],
+    queryKey: ["brief_log", "latest"],
     queryFn: async (): Promise<BriefLogRow | null> => {
       const { data, error } = await supabase
-        .from('brief_log')
-        .select('*')
-        .order('date', { ascending: false })
+        .from("brief_log")
+        .select("*")
+        .order("date", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -342,15 +387,19 @@ export function useLatestBrief() {
 /** Last N `brief_log` rows (oldest → newest) for USD dominance drift sparkline. */
 export function useBriefLogDominanceSeries(limit = 5) {
   return useQuery({
-    queryKey: ['brief_log', 'dollar_dominance_series', limit],
-    queryFn: async (): Promise<Array<{ date: string; dollar_dominance: number | null }>> => {
+    queryKey: ["brief_log", "dollar_dominance_series", limit],
+    queryFn: async (): Promise<
+      Array<{ date: string; dollar_dominance: number | null }>
+    > => {
       const { data, error } = await supabase
-        .from('brief_log')
-        .select('date,dollar_dominance')
-        .order('date', { ascending: false })
+        .from("brief_log")
+        .select("date,dollar_dominance")
+        .order("date", { ascending: false })
         .limit(limit);
       if (error) throw error;
-      const rows = ((data ?? []) as Array<{ date: string; dollar_dominance: number | null }>).slice();
+      const rows = (
+        (data ?? []) as Array<{ date: string; dollar_dominance: number | null }>
+      ).slice();
       return rows.reverse();
     },
     staleTime: 5 * 60 * 1000,
@@ -360,9 +409,9 @@ export function useBriefLogDominanceSeries(limit = 5) {
 /** Pairwise return correlations (JSON from `get_g10_correlation_matrix` RPC). */
 export function useG10CorrelationMatrix() {
   return useQuery({
-    queryKey: ['g10', 'correlation_matrix'],
+    queryKey: ["g10", "correlation_matrix"],
     queryFn: async (): Promise<G10CorrelationJson> => {
-      const { data, error } = await supabase.rpc('get_g10_correlation_matrix');
+      const { data, error } = await supabase.rpc("get_g10_correlation_matrix");
       if (error) throw error;
       return parseG10CorrelationJson(data);
     },
@@ -373,18 +422,18 @@ export function useG10CorrelationMatrix() {
 // getUpcomingMacroEvents
 export function useUpcomingMacroEvents() {
   return useQuery({
-    queryKey: ['macro_events', 'upcoming'],
+    queryKey: ["macro_events", "upcoming"],
     queryFn: async (): Promise<MacroEventRow[]> => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split("T")[0];
       const future = new Date();
       future.setDate(future.getDate() + 14);
       const { data, error } = await supabase
-        .from('macro_events')
-        .select('*')
-        .gte('date', today)
-        .lte('date', future.toISOString().split('T')[0])
-        .in('impact', ['HIGH', 'MEDIUM'])
-        .order('date', { ascending: true });
+        .from("macro_events")
+        .select("*")
+        .gte("date", today)
+        .lte("date", future.toISOString().split("T")[0])
+        .in("impact", ["HIGH", "MEDIUM"])
+        .order("date", { ascending: true });
       if (error) throw error;
       return (data as MacroEventRow[]) ?? [];
     },
@@ -393,35 +442,35 @@ export function useUpcomingMacroEvents() {
 
 export function useEventRiskMatrices(pair: string) {
   return useQuery({
-    queryKey: ['event_risk_matrices', pair, 'next_14d'],
+    queryKey: ["event_risk_matrices", pair, "next_14d"],
     queryFn: async (): Promise<EventRiskMatrixRow[]> => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split("T")[0];
       const future = new Date();
       future.setDate(future.getDate() + 14);
       const { data, error } = await supabase
-        .from('event_risk_matrices')
-        .select('*')
-        .eq('pair', pair)
-        .gte('date', today)
-        .lte('date', future.toISOString().split('T')[0])
-        .order('date', { ascending: true });
+        .from("event_risk_matrices")
+        .select("*")
+        .eq("pair", pair)
+        .gte("date", today)
+        .lte("date", future.toISOString().split("T")[0])
+        .order("date", { ascending: true });
       if (error) throw error;
       return (data as EventRiskMatrixRow[]) ?? [];
     },
     enabled: !!pair,
-    staleTime: Infinity,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }
 
 // getValidationLog
 export function useValidationLog(limit = 30) {
   return useQuery({
-    queryKey: ['validation_log', limit],
+    queryKey: ["validation_log", limit],
     queryFn: async (): Promise<ValidationLogRow[]> => {
       const { data, error } = await supabase
-        .from('validation_log')
-        .select('*')
-        .order('date', { ascending: false })
+        .from("validation_log")
+        .select("*")
+        .order("date", { ascending: false })
         .limit(limit);
       if (error) throw error;
       return (data as ValidationLogRow[]) ?? [];
@@ -434,13 +483,13 @@ export function useEquityCurve() {
   const universeQ = useUniverse();
   const pairs = universeQ.data ?? [];
   return useQuery({
-    queryKey: ['validation_log', 'equity', pairs],
+    queryKey: ["validation_log", "equity", pairs],
     queryFn: async (): Promise<EquityRow[]> => {
       const { data, error } = await supabase
-        .from('validation_log')
-        .select('date, pair, actual_return_1d')
-        .in('pair', pairs)
-        .order('date', { ascending: true });
+        .from("validation_log")
+        .select("date, pair, actual_return_1d")
+        .in("pair", pairs)
+        .order("date", { ascending: true });
       if (error) throw error;
       return (data as EquityRow[]) ?? [];
     },
@@ -451,12 +500,12 @@ export function useEquityCurve() {
 // getLastPipelineRun
 export function useLastPipelineRun() {
   return useQuery({
-    queryKey: ['regime_calls', 'last_run'],
+    queryKey: ["regime_calls", "last_run"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('regime_calls')
-        .select('created_at')
-        .order('created_at', { ascending: false })
+        .from("regime_calls")
+        .select("created_at")
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -470,13 +519,14 @@ export function pivotRegimeHeatmapRows(
   rows: { date: string; pair: string; regime: string }[] | null | undefined,
   pairLabels: readonly string[],
 ) {
-  if (!rows?.length) return { dates: [] as string[], regimes: {} as Record<string, string[]> };
+  if (!rows?.length)
+    return { dates: [] as string[], regimes: {} as Record<string, string[]> };
   const dates = [...new Set(rows.map((r) => r.date))].sort();
   const regimes: Record<string, string[]> = {};
   for (const pl of pairLabels) {
     regimes[pl] = dates.map((d) => {
       const row = rows.find((r) => r.pair === pl && r.date === d);
-      return row?.regime ?? 'NEUTRAL';
+      return row?.regime ?? "NEUTRAL";
     });
   }
   return { dates, regimes };
@@ -485,19 +535,33 @@ export function pivotRegimeHeatmapRows(
 /** Latest AI desk brief for a pair (OpenRouter output persisted by pipeline). */
 export function usePairBrief(pair: string) {
   return useQuery({
-    queryKey: ['brief', 'pair', pair],
-    queryFn: async (): Promise<
-      Pick<BriefRow, 'analysis' | 'date' | 'regime' | 'confidence' | 'composite' | 'primary_driver'> | null
-    > => {
+    queryKey: ["brief", "pair", pair],
+    queryFn: async (): Promise<Pick<
+      BriefRow,
+      | "analysis"
+      | "date"
+      | "regime"
+      | "confidence"
+      | "composite"
+      | "primary_driver"
+    > | null> => {
       const { data, error } = await supabase
-        .from('brief')
-        .select('analysis, date, regime, confidence, composite, primary_driver')
-        .eq('pair', pair)
-        .order('date', { ascending: false })
+        .from("brief")
+        .select("analysis, date, regime, confidence, composite, primary_driver")
+        .eq("pair", pair)
+        .order("date", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data as Pick<BriefRow, 'analysis' | 'date' | 'regime' | 'confidence' | 'composite' | 'primary_driver'> | null;
+      return data as Pick<
+        BriefRow,
+        | "analysis"
+        | "date"
+        | "regime"
+        | "confidence"
+        | "composite"
+        | "primary_driver"
+      > | null;
     },
     enabled: !!pair,
   });
@@ -505,7 +569,7 @@ export function usePairBrief(pair: string) {
 
 export function useDeskOpenCard(pair: string) {
   return useQuery({
-    queryKey: ['desk_open_cards', 'latest', pair],
+    queryKey: ["desk_open_cards", "latest", pair],
     queryFn: async (): Promise<{
       date: string;
       pair: string;
@@ -523,35 +587,37 @@ export function useDeskOpenCard(pair: string) {
       regime_age: number | null;
     } | null> => {
       const { data, error } = await supabase
-        .from('desk_open_cards')
-        .select('*')
-        .eq('pair', pair)
-        .order('date', { ascending: false })
+        .from("desk_open_cards")
+        .select("*")
+        .eq("pair", pair)
+        .order("date", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
       const row = data as DeskOpenCardRow | null;
       if (!row) return null;
-      const audit = (row.telemetry_audit as TelemetryAuditPayload | null) ?? null;
+      const audit =
+        (row.telemetry_audit as TelemetryAuditPayload | null) ?? null;
       return {
         date: row.date,
         pair: row.pair,
         structural_regime: row.structural_regime,
         dominance_array: (row.dominance_array as DominanceItem[] | null) ?? [],
         pain_index: row.pain_index,
-        markov_probabilities: (row.markov_probabilities as MarkovPayload | null) ?? null,
+        markov_probabilities:
+          (row.markov_probabilities as MarkovPayload | null) ?? null,
         ai_brief: row.ai_brief,
         telemetry_audit: audit,
         parameter_instability: Boolean(audit?.parameter_instability),
         invalidation_triggered: Boolean(row.invalidation_triggered),
-        telemetry_status: row.telemetry_status ?? 'ONLINE',
+        telemetry_status: row.telemetry_status ?? "ONLINE",
         global_rank: row.global_rank ?? null,
         apex_score: row.apex_score ?? null,
         regime_age: row.regime_age ?? null,
       };
     },
     enabled: !!pair,
-    staleTime: Infinity,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 }
 
@@ -582,12 +648,13 @@ function mapDeskRow(row: DeskOpenCardRow): DeskOpenCardSnapshotRow {
     structural_regime: row.structural_regime,
     dominance_array: (row.dominance_array as DominanceItem[] | null) ?? [],
     pain_index: row.pain_index,
-    markov_probabilities: (row.markov_probabilities as MarkovPayload | null) ?? null,
+    markov_probabilities:
+      (row.markov_probabilities as MarkovPayload | null) ?? null,
     ai_brief: row.ai_brief,
     telemetry_audit: audit,
     parameter_instability: Boolean(audit?.parameter_instability),
     invalidation_triggered: Boolean(row.invalidation_triggered),
-    telemetry_status: row.telemetry_status ?? 'ONLINE',
+    telemetry_status: row.telemetry_status ?? "ONLINE",
     global_rank: row.global_rank ?? null,
     apex_score: row.apex_score ?? null,
     regime_age: row.regime_age ?? null,
@@ -611,13 +678,13 @@ export function useLatestDeskOpenCardsSnapshot() {
   const universeQ = useUniverse();
   const pairs = universeQ.data ?? [];
   return useQuery<DeskOpenCardsSnapshot>({
-    queryKey: ['desk_open_cards', 'snapshot', pairs],
+    queryKey: ["desk_open_cards", "snapshot", pairs],
     queryFn: async (): Promise<DeskOpenCardsSnapshot> => {
       const { data: head, error: headErr } = await supabase
-        .from('desk_open_cards')
-        .select('date')
-        .in('pair', pairs)
-        .order('date', { ascending: false })
+        .from("desk_open_cards")
+        .select("date")
+        .in("pair", pairs)
+        .order("date", { ascending: false })
         .limit(1);
       if (headErr) throw headErr;
       const headRow = (head ?? [])[0] as { date: string } | undefined;
@@ -627,23 +694,26 @@ export function useLatestDeskOpenCardsSnapshot() {
       }
 
       const { data: rows, error } = await supabase
-        .from('desk_open_cards')
-        .select('*')
-        .eq('date', latest)
-        .in('pair', pairs);
+        .from("desk_open_cards")
+        .select("*")
+        .eq("date", latest)
+        .in("pair", pairs);
       if (error) throw error;
       const cards = ((rows as DeskOpenCardRow[]) ?? []).map(mapDeskRow);
 
       const prevDay = utcPrevCalendarDay(latest);
       const { data: prevRows, error: prevErr } = await supabase
-        .from('desk_open_cards')
-        .select('pair, global_rank')
-        .eq('date', prevDay)
-        .in('pair', pairs);
+        .from("desk_open_cards")
+        .select("pair, global_rank")
+        .eq("date", prevDay)
+        .in("pair", pairs);
       if (prevErr) throw prevErr;
 
       const prevRankByPair: Record<string, number> = {};
-      for (const r of (prevRows as { pair: string; global_rank: number | null }[]) ?? []) {
+      for (const r of (prevRows as {
+        pair: string;
+        global_rank: number | null;
+      }[]) ?? []) {
         if (r.global_rank != null) prevRankByPair[r.pair] = r.global_rank;
       }
 
@@ -665,21 +735,27 @@ export function useLatestDeskOpenCardsSnapshot() {
 
 export function useTelemetryStatus(pair: string) {
   return useQuery({
-    queryKey: ['desk_open_cards', 'telemetry', pair],
-    queryFn: async (): Promise<{ invalidation_triggered: boolean; telemetry_status: string } | null> => {
+    queryKey: ["desk_open_cards", "telemetry", pair],
+    queryFn: async (): Promise<{
+      invalidation_triggered: boolean;
+      telemetry_status: string;
+    } | null> => {
       const { data, error } = await supabase
-        .from('desk_open_cards')
-        .select('invalidation_triggered, telemetry_status')
-        .eq('pair', pair)
-        .order('date', { ascending: false })
+        .from("desk_open_cards")
+        .select("invalidation_triggered, telemetry_status")
+        .eq("pair", pair)
+        .order("date", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      const row = data as Pick<DeskOpenCardRow, 'invalidation_triggered' | 'telemetry_status'> | null;
+      const row = data as Pick<
+        DeskOpenCardRow,
+        "invalidation_triggered" | "telemetry_status"
+      > | null;
       if (!row) return null;
       return {
         invalidation_triggered: Boolean(row.invalidation_triggered),
-        telemetry_status: row.telemetry_status ?? 'ONLINE',
+        telemetry_status: row.telemetry_status ?? "ONLINE",
       };
     },
     enabled: !!pair,
@@ -691,13 +767,13 @@ export function useTelemetryStatus(pair: string) {
 /** Recent signal rows (oldest → newest) for sparklines. */
 export function useSignalHistory(pair: string, limit = 14) {
   return useQuery({
-    queryKey: ['signals', 'history', pair, limit],
+    queryKey: ["signals", "history", pair, limit],
     queryFn: async (): Promise<SignalRow[]> => {
       const { data, error } = await supabase
-        .from('signals')
-        .select('*')
-        .eq('pair', pair)
-        .order('date', { ascending: false })
+        .from("signals")
+        .select("*")
+        .eq("pair", pair)
+        .order("date", { ascending: false })
         .limit(limit);
       if (error) throw error;
       return ((data as SignalRow[]) ?? []).slice().reverse();
@@ -709,30 +785,46 @@ export function useSignalHistory(pair: string, limit = 14) {
 /** Deep historical OHLCV for MAX chart: daily inside 2Y, Friday-only snapshots older (server-side RPC). */
 export function useHistoricalData(pair: string, enabled = false) {
   return useQuery({
-    queryKey: ['signals', 'historical', 'max_thin', pair],
+    queryKey: ["signals", "historical", "max_thin", pair],
     queryFn: async (): Promise<
-      Array<{ date: string; pair: string; open: number | null; high: number | null; low: number | null; close: number | null; volume: number | null }>
+      Array<{
+        date: string;
+        pair: string;
+        open: number | null;
+        high: number | null;
+        low: number | null;
+        close: number | null;
+        volume: number | null;
+      }>
     > => {
       const cutoff = new Date();
       cutoff.setUTCFullYear(cutoff.getUTCFullYear() - 2);
       const cutoffStr = cutoff.toISOString().slice(0, 10);
       const { data, error } = await supabase.rpc(
-        'historical_prices_for_max_chart',
+        "historical_prices_for_max_chart",
         { p_pair: pair, p_cutoff: cutoffStr } as never,
       );
       if (error) throw error;
       return (
-        (data as Array<{ date: string; pair: string; open: number | null; high: number | null; low: number | null; close: number | null; volume: number | null }>) ?? []
+        (data as Array<{
+          date: string;
+          pair: string;
+          open: number | null;
+          high: number | null;
+          low: number | null;
+          close: number | null;
+          volume: number | null;
+        }>) ?? []
       );
-      },
-      enabled: !!pair && enabled,
-      staleTime: Infinity,
-      });
-      }
+    },
+    enabled: !!pair && enabled,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+}
 
 export function useLatestResearchAnalogs(pair: string) {
   return useQuery({
-    queryKey: ['research_analogs', 'latest', pair],
+    queryKey: ["research_analogs", "latest", pair],
     queryFn: async (): Promise<
       Array<{
         as_of_date: string;
@@ -746,11 +838,13 @@ export function useLatestResearchAnalogs(pair: string) {
       }>
     > => {
       const { data, error } = await supabase
-        .from('research_analogs')
-        .select('as_of_date,pair,rank,match_date,match_score,forward_30d_return,regime_stability,context_label')
-        .eq('pair', pair)
-        .order('as_of_date', { ascending: false })
-        .order('rank', { ascending: true })
+        .from("research_analogs")
+        .select(
+          "as_of_date,pair,rank,match_date,match_score,forward_30d_return,regime_stability,context_label",
+        )
+        .eq("pair", pair)
+        .order("as_of_date", { ascending: false })
+        .order("rank", { ascending: true })
         .limit(3);
       if (error) throw error;
       return (
@@ -797,13 +891,13 @@ export async function getGlobalHitRate(days = 90): Promise<{
 
   for (;;) {
     const { data, error } = await supabase
-      .from('strategy_ledger')
-      .select('t1_hit,t3_hit')
-      .gte('date', sinceStr)
-      .neq('direction', 'NEUTRAL')
+      .from("strategy_ledger")
+      .select("t1_hit,t3_hit")
+      .gte("date", sinceStr)
+      .neq("direction", "NEUTRAL")
       .range(from, from + pageSize - 1);
     if (error) throw error;
-    const rows = (data ?? []) as Pick<StrategyLedgerRow, 't1_hit' | 't3_hit'>[];
+    const rows = (data ?? []) as Pick<StrategyLedgerRow, "t1_hit" | "t3_hit">[];
     for (const row of rows) {
       if (row.t1_hit != null) {
         trials += 1;
@@ -825,7 +919,7 @@ export async function getGlobalHitRate(days = 90): Promise<{
 /** Client-side trust anchor for terminal rail (same logic as ``getGlobalHitRate(90)``). */
 export function useVerified90dEdge() {
   return useQuery({
-    queryKey: ['strategy_ledger', 'global_hit_rate', 90],
+    queryKey: ["strategy_ledger", "global_hit_rate", 90],
     queryFn: () => getGlobalHitRate(90),
     staleTime: 60 * 60 * 1000,
   });
@@ -849,10 +943,10 @@ export type GatewayLandingPayload = {
 
 async function fetchUniverseFxPairsServer(): Promise<string[]> {
   const { data, error } = await supabase
-    .from('universe')
-    .select('pair')
-    .eq('class', 'FX')
-    .order('pair', { ascending: true });
+    .from("universe")
+    .select("pair")
+    .eq("class", "FX")
+    .order("pair", { ascending: true });
   if (error) throw error;
   return ((data ?? []) as { pair: string }[]).map((r) => r.pair);
 }
@@ -862,28 +956,33 @@ async function fetchLatestBriefSystemicServer(): Promise<{
   outlier: string | null;
 }> {
   const { data, error } = await supabase
-    .from('brief_log')
-    .select('dollar_dominance,idiosyncratic_outlier')
-    .order('date', { ascending: false })
+    .from("brief_log")
+    .select("dollar_dominance,idiosyncratic_outlier")
+    .order("date", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error) throw error;
-  const row = data as { dollar_dominance: number | null; idiosyncratic_outlier: string | null } | null;
+  const row = data as {
+    dollar_dominance: number | null;
+    idiosyncratic_outlier: string | null;
+  } | null;
   return {
     dollarDominance: row?.dollar_dominance ?? null,
     outlier: row?.idiosyncratic_outlier ?? null,
   };
 }
 
-async function fetchLatestSignalsMapServer(pairs: string[]): Promise<Record<string, LatestSignalRow>> {
+async function fetchLatestSignalsMapServer(
+  pairs: string[],
+): Promise<Record<string, LatestSignalRow>> {
   if (pairs.length === 0) return {};
   const { data, error } = await supabase
-    .from('signals')
+    .from("signals")
     .select(
-      'pair,date,spot,rate_diff_2y,rate_diff_10y,rate_diff_zscore,cot_percentile,realized_vol_20d,realized_vol_5d,implied_vol_30d,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_us10y,cross_asset_gold,cross_asset_copper,cross_asset_stoxx,day_change_pct,cot_lev_money_net,oi_delta,created_at',
+      "pair,date,spot,rate_diff_2y,rate_diff_10y,rate_diff_zscore,cot_percentile,realized_vol_20d,realized_vol_5d,implied_vol_30d,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_us10y,cross_asset_gold,cross_asset_copper,cross_asset_stoxx,day_change_pct,cot_lev_money_net,oi_delta,created_at",
     )
-    .in('pair', pairs)
-    .order('date', { ascending: false })
+    .in("pair", pairs)
+    .order("date", { ascending: false })
     .limit(20);
   if (error) throw error;
   const latest: Record<string, LatestSignalRow> = {};
@@ -895,15 +994,17 @@ async function fetchLatestSignalsMapServer(pairs: string[]): Promise<Record<stri
   return latest;
 }
 
-async function fetchLatestRegimeCallsMapServer(pairs: string[]): Promise<Record<string, LatestRegimeCallRow>> {
+async function fetchLatestRegimeCallsMapServer(
+  pairs: string[],
+): Promise<Record<string, LatestRegimeCallRow>> {
   if (pairs.length === 0) return {};
   const { data, error } = await supabase
-    .from('regime_calls')
+    .from("regime_calls")
     .select(
-      'pair,date,regime,confidence,signal_composite,rate_signal,cot_signal,vol_signal,rr_signal,oi_signal,primary_driver,created_at',
+      "pair,date,regime,confidence,signal_composite,rate_signal,cot_signal,vol_signal,rr_signal,oi_signal,primary_driver,created_at",
     )
-    .in('pair', pairs)
-    .order('date', { ascending: false })
+    .in("pair", pairs)
+    .order("date", { ascending: false })
     .limit(20);
   if (error) throw error;
   const latest: Record<string, LatestRegimeCallRow> = {};
@@ -924,10 +1025,10 @@ async function fetchDeskOpenCardsSnapshotServer(pairs: string[]): Promise<{
     return { asOfDate: null, cards: [], rankJumpByPair: {} };
   }
   const { data: head, error: headErr } = await supabase
-    .from('desk_open_cards')
-    .select('date')
-    .in('pair', pairs)
-    .order('date', { ascending: false })
+    .from("desk_open_cards")
+    .select("date")
+    .in("pair", pairs)
+    .order("date", { ascending: false })
     .limit(1);
   if (headErr) throw headErr;
   const headRow = (head ?? [])[0] as { date: string } | undefined;
@@ -937,23 +1038,26 @@ async function fetchDeskOpenCardsSnapshotServer(pairs: string[]): Promise<{
   }
 
   const { data: rows, error } = await supabase
-    .from('desk_open_cards')
-    .select('*')
-    .eq('date', latest)
-    .in('pair', pairs);
+    .from("desk_open_cards")
+    .select("*")
+    .eq("date", latest)
+    .in("pair", pairs);
   if (error) throw error;
   const cards = ((rows as DeskOpenCardRow[]) ?? []).map(mapDeskRow);
 
   const prevDay = utcPrevCalendarDay(latest);
   const { data: prevRows, error: prevErr } = await supabase
-    .from('desk_open_cards')
-    .select('pair, global_rank')
-    .eq('date', prevDay)
-    .in('pair', pairs);
+    .from("desk_open_cards")
+    .select("pair, global_rank")
+    .eq("date", prevDay)
+    .in("pair", pairs);
   if (prevErr) throw prevErr;
 
   const prevRankByPair: Record<string, number> = {};
-  for (const r of (prevRows as { pair: string; global_rank: number | null }[]) ?? []) {
+  for (const r of (prevRows as {
+    pair: string;
+    global_rank: number | null;
+  }[]) ?? []) {
     if (r.global_rank != null) prevRankByPair[r.pair] = r.global_rank;
   }
 
@@ -971,18 +1075,18 @@ async function fetchDeskOpenCardsSnapshotServer(pairs: string[]): Promise<{
 
 export type ResearchMemoListItem = Pick<
   ResearchMemoRow,
-  'id' | 'date' | 'title' | 'link_url' | 'ai_thesis_summary'
+  "id" | "date" | "title" | "link_url" | "ai_thesis_summary"
 >;
 
 /** Terminal: memo list + thesis JSON for archive HUD (sorted by date desc). */
 export function useResearchMemosList() {
   return useQuery({
-    queryKey: ['research_memos', 'list'],
+    queryKey: ["research_memos", "list"],
     queryFn: async (): Promise<ResearchMemoListItem[]> => {
       const { data, error } = await supabase
-        .from('research_memos')
-        .select('id, date, title, link_url, ai_thesis_summary')
-        .order('date', { ascending: false });
+        .from("research_memos")
+        .select("id, date, title, link_url, ai_thesis_summary")
+        .order("date", { ascending: false });
       if (error) throw error;
       return (data ?? []) as ResearchMemoListItem[];
     },
@@ -993,14 +1097,18 @@ export function useResearchMemosList() {
 /** POST validated webhook URL; server encrypts and persists (Supabase service role). */
 export function useConnectDeskWebhook() {
   return useMutation({
-    mutationFn: async (payload: { webhookUrl: string; pairFilter?: string | null }) => {
-      const res = await fetch('/api/connect-desk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+    mutationFn: async (payload: {
+      webhookUrl: string;
+      pairFilter?: string | null;
+    }) => {
+      const res = await fetch("/api/connect-desk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+      if (!res.ok)
+        throw new Error(data.error || `Request failed (${res.status})`);
       return data;
     },
   });
@@ -1009,19 +1117,21 @@ export function useConnectDeskWebhook() {
 /** Full memo body for reader overlay (not used in daily pipeline). */
 export function useResearchMemoReader(id: string | null) {
   return useQuery({
-    queryKey: ['research_memos', 'reader', id],
-    queryFn: async (): Promise<
-      Pick<ResearchMemoRow, 'id' | 'date' | 'title' | 'raw_content' | 'link_url'> | null
-    > => {
+    queryKey: ["research_memos", "reader", id],
+    queryFn: async (): Promise<Pick<
+      ResearchMemoRow,
+      "id" | "date" | "title" | "raw_content" | "link_url"
+    > | null> => {
       const { data, error } = await supabase
-        .from('research_memos')
-        .select('id, date, title, raw_content, link_url')
-        .eq('id', id!)
+        .from("research_memos")
+        .select("id, date, title, raw_content, link_url")
+        // biome-ignore lint/style/noNonNullAssertion: enabled guard ensures id is non-null
+        .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
       return data as Pick<
         ResearchMemoRow,
-        'id' | 'date' | 'title' | 'raw_content' | 'link_url'
+        "id" | "date" | "title" | "raw_content" | "link_url"
       > | null;
     },
     enabled: id != null && id.length > 0,

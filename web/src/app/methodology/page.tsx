@@ -1,7 +1,7 @@
 "use client";
 
-import { Nav } from "@/components/shell/Nav";
 import { Footer } from "@/components/shell/Footer";
+import { Nav } from "@/components/shell/Nav";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import "katex/dist/katex.min.css";
 import { useEffect, useState } from "react";
@@ -16,7 +16,7 @@ function KatexMath({ latex }: { latex: string }) {
         katex.renderToString(latex, {
           throwOnError: false,
           displayMode: true,
-        })
+        }),
       );
     } catch {
       setHtml(latex);
@@ -27,6 +27,7 @@ function KatexMath({ latex }: { latex: string }) {
     <div
       className="my-6"
       suppressHydrationWarning
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX HTML is server-rendered and sanitized
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -46,7 +47,10 @@ export default function MethodologyPage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
-      <main id="main-content" className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full">
+      <main
+        id="main-content"
+        className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full"
+      >
         <div className="reveal mb-10 pb-6 border-b border-[var(--color-border)]">
           <SectionLabel>Methodology</SectionLabel>
           <h1 className="font-sans font-semibold text-[32px] text-[var(--color-text)] tracking-tight">
@@ -101,8 +105,8 @@ export default function MethodologyPage() {
               <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] mb-6">
                 Raw values carry no inherent comparability across pairs or time.
                 Each series is normalized to a rolling percentile rank —
-                converting absolute values into a 0-100 score before entering the
-                composite.
+                converting absolute values into a 0-100 score before entering
+                the composite.
               </p>
 
               <KatexMath latex="P(x_t) = \\frac{\\#\\{x_i \\leq x_t \\mid i \\in [t-251, t]\\}}{252}" />

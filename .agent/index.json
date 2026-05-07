@@ -1,9 +1,9 @@
 {
   "meta": {
     "project": "FX Regime Lab",
-    "version": "3.0-polished",
+    "version": "3.1-polished",
     "model": "Kimi = Strategy, Cursor = Execution",
-    "last_updated": "2026-05-06"
+    "last_updated": "2026-05-07"
   },
   "quick_start": {
     "setup": "fx-agent init",
@@ -18,22 +18,31 @@
     "fx-agent run <spec.md>": "Execute single spec via Cursor",
     "fx-agent run --queue": "Process all queued specs",
     "fx-agent verify": "Run full test/build/lint suite",
+    "fx-agent verify --quick": "Run pytest + ruff only (fast feedback)",
+    "fx-agent review": "Show recently completed delegation specs",
+    "fx-agent cleanup": "Archive old specs from queue to archive/",
+    "fx-agent self-test": "Run agent system self-test",
     "fx-agent maps": "Regenerate all agent maps",
     "fx-agent predict <spec.md>": "Predict failure modes"
   },
+  "scripts": {
+    "cursor-verify.sh": "Full verification suite with --quick flag and color output",
+    "cursor-delegate.sh": "Cursor Agent CLI wrapper with install hint",
+    "self-test.sh": "Agent system integrity checks"
+  },
   "maps": {
-    "CODEMAP": ".agent/maps/CODEMAP.json \u2014 148 files",
-    "SKILLMAP": ".agent/maps/SKILLMAP.json \u2014 13 skills",
-    "RULEMAP": ".agent/maps/RULEMAP.json \u2014 6 rules",
-    "SEMANTICMAP": ".agent/maps/SEMANTICMAP.json \u2014 108 files with function analysis",
-    "HOTFILES": ".agent/context/HOTFILES.md \u2014 recently modified"
+    "CODEMAP": ".agent/maps/CODEMAP.json — 148 files",
+    "SKILLMAP": ".agent/maps/SKILLMAP.json — 13 skills",
+    "RULEMAP": ".agent/maps/RULEMAP.json — 6 rules",
+    "SEMANTICMAP": ".agent/maps/SEMANTICMAP.json — 108 files with function analysis",
+    "HOTFILES": ".agent/context/HOTFILES.md — recently modified"
   },
   "hard_rules": {
     "pairs": "EUR/USD, USD/JPY, USD/INR ONLY",
     "db_writes": "ALL through pipeline/src/db/writer.py",
     "ai_calls": "ALL through pipeline/src/ai/client.py (ON HOLD)",
     "immutable": "regime_calls and validation_log append-only",
-    "ci": "Prefect Cloud only \u2014 no GitHub Actions",
+    "ci": "Prefect Cloud only — no GitHub Actions",
     "tests": "pytest 121 tests + npm run build must pass"
   },
   "automation": {

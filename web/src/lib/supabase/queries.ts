@@ -77,8 +77,11 @@ function toLatestSignal(row: SignalRow): LatestSignal {
   };
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: Supabase client type alias
+type SupabaseClient = any;
+
 export async function getLatestRegimeCalls(
-  supabase: any
+  supabase: SupabaseClient,
 ): Promise<Record<string, LatestRegimeCall>> {
   const { data, error } = await supabase
     .from("regime_calls")
@@ -99,7 +102,7 @@ export async function getLatestRegimeCalls(
 }
 
 export async function getLatestSignals(
-  supabase: any
+  supabase: SupabaseClient,
 ): Promise<Record<string, LatestSignal>> {
   const { data, error } = await supabase
     .from("signals")
@@ -120,8 +123,8 @@ export async function getLatestSignals(
 }
 
 export async function getValidationLog(
-  supabase: any,
-  limit = 500
+  supabase: SupabaseClient,
+  limit = 500,
 ): Promise<ValidationRow[]> {
   const { data, error } = await supabase
     .from("validation_log")
@@ -148,7 +151,9 @@ export async function getValidationLog(
     }));
 }
 
-export async function getLatestBrief(supabase: any): Promise<BriefLogRow | null> {
+export async function getLatestBrief(
+  supabase: SupabaseClient,
+): Promise<BriefLogRow | null> {
   const { data, error } = await supabase
     .from("brief_log")
     .select("*")
@@ -161,9 +166,9 @@ export async function getLatestBrief(supabase: any): Promise<BriefLogRow | null>
 }
 
 export async function getHistoricalRegimeCalls(
-  supabase: any,
+  supabase: SupabaseClient,
   pair: string,
-  limit = 30
+  limit = 30,
 ) {
   const { data, error } = await supabase
     .from("regime_calls")
@@ -183,9 +188,9 @@ export async function getHistoricalRegimeCalls(
 }
 
 export async function getSignalHistory(
-  supabase: any,
+  supabase: SupabaseClient,
   pair: string,
-  limit = 90
+  limit = 90,
 ) {
   const { data, error } = await supabase
     .from("signals")
@@ -195,11 +200,13 @@ export async function getSignalHistory(
     .limit(limit);
 
   if (error || !data) return [];
-  return (data as Array<{
-    date: string;
-    spot: number | null;
-    rate_diff_2y: number | null;
-    cot_percentile: number | null;
-    realized_vol_20d: number | null;
-  }>).reverse();
+  return (
+    data as Array<{
+      date: string;
+      spot: number | null;
+      rate_diff_2y: number | null;
+      cot_percentile: number | null;
+      realized_vol_20d: number | null;
+    }>
+  ).reverse();
 }

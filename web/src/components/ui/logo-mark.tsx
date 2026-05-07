@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import Image from "next/image";
 
 export function LogoMark({
   size = 24,
@@ -10,8 +10,8 @@ export function LogoMark({
 }) {
   return (
     <span
-      className={`inline-block shrink-0 ${heartbeat ? 'omega-heartbeat' : ''}`}
-      style={heartbeat ? { willChange: 'opacity' } : undefined}
+      className={`inline-block shrink-0 ${heartbeat ? "omega-heartbeat" : ""}`}
+      style={heartbeat ? { willChange: "opacity" } : undefined}
     >
       <Image
         src="/logos/logo-without-bg.png"

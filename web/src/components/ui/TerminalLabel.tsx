@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React from 'react';
+import React from "react";
 
 type TerminalLabelProps = {
   children: string;
@@ -17,20 +17,23 @@ type TerminalLabelProps = {
 export function TerminalLabel({
   children,
   limit = 12,
-  className = '',
-  prefix = '',
-  suffix = '',
+  className = "",
+  prefix = "",
+  suffix = "",
 }: TerminalLabelProps) {
-  const display = children.length > limit 
-    ? children.slice(0, limit - 1).trim() + '…' 
-    : children;
+  const display =
+    children.length > limit
+      ? `${children.slice(0, limit - 1).trim()}…`
+      : children;
 
   return (
-    <span 
+    <span
       className={`font-mono text-[9px] tracking-widest uppercase tabular-nums whitespace-nowrap overflow-hidden ${className}`}
       title={children.length > limit ? children : undefined}
     >
-      {prefix}{display}{suffix}
+      {prefix}
+      {display}
+      {suffix}
     </span>
   );
 }

@@ -1,15 +1,15 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "node:fs";
+import path from "node:path";
 
 const AUDIT_OFFLINE_FALLBACK =
-  '[ SYSTEM INTEGRITY LOG OFFLINE: REFER TO GITHUB FOR FULL ARCHIVE ]';
+  "[ SYSTEM INTEGRITY LOG OFFLINE: REFER TO GITHUB FOR FULL ARCHIVE ]";
 
 export default function AuditPage() {
-  const chatPath = path.join(process.cwd(), '..', 'chat.md');
-  let raw = '';
+  const chatPath = path.join(process.cwd(), "..", "chat.md");
+  let raw = "";
   let readFailed = false;
   try {
-    raw = fs.readFileSync(chatPath, 'utf8');
+    raw = fs.readFileSync(chatPath, "utf8");
   } catch {
     readFailed = true;
     raw = AUDIT_OFFLINE_FALLBACK;
@@ -18,7 +18,10 @@ export default function AuditPage() {
   const sections = readFailed ? [] : raw.split(/\n(?=## )/);
 
   return (
-    <main id="main-content" className="min-h-screen bg-[var(--color-void)] text-[var(--color-text-secondary)]">
+    <main
+      id="main-content"
+      className="min-h-screen bg-[var(--color-void)] text-[var(--color-text-secondary)]"
+    >
       <header className="border-b border-solid border-[#222] bg-[#000000] px-4 py-4">
         <a
           href="/terminal"
@@ -30,7 +33,8 @@ export default function AuditPage() {
           [ SYSTEM INTEGRITY LOG: THE ADVERSARIAL CRUCIBLE ]
         </h1>
         <p className="mt-2 max-w-2xl font-mono text-[10px] leading-relaxed text-[#555] tabular-nums">
-          Read-only development journey. Source: repository <code className="text-[#777]">chat.md</code>.
+          Read-only development journey. Source: repository{" "}
+          <code className="text-[#777]">chat.md</code>.
         </p>
       </header>
       <div className="mx-auto max-w-3xl space-y-3 px-4 py-6">
@@ -40,7 +44,8 @@ export default function AuditPage() {
               {AUDIT_OFFLINE_FALLBACK}
             </p>
             <p className="mt-4 font-mono text-[10px] leading-relaxed text-[#a3a3a3] tabular-nums">
-              Serverless or path isolation prevented reading the live transcript. Full archive: repository{' '}
+              Serverless or path isolation prevented reading the live
+              transcript. Full archive: repository{" "}
               <code className="text-[#e5e5e5]">chat.md</code> on GitHub.
             </p>
           </article>
@@ -49,15 +54,15 @@ export default function AuditPage() {
           ? sections.map((block, i) => {
               const trimmed = block.trim();
               if (!trimmed) return null;
-              const lines = trimmed.split('\n');
-              const first = lines[0] ?? '';
-              const isH2 = first.startsWith('## ');
-              const title = isH2 ? first.replace(/^##\s+/, '').trim() : null;
-              const body = isH2 ? lines.slice(1).join('\n').trim() : trimmed;
+              const lines = trimmed.split("\n");
+              const first = lines[0] ?? "";
+              const isH2 = first.startsWith("## ");
+              const title = isH2 ? first.replace(/^##\s+/, "").trim() : null;
+              const body = isH2 ? lines.slice(1).join("\n").trim() : trimmed;
 
               return (
                 <article
-                  key={i}
+                  key={block.slice(0, 60)}
                   className="border border-solid border-[#222] bg-[#000000] p-4 rounded-none"
                 >
                   {title ? (

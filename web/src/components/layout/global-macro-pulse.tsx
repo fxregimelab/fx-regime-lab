@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { MacroPulseBar, PULSE_BAR_H } from '@/components/ui/macro-pulse-bar';
+import { MacroPulseBar, PULSE_BAR_H } from "@/components/ui/macro-pulse-bar";
 
 /** Persistent global macro strip — fixed to viewport top on every route. */
 export function GlobalMacroPulse() {

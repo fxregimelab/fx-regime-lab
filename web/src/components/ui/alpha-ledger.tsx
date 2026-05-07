@@ -1,38 +1,38 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
-import type { StrategyLedgerRow } from '@/lib/queries';
+import type { StrategyLedgerRow } from "@/lib/queries";
+import { useMemo } from "react";
 
 /** Rows from useStrategyLedger (non-neutral directional ledger). */
 export type AlphaLedgerRow = Pick<
   StrategyLedgerRow,
-  | 'id'
-  | 'regime'
-  | 'date'
-  | 'direction'
-  | 't1_hit'
-  | 't3_hit'
-  | 't5_hit'
-  | 'brier_score_t5'
-  | 'max_pain_bps'
+  | "id"
+  | "regime"
+  | "date"
+  | "direction"
+  | "t1_hit"
+  | "t3_hit"
+  | "t5_hit"
+  | "brier_score_t5"
+  | "max_pain_bps"
 >;
 
 /** Swiss audit: hit / miss / neutral as luminance + weight only. */
 export function hitAuditMark(v: number | null | undefined): string {
-  if (v === 1) return '[ ✓ ]';
-  if (v === 0) return '[ ✕ ]';
-  return '[ = ]';
+  if (v === 1) return "[ ✓ ]";
+  if (v === 0) return "[ ✕ ]";
+  return "[ = ]";
 }
 
 function hitAuditClass(v: number | null | undefined): string {
-  if (v === 1) return 'text-white font-bold';
-  if (v === 0) return 'text-[#555] font-light';
-  return 'text-[#888] font-normal';
+  if (v === 1) return "text-white font-bold";
+  if (v === 0) return "text-[#555] font-light";
+  return "text-[#888] font-normal";
 }
 
 function regimeCycleTitle(regime: string): string {
   const t = regime.trim();
-  if (!t) return 'UNKNOWN CYCLE';
+  if (!t) return "UNKNOWN CYCLE";
   return `${t.toUpperCase()} CYCLE`;
 }
 
@@ -41,7 +41,7 @@ type RegimeGroup = { regime: string; items: AlphaLedgerRow[] };
 function groupByRegime(rows: AlphaLedgerRow[]): RegimeGroup[] {
   const m = new Map<string, AlphaLedgerRow[]>();
   for (const r of rows) {
-    const key = r.regime || 'UNKNOWN';
+    const key = r.regime || "UNKNOWN";
     const list = m.get(key) ?? [];
     list.push(r);
     m.set(key, list);
@@ -52,8 +52,8 @@ function groupByRegime(rows: AlphaLedgerRow[]): RegimeGroup[] {
     out.push({ regime, items });
   }
   out.sort((a, b) => {
-    const da = a.items[0]?.date ?? '';
-    const db = b.items[0]?.date ?? '';
+    const da = a.items[0]?.date ?? "";
+    const db = b.items[0]?.date ?? "";
     return db.localeCompare(da);
   });
   return out;
@@ -65,14 +65,15 @@ type AlphaLedgerProps = {
 
 /** Fixed audit columns: date / regime / direction / T+1 / T+3 / T+5 / Brier (90d). */
 const LEDGER_GRID =
-  'minmax(5.5rem,1fr) minmax(7rem,1.15fr) minmax(4.25rem,0.85fr) 4.25rem 4.25rem 4.25rem 100px' as const;
+  "minmax(5.5rem,1fr) minmax(7rem,1.15fr) minmax(4.25rem,0.85fr) 4.25rem 4.25rem 4.25rem 100px" as const;
 
 function BrierSparkline({ dataPoints }: { dataPoints: number[] }) {
-  if (!dataPoints || dataPoints.length === 0) return <div className="h-[30px] w-[100px] bg-[#111] opacity-20" />;
+  if (!dataPoints || dataPoints.length === 0)
+    return <div className="h-[30px] w-[100px] bg-[#111] opacity-20" />;
 
   const w = 100;
   const h = 30;
-  
+
   // Brier score is 0..1 (0 is best, 1 is worst)
   const minVal = 0;
   const maxVal = 1;
@@ -85,17 +86,43 @@ function BrierSparkline({ dataPoints }: { dataPoints: number[] }) {
   });
 
   const latestBrier = dataPoints[dataPoints.length - 1];
-  const color = latestBrier < 0.25 ? '#10b981' : latestBrier > 0.5 ? '#ef4444' : '#666666';
+  const color =
+    latestBrier < 0.25 ? "#10b981" : latestBrier > 0.5 ? "#ef4444" : "#666666";
 
   return (
     <div className="flex flex-col items-center">
-      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+      <svg
+        width={w}
+        height={h}
+        viewBox={`0 0 ${w} ${h}`}
+        className="overflow-visible"
+      >
+        <title>Alpha Ledger Chart</title>
         {/* Baseline (Brier = 0.25, arbitrary "good" threshold) */}
-        <line x1={0} y1={h * 0.75} x2={w} y2={h * 0.75} stroke="#333" strokeWidth={1} strokeDasharray="2 2" strokeOpacity={0.5} />
+        <line
+          x1={0}
+          y1={h * 0.75}
+          x2={w}
+          y2={h * 0.75}
+          stroke="#333"
+          strokeWidth={1}
+          strokeDasharray="2 2"
+          strokeOpacity={0.5}
+        />
         {dataPoints.length === 1 ? (
-          <circle cx={w} cy={h - ((latestBrier - minVal) / (maxVal - minVal)) * h} r={1.5} fill={color} />
+          <circle
+            cx={w}
+            cy={h - ((latestBrier - minVal) / (maxVal - minVal)) * h}
+            r={1.5}
+            fill={color}
+          />
         ) : (
-          <polyline fill="none" stroke={color} strokeWidth={1.5} points={pts.join(' ')} />
+          <polyline
+            fill="none"
+            stroke={color}
+            strokeWidth={1.5}
+            points={pts.join(" ")}
+          />
         )}
       </svg>
     </div>
@@ -104,7 +131,7 @@ function BrierSparkline({ dataPoints }: { dataPoints: number[] }) {
 
 export function AlphaLedger({ rows }: AlphaLedgerProps) {
   const groups = useMemo(() => groupByRegime(rows), [rows]);
-  
+
   // Pre-calculate 90-day Brier sliding window for all rows in O(N log N)
   const brierMap = useMemo(() => {
     const map = new Map<string, number[]>();
@@ -117,7 +144,7 @@ export function AlphaLedger({ rows }: AlphaLedgerProps) {
       .sort((a, b) => a.time - b.time);
 
     const msIn90Days = 90 * 24 * 60 * 60 * 1000;
-    
+
     let left = 0;
     for (let right = 0; right < parsed.length; right++) {
       while (parsed[right].time - parsed[left].time > msIn90Days) {
@@ -148,7 +175,7 @@ export function AlphaLedger({ rows }: AlphaLedgerProps) {
       {groups.map((g, gi) => (
         <section key={g.regime} className="w-full shadow-none">
           <h2
-            className={`mb-4 border-0 font-serif text-2xl font-light tracking-tight text-[#d4d4d4] shadow-none md:text-3xl ${gi === 0 ? 'mt-0' : ''}`}
+            className={`mb-4 border-0 font-serif text-2xl font-light tracking-tight text-[#d4d4d4] shadow-none md:text-3xl ${gi === 0 ? "mt-0" : ""}`}
           >
             {regimeCycleTitle(g.regime)}
           </h2>
@@ -159,7 +186,17 @@ export function AlphaLedger({ rows }: AlphaLedgerProps) {
                 gridTemplateColumns: LEDGER_GRID,
               }}
             >
-              {(['Date', 'Regime', 'Direction', 'T+1', 'T+3', 'T+5', 'Brier (90d)'] as const).map((h) => (
+              {(
+                [
+                  "Date",
+                  "Regime",
+                  "Direction",
+                  "T+1",
+                  "T+3",
+                  "T+5",
+                  "Brier (90d)",
+                ] as const
+              ).map((h) => (
                 <div
                   key={h}
                   className="border-b border-r border-solid border-[#222] px-2 py-2 font-mono text-[9px] tracking-widest text-[var(--text-muted)] shadow-none last:border-r-0"
@@ -169,7 +206,7 @@ export function AlphaLedger({ rows }: AlphaLedgerProps) {
               ))}
               {g.items.flatMap((r) => {
                 const baseCell =
-                  'border-b border-r border-solid border-[#111] px-2 py-2 flex items-center font-mono text-[11px] tabular-nums text-[#e8e8e8] shadow-none';
+                  "border-b border-r border-solid border-[#111] px-2 py-2 flex items-center font-mono text-[11px] tabular-nums text-[#e8e8e8] shadow-none";
                 return [
                   <div key={`${r.id}-d`} className={baseCell}>
                     {r.date}

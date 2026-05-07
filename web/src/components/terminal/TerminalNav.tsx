@@ -1,11 +1,11 @@
 "use client";
 
+import { LogoMark } from "@/components/ui/logo-mark";
+import { fmtChg } from "@/components/ui/utils";
+import { PAIRS } from "@/lib/constants";
+import type { LatestSignalRow } from "@/lib/queries";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoMark } from "@/components/ui/logo-mark";
-import { PAIRS } from "@/lib/constants";
-import { fmtChg } from "@/components/ui/utils";
-import type { LatestSignalRow } from "@/lib/queries";
 
 interface TerminalNavProps {
   signals?: Record<string, LatestSignalRow>;
@@ -40,7 +40,10 @@ export function TerminalNav({ signals }: TerminalNavProps) {
       {/* Breadcrumb + pair tabs */}
       <div className="max-w-[1152px] mx-auto px-6 h-[38px] flex items-center justify-between">
         <div className="flex items-center gap-1.5 font-mono text-[10px]">
-          <Link href="/" className="text-terminal-muted hover:text-terminal-text transition-colors">
+          <Link
+            href="/"
+            className="text-terminal-muted hover:text-terminal-text transition-colors"
+          >
             shell
           </Link>
           <span className="text-terminal-dim">/</span>
@@ -68,10 +71,7 @@ export function TerminalNav({ signals }: TerminalNavProps) {
           {pair && (
             <>
               <span className="text-terminal-dim">/</span>
-              <span
-                className="font-semibold"
-                style={{ color: pair.pairColor }}
-              >
+              <span className="font-semibold" style={{ color: pair.pairColor }}>
                 {pair.urlSlug}
               </span>
             </>
@@ -89,9 +89,7 @@ export function TerminalNav({ signals }: TerminalNavProps) {
                 key={p.label}
                 href={`/terminal/fx-regime/${p.urlSlug}`}
                 className={`flex items-center gap-2 px-3 py-1 font-mono text-[10px] transition-all -mb-[1px] ${
-                  active
-                    ? "bg-[#141414]"
-                    : "bg-transparent hover:bg-[#0f0f0f]"
+                  active ? "bg-[#141414]" : "bg-transparent hover:bg-[#0f0f0f]"
                 }`}
                 style={{
                   borderBottom: active
@@ -99,16 +97,11 @@ export function TerminalNav({ signals }: TerminalNavProps) {
                     : "2px solid transparent",
                 }}
               >
-                <span
-                  className="font-bold"
-                  style={{ color: p.pairColor }}
-                >
+                <span className="font-bold" style={{ color: p.pairColor }}>
                   {p.display}
                 </span>
                 {sig && chgPct != null && (
-                  <span style={{ color: chg?.color }}>
-                    {chg?.str}
-                  </span>
+                  <span style={{ color: chg?.color }}>{chg?.str}</span>
                 )}
               </Link>
             );

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useId, useState } from 'react';
-import { PAIRS } from '@/lib/mockData';
-import { useConnectDeskWebhook } from '@/lib/queries';
+import { PAIRS } from "@/lib/mockData";
+import { useConnectDeskWebhook } from "@/lib/queries";
+import { useEffect, useId, useState } from "react";
 
 type ConnectDeskModalProps = {
   open: boolean;
@@ -10,11 +10,14 @@ type ConnectDeskModalProps = {
 };
 
 /** Monochrome desk webhook bridge (Slack / Discord / Symphony). */
-export function ConnectDeskModal({ open, onOpenChange }: ConnectDeskModalProps) {
+export function ConnectDeskModal({
+  open,
+  onOpenChange,
+}: ConnectDeskModalProps) {
   const titleId = useId();
   const { mutate, reset, isPending, isError, error } = useConnectDeskWebhook();
-  const [url, setUrl] = useState('');
-  const [pairFilter, setPairFilter] = useState<string>('');
+  const [url, setUrl] = useState("");
+  const [pairFilter, setPairFilter] = useState<string>("");
 
   useEffect(() => {
     if (open) reset();
@@ -28,7 +31,7 @@ export function ConnectDeskModal({ open, onOpenChange }: ConnectDeskModalProps) 
       { webhookUrl: url.trim(), pairFilter: pairFilter || null },
       {
         onSuccess: () => {
-          setUrl('');
+          setUrl("");
           onOpenChange(false);
         },
       },
@@ -39,25 +42,35 @@ export function ConnectDeskModal({ open, onOpenChange }: ConnectDeskModalProps) 
     <div
       className="fixed inset-0 z-[250] flex items-center justify-center bg-black/90 p-4"
       role="presentation"
+      tabIndex={-1}
       onClick={() => onOpenChange(false)}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onOpenChange(false);
+      }}
     >
-      <div
-        role="dialog"
+      <dialog
         aria-modal="true"
         aria-labelledby={titleId}
         className="relative w-full max-w-md border border-solid border-[#222] bg-[#000000] p-5 rounded-none"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
       >
-        <h2 id={titleId} className="font-mono text-[10px] font-normal tracking-widest text-[#888]">
+        <h2
+          id={titleId}
+          className="font-mono text-[10px] font-normal tracking-widest text-[#888]"
+        >
           [ CONNECT YOUR DESK ]
         </h2>
         <p className="mt-3 font-mono text-[10px] leading-relaxed text-[#666]">
-          No accounts. No trackers. We only store an encrypted link to your desk for the 07:05 AM
-          snapshot.
+          No accounts. No trackers. We only store an encrypted link to your desk
+          for the 07:05 AM snapshot.
         </p>
         <form onSubmit={onSubmit} className="mt-4 space-y-3">
           <div>
-            <label htmlFor="desk-webhook-url" className="block font-mono text-[9px] tracking-widest text-[#555] mb-1">
+            <label
+              htmlFor="desk-webhook-url"
+              className="block font-mono text-[9px] tracking-widest text-[#555] mb-1"
+            >
               WEBHOOK URL (HTTPS)
             </label>
             <input
@@ -72,7 +85,10 @@ export function ConnectDeskModal({ open, onOpenChange }: ConnectDeskModalProps) 
             />
           </div>
           <div>
-            <label htmlFor="desk-pair-filter" className="block font-mono text-[9px] tracking-widest text-[#555] mb-1">
+            <label
+              htmlFor="desk-pair-filter"
+              className="block font-mono text-[9px] tracking-widest text-[#555] mb-1"
+            >
               PAIR FILTER (OPTIONAL)
             </label>
             <select
@@ -100,7 +116,7 @@ export function ConnectDeskModal({ open, onOpenChange }: ConnectDeskModalProps) 
               disabled={isPending}
               className="border border-solid border-[#444] bg-[#0a0a0a] px-3 py-2 font-mono text-[10px] tracking-widest text-[#ddd] hover:border-[#666] disabled:opacity-50 rounded-none"
             >
-              {isPending ? 'SENDING…' : 'REGISTER'}
+              {isPending ? "SENDING…" : "REGISTER"}
             </button>
             <button
               type="button"
@@ -111,7 +127,7 @@ export function ConnectDeskModal({ open, onOpenChange }: ConnectDeskModalProps) 
             </button>
           </div>
         </form>
-      </div>
+      </dialog>
     </div>
   );
 }
