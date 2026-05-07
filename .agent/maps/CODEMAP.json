@@ -1,0 +1,533 @@
+{
+  "meta": {
+    "generated": "2026-05-06",
+    "description": "FX Regime Lab codebase map. Read this first.",
+    "total_files": 145
+  },
+  "pipeline": {
+    "fetchers": [
+      {
+        "file": "./pipeline/src/fetchers/__init__.py",
+        "desc": ""
+      },
+      {
+        "file": "./pipeline/src/fetchers/async_engine.py",
+        "desc": "Async HTTP + concurrency helpers for configuration-driven fetchers."
+      },
+      {
+        "file": "./pipeline/src/fetchers/buffer_keys.py",
+        "desc": "Normalized master-buffer keys (import this instead of duplicating string literals)."
+      },
+      {
+        "file": "./pipeline/src/fetchers/cot.py",
+        "desc": "ruff: noqa: E302"
+      },
+      {
+        "file": "./pipeline/src/fetchers/cross_asset.py",
+        "desc": ""
+      },
+      {
+        "file": "./pipeline/src/fetchers/fx_spot.py",
+        "desc": "FX spot OHLC: Alpha Vantage FX_DAILY (primary) with yfinance fallback."
+      },
+      {
+        "file": "./pipeline/src/fetchers/macro_calendar.py",
+        "desc": ""
+      },
+      {
+        "file": "./pipeline/src/fetchers/open_interest.py",
+        "desc": "OI signal derived from CFTC COT open_interest field."
+      },
+      {
+        "file": "./pipeline/src/fetchers/polymarket.py",
+        "desc": "Polymarket Gamma API \u2014 Economics-tilted active markets (async + sync helpers)."
+      },
+      {
+        "file": "./pipeline/src/fetchers/substack.py",
+        "desc": "Substack RSS + post HTML scrape for weekly research memos."
+      },
+      {
+        "file": "./pipeline/src/fetchers/volatility.py",
+        "desc": "Realized vol from spot closes; implied vol from listed FX options (best effort)."
+      },
+      {
+        "file": "./pipeline/src/fetchers/yields.py",
+        "desc": "Yield legs fetched from yfinance with FRED fallbacks."
+      }
+    ],
+    "signals": [
+      {
+        "file": "./pipeline/src/signals/__init__.py",
+        "desc": "Signal-layer exports (special cross-asset composites, etc.)."
+      },
+      {
+        "file": "./pipeline/src/signals/cot.py",
+        "desc": ""
+      },
+      {
+        "file": "./pipeline/src/signals/open_interest.py",
+        "desc": "Open interest signal from COT-derived OI percentile."
+      },
+      {
+        "file": "./pipeline/src/signals/rate.py",
+        "desc": "Yield spread signal and normalization (robust MAD Z-score, dual horizon)."
+      },
+      {
+        "file": "./pipeline/src/signals/special.py",
+        "desc": ""
+      },
+      {
+        "file": "./pipeline/src/signals/volatility.py",
+        "desc": ""
+      }
+    ],
+    "regime": [
+      {
+        "file": "./pipeline/src/regime/__init__.py",
+        "desc": ""
+      },
+      {
+        "file": "./pipeline/src/regime/classifier.py",
+        "desc": "Layer 1 regime labels, UI metadata, and adapter to the deterministic gate engine."
+      },
+      {
+        "file": "./pipeline/src/regime/composite.py",
+        "desc": ""
+      },
+      {
+        "file": "./pipeline/src/regime/confidence.py",
+        "desc": "Confidence score from composite magnitude and signal agreement."
+      }
+    ],
+    "logic": [
+      {
+        "file": "./pipeline/src/logic/__init__.py",
+        "desc": "Pure deterministic pipeline logic (math + regime gate)."
+      },
+      {
+        "file": "./pipeline/src/logic/layer1_gate.py",
+        "desc": "Layer 1 deterministic regime gate \u2014 Aris priorities, composite hysteresis, Marcus invalidation."
+      },
+      {
+        "file": "./pipeline/src/logic/layer2_directional.py",
+        "desc": "Layer 2 directional conviction: COT percentile, crowding ramp, conviction multiplier, Marcus B clash."
+      },
+      {
+        "file": "./pipeline/src/logic/layer3_execution.py",
+        "desc": "Layer 3 execution HUD: vol rank, risk-reversal skew, entry timing, sizing, stops (Chamber 1)."
+      },
+      {
+        "file": "./pipeline/src/logic/math_utils.py",
+        "desc": "Vectorized Z-score, momentum, and composite hysteresis helpers."
+      }
+    ],
+    "db": [
+      {
+        "file": "./pipeline/src/db/__init__.py",
+        "desc": ""
+      },
+      {
+        "file": "./pipeline/src/db/rollback.py",
+        "desc": "SRE rollback: delete pipeline rows for a bad calendar date (single batch of deletes)."
+      },
+      {
+        "file": "./pipeline/src/db/writer.py",
+        "desc": ""
+      }
+    ],
+    "tests": [
+      {
+        "file": "./pipeline/tests/__init__.py",
+        "desc": ""
+      },
+      {
+        "file": "./pipeline/tests/test_backfill.py",
+        "desc": "Tests for Round 4 \u2014 Historical backfill infrastructure."
+      },
+      {
+        "file": "./pipeline/tests/test_ingestion_buffer.py",
+        "desc": "Ingestion quorum and buffer validation (no network)."
+      },
+      {
+        "file": "./pipeline/tests/test_layer1_gate.py",
+        "desc": "Layer 1 gate, Marcus invalidation, and composite hysteresis tests."
+      },
+      {
+        "file": "./pipeline/tests/test_layer2_directional.py",
+        "desc": "Unit tests for Layer 2 directional conviction (strict, no I/O)."
+      },
+      {
+        "file": "./pipeline/tests/test_layer3_execution.py",
+        "desc": "Layer 3 execution HUD unit tests (strict, no I/O)."
+      },
+      {
+        "file": "./pipeline/tests/test_ledger.py",
+        "desc": "Tests for Alpha Ledger EOD MTM (pure logic + mocked writer)."
+      },
+      {
+        "file": "./pipeline/tests/test_regime.py",
+        "desc": "Regime classifier and confidence tests."
+      },
+      {
+        "file": "./pipeline/tests/test_signals.py",
+        "desc": "Pure signal logic tests (no network, no env)."
+      },
+      {
+        "file": "./pipeline/tests/test_systemic.py",
+        "desc": "Systemic apex ranking (no Supabase)."
+      },
+      {
+        "file": "./pipeline/tests/test_validation.py",
+        "desc": "Validation logic tests."
+      },
+      {
+        "file": "./pipeline/tests/test_validation_aggregate.py",
+        "desc": "Tests for Round 3 Phase 2 \u2014 Aggregate validation statistics."
+      },
+      {
+        "file": "./pipeline/tests/test_validation_engine.py",
+        "desc": "Round 3 validation engine tests."
+      }
+    ]
+  },
+  "web": {
+    "pages": [
+      {
+        "file": "./web/src/app/about/page.tsx"
+      },
+      {
+        "file": "./web/src/app/audit/page.tsx"
+      },
+      {
+        "file": "./web/src/app/brief/page.tsx"
+      },
+      {
+        "file": "./web/src/app/calendar/page.tsx"
+      },
+      {
+        "file": "./web/src/app/memo/[date]/page.tsx"
+      },
+      {
+        "file": "./web/src/app/methodology/page.tsx"
+      },
+      {
+        "file": "./web/src/app/page.tsx"
+      },
+      {
+        "file": "./web/src/app/performance/page.tsx"
+      },
+      {
+        "file": "./web/src/app/terminal/calendar/page.tsx"
+      },
+      {
+        "file": "./web/src/app/terminal/fx-regime/[pair]/page.tsx"
+      },
+      {
+        "file": "./web/src/app/terminal/fx-regime/page.tsx"
+      },
+      {
+        "file": "./web/src/app/terminal/memos/page.tsx"
+      },
+      {
+        "file": "./web/src/app/terminal/page.tsx"
+      },
+      {
+        "file": "./web/src/app/terminal/performance/page.tsx"
+      }
+    ],
+    "layouts": [
+      {
+        "file": "./web/src/app/layout.tsx"
+      },
+      {
+        "file": "./web/src/app/terminal/fx-regime/[pair]/layout.tsx"
+      },
+      {
+        "file": "./web/src/app/terminal/layout.tsx"
+      }
+    ],
+    "components": [
+      {
+        "file": "./web/src/components/layout/command-palette.tsx"
+      },
+      {
+        "file": "./web/src/components/layout/global-macro-pulse.tsx"
+      },
+      {
+        "file": "./web/src/components/layout/terminal-nav.tsx"
+      },
+      {
+        "file": "./web/src/components/pages/convexity-radar-page-content.tsx"
+      },
+      {
+        "file": "./web/src/components/pages/performance-ledger-page-content.tsx"
+      },
+      {
+        "file": "./web/src/components/regime/RegimeCard.tsx"
+      },
+      {
+        "file": "./web/src/components/regime/ValidationTable.tsx"
+      },
+      {
+        "file": "./web/src/components/shell/Footer.tsx"
+      },
+      {
+        "file": "./web/src/components/shell/Nav.tsx"
+      },
+      {
+        "file": "./web/src/components/terminal/TerminalNav.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/BinaryResolve.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/GhostResolve.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/TerminalLabel.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/alpha-ledger.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/command-palette.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/confidence-bar.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/connect-desk-modal.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/convexity-radar.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/correlation-matrix.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/desk-card.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/logo-mark.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/macro-drift-engine.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/macro-pulse-bar.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/memo-sidebar.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/sparkline.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/systemic-cluster-banner.tsx"
+      }
+    ],
+    "hooks": [
+      {
+        "file": "./web/src/hooks/useLocalSettings.ts"
+      },
+      {
+        "file": "./web/src/hooks/useReducedMotion.ts"
+      },
+      {
+        "file": "./web/src/hooks/useScrollReveal.ts"
+      }
+    ],
+    "lib": [
+      {
+        "file": "./web/src/lib/constants.ts"
+      },
+      {
+        "file": "./web/src/lib/g10Correlation.ts"
+      },
+      {
+        "file": "./web/src/lib/linkedin-truncate.ts"
+      },
+      {
+        "file": "./web/src/lib/mockData.ts"
+      },
+      {
+        "file": "./web/src/lib/pairProfiles.ts"
+      },
+      {
+        "file": "./web/src/lib/queries.ts"
+      },
+      {
+        "file": "./web/src/lib/research-memo-thesis.ts"
+      },
+      {
+        "file": "./web/src/lib/supabase/client.ts"
+      },
+      {
+        "file": "./web/src/lib/supabase/database.types.ts"
+      },
+      {
+        "file": "./web/src/lib/supabase/queries.ts"
+      },
+      {
+        "file": "./web/src/lib/supabase/server.ts"
+      },
+      {
+        "file": "./web/src/lib/validation-format.ts"
+      }
+    ]
+  },
+  "database": {
+    "migrations": [
+      {
+        "file": "./supabase/migrations/.tmp_schema_check.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260401000001_initial_schema.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260401000002_rls_policies.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260401000003_indexes.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260404154618_remote_schema.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260426000001_phase3_new_tables.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260427205525_remote_alignment.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000001_hardening.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000002_add_cross_asset_us10y.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000003_historical_data.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000004_desk_cards_and_security.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000005_event_risk_schema.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000006_event_risk_matrices.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000007_strategy_ledger.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000008_analog_rpc.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000009_add_commodity_signals.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000010_structural_instability.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000011_add_ranking_to_desk.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000012_universe_table.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000013_desk_regime_age_chart_thin.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000014_macro_aliases.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000015_event_risk_exhaustion_bands.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000016_systemic_synthesis.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000017_terminal_launch_blockers.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000018_research_memos.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000019_webhook_subscriptions.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428000020_ledger_mae.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260428114056_remote_history_alignment.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260504000000_pillar2_volume_rvol.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260504000001_pillar3_mean_reversion.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260504000003_phase3_audit_fixes.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260504000004_ai_rpc.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260505000000_round1_foundation_audit.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260505000001_round3_validation_engine.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260505000002_validation_stats.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260505000003_layer3_execution_schema.sql"
+      },
+      {
+        "file": "./web/supabase/migrations/20260505_council_schema_upgrade.sql"
+      }
+    ],
+    "schema": [
+      {
+        "file": "./sql/migration_add_signals_spot.sql"
+      },
+      {
+        "file": "./sql/schema.sql"
+      }
+    ]
+  },
+  "deployment": {
+    "prefect": [
+      {
+        "file": "pipeline/prefect.yaml",
+        "desc": "Prefect Cloud deployment"
+      }
+    ],
+    "cloudflare": [
+      {
+        "file": "workers/site-entry.js",
+        "desc": "Cloudflare Worker API"
+      }
+    ]
+  },
+  "docs": {
+    "signals": [
+      {
+        "file": "./docs/SIGNAL_DEFINITIONS.md"
+      }
+    ],
+    "schema": [
+      {
+        "file": "./docs/DATABASE_SCHEMA.md"
+      }
+    ],
+    "pipeline": [
+      {
+        "file": "./docs/PIPELINE_REFERENCE.md"
+      }
+    ]
+  }
+}

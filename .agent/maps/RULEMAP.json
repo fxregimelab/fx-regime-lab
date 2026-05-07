@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "description": "All Cursor rules. Auto-applied based on globs."
+  },
+  "rules": [
+    {
+      "file": "Database-Rules.mdc",
+      "alwaysApply": false,
+      "globs": "supabase/migrations/*.sql,sql/schema.sql,pipeline/src/db/**/*.py",
+      "description": "Rules for database schema and migrations"
+    },
+    {
+      "file": "Deployment-Rules.mdc",
+      "alwaysApply": false,
+      "globs": "pipeline/prefect.yaml,workers/*.js,web/next.config.js",
+      "description": "Rules for deployment and orchestration"
+    },
+    {
+      "file": "FX-Regime-Lab-Core.mdc",
+      "alwaysApply": true,
+      "globs": "",
+      "description": "FX Regime Lab \u2014 Core Rules"
+    },
+    {
+      "file": "Frontend-Rules.mdc",
+      "alwaysApply": false,
+      "globs": "web/src/**/*.{ts,tsx,css}",
+      "description": "Rules for Next.js frontend development"
+    },
+    {
+      "file": "Pipeline-Rules.mdc",
+      "alwaysApply": false,
+      "globs": "pipeline/src/**/*.py",
+      "description": "Rules for all Python pipeline modules"
+    },
+    {
+      "file": "Session-Start.mdc",
+      "alwaysApply": true,
+      "globs": "",
+      "description": "Auto-loads on every session start"
+    }
+  ]
+}

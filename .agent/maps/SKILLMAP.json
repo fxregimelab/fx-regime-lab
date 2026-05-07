@@ -1,0 +1,85 @@
+{
+  "meta": {
+    "description": "All agent skills. Load the relevant one for your task."
+  },
+  "skills": [
+    {
+      "name": "chartjs-fx-regime-dashboard",
+      "path": ".cursor/skills/chartjs-fx-regime-dashboard/SKILL.md",
+      "description": ">-",
+      "agent": "cursor"
+    },
+    {
+      "name": "cloudflare-worker",
+      "path": ".cursor/skills/cloudflare-worker/SKILL.md",
+      "description": ">-",
+      "agent": "cursor"
+    },
+    {
+      "name": "fx-regime-html-dashboards-briefs",
+      "path": ".cursor/skills/fx-regime-html-dashboards-briefs/SKILL.md",
+      "description": ">-",
+      "agent": "cursor"
+    },
+    {
+      "name": "fx-regime-pipeline-triage",
+      "path": ".cursor/skills/fx-regime-pipeline-triage/SKILL.md",
+      "description": ">-",
+      "agent": "cursor"
+    },
+    {
+      "name": "fx-regime-signal-pipeline",
+      "path": ".cursor/skills/fx-regime-signal-pipeline/SKILL.md",
+      "description": ">-",
+      "agent": "cursor"
+    },
+    {
+      "name": "fx-regime-supabase-writes",
+      "path": ".cursor/skills/fx-regime-supabase-writes/SKILL.md",
+      "description": ">-",
+      "agent": "cursor"
+    },
+    {
+      "name": "nextjs-frontend",
+      "path": ".cursor/skills/nextjs-frontend/SKILL.md",
+      "description": ">-",
+      "agent": "cursor"
+    },
+    {
+      "name": "pipeline-data-fetch",
+      "path": ".cursor/skills/pipeline-data-fetch/SKILL.md",
+      "description": ">-",
+      "agent": "cursor"
+    },
+    {
+      "name": "prefect-deploy",
+      "path": ".cursor/skills/prefect-deploy/SKILL.md",
+      "description": ">-",
+      "agent": "cursor"
+    },
+    {
+      "name": "quant-math",
+      "path": ".cursor/skills/quant-math/SKILL.md",
+      "description": ">-",
+      "agent": "cursor"
+    },
+    {
+      "name": "regime-validation-logging",
+      "path": ".cursor/skills/regime-validation-logging/SKILL.md",
+      "description": ">-",
+      "agent": "cursor"
+    },
+    {
+      "name": "cursor-delegation",
+      "path": ".kimi/skills/cursor-delegation/SKILL.md",
+      "description": ">-",
+      "agent": "kimi"
+    },
+    {
+      "name": "cursor-orchestration",
+      "path": ".kimi/skills/cursor-orchestration/SKILL.md",
+      "description": ">-",
+      "agent": "kimi"
+    }
+  ]
+}

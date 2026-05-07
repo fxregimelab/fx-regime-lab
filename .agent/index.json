@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "project": "FX Regime Lab",
+    "version": "2.0",
+    "agent_model": "Kimi = Strategy, Cursor = Execution",
+    "last_updated": "2026-05-06"
+  },
+  "quick_start": {
+    "for_kimi": [
+      "Read ../AGENTS.md (workspace root) \u2014 50 lines, under 300 tokens",
+      "Read .agent/maps/CODEMAP.json \u2014 find files without grepping",
+      "Read .agent/maps/SKILLMAP.json \u2014 find the right skill",
+      "Read .agent/context/HOTFILES.md \u2014 see what is active",
+      "Read TASK.md \u2014 current sprint status"
+    ],
+    "for_cursor": [
+      "Read .cursorrules \u2014 hard rules",
+      "Read .cursor/rules/*.mdc \u2014 auto-applied rules",
+      "Read .cursor/skills/*/SKILL.md \u2014 relevant skill",
+      "Read .cursor/AGENTS.md \u2014 orchestration reference"
+    ]
+  },
+  "maps": {
+    "CODEMAP": ".agent/maps/CODEMAP.json \u2014 codebase file registry (145 files)",
+    "SKILLMAP": ".agent/maps/SKILLMAP.json \u2014 all skills registry",
+    "RULEMAP": ".agent/maps/RULEMAP.json \u2014 all Cursor rules registry",
+    "HOTFILES": ".agent/context/HOTFILES.md \u2014 recently modified files"
+  },
+  "agents": {
+    "kimi": {
+      "role": "Strategy, research, planning, verification",
+      "never_writes": "Production code (only specs, tests, docs)",
+      "delegates_to": "Cursor Agent CLI via scripts/kimi-cursor-orchestrator.sh",
+      "config": "~/.kimi/config.toml",
+      "reads": [
+        "../AGENTS.md",
+        "TASK.md",
+        ".cursorrules",
+        ".agent/maps/*.json"
+      ]
+    },
+    "cursor": {
+      "role": "Execution, implementation, refactoring",
+      "never_plans": "Only executes Kimi Implementation Specs",
+      "config": ".cursor/settings.json",
+      "reads": [
+        ".cursorrules",
+        ".cursor/AGENTS.md",
+        ".cursor/rules/*.mdc"
+      ]
+    }
+  },
+  "scripts": {
+    "kimi-cursor-orchestrator": "scripts/kimi-cursor-orchestrator.sh \u2014 master orchestrator",
+    "cursor-delegate": "scripts/cursor-delegate.sh \u2014 single task delegation",
+    "cursor-verify": "scripts/cursor-verify.sh \u2014 test/build/lint verification",
+    "cursor-warmup": "scripts/cursor-warmup.sh \u2014 pre-warm codebase index"
+  },
+  "hard_rules": {
+    "pairs": "EUR/USD, USD/JPY, USD/INR ONLY",
+    "db_writes": "ALL writes through pipeline/src/db/writer.py",
+    "ai_calls": "ALL AI through pipeline/src/ai/client.py (ON HOLD)",
+    "immutable": "regime_calls and validation_log are append-only",
+    "no_github_actions": "Prefect Cloud only",
+    "tests": "pytest 121 tests must pass, npm run build must pass"
+  }
+}
