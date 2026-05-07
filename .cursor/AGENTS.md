@@ -155,6 +155,46 @@ When architecture changes (new directories, new tools, new rules):
 
 ---
 
+## 12. Auto-Delegation Protocol (Kimi → Cursor)
+
+> **This section is MANDATORY for Kimi.** Before accepting ANY implementation task, evaluate whether delegation to Cursor Agent CLI yields higher expected value.
+
+### Delegation Decision Matrix
+
+Score **+1** for each "Yes":
+
+| # | Factor | Question |
+|---|--------|----------|
+| 1 | **File count** | Will this modify >3 files? |
+| 2 | **Cross-module** | Does it touch >2 of: fetchers / signals / regime / logic / web / db? |
+| 3 | **UI architecture** | Is this a new route, layout, or component hierarchy in Next.js? |
+| 4 | **Type cascade** | Does it change shared types/interfaces used in 5+ places? |
+| 5 | **Refactoring** | Is this restructuring existing code (not just adding new)? |
+| 6 | **Safety** | Would a mistake break the pipeline, corrupt Supabase data, or break the build? |
+
+### Scoring
+
+- **Score >= 3** → **DELEGATE** to Cursor Agent. The complexity justifies the cost.
+- **Score = 2** → **CONSIDER** delegation. Default to Kimi unless hidden complexity is likely.
+- **Score <= 1** → **HANDLE** with Kimi. Faster, cheaper, sufficient.
+
+### Execution Protocol
+
+**If DELEGATING:**
+1. Read `.kimi/skills/cursor-delegation/SKILL.md`
+2. Construct a self-contained prompt with: task, files, tables, tests, acceptance criteria
+3. **Plan first**: `agent --print --trust --workspace . --mode plan "..."`
+4. Review Cursor's plan. If correct, run full execution: add `--approve-mcps --yolo`
+5. After Cursor completes, **ALWAYS** run tests (`pytest`, `npm run build`)
+6. Review git diff. Only then declare success.
+
+**If HANDLING YOURSELF:**
+1. Proceed with normal Kimi workflow
+2. Use `Agent` tool (subagent) for parallel research when helpful
+3. Run tests before declaring complete
+
+---
+
 ## 12. Agent Interoperability (Kimi ↔ Cursor)
 
 This repo supports **both Kimi and Cursor** agents with unified configuration.

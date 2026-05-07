@@ -9,6 +9,24 @@ description: >-
 
 # Cursor Delegation — Kimi → Cursor Agent
 
+## Auto-Delegation Decision Matrix
+
+Before accepting ANY task, score **+1** for each "Yes":
+
+| # | Factor | Question |
+|---|--------|----------|
+| 1 | **File count** | Will this modify >3 files? |
+| 2 | **Cross-module** | Does it touch >2 of: fetchers / signals / regime / logic / web / db? |
+| 3 | **UI architecture** | Is this a new route, layout, or component hierarchy in Next.js? |
+| 4 | **Type cascade** | Does it change shared types/interfaces used in 5+ places? |
+| 5 | **Refactoring** | Is this restructuring existing code (not just adding new)? |
+| 6 | **Safety** | Would a mistake break the pipeline, corrupt Supabase data, or break the build? |
+
+### Scoring
+- **Score >= 3** → **DELEGATE** to Cursor Agent
+- **Score = 2** → **CONSIDER** delegation; default to Kimi
+- **Score <= 1** → **HANDLE** with Kimi
+
 ## When to delegate
 
 Delegate to Cursor Agent **only** for:
