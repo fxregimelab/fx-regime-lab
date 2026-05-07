@@ -1,7 +1,7 @@
 {
   "chat": {
     "defaultModel": "claude-sonnet-4-5",
-    "alwaysReadFiles": ["AGENTS.md", "TASK.md"],
+    "alwaysReadFiles": ["AGENTS.md", "TASK.md", ".cursorrules"],
     "contextStrategy": "focused"
   },
   "indexing": {
@@ -43,5 +43,17 @@
     "paths": [
       ".cursor/commands"
     ]
+  },
+  "delegation": {
+    "enabled": true,
+    "defaultModel": "claude-sonnet-4-5",
+    "autoApproveMCPs": true,
+    "trustWorkspace": true,
+    "queueDir": ".cursor/delegation/queue",
+    "logsDir": ".cursor/delegation/logs",
+    "sessionsDir": ".cursor/delegation/sessions",
+    "specsDir": ".cursor/delegation/specs",
+    "maxRetries": 2,
+    "defaultParallel": 1
   }
 }

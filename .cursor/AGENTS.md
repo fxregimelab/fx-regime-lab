@@ -250,6 +250,43 @@ Before delegating, Kimi MUST write a spec:
 
 ---
 
+## 13. Orchestration System (Advanced)
+
+For complex projects with multiple tasks, use the **Kimi-Cursor Orchestrator**.
+
+See workspace `AGENTS.md` section 12 for full orchestration documentation.
+
+Quick reference:
+
+```bash
+# Queue specs
+cp spec-*.md .cursor/delegation/queue/
+
+# Process with parallel execution
+./scripts/kimi-cursor-orchestrator.sh --process-queue --parallel 3 --yolo
+
+# Read report
+.cat .cursor/delegation/logs/*-report.md
+```
+
+### Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/kimi-cursor-orchestrator.sh` | Master orchestrator |
+| `scripts/cursor-delegate.sh` | Single-task wrapper |
+| `scripts/cursor-verify.sh` | Verification suite |
+| `scripts/cursor-warmup.sh` | Pre-warm index |
+
+- Pure research questions ("What is the current ECB rate?")
+- Architecture decisions without code changes ("Should we use zustand or context?")
+- Code review / analysis ("Explain what this function does")
+- One-line fixes (single import, single typo)
+- Running diagnostics (`pytest`, `npm run lint`, database queries)
+- Git operations (commit, branch, merge — but NEVER push --force)
+
+---
+
 ## 12. Agent Interoperability (Kimi ↔ Cursor)
 
 This repo supports **both Kimi and Cursor** agents with unified configuration.
