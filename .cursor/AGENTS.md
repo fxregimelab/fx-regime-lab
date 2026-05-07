@@ -155,4 +155,53 @@ When architecture changes (new directories, new tools, new rules):
 
 ---
 
+## 12. Agent Interoperability (Kimi ↔ Cursor)
+
+This repo supports **both Kimi and Cursor** agents with unified configuration.
+
+### Shared config
+- **Skills**: 11 `SKILL.md` files in `.cursor/skills/` — loaded by both agents
+- **Rules**: `.cursorrules` + `AGENTS.md` — readable by both
+- **Hard rules**: 3-pair lock, Supabase write patterns, design tokens — enforced by both
+
+### Kimi → Cursor Delegation
+
+For tasks requiring deep cross-file analysis or complex refactoring, Kimi can delegate to Cursor Agent CLI:
+
+```bash
+# Plan-only (safe, read-only)
+agent --print --trust --workspace . --mode plan "Plan: refactor regime classifier"
+
+# Full execution (use with caution)
+agent --print --trust --approve-mcps --yolo \
+  --workspace . \
+  --model claude-sonnet-4-5 \
+  "Task description with full context"
+```
+
+Wrapper script for structured delegation:
+```bash
+./scripts/cursor-delegate.sh \
+  --task "Add new signal module" \
+  --files "pipeline/src/signals/new.py" \
+  --tests "cd pipeline && pytest" \
+  --mode auto
+```
+
+See `.kimi/skills/cursor-delegation/SKILL.md` for the full delegation protocol.
+
+### What each agent handles best
+
+| Task type | Preferred agent | Why |
+|-----------|----------------|-----|
+| Research & planning | Kimi | Better web search, long context |
+| Single-file edits | Kimi | Faster, cheaper |
+| Multi-file refactoring (>3 files) | Cursor | Deep codebase analysis |
+| Complex Next.js architecture | Cursor | Better TypeScript/React understanding |
+| Pipeline math & signals | Kimi or Cursor | Both capable; use skills |
+| Database migrations | Kimi | Safer, more deliberate |
+| Deployment ops | Kimi | Shell command precision |
+
+---
+
 *Last updated: 2026-05-06*
