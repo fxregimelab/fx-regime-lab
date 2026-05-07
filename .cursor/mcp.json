@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "supabase-fx-regime-lab": {
+      "url": "https://mcp.supabase.com/mcp"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "{{ $GITHUB_TOKEN }}"
+      }
+    },
+    "vercel": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-vercel"],
+      "env": {
+        "VERCEL_TOKEN": "{{ $VERCEL_TOKEN }}"
+      }
+    },
+    "cloudflare": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-cloudflare"],
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "{{ $CLOUDFLARE_API_TOKEN }}"
+      }
+    }
+  }
+}

@@ -1,72 +1,58 @@
 ---
 name: pipeline-data-fetch
 description: >-
-  Standardizes external data fetching for the FX Regime Lab pipeline: FRED API,
-  CME CVOL API, CME open-interest scrape, CFTC COT download, and yfinance. Use
-  when building, refactoring, or debugging any function that pulls remote market
-  data into this repo.
+  Standardizes external data fetching for FX Regime Lab pipeline.
+  Use when building, refactoring, or debugging remote market data pulls.
 ---
 
-# Pipeline data fetch (external sources)
-
-## Role
-
-Own the **fetch layer** only: HTTP/API/download calls and thin parsing. Downstream code normalizes rows for Supabase/CSV; this skill defines **return shape**, **status semantics**, **errors**, and **rate limits**.
+# Pipeline Data Fetch (External Sources)
 
 ## Scope
 
 - FRED API
 - CME CVOL API
-- CME open-interest scrape (HTML/JSON as implemented)
-- CFTC COT file download
-- `yfinance` equity/FX pulls
-
-Stay within approved project libraries (`requests`, `yfinance`, etc.); do not add dependencies without explicit approval.
+- CME open-interest
+- CFTC COT download
+- yfinance
 
 ## Standard return value
 
-Every fetch helper returns a **single standardized dict** (one logical observation), not a bare scalar:
+Every fetch helper returns a **dict**:
 
 ```python
 {
-    "value": ...,       # last good numeric or serializable value; None if unavailable
-    "date": ...,        # observation date (date, datetime, or ISO str—match caller contract)
-    "source": str,      # short id, e.g. "fred:DGS10", "cme:cvol:6E", "cot:EUR", "yfinance:EURUSD=X"
+    "value": ...,       # last good numeric; None if unavailable
+    "date": ...,        # observation date
+    "source": str,      # e.g. "fred:DGS10", "yfinance:EURUSD=X"
     "status": str,      # "OK" | "STALE" | "FAILED"
 }
 ```
 
-- **OK** — Data for the **target** business/observation date (or latest available when the source legitimately publishes with a known lag, document in the docstring).
-- **STALE** — Deliberately using a **previous** observation: e.g. today’s fetch failed and a **cached or last-known** value from the prior day is returned, or the API only returned data through T-1 and the pipeline accepts that as the working value for “today.”
-- **FAILED** — No usable value after fallback (e.g. no cache and network/parse error). `value` should be `None`; still **do not raise** out of the fetch helper.
+- **OK** — Data for target date available.
+- **STALE** — Using previous observation (cached or T-1).
+- **FAILED** — No usable value after fallback. `value` is `None`.
 
 ## On failure
 
-1. Wrap every external call in `try`/`except`.
-2. **Log to Supabase `pipeline_errors`** (date/run context, `source`, error message, timestamp). Reuse the project’s shared helper if it exists; otherwise follow [.cursor/skills/fx-regime-supabase-writes/SKILL.md](../fx-regime-supabase-writes/SKILL.md).
-3. **Return previous-day (last-known) value** when available and set **`status` to `STALE`**.
-4. If nothing is available, return **`value: None`**, **`status: "FAILED"`**, with the best-known **`date`** (e.g. target date or last attempted).
-5. **Never raise** from the public fetch entrypoint—the pipeline continues; callers aggregate STALE/FAILED for the brief.
+1. Wrap every external call in `try/except`.
+2. Log to Supabase `pipeline_errors`.
+3. Return previous-day value with `status: "STALE"` if available.
+4. Return `value: None, status: "FAILED"` if nothing available.
+5. **Never raise** from public fetch entrypoint.
 
-Do not log API keys, OAuth tokens, or secrets.
+## Rate limits
 
-## Rate limits and pacing
-
-| Source   | Rule |
-|----------|------|
-| **FRED** | Assume **120 requests/minute** budget; batch series where possible, avoid tight loops of one-series-per-request without throttling or consolidation. |
-| **CME**  | Respect **OAuth/API** quota documented for the product in use; backoff on 429; avoid parallel bursts that exceed the app’s registered limits. |
-| **yfinance** | **≥ 1 second delay** between sequential calls (sleep or shared rate limiter) to reduce throttling and ban risk. |
-| **CFTC** | Large file downloads: single connection per run where possible; handle timeouts with retry/backoff inside `try`/`except`, still ending in the standard dict (not raise). |
+| Source | Rule |
+|--------|------|
+| FRED | 120 req/min; batch series where possible |
+| CME | Respect OAuth quota; backoff on 429 |
+| yfinance | ≥ 1 sec delay between sequential calls |
+| CFTC | Single connection per run; handle timeouts |
 
 ## Implementation checklist
 
-- [ ] Public function returns the four-key dict above.
-- [ ] `source` is stable and grep-friendly for ops.
-- [ ] Exceptions caught; `pipeline_errors` row on failure path.
-- [ ] Rate limiting / delay applied per table above.
-- [ ] Docstring states: target date semantics, what `value` means, and when `STALE` vs `OK` is set.
-
-## Conflicts
-
-If this skill disagrees with `CURSOR_RULES.md`, `AGENTS.md`, or workspace rules, **project docs win**.
+- [ ] Returns four-key dict.
+- [ ] `source` is stable and grep-friendly.
+- [ ] Exceptions caught; `pipeline_errors` row on failure.
+- [ ] Rate limiting applied per table above.
+- [ ] Docstring states target date semantics and status rules.

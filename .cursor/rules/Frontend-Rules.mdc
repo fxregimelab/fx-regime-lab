@@ -1,0 +1,73 @@
+---
+description: Rules for Next.js frontend development
+globs: web/src/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Frontend Rules — Next.js 15+ / Tailwind CSS 4
+
+## Stack
+
+- Next.js 15+ (App Router)
+- React 19, TypeScript 5
+- Tailwind CSS 4
+- TanStack Query (data fetching)
+- Recharts (charts)
+- KaTeX (math rendering)
+- lightweight-charts (candlestick/price)
+
+## TypeScript Hard Rules
+
+- `strict: true` in `tsconfig.json` — never disable.
+- Use generated Supabase types from `web/src/lib/supabase/database.types.ts`. **Never** hand-write DB row interfaces.
+- All `fetch` calls typed with explicit return types.
+- No `any` without explicit `// eslint-disable-next-line @typescript-eslint/no-explicit-any`.
+
+## Design System — Swiss Monochrome
+
+| Token | Value |
+|-------|-------|
+| Background (Terminal) | `#000000` |
+| Background (Shell) | `#ffffff` |
+| Text primary | `#ffffff` (dark) / `#000000` (light) |
+| Text secondary | `#6b7280` |
+| Border | `1px solid #1e293b` (dark) / `#e5e7eb` (light) |
+| EUR/USD accent | `#4da6ff` |
+| USD/JPY accent | `#ff9944` |
+| USD/INR accent | `#e74c3c` |
+
+- **No soft shadows**. No `shadow-lg`, `shadow-md`, etc.
+- **No rounded corners**. No `rounded`, `rounded-lg`, `rounded-xl`.
+- **No decorative animations**. Functional transitions only (e.g., hover states, data updates).
+- All financial numbers use `tabular-nums`.
+- Font: JetBrains Mono for numeric values, Inter or system sans for body.
+
+## Component Conventions
+
+- Prefer server components. Use `'use client'` only when:
+  - Interactivity (hooks, event handlers) is required
+  - Browser APIs (localStorage, WebSocket) are needed
+  - TanStack Query `useQuery` is used
+- Co-locate components with their pages when page-specific.
+- Shared UI primitives go in `web/src/components/ui/`.
+- All chart components in `web/src/components/charts/`.
+
+## Data Fetching
+
+- Server components: `fetch` with `revalidate` or `cache: 'force-cache'`.
+- Client components: TanStack Query `useQuery` / `useSuspenseQuery`.
+- Supabase client: use `createServerClient` (server) or `createBrowserClient` (client).
+- Never expose `SUPABASE_SERVICE_ROLE_KEY` to the frontend.
+
+## Routing
+
+- App Router only. No `pages/` directory.
+- Route groups for layout segregation: `(shell)/`, `(terminal)/`.
+- Dynamic routes: `[slug]/` not `[...slug]` unless explicitly needed.
+
+## Anti-Patterns
+
+- Do NOT add new pairs to the UI (3-pair lock).
+- Do NOT use `fetch` inside `useEffect` — use TanStack Query.
+- Do NOT import Node.js modules into client components.
+- Do NOT add CSS-in-JS libraries (styled-components, emotion). Tailwind only.

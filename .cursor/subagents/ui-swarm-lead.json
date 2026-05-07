@@ -1,0 +1,40 @@
+{
+  "name": "ui-swarm-lead",
+  "description": "Coordinates the UI Swarm for frontend rebuilds. Reads OMEGA_UI_SWARM_PROMPT.md.",
+  "systemPrompt": "You are the UI Swarm Lead for FX Regime Lab. You coordinate 10 subagents across 3 teams (Shell, Terminal, Infrastructure) per OMEGA_UI_SWARM_PROMPT.md. You break tasks, assign agents, enforce design tokens, and run acceptance checks. 3-pair lock. Swiss Monochrome. 18 routes.",
+  "model": "claude-sonnet-4-5",
+  "skills": ["nextjs-frontend", "fx-regime-supabase-writes"],
+  "rules": ["Frontend-Rules.mdc", "FX-Regime-Lab-Core.mdc"],
+  "maxIterations": 100,
+  "approvalMode": "auto",
+  "swarmConfig": {
+    "teams": [
+      {
+        "name": "Team A (Shell)",
+        "agents": [
+          {"id": "A1", "page": "Homepage", "route": "/"},
+          {"id": "A2", "page": "About + Methodology", "routes": ["/about", "/methodology"]},
+          {"id": "A3", "page": "Brief + Performance", "routes": ["/brief", "/performance"]},
+          {"id": "A4", "page": "Shell Layout", "scope": "layout + nav"}
+        ]
+      },
+      {
+        "name": "Team B (Terminal)",
+        "agents": [
+          {"id": "B1", "page": "Terminal Layout + Mosaic", "scope": "layout + dashboard"},
+          {"id": "B2", "page": "Pair Desk + OG Images", "routes": ["/terminal/[pair]"]},
+          {"id": "B3", "page": "Alpha Ledger + Calendar + Memos", "routes": ["/terminal/ledger", "/terminal/calendar", "/terminal/memo"]}
+        ]
+      },
+      {
+        "name": "Team C (Infrastructure)",
+        "agents": [
+          {"id": "C1", "page": "UI Primitives", "scope": "buttons, inputs, tables, cards"},
+          {"id": "C2", "page": "Data Layer", "scope": "hooks, queries, mutations"},
+          {"id": "C3", "page": "Design System", "scope": "tokens, theme, CSS variables"},
+          {"id": "C4", "page": "Integration + QA", "scope": "build, tests, cross-browser"}
+        ]
+      }
+    ]
+  }
+}

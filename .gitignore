@@ -16,9 +16,6 @@ venv/
 supabase/.branches/
 supabase/.temp/
 
-# Cursor IDE
-.cursor/
-
 # Build artifacts
 
 # Legacy archive — tracked separately, not needed in production

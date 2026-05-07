@@ -2,19 +2,54 @@
 alwaysApply: true
 ---
 
-You are building the FX Regime Lab — a live quantamental macro intelligence platform. 
+# FX Regime Lab — Core Rules
 
-Read CONTEXT.md and CURSOR_RULES.md before every session (under contaxt files/ in-repo). Read PLAN.md when starting any new phase. Orchestration truth: **run.py** (see AGENTS.md).
+You are building the FX Regime Lab — a live quantamental macro intelligence platform for G10 FX regime classification.
 
-Hard rules:
-- Python only. pandas, numpy, requests, supabase-py, yfinance, scipy. No new dependencies without asking.
-- Every signal must pass: institutional validity, independence, data availability, regime relevance. If it fails any test, stop and say why.
-- All persistent data writes to Supabase first, CSV fallback second. Never write-only to CSV.
-- Use upsert with on_conflict='date,pair' for all daily signal tables. Never plain insert.
-- All environment variables from GitHub Actions secrets. Never hardcode API keys, URLs, or dates.
-- Wrap every API call in try/except. Pipeline never dies because one source fails.
-- **Public UI:** No shipped `web/` or static `site/` product in-repo. Future UX: `claude-design/` + `docs/DESIGN_SYSTEM.md`. Legacy UI prompt: `docs/FX_REGIME_LAB_UI_PROMPT_V2.md` if still relevant.
-- **Pipeline / chart outputs:** dark theme pair accents EUR/USD #4da6ff, USD/JPY #ff9944, USD/INR #e74c3c unless a task changes styling.
-- No ML models, no FinBERT, no social media sentiment until explicitly instructed.
-- Before writing code, state: what you're building, what Supabase tables it writes to, what the output looks like.
-- If a request would break existing pipeline execution sequence, stop and flag it before proceeding.
+## Read Before Every Session
+
+1. `AGENTS.md` — project overview, tech stack, build commands, testing
+2. `OMEGA_PROTOCOL.md` — 13-persona council and 6-phase OMEGA loop
+3. `TASK.md` — current sprint status and checklist
+4. `docs/SIGNAL_DEFINITIONS.md` — exact math, weights, thresholds
+
+## Hard Rules — Non-Negotiable
+
+- **3-pair lock**: EUR/USD, USD/JPY, USD/INR ONLY. No new pairs without explicit roadmap approval.
+- **Python only** in pipeline. pandas, numpy, requests, supabase-py, yfinance, scipy, statsmodels. No new dependencies without asking.
+- **No async/await** in pipeline modules. Sequential execution only.
+- **All Supabase writes** through `pipeline/src/db/writer.py` ONLY.
+- **All AI calls** through `pipeline/src/ai/client.py` ONLY. AI briefs are ON HOLD.
+- **Every signal** must pass: institutional validity, independence, data availability, regime relevance.
+- **All persistent data** writes to Supabase first, CSV fallback second. Never write-only to CSV.
+- **Upsert** with `on_conflict='date,pair'` for all daily signal tables. Never plain insert.
+- **Environment variables only**. Never hardcode API keys, URLs, or dates.
+- **Wrap every API call** in try/except. Pipeline never dies because one source fails.
+- **Immutable track record**: `regime_calls` and `validation_log` rows are append-only. Never modify historical data.
+- **No ML models**, no FinBERT, no social media sentiment until explicitly instructed.
+- **mypy strict + ruff** on all pipeline code. `pytest` must pass (121 tests).
+- **No GitHub Actions** for pipeline automation. Prefect Cloud only.
+
+## Architecture
+
+- **Pipeline**: `pipeline/src/` — Python 3.11+, Prefect Cloud orchestration (`pipeline/prefect.yaml`).
+- **Frontend**: `web/` — Next.js 15+ (App Router), TypeScript 5, Tailwind CSS 4, TanStack Query, Recharts.
+- **Database**: Supabase PostgreSQL. Migrations in `supabase/migrations/`. Schema: `sql/schema.sql`.
+- **Worker**: `workers/site-entry.js` — Cloudflare Worker, API-only.
+
+## Frontend Hard Rules
+
+- Strict TypeScript. Use generated Supabase types: `web/src/lib/supabase/database.types.ts`.
+- **Swiss Monochrome**: pure black `#000000`, white text, sharp 1px borders. No shadows, no rounded corners.
+- All financial data uses `tabular-nums`.
+- KaTeX for math rendering.
+- 3-pair lock in all UI surfaces.
+
+## Before Writing Code
+
+State explicitly:
+1. What you're building
+2. What files it touches
+3. What Supabase tables it reads/writes
+4. What tests you will run (`cd pipeline && pytest`)
+5. Acceptance criteria

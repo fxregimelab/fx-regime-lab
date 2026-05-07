@@ -1,63 +1,61 @@
-﻿---
-description:
+---
+description: Auto-loads on every session start
 globs:
 alwaysApply: true
 ---
+
 # Session Start Protocol
-
-NOTE: alwaysApply:true has a known bug in Cursor 3.0.16+ where it silently downgrades to requestable. If this rule did not auto-load, manually run: @CONTEXT.md @contaxt files/PLAN.md at the start of the session before any other task.
-
----
 
 ## STEP 0 — READ BEFORE TOUCHING ANYTHING
 
-1. Read CONTEXT.md — full project context, locked decisions, current state
-2. Read contaxt files/PLAN.md — current phase, current session deliverable, what comes next
+1. Read `AGENTS.md` — full project context, locked decisions, current state
+2. Read `TASK.md` — current sprint status
+3. Read `OMEGA_PROTOCOL.md` — persona council for complex decisions
+4. If working on signals/math: read `docs/SIGNAL_DEFINITIONS.md`
+5. If working on frontend: read `OMEGA_UI_SWARM_PROMPT.md`
 
-State the current phase and today's session deliverable explicitly before writing any code:
-"Today's session will build [X]. It will write to [Supabase tables / site path]. It is run.py step [NAME]."
-
----
+State the current focus and today's deliverable explicitly before writing code:
+> "Today's session will build [X]. It touches [files]. It writes to [Supabase tables]. Tests: [pytest / npm run build]."
 
 ## CANONICAL PIPELINE ORDER — NEVER DEVIATE
 
-run.py STEPS (exact, fixed, immutable):
-fx → cot → inr → vol → oi → rr → merge → text → macro → ai → substack → html → validate → deploy
+Prefect Cloud runs `src/scheduler/orchestrator.py:run_daily` with this fixed sequence:
+```
+yields → fx_spot → cot → volatility → open_interest → macro_calendar → cross_asset
+  → signals (rate, cot, vol, oi)
+  → regime (classifier, composite, confidence)
+  → logic (layer1_gate, layer2_directional, layer3_execution)
+  → db/writer (persist)
+  → validation (backtest, append-only)
+  → brief (generate)
+```
 
 - Never reorder these steps
-- Never suggest parallelization
-- Never make steps conditional
-- New pipelines are added to CANONICAL_ORDER only with explicit instruction
-- If user asks to reorder: push back. Only proceed if user types "override canonical order"
-
----
+- Never suggest parallelization in pipeline modules
+- New pipelines are added to the orchestrator only with explicit instruction
 
 ## PROTECTED DIRECTORIES — NEVER TOUCH
 
-- data/          → bulk output, never read or reference
-- briefs/        → generated briefs, never read or reference
-- runs/          → pipeline run logs, never read or reference
-- _docs/         → Obsidian vault, NEVER modify, NEVER read, NEVER touch
-- .venv/         → virtual environment, never modify
-
----
+- `data/` — bulk output, never read or reference
+- `briefs/` — generated briefs, never read or reference
+- `runs/` — pipeline run logs, never read or reference
+- `_docs/` — Obsidian vault, NEVER modify
+- `_legacy_archive/` — archived material, read-only
+- `.venv/` — virtual environment
 
 ## PROJECT BOUNDARIES
 
-- Python only. No C++. No Node.js backend. No JavaScript frameworks.
-- site/ is static HTML/CSS/JS only. No React. No bundlers.
+- Python only in pipeline. No C++. No Node.js backend.
+- Next.js frontend in `web/` only. No React in pipeline.
 - All persistent data goes to Supabase. Not local files in production.
 - One file per signal module. Do not combine pipeline logic.
 - No new dependencies without explicit approval.
 
----
-
 ## BEFORE WRITING ANY CODE
 
-- [ ] CONTEXT.md read and confirmed
-- [ ] contaxt files/PLAN.md read and confirmed
+- [ ] `AGENTS.md` read and confirmed
+- [ ] `TASK.md` read and confirmed
 - [ ] Session deliverable stated explicitly
 - [ ] No conflict with existing Supabase schema
 - [ ] No existing script does what you are about to build
-
----
+- [ ] `cd pipeline && pytest` passes before changes (baseline)

@@ -1,23 +1,53 @@
-# FX Regime Lab — Cursor Rules
+# FX Regime Lab — Cursor Rules (v2.0)
+# Last updated: 2026-05-06
 
 ## Read First
 
-Always read ARCHITECTURAL_BLUEPRINT.md before starting any task. Use MOC.md for navigation.
+Before every task, read:
+1. `AGENTS.md` — project overview, tech stack, hard rules
+2. `OMEGA_PROTOCOL.md` — persona council and 6-phase workflow
+3. `TASK.md` — current sprint status
 
-Production Next.js frontend is in **`/web`**. Design prototypes are in **`claude-design/`**.
+For frontend work, also read `OMEGA_UI_SWARM_PROMPT.md`.
+For math work, also read `docs/SIGNAL_DEFINITIONS.md`.
 
-## Hard Rules — Python
+## Architecture Overview
 
-- All Supabase writes through `pipeline/src/db/writer.py` only
-- All AI calls through `pipeline/src/ai/client.py` only
-- mypy strict on all pipeline code
-- Ruff lint on all pipeline code
+- **Pipeline**: Python 3.11+ in `pipeline/src/`. Prefect Cloud orchestration (`prefect.yaml`). No GitHub Actions.
+- **Frontend**: Next.js 15+ (App Router) in `web/`. TypeScript 5, Tailwind CSS 4, TanStack Query, Recharts.
+- **Database**: Supabase PostgreSQL. Migrations in `supabase/migrations/`. Schema source: `sql/schema.sql`.
+- **Worker**: Cloudflare Worker API-only (`workers/site-entry.js`).
+- **AI Briefs**: ON HOLD. Do not implement AI brief generation without explicit override.
 
-## Hard Rules — Web
+## Hard Rules — Python Pipeline
 
-- Strictly use generated Supabase types from `web/src/lib/supabase/database.types.ts`.
-- No soft shadows, no rounded corners (Institutional Aesthetic).
-- All financial data must use `tabular-nums`.
+- All Supabase writes through `pipeline/src/db/writer.py` ONLY.
+- All AI calls through `pipeline/src/ai/client.py` ONLY (currently on hold).
+- Python 3.11+, `from __future__ import annotations` at top of every module.
+- mypy strict + ruff lint on all pipeline code. Exclude `src/legacy/`.
+- Use `np.float64` explicitly. Vectorized operations preferred. Rolling stats must be causal.
+- Every fetcher wrapped in try/except. Pipeline never dies because one source fails.
+- 3-pair lock: EUR/USD, USD/JPY, USD/INR ONLY. No new pairs without roadmap approval.
+- No ML models, no FinBERT, no social media sentiment.
+- Immutable track record: `regime_calls` and `validation_log` are append-only. Never modify historical rows.
+
+## Hard Rules — Web Frontend
+
+- Strict TypeScript: `strict: true`. Use generated Supabase types from `web/src/lib/supabase/database.types.ts`. Never hand-write DB row interfaces.
+- **Swiss Monochrome aesthetic**: pure black `#000000`, white text, sharp 1px borders. No soft shadows, no rounded corners, no decorative animations.
+- All financial numbers must use `tabular-nums`.
+- Math rendering: KaTeX for formulas.
+- 3-pair lock reflected in ALL frontend surfaces.
+- No `use client` hooks in server components unless data fetching requires it.
+
+## Hard Rules — Database
+
+- All migrations timestamp-ordered in `supabase/migrations/`.
+- Schema source of truth: `sql/schema.sql`.
+- Upsert with `on_conflict='date,pair'` for daily signal tables.
+- Explicit column lists on selects — never `select("*")`.
+- `pipeline_errors` table for all failure logging.
+- RLS: public tables have `SELECT` for anon. `pipeline_errors` has NO anon `SELECT`.
 
 ## File Location Map
 
@@ -25,8 +55,33 @@ Production Next.js frontend is in **`/web`**. Design prototypes are in **`claude
 |------------|----------|
 | Add a fetcher | `pipeline/src/fetchers/` |
 | Add a signal | `pipeline/src/signals/` |
-| Change regime logic | `pipeline/src/regime/` |
-| Change AI prompts | `pipeline/src/ai/client.py` |
+| Change regime logic | `pipeline/src/regime/` or `pipeline/src/logic/` |
+| Change 3-layer math | `pipeline/src/logic/layer1_gate.py`, `layer2_directional.py`, `layer3_execution.py` |
+| Change AI prompts | `pipeline/src/ai/client.py` (ON HOLD) |
 | Write to DB | `pipeline/src/db/writer.py` |
-| Change Frontend | `web/src/` |
-| Understand target UX | `claude-design/` |
+| Change frontend | `web/src/` |
+| Add DB migration | `supabase/migrations/` |
+| Change worker API | `workers/site-entry.js` |
+| Change deployment | `pipeline/prefect.yaml` |
+
+## Deployment
+
+- **Prefect Cloud**: `cd pipeline && prefect deploy --prefect-file prefect.yaml --name Daily_G10_Alpha_Engine`
+- **Cloudflare Worker**: `npx wrangler deploy` from repo root
+- **Vercel**: `cd web && vercel --prod` (no current production deploy from this repo)
+- **NO GitHub Actions** for pipeline automation. Do not re-introduce `.github/workflows/`.
+
+## Environment Variables
+
+Required in `.env` (never commit):
+- `FRED_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, `SUPABASE_PROJECT_REF`, `OPENROUTER_API_KEY`
+- Optional: `ALPHAVANTAGE_API_KEY`, `SITE_PUBLIC_URL`
+
+## Before Writing Code
+
+State explicitly:
+1. What you're building
+2. What files it touches
+3. What Supabase tables it reads/writes
+4. What tests you will run
+5. What the acceptance criteria are

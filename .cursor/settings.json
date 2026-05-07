@@ -1,7 +1,7 @@
 {
   "chat": {
     "defaultModel": "claude-sonnet-4-5",
-    "alwaysReadFiles": ["TASK.md"],
+    "alwaysReadFiles": ["AGENTS.md", "TASK.md"],
     "contextStrategy": "focused"
   },
   "indexing": {
@@ -22,5 +22,26 @@
     "vercel": {
       "enabled": true
     }
+  },
+  "skills": {
+    "autoLoad": true,
+    "paths": [
+      ".cursor/skills"
+    ]
+  },
+  "subagents": {
+    "autoLoad": true,
+    "paths": [
+      ".cursor/subagents"
+    ]
+  },
+  "hooks": {
+    "preSession": ".cursor/hooks/pre-session.md",
+    "postSession": ".cursor/hooks/post-session.md"
+  },
+  "commands": {
+    "paths": [
+      ".cursor/commands"
+    ]
   }
 }
