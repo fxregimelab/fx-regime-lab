@@ -31,7 +31,7 @@ export function MemoSidebar() {
               <li key={m.id}>
                 <button
                   type="button"
-                  onClick={() => setReaderId(m.id)}
+                  onClick={() => setReaderId(String(m.id))}
                   className="w-full border border-transparent bg-transparent text-left font-mono text-[11px] text-[#e0e0e0] transition-colors hover:border-[#333] hover:bg-[#0a0a0a]"
                 >
                   <span className="block truncate">{m.title}</span>

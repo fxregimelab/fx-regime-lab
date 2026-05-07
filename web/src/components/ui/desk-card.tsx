@@ -104,7 +104,7 @@ export function DeskCardTelemetryRow({
       <span className="font-mono text-[11px] text-[#FFFFFF] tabular-nums min-w-0 text-right">
         <BinaryResolve
           value={spot != null ? fmt2(spot) : "—"}
-          resolveKey={spot ?? null}
+          resolveKey={spot ?? 0}
           paused={paused}
         />
       </span>
@@ -301,7 +301,7 @@ export function DeskCard({
                 <p className="font-mono text-[10px] tabular-nums text-[#e8e8e8]">
                   <BinaryResolve
                     value={fmtM(zT)}
-                    resolveKey={zT}
+                    resolveKey={zT ?? 0}
                     paused={pausedBinaryResolve}
                   />
                 </p>
@@ -313,7 +313,7 @@ export function DeskCard({
                 <p className="font-mono text-[10px] tabular-nums text-[#e8e8e8]">
                   <BinaryResolve
                     value={fmtM(zS)}
-                    resolveKey={zS}
+                    resolveKey={zS ?? 0}
                     paused={pausedBinaryResolve}
                   />
                 </p>
@@ -329,7 +329,7 @@ export function DeskCard({
                         ? "—"
                         : painIndex.toFixed(2)
                     }
-                    resolveKey={painIndex}
+                    resolveKey={painIndex ?? 0}
                     paused={pausedBinaryResolve}
                   />
                 </p>
@@ -341,7 +341,7 @@ export function DeskCard({
                 <p className="font-mono text-[10px] tabular-nums text-[#e8e8e8]">
                   <BinaryResolve
                     value={fmtM(dynBeta)}
-                    resolveKey={dynBeta}
+                    resolveKey={dynBeta ?? 0}
                     paused={pausedBinaryResolve}
                   />
                 </p>
@@ -376,7 +376,7 @@ export function DeskCard({
           >
             <BinaryResolve
               value={spot != null ? fmt2(spot) : "—"}
-              resolveKey={spot ?? null}
+              resolveKey={spot ?? 0}
               paused={pausedBinaryResolve}
             />
           </p>
@@ -569,7 +569,7 @@ export function DeskCard({
             whisperActive ? (
               <GhostResolve
                 value={whisper}
-                resolveKey={whisper}
+                resolveKey={whisper ?? ""}
                 active
                 paused={pausedBinaryResolve}
               />
@@ -582,7 +582,7 @@ export function DeskCard({
           {corrActive && corrLockedWhisper ? (
             <GhostResolve
               value={corrLockedWhisper}
-              resolveKey={corrLockedWhisper}
+              resolveKey={corrLockedWhisper ?? ""}
               active
               paused={pausedBinaryResolve}
             />

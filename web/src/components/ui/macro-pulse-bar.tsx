@@ -1,129 +1,85 @@
 "use client";
 
-import { useCrossAssetPulse } from "@/lib/queries";
-import React from "react";
-import { fmt2, fmtChg } from "./utils";
+import React, { useMemo } from "react";
 
-// Exact bar height constant — import this in TerminalNav to offset sticky positioning
-export const PULSE_BAR_H = 28; // px
-
-function PulseItem({
-  label,
-  value,
-  change,
-  isPct = false,
-}: {
-  label: string;
-  value: number | null;
-  change: number | null;
-  isPct?: boolean;
-}) {
-  const chg = fmtChg(change);
-  return (
-    <div className="flex items-baseline gap-1.5 shrink min-w-0">
-      <span className="font-mono text-[9px] text-[#555] tracking-widest">
-        {label}
-      </span>
-      <span className="font-mono text-[10px] font-bold text-[#e8e8e8] tabular-nums">
-        {value != null ? fmt2(value) + (isPct ? "%" : "") : "—"}
-      </span>
-      {change != null && (
-        <span
-          className="font-mono text-[9px] tabular-nums"
-          style={{ color: chg.color }}
-        >
-          {chg.str}
-        </span>
-      )}
-    </div>
-  );
+interface MacroPulseBarProps {
+  dxy?: number;
+  us10y?: number;
+  vix?: number;
+  wti?: number;
 }
 
-const DIVIDER = <div className="w-[1px] h-2.5 bg-[#1a1a1a] shrink-0" />;
+export const MacroPulseBar: React.FC<MacroPulseBarProps> = ({
+  dxy = 0,
+  us10y = 0,
+  vix = 0,
+  wti = 0,
+}) => {
+  const items = useMemo(
+    () => [
+      { label: "DXY", value: dxy, decimals: 2 },
+      { label: "US10Y", value: us10y, decimals: 2 },
+      { label: "VIX", value: vix, decimals: 2 },
+      { label: "WTI", value: wti, decimals: 2 },
+    ],
+    [dxy, us10y, vix, wti]
+  );
 
-type MacroPulseBarProps = {
-  /** Rendered inside `GlobalMacroPulse` (fixed shell); omit sticky — parent is `fixed top-0`. */
-  embeddedInGlobalChrome?: boolean;
-};
+  const content = (
+    <div
+      style={{
+        display: "flex",
+        gap: "var(--space-8, 2rem)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {items.map((item) => (
+        <span
+          key={item.label}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "var(--space-1-5, 0.375rem)",
+            fontFamily: "var(--font-mono), ui-monospace, monospace",
+            fontVariantNumeric: "tabular-nums",
+            fontSize: "var(--text-xs, 0.6875rem)",
+            color: "var(--terminal-fg-muted, #a8a29e)",
+          }}
+        >
+          <span style={{ color: "var(--terminal-fg-dim, #78716c)" }}>{item.label}</span>
+          <span style={{ color: "var(--terminal-fg, #e7e5e4)" }}>
+            {item.value.toFixed(item.decimals)}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
 
-export function MacroPulseBar({
-  embeddedInGlobalChrome = false,
-}: MacroPulseBarProps) {
-  const { data, isPending } = useCrossAssetPulse();
-
-  const shell = embeddedInGlobalChrome
-    ? "w-full h-[28px] shrink-0 bg-[#000000] flex items-center overflow-hidden whitespace-nowrap"
-    : "w-full h-[28px] shrink-0 sticky top-0 z-[100] bg-[#000000] border-b border-[#111] flex items-center overflow-hidden whitespace-nowrap";
-
-  // Fixed height h-[28px] — never grows, never shifts
   return (
     <div
-      className={shell}
-      style={{ height: `${PULSE_BAR_H}px`, maxHeight: `${PULSE_BAR_H}px` }}
+      style={{
+        borderTop: "1px solid var(--terminal-border, #292524)",
+        borderBottom: "1px solid var(--terminal-border, #292524)",
+        background: "var(--terminal-bg-sunken, #0a0807)",
+        padding: "var(--space-2, 0.5rem) 0",
+        overflow: "hidden",
+      }}
+      data-surface="terminal"
     >
-      {/* Scrolling marquee — bar height is fixed; inner row must not expand the track */}
-      <div className="flex w-max min-w-full h-[28px] max-h-[28px] items-center gap-6 px-6 animate-pulse-marquee whitespace-nowrap overflow-hidden">
-        {isPending || !data ? (
-          <span className="font-mono text-[9px] text-[#333] tracking-widest animate-pulse">
-            SYNCING MACRO PULSE...
-          </span>
-        ) : (
-          <>
-            <PulseItem
-              label="DXY"
-              value={data.dxy.value}
-              change={data.dxy.change}
-            />
-            {DIVIDER}
-            <PulseItem
-              label="US10Y"
-              value={data.us10y.value}
-              change={data.us10y.change}
-              isPct
-            />
-            {DIVIDER}
-            <PulseItem
-              label="VIX"
-              value={data.vix.value}
-              change={data.vix.change}
-            />
-            {DIVIDER}
-            <PulseItem
-              label="WTI"
-              value={data.oil.value}
-              change={data.oil.change}
-            />
-            {/* Duplicate for seamless loop */}
-            <span className="mx-6 text-[#1a1a1a] font-mono text-[9px]">
-              ·····
-            </span>
-            <PulseItem
-              label="DXY"
-              value={data.dxy.value}
-              change={data.dxy.change}
-            />
-            {DIVIDER}
-            <PulseItem
-              label="US10Y"
-              value={data.us10y.value}
-              change={data.us10y.change}
-              isPct
-            />
-            {DIVIDER}
-            <PulseItem
-              label="VIX"
-              value={data.vix.value}
-              change={data.vix.change}
-            />
-            {DIVIDER}
-            <PulseItem
-              label="WTI"
-              value={data.oil.value}
-              change={data.oil.change}
-            />
-          </>
-        )}
+      <div
+        className="animate-ticker-marquee"
+        style={{
+          display: "flex",
+          width: "max-content",
+        }}
+      >
+        {content}
+        {content}
+        {content}
+        {content}
       </div>
     </div>
   );
-}
+};
+
+export default MacroPulseBar;

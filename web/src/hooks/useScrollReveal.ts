@@ -1,37 +1,41 @@
 "use client";
 
-import { useEffect } from "react";
-import { useReducedMotion } from "./useReducedMotion";
+import { useEffect, useRef, useState, useCallback } from "react";
 
-export function useScrollReveal(selector = ".reveal") {
-  const reducedMotion = useReducedMotion();
+export function useScrollReveal<T extends HTMLElement>(options?: {
+  threshold?: number;
+  rootMargin?: string;
+}) {
+  const ref = useRef<T>(null);
+  const [revealed, setRevealed] = useState(false);
+
+  const reveal = useCallback(() => {
+    setRevealed(true);
+  }, []);
 
   useEffect(() => {
-    if (reducedMotion) {
-      const elements = document.querySelectorAll(selector);
-      for (const el of elements) {
-        el.classList.add("revealed");
-      }
-      return;
-    }
+    const el = ref.current;
+    if (!el) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) {
+        entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add("revealed");
-            observer.unobserve(entry.target);
+            setRevealed(true);
           }
-        }
+        });
       },
-      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" },
+      {
+        threshold: options?.threshold ?? 0.1,
+        rootMargin: options?.rootMargin ?? "0px 0px -40px 0px",
+      }
     );
 
-    const elements = document.querySelectorAll(selector);
-    for (const el of elements) {
-      observer.observe(el);
-    }
-
+    observer.observe(el);
     return () => observer.disconnect();
-  }, [selector, reducedMotion]);
+  }, [options?.threshold, options?.rootMargin]);
+
+  return { ref, revealed, reveal };
 }
+
+export default useScrollReveal;

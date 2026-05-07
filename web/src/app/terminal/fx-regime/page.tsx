@@ -157,7 +157,7 @@ function MosaicCell({
         >
           <BinaryResolve
             value={spotNum != null ? fmt2(spotNum) : "—"}
-            resolveKey={spotNum}
+            resolveKey={spotNum ?? 0}
             paused={pausedBinaryResolve ?? isDimmed}
           />
         </p>

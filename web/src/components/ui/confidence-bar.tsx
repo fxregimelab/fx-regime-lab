@@ -1,4 +1,4 @@
-import { BRAND } from "@/lib/mockData";
+
 
 interface ConfidenceBarProps {
   value?: number | null;
@@ -12,7 +12,7 @@ export function ConfidenceBar({
   color,
 }: ConfidenceBarProps) {
   const pct = value == null ? 0 : Math.round(value * 100);
-  const barColor = color || BRAND.accent;
+  const barColor = color || "#F5923A";
   const trackColor = tone === "dark" ? "#1e1e1e" : "#ebebeb";
 
   return (

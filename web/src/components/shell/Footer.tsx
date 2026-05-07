@@ -1,139 +1,117 @@
 "use client";
 
-import Link from "next/link";
-import React from "react";
+import React, { useState, FormEvent } from "react";
+
+const NAV_LINKS = [
+  { label: "Performance", href: "/performance" },
+  { label: "Terminal", href: "/terminal" },
+  { label: "Methodology", href: "/methodology" },
+  { label: "Brief", href: "/brief" },
+  { label: "About", href: "/about" },
+];
+
+const TRANSPARENCY_LINKS = [
+  { label: "Methodology", href: "/methodology" },
+  { label: "Performance", href: "/performance" },
+];
 
 export function Footer() {
-  const [email, setEmail] = React.useState("");
-  const [status, setStatus] = React.useState<"idle" | "success" | "error">(
-    "idle",
-  );
+  const [email, setEmail] = useState("");
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-    // Redirect to Substack subscribe page with pre-filled email
-    const substackUrl = `https://fxregimelab.substack.com/subscribe?email=${encodeURIComponent(email)}`;
-    window.open(substackUrl, "_blank", "noopener,noreferrer");
-    setStatus("success");
-    setEmail("");
-    setTimeout(() => setStatus("idle"), 3000);
+    const url = new URL("https://fxregimelab.substack.com/");
+    url.searchParams.set("utm_source", "website");
+    url.searchParams.set("utm_campaign", "footer");
+    if (email.trim()) {
+      url.searchParams.set("email", email.trim());
+    }
+    window.open(url.toString(), "_blank", "noopener,noreferrer");
   };
 
   return (
-    <footer className="border-t border-[var(--color-border)] bg-[var(--color-void)]">
-      <div className="max-w-[1152px] mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-          {/* Navigation */}
+    <footer className="border-t border-[#e5e5e5] bg-[#f5f5f0]">
+      <div className="mx-auto max-w-[1440px] px-4 py-10">
+        {/* 3-column grid */}
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          {/* Column 1: Navigation */}
           <div>
-            <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
+            <h3 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-[#a8a29e]">
               Navigation
-            </p>
-            <div className="flex flex-col gap-2.5">
-              {[
-                ["/performance", "Performance"],
-                ["/terminal", "Terminal"],
-                ["/methodology", "Methodology"],
-                ["/brief", "Brief"],
-              ].map(([href, label]) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="font-sans text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors duration-300 py-0.5"
-                >
-                  {label}
-                </Link>
+            </h3>
+            <ul className="space-y-1.5">
+              {NAV_LINKS.map((link) => (
+                <li key={link.href}>
+                  <a
+                    href={link.href}
+                    className="text-[0.8125rem] text-[#57534e] outline-none transition-colors hover:text-[#0a0a0a] focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
+                    style={{ borderRadius: 2 }}
+                  >
+                    {link.label}
+                  </a>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
 
-          {/* Transparency */}
+          {/* Column 2: Transparency */}
           <div>
-            <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
+            <h3 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-[#a8a29e]">
               Transparency
-            </p>
-            <div className="flex flex-col gap-2.5">
-              {[
-                ["/about", "About"],
-                ["/performance", "Track Record"],
-                // ["/audit", "Audit"],  // hidden — internal dev log
-              ].map(([href, label]) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="font-sans text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors duration-300 py-0.5"
-                >
-                  {label}
-                </Link>
+            </h3>
+            <ul className="space-y-1.5">
+              {TRANSPARENCY_LINKS.map((link) => (
+                <li key={link.href}>
+                  <a
+                    href={link.href}
+                    className="text-[0.8125rem] text-[#57534e] outline-none transition-colors hover:text-[#0a0a0a] focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
+                    style={{ borderRadius: 2 }}
+                  >
+                    {link.label}
+                  </a>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
 
-          {/* Distribution */}
+          {/* Column 3: Substack subscribe */}
           <div>
-            <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
-              Distribution
+            <h3 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-[#a8a29e]">
+              Subscribe
+            </h3>
+            <p className="mb-3 text-[0.8125rem] text-[#57534e]">
+              Weekly regime briefs delivered to your inbox.
             </p>
-            <div className="flex flex-col gap-2.5 mb-6">
-              <a
-                href="https://fxregimelab.substack.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Substack (opens in new tab)"
-                className="font-sans text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors duration-300 py-0.5"
+            <form onSubmit={handleSubmit} className="flex gap-2">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="flex-1 border border-[#d6d3d1] bg-[#ffffff] px-3 py-2 text-[0.8125rem] text-[#0a0a0a] outline-none placeholder:text-[#a8a29e] focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
+                style={{ borderRadius: 2 }}
+                aria-label="Email address for Substack subscription"
+              />
+              <button
+                type="submit"
+                className="border border-[#0a0a0a] bg-[#0a0a0a] px-3 py-2 text-[0.8125rem] font-medium text-[#f5f5f0] outline-none transition-colors hover:bg-[#1c1917] focus-visible:ring-2 focus-visible:ring-[#0a0a0a] focus-visible:ring-offset-2"
+                style={{ borderRadius: 2 }}
               >
-                Substack
-              </a>
-            </div>
-
-            <form onSubmit={handleSubscribe} className="flex flex-col gap-2">
-              <label
-                htmlFor="footer-email"
-                className="font-mono text-[10px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase"
-              >
-                Subscribe to briefs
-              </label>
-              <div className="flex gap-2">
-                <input
-                  id="footer-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  aria-describedby={
-                    status !== "idle" ? "subscribe-status" : undefined
-                  }
-                  className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2 font-sans text-[13px] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] outline-none focus:border-[var(--color-accent)] transition-colors duration-300"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-[var(--color-elevated)] border border-[var(--color-border)] font-sans text-[12px] text-[var(--color-text)] tracking-wide transition-all duration-300 hover:bg-[var(--color-text)] hover:text-[var(--color-void)] hover:border-[var(--color-text)]"
-                >
-                  Subscribe
-                </button>
-              </div>
-              {status === "success" && (
-                <p
-                  id="subscribe-status"
-                  className="font-mono text-[10px] text-[var(--color-up)]"
-                >
-                  Opening Substack…
-                </p>
-              )}
+                Subscribe
+              </button>
             </form>
           </div>
         </div>
 
-        <div className="mt-16 pt-6 border-t border-[var(--color-border)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <p className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider">
+        {/* Disclaimer */}
+        <div className="mt-10 border-t border-[#e5e5e5] pt-6">
+          <p className="text-[0.75rem] text-[#a8a29e]">
             Research and learning only. Not investment advice.
-          </p>
-          <p className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider">
-            Shreyash Sakhare — Discretionary Macro Research
           </p>
         </div>
       </div>
     </footer>
   );
 }
+
+export default Footer;

@@ -1,40 +1,60 @@
 "use client";
 
-import { PULSE_BAR_H } from "./macro-pulse-bar";
+import React from "react";
+import { TerminalLabel } from "./TerminalLabel";
 
-/** Fixed height for sticky offset math (py-2 + single line mono). */
-export const SYSTEMIC_BANNER_H = 32;
+interface SystemicClusterBannerProps {
+  label?: string;
+  detail?: string;
+}
 
-type SystemicClusterBannerProps = {
-  /** When true, render as a static strip inside terminal chrome (no sticky offset). */
-  embedded?: boolean;
-};
-
-export function SystemicClusterBanner({
-  embedded = false,
-}: SystemicClusterBannerProps) {
-  const base =
-    "w-full bg-[#2a2208] border-b border-[#6b5900] font-mono text-[10px] tracking-widest text-[#fbbf24] px-4 py-2 text-center leading-tight";
-  if (embedded) {
-    return (
-      <output
-        className={base}
-        style={{ minHeight: `${SYSTEMIC_BANNER_H}px`, boxShadow: "none" }}
-      >
-        [ SYSTEMIC TREND DETECTED: UNIFORM DOLLAR FLOW ]
-      </output>
-    );
-  }
+export const SystemicClusterBanner: React.FC<SystemicClusterBannerProps> = ({
+  label = "SYSTEMIC CLUSTER FLAG",
+  detail,
+}) => {
   return (
-    <output
-      className={`sticky z-[95] ${base}`}
+    <div
+      role="alert"
       style={{
-        top: `${PULSE_BAR_H}px`,
-        minHeight: `${SYSTEMIC_BANNER_H}px`,
-        boxShadow: "none",
+        background: "rgba(245, 158, 11, 0.08)",
+        border: "1px solid var(--terminal-warning, #f59e0b)",
+        borderRadius: "var(--radius-2, 2px)",
+        padding: "var(--space-3, 0.75rem) var(--space-4, 1rem)",
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-3, 0.75rem)",
       }}
     >
-      [ SYSTEMIC TREND DETECTED: UNIFORM DOLLAR FLOW ]
-    </output>
+      <span
+        style={{
+          display: "inline-block",
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: "var(--terminal-warning, #f59e0b)",
+          animation: "gentle-pulse 2s ease-in-out infinite",
+          flexShrink: 0,
+        }}
+      />
+      <div>
+        <TerminalLabel limit={30} prefix="⚠ ">
+          {label}
+        </TerminalLabel>
+        {detail && (
+          <p
+            style={{
+              margin: "var(--space-1, 0.25rem) 0 0",
+              fontSize: "var(--text-xs, 0.6875rem)",
+              color: "var(--terminal-fg-muted, #a8a29e)",
+              lineHeight: 1.4,
+            }}
+          >
+            {detail}
+          </p>
+        )}
+      </div>
+    </div>
   );
-}
+};
+
+export default SystemicClusterBanner;

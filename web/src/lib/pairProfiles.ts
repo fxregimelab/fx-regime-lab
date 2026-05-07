@@ -1,169 +1,100 @@
-/**
- * FX Regime Lab — Pair Profiles
- *
- * Pair-specific methodology configuration derived from the Council of Markets
- * (Round 10). Each pair is a different asset class with its own:
- * - Signal weights (rate, COT, vol, OI, special)
- * - Special signal construction
- * - Driver tag for UI display
- * - Confidence adjustment rules
- * - Regime threshold calibration
- *
- * Source of truth: Supabase `pair_profiles` table (for backend pipeline).
- * This file is the frontend mirror for display/rendering purposes.
- */
+import { PAIR_SLUGS, PAIR_DISPLAY, PAIR_COLORS } from "./constants";
+import type { PairSlug } from "./constants";
 
 export interface PairProfile {
-  pair: string;
+  slug: PairSlug;
   display: string;
-  urlSlug: string;
-  pairColor: string;
-  rateWeight: number;
-  cotWeight: number;
-  volWeight: number;
-  oiWeight: number;
-  specialWeight: number;
-  specialSignalLabel: string;
-  specialSignalSource: string;
-  driverTag: string;
-  primaryAnchorMarket: string;
-  regimeThresholds: {
-    strongUsdStrength: number;
-    moderateUsdStrength: number;
-    neutralUpper: number;
-    neutralLower: number;
-    moderateUsdWeakness: number;
-    strongUsdWeakness: number;
-  };
-  confidenceAdjustment: {
-    type: "none" | "additive" | "subtractive";
-    condition: string;
-    value: number;
-    rationale: string;
-  };
+  color: string;
+  spotDecimals: number;
+  pipMultiplier: number;
+  signalWeight: number;
 }
 
-export const PAIR_PROFILES: Record<string, PairProfile> = {
-  EURUSD: {
-    pair: "EURUSD",
-    display: "EUR/USD",
-    urlSlug: "eurusd",
-    pairColor: "#4BA3E3",
-    rateWeight: 0.4,
-    cotWeight: 0.25,
-    volWeight: 0.2,
-    oiWeight: 0.1,
-    specialWeight: 0.05,
-    specialSignalLabel: "ECB_sentiment",
-    specialSignalSource: "NLP on ECB speeches",
-    driverTag: "Rates-driven",
-    primaryAnchorMarket: "London",
-    regimeThresholds: {
-      strongUsdStrength: 1.2,
-      moderateUsdStrength: 0.6,
-      neutralUpper: 0.4,
-      neutralLower: -0.4,
-      moderateUsdWeakness: -0.6,
-      strongUsdWeakness: -1.2,
-    },
-    confidenceAdjustment: {
-      type: "none",
-      condition: "always",
-      value: 0,
-      rationale: "Baseline — well-behaved rates cross",
-    },
+export const PAIR_PROFILES: Record<PairSlug, PairProfile> = {
+  "eur-usd": {
+    slug: "eur-usd",
+    display: PAIR_DISPLAY["eur-usd"],
+    color: PAIR_COLORS["eur-usd"],
+    spotDecimals: 5,
+    pipMultiplier: 10000,
+    signalWeight: 1.0,
   },
-
-  USDJPY: {
-    pair: "USDJPY",
-    display: "USD/JPY",
-    urlSlug: "usdjpy",
-    pairColor: "#F5923A",
-    rateWeight: 0.3,
-    cotWeight: 0.2,
-    volWeight: 0.25,
-    oiWeight: 0.15,
-    specialWeight: 0.1,
-    specialSignalLabel: "JPY_funding_stress",
-    specialSignalSource: "USD/JPY 3M cross-currency basis",
-    driverTag: "Funding-driven",
-    primaryAnchorMarket: "Tokyo",
-    regimeThresholds: {
-      strongUsdStrength: 1.2,
-      moderateUsdStrength: 0.6,
-      neutralUpper: 0.4,
-      neutralLower: -0.4,
-      moderateUsdWeakness: -0.6,
-      strongUsdWeakness: -1.2,
-    },
-    confidenceAdjustment: {
-      type: "additive",
-      condition: "S_JPY > 0.5",
-      value: 0.05,
-      rationale: "Funding stress adds conviction",
-    },
+  "usd-jpy": {
+    slug: "usd-jpy",
+    display: PAIR_DISPLAY["usd-jpy"],
+    color: PAIR_COLORS["usd-jpy"],
+    spotDecimals: 3,
+    pipMultiplier: 100,
+    signalWeight: 1.0,
   },
-
-  USDINR: {
-    pair: "USDINR",
-    display: "USD/INR",
-    urlSlug: "usdinr",
-    pairColor: "#FB923C",
-    rateWeight: 0.3,
-    cotWeight: 0.1,
-    volWeight: 0.2,
-    oiWeight: 0.1,
-    specialWeight: 0.3,
-    specialSignalLabel: "EM_carry_RBI",
-    specialSignalSource: "Brent + RBI forward book + EM carry index",
-    driverTag: "Carry-sensitive",
-    primaryAnchorMarket: "Mumbai",
-    regimeThresholds: {
-      strongUsdStrength: 1.2,
-      moderateUsdStrength: 0.6,
-      neutralUpper: 0.4,
-      neutralLower: -0.4,
-      moderateUsdWeakness: -0.6,
-      strongUsdWeakness: -1.2,
-    },
-    confidenceAdjustment: {
-      type: "subtractive",
-      condition: "Brent > P80",
-      value: -0.05,
-      rationale: "Oil shock = model breakdown risk",
-    },
+  "usd-inr": {
+    slug: "usd-inr",
+    display: PAIR_DISPLAY["usd-inr"],
+    color: PAIR_COLORS["usd-inr"],
+    spotDecimals: 4,
+    pipMultiplier: 10000,
+    signalWeight: 0.8,
   },
 };
 
-/**
- * Get pair profile by label (e.g., "EURUSD")
- */
-export function getPairProfile(label: string): PairProfile | undefined {
-  return PAIR_PROFILES[label];
+export function getPairProfile(slug: string): PairProfile | null {
+  if (PAIR_SLUGS.includes(slug as PairSlug)) {
+    return PAIR_PROFILES[slug as PairSlug];
+  }
+  return null;
 }
 
-/**
- * Get driver tag for a pair — used in UI badges
- */
+export function formatSpotForPair(spot: number, slug: string): string {
+  const profile = getPairProfile(slug);
+  const decimals = profile?.spotDecimals ?? 4;
+  return spot.toFixed(decimals);
+}
+
+export function pipsForPair(
+  entry: number,
+  current: number,
+  slug: string
+): number {
+  const profile = getPairProfile(slug);
+  const mult = profile?.pipMultiplier ?? 10000;
+  return (current - entry) * mult;
+}
+
+export function weightedSignalScore(
+  confidence: number,
+  slug: string
+): number {
+  const profile = getPairProfile(slug);
+  const weight = profile?.signalWeight ?? 1.0;
+  return confidence * weight;
+}
+
+/** Driver tag lookup by canonical label (EURUSD, USDJPY, USDINR). */
+const DRIVER_TAGS: Record<string, string> = {
+  EURUSD: "Rates-driven",
+  USDJPY: "Funding-driven",
+  USDINR: "Carry-sensitive",
+};
+
 export function getDriverTag(label: string): string {
-  return PAIR_PROFILES[label]?.driverTag ?? "Multi-factor";
+  return DRIVER_TAGS[label] ?? "Multi-factor";
 }
 
-/**
- * Get special signal label for display
- */
+/** Get special signal label for display (legacy compatibility). */
+const SPECIAL_LABELS: Record<string, string> = {
+  EURUSD: "ECB_sentiment",
+  USDJPY: "JPY_funding_stress",
+  USDINR: "EM_carry_RBI",
+};
+
 export function getSpecialSignalLabel(label: string): string {
-  return PAIR_PROFILES[label]?.specialSignalLabel ?? "—";
+  return SPECIAL_LABELS[label] ?? "—";
 }
 
-/**
- * Format weight as percentage string
- */
+/** Format weight as percentage string. */
 export function fmtWeight(w: number): string {
   return `${Math.round(w * 100)}%`;
 }
 
-/**
- * All pair labels in canonical order
- */
-export const PAIR_LABELS = Object.keys(PAIR_PROFILES) as string[];
+/** All pair labels in canonical order. */
+export const PAIR_LABELS = Object.keys(DRIVER_TAGS);

@@ -1,3 +1,4 @@
+// Canonical pair metadata (object array — used by pages and components)
 export const PAIRS = [
   {
     label: "EURUSD" as const,
@@ -21,14 +22,25 @@ export const PAIRS = [
 
 export type PairMeta = (typeof PAIRS)[number];
 
-export const BRAND = {
-  eurusd: "#4BA3E3",
-  usdjpy: "#F5923A",
-  usdinr: "#FB923C",
-  accent: "#F5923A",
+// Canonical pair slugs (string array — used by new rebuild code)
+export const PAIR_SLUGS = ["eur-usd", "usd-jpy", "usd-inr"] as const;
+export type PairSlug = (typeof PAIR_SLUGS)[number];
+
+export const PAIR_DISPLAY: Record<PairSlug, string> = {
+  "eur-usd": "EUR / USD",
+  "usd-jpy": "USD / JPY",
+  "usd-inr": "USD / INR",
 };
 
+export const PAIR_COLORS: Record<PairSlug, string> = {
+  "eur-usd": "#3b82f6", // blue-500
+  "usd-jpy": "#ef4444", // red-500
+  "usd-inr": "#10b981", // emerald-500
+};
+
+// Merged regime heatmap colors (old + new regimes)
 export const REGIME_HEATMAP_COLORS: Record<string, string> = {
+  // Legacy regimes
   "STRONG USD STRENGTH": "#1e3a5f",
   "MODERATE USD STRENGTH": "#2d5a8e",
   NEUTRAL: "#3a3a3a",
@@ -41,4 +53,25 @@ export const REGIME_HEATMAP_COLORS: Record<string, string> = {
   "STRONG APPRECIATION PRESSURE": "#0d3a1a",
   DIRECTIONAL_ONLY: "#333",
   UNKNOWN: "#1a1a1a",
+  // New regimes
+  TRENDING: "#10b981",
+  RANGING: "#f59e0b",
+  BREAKOUT: "#8b5cf6",
+  REVERSAL: "#ef4444",
+  ACCUMULATION: "#3b82f6",
+  DISTRIBUTION: "#6366f1",
+  VOLATILE: "#f97316",
+  COMPRESSION: "#14b8a6",
 };
+
+export const BRAND = {
+  name: "FX Regime Lab",
+  tagline: "Institutional-grade regime detection for global FX markets",
+  canonicalPairs: PAIRS,
+  contact: {
+    email: "desk@fxregimelab.com",
+    twitter: "@fxregimelab",
+  },
+} as const;
+
+export const CANONICAL_PAIRS_SET = new Set<string>(PAIR_SLUGS);

@@ -1,16 +1,21 @@
 "use client";
 
-import { MacroPulseBar, PULSE_BAR_H } from "@/components/ui/macro-pulse-bar";
+import React from "react";
 
-/** Persistent global macro strip — fixed to viewport top on every route. */
 export function GlobalMacroPulse() {
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-[110] border-b border-[#111] bg-[#000000] shadow-none"
-      style={{ height: PULSE_BAR_H }}
-      role="presentation"
+      className="fixed left-0 right-0 top-0 z-[calc(var(--z-sticky)+1)] flex items-center justify-center overflow-hidden bg-[#000000]"
+      style={{ height: 28 }}
     >
-      <MacroPulseBar embeddedInGlobalChrome />
+      <span
+        className="text-[0.6875rem] font-medium tracking-wider text-[#e7e5e4]"
+        style={{ fontVariantNumeric: "tabular-nums", fontFeatureSettings: '"tnum"' }}
+      >
+        DXY · US10Y · VIX · WTI
+      </span>
     </div>
   );
 }
+
+export default GlobalMacroPulse;

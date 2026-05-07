@@ -331,7 +331,7 @@ cmd_cleanup() {
 
   for spec in "$queue_dir"/*.md; do
     [[ -f "$spec" ]] || continue
-    local age=$(( now - $(stat -c %Y "$spec" 2>/dev/null || echo now) ))
+    local age=$(( now - $(stat -c %Y "$spec" 2>/dev/null || echo "$now") ))
     if [[ $age -gt $max_age ]]; then
       local dest="$archive_dir/$(basename "$spec")"
       mv "$spec" "$dest"
@@ -431,9 +431,7 @@ cmd_ceo() {
     echo "  3. Run verification"
     echo "  4. Pause for your approval before merge"
     echo ""
-    log_warn "NOT YET IMPLEMENTED — Phase 2 required"
-    echo "For now, use: fx-agent spec create signal"
-    exit 0
+    return 0
   fi
 
   if [[ "$tier" == "1" ]]; then
@@ -446,13 +444,170 @@ cmd_ceo() {
     echo "  4. Check readiness"
     echo "  5. Report results"
     echo ""
-    log_warn "NOT YET IMPLEMENTED — Phase 2 required"
-    echo "For now, use: fx-agent spec create page"
-    exit 0
+    return 0
   fi
 
   log_err "Unknown tier: $tier"
   exit 1
+}
+
+cmd_auto() {
+  local directive="${1:-}"
+  local dry_run=false
+  local approve=false
+
+  for arg in "$@"; do
+    case "$arg" in
+      --dry-run) dry_run=true ;;
+      --approve|-a) approve=true ;;
+    esac
+  done
+
+  if [[ -z "$directive" || "$directive" == --* ]]; then
+    log_err "Usage: fx-agent auto '<directive>' [--dry-run] [--approve]"
+    exit 1
+  fi
+
+  echo ""
+  echo "═══════════════════════════════════════════════════"
+  echo "  CEO Mode — Auto-Execution"
+  echo "═══════════════════════════════════════════════════"
+  echo ""
+
+  # Run triage first
+  local triage_result
+  triage_result=$(cd "$REPO_ROOT/pipeline" && python3 -m src.auto.triage "$directive")
+  local tier
+  tier=$(echo "$triage_result" | python3 -c "import sys,json; print(json.load(sys.stdin)['tier'])")
+
+  echo "Directive: $directive"
+  echo "Tier:      $tier"
+  echo ""
+
+  if [[ "$tier" -ge 3 ]]; then
+    log_warn "Tier $tier requires human approval. Use 'fx-agent ceo' for analysis only."
+    exit 2
+  fi
+
+  # Save state for potential approve/reject later (safe JSON via Python)
+  local state_file="$REPO_ROOT/.cursor/delegation/sessions/last-auto.json"
+  mkdir -p "$(dirname "$state_file")"
+  python3 -c "
+import json, sys
+json.dump({'directive': sys.argv[1], 'tier': int(sys.argv[2]), 'approved': sys.argv[3] == 'true'}, open(sys.argv[4], 'w'))
+" "$directive" "$tier" "$approve" "$state_file"
+
+  if [[ "$dry_run" == true ]]; then
+    log_info "Dry-run mode — analysis only"
+    ./scripts/auto/orchestrator.sh "$directive" --dry-run
+  else
+    log_info "Starting auto-execution..."
+    if [[ "$tier" -eq 2 && "$approve" != true ]]; then
+      # Tier 2 without approval flag: pass --await-approval to orchestrator
+      ./scripts/auto/orchestrator.sh "$directive" --await-approval
+    else
+      ./scripts/auto/orchestrator.sh "$directive"
+    fi
+  fi
+}
+
+cmd_deploy() {
+  local target="${1:-}"
+  if [[ -z "$target" ]]; then
+    log_err "Usage: fx-agent deploy <vercel|prefect>"
+    exit 1
+  fi
+
+  if [[ "$target" != "vercel" && "$target" != "prefect" ]]; then
+    log_err "Unknown deploy target: $target. Use 'vercel' or 'prefect'."
+    exit 1
+  fi
+
+  log_info "Deploying to $target..."
+  local result
+  result=$(cd "$REPO_ROOT/pipeline" && python3 -m src.auto.deploy "$target" "$REPO_ROOT" 2>/dev/null) || result=""
+
+  if [[ -n "$result" ]] && echo "$result" | python3 -c "import sys,json; json.load(sys.stdin)" >/dev/null 2>&1; then
+    local status
+    status=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])")
+    local message
+    message=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin)['message'])")
+    local url
+    url=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin)['url'] or '')")
+
+    if [[ "$status" == "success" ]]; then
+      log_ok "Deploy successful — $message"
+      [[ -n "$url" ]] && echo "  URL: $url"
+    elif [[ "$status" == "skipped" ]]; then
+      log_warn "Deploy skipped — $message"
+    else
+      log_err "Deploy failed — $message"
+      exit 1
+    fi
+  else
+    log_err "Deploy returned invalid output"
+    exit 1
+  fi
+}
+
+cmd_approve() {
+  local approval_file="$REPO_ROOT/.cursor/delegation/sessions/awaiting-approval.json"
+
+  if [[ ! -f "$approval_file" ]]; then
+    log_err "No pending approval found. Run 'fx-agent auto' on a Tier 2 directive first."
+    exit 1
+  fi
+
+  local directive
+  directive=$(python3 -c "import json; print(json.load(open('$approval_file'))['directive'])")
+  local tier
+  tier=$(python3 -c "import json; print(json.load(open('$approval_file'))['tier'])")
+
+  log_info "Approving Tier $tier directive: $directive"
+
+  # Remove approval file
+  rm "$approval_file"
+
+  # Re-run orchestrator with approval
+  ./scripts/auto/orchestrator.sh "$directive"
+}
+
+cmd_reject() {
+  local approval_file="$REPO_ROOT/.cursor/delegation/sessions/awaiting-approval.json"
+  local reason=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --reason)
+        reason="$2"
+        shift 2
+        ;;
+      --reason=*)
+        reason="${1#--reason=}"
+        shift
+        ;;
+      *) shift ;;
+    esac
+  done
+
+  if [[ ! -f "$approval_file" ]]; then
+    log_err "No pending approval found."
+    exit 1
+  fi
+
+  local directive
+  directive=$(python3 -c "import json; print(json.load(open('$approval_file'))['directive'])")
+
+  log_warn "Rejected directive: $directive"
+  [[ -n "$reason" ]] && echo "  Reason: $reason"
+
+  # Archive the approval file with rejection metadata
+  local rejected_dir="$REPO_ROOT/.cursor/delegation/sessions/rejected"
+  mkdir -p "$rejected_dir"
+  mv "$approval_file" "$rejected_dir/rejected-$(date +%s).json"
+
+  echo ""
+  echo "Directive rejected. Spec archived to sessions/rejected/"
 }
 
 cmd_help() {
@@ -470,6 +625,8 @@ COMMANDS:
   spec validate <file>    Validate spec before delegation
   run <spec.md>           Execute single spec via Cursor
   run --queue             Process all queued specs
+  auto '<directive>'      Full auto-orchestrator (T1/T2 only)
+  deploy <vercel|prefect> Deploy to target (smoke test included)
   verify                  Run full test/build/lint suite
   verify --quick          Run pytest + ruff only (fast)
   review                  Show recently completed specs
@@ -478,6 +635,11 @@ COMMANDS:
   maps                    Regenerate all agent maps
   predict <spec.md>       Predict failure modes in spec
   ceo '<directive>'       CEO Mode — auto-triage and plan
+  auto '<directive>'      Alias for ceo --execute
+  auto '<directive>' --approve   Skip Tier 2 approval gate
+  deploy <target>         Deploy to Vercel or Prefect
+  approve                 Approve pending Tier 2 deploy
+  reject [--reason '...'] Reject pending Tier 2 deploy
   help                    Show this help
 
 WORKFLOW:
@@ -513,7 +675,23 @@ case "$COMMAND" in
     esac
     ;;
   run)            cmd_run "$@" ;;
-  ceo)            cmd_ceo "$@" ;;
+  ceo)
+    exec_flag=""
+    for arg in "$@"; do
+      case "$arg" in
+        --execute|--exec|-e) exec_flag=true; shift ;;
+      esac
+    done
+    if [[ "$exec_flag" == true ]]; then
+      cmd_auto "$@"
+    else
+      cmd_ceo "$@"
+    fi
+    ;;
+  auto)           cmd_auto "$@" ;;
+  deploy)         cmd_deploy "$@" ;;
+  approve)        cmd_approve "$@" ;;
+  reject)         cmd_reject "$@" ;;
   verify)         cmd_verify "$@" ;;
   review)         cmd_review "$@" ;;
   cleanup)        cmd_cleanup "$@" ;;

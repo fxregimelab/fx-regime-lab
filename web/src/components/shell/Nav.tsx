@@ -1,143 +1,169 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react";
+import { LogoMark } from "@/components/ui/logo-mark";
+
+const NAV_LINKS = [
+  { label: "Performance", href: "/performance" },
+  { label: "Methodology", href: "/methodology" },
+  { label: "Brief", href: "/brief" },
+  { label: "About", href: "/about" },
+];
+
+const TERMINAL_ITEMS = [
+  { label: "Overview", href: "/terminal" },
+  { label: "Mosaic", href: "/terminal/mosaic" },
+  { label: "EUR / USD", href: "/terminal/eur-usd" },
+  { label: "USD / JPY", href: "/terminal/usd-jpy" },
+  { label: "USD / INR", href: "/terminal/usd-inr" },
+  { label: "Calendar", href: "/terminal/calendar" },
+  { label: "Memos", href: "/terminal/memos" },
+  { label: "Alpha Ledger", href: "/terminal/alpha-ledger" },
+];
 
 export function Nav() {
-  const currentRoute = usePathname();
-  const [scrolled, setScrolled] = React.useState(false);
-  const [terminalOpen, setTerminalOpen] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
-  React.useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close dropdown on Escape
-  React.useEffect(() => {
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setTerminalOpen(false);
+      if (e.key === "Escape" && dropdownOpen) {
+        e.preventDefault();
+        setDropdownOpen(false);
+        triggerRef.current?.focus();
+      }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [dropdownOpen]);
 
-  const isActive = (href: string) =>
-    href === "/" ? currentRoute === "/" : currentRoute.startsWith(href);
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [dropdownOpen]);
 
-  const links = [
-    { href: "/performance", label: "Performance" },
-    { href: "/terminal", label: "Terminal", dropdown: true },
-    { href: "/methodology", label: "Methodology" },
-    { href: "/brief", label: "Brief" },
-    { href: "/about", label: "About" },
-  ];
-
-  const terminalDropdown = [
-    { href: "/terminal", label: "Overview" },
-    { href: "/terminal/fx-regime", label: "FX-Regime Mosaic" },
-    { href: "/terminal/fx-regime/eurusd", label: "EUR/USD" },
-    { href: "/terminal/fx-regime/usdjpy", label: "USD/JPY" },
-    { href: "/terminal/fx-regime/usdinr", label: "USD/INR" },
-    { href: "/terminal/calendar", label: "Calendar" },
-    { href: "/terminal/memos", label: "Memos" },
-    { href: "/terminal/performance", label: "Alpha Ledger" },
-  ];
+  const handleTerminalClick = useCallback(
+    (href: string) => {
+      setDropdownOpen(false);
+      router.push(href);
+    },
+    [router]
+  );
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-[90] transition-all duration-500 ${
-        scrolled
-          ? "bg-[var(--color-surface)] border-b border-[var(--color-border)]"
-          : "bg-transparent"
-      }`}
+      className="sticky top-0 z-[var(--z-sticky)] border-b border-[#e5e5e5] bg-[#ffffff]"
+      style={{
+        height: 64,
+        transition: "box-shadow 150ms ease-out",
+        boxShadow: scrolled ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+      }}
     >
-      <nav className="max-w-[1152px] mx-auto px-6 h-[56px] flex items-center justify-between">
-        <Link
+      <nav
+        className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-4"
+        aria-label="Main"
+      >
+        {/* Left: LogoMark + Brand */}
+        <a
           href="/"
-          className="font-mono text-[11px] tracking-[0.2em] text-[var(--color-text)] uppercase font-medium"
+          className="flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
+          style={{ borderRadius: 2 }}
         >
-          FX Regime Lab
-        </Link>
+          <LogoMark size={28} color="#0a0a0a" />
+          <span className="text-[0.875rem] font-medium tracking-tight text-[#0a0a0a]">
+            FX Regime Lab
+          </span>
+        </a>
 
+        {/* Right: Nav links */}
         <div className="flex items-center gap-1">
-          {links.map((link) =>
-            link.dropdown ? (
-              <div
-                key={link.href}
-                ref={dropdownRef}
-                className="relative"
-                onMouseEnter={() => setTerminalOpen(true)}
-                onMouseLeave={() => setTerminalOpen(false)}
-              >
-                <button
-                  type="button"
-                  onClick={() => setTerminalOpen((o) => !o)}
-                  onFocus={() => setTerminalOpen(true)}
-                  className={`relative px-3 py-1.5 font-sans text-[13px] transition-colors duration-300 bg-transparent border-0 cursor-pointer ${
-                    isActive(link.href)
-                      ? "text-[var(--color-text)]"
-                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
-                  }`}
-                  aria-expanded={terminalOpen}
-                  aria-haspopup="menu"
-                  aria-controls="terminal-dropdown"
-                >
-                  {link.label}
-                  {isActive(link.href) && (
-                    <span className="absolute bottom-0 left-3 right-3 h-px bg-[var(--color-accent)] animate-line-grow" />
-                  )}
-                </button>
+          {/* Performance */}
+          <a
+            href="/performance"
+            className="px-3 py-1.5 text-[0.8125rem] text-[#0a0a0a] outline-none transition-colors hover:bg-[rgba(28,25,23,0.04)] focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
+            style={{ borderRadius: 2 }}
+          >
+            Performance
+          </a>
 
-                {terminalOpen && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2">
-                    <div
-                      id="terminal-dropdown"
-                      role="menu"
-                      className="border border-[var(--color-border)] bg-[var(--color-surface)] min-w-[180px] py-2"
-                    >
-                      {terminalDropdown.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          role="menuitem"
-                          className={`block px-4 py-2 font-sans text-[13px] transition-colors duration-200 ${
-                            currentRoute === item.href
-                              ? "text-[var(--color-text)]"
-                              : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-elevated)]"
-                          }`}
-                          onClick={() => setTerminalOpen(false)}
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={isActive(link.href) ? "page" : undefined}
-                className={`relative px-3 py-1.5 font-sans text-[13px] transition-colors duration-300 ${
-                  isActive(link.href)
-                    ? "text-[var(--color-text)]"
-                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
-                }`}
+          {/* Terminal dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              ref={triggerRef}
+              type="button"
+              onClick={() => setDropdownOpen((p) => !p)}
+              aria-expanded={dropdownOpen}
+              aria-haspopup="menu"
+              className="flex items-center gap-1 px-3 py-1.5 text-[0.8125rem] text-[#0a0a0a] outline-none transition-colors hover:bg-[rgba(28,25,23,0.04)] focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
+              style={{ borderRadius: 2 }}
+            >
+              Terminal
+              <ChevronDown
+                size={14}
+                className="transition-transform"
+                style={{ transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+              />
+            </button>
+
+            {dropdownOpen && (
+              <ul
+                role="menu"
+                className="absolute right-0 top-full mt-1 w-52 border border-[#d6d3d1] bg-[#ffffff] py-1 shadow-lg outline-none"
+                style={{ borderRadius: 2, zIndex: "var(--z-dropdown)" }}
               >
-                {link.label}
-                {isActive(link.href) && (
-                  <span className="absolute bottom-0 left-3 right-3 h-px bg-[var(--color-accent)] animate-line-grow" />
-                )}
-              </Link>
-            ),
-          )}
+                {TERMINAL_ITEMS.map((item) => (
+                  <li key={item.href} role="none">
+                    <button
+                      role="menuitem"
+                      onClick={() => handleTerminalClick(item.href)}
+                      className="w-full px-3 py-1.5 text-left text-[0.8125rem] text-[#1c1917] outline-none transition-colors hover:bg-[rgba(28,25,23,0.04)] focus-visible:bg-[rgba(28,25,23,0.08)]"
+                      style={{ borderRadius: 2 }}
+                    >
+                      {item.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Remaining links */}
+          {NAV_LINKS.slice(1).map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="px-3 py-1.5 text-[0.8125rem] text-[#0a0a0a] outline-none transition-colors hover:bg-[rgba(28,25,23,0.04)] focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
+              style={{ borderRadius: 2 }}
+            >
+              {link.label}
+            </a>
+          ))}
         </div>
       </nav>
     </header>
   );
 }
+
+export default Nav;
