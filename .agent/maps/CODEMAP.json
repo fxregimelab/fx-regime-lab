@@ -2,7 +2,7 @@
   "meta": {
     "generated": "$(date -Iseconds)",
     "description": "FX Regime Lab codebase. Read this first before exploring.",
-    "total_files": 148
+    "total_files": 150
   },
   "pipeline": {
     "fetchers": [
@@ -2099,6 +2099,14 @@
       {
         "file": "./pipeline/tests/__init__.py",
         "desc": ""
+      },
+      {
+        "file": "./pipeline/tests/auto/__init__.py",
+        "desc": ""
+      },
+      {
+        "file": "./pipeline/tests/auto/test_triage.py",
+        "desc": "Tests for auto/triage.py task classification engine."
       },
       {
         "file": "./pipeline/tests/test_backfill.py",

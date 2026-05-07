@@ -370,6 +370,91 @@ cmd_predict() {
   ./.agent/scripts/predict-failures.sh "$spec"
 }
 
+cmd_ceo() {
+  local directive="${1:-}"
+  if [[ -z "$directive" ]]; then
+    log_err "Usage: fx-agent ceo '<directive>'"
+    exit 1
+  fi
+
+  log_info "Analyzing directive..."
+  echo ""
+
+  # Run triage
+  local triage_result
+  triage_result=$(cd "$REPO_ROOT/pipeline" && python3 -m src.auto.triage "$directive")
+  local tier
+  tier=$(echo "$triage_result" | python3 -c "import sys,json; print(json.load(sys.stdin)['tier'])")
+  local tier_name
+  tier_name=$(echo "$triage_result" | python3 -c "import sys,json; print(json.load(sys.stdin)['tier_name'])")
+  local confidence
+  confidence=$(echo "$triage_result" | python3 -c "import sys,json; print(json.load(sys.stdin)['confidence'])")
+  local risk
+  risk=$(echo "$triage_result" | python3 -c "import sys,json; print(json.load(sys.stdin)['estimated_risk'])")
+
+  echo "═══════════════════════════════════════════════════"
+  echo "  CEO Mode — Directive Analysis"
+  echo "═══════════════════════════════════════════════════"
+  echo ""
+  echo "Directive:    $directive"
+  echo "Tier:         $tier ($tier_name)"
+  echo "Confidence:   $confidence"
+  echo "Risk:         $risk"
+  echo ""
+
+  if [[ "$tier" == "4" ]]; then
+    log_err "TIER 4 — Immutable Ledger. Human required."
+    echo ""
+    echo "This directive implies modification of immutable research data."
+    echo "The system will NOT auto-execute this."
+    echo ""
+    echo "Next step: Write a manual spec and get explicit approval."
+    exit 1
+  fi
+
+  if [[ "$tier" == "3" ]]; then
+    log_warn "TIER 3 — Schema & Thresholds. Human required."
+    echo ""
+    echo "This directive involves critical infrastructure changes."
+    echo "The system will NOT auto-execute this."
+    echo ""
+    echo "Next step: Write a manual spec and get explicit approval."
+    exit 1
+  fi
+
+  if [[ "$tier" == "2" ]]; then
+    log_ok "TIER 2 — Signal & Logic. Auto + Approval Gate."
+    echo ""
+    echo "The system will:"
+    echo "  1. Write an implementation spec"
+    echo "  2. Delegate to Cursor"
+    echo "  3. Run verification"
+    echo "  4. Pause for your approval before merge"
+    echo ""
+    log_warn "NOT YET IMPLEMENTED — Phase 2 required"
+    echo "For now, use: fx-agent spec create signal"
+    exit 0
+  fi
+
+  if [[ "$tier" == "1" ]]; then
+    log_ok "TIER 1 — Terminal Polish. Fully autonomous."
+    echo ""
+    echo "The system will:"
+    echo "  1. Write an implementation spec"
+    echo "  2. Delegate to Cursor"
+    echo "  3. Run verification"
+    echo "  4. Check readiness"
+    echo "  5. Report results"
+    echo ""
+    log_warn "NOT YET IMPLEMENTED — Phase 2 required"
+    echo "For now, use: fx-agent spec create page"
+    exit 0
+  fi
+
+  log_err "Unknown tier: $tier"
+  exit 1
+}
+
 cmd_help() {
   cat << 'EOF'
 FX Regime Lab — Agent System CLI
@@ -392,6 +477,7 @@ COMMANDS:
   self-test               Run agent system self-test
   maps                    Regenerate all agent maps
   predict <spec.md>       Predict failure modes in spec
+  ceo '<directive>'       CEO Mode — auto-triage and plan
   help                    Show this help
 
 WORKFLOW:
@@ -427,6 +513,7 @@ case "$COMMAND" in
     esac
     ;;
   run)            cmd_run "$@" ;;
+  ceo)            cmd_ceo "$@" ;;
   verify)         cmd_verify "$@" ;;
   review)         cmd_review "$@" ;;
   cleanup)        cmd_cleanup "$@" ;;

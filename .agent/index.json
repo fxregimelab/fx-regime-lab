@@ -23,12 +23,23 @@
     "fx-agent cleanup": "Archive old specs from queue to archive/",
     "fx-agent self-test": "Run agent system self-test",
     "fx-agent maps": "Regenerate all agent maps",
-    "fx-agent predict <spec.md>": "Predict failure modes"
+    "fx-agent predict <spec.md>": "Predict failure modes",
+    "fx-agent ceo '<directive>'": "CEO Mode — auto-triage and plan (Phase 1 safety layer)"
   },
   "scripts": {
     "cursor-verify.sh": "Full verification suite with --quick flag and color output",
     "cursor-delegate.sh": "Cursor Agent CLI wrapper with install hint",
-    "self-test.sh": "Agent system integrity checks"
+    "self-test.sh": "Agent system integrity checks",
+    "auto/triage.sh": "Task classification into Tier 1/2/3/4",
+    "auto/readiness.sh": "Pre-deploy readiness checks for Vercel + Prefect",
+    "auto/monitor.sh": "Post-deploy health monitoring",
+    "auto/report.sh": "Human-readable execution reporting"
+  },
+  "auto_components": {
+    "triage.py": "Classifies directives into safety tiers (1=UI, 2=Signal, 3=Schema, 4=Ledger)",
+    "readiness.py": "Pre-deploy checks: build, lint, tests, secrets, bundle size, env vars",
+    "monitor.py": "Post-deploy monitoring: HTTP health, Prefect flow status, Supabase connectivity",
+    "report.py": "Generates human-readable execution reports from context"
   },
   "maps": {
     "CODEMAP": ".agent/maps/CODEMAP.json — 148 files",
