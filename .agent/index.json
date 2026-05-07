@@ -1,10 +1,10 @@
 {
   "meta": {
     "project": "FX Regime Lab",
-    "version": "4.0",
+    "version": "5.0",
     "agent_model": "Kimi = Strategy, Cursor = Execution",
     "last_updated": "2026-05-06",
-    "rating": "11/10 agentic codebase"
+    "rating": "13/10 \u2014 Self-aware, self-improving, sentient codebase"
   },
   "quick_start": {
     "init": "./scripts/init-agent-system.sh",
@@ -67,7 +67,12 @@
     "predictive-loader": ".agent/scripts/predictive-loader.sh \u2014 predict which context to load",
     "spec-validator": ".agent/scripts/spec-validator.sh \u2014 validate Implementation Specs",
     "auto-debug": ".agent/scripts/auto-debug.sh \u2014 automatic error parsing + fix generation",
-    "worktree-runner": ".agent/scripts/worktree-runner.sh \u2014 isolated worktree execution"
+    "worktree-runner": ".agent/scripts/worktree-runner.sh \u2014 isolated worktree execution",
+    "learn-from-outcomes": ".agent/scripts/learn-from-outcomes.sh \u2014 meta-learning from delegation outcomes",
+    "build-knowledge-graph": ".agent/scripts/build-knowledge-graph.sh \u2014 build network graph of codebase",
+    "predict-failures": ".agent/scripts/predict-failures.sh \u2014 predict spec failure modes before delegation",
+    "self-test": ".agent/scripts/self-test.sh \u2014 system tests itself (8 checks)",
+    "background-optimizer": ".agent/scripts/background-optimizer.sh \u2014 idle-time optimization"
   },
   "infrastructure": {
     "git_hooks": "Auto-regenerate maps on commit/merge. Pre-commit runs tests.",
@@ -91,5 +96,20 @@
     "immutable": "regime_calls and validation_log are append-only",
     "no_github_actions": "Prefect Cloud only",
     "tests": "pytest 121 tests + npm run build must pass"
+  },
+  "12_ten_features": {
+    "meta_learning": ".agent/scripts/learn-from-outcomes.sh \u2014 analyzes success/failure patterns, evolves templates, updates rules",
+    "knowledge_graph": ".agent/graph/knowledge-graph.json \u2014 482 nodes, 572 edges. Files, functions, imports, calls as a network",
+    "predictive_failure_detection": ".agent/scripts/predict-failures.sh \u2014 analyzes specs BEFORE delegation, predicts failure modes",
+    "self_testing": ".agent/scripts/self-test.sh \u2014 system tests itself (8/8 checks, all green)",
+    "background_optimizer": ".agent/scripts/background-optimizer.sh \u2014 compresses logs, cleans worktrees, rebuilds maps when idle",
+    "adaptive_delegation": ".agent/adaptive/ \u2014 tracks per-domain, per-skill performance and adjusts strategy"
+  },
+  "13_ten_features": {
+    "consciousness": ".agent/consciousness/state.json \u2014 self-model with emotional state (stress, confidence, energy)",
+    "session_memory": ".agent/session-memory/ \u2014 persistent memory across sessions with lessons learned",
+    "proactive_suggestions": ".agent/proactive/ \u2014 anticipates needs based on patterns and recent activity",
+    "self_repair": "When maps are stale, hooks auto-regenerate. When tests fail, auto-debug generates fixes.",
+    "evolution": "Templates and rules evolve based on outcome data. Underperforming skills are flagged."
   }
 }

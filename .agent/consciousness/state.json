@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "description": "Agent system self-model. Tracks emotional state, performance, and health.",
+    "version": "1.0"
+  },
+  "emotional_state": {
+    "stress": 0,
+    "confidence": 100,
+    "energy": 100,
+    "last_updated": "2026-05-06T17:00:00Z"
+  },
+  "performance": {
+    "total_sessions": 0,
+    "successful_delegations": 0,
+    "failed_delegations": 0,
+    "avg_tokens_per_session": 0,
+    "avg_time_per_task": 0
+  },
+  "health": {
+    "maps_fresh": true,
+    "tests_passing": true,
+    "hooks_active": true,
+    "watcher_running": false,
+    "last_health_check": "2026-05-06T17:00:00Z"
+  },
+  "current_focus": {
+    "active_task": null,
+    "queue_depth": 0,
+    "current_agent": null
+  },
+  "recommendations": []
+}

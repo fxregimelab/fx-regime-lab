@@ -1,0 +1,7788 @@
+{
+  "meta": {
+    "description": "Knowledge graph of FX Regime Lab. Nodes = files/functions. Edges = imports/calls/dependencies.",
+    "generated": "$(date -Iseconds)"
+  },
+  "nodes": [
+    {
+      "id": 0,
+      "type": "file",
+      "name": "types.py",
+      "path": "pipeline/src/types.py",
+      "metadata": {}
+    },
+    {
+      "id": 1,
+      "type": "file",
+      "name": "orchestrator.py",
+      "path": "pipeline/src/backfill/orchestrator.py",
+      "metadata": {}
+    },
+    {
+      "id": 2,
+      "type": "file",
+      "name": "historical_fetcher.py",
+      "path": "pipeline/src/backfill/historical_fetcher.py",
+      "metadata": {}
+    },
+    {
+      "id": 3,
+      "type": "file",
+      "name": "artifacts.py",
+      "path": "pipeline/src/research/artifacts.py",
+      "metadata": {}
+    },
+    {
+      "id": 4,
+      "type": "file",
+      "name": "cot.py",
+      "path": "pipeline/src/signals/cot.py",
+      "metadata": {}
+    },
+    {
+      "id": 5,
+      "type": "file",
+      "name": "special.py",
+      "path": "pipeline/src/signals/special.py",
+      "metadata": {}
+    },
+    {
+      "id": 6,
+      "type": "file",
+      "name": "volatility.py",
+      "path": "pipeline/src/signals/volatility.py",
+      "metadata": {}
+    },
+    {
+      "id": 7,
+      "type": "file",
+      "name": "open_interest.py",
+      "path": "pipeline/src/signals/open_interest.py",
+      "metadata": {}
+    },
+    {
+      "id": 8,
+      "type": "file",
+      "name": "rate.py",
+      "path": "pipeline/src/signals/rate.py",
+      "metadata": {}
+    },
+    {
+      "id": 9,
+      "type": "file",
+      "name": "event_risk.py",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {}
+    },
+    {
+      "id": 10,
+      "type": "file",
+      "name": "asymmetry.py",
+      "path": "pipeline/src/analysis/asymmetry.py",
+      "metadata": {}
+    },
+    {
+      "id": 11,
+      "type": "file",
+      "name": "markov.py",
+      "path": "pipeline/src/analysis/markov.py",
+      "metadata": {}
+    },
+    {
+      "id": 12,
+      "type": "file",
+      "name": "systemic.py",
+      "path": "pipeline/src/analysis/systemic.py",
+      "metadata": {}
+    },
+    {
+      "id": 13,
+      "type": "file",
+      "name": "event_name_normalize.py",
+      "path": "pipeline/src/analysis/event_name_normalize.py",
+      "metadata": {}
+    },
+    {
+      "id": 14,
+      "type": "file",
+      "name": "client.py",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {}
+    },
+    {
+      "id": 15,
+      "type": "file",
+      "name": "regime_enums.py",
+      "path": "pipeline/src/models/regime_enums.py",
+      "metadata": {}
+    },
+    {
+      "id": 16,
+      "type": "file",
+      "name": "calendar.py",
+      "path": "pipeline/src/validation/calendar.py",
+      "metadata": {}
+    },
+    {
+      "id": 17,
+      "type": "file",
+      "name": "aggregate.py",
+      "path": "pipeline/src/validation/aggregate.py",
+      "metadata": {}
+    },
+    {
+      "id": 18,
+      "type": "file",
+      "name": "ledger.py",
+      "path": "pipeline/src/validation/ledger.py",
+      "metadata": {}
+    },
+    {
+      "id": 19,
+      "type": "file",
+      "name": "engine.py",
+      "path": "pipeline/src/validation/engine.py",
+      "metadata": {}
+    },
+    {
+      "id": 20,
+      "type": "file",
+      "name": "ingestion_buffer.py",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {}
+    },
+    {
+      "id": 21,
+      "type": "file",
+      "name": "backtest.py",
+      "path": "pipeline/src/validation/backtest.py",
+      "metadata": {}
+    },
+    {
+      "id": 22,
+      "type": "file",
+      "name": "rollback.py",
+      "path": "pipeline/src/db/rollback.py",
+      "metadata": {}
+    },
+    {
+      "id": 23,
+      "type": "file",
+      "name": "writer.py",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {}
+    },
+    {
+      "id": 24,
+      "type": "file",
+      "name": "cot.py",
+      "path": "pipeline/src/fetchers/cot.py",
+      "metadata": {}
+    },
+    {
+      "id": 25,
+      "type": "file",
+      "name": "async_engine.py",
+      "path": "pipeline/src/fetchers/async_engine.py",
+      "metadata": {}
+    },
+    {
+      "id": 26,
+      "type": "file",
+      "name": "fx_spot.py",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {}
+    },
+    {
+      "id": 27,
+      "type": "file",
+      "name": "yields.py",
+      "path": "pipeline/src/fetchers/yields.py",
+      "metadata": {}
+    },
+    {
+      "id": 28,
+      "type": "file",
+      "name": "volatility.py",
+      "path": "pipeline/src/fetchers/volatility.py",
+      "metadata": {}
+    },
+    {
+      "id": 29,
+      "type": "file",
+      "name": "polymarket.py",
+      "path": "pipeline/src/fetchers/polymarket.py",
+      "metadata": {}
+    },
+    {
+      "id": 30,
+      "type": "file",
+      "name": "substack.py",
+      "path": "pipeline/src/fetchers/substack.py",
+      "metadata": {}
+    },
+    {
+      "id": 31,
+      "type": "file",
+      "name": "open_interest.py",
+      "path": "pipeline/src/fetchers/open_interest.py",
+      "metadata": {}
+    },
+    {
+      "id": 32,
+      "type": "file",
+      "name": "buffer_keys.py",
+      "path": "pipeline/src/fetchers/buffer_keys.py",
+      "metadata": {}
+    },
+    {
+      "id": 33,
+      "type": "file",
+      "name": "cross_asset.py",
+      "path": "pipeline/src/fetchers/cross_asset.py",
+      "metadata": {}
+    },
+    {
+      "id": 34,
+      "type": "file",
+      "name": "macro_calendar.py",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {}
+    },
+    {
+      "id": 35,
+      "type": "file",
+      "name": "orchestrator.py",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {}
+    },
+    {
+      "id": 36,
+      "type": "file",
+      "name": "overnight_check.py",
+      "path": "pipeline/src/scheduler/overnight_check.py",
+      "metadata": {}
+    },
+    {
+      "id": 37,
+      "type": "file",
+      "name": "layer3_execution.py",
+      "path": "pipeline/src/logic/layer3_execution.py",
+      "metadata": {}
+    },
+    {
+      "id": 38,
+      "type": "file",
+      "name": "layer1_gate.py",
+      "path": "pipeline/src/logic/layer1_gate.py",
+      "metadata": {}
+    },
+    {
+      "id": 39,
+      "type": "file",
+      "name": "layer2_directional.py",
+      "path": "pipeline/src/logic/layer2_directional.py",
+      "metadata": {}
+    },
+    {
+      "id": 40,
+      "type": "file",
+      "name": "math_utils.py",
+      "path": "pipeline/src/logic/math_utils.py",
+      "metadata": {}
+    },
+    {
+      "id": 41,
+      "type": "file",
+      "name": "confidence.py",
+      "path": "pipeline/src/regime/confidence.py",
+      "metadata": {}
+    },
+    {
+      "id": 42,
+      "type": "file",
+      "name": "composite.py",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {}
+    },
+    {
+      "id": 43,
+      "type": "file",
+      "name": "classifier.py",
+      "path": "pipeline/src/regime/classifier.py",
+      "metadata": {}
+    },
+    {
+      "id": 44,
+      "type": "function",
+      "name": "normalize_fx_pair_key",
+      "path": "pipeline/src/types.py",
+      "metadata": {
+        "line": 17
+      }
+    },
+    {
+      "id": 45,
+      "type": "function",
+      "name": "_universe_rows_to_dict",
+      "path": "pipeline/src/types.py",
+      "metadata": {
+        "line": 37
+      }
+    },
+    {
+      "id": 46,
+      "type": "function",
+      "name": "_load_universe_from_json",
+      "path": "pipeline/src/types.py",
+      "metadata": {
+        "line": 59
+      }
+    },
+    {
+      "id": 47,
+      "type": "function",
+      "name": "load_universe",
+      "path": "pipeline/src/types.py",
+      "metadata": {
+        "line": 70
+      }
+    },
+    {
+      "id": 48,
+      "type": "function",
+      "name": "pairs_from_universe",
+      "path": "pipeline/src/types.py",
+      "metadata": {
+        "line": 99
+      }
+    },
+    {
+      "id": 49,
+      "type": "function",
+      "name": "_sync_pairs",
+      "path": "pipeline/src/types.py",
+      "metadata": {
+        "line": 113
+      }
+    },
+    {
+      "id": 50,
+      "type": "function",
+      "name": "alphavantage_fx_legs_from_pair",
+      "path": "pipeline/src/types.py",
+      "metadata": {
+        "line": 118
+      }
+    },
+    {
+      "id": 51,
+      "type": "function",
+      "name": "spot_tickers_from_universe",
+      "path": "pipeline/src/types.py",
+      "metadata": {
+        "line": 131
+      }
+    },
+    {
+      "id": 52,
+      "type": "function",
+      "name": "breakeven_inflation",
+      "path": "pipeline/src/types.py",
+      "metadata": {
+        "line": 197
+      }
+    },
+    {
+      "id": 53,
+      "type": "function",
+      "name": "_daterange",
+      "path": "pipeline/src/backfill/orchestrator.py",
+      "metadata": {
+        "line": 31
+      }
+    },
+    {
+      "id": 54,
+      "type": "function",
+      "name": "backfill_spots",
+      "path": "pipeline/src/backfill/orchestrator.py",
+      "metadata": {
+        "line": 40
+      }
+    },
+    {
+      "id": 55,
+      "type": "function",
+      "name": "replay_pipeline_for_date",
+      "path": "pipeline/src/backfill/orchestrator.py",
+      "metadata": {
+        "line": 64
+      }
+    },
+    {
+      "id": 56,
+      "type": "function",
+      "name": "run_backfill_range",
+      "path": "pipeline/src/backfill/orchestrator.py",
+      "metadata": {
+        "line": 95
+      }
+    },
+    {
+      "id": 57,
+      "type": "function",
+      "name": "_yf_download",
+      "path": "pipeline/src/backfill/historical_fetcher.py",
+      "metadata": {
+        "line": 20
+      }
+    },
+    {
+      "id": 58,
+      "type": "function",
+      "name": "fetch_historical_spot_yfinance",
+      "path": "pipeline/src/backfill/historical_fetcher.py",
+      "metadata": {
+        "line": 81
+      }
+    },
+    {
+      "id": 59,
+      "type": "function",
+      "name": "backfill_spot_for_pair",
+      "path": "pipeline/src/backfill/historical_fetcher.py",
+      "metadata": {
+        "line": 103
+      }
+    },
+    {
+      "id": 60,
+      "type": "function",
+      "name": "_fmt_pct",
+      "path": "pipeline/src/research/artifacts.py",
+      "metadata": {
+        "line": 19
+      }
+    },
+    {
+      "id": 61,
+      "type": "function",
+      "name": "_fmt_float",
+      "path": "pipeline/src/research/artifacts.py",
+      "metadata": {
+        "line": 25
+      }
+    },
+    {
+      "id": 62,
+      "type": "function",
+      "name": "generate_track_record_report",
+      "path": "pipeline/src/research/artifacts.py",
+      "metadata": {
+        "line": 31
+      }
+    },
+    {
+      "id": 63,
+      "type": "function",
+      "name": "compute_cot_percentile",
+      "path": "pipeline/src/signals/cot.py",
+      "metadata": {
+        "line": 19
+      }
+    },
+    {
+      "id": 64,
+      "type": "function",
+      "name": "normalize_cot_signal",
+      "path": "pipeline/src/signals/cot.py",
+      "metadata": {
+        "line": 55
+      }
+    },
+    {
+      "id": 65,
+      "type": "function",
+      "name": "percentile_rank",
+      "path": "pipeline/src/signals/special.py",
+      "metadata": {
+        "line": 22
+      }
+    },
+    {
+      "id": 66,
+      "type": "function",
+      "name": "normalize_special_signal",
+      "path": "pipeline/src/signals/special.py",
+      "metadata": {
+        "line": 43
+      }
+    },
+    {
+      "id": 67,
+      "type": "function",
+      "name": "_norm_from_hist",
+      "path": "pipeline/src/signals/special.py",
+      "metadata": {
+        "line": 49
+      }
+    },
+    {
+      "id": 68,
+      "type": "function",
+      "name": "_get_hist",
+      "path": "pipeline/src/signals/special.py",
+      "metadata": {
+        "line": 56
+      }
+    },
+    {
+      "id": 69,
+      "type": "function",
+      "name": "_tail_hist",
+      "path": "pipeline/src/signals/special.py",
+      "metadata": {
+        "line": 66
+      }
+    },
+    {
+      "id": 70,
+      "type": "function",
+      "name": "compute_special_signal",
+      "path": "pipeline/src/signals/special.py",
+      "metadata": {
+        "line": 77
+      }
+    },
+    {
+      "id": 71,
+      "type": "function",
+      "name": "compute_vol_signal",
+      "path": "pipeline/src/signals/volatility.py",
+      "metadata": {
+        "line": 20
+      }
+    },
+    {
+      "id": 72,
+      "type": "function",
+      "name": "is_vol_expanding",
+      "path": "pipeline/src/signals/volatility.py",
+      "metadata": {
+        "line": 33
+      }
+    },
+    {
+      "id": 73,
+      "type": "function",
+      "name": "compute_rvol",
+      "path": "pipeline/src/signals/volatility.py",
+      "metadata": {
+        "line": 37
+      }
+    },
+    {
+      "id": 74,
+      "type": "function",
+      "name": "realized_vol21_series_annualized_pct",
+      "path": "pipeline/src/signals/volatility.py",
+      "metadata": {
+        "line": 52
+      }
+    },
+    {
+      "id": 75,
+      "type": "function",
+      "name": "empirical_cdf_rank",
+      "path": "pipeline/src/signals/volatility.py",
+      "metadata": {
+        "line": 72
+      }
+    },
+    {
+      "id": 76,
+      "type": "function",
+      "name": "compute_realized_vol_rank_from_closes",
+      "path": "pipeline/src/signals/volatility.py",
+      "metadata": {
+        "line": 82
+      }
+    },
+    {
+      "id": 77,
+      "type": "function",
+      "name": "compute_oi_signal",
+      "path": "pipeline/src/signals/open_interest.py",
+      "metadata": {
+        "line": 4
+      }
+    },
+    {
+      "id": 78,
+      "type": "function",
+      "name": "_to_date",
+      "path": "pipeline/src/signals/rate.py",
+      "metadata": {
+        "line": 30
+      }
+    },
+    {
+      "id": 79,
+      "type": "function",
+      "name": "_to_float",
+      "path": "pipeline/src/signals/rate.py",
+      "metadata": {
+        "line": 39
+      }
+    },
+    {
+      "id": 80,
+      "type": "function",
+      "name": "build_carry_history_from_rows",
+      "path": "pipeline/src/signals/rate.py",
+      "metadata": {
+        "line": 45
+      }
+    },
+    {
+      "id": 81,
+      "type": "function",
+      "name": "build_real_yield_10y_spread_history_from_rows",
+      "path": "pipeline/src/signals/rate.py",
+      "metadata": {
+        "line": 67
+      }
+    },
+    {
+      "id": 82,
+      "type": "function",
+      "name": "median_abs_deviation",
+      "path": "pipeline/src/signals/rate.py",
+      "metadata": {
+        "line": 94
+      }
+    },
+    {
+      "id": 83,
+      "type": "function",
+      "name": "structural_instability_from_carry_history",
+      "path": "pipeline/src/signals/rate.py",
+      "metadata": {
+        "line": 104
+      }
+    },
+    {
+      "id": 84,
+      "type": "function",
+      "name": "rate_direction_from_spreads",
+      "path": "pipeline/src/signals/rate.py",
+      "metadata": {
+        "line": 120
+      }
+    },
+    {
+      "id": 85,
+      "type": "function",
+      "name": "_mad_z_from_series",
+      "path": "pipeline/src/signals/rate.py",
+      "metadata": {
+        "line": 136
+      }
+    },
+    {
+      "id": 86,
+      "type": "function",
+      "name": "normalize_rate_signal",
+      "path": "pipeline/src/signals/rate.py",
+      "metadata": {
+        "line": 157
+      }
+    },
+    {
+      "id": 87,
+      "type": "function",
+      "name": "compute_risk_adjusted_carry",
+      "path": "pipeline/src/signals/rate.py",
+      "metadata": {
+        "line": 209
+      }
+    },
+    {
+      "id": 88,
+      "type": "function",
+      "name": "high_impact_canonical_event_names",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {
+        "line": 21
+      }
+    },
+    {
+      "id": 89,
+      "type": "function",
+      "name": "_to_date",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {
+        "line": 52
+      }
+    },
+    {
+      "id": 90,
+      "type": "function",
+      "name": "_safe_float",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {
+        "line": 61
+      }
+    },
+    {
+      "id": 91,
+      "type": "function",
+      "name": "_unique_event_names_by_date_normalized",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {
+        "line": 68
+      }
+    },
+    {
+      "id": 92,
+      "type": "function",
+      "name": "_multiple_high_events_in_window",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {
+        "line": 81
+      }
+    },
+    {
+      "id": 93,
+      "type": "function",
+      "name": "_median_prior_daily_range",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {
+        "line": 97
+      }
+    },
+    {
+      "id": 94,
+      "type": "function",
+      "name": "_daily_sigma_price",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {
+        "line": 116
+      }
+    },
+    {
+      "id": 95,
+      "type": "function",
+      "name": "_next_trading_date",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {
+        "line": 134
+      }
+    },
+    {
+      "id": 96,
+      "type": "function",
+      "name": "_quantile_q",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {
+        "line": 139
+      }
+    },
+    {
+      "id": 97,
+      "type": "function",
+      "name": "_norm_surprise_direction",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {
+        "line": 152
+      }
+    },
+    {
+      "id": 98,
+      "type": "function",
+      "name": "compute_event_risk_matrix",
+      "path": "pipeline/src/analysis/event_risk.py",
+      "metadata": {
+        "line": 160
+      }
+    },
+    {
+      "id": 99,
+      "type": "function",
+      "name": "_regime_direction",
+      "path": "pipeline/src/analysis/asymmetry.py",
+      "metadata": {
+        "line": 33
+      }
+    },
+    {
+      "id": 100,
+      "type": "function",
+      "name": "_vwap_8w_base",
+      "path": "pipeline/src/analysis/asymmetry.py",
+      "metadata": {
+        "line": 42
+      }
+    },
+    {
+      "id": 101,
+      "type": "function",
+      "name": "_cumulative_swap_return_price",
+      "path": "pipeline/src/analysis/asymmetry.py",
+      "metadata": {
+        "line": 54
+      }
+    },
+    {
+      "id": 102,
+      "type": "function",
+      "name": "compute_pain_index",
+      "path": "pipeline/src/analysis/asymmetry.py",
+      "metadata": {
+        "line": 72
+      }
+    },
+    {
+      "id": 103,
+      "type": "function",
+      "name": "_to_date",
+      "path": "pipeline/src/analysis/markov.py",
+      "metadata": {
+        "line": 25
+      }
+    },
+    {
+      "id": 104,
+      "type": "function",
+      "name": "compute_time_decayed_markov",
+      "path": "pipeline/src/analysis/markov.py",
+      "metadata": {
+        "line": 34
+      }
+    },
+    {
+      "id": 105,
+      "type": "function",
+      "name": "normalize_rank_velocity",
+      "path": "pipeline/src/analysis/systemic.py",
+      "metadata": {
+        "line": 23
+      }
+    },
+    {
+      "id": 106,
+      "type": "function",
+      "name": "compute_apex_score",
+      "path": "pipeline/src/analysis/systemic.py",
+      "metadata": {
+        "line": 31
+      }
+    },
+    {
+      "id": 107,
+      "type": "function",
+      "name": "_corr_lookup",
+      "path": "pipeline/src/analysis/systemic.py",
+      "metadata": {
+        "line": 47
+      }
+    },
+    {
+      "id": 108,
+      "type": "function",
+      "name": "top_three_clustered",
+      "path": "pipeline/src/analysis/systemic.py",
+      "metadata": {
+        "line": 61
+      }
+    },
+    {
+      "id": 109,
+      "type": "function",
+      "name": "build_yesterday_rank_maps",
+      "path": "pipeline/src/analysis/systemic.py",
+      "metadata": {
+        "line": 87
+      }
+    },
+    {
+      "id": 110,
+      "type": "function",
+      "name": "assign_apex_ranking",
+      "path": "pipeline/src/analysis/systemic.py",
+      "metadata": {
+        "line": 110
+      }
+    },
+    {
+      "id": 111,
+      "type": "function",
+      "name": "apply_cluster_to_telemetry",
+      "path": "pipeline/src/analysis/systemic.py",
+      "metadata": {
+        "line": 180
+      }
+    },
+    {
+      "id": 112,
+      "type": "function",
+      "name": "resolve_idiosyncratic_outlier",
+      "path": "pipeline/src/analysis/systemic.py",
+      "metadata": {
+        "line": 188
+      }
+    },
+    {
+      "id": 113,
+      "type": "function",
+      "name": "compute_dollar_dominance_score",
+      "path": "pipeline/src/analysis/systemic.py",
+      "metadata": {
+        "line": 209
+      }
+    },
+    {
+      "id": 114,
+      "type": "function",
+      "name": "_alias_maps",
+      "path": "pipeline/src/analysis/event_name_normalize.py",
+      "metadata": {
+        "line": 12
+      }
+    },
+    {
+      "id": 115,
+      "type": "function",
+      "name": "refresh_event_alias_cache",
+      "path": "pipeline/src/analysis/event_name_normalize.py",
+      "metadata": {
+        "line": 34
+      }
+    },
+    {
+      "id": 116,
+      "type": "function",
+      "name": "normalize_event_name",
+      "path": "pipeline/src/analysis/event_name_normalize.py",
+      "metadata": {
+        "line": 40
+      }
+    },
+    {
+      "id": 117,
+      "type": "function",
+      "name": "expand_event_names_for_query",
+      "path": "pipeline/src/analysis/event_name_normalize.py",
+      "metadata": {
+        "line": 50
+      }
+    },
+    {
+      "id": 118,
+      "type": "function",
+      "name": "_openrouter_headers",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 41
+      }
+    },
+    {
+      "id": 119,
+      "type": "function",
+      "name": "_openrouter_api_key",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 48
+      }
+    },
+    {
+      "id": 120,
+      "type": "function",
+      "name": "_openrouter_client",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 58
+      }
+    },
+    {
+      "id": 121,
+      "type": "function",
+      "name": "_async_openrouter_client",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 66
+      }
+    },
+    {
+      "id": 122,
+      "type": "function",
+      "name": "_check_limit",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 76
+      }
+    },
+    {
+      "id": 123,
+      "type": "function",
+      "name": "_call",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 85
+      }
+    },
+    {
+      "id": 124,
+      "type": "function",
+      "name": "_call_preferred_model",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 177
+      }
+    },
+    {
+      "id": 125,
+      "type": "function",
+      "name": "_is_timeout_error",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 202
+      }
+    },
+    {
+      "id": 126,
+      "type": "function",
+      "name": "_deterministic_desk_card_brief",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 206
+      }
+    },
+    {
+      "id": 127,
+      "type": "function",
+      "name": "_parse_desk_card_json",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 250
+      }
+    },
+    {
+      "id": 128,
+      "type": "function",
+      "name": "_deterministic_event_brief",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 266
+      }
+    },
+    {
+      "id": 129,
+      "type": "function",
+      "name": "_parse_event_brief_json",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 276
+      }
+    },
+    {
+      "id": 130,
+      "type": "function",
+      "name": "desk_card_brief_fallback",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 290
+      }
+    },
+    {
+      "id": 131,
+      "type": "function",
+      "name": "_parse_weekly_memo_thesis",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 314
+      }
+    },
+    {
+      "id": 132,
+      "type": "function",
+      "name": "generate_brief",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 504
+      }
+    },
+    {
+      "id": 133,
+      "type": "function",
+      "name": "generate_event_brief",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 552
+      }
+    },
+    {
+      "id": 134,
+      "type": "function",
+      "name": "generate_linkedin_alpha_hook",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 662
+      }
+    },
+    {
+      "id": 135,
+      "type": "function",
+      "name": "generate_global_macro_summary",
+      "path": "pipeline/src/ai/client.py",
+      "metadata": {
+        "line": 670
+      }
+    },
+    {
+      "id": 136,
+      "type": "function",
+      "name": "add_trading_days",
+      "path": "pipeline/src/validation/calendar.py",
+      "metadata": {
+        "line": 6
+      }
+    },
+    {
+      "id": 137,
+      "type": "function",
+      "name": "_mean",
+      "path": "pipeline/src/validation/aggregate.py",
+      "metadata": {
+        "line": 58
+      }
+    },
+    {
+      "id": 138,
+      "type": "function",
+      "name": "_std",
+      "path": "pipeline/src/validation/aggregate.py",
+      "metadata": {
+        "line": 64
+      }
+    },
+    {
+      "id": 139,
+      "type": "function",
+      "name": "_sharpe_like",
+      "path": "pipeline/src/validation/aggregate.py",
+      "metadata": {
+        "line": 72
+      }
+    },
+    {
+      "id": 140,
+      "type": "function",
+      "name": "_max_drawdown_bps",
+      "path": "pipeline/src/validation/aggregate.py",
+      "metadata": {
+        "line": 80
+      }
+    },
+    {
+      "id": 141,
+      "type": "function",
+      "name": "_calibration_buckets",
+      "path": "pipeline/src/validation/aggregate.py",
+      "metadata": {
+        "line": 96
+      }
+    },
+    {
+      "id": 142,
+      "type": "function",
+      "name": "_compute_horizon",
+      "path": "pipeline/src/validation/aggregate.py",
+      "metadata": {
+        "line": 123
+      }
+    },
+    {
+      "id": 143,
+      "type": "function",
+      "name": "compute_aggregate_stats",
+      "path": "pipeline/src/validation/aggregate.py",
+      "metadata": {
+        "line": 187
+      }
+    },
+    {
+      "id": 144,
+      "type": "function",
+      "name": "_stats_to_payload",
+      "path": "pipeline/src/validation/aggregate.py",
+      "metadata": {
+        "line": 242
+      }
+    },
+    {
+      "id": 145,
+      "type": "function",
+      "name": "run_aggregate_stats",
+      "path": "pipeline/src/validation/aggregate.py",
+      "metadata": {
+        "line": 266
+      }
+    },
+    {
+      "id": 146,
+      "type": "function",
+      "name": "_normalize_date",
+      "path": "pipeline/src/validation/ledger.py",
+      "metadata": {
+        "line": 27
+      }
+    },
+    {
+      "id": 147,
+      "type": "function",
+      "name": "_horizon_hit",
+      "path": "pipeline/src/validation/ledger.py",
+      "metadata": {
+        "line": 31
+      }
+    },
+    {
+      "id": 148,
+      "type": "function",
+      "name": "_to_hit_and_close",
+      "path": "pipeline/src/validation/ledger.py",
+      "metadata": {
+        "line": 44
+      }
+    },
+    {
+      "id": 149,
+      "type": "function",
+      "name": "_brier_t5",
+      "path": "pipeline/src/validation/ledger.py",
+      "metadata": {
+        "line": 55
+      }
+    },
+    {
+      "id": 150,
+      "type": "function",
+      "name": "_ohlc_index_map",
+      "path": "pipeline/src/validation/ledger.py",
+      "metadata": {
+        "line": 64
+      }
+    },
+    {
+      "id": 151,
+      "type": "function",
+      "name": "_adverse_bps_for_bar",
+      "path": "pipeline/src/validation/ledger.py",
+      "metadata": {
+        "line": 88
+      }
+    },
+    {
+      "id": 152,
+      "type": "function",
+      "name": "log_initial_signal",
+      "path": "pipeline/src/validation/ledger.py",
+      "metadata": {
+        "line": 105
+      }
+    },
+    {
+      "id": 153,
+      "type": "function",
+      "name": "mark_to_market_ledger",
+      "path": "pipeline/src/validation/ledger.py",
+      "metadata": {
+        "line": 139
+      }
+    },
+    {
+      "id": 154,
+      "type": "function",
+      "name": "log_return_bps",
+      "path": "pipeline/src/validation/engine.py",
+      "metadata": {
+        "line": 15
+      }
+    },
+    {
+      "id": 155,
+      "type": "function",
+      "name": "realized_direction",
+      "path": "pipeline/src/validation/engine.py",
+      "metadata": {
+        "line": 20
+      }
+    },
+    {
+      "id": 156,
+      "type": "function",
+      "name": "is_correct",
+      "path": "pipeline/src/validation/engine.py",
+      "metadata": {
+        "line": 29
+      }
+    },
+    {
+      "id": 157,
+      "type": "function",
+      "name": "brier_score",
+      "path": "pipeline/src/validation/engine.py",
+      "metadata": {
+        "line": 42
+      }
+    },
+    {
+      "id": 158,
+      "type": "function",
+      "name": "_date_from_raw",
+      "path": "pipeline/src/validation/engine.py",
+      "metadata": {
+        "line": 49
+      }
+    },
+    {
+      "id": 159,
+      "type": "function",
+      "name": "run_validation",
+      "path": "pipeline/src/validation/engine.py",
+      "metadata": {
+        "line": 55
+      }
+    },
+    {
+      "id": 160,
+      "type": "function",
+      "name": "freshness_score_from_age_hours",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 56
+      }
+    },
+    {
+      "id": 161,
+      "type": "function",
+      "name": "_calendar_age_hours",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 67
+      }
+    },
+    {
+      "id": 162,
+      "type": "function",
+      "name": "fx_pairs_from_universe",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 75
+      }
+    },
+    {
+      "id": 163,
+      "type": "function",
+      "name": "_fx_pairs_ordered",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 81
+      }
+    },
+    {
+      "id": 164,
+      "type": "function",
+      "name": "_spot_print_ok",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 89
+      }
+    },
+    {
+      "id": 165,
+      "type": "function",
+      "name": "validate_ingestion_buffer",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 109
+      }
+    },
+    {
+      "id": 166,
+      "type": "function",
+      "name": "_latest_spot_observation_date",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 170
+      }
+    },
+    {
+      "id": 167,
+      "type": "function",
+      "name": "_spots_bucket_freshness",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 199
+      }
+    },
+    {
+      "id": 168,
+      "type": "function",
+      "name": "_rates_bucket_freshness",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 219
+      }
+    },
+    {
+      "id": 169,
+      "type": "function",
+      "name": "_cot_bucket_freshness",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 251
+      }
+    },
+    {
+      "id": 170,
+      "type": "function",
+      "name": "_commodities_bucket_freshness",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 278
+      }
+    },
+    {
+      "id": 171,
+      "type": "function",
+      "name": "_cross_asset_bucket_freshness",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 299
+      }
+    },
+    {
+      "id": 172,
+      "type": "function",
+      "name": "compute_dqs",
+      "path": "pipeline/src/validation/ingestion_buffer.py",
+      "metadata": {
+        "line": 319
+      }
+    },
+    {
+      "id": 173,
+      "type": "function",
+      "name": "_neutral_threshold_pct",
+      "path": "pipeline/src/validation/backtest.py",
+      "metadata": {
+        "line": 16
+      }
+    },
+    {
+      "id": 174,
+      "type": "function",
+      "name": "_is_correct_direction",
+      "path": "pipeline/src/validation/backtest.py",
+      "metadata": {
+        "line": 24
+      }
+    },
+    {
+      "id": 175,
+      "type": "function",
+      "name": "validate_call",
+      "path": "pipeline/src/validation/backtest.py",
+      "metadata": {
+        "line": 34
+      }
+    },
+    {
+      "id": 176,
+      "type": "function",
+      "name": "main",
+      "path": "pipeline/src/db/rollback.py",
+      "metadata": {
+        "line": 13
+      }
+    },
+    {
+      "id": 177,
+      "type": "function",
+      "name": "_client",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 24
+      }
+    },
+    {
+      "id": 178,
+      "type": "function",
+      "name": "fetch_universe_registry",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 36
+      }
+    },
+    {
+      "id": 179,
+      "type": "function",
+      "name": "_date_iso",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 49
+      }
+    },
+    {
+      "id": 180,
+      "type": "function",
+      "name": "write_signal_row",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 55
+      }
+    },
+    {
+      "id": 181,
+      "type": "function",
+      "name": "write_regime_call",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 89
+      }
+    },
+    {
+      "id": 182,
+      "type": "function",
+      "name": "_desk_open_card_payload",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 95
+      }
+    },
+    {
+      "id": 183,
+      "type": "function",
+      "name": "write_desk_open_card",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 101
+      }
+    },
+    {
+      "id": 184,
+      "type": "function",
+      "name": "write_desk_open_cards_bulk",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 107
+      }
+    },
+    {
+      "id": 185,
+      "type": "function",
+      "name": "get_desk_open_cards_for_date",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 114
+      }
+    },
+    {
+      "id": 186,
+      "type": "function",
+      "name": "get_rpc_g10_correlation_matrix",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 125
+      }
+    },
+    {
+      "id": 187,
+      "type": "function",
+      "name": "_parse_corr_matrix_json",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 139
+      }
+    },
+    {
+      "id": 188,
+      "type": "function",
+      "name": "get_latest_desk_open_card",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 157
+      }
+    },
+    {
+      "id": 189,
+      "type": "function",
+      "name": "update_desk_open_card_flags",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 171
+      }
+    },
+    {
+      "id": 190,
+      "type": "function",
+      "name": "update_desk_open_card_telemetry_audit",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 195
+      }
+    },
+    {
+      "id": 191,
+      "type": "function",
+      "name": "get_validation_log_entry",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 224
+      }
+    },
+    {
+      "id": 192,
+      "type": "function",
+      "name": "write_validation_row",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 244
+      }
+    },
+    {
+      "id": 193,
+      "type": "function",
+      "name": "write_brief",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 258
+      }
+    },
+    {
+      "id": 194,
+      "type": "function",
+      "name": "write_brief_log",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 282
+      }
+    },
+    {
+      "id": 195,
+      "type": "function",
+      "name": "get_rpc_calculate_dual_correlation",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 303
+      }
+    },
+    {
+      "id": 196,
+      "type": "function",
+      "name": "write_macro_events",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 329
+      }
+    },
+    {
+      "id": 197,
+      "type": "function",
+      "name": "write_ai_request",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 337
+      }
+    },
+    {
+      "id": 198,
+      "type": "function",
+      "name": "get_ai_request_count_today",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 344
+      }
+    },
+    {
+      "id": 199,
+      "type": "function",
+      "name": "get_latest_regime_call",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 352
+      }
+    },
+    {
+      "id": 200,
+      "type": "function",
+      "name": "get_brief_for_date",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 366
+      }
+    },
+    {
+      "id": 201,
+      "type": "function",
+      "name": "get_signal_for_pair_date",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 379
+      }
+    },
+    {
+      "id": 202,
+      "type": "function",
+      "name": "get_historical_signals",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 392
+      }
+    },
+    {
+      "id": 203,
+      "type": "function",
+      "name": "delete_pipeline_data_for_date",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 408
+      }
+    },
+    {
+      "id": 204,
+      "type": "function",
+      "name": "get_historical_regime_calls",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 426
+      }
+    },
+    {
+      "id": 205,
+      "type": "function",
+      "name": "update_macro_event_ai_brief",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 440
+      }
+    },
+    {
+      "id": 206,
+      "type": "function",
+      "name": "list_high_impact_events_needing_brief",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 451
+      }
+    },
+    {
+      "id": 207,
+      "type": "function",
+      "name": "write_historical_macro_surprises",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 465
+      }
+    },
+    {
+      "id": 208,
+      "type": "function",
+      "name": "fetch_event_aliases",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 483
+      }
+    },
+    {
+      "id": 209,
+      "type": "function",
+      "name": "get_historical_macro_surprises",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 493
+      }
+    },
+    {
+      "id": 210,
+      "type": "function",
+      "name": "get_historical_macro_surprises_date_universe",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 510
+      }
+    },
+    {
+      "id": 211,
+      "type": "function",
+      "name": "write_historical_prices",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 524
+      }
+    },
+    {
+      "id": 212,
+      "type": "function",
+      "name": "get_rpc_historical_analogs",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 531
+      }
+    },
+    {
+      "id": 213,
+      "type": "function",
+      "name": "get_historical_prices",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 554
+      }
+    },
+    {
+      "id": 214,
+      "type": "function",
+      "name": "write_research_analogs",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 569
+      }
+    },
+    {
+      "id": 215,
+      "type": "function",
+      "name": "get_latest_research_analogs",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 581
+      }
+    },
+    {
+      "id": 216,
+      "type": "function",
+      "name": "write_event_risk_matrices",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 597
+      }
+    },
+    {
+      "id": 217,
+      "type": "function",
+      "name": "get_event_risk_matrix",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 614
+      }
+    },
+    {
+      "id": 218,
+      "type": "function",
+      "name": "get_strategy_ledger_entry",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 634
+      }
+    },
+    {
+      "id": 219,
+      "type": "function",
+      "name": "write_ledger_entry",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 660
+      }
+    },
+    {
+      "id": 220,
+      "type": "function",
+      "name": "get_open_ledger_entries",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 672
+      }
+    },
+    {
+      "id": 221,
+      "type": "function",
+      "name": "update_ledger_entries",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 684
+      }
+    },
+    {
+      "id": 222,
+      "type": "function",
+      "name": "write_research_memo",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 701
+      }
+    },
+    {
+      "id": 223,
+      "type": "function",
+      "name": "get_latest_research_memo_thesis_bullets",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 719
+      }
+    },
+    {
+      "id": 224,
+      "type": "function",
+      "name": "get_validation_log_for_stats",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 755
+      }
+    },
+    {
+      "id": 225,
+      "type": "function",
+      "name": "write_validation_stats",
+      "path": "pipeline/src/db/writer.py",
+      "metadata": {
+        "line": 784
+      }
+    },
+    {
+      "id": 226,
+      "type": "function",
+      "name": "_norm_header",
+      "path": "pipeline/src/fetchers/cot.py",
+      "metadata": {
+        "line": 44
+      }
+    },
+    {
+      "id": 227,
+      "type": "function",
+      "name": "_norm_row",
+      "path": "pipeline/src/fetchers/cot.py",
+      "metadata": {
+        "line": 48
+      }
+    },
+    {
+      "id": 228,
+      "type": "function",
+      "name": "_parse_yymmdd",
+      "path": "pipeline/src/fetchers/cot.py",
+      "metadata": {
+        "line": 55
+      }
+    },
+    {
+      "id": 229,
+      "type": "function",
+      "name": "_pair_from_market",
+      "path": "pipeline/src/fetchers/cot.py",
+      "metadata": {
+        "line": 66
+      }
+    },
+    {
+      "id": 230,
+      "type": "function",
+      "name": "_spec_ls",
+      "path": "pipeline/src/fetchers/cot.py",
+      "metadata": {
+        "line": 84
+      }
+    },
+    {
+      "id": 231,
+      "type": "function",
+      "name": "_rows_from_download",
+      "path": "pipeline/src/fetchers/cot.py",
+      "metadata": {
+        "line": 95
+      }
+    },
+    {
+      "id": 232,
+      "type": "function",
+      "name": "_download_cot_bytes",
+      "path": "pipeline/src/fetchers/cot.py",
+      "metadata": {
+        "line": 130
+      }
+    },
+    {
+      "id": 233,
+      "type": "function",
+      "name": "fetch_cot",
+      "path": "pipeline/src/fetchers/cot.py",
+      "metadata": {
+        "line": 154
+      }
+    },
+    {
+      "id": 234,
+      "type": "function",
+      "name": "_safe_url_for_log",
+      "path": "pipeline/src/fetchers/async_engine.py",
+      "metadata": {
+        "line": 18
+      }
+    },
+    {
+      "id": 235,
+      "type": "function",
+      "name": "__init__",
+      "path": "pipeline/src/fetchers/async_engine.py",
+      "metadata": {
+        "line": 34
+      }
+    },
+    {
+      "id": 236,
+      "type": "function",
+      "name": "semaphore",
+      "path": "pipeline/src/fetchers/async_engine.py",
+      "metadata": {
+        "line": 38
+      }
+    },
+    {
+      "id": 237,
+      "type": "function",
+      "name": "_yfinance",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {
+        "line": 26
+      }
+    },
+    {
+      "id": 238,
+      "type": "function",
+      "name": "_alphavantage_payload_suggests_stop",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {
+        "line": 32
+      }
+    },
+    {
+      "id": 239,
+      "type": "function",
+      "name": "_trim_lookback",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {
+        "line": 46
+      }
+    },
+    {
+      "id": 240,
+      "type": "function",
+      "name": "_parse_av_fx_daily",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {
+        "line": 55
+      }
+    },
+    {
+      "id": 241,
+      "type": "function",
+      "name": "_alphavantage_fx_daily_request",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {
+        "line": 80
+      }
+    },
+    {
+      "id": 242,
+      "type": "function",
+      "name": "fetch_fx_spot_alphavantage",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {
+        "line": 133
+      }
+    },
+    {
+      "id": 243,
+      "type": "function",
+      "name": "_fetch_fx_spot_yfinance_batch",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {
+        "line": 143
+      }
+    },
+    {
+      "id": 244,
+      "type": "function",
+      "name": "fetch_fx_spot",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {
+        "line": 211
+      }
+    },
+    {
+      "id": 245,
+      "type": "function",
+      "name": "_bars_from_yf_frame",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {
+        "line": 246
+      }
+    },
+    {
+      "id": 246,
+      "type": "function",
+      "name": "_download",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {
+        "line": 285
+      }
+    },
+    {
+      "id": 247,
+      "type": "function",
+      "name": "_av_sync",
+      "path": "pipeline/src/fetchers/fx_spot.py",
+      "metadata": {
+        "line": 359
+      }
+    },
+    {
+      "id": 248,
+      "type": "function",
+      "name": "_yfinance",
+      "path": "pipeline/src/fetchers/yields.py",
+      "metadata": {
+        "line": 21
+      }
+    },
+    {
+      "id": 249,
+      "type": "function",
+      "name": "_yf_leg",
+      "path": "pipeline/src/fetchers/yields.py",
+      "metadata": {
+        "line": 56
+      }
+    },
+    {
+      "id": 250,
+      "type": "function",
+      "name": "_fred_leg",
+      "path": "pipeline/src/fetchers/yields.py",
+      "metadata": {
+        "line": 72
+      }
+    },
+    {
+      "id": 251,
+      "type": "function",
+      "name": "_fetch_yf_legs",
+      "path": "pipeline/src/fetchers/yields.py",
+      "metadata": {
+        "line": 91
+      }
+    },
+    {
+      "id": 252,
+      "type": "function",
+      "name": "fetch_legacy_10y_legs",
+      "path": "pipeline/src/fetchers/yields.py",
+      "metadata": {
+        "line": 120
+      }
+    },
+    {
+      "id": 253,
+      "type": "function",
+      "name": "fetch_yields",
+      "path": "pipeline/src/fetchers/yields.py",
+      "metadata": {
+        "line": 148
+      }
+    },
+    {
+      "id": 254,
+      "type": "function",
+      "name": "_is_yahoo_yield_symbol",
+      "path": "pipeline/src/fetchers/yields.py",
+      "metadata": {
+        "line": 191
+      }
+    },
+    {
+      "id": 255,
+      "type": "function",
+      "name": "_unique_yield_ids",
+      "path": "pipeline/src/fetchers/yields.py",
+      "metadata": {
+        "line": 195
+      }
+    },
+    {
+      "id": 256,
+      "type": "function",
+      "name": "_close",
+      "path": "pipeline/src/fetchers/yields.py",
+      "metadata": {
+        "line": 219
+      }
+    },
+    {
+      "id": 257,
+      "type": "function",
+      "name": "fetch_realized_vol",
+      "path": "pipeline/src/fetchers/volatility.py",
+      "metadata": {
+        "line": 15
+      }
+    },
+    {
+      "id": 258,
+      "type": "function",
+      "name": "fetch_implied_vol",
+      "path": "pipeline/src/fetchers/volatility.py",
+      "metadata": {
+        "line": 33
+      }
+    },
+    {
+      "id": 259,
+      "type": "function",
+      "name": "_cast_dict",
+      "path": "pipeline/src/fetchers/polymarket.py",
+      "metadata": {
+        "line": 26
+      }
+    },
+    {
+      "id": 260,
+      "type": "function",
+      "name": "_to_float",
+      "path": "pipeline/src/fetchers/polymarket.py",
+      "metadata": {
+        "line": 30
+      }
+    },
+    {
+      "id": 261,
+      "type": "function",
+      "name": "_market_volume",
+      "path": "pipeline/src/fetchers/polymarket.py",
+      "metadata": {
+        "line": 42
+      }
+    },
+    {
+      "id": 262,
+      "type": "function",
+      "name": "_is_economics_market",
+      "path": "pipeline/src/fetchers/polymarket.py",
+      "metadata": {
+        "line": 51
+      }
+    },
+    {
+      "id": 263,
+      "type": "function",
+      "name": "_first_outcome_probability",
+      "path": "pipeline/src/fetchers/polymarket.py",
+      "metadata": {
+        "line": 67
+      }
+    },
+    {
+      "id": 264,
+      "type": "function",
+      "name": "normalize_polymarket_record",
+      "path": "pipeline/src/fetchers/polymarket.py",
+      "metadata": {
+        "line": 87
+      }
+    },
+    {
+      "id": 265,
+      "type": "function",
+      "name": "get_active_economics_markets",
+      "path": "pipeline/src/fetchers/polymarket.py",
+      "metadata": {
+        "line": 152
+      }
+    },
+    {
+      "id": 266,
+      "type": "function",
+      "name": "polymarket_odds_json_for_prompt",
+      "path": "pipeline/src/fetchers/polymarket.py",
+      "metadata": {
+        "line": 158
+      }
+    },
+    {
+      "id": 267,
+      "type": "function",
+      "name": "_rss_headers",
+      "path": "pipeline/src/fetchers/substack.py",
+      "metadata": {
+        "line": 23
+      }
+    },
+    {
+      "id": 268,
+      "type": "function",
+      "name": "_html_headers",
+      "path": "pipeline/src/fetchers/substack.py",
+      "metadata": {
+        "line": 30
+      }
+    },
+    {
+      "id": 269,
+      "type": "function",
+      "name": "_first_item_from_rss",
+      "path": "pipeline/src/fetchers/substack.py",
+      "metadata": {
+        "line": 37
+      }
+    },
+    {
+      "id": 270,
+      "type": "function",
+      "name": "_parse_pub_date",
+      "path": "pipeline/src/fetchers/substack.py",
+      "metadata": {
+        "line": 58
+      }
+    },
+    {
+      "id": 271,
+      "type": "function",
+      "name": "_extract_available_content",
+      "path": "pipeline/src/fetchers/substack.py",
+      "metadata": {
+        "line": 72
+      }
+    },
+    {
+      "id": 272,
+      "type": "function",
+      "name": "fetch_latest_substack_memo",
+      "path": "pipeline/src/fetchers/substack.py",
+      "metadata": {
+        "line": 85
+      }
+    },
+    {
+      "id": 273,
+      "type": "function",
+      "name": "cme_http_get",
+      "path": "pipeline/src/fetchers/open_interest.py",
+      "metadata": {
+        "line": 31
+      }
+    },
+    {
+      "id": 274,
+      "type": "function",
+      "name": "compute_oi_from_cot",
+      "path": "pipeline/src/fetchers/open_interest.py",
+      "metadata": {
+        "line": 50
+      }
+    },
+    {
+      "id": 275,
+      "type": "function",
+      "name": "compute_oi_delta_from_cot",
+      "path": "pipeline/src/fetchers/open_interest.py",
+      "metadata": {
+        "line": 70
+      }
+    },
+    {
+      "id": 276,
+      "type": "function",
+      "name": "_yfinance",
+      "path": "pipeline/src/fetchers/cross_asset.py",
+      "metadata": {
+        "line": 19
+      }
+    },
+    {
+      "id": 277,
+      "type": "function",
+      "name": "_yf_row_float",
+      "path": "pipeline/src/fetchers/cross_asset.py",
+      "metadata": {
+        "line": 25
+      }
+    },
+    {
+      "id": 278,
+      "type": "function",
+      "name": "_latest_and_change_1d",
+      "path": "pipeline/src/fetchers/cross_asset.py",
+      "metadata": {
+        "line": 30
+      }
+    },
+    {
+      "id": 279,
+      "type": "function",
+      "name": "_close_history",
+      "path": "pipeline/src/fetchers/cross_asset.py",
+      "metadata": {
+        "line": 47
+      }
+    },
+    {
+      "id": 280,
+      "type": "function",
+      "name": "fetch_cross_asset",
+      "path": "pipeline/src/fetchers/cross_asset.py",
+      "metadata": {
+        "line": 65
+      }
+    },
+    {
+      "id": 281,
+      "type": "function",
+      "name": "fetch_max_history",
+      "path": "pipeline/src/fetchers/cross_asset.py",
+      "metadata": {
+        "line": 253
+      }
+    },
+    {
+      "id": 282,
+      "type": "function",
+      "name": "_work",
+      "path": "pipeline/src/fetchers/cross_asset.py",
+      "metadata": {
+        "line": 197
+      }
+    },
+    {
+      "id": 283,
+      "type": "function",
+      "name": "_impact_meta",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 26
+      }
+    },
+    {
+      "id": 284,
+      "type": "function",
+      "name": "_next_weekday_on_or_after",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 49
+      }
+    },
+    {
+      "id": 285,
+      "type": "function",
+      "name": "_first_weekday_of_month",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 55
+      }
+    },
+    {
+      "id": 286,
+      "type": "function",
+      "name": "_add_month",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 60
+      }
+    },
+    {
+      "id": 287,
+      "type": "function",
+      "name": "_fallback_events",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 66
+      }
+    },
+    {
+      "id": 288,
+      "type": "function",
+      "name": "_cb_meetings",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 129
+      }
+    },
+    {
+      "id": 289,
+      "type": "function",
+      "name": "_elem_text",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 195
+      }
+    },
+    {
+      "id": 290,
+      "type": "function",
+      "name": "_parse_ff_calendar_date",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 203
+      }
+    },
+    {
+      "id": 291,
+      "type": "function",
+      "name": "_match_forexfactory_event",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 214
+      }
+    },
+    {
+      "id": 292,
+      "type": "function",
+      "name": "_fetch_forexfactory_weekly_xml",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 300
+      }
+    },
+    {
+      "id": 293,
+      "type": "function",
+      "name": "fetch_forexfactory_week_high_impact",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 310
+      }
+    },
+    {
+      "id": 294,
+      "type": "function",
+      "name": "fetch_macro_events",
+      "path": "pipeline/src/fetchers/macro_calendar.py",
+      "metadata": {
+        "line": 367
+      }
+    },
+    {
+      "id": 295,
+      "type": "function",
+      "name": "_yfinance_dl",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 98
+      }
+    },
+    {
+      "id": 296,
+      "type": "function",
+      "name": "_dxy_overnight_pct_abs",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 104
+      }
+    },
+    {
+      "id": 297,
+      "type": "function",
+      "name": "_max_abs_pair_overnight_pct",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 135
+      }
+    },
+    {
+      "id": 298,
+      "type": "function",
+      "name": "assess_stress",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 155
+      }
+    },
+    {
+      "id": 299,
+      "type": "function",
+      "name": "_dqs_confidence_cap",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 184
+      }
+    },
+    {
+      "id": 300,
+      "type": "function",
+      "name": "_log_dqs_band",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 196
+      }
+    },
+    {
+      "id": 301,
+      "type": "function",
+      "name": "_market_dislocation_notice_brief",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 211
+      }
+    },
+    {
+      "id": 302,
+      "type": "function",
+      "name": "_require_pipeline_runtime_env",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 235
+      }
+    },
+    {
+      "id": 303,
+      "type": "function",
+      "name": "get_regime_age",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 269
+      }
+    },
+    {
+      "id": 304,
+      "type": "function",
+      "name": "_universe_yield_tickers",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 294
+      }
+    },
+    {
+      "id": 305,
+      "type": "function",
+      "name": "_rate_spread_2y_for_pair",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 306
+      }
+    },
+    {
+      "id": 306,
+      "type": "function",
+      "name": "_rate_spread_10y_legacy",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 330
+      }
+    },
+    {
+      "id": 307,
+      "type": "function",
+      "name": "_percentile",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 363
+      }
+    },
+    {
+      "id": 308,
+      "type": "function",
+      "name": "_to_float",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 376
+      }
+    },
+    {
+      "id": 309,
+      "type": "function",
+      "name": "_breakeven_series_chronological",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 388
+      }
+    },
+    {
+      "id": 310,
+      "type": "function",
+      "name": "_polymarket_json_for_llm",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 418
+      }
+    },
+    {
+      "id": 311,
+      "type": "function",
+      "name": "_format_polymarket_context",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 424
+      }
+    },
+    {
+      "id": 312,
+      "type": "function",
+      "name": "_signal_row_from_db",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 452
+      }
+    },
+    {
+      "id": 313,
+      "type": "function",
+      "name": "_regime_call_from_db",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 487
+      }
+    },
+    {
+      "id": 314,
+      "type": "function",
+      "name": "_first_todays_high_impact_matrix_for_pair",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 524
+      }
+    },
+    {
+      "id": 315,
+      "type": "function",
+      "name": "_upsert_macro_event_briefs",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 546
+      }
+    },
+    {
+      "id": 316,
+      "type": "function",
+      "name": "_upsert_pair_briefs_for_date",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 555
+      }
+    },
+    {
+      "id": 317,
+      "type": "function",
+      "name": "write_desk_open_cards_bulk_task",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 622
+      }
+    },
+    {
+      "id": 318,
+      "type": "function",
+      "name": "upsert_pair_briefs_task",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 627
+      }
+    },
+    {
+      "id": 319,
+      "type": "function",
+      "name": "upsert_macro_event_briefs_task",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 643
+      }
+    },
+    {
+      "id": 320,
+      "type": "function",
+      "name": "run_weekly",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 1468
+      }
+    },
+    {
+      "id": 321,
+      "type": "function",
+      "name": "_norm_label",
+      "path": "pipeline/src/scheduler/orchestrator.py",
+      "metadata": {
+        "line": 275
+      }
+    },
+    {
+      "id": 322,
+      "type": "function",
+      "name": "_coerce_streak_dict",
+      "path": "pipeline/src/scheduler/overnight_check.py",
+      "metadata": {
+        "line": 32
+      }
+    },
+    {
+      "id": 323,
+      "type": "function",
+      "name": "_read_state",
+      "path": "pipeline/src/scheduler/overnight_check.py",
+      "metadata": {
+        "line": 44
+      }
+    },
+    {
+      "id": 324,
+      "type": "function",
+      "name": "_write_state",
+      "path": "pipeline/src/scheduler/overnight_check.py",
+      "metadata": {
+        "line": 60
+      }
+    },
+    {
+      "id": 325,
+      "type": "function",
+      "name": "fetch_proxy_basket",
+      "path": "pipeline/src/scheduler/overnight_check.py",
+      "metadata": {
+        "line": 68
+      }
+    },
+    {
+      "id": 326,
+      "type": "function",
+      "name": "_set_all_latest_cards_offline",
+      "path": "pipeline/src/scheduler/overnight_check.py",
+      "metadata": {
+        "line": 82
+      }
+    },
+    {
+      "id": 327,
+      "type": "function",
+      "name": "run_overnight_check",
+      "path": "pipeline/src/scheduler/overnight_check.py",
+      "metadata": {
+        "line": 94
+      }
+    },
+    {
+      "id": 328,
+      "type": "function",
+      "name": "_mean",
+      "path": "pipeline/src/logic/layer3_execution.py",
+      "metadata": {
+        "line": 53
+      }
+    },
+    {
+      "id": 329,
+      "type": "function",
+      "name": "_std_pop",
+      "path": "pipeline/src/logic/layer3_execution.py",
+      "metadata": {
+        "line": 57
+      }
+    },
+    {
+      "id": 330,
+      "type": "function",
+      "name": "causal_rr_z_pair",
+      "path": "pipeline/src/logic/layer3_execution.py",
+      "metadata": {
+        "line": 65
+      }
+    },
+    {
+      "id": 331,
+      "type": "function",
+      "name": "skew_bias_alignment",
+      "path": "pipeline/src/logic/layer3_execution.py",
+      "metadata": {
+        "line": 89
+      }
+    },
+    {
+      "id": 332,
+      "type": "function",
+      "name": "skew_reversal_flag",
+      "path": "pipeline/src/logic/layer3_execution.py",
+      "metadata": {
+        "line": 103
+      }
+    },
+    {
+      "id": 333,
+      "type": "function",
+      "name": "average_daily_range",
+      "path": "pipeline/src/logic/layer3_execution.py",
+      "metadata": {
+        "line": 113
+      }
+    },
+    {
+      "id": 334,
+      "type": "function",
+      "name": "mie_proxy_points",
+      "path": "pipeline/src/logic/layer3_execution.py",
+      "metadata": {
+        "line": 124
+      }
+    },
+    {
+      "id": 335,
+      "type": "function",
+      "name": "stop_buffer_and_level",
+      "path": "pipeline/src/logic/layer3_execution.py",
+      "metadata": {
+        "line": 147
+      }
+    },
+    {
+      "id": 336,
+      "type": "function",
+      "name": "run_layer3_execution",
+      "path": "pipeline/src/logic/layer3_execution.py",
+      "metadata": {
+        "line": 171
+      }
+    },
+    {
+      "id": 337,
+      "type": "function",
+      "name": "z_at_end",
+      "path": "pipeline/src/logic/layer3_execution.py",
+      "metadata": {
+        "line": 71
+      }
+    },
+    {
+      "id": 338,
+      "type": "function",
+      "name": "_strip_vol_suffix",
+      "path": "pipeline/src/logic/layer1_gate.py",
+      "metadata": {
+        "line": 31
+      }
+    },
+    {
+      "id": 339,
+      "type": "function",
+      "name": "prior_tier_from_regime",
+      "path": "pipeline/src/logic/layer1_gate.py",
+      "metadata": {
+        "line": 35
+      }
+    },
+    {
+      "id": 340,
+      "type": "function",
+      "name": "_neutral_label_for_pair",
+      "path": "pipeline/src/logic/layer1_gate.py",
+      "metadata": {
+        "line": 70
+      }
+    },
+    {
+      "id": 341,
+      "type": "function",
+      "name": "_tier_to_regime",
+      "path": "pipeline/src/logic/layer1_gate.py",
+      "metadata": {
+        "line": 74
+      }
+    },
+    {
+      "id": 342,
+      "type": "function",
+      "name": "_apply_vol_neutral_overlay",
+      "path": "pipeline/src/logic/layer1_gate.py",
+      "metadata": {
+        "line": 97
+      }
+    },
+    {
+      "id": 343,
+      "type": "function",
+      "name": "regime_from_composite_snapshot",
+      "path": "pipeline/src/logic/layer1_gate.py",
+      "metadata": {
+        "line": 105
+      }
+    },
+    {
+      "id": 344,
+      "type": "function",
+      "name": "run_layer1_gate",
+      "path": "pipeline/src/logic/layer1_gate.py",
+      "metadata": {
+        "line": 120
+      }
+    },
+    {
+      "id": 345,
+      "type": "function",
+      "name": "_phi_upper_tail",
+      "path": "pipeline/src/logic/layer2_directional.py",
+      "metadata": {
+        "line": 15
+      }
+    },
+    {
+      "id": 346,
+      "type": "function",
+      "name": "_phi_lower_tail",
+      "path": "pipeline/src/logic/layer2_directional.py",
+      "metadata": {
+        "line": 23
+      }
+    },
+    {
+      "id": 347,
+      "type": "function",
+      "name": "crowding_metrics_pi",
+      "path": "pipeline/src/logic/layer2_directional.py",
+      "metadata": {
+        "line": 31
+      }
+    },
+    {
+      "id": 348,
+      "type": "function",
+      "name": "marcus_b_rate_positioning_clash",
+      "path": "pipeline/src/logic/layer2_directional.py",
+      "metadata": {
+        "line": 42
+      }
+    },
+    {
+      "id": 349,
+      "type": "function",
+      "name": "effective_rate_sign",
+      "path": "pipeline/src/logic/layer2_directional.py",
+      "metadata": {
+        "line": 50
+      }
+    },
+    {
+      "id": 350,
+      "type": "function",
+      "name": "positioning_sign_pi",
+      "path": "pipeline/src/logic/layer2_directional.py",
+      "metadata": {
+        "line": 72
+      }
+    },
+    {
+      "id": 351,
+      "type": "function",
+      "name": "conviction_multiplier_pi",
+      "path": "pipeline/src/logic/layer2_directional.py",
+      "metadata": {
+        "line": 85
+      }
+    },
+    {
+      "id": 352,
+      "type": "function",
+      "name": "run_layer2_directional",
+      "path": "pipeline/src/logic/layer2_directional.py",
+      "metadata": {
+        "line": 103
+      }
+    },
+    {
+      "id": 353,
+      "type": "function",
+      "name": "_to_float64_array",
+      "path": "pipeline/src/logic/math_utils.py",
+      "metadata": {
+        "line": 12
+      }
+    },
+    {
+      "id": 354,
+      "type": "function",
+      "name": "rolling_zscore_series",
+      "path": "pipeline/src/logic/math_utils.py",
+      "metadata": {
+        "line": 17
+      }
+    },
+    {
+      "id": 355,
+      "type": "function",
+      "name": "rolling_zscore_last",
+      "path": "pipeline/src/logic/math_utils.py",
+      "metadata": {
+        "line": 69
+      }
+    },
+    {
+      "id": 356,
+      "type": "function",
+      "name": "momentum_last",
+      "path": "pipeline/src/logic/math_utils.py",
+      "metadata": {
+        "line": 86
+      }
+    },
+    {
+      "id": 357,
+      "type": "function",
+      "name": "log_return_series",
+      "path": "pipeline/src/logic/math_utils.py",
+      "metadata": {
+        "line": 102
+      }
+    },
+    {
+      "id": 358,
+      "type": "function",
+      "name": "hysteresis_tier_composite",
+      "path": "pipeline/src/logic/math_utils.py",
+      "metadata": {
+        "line": 116
+      }
+    },
+    {
+      "id": 359,
+      "type": "function",
+      "name": "_window_sum",
+      "path": "pipeline/src/logic/math_utils.py",
+      "metadata": {
+        "line": 44
+      }
+    },
+    {
+      "id": 360,
+      "type": "function",
+      "name": "snap",
+      "path": "pipeline/src/logic/math_utils.py",
+      "metadata": {
+        "line": 124
+      }
+    },
+    {
+      "id": 361,
+      "type": "function",
+      "name": "compute_confidence",
+      "path": "pipeline/src/regime/confidence.py",
+      "metadata": {
+        "line": 10
+      }
+    },
+    {
+      "id": 362,
+      "type": "function",
+      "name": "_to_date",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {
+        "line": 58
+      }
+    },
+    {
+      "id": 363,
+      "type": "function",
+      "name": "_to_float",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {
+        "line": 67
+      }
+    },
+    {
+      "id": 364,
+      "type": "function",
+      "name": "_average_ranks_np",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {
+        "line": 73
+      }
+    },
+    {
+      "id": 365,
+      "type": "function",
+      "name": "_spearman_corr_np",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {
+        "line": 93
+      }
+    },
+    {
+      "id": 366,
+      "type": "function",
+      "name": "_ema",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {
+        "line": 111
+      }
+    },
+    {
+      "id": 367,
+      "type": "function",
+      "name": "compute_dynamic_betas",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {
+        "line": 121
+      }
+    },
+    {
+      "id": 368,
+      "type": "function",
+      "name": "compute_dominance_scores",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {
+        "line": 204
+      }
+    },
+    {
+      "id": 369,
+      "type": "function",
+      "name": "dominance_top_family",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {
+        "line": 249
+      }
+    },
+    {
+      "id": 370,
+      "type": "function",
+      "name": "_weights_for_pair",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {
+        "line": 282
+      }
+    },
+    {
+      "id": 371,
+      "type": "function",
+      "name": "compute_composite",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {
+        "line": 298
+      }
+    },
+    {
+      "id": 372,
+      "type": "function",
+      "name": "get_primary_driver",
+      "path": "pipeline/src/regime/composite.py",
+      "metadata": {
+        "line": 337
+      }
+    },
+    {
+      "id": 373,
+      "type": "function",
+      "name": "_strip_gate_suffix",
+      "path": "pipeline/src/regime/classifier.py",
+      "metadata": {
+        "line": 35
+      }
+    },
+    {
+      "id": 374,
+      "type": "function",
+      "name": "get_regime_metadata",
+      "path": "pipeline/src/regime/classifier.py",
+      "metadata": {
+        "line": 39
+      }
+    },
+    {
+      "id": 375,
+      "type": "function",
+      "name": "classify_regime_layer1",
+      "path": "pipeline/src/regime/classifier.py",
+      "metadata": {
+        "line": 49
+      }
+    },
+    {
+      "id": 376,
+      "type": "function",
+      "name": "classify_regime",
+      "path": "pipeline/src/regime/classifier.py",
+      "metadata": {
+        "line": 55
+      }
+    },
+    {
+      "id": 377,
+      "type": "component",
+      "name": "middleware.ts",
+      "path": "web/src/middleware.ts",
+      "metadata": {}
+    },
+    {
+      "id": 378,
+      "type": "component",
+      "name": "g10Correlation.ts",
+      "path": "web/src/lib/g10Correlation.ts",
+      "metadata": {}
+    },
+    {
+      "id": 379,
+      "type": "component",
+      "name": "linkedin-truncate.ts",
+      "path": "web/src/lib/linkedin-truncate.ts",
+      "metadata": {}
+    },
+    {
+      "id": 380,
+      "type": "component",
+      "name": "constants.ts",
+      "path": "web/src/lib/constants.ts",
+      "metadata": {}
+    },
+    {
+      "id": 381,
+      "type": "component",
+      "name": "research-memo-thesis.ts",
+      "path": "web/src/lib/research-memo-thesis.ts",
+      "metadata": {}
+    },
+    {
+      "id": 382,
+      "type": "component",
+      "name": "pairProfiles.ts",
+      "path": "web/src/lib/pairProfiles.ts",
+      "metadata": {}
+    },
+    {
+      "id": 383,
+      "type": "component",
+      "name": "mockData.ts",
+      "path": "web/src/lib/mockData.ts",
+      "metadata": {}
+    },
+    {
+      "id": 384,
+      "type": "component",
+      "name": "validation-format.ts",
+      "path": "web/src/lib/validation-format.ts",
+      "metadata": {}
+    },
+    {
+      "id": 385,
+      "type": "component",
+      "name": "queries.ts",
+      "path": "web/src/lib/queries.ts",
+      "metadata": {}
+    },
+    {
+      "id": 386,
+      "type": "component",
+      "name": "client.ts",
+      "path": "web/src/lib/supabase/client.ts",
+      "metadata": {}
+    },
+    {
+      "id": 387,
+      "type": "component",
+      "name": "database.types.ts",
+      "path": "web/src/lib/supabase/database.types.ts",
+      "metadata": {}
+    },
+    {
+      "id": 388,
+      "type": "component",
+      "name": "server.ts",
+      "path": "web/src/lib/supabase/server.ts",
+      "metadata": {}
+    },
+    {
+      "id": 389,
+      "type": "component",
+      "name": "queries.ts",
+      "path": "web/src/lib/supabase/queries.ts",
+      "metadata": {}
+    },
+    {
+      "id": 390,
+      "type": "component",
+      "name": "convexity-radar.tsx",
+      "path": "web/src/components/ui/convexity-radar.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 391,
+      "type": "component",
+      "name": "alpha-ledger.tsx",
+      "path": "web/src/components/ui/alpha-ledger.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 392,
+      "type": "component",
+      "name": "BinaryResolve.tsx",
+      "path": "web/src/components/ui/BinaryResolve.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 393,
+      "type": "component",
+      "name": "connect-desk-modal.tsx",
+      "path": "web/src/components/ui/connect-desk-modal.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 394,
+      "type": "component",
+      "name": "TerminalLabel.tsx",
+      "path": "web/src/components/ui/TerminalLabel.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 395,
+      "type": "component",
+      "name": "systemic-cluster-banner.tsx",
+      "path": "web/src/components/ui/systemic-cluster-banner.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 396,
+      "type": "component",
+      "name": "sparkline.tsx",
+      "path": "web/src/components/ui/sparkline.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 397,
+      "type": "component",
+      "name": "confidence-bar.tsx",
+      "path": "web/src/components/ui/confidence-bar.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 398,
+      "type": "component",
+      "name": "logo-mark.tsx",
+      "path": "web/src/components/ui/logo-mark.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 399,
+      "type": "component",
+      "name": "GhostResolve.tsx",
+      "path": "web/src/components/ui/GhostResolve.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 400,
+      "type": "component",
+      "name": "macro-drift-engine.tsx",
+      "path": "web/src/components/ui/macro-drift-engine.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 401,
+      "type": "component",
+      "name": "memo-sidebar.tsx",
+      "path": "web/src/components/ui/memo-sidebar.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 402,
+      "type": "component",
+      "name": "utils.ts",
+      "path": "web/src/components/ui/utils.ts",
+      "metadata": {}
+    },
+    {
+      "id": 403,
+      "type": "component",
+      "name": "macro-pulse-bar.tsx",
+      "path": "web/src/components/ui/macro-pulse-bar.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 404,
+      "type": "component",
+      "name": "correlation-matrix.tsx",
+      "path": "web/src/components/ui/correlation-matrix.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 405,
+      "type": "component",
+      "name": "command-palette.tsx",
+      "path": "web/src/components/ui/command-palette.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 406,
+      "type": "component",
+      "name": "desk-card.tsx",
+      "path": "web/src/components/ui/desk-card.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 407,
+      "type": "component",
+      "name": "TerminalNav.tsx",
+      "path": "web/src/components/terminal/TerminalNav.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 408,
+      "type": "component",
+      "name": "Nav.tsx",
+      "path": "web/src/components/shell/Nav.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 409,
+      "type": "component",
+      "name": "Footer.tsx",
+      "path": "web/src/components/shell/Footer.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 410,
+      "type": "component",
+      "name": "global-macro-pulse.tsx",
+      "path": "web/src/components/layout/global-macro-pulse.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 411,
+      "type": "component",
+      "name": "terminal-nav.tsx",
+      "path": "web/src/components/layout/terminal-nav.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 412,
+      "type": "component",
+      "name": "ny-pipeline-run.ts",
+      "path": "web/src/components/layout/ny-pipeline-run.ts",
+      "metadata": {}
+    },
+    {
+      "id": 413,
+      "type": "component",
+      "name": "command-palette.tsx",
+      "path": "web/src/components/layout/command-palette.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 414,
+      "type": "component",
+      "name": "performance-ledger-page-content.tsx",
+      "path": "web/src/components/pages/performance-ledger-page-content.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 415,
+      "type": "component",
+      "name": "convexity-radar-page-content.tsx",
+      "path": "web/src/components/pages/convexity-radar-page-content.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 416,
+      "type": "component",
+      "name": "ValidationTable.tsx",
+      "path": "web/src/components/regime/ValidationTable.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 417,
+      "type": "component",
+      "name": "RegimeCard.tsx",
+      "path": "web/src/components/regime/RegimeCard.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 418,
+      "type": "component",
+      "name": "useLocalSettings.ts",
+      "path": "web/src/hooks/useLocalSettings.ts",
+      "metadata": {}
+    },
+    {
+      "id": 419,
+      "type": "component",
+      "name": "useScrollReveal.ts",
+      "path": "web/src/hooks/useScrollReveal.ts",
+      "metadata": {}
+    },
+    {
+      "id": 420,
+      "type": "component",
+      "name": "useReducedMotion.ts",
+      "path": "web/src/hooks/useReducedMotion.ts",
+      "metadata": {}
+    },
+    {
+      "id": 421,
+      "type": "component",
+      "name": "error.tsx",
+      "path": "web/src/app/error.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 422,
+      "type": "component",
+      "name": "global-error.tsx",
+      "path": "web/src/app/global-error.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 423,
+      "type": "component",
+      "name": "providers.tsx",
+      "path": "web/src/app/providers.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 424,
+      "type": "component",
+      "name": "layout.tsx",
+      "path": "web/src/app/layout.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 425,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 426,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/performance/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 427,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/brief/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 428,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/audit/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 429,
+      "type": "component",
+      "name": "error.tsx",
+      "path": "web/src/app/terminal/error.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 430,
+      "type": "component",
+      "name": "calendar-tab.tsx",
+      "path": "web/src/app/terminal/calendar-tab.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 431,
+      "type": "component",
+      "name": "layout.tsx",
+      "path": "web/src/app/terminal/layout.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 432,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/terminal/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 433,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/terminal/performance/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 434,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/terminal/memos/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 435,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/terminal/calendar/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 436,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/terminal/fx-regime/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 437,
+      "type": "component",
+      "name": "layout.tsx",
+      "path": "web/src/app/terminal/fx-regime/[pair]/layout.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 438,
+      "type": "component",
+      "name": "opengraph-image.tsx",
+      "path": "web/src/app/terminal/fx-regime/[pair]/opengraph-image.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 439,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/terminal/fx-regime/[pair]/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 440,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/memo/[date]/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 441,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/methodology/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 442,
+      "type": "component",
+      "name": "route.ts",
+      "path": "web/src/app/api/connect-desk/route.ts",
+      "metadata": {}
+    },
+    {
+      "id": 443,
+      "type": "component",
+      "name": "route.ts",
+      "path": "web/src/app/api/linkedin-alpha-hook/route.ts",
+      "metadata": {}
+    },
+    {
+      "id": 444,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/calendar/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 445,
+      "type": "component",
+      "name": "page.tsx",
+      "path": "web/src/app/about/page.tsx",
+      "metadata": {}
+    },
+    {
+      "id": 446,
+      "type": "migration",
+      "name": ".tmp_schema_check.sql",
+      "path": "supabase/migrations/.tmp_schema_check.sql",
+      "metadata": {}
+    },
+    {
+      "id": 447,
+      "type": "migration",
+      "name": "20260401000001_initial_schema.sql",
+      "path": "supabase/migrations/20260401000001_initial_schema.sql",
+      "metadata": {}
+    },
+    {
+      "id": 448,
+      "type": "migration",
+      "name": "20260401000002_rls_policies.sql",
+      "path": "supabase/migrations/20260401000002_rls_policies.sql",
+      "metadata": {}
+    },
+    {
+      "id": 449,
+      "type": "migration",
+      "name": "20260401000003_indexes.sql",
+      "path": "supabase/migrations/20260401000003_indexes.sql",
+      "metadata": {}
+    },
+    {
+      "id": 450,
+      "type": "migration",
+      "name": "20260404154618_remote_schema.sql",
+      "path": "supabase/migrations/20260404154618_remote_schema.sql",
+      "metadata": {}
+    },
+    {
+      "id": 451,
+      "type": "migration",
+      "name": "20260426000001_phase3_new_tables.sql",
+      "path": "supabase/migrations/20260426000001_phase3_new_tables.sql",
+      "metadata": {}
+    },
+    {
+      "id": 452,
+      "type": "migration",
+      "name": "20260427205525_remote_alignment.sql",
+      "path": "supabase/migrations/20260427205525_remote_alignment.sql",
+      "metadata": {}
+    },
+    {
+      "id": 453,
+      "type": "migration",
+      "name": "20260428000001_hardening.sql",
+      "path": "supabase/migrations/20260428000001_hardening.sql",
+      "metadata": {}
+    },
+    {
+      "id": 454,
+      "type": "migration",
+      "name": "20260428000002_add_cross_asset_us10y.sql",
+      "path": "supabase/migrations/20260428000002_add_cross_asset_us10y.sql",
+      "metadata": {}
+    },
+    {
+      "id": 455,
+      "type": "migration",
+      "name": "20260428000003_historical_data.sql",
+      "path": "supabase/migrations/20260428000003_historical_data.sql",
+      "metadata": {}
+    },
+    {
+      "id": 456,
+      "type": "migration",
+      "name": "20260428000004_desk_cards_and_security.sql",
+      "path": "supabase/migrations/20260428000004_desk_cards_and_security.sql",
+      "metadata": {}
+    },
+    {
+      "id": 457,
+      "type": "migration",
+      "name": "20260428000005_event_risk_schema.sql",
+      "path": "supabase/migrations/20260428000005_event_risk_schema.sql",
+      "metadata": {}
+    },
+    {
+      "id": 458,
+      "type": "migration",
+      "name": "20260428000006_event_risk_matrices.sql",
+      "path": "supabase/migrations/20260428000006_event_risk_matrices.sql",
+      "metadata": {}
+    },
+    {
+      "id": 459,
+      "type": "migration",
+      "name": "20260428000007_strategy_ledger.sql",
+      "path": "supabase/migrations/20260428000007_strategy_ledger.sql",
+      "metadata": {}
+    },
+    {
+      "id": 460,
+      "type": "migration",
+      "name": "20260428000008_analog_rpc.sql",
+      "path": "supabase/migrations/20260428000008_analog_rpc.sql",
+      "metadata": {}
+    },
+    {
+      "id": 461,
+      "type": "migration",
+      "name": "20260428000009_add_commodity_signals.sql",
+      "path": "supabase/migrations/20260428000009_add_commodity_signals.sql",
+      "metadata": {}
+    },
+    {
+      "id": 462,
+      "type": "migration",
+      "name": "20260428000010_structural_instability.sql",
+      "path": "supabase/migrations/20260428000010_structural_instability.sql",
+      "metadata": {}
+    },
+    {
+      "id": 463,
+      "type": "migration",
+      "name": "20260428000011_add_ranking_to_desk.sql",
+      "path": "supabase/migrations/20260428000011_add_ranking_to_desk.sql",
+      "metadata": {}
+    },
+    {
+      "id": 464,
+      "type": "migration",
+      "name": "20260428000012_universe_table.sql",
+      "path": "supabase/migrations/20260428000012_universe_table.sql",
+      "metadata": {}
+    },
+    {
+      "id": 465,
+      "type": "migration",
+      "name": "20260428000013_desk_regime_age_chart_thin.sql",
+      "path": "supabase/migrations/20260428000013_desk_regime_age_chart_thin.sql",
+      "metadata": {}
+    },
+    {
+      "id": 466,
+      "type": "migration",
+      "name": "20260428000014_macro_aliases.sql",
+      "path": "supabase/migrations/20260428000014_macro_aliases.sql",
+      "metadata": {}
+    },
+    {
+      "id": 467,
+      "type": "migration",
+      "name": "20260428000015_event_risk_exhaustion_bands.sql",
+      "path": "supabase/migrations/20260428000015_event_risk_exhaustion_bands.sql",
+      "metadata": {}
+    },
+    {
+      "id": 468,
+      "type": "migration",
+      "name": "20260428000016_systemic_synthesis.sql",
+      "path": "supabase/migrations/20260428000016_systemic_synthesis.sql",
+      "metadata": {}
+    },
+    {
+      "id": 469,
+      "type": "migration",
+      "name": "20260428000017_terminal_launch_blockers.sql",
+      "path": "supabase/migrations/20260428000017_terminal_launch_blockers.sql",
+      "metadata": {}
+    },
+    {
+      "id": 470,
+      "type": "migration",
+      "name": "20260428000018_research_memos.sql",
+      "path": "supabase/migrations/20260428000018_research_memos.sql",
+      "metadata": {}
+    },
+    {
+      "id": 471,
+      "type": "migration",
+      "name": "20260428000019_webhook_subscriptions.sql",
+      "path": "supabase/migrations/20260428000019_webhook_subscriptions.sql",
+      "metadata": {}
+    },
+    {
+      "id": 472,
+      "type": "migration",
+      "name": "20260428000020_ledger_mae.sql",
+      "path": "supabase/migrations/20260428000020_ledger_mae.sql",
+      "metadata": {}
+    },
+    {
+      "id": 473,
+      "type": "migration",
+      "name": "20260428114056_remote_history_alignment.sql",
+      "path": "supabase/migrations/20260428114056_remote_history_alignment.sql",
+      "metadata": {}
+    },
+    {
+      "id": 474,
+      "type": "migration",
+      "name": "20260504000000_pillar2_volume_rvol.sql",
+      "path": "supabase/migrations/20260504000000_pillar2_volume_rvol.sql",
+      "metadata": {}
+    },
+    {
+      "id": 475,
+      "type": "migration",
+      "name": "20260504000001_pillar3_mean_reversion.sql",
+      "path": "supabase/migrations/20260504000001_pillar3_mean_reversion.sql",
+      "metadata": {}
+    },
+    {
+      "id": 476,
+      "type": "migration",
+      "name": "20260504000003_phase3_audit_fixes.sql",
+      "path": "supabase/migrations/20260504000003_phase3_audit_fixes.sql",
+      "metadata": {}
+    },
+    {
+      "id": 477,
+      "type": "migration",
+      "name": "20260504000004_ai_rpc.sql",
+      "path": "supabase/migrations/20260504000004_ai_rpc.sql",
+      "metadata": {}
+    },
+    {
+      "id": 478,
+      "type": "migration",
+      "name": "20260505000000_round1_foundation_audit.sql",
+      "path": "supabase/migrations/20260505000000_round1_foundation_audit.sql",
+      "metadata": {}
+    },
+    {
+      "id": 479,
+      "type": "migration",
+      "name": "20260505000001_round3_validation_engine.sql",
+      "path": "supabase/migrations/20260505000001_round3_validation_engine.sql",
+      "metadata": {}
+    },
+    {
+      "id": 480,
+      "type": "migration",
+      "name": "20260505000002_validation_stats.sql",
+      "path": "supabase/migrations/20260505000002_validation_stats.sql",
+      "metadata": {}
+    },
+    {
+      "id": 481,
+      "type": "migration",
+      "name": "20260505000003_layer3_execution_schema.sql",
+      "path": "supabase/migrations/20260505000003_layer3_execution_schema.sql",
+      "metadata": {}
+    }
+  ],
+  "edges": [
+    {
+      "source": 0,
+      "target": 44,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 0,
+      "target": 45,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 0,
+      "target": 46,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 0,
+      "target": 47,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 0,
+      "target": 48,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 0,
+      "target": 49,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 0,
+      "target": 50,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 0,
+      "target": 51,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 0,
+      "target": 52,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 1,
+      "target": 2,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 1,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 1,
+      "target": 1,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 1,
+      "target": 35,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 1,
+      "target": 53,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 1,
+      "target": 54,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 54,
+      "target": 2,
+      "type": "calls",
+      "metadata": {
+        "function": "backfill_spot_for_pair"
+      }
+    },
+    {
+      "source": 54,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "load_universe"
+      }
+    },
+    {
+      "source": 1,
+      "target": 55,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 1,
+      "target": 56,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 2,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 2,
+      "target": 57,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 2,
+      "target": 58,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 58,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "spot_tickers_from_universe"
+      }
+    },
+    {
+      "source": 2,
+      "target": 59,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 3,
+      "target": 60,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 3,
+      "target": 61,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 3,
+      "target": 62,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 4,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 4,
+      "target": 63,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 4,
+      "target": 64,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 5,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 5,
+      "target": 65,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 5,
+      "target": 66,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 5,
+      "target": 67,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 5,
+      "target": 68,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 5,
+      "target": 69,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 5,
+      "target": 70,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 70,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "normalize_fx_pair_key"
+      }
+    },
+    {
+      "source": 6,
+      "target": 71,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 6,
+      "target": 72,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 6,
+      "target": 73,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 6,
+      "target": 74,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 6,
+      "target": 75,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 6,
+      "target": 76,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 7,
+      "target": 77,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 8,
+      "target": 78,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 8,
+      "target": 79,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 8,
+      "target": 80,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 80,
+      "target": 9,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 80,
+      "target": 11,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 80,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 80,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 80,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 80,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 80,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 80,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 80,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 8,
+      "target": 81,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 81,
+      "target": 9,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 81,
+      "target": 11,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 81,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 81,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 81,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 81,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 81,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 81,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 81,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 8,
+      "target": 82,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 8,
+      "target": 83,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 8,
+      "target": 84,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 8,
+      "target": 85,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 8,
+      "target": 86,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 8,
+      "target": 87,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 13,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 16,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 34,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 88,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 88,
+      "target": 34,
+      "type": "calls",
+      "metadata": {
+        "function": "_impact_meta"
+      }
+    },
+    {
+      "source": 9,
+      "target": 89,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 90,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 91,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 91,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 91,
+      "target": 11,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 91,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 91,
+      "target": 13,
+      "type": "calls",
+      "metadata": {
+        "function": "normalize_event_name"
+      }
+    },
+    {
+      "source": 9,
+      "target": 92,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 93,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 94,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 95,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 96,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 97,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 9,
+      "target": 98,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 98,
+      "target": 13,
+      "type": "calls",
+      "metadata": {
+        "function": "normalize_event_name"
+      }
+    },
+    {
+      "source": 98,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 98,
+      "target": 11,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 98,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 98,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 98,
+      "target": 11,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 98,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 98,
+      "target": 13,
+      "type": "calls",
+      "metadata": {
+        "function": "normalize_event_name"
+      }
+    },
+    {
+      "source": 98,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 98,
+      "target": 11,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 98,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 10,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 10,
+      "target": 99,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 10,
+      "target": 100,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 10,
+      "target": 101,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 10,
+      "target": 102,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 11,
+      "target": 103,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 11,
+      "target": 104,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 104,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 104,
+      "target": 9,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 104,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 12,
+      "target": 43,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 12,
+      "target": 105,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 12,
+      "target": 106,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 12,
+      "target": 107,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 12,
+      "target": 108,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 12,
+      "target": 109,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 12,
+      "target": 110,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 12,
+      "target": 111,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 12,
+      "target": 112,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 12,
+      "target": 113,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 113,
+      "target": 43,
+      "type": "calls",
+      "metadata": {
+        "function": "get_regime_metadata"
+      }
+    },
+    {
+      "source": 13,
+      "target": 114,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 13,
+      "target": 115,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 13,
+      "target": 116,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 13,
+      "target": 117,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 9,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 118,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 119,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 120,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 121,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 122,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 123,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 124,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 125,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 126,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 127,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 128,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 129,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 130,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 131,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 132,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 133,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 134,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 14,
+      "target": 135,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 16,
+      "target": 136,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 17,
+      "target": 137,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 17,
+      "target": 138,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 17,
+      "target": 139,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 139,
+      "target": 37,
+      "type": "calls",
+      "metadata": {
+        "function": "_mean"
+      }
+    },
+    {
+      "source": 17,
+      "target": 140,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 17,
+      "target": 141,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 141,
+      "target": 37,
+      "type": "calls",
+      "metadata": {
+        "function": "_mean"
+      }
+    },
+    {
+      "source": 17,
+      "target": 142,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 142,
+      "target": 37,
+      "type": "calls",
+      "metadata": {
+        "function": "_mean"
+      }
+    },
+    {
+      "source": 142,
+      "target": 37,
+      "type": "calls",
+      "metadata": {
+        "function": "_mean"
+      }
+    },
+    {
+      "source": 17,
+      "target": 143,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 17,
+      "target": 144,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 17,
+      "target": 145,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 18,
+      "target": 146,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 18,
+      "target": 147,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 18,
+      "target": 148,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 18,
+      "target": 149,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 18,
+      "target": 150,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 18,
+      "target": 151,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 18,
+      "target": 152,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 18,
+      "target": 153,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 19,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 19,
+      "target": 16,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 19,
+      "target": 154,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 19,
+      "target": 155,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 19,
+      "target": 156,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 19,
+      "target": 157,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 19,
+      "target": 158,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 19,
+      "target": 159,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 159,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "load_universe"
+      }
+    },
+    {
+      "source": 159,
+      "target": 16,
+      "type": "calls",
+      "metadata": {
+        "function": "add_trading_days"
+      }
+    },
+    {
+      "source": 159,
+      "target": 16,
+      "type": "calls",
+      "metadata": {
+        "function": "add_trading_days"
+      }
+    },
+    {
+      "source": 20,
+      "target": 32,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 160,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 161,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 162,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 163,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 164,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 165,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 166,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 167,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 168,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 169,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 170,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 171,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 20,
+      "target": 172,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 21,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 21,
+      "target": 173,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 21,
+      "target": 174,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 21,
+      "target": 175,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 22,
+      "target": 176,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 13,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 177,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 178,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 179,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 180,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 181,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 182,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 183,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 184,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 185,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 186,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 187,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 188,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 189,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 190,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 191,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 192,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 193,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 194,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 195,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 196,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 197,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 198,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 199,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 200,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 201,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 202,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 203,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 204,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 205,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 206,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 207,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 208,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 209,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 209,
+      "target": 13,
+      "type": "calls",
+      "metadata": {
+        "function": "expand_event_names_for_query"
+      }
+    },
+    {
+      "source": 23,
+      "target": 210,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 211,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 212,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 213,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 214,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 215,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 216,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 217,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 218,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 219,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 220,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 221,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 222,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 223,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 224,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 23,
+      "target": 225,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 24,
+      "target": 19,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 24,
+      "target": 25,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 24,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 24,
+      "target": 226,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 24,
+      "target": 227,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 24,
+      "target": 228,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 24,
+      "target": 229,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 24,
+      "target": 230,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 24,
+      "target": 231,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 24,
+      "target": 232,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 24,
+      "target": 233,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 233,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "pairs_from_universe"
+      }
+    },
+    {
+      "source": 25,
+      "target": 32,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 25,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 25,
+      "target": 4,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 25,
+      "target": 24,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 25,
+      "target": 33,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 25,
+      "target": 26,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 25,
+      "target": 27,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 25,
+      "target": 234,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 25,
+      "target": 235,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 25,
+      "target": 236,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 26,
+      "target": 19,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 26,
+      "target": 25,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 26,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 26,
+      "target": 237,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 26,
+      "target": 238,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 26,
+      "target": 239,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 26,
+      "target": 240,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 26,
+      "target": 241,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 241,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "alphavantage_fx_legs_from_pair"
+      }
+    },
+    {
+      "source": 26,
+      "target": 242,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 26,
+      "target": 243,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 243,
+      "target": 27,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 243,
+      "target": 33,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 26,
+      "target": 244,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 244,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "spot_tickers_from_universe"
+      }
+    },
+    {
+      "source": 26,
+      "target": 245,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 26,
+      "target": 246,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 246,
+      "target": 27,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 246,
+      "target": 33,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 26,
+      "target": 247,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 27,
+      "target": 19,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 27,
+      "target": 25,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 27,
+      "target": 248,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 27,
+      "target": 249,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 249,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 249,
+      "target": 33,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 27,
+      "target": 250,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 27,
+      "target": 251,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 251,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 251,
+      "target": 33,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 27,
+      "target": 252,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 27,
+      "target": 253,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 27,
+      "target": 254,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 27,
+      "target": 255,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 27,
+      "target": 256,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 256,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 256,
+      "target": 33,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 28,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 28,
+      "target": 257,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 28,
+      "target": 258,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 29,
+      "target": 259,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 29,
+      "target": 260,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 29,
+      "target": 261,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 261,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 261,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 261,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 261,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 261,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 261,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 261,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 261,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 261,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 261,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 261,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 261,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 29,
+      "target": 262,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 29,
+      "target": 263,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 29,
+      "target": 264,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 29,
+      "target": 265,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 29,
+      "target": 266,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 30,
+      "target": 267,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 30,
+      "target": 268,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 30,
+      "target": 269,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 30,
+      "target": 270,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 30,
+      "target": 271,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 30,
+      "target": 272,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 31,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 31,
+      "target": 273,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 31,
+      "target": 274,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 31,
+      "target": 275,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 33,
+      "target": 19,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 33,
+      "target": 25,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 33,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 33,
+      "target": 276,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 33,
+      "target": 277,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 33,
+      "target": 278,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 33,
+      "target": 279,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 33,
+      "target": 280,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 280,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 280,
+      "target": 27,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 280,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 280,
+      "target": 27,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 280,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 280,
+      "target": 27,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 280,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 280,
+      "target": 27,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 280,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 280,
+      "target": 27,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 280,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 280,
+      "target": 27,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 33,
+      "target": 281,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 281,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "spot_tickers_from_universe"
+      }
+    },
+    {
+      "source": 281,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 281,
+      "target": 27,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 33,
+      "target": 282,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 282,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 282,
+      "target": 27,
+      "type": "calls",
+      "metadata": {
+        "function": "_yfinance"
+      }
+    },
+    {
+      "source": 34,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 34,
+      "target": 283,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 283,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "pairs_from_universe"
+      }
+    },
+    {
+      "source": 34,
+      "target": 284,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 34,
+      "target": 285,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 34,
+      "target": 286,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 34,
+      "target": 287,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 287,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "pairs_from_universe"
+      }
+    },
+    {
+      "source": 287,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "pairs_from_universe"
+      }
+    },
+    {
+      "source": 287,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "pairs_from_universe"
+      }
+    },
+    {
+      "source": 287,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "pairs_from_universe"
+      }
+    },
+    {
+      "source": 287,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "pairs_from_universe"
+      }
+    },
+    {
+      "source": 34,
+      "target": 288,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 34,
+      "target": 289,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 34,
+      "target": 290,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 34,
+      "target": 291,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 34,
+      "target": 292,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 34,
+      "target": 293,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 34,
+      "target": 294,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 14,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 10,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 9,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 11,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 12,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 19,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 25,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 32,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 16,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 34,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 7,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 31,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 30,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 6,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 28,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 39,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 37,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 43,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 42,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 41,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 4,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 24,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 7,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 31,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 5,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 8,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 6,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 28,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 21,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 20,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 29,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 295,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 296,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 297,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 297,
+      "target": 20,
+      "type": "calls",
+      "metadata": {
+        "function": "fx_pairs_from_universe"
+      }
+    },
+    {
+      "source": 35,
+      "target": 298,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 299,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 300,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 301,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 302,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 303,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 304,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 305,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 306,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 307,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 308,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 309,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 310,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 310,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "polymarket_odds_json_for_prompt"
+      }
+    },
+    {
+      "source": 35,
+      "target": 311,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 311,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 311,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 311,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 311,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 311,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 311,
+      "target": 42,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 35,
+      "target": 312,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 313,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 314,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 315,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 316,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 317,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 318,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 319,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 35,
+      "target": 320,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 320,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "load_universe"
+      }
+    },
+    {
+      "source": 320,
+      "target": 34,
+      "type": "calls",
+      "metadata": {
+        "function": "fetch_macro_events"
+      }
+    },
+    {
+      "source": 320,
+      "target": 12,
+      "type": "calls",
+      "metadata": {
+        "function": "compute_dollar_dominance_score"
+      }
+    },
+    {
+      "source": 320,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "get_active_economics_markets"
+      }
+    },
+    {
+      "source": 320,
+      "target": 9,
+      "type": "calls",
+      "metadata": {
+        "function": "compute_event_risk_matrix"
+      }
+    },
+    {
+      "source": 35,
+      "target": 321,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 36,
+      "target": 33,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 36,
+      "target": 26,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 36,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 36,
+      "target": 322,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 36,
+      "target": 323,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 36,
+      "target": 324,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 36,
+      "target": 325,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 325,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "load_universe"
+      }
+    },
+    {
+      "source": 325,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "pairs_from_universe"
+      }
+    },
+    {
+      "source": 325,
+      "target": 26,
+      "type": "calls",
+      "metadata": {
+        "function": "fetch_fx_spot"
+      }
+    },
+    {
+      "source": 325,
+      "target": 33,
+      "type": "calls",
+      "metadata": {
+        "function": "fetch_cross_asset"
+      }
+    },
+    {
+      "source": 36,
+      "target": 326,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 326,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "load_universe"
+      }
+    },
+    {
+      "source": 326,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "pairs_from_universe"
+      }
+    },
+    {
+      "source": 36,
+      "target": 327,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 327,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "load_universe"
+      }
+    },
+    {
+      "source": 327,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "pairs_from_universe"
+      }
+    },
+    {
+      "source": 37,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 37,
+      "target": 328,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 37,
+      "target": 329,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 329,
+      "target": 17,
+      "type": "calls",
+      "metadata": {
+        "function": "_mean"
+      }
+    },
+    {
+      "source": 37,
+      "target": 330,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 330,
+      "target": 17,
+      "type": "calls",
+      "metadata": {
+        "function": "_mean"
+      }
+    },
+    {
+      "source": 37,
+      "target": 331,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 37,
+      "target": 332,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 37,
+      "target": 333,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 37,
+      "target": 334,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 37,
+      "target": 335,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 37,
+      "target": 336,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 37,
+      "target": 337,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 337,
+      "target": 17,
+      "type": "calls",
+      "metadata": {
+        "function": "_mean"
+      }
+    },
+    {
+      "source": 38,
+      "target": 40,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 38,
+      "target": 15,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 38,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 38,
+      "target": 338,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 38,
+      "target": 339,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 38,
+      "target": 340,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 38,
+      "target": 341,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 38,
+      "target": 342,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 38,
+      "target": 343,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 343,
+      "target": 40,
+      "type": "calls",
+      "metadata": {
+        "function": "hysteresis_tier_composite"
+      }
+    },
+    {
+      "source": 38,
+      "target": 344,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 344,
+      "target": 40,
+      "type": "calls",
+      "metadata": {
+        "function": "rolling_zscore_last"
+      }
+    },
+    {
+      "source": 344,
+      "target": 40,
+      "type": "calls",
+      "metadata": {
+        "function": "momentum_last"
+      }
+    },
+    {
+      "source": 344,
+      "target": 40,
+      "type": "calls",
+      "metadata": {
+        "function": "log_return_series"
+      }
+    },
+    {
+      "source": 344,
+      "target": 40,
+      "type": "calls",
+      "metadata": {
+        "function": "rolling_zscore_last"
+      }
+    },
+    {
+      "source": 344,
+      "target": 40,
+      "type": "calls",
+      "metadata": {
+        "function": "hysteresis_tier_composite"
+      }
+    },
+    {
+      "source": 39,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 39,
+      "target": 345,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 39,
+      "target": 346,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 39,
+      "target": 347,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 39,
+      "target": 348,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 39,
+      "target": 349,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 39,
+      "target": 350,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 39,
+      "target": 351,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 39,
+      "target": 352,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 40,
+      "target": 353,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 40,
+      "target": 354,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 40,
+      "target": 355,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 40,
+      "target": 356,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 40,
+      "target": 357,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 40,
+      "target": 358,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 40,
+      "target": 359,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 40,
+      "target": 360,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 41,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 41,
+      "target": 361,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 361,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "normalize_fx_pair_key"
+      }
+    },
+    {
+      "source": 42,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 42,
+      "target": 362,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 42,
+      "target": 363,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 42,
+      "target": 364,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 42,
+      "target": 365,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 42,
+      "target": 366,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 42,
+      "target": 367,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 367,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 367,
+      "target": 9,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 367,
+      "target": 11,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_date"
+      }
+    },
+    {
+      "source": 367,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 8,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 29,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 367,
+      "target": 35,
+      "type": "calls",
+      "metadata": {
+        "function": "_to_float"
+      }
+    },
+    {
+      "source": 42,
+      "target": 368,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 42,
+      "target": 369,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 42,
+      "target": 370,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 370,
+      "target": 0,
+      "type": "calls",
+      "metadata": {
+        "function": "normalize_fx_pair_key"
+      }
+    },
+    {
+      "source": 42,
+      "target": 371,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 42,
+      "target": 372,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 43,
+      "target": 38,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 43,
+      "target": 0,
+      "type": "imports",
+      "metadata": {}
+    },
+    {
+      "source": 43,
+      "target": 373,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 43,
+      "target": 374,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 43,
+      "target": 375,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 375,
+      "target": 38,
+      "type": "calls",
+      "metadata": {
+        "function": "run_layer1_gate"
+      }
+    },
+    {
+      "source": 43,
+      "target": 376,
+      "type": "contains",
+      "metadata": {}
+    },
+    {
+      "source": 376,
+      "target": 38,
+      "type": "calls",
+      "metadata": {
+        "function": "regime_from_composite_snapshot"
+      }
+    }
+  ]
+}
