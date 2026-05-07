@@ -1,146 +1,130 @@
 ---
 name: cursor-delegation
 description: >-
-  Delegates complex implementation tasks from Kimi to Cursor Agent CLI.
-  Use when a task requires deep cross-file refactoring, complex Next.js
-  component architecture, or multi-module pipeline changes that benefit
-  from Cursor's codebase-wide analysis.
+  Kimi delegates ALL code implementation to Cursor Agent CLI.
+  Kimi writes Implementation Specs; Cursor executes them.
+  Use for every task that involves writing or modifying source code.
 ---
 
-# Cursor Delegation — Kimi → Cursor Agent
+# Cursor Delegation — Kimi Plans, Cursor Executes
 
-## Auto-Delegation Decision Matrix
+## Philosophy
 
-Before accepting ANY task, score **+1** for each "Yes":
+**Kimi is the brain. Cursor is the hands.**
 
-| # | Factor | Question |
-|---|--------|----------|
-| 1 | **File count** | Will this modify >3 files? |
-| 2 | **Cross-module** | Does it touch >2 of: fetchers / signals / regime / logic / web / db? |
-| 3 | **UI architecture** | Is this a new route, layout, or component hierarchy in Next.js? |
-| 4 | **Type cascade** | Does it change shared types/interfaces used in 5+ places? |
-| 5 | **Refactoring** | Is this restructuring existing code (not just adding new)? |
-| 6 | **Safety** | Would a mistake break the pipeline, corrupt Supabase data, or break the build? |
+Kimi NEVER writes production code directly. Kimi writes Implementation Specs. Cursor executes them.
 
-### Scoring
-- **Score >= 3** → **DELEGATE** to Cursor Agent
-- **Score = 2** → **CONSIDER** delegation; default to Kimi
-- **Score <= 1** → **HANDLE** with Kimi
+This applies to:
+- New files
+- Modified files
+- Refactored files
+- Deleted files
+- Type changes with cascading effects
 
-## When to delegate
+### When Kimi writes code directly (exceptions)
 
-Delegate to Cursor Agent **only** for:
-- **Multi-file refactoring** (> 3 files changing simultaneously)
-- **Complex Next.js component architecture** (new route groups, layout changes)
-- **Pipeline signal modules** that touch fetchers + signals + regime logic
-- **Cross-file type migrations** (changing interfaces used in 5+ places)
-- **Audit tasks** requiring full codebase search and analysis
-
-**Do NOT delegate** for:
-- Simple single-file edits
-- Test fixes
+- One-line fixes (typos, missing imports)
+- Configuration files (.env, config.json)
+- Test assertions (after analyzing failures)
 - Documentation updates
-- migrations that only add a column
 
-## How to delegate
+Everything else → Cursor Agent.
 
-### Step 1: Construct the prompt
+## Implementation Spec Format
 
-Write a **self-contained prompt** with all context Cursor needs:
+Before delegating, Kimi MUST produce a spec:
 
+```markdown
+# Implementation Spec: [Task Name]
+
+## Context
+[Why this is being built, what user story it serves]
+
+## Files
+- CREATE: `path/to/new/file.ts`
+- MODIFY: `path/to/existing/file.py`
+- DELETE: `path/to/obsolete/file.tsx`
+
+## Technical Requirements
+- [Specific requirement 1]
+- [Specific requirement 2]
+- [Design pattern to follow]
+- [Types/interfaces to use or create]
+
+## Acceptance Criteria
+- [ ] Criterion 1 (testable)
+- [ ] Criterion 2 (testable)
+- [ ] All existing tests pass
+- [ ] `npm run build` or `pytest` passes
+
+## Execution Plan
+1. [Step 1 — what to do first]
+2. [Step 2 — what to do next]
+3. [Step 3 — final verification]
+
+## Context Snippets
+[Relevant code excerpts Cursor needs to see]
 ```
-You are working on FX Regime Lab. Read AGENTS.md and .cursorrules first.
 
-Task: [specific description]
-Files to modify: [list]
-Supabase tables: [read/write targets]
-Tests to run: [pytest / npm run build / etc.]
-Acceptance criteria:
-- [ ] Criterion 1
-- [ ] Criterion 2
+## Delegation Command
 
-Current state: [any relevant code snippets or file paths]
-```
-
-### Step 2: Run the delegation command
-
-Use the wrapper script (recommended):
-
+### Quick delegation (simple tasks)
 ```bash
-./scripts/cursor-delegate.sh \
-  --task "Implement the Terminal layout shell component" \
-  --files "web/src/app/terminal/layout.tsx,web/src/components/terminal/shell.tsx" \
-  --tests "npm run build" \
-  --mode auto
-```
-
-Or run Cursor agent directly:
-
-```bash
-agent --print --trust --approve-mcps \
+agent --print --trust --approve-mcps --yolo \
   --workspace /home/shreyash/Projects/fx_regime_lab/fx-regime-lab \
   --model claude-sonnet-4-5 \
-  "Your detailed prompt here"
+  "Execute: [concise task description]"
 ```
 
-### Step 3: Capture and review output
-
-Cursor output is printed to stdout. Save it:
-
+### Spec-based delegation (complex tasks)
 ```bash
-agent --print --trust --approve-mcps --workspace . "prompt" > /tmp/cursor-output-$(date +%s).txt 2>&1
-```
+# Write spec to a temp file first
+cat > /tmp/spec.md << 'EOF'
+# Implementation Spec: ...
+[paste full spec]
+EOF
 
-**Always review Cursor's output before considering the task complete.**
-
-## Delegation patterns
-
-### Pattern A: Plan first, execute after review
-
-1. Run with `--mode plan` to get a read-only plan:
-   ```bash
-   agent --print --trust --workspace . --mode plan "Plan: refactor the signals module to use dataclasses"
-   ```
-2. Review the plan
-3. Run full execution:
-   ```bash
-   agent --print --trust --approve-mcps --yolo --workspace . "Execute: [same prompt with plan context]"
-   ```
-
-### Pattern B: Direct execution (trusted tasks only)
-
-For well-understood, low-risk tasks where the scope is clear:
-
-```bash
 agent --print --trust --approve-mcps --yolo \
-  --workspace . \
-  "Add tabular-nums class to all price displays in web/src/components/terminal/"
+  --workspace /home/shreyash/Projects/fx_regime_lab/fx-regime-lab \
+  --model claude-sonnet-4-5 \
+  "Execute the implementation spec in /tmp/spec.md. Read the spec first, then implement it exactly."
 ```
 
-### Pattern C: Worktree isolation (experimental)
-
-For risky refactors, use an isolated git worktree:
-
+### Using the wrapper script
 ```bash
-agent --print --trust --approve-mcps --yolo \
-  --workspace . \
-  --worktree cursor-delegation-$(date +%s) \
-  "Major refactor: split the regime classifier into separate modules"
+./scripts/cursor-delegate.sh \
+  --task "Add EURUSD vol signal" \
+  --files "pipeline/src/signals/vol.py,pipeline/src/db/writer.py" \
+  --tests "cd pipeline && pytest" \
+  --yolo
 ```
 
-## Safety rules
+## Verification Protocol (Kimi's job after Cursor finishes)
 
-- **Never delegate** `rm -rf`, `git push --force`, `git reset --hard`, `supabase db reset`
-- **Never delegate** secrets management or `.env` changes
-- **Always verify** Cursor is using the correct `--workspace` (should be repo root)
-- **Always run tests** after Cursor completes (`pytest`, `npm run build`)
-- **Always review git diff** before committing Cursor's changes
+1. **Run tests**: `cd pipeline && pytest` or `cd web && npm run build`
+2. **Check git diff**: `git diff --stat` — verify only expected files changed
+3. **Validate acceptance criteria** from the spec
+4. **If failures**: Write a "Fix Spec" and re-delegate:
+   ```
+   # Fix Spec: [Task Name]
+   
+   ## Failure
+   [What test/build failed]
+   
+   ## Root Cause
+   [Kimi's analysis]
+   
+   ## Fix Required
+   [Exact change needed]
+   
+   ## Files
+   - MODIFY: `path/to/file`
+   ```
 
-## Cost awareness
+## Safety Rules
 
-Cursor Agent runs consume API credits. Typical costs:
-- Simple task (1–2 files): ~$0.10–0.30
-- Medium task (3–5 files): ~$0.50–1.50
-- Complex refactor (10+ files): ~$2.00–5.00
-
-Delegate judiciously. Kimi handles most tasks faster and cheaper.
+- **Never delegate**: `rm -rf`, `git push --force`, `git reset --hard`, `supabase db reset`
+- **Never delegate**: secrets management or `.env` changes
+- **Always verify** Cursor used the correct `--workspace`
+- **Always run tests** after Cursor completes
+- **Always review git diff** before declaring success

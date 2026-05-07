@@ -155,43 +155,98 @@ When architecture changes (new directories, new tools, new rules):
 
 ---
 
-## 12. Auto-Delegation Protocol (Kimi → Cursor)
+## 12. Operating Model: Kimi = Strategy, Cursor = Execution
 
-> **This section is MANDATORY for Kimi.** Before accepting ANY implementation task, evaluate whether delegation to Cursor Agent CLI yields higher expected value.
+> **Kimi is the brain. Cursor is the hands.**  
+> Kimi plans, researches, architects, and decides. Cursor implements.  
+> This is not a cost optimization — it is a quality optimization.
 
-### Delegation Decision Matrix
+### Division of Labor
 
-Score **+1** for each "Yes":
+| Responsibility | Agent | Why |
+|----------------|-------|-----|
+| **Research & discovery** | Kimi | Better web search, long context, cross-domain reasoning |
+| **Architecture & design** | Kimi | Systems thinking, trade-off analysis, pattern recognition |
+| **Planning & spec writing** | Kimi | Precise requirements, edge-case identification |
+| **Code implementation** | Cursor | Deep codebase understanding, IDE-grade refactoring, TypeScript precision |
+| **Testing & verification** | Kimi | Runs tests, interprets failures, decides if fix is needed |
+| **Debugging strategy** | Kimi | Root-cause analysis, hypothesis generation |
+| **Debugging execution** | Cursor | Applies fixes across files, handles mechanical changes |
 
-| # | Factor | Question |
-|---|--------|----------|
-| 1 | **File count** | Will this modify >3 files? |
-| 2 | **Cross-module** | Does it touch >2 of: fetchers / signals / regime / logic / web / db? |
-| 3 | **UI architecture** | Is this a new route, layout, or component hierarchy in Next.js? |
-| 4 | **Type cascade** | Does it change shared types/interfaces used in 5+ places? |
-| 5 | **Refactoring** | Is this restructuring existing code (not just adding new)? |
-| 6 | **Safety** | Would a mistake break the pipeline, corrupt Supabase data, or break the build? |
+### The Rule
 
-### Scoring
+**Kimi NEVER writes production code.** Kimi writes Implementation Specs. Cursor executes them.
 
-- **Score >= 3** → **DELEGATE** to Cursor Agent. The complexity justifies the cost.
-- **Score = 2** → **CONSIDER** delegation. Default to Kimi unless hidden complexity is likely.
-- **Score <= 1** → **HANDLE** with Kimi. Faster, cheaper, sufficient.
+The only code Kimi writes directly:
+- One-line fixes (typos, import corrections)
+- Configuration tweaks (env vars, config files)
+- Test assertions (after analyzing failures)
+- Documentation
 
-### Execution Protocol
+Everything else → delegated to Cursor Agent.
 
-**If DELEGATING:**
-1. Read `.kimi/skills/cursor-delegation/SKILL.md`
-2. Construct a self-contained prompt with: task, files, tables, tests, acceptance criteria
-3. **Plan first**: `agent --print --trust --workspace . --mode plan "..."`
-4. Review Cursor's plan. If correct, run full execution: add `--approve-mcps --yolo`
-5. After Cursor completes, **ALWAYS** run tests (`pytest`, `npm run build`)
-6. Review git diff. Only then declare success.
+### Implementation Spec Format
 
-**If HANDLING YOURSELF:**
-1. Proceed with normal Kimi workflow
-2. Use `Agent` tool (subagent) for parallel research when helpful
-3. Run tests before declaring complete
+Before delegating, Kimi MUST write a spec:
+
+```markdown
+# Implementation Spec: [Task Name]
+
+## Context
+[Why this is being built, what user story it serves]
+
+## Files
+- CREATE: `path/to/new/file.ts`
+- MODIFY: `path/to/existing/file.py`
+- DELETE: `path/to/obsolete/file.tsx`
+
+## Technical Requirements
+- [Specific requirement 1]
+- [Specific requirement 2]
+- [Design pattern to follow]
+- [Types/interfaces to use or create]
+
+## Acceptance Criteria
+- [ ] Criterion 1 (testable)
+- [ ] Criterion 2 (testable)
+- [ ] All existing tests pass
+- [ ] `npm run build` or `pytest` passes
+
+## Execution Plan
+1. [Step 1 — what to do first]
+2. [Step 2 — what to do next]
+3. [Step 3 — final verification]
+
+## Context Snippets
+[Relevant code excerpts Cursor needs to see]
+```
+
+### Delegation Protocol
+
+1. **Kimi writes the spec** (see format above)
+2. **Kimi delegates execution**:
+   ```bash
+   agent --print --trust --approve-mcps --yolo \
+     --workspace /home/shreyash/Projects/fx_regime_lab/fx-regime-lab \
+     --model claude-sonnet-4-5 \
+     "Execute this implementation spec: [paste spec]"
+   ```
+3. **Cursor executes** with full codebase context
+4. **Kimi verifies**:
+   - Run tests: `cd pipeline && pytest` or `cd web && npm run build`
+   - Check git diff: `git diff --stat`
+   - Validate acceptance criteria
+5. **If failures**: Kimi analyzes, writes a "Fix Spec," delegates to Cursor
+6. **If success**: Kimi reports completion with summary
+
+### When Kimi Handles Directly (No Delegation)
+
+- Pure research questions ("What is the current ECB rate?")
+- Architecture decisions without code changes ("Should we use zustand or context?")
+- Code review / analysis ("Explain what this function does")
+- One-line fixes (single import, single typo)
+- Running diagnostics (`pytest`, `npm run lint`, database queries)
+- Git operations (commit, branch, merge — but NEVER push --force)
 
 ---
 
