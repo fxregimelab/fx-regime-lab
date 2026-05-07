@@ -1,10 +1,10 @@
 {
   "meta": {
     "project": "FX Regime Lab",
-    "version": "3.0",
+    "version": "4.0",
     "agent_model": "Kimi = Strategy, Cursor = Execution",
     "last_updated": "2026-05-06",
-    "rating": "10/10 agentic codebase"
+    "rating": "11/10 agentic codebase"
   },
   "quick_start": {
     "init": "./scripts/init-agent-system.sh",
@@ -62,7 +62,12 @@
     "cursor-verify": "scripts/cursor-verify.sh \u2014 test/build/lint verification",
     "cursor-warmup": "scripts/cursor-warmup.sh \u2014 pre-warm codebase index",
     "regenerate-maps": ".agent/scripts/regenerate-maps.sh \u2014 regenerate all maps",
-    "file-watcher": ".agent/scripts/file-watcher.sh \u2014 background watcher"
+    "file-watcher": ".agent/scripts/file-watcher.sh \u2014 background watcher",
+    "build-semantic-map": ".agent/scripts/build-semantic-map.sh \u2014 extract semantic meaning from code",
+    "predictive-loader": ".agent/scripts/predictive-loader.sh \u2014 predict which context to load",
+    "spec-validator": ".agent/scripts/spec-validator.sh \u2014 validate Implementation Specs",
+    "auto-debug": ".agent/scripts/auto-debug.sh \u2014 automatic error parsing + fix generation",
+    "worktree-runner": ".agent/scripts/worktree-runner.sh \u2014 isolated worktree execution"
   },
   "infrastructure": {
     "git_hooks": "Auto-regenerate maps on commit/merge. Pre-commit runs tests.",
@@ -70,7 +75,14 @@
     "auto_retry": "Orchestrator auto-retries failed specs with Fix Specs.",
     "templates": ".agent/templates/*.md \u2014 pre-built spec templates",
     "decisions": ".agent/decisions/*.json \u2014 machine-readable decision trees",
-    "budget": ".agent/budget.json \u2014 token budget per session"
+    "budget": ".agent/budget.json \u2014 token budget per session",
+    "semantic_map": ".agent/maps/SEMANTICMAP.json \u2014 function-level semantic understanding (108 files)",
+    "predictive_loader": ".agent/scripts/predictive-loader.sh \u2014 task \u2192 relevant files/skills/rules",
+    "spec_validator": ".agent/scripts/spec-validator.sh \u2014 validate specs before delegation",
+    "auto_debug": ".agent/scripts/auto-debug.sh \u2014 auto-parse errors and generate Fix Specs",
+    "worktree_runner": ".agent/scripts/worktree-runner.sh \u2014 isolated git worktree execution",
+    "agent_bridge": ".agent/bridge/ \u2014 two-way structured communication between agents",
+    "context_compression": ".agent/compress/ \u2014 auto-summarize large files when context is full"
   },
   "hard_rules": {
     "pairs": "EUR/USD, USD/JPY, USD/INR ONLY",

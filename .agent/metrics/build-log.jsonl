@@ -1,1 +1,2 @@
 {"timestamp": "$(date -Iseconds)", "event": "maps_regenerated", "total_files_mapped": 148, "map_tokens_estimate": 16659, "trigger": "${1:-manual}"}
+{"timestamp": "$(date -Iseconds)", "event": "maps_regenerated", "total_files_mapped": 148, "map_tokens_estimate": 16654, "trigger": "${1:-manual}"}
