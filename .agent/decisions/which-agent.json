@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "description": "Decision tree: which agent should handle a task?"
+  },
+  "steps": [
+    {
+      "question": "Does this task require writing or modifying production code?",
+      "yes": "go_to:code_task",
+      "no": "go_to:non_code_task"
+    }
+  ],
+  "code_task": {
+    "steps": [
+      {
+        "question": "Is this a one-line fix (typo, import, config tweak)?",
+        "yes": "agent: kimi",
+        "no": "go_to:complexity"
+      }
+    ]
+  },
+  "complexity": {
+    "steps": [
+      {
+        "question": "Score +1 for each: >3 files, >2 modules, new UI architecture, type cascade, refactoring, safety risk",
+        "score_0_1": "agent: kimi (handle directly)",
+        "score_2": "agent: kimi (consider cursor delegation)",
+        "score_3_plus": "agent: cursor (delegate via orchestrator)"
+      }
+    ]
+  },
+  "non_code_task": {
+    "steps": [
+      {
+        "question": "What type of task?",
+        "research": "agent: kimi (web search, analysis)",
+        "architecture_decision": "agent: kimi (systems thinking)",
+        "code_review": "agent: kimi (read and analyze)",
+        "debugging_strategy": "agent: kimi (root cause analysis)",
+        "running_diagnostics": "agent: kimi (shell commands)",
+        "git_operations": "agent: kimi (shell commands, NEVER push --force)"
+      }
+    ]
+  }
+}

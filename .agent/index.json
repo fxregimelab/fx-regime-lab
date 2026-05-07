@@ -1,29 +1,33 @@
 {
   "meta": {
     "project": "FX Regime Lab",
-    "version": "2.0",
+    "version": "3.0",
     "agent_model": "Kimi = Strategy, Cursor = Execution",
-    "last_updated": "2026-05-06"
+    "last_updated": "2026-05-06",
+    "rating": "10/10 agentic codebase"
   },
   "quick_start": {
+    "init": "./scripts/init-agent-system.sh",
+    "health_check": "./scripts/agent-health-check.sh",
     "for_kimi": [
-      "Read ../AGENTS.md (workspace root) \u2014 50 lines, under 300 tokens",
+      "Read .agent/index.json (this file)",
       "Read .agent/maps/CODEMAP.json \u2014 find files without grepping",
       "Read .agent/maps/SKILLMAP.json \u2014 find the right skill",
-      "Read .agent/context/HOTFILES.md \u2014 see what is active",
-      "Read TASK.md \u2014 current sprint status"
+      "Read .agent/context/HOTFILES.md \u2014 see what's active",
+      "Read TASK.md \u2014 current sprint",
+      "Read .agent/budget.json \u2014 know your token budget"
     ],
     "for_cursor": [
       "Read .cursorrules \u2014 hard rules",
       "Read .cursor/rules/*.mdc \u2014 auto-applied rules",
       "Read .cursor/skills/*/SKILL.md \u2014 relevant skill",
-      "Read .cursor/AGENTS.md \u2014 orchestration reference"
+      "Read Implementation Spec from Kimi \u2014 execute exactly"
     ]
   },
   "maps": {
-    "CODEMAP": ".agent/maps/CODEMAP.json \u2014 codebase file registry (145 files)",
-    "SKILLMAP": ".agent/maps/SKILLMAP.json \u2014 all skills registry",
-    "RULEMAP": ".agent/maps/RULEMAP.json \u2014 all Cursor rules registry",
+    "CODEMAP": ".agent/maps/CODEMAP.json \u2014 codebase file + function registry",
+    "SKILLMAP": ".agent/maps/SKILLMAP.json \u2014 all 13 skills",
+    "RULEMAP": ".agent/maps/RULEMAP.json \u2014 all 6 Cursor rules",
     "HOTFILES": ".agent/context/HOTFILES.md \u2014 recently modified files"
   },
   "agents": {
@@ -33,10 +37,10 @@
       "delegates_to": "Cursor Agent CLI via scripts/kimi-cursor-orchestrator.sh",
       "config": "~/.kimi/config.toml",
       "reads": [
-        "../AGENTS.md",
-        "TASK.md",
-        ".cursorrules",
-        ".agent/maps/*.json"
+        ".agent/index.json",
+        ".agent/maps/*.json",
+        ".agent/context/HOTFILES.md",
+        "TASK.md"
       ]
     },
     "cursor": {
@@ -51,10 +55,22 @@
     }
   },
   "scripts": {
+    "init": "scripts/init-agent-system.sh \u2014 one-command setup",
+    "health_check": "scripts/agent-health-check.sh \u2014 verify system health",
     "kimi-cursor-orchestrator": "scripts/kimi-cursor-orchestrator.sh \u2014 master orchestrator",
     "cursor-delegate": "scripts/cursor-delegate.sh \u2014 single task delegation",
     "cursor-verify": "scripts/cursor-verify.sh \u2014 test/build/lint verification",
-    "cursor-warmup": "scripts/cursor-warmup.sh \u2014 pre-warm codebase index"
+    "cursor-warmup": "scripts/cursor-warmup.sh \u2014 pre-warm codebase index",
+    "regenerate-maps": ".agent/scripts/regenerate-maps.sh \u2014 regenerate all maps",
+    "file-watcher": ".agent/scripts/file-watcher.sh \u2014 background watcher"
+  },
+  "infrastructure": {
+    "git_hooks": "Auto-regenerate maps on commit/merge. Pre-commit runs tests.",
+    "file_watcher": "Background process regenerates maps on file changes.",
+    "auto_retry": "Orchestrator auto-retries failed specs with Fix Specs.",
+    "templates": ".agent/templates/*.md \u2014 pre-built spec templates",
+    "decisions": ".agent/decisions/*.json \u2014 machine-readable decision trees",
+    "budget": ".agent/budget.json \u2014 token budget per session"
   },
   "hard_rules": {
     "pairs": "EUR/USD, USD/JPY, USD/INR ONLY",
@@ -62,6 +78,6 @@
     "ai_calls": "ALL AI through pipeline/src/ai/client.py (ON HOLD)",
     "immutable": "regime_calls and validation_log are append-only",
     "no_github_actions": "Prefect Cloud only",
-    "tests": "pytest 121 tests must pass, npm run build must pass"
+    "tests": "pytest 121 tests + npm run build must pass"
   }
 }

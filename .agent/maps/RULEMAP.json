@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "All Cursor rules. Auto-applied based on globs."
+    "description": "All Cursor rules."
   },
   "rules": [
     {

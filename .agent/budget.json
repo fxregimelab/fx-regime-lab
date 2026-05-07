@@ -1,0 +1,41 @@
+{
+  "meta": {
+    "description": "Context token budget for agents. Each doc earns its place.",
+    "total_budget_tokens": 8000,
+    "budget_explanation": "Kimi has 256K context. We reserve 8K for project config so 248K remains for actual work."
+  },
+  "kimi_session_start": {
+    "AGENTS.md": 530,
+    ".agent/index.json": 650,
+    ".agent/maps/CODEMAP.json": 3700,
+    ".agent/maps/SKILLMAP.json": 570,
+    ".agent/maps/RULEMAP.json": 300,
+    ".agent/context/HOTFILES.md": 340,
+    "TASK.md": 820,
+    "total": 6910
+  },
+  "cursor_session_start": {
+    ".cursorrules": 390,
+    ".cursor/AGENTS.md": 440,
+    "relevant_mdc_rules": 500,
+    "relevant_skill": 400,
+    "total": 1730
+  },
+  "optional_docs": {
+    "docs/SIGNAL_DEFINITIONS.md": 1700,
+    "docs/DATABASE_SCHEMA.md": 1620,
+    "docs/PIPELINE_REFERENCE.md": 1900,
+    "OMEGA_UI_SWARM_PROMPT.md": 9900,
+    "docs/CRITIQUE_AND_PLAN.md": 9000,
+    "note": "Load ONLY when working on that specific domain."
+  },
+  "optimization_rules": [
+    "If context > 200K, summarize old conversation before continuing",
+    "If maps are stale (>1h), regenerate before reading",
+    "Never load OMEGA_UI_SWARM_PROMPT.md unless doing UI work",
+    "Never load CRITIQUE_AND_PLAN.md unless doing planning",
+    "Load only 1 optional doc per session",
+    "CODEMAP.json can be queried with jq — don't load entire file",
+    "Use SKILLMAP.json to find 1 skill, then load only that skill"
+  ]
+}

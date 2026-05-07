@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "All agent skills. Load the relevant one for your task."
+    "description": "All agent skills."
   },
   "skills": [
     {

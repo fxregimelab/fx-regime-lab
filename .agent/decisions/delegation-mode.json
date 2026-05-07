@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "description": "Decision tree: how to delegate to Cursor?"
+  },
+  "single_task": {
+    "condition": "Only one spec to execute",
+    "command": "./scripts/cursor-delegate.sh --spec spec.md --yolo",
+    "verify": "./scripts/cursor-verify.sh --spec spec.md"
+  },
+  "multi_task_independent": {
+    "condition": "Multiple specs, no overlapping files",
+    "command": "./scripts/kimi-cursor-orchestrator.sh --process-queue --parallel max --yolo",
+    "verify": "./scripts/cursor-verify.sh --all"
+  },
+  "multi_task_dependent": {
+    "condition": "Multiple specs with file overlaps",
+    "command": "./scripts/kimi-cursor-orchestrator.sh --process-queue --parallel 1 --yolo",
+    "verify": "./scripts/cursor-verify.sh --all"
+  },
+  "risky_refactor": {
+    "condition": "High-risk change that could break build",
+    "command": "./scripts/cursor-delegate.sh --spec spec.md --mode plan",
+    "next": "Review plan, then run with --yolo",
+    "verify": "./scripts/cursor-verify.sh --all"
+  }
+}

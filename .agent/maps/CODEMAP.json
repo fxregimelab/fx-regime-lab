@@ -1,138 +1,2098 @@
 {
   "meta": {
-    "generated": "2026-05-06",
-    "description": "FX Regime Lab codebase map. Read this first.",
-    "total_files": 145
+    "generated": "$(date -Iseconds)",
+    "description": "FX Regime Lab codebase. Read this first before exploring.",
+    "total_files": 148
   },
   "pipeline": {
     "fetchers": [
       {
         "file": "./pipeline/src/fetchers/__init__.py",
-        "desc": ""
+        "desc": "",
+        "symbols": {
+          "functions": [],
+          "classes": [],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/fetchers/async_engine.py",
-        "desc": "Async HTTP + concurrency helpers for configuration-driven fetchers."
+        "desc": "Async HTTP + concurrency helpers for configuration-driven fetchers.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_safe_url_for_log",
+              "line": 18,
+              "args": [
+                "url",
+                "max_len"
+              ]
+            },
+            {
+              "name": "__init__",
+              "line": 34,
+              "args": [
+                "self"
+              ]
+            },
+            {
+              "name": "semaphore",
+              "line": 38,
+              "args": [
+                "self"
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "name": "AsyncFetcher",
+              "line": 29,
+              "methods": [
+                "__init__",
+                "semaphore"
+              ]
+            }
+          ],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/fetchers/buffer_keys.py",
-        "desc": "Normalized master-buffer keys (import this instead of duplicating string literals)."
+        "desc": "Normalized master-buffer keys (import this instead of duplicating string literals).",
+        "symbols": {
+          "functions": [],
+          "classes": [],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/fetchers/cot.py",
-        "desc": "ruff: noqa: E302"
+        "desc": "ruff: noqa: E302",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_norm_header",
+              "line": 44,
+              "args": [
+                "h"
+              ]
+            },
+            {
+              "name": "_norm_row",
+              "line": 48,
+              "args": [
+                "row"
+              ]
+            },
+            {
+              "name": "_parse_yymmdd",
+              "line": 55,
+              "args": [
+                "s"
+              ]
+            },
+            {
+              "name": "_pair_from_market",
+              "line": 66,
+              "args": [
+                "name"
+              ]
+            },
+            {
+              "name": "_spec_ls",
+              "line": 84,
+              "args": [
+                "nr"
+              ]
+            },
+            {
+              "name": "_rows_from_download",
+              "line": 95,
+              "args": [
+                "content"
+              ]
+            },
+            {
+              "name": "_download_cot_bytes",
+              "line": 130,
+              "args": [
+                "url"
+              ]
+            },
+            {
+              "name": "fetch_cot",
+              "line": 154,
+              "args": [
+                "year"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": [
+            "_COT_LOOKBACK_WEEKS",
+            "_K_MKT",
+            "_K_DATE",
+            "_K_LO",
+            "_K_SH",
+            "_KL_NEW",
+            "_KS_NEW",
+            "_USER_AGENTS"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/fetchers/cross_asset.py",
-        "desc": ""
+        "desc": "",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_yfinance",
+              "line": 19,
+              "args": []
+            },
+            {
+              "name": "_yf_row_float",
+              "line": 25,
+              "args": [
+                "row",
+                "attr"
+              ]
+            },
+            {
+              "name": "_latest_and_change_1d",
+              "line": 30,
+              "args": [
+                "df"
+              ]
+            },
+            {
+              "name": "_close_history",
+              "line": 47,
+              "args": [
+                "df"
+              ]
+            },
+            {
+              "name": "fetch_cross_asset",
+              "line": 65,
+              "args": [
+                "lookback_days"
+              ]
+            },
+            {
+              "name": "fetch_max_history",
+              "line": 253,
+              "args": [
+                "pair",
+                "years_back"
+              ]
+            },
+            {
+              "name": "_work",
+              "line": 197,
+              "args": []
+            }
+          ],
+          "classes": [],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/fetchers/fx_spot.py",
-        "desc": "FX spot OHLC: Alpha Vantage FX_DAILY (primary) with yfinance fallback."
+        "desc": "FX spot OHLC: Alpha Vantage FX_DAILY (primary) with yfinance fallback.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_yfinance",
+              "line": 26,
+              "args": []
+            },
+            {
+              "name": "_alphavantage_payload_suggests_stop",
+              "line": 32,
+              "args": [
+                "data"
+              ]
+            },
+            {
+              "name": "_trim_lookback",
+              "line": 46,
+              "args": [
+                "bars",
+                "lookback_days"
+              ]
+            },
+            {
+              "name": "_parse_av_fx_daily",
+              "line": 55,
+              "args": [
+                "pair",
+                "data"
+              ]
+            },
+            {
+              "name": "_alphavantage_fx_daily_request",
+              "line": 80,
+              "args": [
+                "pair"
+              ]
+            },
+            {
+              "name": "fetch_fx_spot_alphavantage",
+              "line": 133,
+              "args": [
+                "pair"
+              ]
+            },
+            {
+              "name": "_fetch_fx_spot_yfinance_batch",
+              "line": 143,
+              "args": [
+                "yf_map",
+                "pairs_subset",
+                "lookback_days"
+              ]
+            },
+            {
+              "name": "fetch_fx_spot",
+              "line": 211,
+              "args": [
+                "lookback_days"
+              ]
+            },
+            {
+              "name": "_bars_from_yf_frame",
+              "line": 246,
+              "args": [
+                "raw",
+                "pair",
+                "ticker"
+              ]
+            },
+            {
+              "name": "_download",
+              "line": 285,
+              "args": []
+            },
+            {
+              "name": "_av_sync",
+              "line": 359,
+              "args": []
+            }
+          ],
+          "classes": [],
+          "constants": [
+            "_AV_BASE",
+            "_AV_REQUEST_TIMEOUT_S"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/fetchers/macro_calendar.py",
-        "desc": ""
+        "desc": "",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_impact_meta",
+              "line": 26,
+              "args": []
+            },
+            {
+              "name": "_next_weekday_on_or_after",
+              "line": 49,
+              "args": [
+                "d0",
+                "weekday"
+              ]
+            },
+            {
+              "name": "_first_weekday_of_month",
+              "line": 55,
+              "args": [
+                "year",
+                "month",
+                "weekday"
+              ]
+            },
+            {
+              "name": "_add_month",
+              "line": 60,
+              "args": [
+                "d"
+              ]
+            },
+            {
+              "name": "_fallback_events",
+              "line": 66,
+              "args": [
+                "start",
+                "forward_days"
+              ]
+            },
+            {
+              "name": "_cb_meetings",
+              "line": 129,
+              "args": [
+                "start",
+                "forward_days"
+              ]
+            },
+            {
+              "name": "_elem_text",
+              "line": 195,
+              "args": [
+                "el"
+              ]
+            },
+            {
+              "name": "_parse_ff_calendar_date",
+              "line": 203,
+              "args": [
+                "raw"
+              ]
+            },
+            {
+              "name": "_match_forexfactory_event",
+              "line": 214,
+              "args": [
+                "country",
+                "title"
+              ]
+            },
+            {
+              "name": "_fetch_forexfactory_weekly_xml",
+              "line": 300,
+              "args": []
+            },
+            {
+              "name": "fetch_forexfactory_week_high_impact",
+              "line": 310,
+              "args": []
+            },
+            {
+              "name": "fetch_macro_events",
+              "line": 367,
+              "args": [
+                "forward_days"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": [
+            "FOREXFACTORY_WEEKLY_XML_URL"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/fetchers/open_interest.py",
-        "desc": "OI signal derived from CFTC COT open_interest field."
+        "desc": "OI signal derived from CFTC COT open_interest field.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "cme_http_get",
+              "line": 31,
+              "args": [
+                "url"
+              ]
+            },
+            {
+              "name": "compute_oi_from_cot",
+              "line": 50,
+              "args": [
+                "cot_rows",
+                "pair"
+              ]
+            },
+            {
+              "name": "compute_oi_delta_from_cot",
+              "line": 70,
+              "args": [
+                "cot_rows",
+                "pair"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": [
+            "_USER_AGENTS"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/fetchers/polymarket.py",
-        "desc": "Polymarket Gamma API \u2014 Economics-tilted active markets (async + sync helpers)."
+        "desc": "Polymarket Gamma API \u2014 Economics-tilted active markets (async + sync helpers).",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_cast_dict",
+              "line": 26,
+              "args": [
+                "m"
+              ]
+            },
+            {
+              "name": "_to_float",
+              "line": 30,
+              "args": [
+                "value"
+              ]
+            },
+            {
+              "name": "_market_volume",
+              "line": 42,
+              "args": [
+                "m"
+              ]
+            },
+            {
+              "name": "_is_economics_market",
+              "line": 51,
+              "args": [
+                "m"
+              ]
+            },
+            {
+              "name": "_first_outcome_probability",
+              "line": 67,
+              "args": [
+                "m"
+              ]
+            },
+            {
+              "name": "normalize_polymarket_record",
+              "line": 87,
+              "args": [
+                "m"
+              ]
+            },
+            {
+              "name": "get_active_economics_markets",
+              "line": 152,
+              "args": []
+            },
+            {
+              "name": "polymarket_odds_json_for_prompt",
+              "line": 158,
+              "args": [
+                "markets"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": [
+            "_ECON_PAT"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/fetchers/substack.py",
-        "desc": "Substack RSS + post HTML scrape for weekly research memos."
+        "desc": "Substack RSS + post HTML scrape for weekly research memos.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_rss_headers",
+              "line": 23,
+              "args": []
+            },
+            {
+              "name": "_html_headers",
+              "line": 30,
+              "args": []
+            },
+            {
+              "name": "_first_item_from_rss",
+              "line": 37,
+              "args": [
+                "xml"
+              ]
+            },
+            {
+              "name": "_parse_pub_date",
+              "line": 58,
+              "args": [
+                "pub_raw"
+              ]
+            },
+            {
+              "name": "_extract_available_content",
+              "line": 72,
+              "args": [
+                "html"
+              ]
+            },
+            {
+              "name": "fetch_latest_substack_memo",
+              "line": 85,
+              "args": []
+            }
+          ],
+          "classes": [],
+          "constants": [
+            "SUBSTACK_FEED_URL",
+            "BROWSER_UA"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/fetchers/volatility.py",
-        "desc": "Realized vol from spot closes; implied vol from listed FX options (best effort)."
+        "desc": "Realized vol from spot closes; implied vol from listed FX options (best effort).",
+        "symbols": {
+          "functions": [
+            {
+              "name": "fetch_realized_vol",
+              "line": 15,
+              "args": [
+                "spots"
+              ]
+            },
+            {
+              "name": "fetch_implied_vol",
+              "line": 33,
+              "args": [
+                "pair"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/fetchers/yields.py",
-        "desc": "Yield legs fetched from yfinance with FRED fallbacks."
+        "desc": "Yield legs fetched from yfinance with FRED fallbacks.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_yfinance",
+              "line": 21,
+              "args": []
+            },
+            {
+              "name": "_yf_leg",
+              "line": 56,
+              "args": [
+                "ticker",
+                "label",
+                "period"
+              ]
+            },
+            {
+              "name": "_fred_leg",
+              "line": 72,
+              "args": [
+                "fred",
+                "series_ids",
+                "label"
+              ]
+            },
+            {
+              "name": "_fetch_yf_legs",
+              "line": 91,
+              "args": [
+                "tickers",
+                "period"
+              ]
+            },
+            {
+              "name": "fetch_legacy_10y_legs",
+              "line": 120,
+              "args": [
+                "lookback_days"
+              ]
+            },
+            {
+              "name": "fetch_yields",
+              "line": 148,
+              "args": [
+                "lookback_days"
+              ]
+            },
+            {
+              "name": "_is_yahoo_yield_symbol",
+              "line": 191,
+              "args": [
+                "symbol"
+              ]
+            },
+            {
+              "name": "_unique_yield_ids",
+              "line": 195,
+              "args": [
+                "universe"
+              ]
+            },
+            {
+              "name": "_close",
+              "line": 219,
+              "args": []
+            }
+          ],
+          "classes": [],
+          "constants": []
+        }
       }
     ],
     "signals": [
       {
         "file": "./pipeline/src/signals/__init__.py",
-        "desc": "Signal-layer exports (special cross-asset composites, etc.)."
+        "desc": "Signal-layer exports (special cross-asset composites, etc.).",
+        "symbols": {
+          "functions": [],
+          "classes": [],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/signals/cot.py",
-        "desc": ""
+        "desc": "",
+        "symbols": {
+          "functions": [
+            {
+              "name": "compute_cot_percentile",
+              "line": 19,
+              "args": [
+                "rows",
+                "pair"
+              ]
+            },
+            {
+              "name": "normalize_cot_signal",
+              "line": 55,
+              "args": [
+                "percentile"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/signals/open_interest.py",
-        "desc": "Open interest signal from COT-derived OI percentile."
+        "desc": "Open interest signal from COT-derived OI percentile.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "compute_oi_signal",
+              "line": 4,
+              "args": [
+                "oi_percentile"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/signals/rate.py",
-        "desc": "Yield spread signal and normalization (robust MAD Z-score, dual horizon)."
+        "desc": "Yield spread signal and normalization (robust MAD Z-score, dual horizon).",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_to_date",
+              "line": 30,
+              "args": [
+                "value"
+              ]
+            },
+            {
+              "name": "_to_float",
+              "line": 39,
+              "args": [
+                "value"
+              ]
+            },
+            {
+              "name": "build_carry_history_from_rows",
+              "line": 45,
+              "args": [
+                "historical_rows"
+              ]
+            },
+            {
+              "name": "build_real_yield_10y_spread_history_from_rows",
+              "line": 67,
+              "args": [
+                "historical_rows"
+              ]
+            },
+            {
+              "name": "median_abs_deviation",
+              "line": 94,
+              "args": [
+                "values"
+              ]
+            },
+            {
+              "name": "structural_instability_from_carry_history",
+              "line": 104,
+              "args": [
+                "carry_chronological"
+              ]
+            },
+            {
+              "name": "rate_direction_from_spreads",
+              "line": 120,
+              "args": [
+                "spread_2y",
+                "spread_10y"
+              ]
+            },
+            {
+              "name": "_mad_z_from_series",
+              "line": 136,
+              "args": [
+                "spread",
+                "arr",
+                "lookback",
+                "label",
+                "pair"
+              ]
+            },
+            {
+              "name": "normalize_rate_signal",
+              "line": 157,
+              "args": [
+                "spread",
+                "pair",
+                "historical_spreads"
+              ]
+            },
+            {
+              "name": "compute_risk_adjusted_carry",
+              "line": 209,
+              "args": [
+                "rate_diff_2y",
+                "realized_vol_20d",
+                "pair"
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "name": "RateNormZ",
+              "line": 23,
+              "methods": []
+            }
+          ],
+          "constants": [
+            "MAD_NORMAL_SCALE",
+            "MAD_NOISE_FLOOR",
+            "CARRY_LOOKBACK_DAYS",
+            "TACTICAL_MAD_DAYS",
+            "STRUCTURAL_MAD_DAYS"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/signals/special.py",
-        "desc": ""
+        "desc": "",
+        "symbols": {
+          "functions": [
+            {
+              "name": "percentile_rank",
+              "line": 22,
+              "args": [
+                "value",
+                "history"
+              ]
+            },
+            {
+              "name": "normalize_special_signal",
+              "line": 43,
+              "args": [
+                "percentile"
+              ]
+            },
+            {
+              "name": "_norm_from_hist",
+              "line": 49,
+              "args": [
+                "value",
+                "hist"
+              ]
+            },
+            {
+              "name": "_get_hist",
+              "line": 56,
+              "args": [
+                "cross_asset_data",
+                "key"
+              ]
+            },
+            {
+              "name": "_tail_hist",
+              "line": 66,
+              "args": [
+                "cross_asset_data",
+                "key"
+              ]
+            },
+            {
+              "name": "compute_special_signal",
+              "line": 77,
+              "args": [
+                "pair",
+                "cross_asset_data"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": [
+            "_SPECIAL_RANK_WINDOW",
+            "_MIN_RANK_SAMPLE"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/signals/volatility.py",
-        "desc": ""
+        "desc": "",
+        "symbols": {
+          "functions": [
+            {
+              "name": "compute_vol_signal",
+              "line": 20,
+              "args": [
+                "rv_5d",
+                "rv_20d",
+                "threshold_90"
+              ]
+            },
+            {
+              "name": "is_vol_expanding",
+              "line": 33,
+              "args": [
+                "rv_5d",
+                "threshold_90"
+              ]
+            },
+            {
+              "name": "compute_rvol",
+              "line": 37,
+              "args": [
+                "volumes",
+                "window"
+              ]
+            },
+            {
+              "name": "realized_vol21_series_annualized_pct",
+              "line": 52,
+              "args": [
+                "closes"
+              ]
+            },
+            {
+              "name": "empirical_cdf_rank",
+              "line": 72,
+              "args": [
+                "x",
+                "sample"
+              ]
+            },
+            {
+              "name": "compute_realized_vol_rank_from_closes",
+              "line": 82,
+              "args": [
+                "closes"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": [
+            "TRADING_DAYS_3Y_VOL_RANK",
+            "_MIN_RANK_SAMPLE"
+          ]
+        }
       }
     ],
     "regime": [
       {
         "file": "./pipeline/src/regime/__init__.py",
-        "desc": ""
+        "desc": "",
+        "symbols": {
+          "functions": [],
+          "classes": [],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/regime/classifier.py",
-        "desc": "Layer 1 regime labels, UI metadata, and adapter to the deterministic gate engine."
+        "desc": "Layer 1 regime labels, UI metadata, and adapter to the deterministic gate engine.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_strip_gate_suffix",
+              "line": 35,
+              "args": [
+                "regime"
+              ]
+            },
+            {
+              "name": "get_regime_metadata",
+              "line": 39,
+              "args": [
+                "regime"
+              ]
+            },
+            {
+              "name": "classify_regime_layer1",
+              "line": 49,
+              "args": [
+                "ctx"
+              ]
+            },
+            {
+              "name": "classify_regime",
+              "line": 55,
+              "args": [
+                "composite",
+                "pair",
+                "vol_expanding"
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "name": "RegimeMetadata",
+              "line": 14,
+              "methods": []
+            }
+          ],
+          "constants": [
+            "VOL_EXPANDING_SUFFIX"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/regime/composite.py",
-        "desc": ""
+        "desc": "",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_to_date",
+              "line": 58,
+              "args": [
+                "value"
+              ]
+            },
+            {
+              "name": "_to_float",
+              "line": 67,
+              "args": [
+                "value"
+              ]
+            },
+            {
+              "name": "_average_ranks_np",
+              "line": 73,
+              "args": [
+                "a"
+              ]
+            },
+            {
+              "name": "_spearman_corr_np",
+              "line": 93,
+              "args": [
+                "x",
+                "y"
+              ]
+            },
+            {
+              "name": "_ema",
+              "line": 111,
+              "args": [
+                "values",
+                "span"
+              ]
+            },
+            {
+              "name": "compute_dynamic_betas",
+              "line": 121,
+              "args": [
+                "historical_rows",
+                "corr_window",
+                "ema_span"
+              ]
+            },
+            {
+              "name": "compute_dominance_scores",
+              "line": 204,
+              "args": [
+                "rate_norm",
+                "cot_norm",
+                "vol_norm",
+                "oi_norm",
+                "betas"
+              ]
+            },
+            {
+              "name": "dominance_top_family",
+              "line": 249,
+              "args": [
+                "betas",
+                "rate_norm",
+                "cot_norm",
+                "vol_norm",
+                "oi_norm"
+              ]
+            },
+            {
+              "name": "_weights_for_pair",
+              "line": 282,
+              "args": [
+                "pair"
+              ]
+            },
+            {
+              "name": "compute_composite",
+              "line": 298,
+              "args": [
+                "rate_norm",
+                "cot_norm",
+                "vol_norm",
+                "oi_norm"
+              ]
+            },
+            {
+              "name": "get_primary_driver",
+              "line": 337,
+              "args": [
+                "betas"
+              ]
+            }
+          ],
+          "classes": [
+            {
+              "name": "DominanceScore",
+              "line": 50,
+              "methods": []
+            }
+          ],
+          "constants": [
+            "WEIGHTS",
+            "TRADING_DAYS_3Y",
+            "TRADING_DAYS_5Y"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/regime/confidence.py",
-        "desc": "Confidence score from composite magnitude and signal agreement."
+        "desc": "Confidence score from composite magnitude and signal agreement.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "compute_confidence",
+              "line": 10,
+              "args": [
+                "composite",
+                "rate_norm",
+                "cot_norm"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": []
+        }
       }
     ],
     "logic": [
       {
         "file": "./pipeline/src/logic/__init__.py",
-        "desc": "Pure deterministic pipeline logic (math + regime gate)."
+        "desc": "Pure deterministic pipeline logic (math + regime gate).",
+        "symbols": {
+          "functions": [],
+          "classes": [],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/logic/layer1_gate.py",
-        "desc": "Layer 1 deterministic regime gate \u2014 Aris priorities, composite hysteresis, Marcus invalidation."
+        "desc": "Layer 1 deterministic regime gate \u2014 Aris priorities, composite hysteresis, Marcus invalidation.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_strip_vol_suffix",
+              "line": 31,
+              "args": [
+                "label"
+              ]
+            },
+            {
+              "name": "prior_tier_from_regime",
+              "line": 35,
+              "args": [
+                "label",
+                "pair"
+              ]
+            },
+            {
+              "name": "_neutral_label_for_pair",
+              "line": 70,
+              "args": [
+                "pair"
+              ]
+            },
+            {
+              "name": "_tier_to_regime",
+              "line": 74,
+              "args": [
+                "pair",
+                "tier"
+              ]
+            },
+            {
+              "name": "_apply_vol_neutral_overlay",
+              "line": 97,
+              "args": [
+                "raw_label",
+                "vol_expanding"
+              ]
+            },
+            {
+              "name": "regime_from_composite_snapshot",
+              "line": 105,
+              "args": [
+                "composite",
+                "pair"
+              ]
+            },
+            {
+              "name": "run_layer1_gate",
+              "line": 120,
+              "args": [
+                "ctx"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": [
+            "VOL_EXPANDING_SUFFIX_LOCAL",
+            "_Z_WINDOW",
+            "_Z_MIN_PERIODS",
+            "_SPOT_RET_WINDOW",
+            "_MOM_LAG",
+            "_DELTA_PI_WINDOW",
+            "_Z_POLICY",
+            "_DELTA_PI_SHOCK_ABS",
+            "_Z_CARRY_ELEVATED",
+            "_M_CARRY_FADE_NEG",
+            "_D_SPOT_STRESS_ABS"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/logic/layer2_directional.py",
-        "desc": "Layer 2 directional conviction: COT percentile, crowding ramp, conviction multiplier, Marcus B clash."
+        "desc": "Layer 2 directional conviction: COT percentile, crowding ramp, conviction multiplier, Marcus B clash.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_phi_upper_tail",
+              "line": 15,
+              "args": [
+                "pi"
+              ]
+            },
+            {
+              "name": "_phi_lower_tail",
+              "line": 23,
+              "args": [
+                "pi"
+              ]
+            },
+            {
+              "name": "crowding_metrics_pi",
+              "line": 31,
+              "args": [
+                "pi"
+              ]
+            },
+            {
+              "name": "marcus_b_rate_positioning_clash",
+              "line": 42,
+              "args": [
+                "rate_sign",
+                "pos_sign"
+              ]
+            },
+            {
+              "name": "effective_rate_sign",
+              "line": 50,
+              "args": [
+                "rate_direction",
+                "z_tactical",
+                "z_structural"
+              ]
+            },
+            {
+              "name": "positioning_sign_pi",
+              "line": 72,
+              "args": [
+                "pi"
+              ]
+            },
+            {
+              "name": "conviction_multiplier_pi",
+              "line": 85,
+              "args": [
+                "pi",
+                "p_crowd",
+                "rate_sign",
+                "pos_sign"
+              ]
+            },
+            {
+              "name": "run_layer2_directional",
+              "line": 103,
+              "args": []
+            }
+          ],
+          "classes": [],
+          "constants": [
+            "_CROWD_SOFT_HI",
+            "_CROWD_SOFT_LO",
+            "_CROWD_VETO_HI",
+            "_CROWD_VETO_LO",
+            "_Z_EPS",
+            "_POS_DEADBAND"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/logic/layer3_execution.py",
-        "desc": "Layer 3 execution HUD: vol rank, risk-reversal skew, entry timing, sizing, stops (Chamber 1)."
+        "desc": "Layer 3 execution HUD: vol rank, risk-reversal skew, entry timing, sizing, stops (Chamber 1).",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_mean",
+              "line": 53,
+              "args": [
+                "xs"
+              ]
+            },
+            {
+              "name": "_std_pop",
+              "line": 57,
+              "args": [
+                "xs"
+              ]
+            },
+            {
+              "name": "causal_rr_z_pair",
+              "line": 65,
+              "args": [
+                "rr_series_ending_today"
+              ]
+            },
+            {
+              "name": "skew_bias_alignment",
+              "line": 89,
+              "args": [
+                "bias",
+                "rr_z"
+              ]
+            },
+            {
+              "name": "skew_reversal_flag",
+              "line": 103,
+              "args": [
+                "rr_z_t",
+                "rr_z_y"
+              ]
+            },
+            {
+              "name": "average_daily_range",
+              "line": 113,
+              "args": [
+                "spot_bars",
+                "lookback"
+              ]
+            },
+            {
+              "name": "mie_proxy_points",
+              "line": 124,
+              "args": [
+                "spot_bars",
+                "bias",
+                "lookback"
+              ]
+            },
+            {
+              "name": "stop_buffer_and_level",
+              "line": 147,
+              "args": [
+                "spot",
+                "bias",
+                "adr",
+                "mie"
+              ]
+            },
+            {
+              "name": "run_layer3_execution",
+              "line": 171,
+              "args": []
+            },
+            {
+              "name": "z_at_end",
+              "line": 71,
+              "args": [
+                "vals"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": [
+            "_VOL_RANK_ENTER_MAX",
+            "_VOL_RANK_FULL_MAX",
+            "_CONVICTION_ENTER_MIN",
+            "_CONVICTION_FULL_MIN",
+            "_REVERSAL_Z_MIN",
+            "_STRONG_CONTRA_Z",
+            "_CHEN_CROWD_PENALTY_HALF",
+            "_RR_WINDOW",
+            "_RR_MIN_CALIB",
+            "_ADR_MIE_LOOKBACK"
+          ]
+        }
       },
       {
         "file": "./pipeline/src/logic/math_utils.py",
-        "desc": "Vectorized Z-score, momentum, and composite hysteresis helpers."
+        "desc": "Vectorized Z-score, momentum, and composite hysteresis helpers.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_to_float64_array",
+              "line": 12,
+              "args": [
+                "values"
+              ]
+            },
+            {
+              "name": "rolling_zscore_series",
+              "line": 17,
+              "args": [
+                "values",
+                "window"
+              ]
+            },
+            {
+              "name": "rolling_zscore_last",
+              "line": 69,
+              "args": [
+                "values",
+                "window"
+              ]
+            },
+            {
+              "name": "momentum_last",
+              "line": 86,
+              "args": [
+                "values",
+                "lag"
+              ]
+            },
+            {
+              "name": "log_return_series",
+              "line": 102,
+              "args": [
+                "closes"
+              ]
+            },
+            {
+              "name": "hysteresis_tier_composite",
+              "line": 116,
+              "args": [
+                "composite",
+                "prior_tier"
+              ]
+            },
+            {
+              "name": "_window_sum",
+              "line": 44,
+              "args": [
+                "csum",
+                "i1",
+                "i0"
+              ]
+            },
+            {
+              "name": "snap",
+              "line": 124,
+              "args": [
+                "c"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": []
+        }
       }
     ],
     "db": [
       {
         "file": "./pipeline/src/db/__init__.py",
-        "desc": ""
+        "desc": "",
+        "symbols": {
+          "functions": [],
+          "classes": [],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/db/rollback.py",
-        "desc": "SRE rollback: delete pipeline rows for a bad calendar date (single batch of deletes)."
+        "desc": "SRE rollback: delete pipeline rows for a bad calendar date (single batch of deletes).",
+        "symbols": {
+          "functions": [
+            {
+              "name": "main",
+              "line": 13,
+              "args": []
+            }
+          ],
+          "classes": [],
+          "constants": []
+        }
       },
       {
         "file": "./pipeline/src/db/writer.py",
-        "desc": ""
+        "desc": "",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_client",
+              "line": 24,
+              "args": []
+            },
+            {
+              "name": "fetch_universe_registry",
+              "line": 36,
+              "args": []
+            },
+            {
+              "name": "_date_iso",
+              "line": 49,
+              "args": [
+                "d"
+              ]
+            },
+            {
+              "name": "write_signal_row",
+              "line": 55,
+              "args": [
+                "row"
+              ]
+            },
+            {
+              "name": "write_regime_call",
+              "line": 89,
+              "args": [
+                "call"
+              ]
+            },
+            {
+              "name": "_desk_open_card_payload",
+              "line": 95,
+              "args": [
+                "card"
+              ]
+            },
+            {
+              "name": "write_desk_open_card",
+              "line": 101,
+              "args": [
+                "card"
+              ]
+            },
+            {
+              "name": "write_desk_open_cards_bulk",
+              "line": 107,
+              "args": [
+                "cards"
+              ]
+            },
+            {
+              "name": "get_desk_open_cards_for_date",
+              "line": 114,
+              "args": [
+                "date_str"
+              ]
+            },
+            {
+              "name": "get_rpc_g10_correlation_matrix",
+              "line": 125,
+              "args": []
+            },
+            {
+              "name": "_parse_corr_matrix_json",
+              "line": 139,
+              "args": [
+                "obj"
+              ]
+            },
+            {
+              "name": "get_latest_desk_open_card",
+              "line": 157,
+              "args": [
+                "pair"
+              ]
+            },
+            {
+              "name": "update_desk_open_card_flags",
+              "line": 171,
+              "args": [
+                "pair",
+                "date_str"
+              ]
+            },
+            {
+              "name": "update_desk_open_card_telemetry_audit",
+              "line": 195,
+              "args": [
+                "pair",
+                "date_str",
+                "telemetry_audit_patch"
+              ]
+            },
+            {
+              "name": "get_validation_log_entry",
+              "line": 224,
+              "args": [
+                "call_date",
+                "pair"
+              ]
+            },
+            {
+              "name": "write_validation_row",
+              "line": 244,
+              "args": [
+                "row"
+              ]
+            },
+            {
+              "name": "write_brief",
+              "line": 258,
+              "args": [
+                "date_str",
+                "pair",
+                "regime",
+                "confidence",
+                "composite"
+              ]
+            },
+            {
+              "name": "write_brief_log",
+              "line": 282,
+              "args": [
+                "date_str",
+                "brief_text",
+                "macro_context"
+              ]
+            },
+            {
+              "name": "get_rpc_calculate_dual_correlation",
+              "line": 303,
+              "args": [
+                "pair",
+                "lookback"
+              ]
+            },
+            {
+              "name": "write_macro_events",
+              "line": 329,
+              "args": [
+                "events"
+              ]
+            },
+            {
+              "name": "write_ai_request",
+              "line": 337,
+              "args": [
+                "date_str",
+                "purpose",
+                "model"
+              ]
+            },
+            {
+              "name": "get_ai_request_count_today",
+              "line": 344,
+              "args": [
+                "date_str"
+              ]
+            },
+            {
+              "name": "get_latest_regime_call",
+              "line": 352,
+              "args": [
+                "pair"
+              ]
+            },
+            {
+              "name": "get_brief_for_date",
+              "line": 366,
+              "args": [
+                "pair",
+                "date_str"
+              ]
+            },
+            {
+              "name": "get_signal_for_pair_date",
+              "line": 379,
+              "args": [
+                "pair",
+                "date_str"
+              ]
+            },
+            {
+              "name": "get_historical_signals",
+              "line": 392,
+              "args": [
+                "pair",
+                "limit"
+              ]
+            },
+            {
+              "name": "delete_pipeline_data_for_date",
+              "line": 408,
+              "args": [
+                "date_str"
+              ]
+            },
+            {
+              "name": "get_historical_regime_calls",
+              "line": 426,
+              "args": [
+                "pair",
+                "limit"
+              ]
+            },
+            {
+              "name": "update_macro_event_ai_brief",
+              "line": 440,
+              "args": [
+                "date_str",
+                "event",
+                "ai_brief"
+              ]
+            },
+            {
+              "name": "list_high_impact_events_needing_brief",
+              "line": 451,
+              "args": [
+                "start_iso",
+                "end_iso"
+              ]
+            },
+            {
+              "name": "write_historical_macro_surprises",
+              "line": 465,
+              "args": [
+                "rows"
+              ]
+            },
+            {
+              "name": "fetch_event_aliases",
+              "line": 483,
+              "args": []
+            },
+            {
+              "name": "get_historical_macro_surprises",
+              "line": 493,
+              "args": [
+                "event_name"
+              ]
+            },
+            {
+              "name": "get_historical_macro_surprises_date_universe",
+              "line": 510,
+              "args": [
+                "limit"
+              ]
+            },
+            {
+              "name": "write_historical_prices",
+              "line": 524,
+              "args": [
+                "rows"
+              ]
+            },
+            {
+              "name": "get_rpc_historical_analogs",
+              "line": 531,
+              "args": [
+                "pair",
+                "as_of_date",
+                "current_trend",
+                "current_comp"
+              ]
+            },
+            {
+              "name": "get_historical_prices",
+              "line": 554,
+              "args": [
+                "pair",
+                "limit"
+              ]
+            },
+            {
+              "name": "write_research_analogs",
+              "line": 569,
+              "args": [
+                "rows"
+              ]
+            },
+            {
+              "name": "get_latest_research_analogs",
+              "line": 581,
+              "args": [
+                "pair",
+                "as_of_date"
+              ]
+            },
+            {
+              "name": "write_event_risk_matrices",
+              "line": 597,
+              "args": [
+                "rows"
+              ]
+            },
+            {
+              "name": "get_event_risk_matrix",
+              "line": 614,
+              "args": [
+                "date_str",
+                "pair",
+                "event_name"
+              ]
+            },
+            {
+              "name": "get_strategy_ledger_entry",
+              "line": 634,
+              "args": [
+                "ledger_date",
+                "pair",
+                "regime",
+                "primary_driver"
+              ]
+            },
+            {
+              "name": "write_ledger_entry",
+              "line": 660,
+              "args": [
+                "row"
+              ]
+            },
+            {
+              "name": "get_open_ledger_entries",
+              "line": 672,
+              "args": [
+                "pair"
+              ]
+            },
+            {
+              "name": "update_ledger_entries",
+              "line": 684,
+              "args": [
+                "rows"
+              ]
+            },
+            {
+              "name": "write_research_memo",
+              "line": 701,
+              "args": []
+            },
+            {
+              "name": "get_latest_research_memo_thesis_bullets",
+              "line": 719,
+              "args": []
+            },
+            {
+              "name": "get_validation_log_for_stats",
+              "line": 755,
+              "args": [
+                "pair_filter",
+                "lookback_days"
+              ]
+            },
+            {
+              "name": "write_validation_stats",
+              "line": 784,
+              "args": [
+                "row"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": []
+        }
+      }
+    ],
+    "scheduler": [
+      {
+        "file": "./pipeline/src/scheduler/__init__.py",
+        "desc": "",
+        "symbols": {
+          "functions": [],
+          "classes": [],
+          "constants": []
+        }
+      },
+      {
+        "file": "./pipeline/src/scheduler/orchestrator.py",
+        "desc": "",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_yfinance_dl",
+              "line": 98,
+              "args": []
+            },
+            {
+              "name": "_dxy_overnight_pct_abs",
+              "line": 104,
+              "args": []
+            },
+            {
+              "name": "_max_abs_pair_overnight_pct",
+              "line": 135,
+              "args": [
+                "spots",
+                "universe"
+              ]
+            },
+            {
+              "name": "assess_stress",
+              "line": 155,
+              "args": []
+            },
+            {
+              "name": "_dqs_confidence_cap",
+              "line": 184,
+              "args": [
+                "dqs"
+              ]
+            },
+            {
+              "name": "_log_dqs_band",
+              "line": 196,
+              "args": [
+                "dqs"
+              ]
+            },
+            {
+              "name": "_market_dislocation_notice_brief",
+              "line": 211,
+              "args": []
+            },
+            {
+              "name": "_require_pipeline_runtime_env",
+              "line": 235,
+              "args": []
+            },
+            {
+              "name": "get_regime_age",
+              "line": 269,
+              "args": [
+                "pair",
+                "current_regime"
+              ]
+            },
+            {
+              "name": "_universe_yield_tickers",
+              "line": 294,
+              "args": [
+                "universe",
+                "pair"
+              ]
+            },
+            {
+              "name": "_rate_spread_2y_for_pair",
+              "line": 306,
+              "args": [
+                "pair",
+                "universe",
+                "yields_dict"
+              ]
+            },
+            {
+              "name": "_rate_spread_10y_legacy",
+              "line": 330,
+              "args": [
+                "pair",
+                "yields_dict"
+              ]
+            },
+            {
+              "name": "_percentile",
+              "line": 363,
+              "args": [
+                "values",
+                "p"
+              ]
+            },
+            {
+              "name": "_to_float",
+              "line": 376,
+              "args": [
+                "value"
+              ]
+            },
+            {
+              "name": "_breakeven_series_chronological",
+              "line": 388,
+              "args": [
+                "historical_rows"
+              ]
+            },
+            {
+              "name": "_polymarket_json_for_llm",
+              "line": 418,
+              "args": [
+                "markets"
+              ]
+            },
+            {
+              "name": "_format_polymarket_context",
+              "line": 424,
+              "args": [
+                "markets"
+              ]
+            },
+            {
+              "name": "_signal_row_from_db",
+              "line": 452,
+              "args": [
+                "row"
+              ]
+            },
+            {
+              "name": "_regime_call_from_db",
+              "line": 487,
+              "args": [
+                "row"
+              ]
+            },
+            {
+              "name": "_first_todays_high_impact_matrix_for_pair",
+              "line": 524,
+              "args": [
+                "calendar_events"
+              ]
+            },
+            {
+              "name": "_upsert_macro_event_briefs",
+              "line": 546,
+              "args": [
+                "date_str",
+                "forward_days",
+                "polymarket_context"
+              ]
+            },
+            {
+              "name": "_upsert_pair_briefs_for_date",
+              "line": 555,
+              "args": [
+                "date_str",
+                "polymarket_context"
+              ]
+            },
+            {
+              "name": "write_desk_open_cards_bulk_task",
+              "line": 622,
+              "args": [
+                "rows"
+              ]
+            },
+            {
+              "name": "upsert_pair_briefs_task",
+              "line": 627,
+              "args": [
+                "date_str",
+                "polymarket_context"
+              ]
+            },
+            {
+              "name": "upsert_macro_event_briefs_task",
+              "line": 643,
+              "args": [
+                "date_str",
+                "forward_days",
+                "polymarket_context"
+              ]
+            },
+            {
+              "name": "run_weekly",
+              "line": 1468,
+              "args": [
+                "date_str"
+              ]
+            },
+            {
+              "name": "_norm_label",
+              "line": 275,
+              "args": [
+                "label"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": []
+        }
+      },
+      {
+        "file": "./pipeline/src/scheduler/overnight_check.py",
+        "desc": "Overnight telemetry check for desk_open_cards invalidation flags.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_coerce_streak_dict",
+              "line": 32,
+              "args": [
+                "raw"
+              ]
+            },
+            {
+              "name": "_read_state",
+              "line": 44,
+              "args": []
+            },
+            {
+              "name": "_write_state",
+              "line": 60,
+              "args": [
+                "consecutive_failures",
+                "invalidation_streak"
+              ]
+            },
+            {
+              "name": "fetch_proxy_basket",
+              "line": 68,
+              "args": []
+            },
+            {
+              "name": "_set_all_latest_cards_offline",
+              "line": 82,
+              "args": []
+            },
+            {
+              "name": "run_overnight_check",
+              "line": 94,
+              "args": []
+            }
+          ],
+          "classes": [
+            {
+              "name": "ProxyBasket",
+              "line": 26,
+              "methods": []
+            }
+          ],
+          "constants": [
+            "_STATE_PATH",
+            "_OFFLINE_FAILURE_THRESHOLD",
+            "_INVALIDATION_VOL_MULTIPLIER",
+            "_INVALIDATION_PERSISTENCE_TICKS"
+          ]
+        }
       }
     ],
     "tests": [
@@ -513,20 +2473,22 @@
       }
     ]
   },
-  "docs": {
-    "signals": [
-      {
-        "file": "./docs/SIGNAL_DEFINITIONS.md"
-      }
-    ],
-    "schema": [
-      {
-        "file": "./docs/DATABASE_SCHEMA.md"
-      }
-    ],
+  "docs": {},
+  "config": {
     "pipeline": [
       {
-        "file": "./docs/PIPELINE_REFERENCE.md"
+        "file": "pipeline/pyproject.toml",
+        "desc": "Python build config"
+      }
+    ],
+    "web": [
+      {
+        "file": "web/package.json",
+        "desc": "Node dependencies"
+      },
+      {
+        "file": "web/tsconfig.json",
+        "desc": "TypeScript config"
       }
     ]
   }
