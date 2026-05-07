@@ -63,7 +63,8 @@ def _std_pop(xs: list[float]) -> float:
 
 
 def causal_rr_z_pair(rr_series_ending_today: list[float]) -> tuple[float | None, float | None]:
-    """Strictly causal z for today and yesterday; ``rr_series_ending_today`` ends with today's RR."""
+    """Strictly causal z for today and yesterday;
+    ``rr_series_ending_today`` ends with today's RR."""
 
     if len(rr_series_ending_today) < _RR_MIN_CALIB + 2:
         return None, None
@@ -126,7 +127,8 @@ def mie_proxy_points(
     bias: Layer2DirectionalBias,
     lookback: int,
 ) -> float | None:
-    """MIE proxy (price points): worst case intraday move **against** a directional from the open."""
+    """MIE proxy (price points): worst case intraday move **against** a
+    directional from the open."""
 
     if not spot_bars:
         return None
@@ -208,7 +210,9 @@ def run_layer3_execution(
     )
     timing: Layer3EntryTiming = "ENTER" if enter_ok else "WAIT"
 
-    chen_trim = bool(layer2["crowd_flag"]) or float(layer2["crowd_penalty"]) > _CHEN_CROWD_PENALTY_HALF
+    chen_trim = bool(layer2["crowd_flag"]) or (
+        float(layer2["crowd_penalty"]) > _CHEN_CROWD_PENALTY_HALF
+    )
     full_ok = (
         timing == "ENTER"
         and conviction >= _CONVICTION_FULL_MIN

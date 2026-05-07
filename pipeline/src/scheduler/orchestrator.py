@@ -1,6 +1,8 @@
 """
-@agent_context: High-level Prefect workflow orchestrator for daily and weekly FX regime classification and intelligence pipelines.
-@allowed_imports: [asyncio, json, logging, os, sys, collections.abc, dataclasses, datetime, typing, dotenv, prefect, src.*]
+@agent_context: High-level Prefect workflow orchestrator for daily and weekly
+FX regime classification and intelligence pipelines.
+@allowed_imports: [asyncio, logging, os, sys, collections.abc, dataclasses,
+    datetime, typing, dotenv, prefect, src.*]
 @forbidden_imports: []
 @obsidian_link: [[Orchestration#Pipeline Flow]]
 """
@@ -8,7 +10,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import os
 import sys
@@ -20,14 +21,7 @@ from typing import Any, Literal, cast
 from dotenv import load_dotenv
 from prefect import flow, task
 
-from src.ai.client import (
-    desk_card_brief_fallback,
-    generate_brief,
-    generate_desk_card_brief_async,
-    generate_event_brief,
-    generate_global_macro_summary,
-    summarize_weekly_memo_async,
-)
+from src.ai.client import desk_card_brief_fallback
 from src.analysis.asymmetry import compute_pain_index
 from src.analysis.event_risk import compute_event_risk_matrix
 from src.analysis.markov import compute_time_decayed_markov
@@ -60,7 +54,6 @@ from src.regime.composite import (
 from src.regime.confidence import compute_confidence
 from src.signals.cot import compute_cot_percentile, normalize_cot_signal
 from src.signals.open_interest import compute_oi_signal
-from src.signals.special import compute_special_signal
 from src.signals.rate import (
     build_carry_history_from_rows,
     build_real_yield_10y_spread_history_from_rows,
@@ -69,6 +62,7 @@ from src.signals.rate import (
     rate_direction_from_spreads,
     structural_instability_from_carry_history,
 )
+from src.signals.special import compute_special_signal
 from src.signals.volatility import (
     TRADING_DAYS_3Y_VOL_RANK,
     compute_realized_vol_rank_from_closes,
@@ -90,7 +84,11 @@ from src.types import (
 )
 from src.validation import ledger
 from src.validation.backtest import validate_call
-from src.validation.ingestion_buffer import compute_dqs, fx_pairs_from_universe, validate_ingestion_buffer
+from src.validation.ingestion_buffer import (
+    compute_dqs,
+    fx_pairs_from_universe,
+    validate_ingestion_buffer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -673,7 +671,8 @@ async def run_daily(date_str: str | None = None) -> None:
     as_of_day = date.fromisoformat(date_str[:10])
     dqs_out = compute_dqs(buffer, universe, as_of_day)
     logger.info(
-        "DQS=%.4f (rates=%.3f spots=%.3f cot=%.3f comm=%.3f cross=%.3f penalty=%s spot_obs=%s cot_obs=%s)",
+        "DQS=%.4f (rates=%.3f spots=%.3f cot=%.3f comm=%.3f "
+        "cross=%.3f penalty=%s spot_obs=%s cot_obs=%s)",
         dqs_out.score,
         dqs_out.rates_freshness,
         dqs_out.spots_freshness,
@@ -860,9 +859,13 @@ async def run_daily(date_str: str | None = None) -> None:
         special_signal = compute_special_signal(pair, cross_for_special)
         special_norm = special_signal if special_signal is not None else 0.0
 
-        top_5y = dominance_top_family(betas_5y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm)
+        top_5y = dominance_top_family(
+            betas_5y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm
+        )
         top_3y = (
-            dominance_top_family(betas_3y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm)
+            dominance_top_family(
+                betas_3y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm
+            )
             if betas_3y is not None
             else None
         )
@@ -896,7 +899,6 @@ async def run_daily(date_str: str | None = None) -> None:
             # Commodity convergence: all 3 components same sign and non-neutral
             hist = cross_for_special.get("hist", {})
             if hist:
-                oil_p = special_norm  # proxy using already-computed special
                 # Simplified: if special_signal is strong, components likely agree
                 commodity_components_agree = abs(special_signal or 0.0) > 0.5
         elif pair == "USDCAD":
@@ -1067,7 +1069,8 @@ async def run_daily(date_str: str | None = None) -> None:
         )
         if stress_red:
             logger.warning(
-                "RED Stress Mode — withholding regime call publication for %s (signals still saved)",
+                "RED Stress Mode — withholding regime call "
+                "publication for %s (signals still saved)",
                 pair,
             )
         else:
@@ -1422,7 +1425,6 @@ async def run_daily(date_str: str | None = None) -> None:
 
     pm_json = _polymarket_json_for_llm(markets)
     if stress_red:
-        pair_contexts: list[str] = []
         global_summary = _market_dislocation_notice_brief(
             date_str=date_str,
             stress_score=stress_score,
@@ -1433,7 +1435,7 @@ async def run_daily(date_str: str | None = None) -> None:
         )
         logger.warning("RED Stress Mode — publishing dislocation notice only")
     else:
-        pair_contexts = upsert_pair_briefs_task(
+        upsert_pair_briefs_task(
             date_str,
             polymarket_context,
             dollar_dominance_pct=dollar_pct,

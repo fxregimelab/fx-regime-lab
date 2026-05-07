@@ -88,7 +88,7 @@ print('\n'.join(tests))
 PYEOF
 )
   
-  local all_passed=true
+  all_passed=true
   while IFS= read -r test_cmd; do
     [[ -z "$test_cmd" ]] && continue
     echo "Running: $test_cmd"

@@ -1,5 +1,6 @@
 """
-@agent_context: Computes realized volatility signals and expansion status based on short-term vs long-term RV ratios.
+@agent_context: Computes realized volatility signals and expansion status
+based on short-term vs long-term RV ratios.
 @allowed_imports: [numpy]
 @forbidden_imports: [src.db, src.ai]
 @obsidian_link: [[Signal Generation#Volatility]]

@@ -217,7 +217,8 @@ def _spots_bucket_freshness(buffer: dict[str, Any], universe: dict[str, Any], as
 
 
 def _rates_bucket_freshness(buffer: dict[str, Any], universe: dict[str, Any], as_of: date) -> float:
-    """Missing required yield legs ⇒ stale (critical). Else freshness vs 36h using spot observation age."""
+    """Missing required yield legs ⇒ stale (critical).
+    Else freshness vs 36h using spot observation age."""
 
     y_any = buffer.get(KEY_YIELDS)
     if not isinstance(y_any, dict):

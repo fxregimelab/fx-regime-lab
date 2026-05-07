@@ -1,5 +1,6 @@
 """
-@agent_context: Ingests weekly macro economic event data from ForexFactory XML feed with programmatic fallback.
+@agent_context: Ingests weekly macro economic event data from ForexFactory
+XML feed with programmatic fallback.
 @allowed_imports: [logging, xml.etree.ElementTree, datetime, typing, requests, src.types]
 @forbidden_imports: [src.db.writer]
 @obsidian_link: [[Data Ingestion#Macro Calendar]]

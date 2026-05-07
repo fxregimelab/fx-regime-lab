@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime
-from typing import cast
 
 import numpy as np
 import pytest
@@ -96,10 +95,10 @@ def test_causal_rr_z_pair_requires_history() -> None:
 
 
 def test_skew_bias_alignment_long_positive_z() -> None:
-    assert skew_bias_alignment(cast(Layer2DirectionalBias, "LONG"), 0.8) == 1
-    assert skew_bias_alignment(cast(Layer2DirectionalBias, "LONG"), -0.8) == -1
-    assert skew_bias_alignment(cast(Layer2DirectionalBias, "SHORT"), -0.8) == 1
-    assert skew_bias_alignment(cast(Layer2DirectionalBias, "NEUTRAL"), 1.0) == 0
+    assert skew_bias_alignment("LONG", 0.8) == 1
+    assert skew_bias_alignment("LONG", -0.8) == -1
+    assert skew_bias_alignment("SHORT", -0.8) == 1
+    assert skew_bias_alignment("NEUTRAL", 1.0) == 0
 
 
 def test_skew_reversal_flag_sign_flip() -> None:
@@ -125,7 +124,7 @@ def test_enter_wait_marcus_vol_rank() -> None:
         SpotBar(d(i), "EURUSD", 1.0, 1.002, 0.998, 1.001, 1e6)
         for i in range(25)
     ]
-    l2 = _layer2(bias=cast(Layer2DirectionalBias, "LONG"), conviction=4)
+    l2 = _layer2(bias="LONG", conviction=4)
     out = run_layer3_execution(
         layer2=l2,
         spot=1.1,
@@ -144,7 +143,7 @@ def test_full_size_lena_chen() -> None:
     ]
     rr = tuple(0.01 * float(i) for i in range(45))
     l2 = _layer2(
-        bias=cast(Layer2DirectionalBias, "LONG"),
+        bias="LONG",
         conviction=5,
         crowd_flag=False,
         crowd_penalty=0.0,
@@ -168,7 +167,7 @@ def test_chen_dampener_halves_from_crowding() -> None:
     ]
     rr = [0.05 * np.sin(i / 12.0) for i in range(45)]
     l2 = _layer2(
-        bias=cast(Layer2DirectionalBias, "LONG"),
+        bias="LONG",
         conviction=5,
         crowd_flag=True,
         crowd_penalty=0.0,
@@ -190,7 +189,7 @@ def test_strong_skew_contradiction_waits_with_mid_conviction() -> None:
         for i in range(25)
     ]
     rr_neg_trend = tuple(-0.01 * float(i) for i in range(45))
-    l2 = _layer2(bias=cast(Layer2DirectionalBias, "LONG"), conviction=3)
+    l2 = _layer2(bias="LONG", conviction=3)
     out = run_layer3_execution(
         layer2=l2,
         spot=1.1,
@@ -210,7 +209,7 @@ def test_strong_skew_contradiction_waits_with_mid_conviction() -> None:
     adr = average_daily_range(bars, 20)
     assert adr is not None
     assert adr > 0
-    mie_l = mie_proxy_points(bars, cast(Layer2DirectionalBias, "LONG"), 20)
+    mie_l = mie_proxy_points(bars, "LONG", 20)
     assert mie_l is not None
-    mie_s = mie_proxy_points(bars, cast(Layer2DirectionalBias, "SHORT"), 20)
+    mie_s = mie_proxy_points(bars, "SHORT", 20)
     assert mie_s is not None

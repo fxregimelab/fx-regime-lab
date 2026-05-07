@@ -103,7 +103,11 @@ def _call(messages: list[dict[str, str]], max_tokens: int, date_str: str, purpos
                 logger.warning("OpenRouter model %s failed: %s", model, exc)
         if attempt < 3:
             sleep_time = 5 * attempt
-            logger.warning("All OpenRouter free models failed on attempt %s. Retrying in %s seconds.", attempt, sleep_time)
+            logger.warning(
+                "All OpenRouter free models failed on attempt %s. Retrying in %s seconds.",
+                attempt,
+                sleep_time,
+            )
             import time
             time.sleep(sleep_time)
     raise RuntimeError("All OpenRouter free models failed after retries")
@@ -135,7 +139,11 @@ async def _call_async(
                 logger.warning("OpenRouter model %s failed: %s", model, exc)
         if attempt < 3:
             sleep_time = 5 * attempt
-            logger.warning("All OpenRouter free models failed on attempt %s. Retrying in %s seconds.", attempt, sleep_time)
+            logger.warning(
+                "All OpenRouter free models failed on attempt %s. Retrying in %s seconds.",
+                attempt,
+                sleep_time,
+            )
             import asyncio
             await asyncio.sleep(sleep_time)
     raise RuntimeError("All OpenRouter free models failed after retries")

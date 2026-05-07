@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.logic.layer1_gate import VOL_EXPANDING_SUFFIX_LOCAL, regime_from_composite_snapshot, run_layer1_gate
+from src.logic.layer1_gate import (
+    VOL_EXPANDING_SUFFIX_LOCAL,
+    regime_from_composite_snapshot,
+    run_layer1_gate,
+)
 from src.types import Layer1ClassifierContext, Layer1GateOutput
 
 VOL_EXPANDING_SUFFIX = VOL_EXPANDING_SUFFIX_LOCAL

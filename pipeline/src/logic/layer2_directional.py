@@ -1,4 +1,5 @@
-"""Layer 2 directional conviction: COT percentile, crowding ramp, conviction multiplier, Marcus B clash."""
+"""Layer 2 directional conviction: COT percentile, crowding ramp, conviction
+multiplier, Marcus B clash."""
 
 from __future__ import annotations
 

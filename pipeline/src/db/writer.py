@@ -1,6 +1,8 @@
 """
-@agent_context: Primary database interface for Supabase, handling all authenticated writes and service-role reads for the pipeline.
-@allowed_imports: [json, os, collections.abc, dataclasses, datetime, functools, typing, supabase, src.types]
+@agent_context: Primary database interface for Supabase, handling all
+authenticated writes and service-role reads for the pipeline.
+@allowed_imports: [json, os, collections.abc, dataclasses, datetime,
+    functools, typing, supabase, src.types]
 @forbidden_imports: [src.ai, src.regime, src.signals]
 @obsidian_link: [[Infrastructure#Supabase Persistence]]
 """

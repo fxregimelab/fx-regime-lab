@@ -1,5 +1,6 @@
 """
-@agent_context: Calculates Commitment of Traders (COT) positioning signals using percentile ranking and normalization.
+@agent_context: Calculates Commitment of Traders (COT) positioning signals
+using percentile ranking and normalization.
 @allowed_imports: [src.types]
 @forbidden_imports: [src.db, src.ai]
 @obsidian_link: [[Signal Generation#COT Positioning]]

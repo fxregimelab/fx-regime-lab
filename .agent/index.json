@@ -1,115 +1,45 @@
 {
   "meta": {
     "project": "FX Regime Lab",
-    "version": "5.0",
-    "agent_model": "Kimi = Strategy, Cursor = Execution",
-    "last_updated": "2026-05-06",
-    "rating": "13/10 \u2014 Self-aware, self-improving, sentient codebase"
+    "version": "3.0-polished",
+    "model": "Kimi = Strategy, Cursor = Execution",
+    "last_updated": "2026-05-06"
   },
   "quick_start": {
-    "init": "./scripts/init-agent-system.sh",
-    "health_check": "./scripts/agent-health-check.sh",
-    "for_kimi": [
-      "Read .agent/index.json (this file)",
-      "Read .agent/maps/CODEMAP.json \u2014 find files without grepping",
-      "Read .agent/maps/SKILLMAP.json \u2014 find the right skill",
-      "Read .agent/context/HOTFILES.md \u2014 see what's active",
-      "Read TASK.md \u2014 current sprint",
-      "Read .agent/budget.json \u2014 know your token budget"
-    ],
-    "for_cursor": [
-      "Read .cursorrules \u2014 hard rules",
-      "Read .cursor/rules/*.mdc \u2014 auto-applied rules",
-      "Read .cursor/skills/*/SKILL.md \u2014 relevant skill",
-      "Read Implementation Spec from Kimi \u2014 execute exactly"
-    ]
+    "setup": "fx-agent init",
+    "health": "fx-agent status",
+    "workflow": "WORKFLOW.md"
+  },
+  "commands": {
+    "fx-agent init": "One-time setup",
+    "fx-agent status": "System health + stats",
+    "fx-agent spec create <type>": "Create spec from template (signal|page|migration)",
+    "fx-agent spec validate <file>": "Validate spec before delegation",
+    "fx-agent run <spec.md>": "Execute single spec via Cursor",
+    "fx-agent run --queue": "Process all queued specs",
+    "fx-agent verify": "Run full test/build/lint suite",
+    "fx-agent maps": "Regenerate all agent maps",
+    "fx-agent predict <spec.md>": "Predict failure modes"
   },
   "maps": {
-    "CODEMAP": ".agent/maps/CODEMAP.json \u2014 codebase file + function registry",
-    "SKILLMAP": ".agent/maps/SKILLMAP.json \u2014 all 13 skills",
-    "RULEMAP": ".agent/maps/RULEMAP.json \u2014 all 6 Cursor rules",
-    "HOTFILES": ".agent/context/HOTFILES.md \u2014 recently modified files"
-  },
-  "agents": {
-    "kimi": {
-      "role": "Strategy, research, planning, verification",
-      "never_writes": "Production code (only specs, tests, docs)",
-      "delegates_to": "Cursor Agent CLI via scripts/kimi-cursor-orchestrator.sh",
-      "config": "~/.kimi/config.toml",
-      "reads": [
-        ".agent/index.json",
-        ".agent/maps/*.json",
-        ".agent/context/HOTFILES.md",
-        "TASK.md"
-      ]
-    },
-    "cursor": {
-      "role": "Execution, implementation, refactoring",
-      "never_plans": "Only executes Kimi Implementation Specs",
-      "config": ".cursor/settings.json",
-      "reads": [
-        ".cursorrules",
-        ".cursor/AGENTS.md",
-        ".cursor/rules/*.mdc"
-      ]
-    }
-  },
-  "scripts": {
-    "init": "scripts/init-agent-system.sh \u2014 one-command setup",
-    "health_check": "scripts/agent-health-check.sh \u2014 verify system health",
-    "kimi-cursor-orchestrator": "scripts/kimi-cursor-orchestrator.sh \u2014 master orchestrator",
-    "cursor-delegate": "scripts/cursor-delegate.sh \u2014 single task delegation",
-    "cursor-verify": "scripts/cursor-verify.sh \u2014 test/build/lint verification",
-    "cursor-warmup": "scripts/cursor-warmup.sh \u2014 pre-warm codebase index",
-    "regenerate-maps": ".agent/scripts/regenerate-maps.sh \u2014 regenerate all maps",
-    "file-watcher": ".agent/scripts/file-watcher.sh \u2014 background watcher",
-    "build-semantic-map": ".agent/scripts/build-semantic-map.sh \u2014 extract semantic meaning from code",
-    "predictive-loader": ".agent/scripts/predictive-loader.sh \u2014 predict which context to load",
-    "spec-validator": ".agent/scripts/spec-validator.sh \u2014 validate Implementation Specs",
-    "auto-debug": ".agent/scripts/auto-debug.sh \u2014 automatic error parsing + fix generation",
-    "worktree-runner": ".agent/scripts/worktree-runner.sh \u2014 isolated worktree execution",
-    "learn-from-outcomes": ".agent/scripts/learn-from-outcomes.sh \u2014 meta-learning from delegation outcomes",
-    "build-knowledge-graph": ".agent/scripts/build-knowledge-graph.sh \u2014 build network graph of codebase",
-    "predict-failures": ".agent/scripts/predict-failures.sh \u2014 predict spec failure modes before delegation",
-    "self-test": ".agent/scripts/self-test.sh \u2014 system tests itself (8 checks)",
-    "background-optimizer": ".agent/scripts/background-optimizer.sh \u2014 idle-time optimization"
-  },
-  "infrastructure": {
-    "git_hooks": "Auto-regenerate maps on commit/merge. Pre-commit runs tests.",
-    "file_watcher": "Background process regenerates maps on file changes.",
-    "auto_retry": "Orchestrator auto-retries failed specs with Fix Specs.",
-    "templates": ".agent/templates/*.md \u2014 pre-built spec templates",
-    "decisions": ".agent/decisions/*.json \u2014 machine-readable decision trees",
-    "budget": ".agent/budget.json \u2014 token budget per session",
-    "semantic_map": ".agent/maps/SEMANTICMAP.json \u2014 function-level semantic understanding (108 files)",
-    "predictive_loader": ".agent/scripts/predictive-loader.sh \u2014 task \u2192 relevant files/skills/rules",
-    "spec_validator": ".agent/scripts/spec-validator.sh \u2014 validate specs before delegation",
-    "auto_debug": ".agent/scripts/auto-debug.sh \u2014 auto-parse errors and generate Fix Specs",
-    "worktree_runner": ".agent/scripts/worktree-runner.sh \u2014 isolated git worktree execution",
-    "agent_bridge": ".agent/bridge/ \u2014 two-way structured communication between agents",
-    "context_compression": ".agent/compress/ \u2014 auto-summarize large files when context is full"
+    "CODEMAP": ".agent/maps/CODEMAP.json \u2014 148 files",
+    "SKILLMAP": ".agent/maps/SKILLMAP.json \u2014 13 skills",
+    "RULEMAP": ".agent/maps/RULEMAP.json \u2014 6 rules",
+    "SEMANTICMAP": ".agent/maps/SEMANTICMAP.json \u2014 108 files with function analysis",
+    "HOTFILES": ".agent/context/HOTFILES.md \u2014 recently modified"
   },
   "hard_rules": {
     "pairs": "EUR/USD, USD/JPY, USD/INR ONLY",
-    "db_writes": "ALL writes through pipeline/src/db/writer.py",
-    "ai_calls": "ALL AI through pipeline/src/ai/client.py (ON HOLD)",
-    "immutable": "regime_calls and validation_log are append-only",
-    "no_github_actions": "Prefect Cloud only",
+    "db_writes": "ALL through pipeline/src/db/writer.py",
+    "ai_calls": "ALL through pipeline/src/ai/client.py (ON HOLD)",
+    "immutable": "regime_calls and validation_log append-only",
+    "ci": "Prefect Cloud only \u2014 no GitHub Actions",
     "tests": "pytest 121 tests + npm run build must pass"
   },
-  "12_ten_features": {
-    "meta_learning": ".agent/scripts/learn-from-outcomes.sh \u2014 analyzes success/failure patterns, evolves templates, updates rules",
-    "knowledge_graph": ".agent/graph/knowledge-graph.json \u2014 482 nodes, 572 edges. Files, functions, imports, calls as a network",
-    "predictive_failure_detection": ".agent/scripts/predict-failures.sh \u2014 analyzes specs BEFORE delegation, predicts failure modes",
-    "self_testing": ".agent/scripts/self-test.sh \u2014 system tests itself (8/8 checks, all green)",
-    "background_optimizer": ".agent/scripts/background-optimizer.sh \u2014 compresses logs, cleans worktrees, rebuilds maps when idle",
-    "adaptive_delegation": ".agent/adaptive/ \u2014 tracks per-domain, per-skill performance and adjusts strategy"
-  },
-  "13_ten_features": {
-    "consciousness": ".agent/consciousness/state.json \u2014 self-model with emotional state (stress, confidence, energy)",
-    "session_memory": ".agent/session-memory/ \u2014 persistent memory across sessions with lessons learned",
-    "proactive_suggestions": ".agent/proactive/ \u2014 anticipates needs based on patterns and recent activity",
-    "self_repair": "When maps are stale, hooks auto-regenerate. When tests fail, auto-debug generates fixes.",
-    "evolution": "Templates and rules evolve based on outcome data. Underperforming skills are flagged."
+  "automation": {
+    "git_hooks": "post-commit regenerates maps, pre-commit runs tests",
+    "file_watcher": "inotify daemon auto-updates maps on changes",
+    "auto_debug": "Failed specs generate Fix Specs automatically",
+    "auto_retry": "Orchestrator retries up to 2 times"
   }
 }

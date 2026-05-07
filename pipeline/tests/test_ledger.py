@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
+from src.db import writer
 from src.validation import ledger as ledger_mod
 
 
@@ -70,8 +71,8 @@ def test_mark_to_market_writes_updates() -> None:
         captured.append(rows)
 
     with (
-        patch.object(ledger_mod.writer, "get_open_ledger_entries", return_value=[open_row]),
-        patch.object(ledger_mod.writer, "update_ledger_entries", side_effect=fake_update),
+        patch.object(writer, "get_open_ledger_entries", return_value=[open_row]),
+        patch.object(writer, "update_ledger_entries", side_effect=fake_update),
     ):
         ledger_mod.mark_to_market_ledger(
             "EURUSD",
@@ -127,8 +128,8 @@ def test_mark_to_market_fences_future_horizons() -> None:
         captured.append(rows)
 
     with (
-        patch.object(ledger_mod.writer, "get_open_ledger_entries", return_value=[open_row]),
-        patch.object(ledger_mod.writer, "update_ledger_entries", side_effect=fake_update),
+        patch.object(writer, "get_open_ledger_entries", return_value=[open_row]),
+        patch.object(writer, "update_ledger_entries", side_effect=fake_update),
     ):
         ledger_mod.mark_to_market_ledger(
             "EURUSD",
@@ -178,8 +179,8 @@ def test_mark_to_market_mae_bearish() -> None:
         captured.append(rows)
 
     with (
-        patch.object(ledger_mod.writer, "get_open_ledger_entries", return_value=[open_row]),
-        patch.object(ledger_mod.writer, "update_ledger_entries", side_effect=fake_update),
+        patch.object(writer, "get_open_ledger_entries", return_value=[open_row]),
+        patch.object(writer, "update_ledger_entries", side_effect=fake_update),
     ):
         ledger_mod.mark_to_market_ledger(
             "EURUSD",
@@ -206,11 +207,11 @@ def test_log_initial_signal_merges_forward_fields() -> None:
 
     with (
         patch.object(
-            ledger_mod.writer,
+            writer,
             "get_strategy_ledger_entry",
             return_value=existing,
         ),
-        patch.object(ledger_mod.writer, "write_ledger_entry") as w,
+        patch.object(writer, "write_ledger_entry") as w,
     ):
         ledger_mod.log_initial_signal(
             "EURUSD",

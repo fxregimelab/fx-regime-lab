@@ -8,7 +8,7 @@
     "fetchers": [
       {
         "file": "./pipeline/src/fetchers/__init__.py",
-        "desc": "",
+        "desc": "FX Regime Lab data fetchers package.",
         "symbols": {
           "functions": [],
           "classes": [],
@@ -294,12 +294,12 @@
           "functions": [
             {
               "name": "_impact_meta",
-              "line": 26,
+              "line": 27,
               "args": []
             },
             {
               "name": "_next_weekday_on_or_after",
-              "line": 49,
+              "line": 50,
               "args": [
                 "d0",
                 "weekday"
@@ -307,7 +307,7 @@
             },
             {
               "name": "_first_weekday_of_month",
-              "line": 55,
+              "line": 56,
               "args": [
                 "year",
                 "month",
@@ -316,14 +316,14 @@
             },
             {
               "name": "_add_month",
-              "line": 60,
+              "line": 61,
               "args": [
                 "d"
               ]
             },
             {
               "name": "_fallback_events",
-              "line": 66,
+              "line": 67,
               "args": [
                 "start",
                 "forward_days"
@@ -331,7 +331,7 @@
             },
             {
               "name": "_cb_meetings",
-              "line": 129,
+              "line": 130,
               "args": [
                 "start",
                 "forward_days"
@@ -339,21 +339,21 @@
             },
             {
               "name": "_elem_text",
-              "line": 195,
+              "line": 196,
               "args": [
                 "el"
               ]
             },
             {
               "name": "_parse_ff_calendar_date",
-              "line": 203,
+              "line": 204,
               "args": [
                 "raw"
               ]
             },
             {
               "name": "_match_forexfactory_event",
-              "line": 214,
+              "line": 215,
               "args": [
                 "country",
                 "title"
@@ -361,17 +361,17 @@
             },
             {
               "name": "_fetch_forexfactory_weekly_xml",
-              "line": 300,
+              "line": 301,
               "args": []
             },
             {
               "name": "fetch_forexfactory_week_high_impact",
-              "line": 310,
+              "line": 311,
               "args": []
             },
             {
               "name": "fetch_macro_events",
-              "line": 367,
+              "line": 368,
               "args": [
                 "forward_days"
               ]
@@ -390,14 +390,14 @@
           "functions": [
             {
               "name": "cme_http_get",
-              "line": 31,
+              "line": 35,
               "args": [
                 "url"
               ]
             },
             {
               "name": "compute_oi_from_cot",
-              "line": 50,
+              "line": 54,
               "args": [
                 "cot_rows",
                 "pair"
@@ -405,7 +405,7 @@
             },
             {
               "name": "compute_oi_delta_from_cot",
-              "line": 70,
+              "line": 74,
               "args": [
                 "cot_rows",
                 "pair"
@@ -649,7 +649,7 @@
           "functions": [
             {
               "name": "compute_cot_percentile",
-              "line": 19,
+              "line": 20,
               "args": [
                 "rows",
                 "pair"
@@ -657,7 +657,7 @@
             },
             {
               "name": "normalize_cot_signal",
-              "line": 55,
+              "line": 56,
               "args": [
                 "percentile"
               ]
@@ -852,7 +852,7 @@
           "functions": [
             {
               "name": "compute_vol_signal",
-              "line": 20,
+              "line": 21,
               "args": [
                 "rv_5d",
                 "rv_20d",
@@ -861,7 +861,7 @@
             },
             {
               "name": "is_vol_expanding",
-              "line": 33,
+              "line": 34,
               "args": [
                 "rv_5d",
                 "threshold_90"
@@ -869,7 +869,7 @@
             },
             {
               "name": "compute_rvol",
-              "line": 37,
+              "line": 38,
               "args": [
                 "volumes",
                 "window"
@@ -877,14 +877,14 @@
             },
             {
               "name": "realized_vol21_series_annualized_pct",
-              "line": 52,
+              "line": 53,
               "args": [
                 "closes"
               ]
             },
             {
               "name": "empirical_cdf_rank",
-              "line": 72,
+              "line": 73,
               "args": [
                 "x",
                 "sample"
@@ -892,7 +892,7 @@
             },
             {
               "name": "compute_realized_vol_rank_from_closes",
-              "line": 82,
+              "line": 83,
               "args": [
                 "closes"
               ]
@@ -923,28 +923,28 @@
           "functions": [
             {
               "name": "_strip_gate_suffix",
-              "line": 35,
-              "args": [
-                "regime"
-              ]
-            },
-            {
-              "name": "get_regime_metadata",
               "line": 39,
               "args": [
                 "regime"
               ]
             },
             {
+              "name": "get_regime_metadata",
+              "line": 43,
+              "args": [
+                "regime"
+              ]
+            },
+            {
               "name": "classify_regime_layer1",
-              "line": 49,
+              "line": 53,
               "args": [
                 "ctx"
               ]
             },
             {
               "name": "classify_regime",
-              "line": 55,
+              "line": 59,
               "args": [
                 "composite",
                 "pair",
@@ -955,7 +955,7 @@
           "classes": [
             {
               "name": "RegimeMetadata",
-              "line": 14,
+              "line": 18,
               "methods": []
             }
           ],
@@ -1108,19 +1108,19 @@
       },
       {
         "file": "./pipeline/src/logic/layer1_gate.py",
-        "desc": "Layer 1 deterministic regime gate \u2014 Aris priorities, composite hysteresis, Marcus invalidation.",
+        "desc": "Layer 1 deterministic regime gate \u2014 Aris priorities, composite hysteresis,",
         "symbols": {
           "functions": [
             {
               "name": "_strip_vol_suffix",
-              "line": 31,
+              "line": 32,
               "args": [
                 "label"
               ]
             },
             {
               "name": "prior_tier_from_regime",
-              "line": 35,
+              "line": 36,
               "args": [
                 "label",
                 "pair"
@@ -1128,14 +1128,14 @@
             },
             {
               "name": "_neutral_label_for_pair",
-              "line": 70,
+              "line": 71,
               "args": [
                 "pair"
               ]
             },
             {
               "name": "_tier_to_regime",
-              "line": 74,
+              "line": 75,
               "args": [
                 "pair",
                 "tier"
@@ -1143,7 +1143,7 @@
             },
             {
               "name": "_apply_vol_neutral_overlay",
-              "line": 97,
+              "line": 98,
               "args": [
                 "raw_label",
                 "vol_expanding"
@@ -1151,7 +1151,7 @@
             },
             {
               "name": "regime_from_composite_snapshot",
-              "line": 105,
+              "line": 106,
               "args": [
                 "composite",
                 "pair"
@@ -1159,7 +1159,7 @@
             },
             {
               "name": "run_layer1_gate",
-              "line": 120,
+              "line": 121,
               "args": [
                 "ctx"
               ]
@@ -1183,33 +1183,33 @@
       },
       {
         "file": "./pipeline/src/logic/layer2_directional.py",
-        "desc": "Layer 2 directional conviction: COT percentile, crowding ramp, conviction multiplier, Marcus B clash.",
+        "desc": "Layer 2 directional conviction: COT percentile, crowding ramp, conviction",
         "symbols": {
           "functions": [
             {
               "name": "_phi_upper_tail",
-              "line": 15,
+              "line": 16,
               "args": [
                 "pi"
               ]
             },
             {
               "name": "_phi_lower_tail",
-              "line": 23,
+              "line": 24,
               "args": [
                 "pi"
               ]
             },
             {
               "name": "crowding_metrics_pi",
-              "line": 31,
+              "line": 32,
               "args": [
                 "pi"
               ]
             },
             {
               "name": "marcus_b_rate_positioning_clash",
-              "line": 42,
+              "line": 43,
               "args": [
                 "rate_sign",
                 "pos_sign"
@@ -1217,7 +1217,7 @@
             },
             {
               "name": "effective_rate_sign",
-              "line": 50,
+              "line": 51,
               "args": [
                 "rate_direction",
                 "z_tactical",
@@ -1226,14 +1226,14 @@
             },
             {
               "name": "positioning_sign_pi",
-              "line": 72,
+              "line": 73,
               "args": [
                 "pi"
               ]
             },
             {
               "name": "conviction_multiplier_pi",
-              "line": 85,
+              "line": 86,
               "args": [
                 "pi",
                 "p_crowd",
@@ -1243,7 +1243,7 @@
             },
             {
               "name": "run_layer2_directional",
-              "line": 103,
+              "line": 104,
               "args": []
             }
           ],
@@ -1286,7 +1286,7 @@
             },
             {
               "name": "skew_bias_alignment",
-              "line": 89,
+              "line": 90,
               "args": [
                 "bias",
                 "rr_z"
@@ -1294,7 +1294,7 @@
             },
             {
               "name": "skew_reversal_flag",
-              "line": 103,
+              "line": 104,
               "args": [
                 "rr_z_t",
                 "rr_z_y"
@@ -1302,7 +1302,7 @@
             },
             {
               "name": "average_daily_range",
-              "line": 113,
+              "line": 114,
               "args": [
                 "spot_bars",
                 "lookback"
@@ -1310,7 +1310,7 @@
             },
             {
               "name": "mie_proxy_points",
-              "line": 124,
+              "line": 125,
               "args": [
                 "spot_bars",
                 "bias",
@@ -1319,7 +1319,7 @@
             },
             {
               "name": "stop_buffer_and_level",
-              "line": 147,
+              "line": 149,
               "args": [
                 "spot",
                 "bias",
@@ -1329,12 +1329,12 @@
             },
             {
               "name": "run_layer3_execution",
-              "line": 171,
+              "line": 173,
               "args": []
             },
             {
               "name": "z_at_end",
-              "line": 71,
+              "line": 72,
               "args": [
                 "vals"
               ]
@@ -1460,85 +1460,85 @@
           "functions": [
             {
               "name": "_client",
-              "line": 24,
+              "line": 26,
               "args": []
             },
             {
               "name": "fetch_universe_registry",
-              "line": 36,
+              "line": 38,
               "args": []
             },
             {
               "name": "_date_iso",
-              "line": 49,
+              "line": 51,
               "args": [
                 "d"
               ]
             },
             {
               "name": "write_signal_row",
-              "line": 55,
+              "line": 57,
               "args": [
                 "row"
               ]
             },
             {
               "name": "write_regime_call",
-              "line": 89,
+              "line": 91,
               "args": [
                 "call"
               ]
             },
             {
               "name": "_desk_open_card_payload",
-              "line": 95,
+              "line": 97,
               "args": [
                 "card"
               ]
             },
             {
               "name": "write_desk_open_card",
-              "line": 101,
+              "line": 103,
               "args": [
                 "card"
               ]
             },
             {
               "name": "write_desk_open_cards_bulk",
-              "line": 107,
+              "line": 109,
               "args": [
                 "cards"
               ]
             },
             {
               "name": "get_desk_open_cards_for_date",
-              "line": 114,
+              "line": 116,
               "args": [
                 "date_str"
               ]
             },
             {
               "name": "get_rpc_g10_correlation_matrix",
-              "line": 125,
+              "line": 127,
               "args": []
             },
             {
               "name": "_parse_corr_matrix_json",
-              "line": 139,
+              "line": 141,
               "args": [
                 "obj"
               ]
             },
             {
               "name": "get_latest_desk_open_card",
-              "line": 157,
+              "line": 159,
               "args": [
                 "pair"
               ]
             },
             {
               "name": "update_desk_open_card_flags",
-              "line": 171,
+              "line": 173,
               "args": [
                 "pair",
                 "date_str"
@@ -1546,7 +1546,7 @@
             },
             {
               "name": "update_desk_open_card_telemetry_audit",
-              "line": 195,
+              "line": 197,
               "args": [
                 "pair",
                 "date_str",
@@ -1555,7 +1555,7 @@
             },
             {
               "name": "get_validation_log_entry",
-              "line": 224,
+              "line": 226,
               "args": [
                 "call_date",
                 "pair"
@@ -1563,14 +1563,14 @@
             },
             {
               "name": "write_validation_row",
-              "line": 244,
+              "line": 246,
               "args": [
                 "row"
               ]
             },
             {
               "name": "write_brief",
-              "line": 258,
+              "line": 260,
               "args": [
                 "date_str",
                 "pair",
@@ -1581,7 +1581,7 @@
             },
             {
               "name": "write_brief_log",
-              "line": 282,
+              "line": 284,
               "args": [
                 "date_str",
                 "brief_text",
@@ -1590,7 +1590,7 @@
             },
             {
               "name": "get_rpc_calculate_dual_correlation",
-              "line": 303,
+              "line": 305,
               "args": [
                 "pair",
                 "lookback"
@@ -1598,14 +1598,14 @@
             },
             {
               "name": "write_macro_events",
-              "line": 329,
+              "line": 331,
               "args": [
                 "events"
               ]
             },
             {
               "name": "write_ai_request",
-              "line": 337,
+              "line": 339,
               "args": [
                 "date_str",
                 "purpose",
@@ -1614,21 +1614,21 @@
             },
             {
               "name": "get_ai_request_count_today",
-              "line": 344,
+              "line": 346,
               "args": [
                 "date_str"
               ]
             },
             {
               "name": "get_latest_regime_call",
-              "line": 352,
+              "line": 354,
               "args": [
                 "pair"
               ]
             },
             {
               "name": "get_brief_for_date",
-              "line": 366,
+              "line": 368,
               "args": [
                 "pair",
                 "date_str"
@@ -1636,7 +1636,7 @@
             },
             {
               "name": "get_signal_for_pair_date",
-              "line": 379,
+              "line": 381,
               "args": [
                 "pair",
                 "date_str"
@@ -1644,7 +1644,7 @@
             },
             {
               "name": "get_historical_signals",
-              "line": 392,
+              "line": 394,
               "args": [
                 "pair",
                 "limit"
@@ -1652,14 +1652,14 @@
             },
             {
               "name": "delete_pipeline_data_for_date",
-              "line": 408,
+              "line": 410,
               "args": [
                 "date_str"
               ]
             },
             {
               "name": "get_historical_regime_calls",
-              "line": 426,
+              "line": 428,
               "args": [
                 "pair",
                 "limit"
@@ -1667,7 +1667,7 @@
             },
             {
               "name": "update_macro_event_ai_brief",
-              "line": 440,
+              "line": 442,
               "args": [
                 "date_str",
                 "event",
@@ -1676,7 +1676,7 @@
             },
             {
               "name": "list_high_impact_events_needing_brief",
-              "line": 451,
+              "line": 453,
               "args": [
                 "start_iso",
                 "end_iso"
@@ -1684,40 +1684,40 @@
             },
             {
               "name": "write_historical_macro_surprises",
-              "line": 465,
+              "line": 467,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "fetch_event_aliases",
-              "line": 483,
+              "line": 485,
               "args": []
             },
             {
               "name": "get_historical_macro_surprises",
-              "line": 493,
+              "line": 495,
               "args": [
                 "event_name"
               ]
             },
             {
               "name": "get_historical_macro_surprises_date_universe",
-              "line": 510,
+              "line": 512,
               "args": [
                 "limit"
               ]
             },
             {
               "name": "write_historical_prices",
-              "line": 524,
+              "line": 526,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "get_rpc_historical_analogs",
-              "line": 531,
+              "line": 533,
               "args": [
                 "pair",
                 "as_of_date",
@@ -1727,7 +1727,7 @@
             },
             {
               "name": "get_historical_prices",
-              "line": 554,
+              "line": 556,
               "args": [
                 "pair",
                 "limit"
@@ -1735,14 +1735,14 @@
             },
             {
               "name": "write_research_analogs",
-              "line": 569,
+              "line": 571,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "get_latest_research_analogs",
-              "line": 581,
+              "line": 583,
               "args": [
                 "pair",
                 "as_of_date"
@@ -1750,14 +1750,14 @@
             },
             {
               "name": "write_event_risk_matrices",
-              "line": 597,
+              "line": 599,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "get_event_risk_matrix",
-              "line": 614,
+              "line": 616,
               "args": [
                 "date_str",
                 "pair",
@@ -1766,7 +1766,7 @@
             },
             {
               "name": "get_strategy_ledger_entry",
-              "line": 634,
+              "line": 636,
               "args": [
                 "ledger_date",
                 "pair",
@@ -1776,38 +1776,38 @@
             },
             {
               "name": "write_ledger_entry",
-              "line": 660,
+              "line": 662,
               "args": [
                 "row"
               ]
             },
             {
               "name": "get_open_ledger_entries",
-              "line": 672,
+              "line": 674,
               "args": [
                 "pair"
               ]
             },
             {
               "name": "update_ledger_entries",
-              "line": 684,
+              "line": 686,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "write_research_memo",
-              "line": 701,
+              "line": 703,
               "args": []
             },
             {
               "name": "get_latest_research_memo_thesis_bullets",
-              "line": 719,
+              "line": 721,
               "args": []
             },
             {
               "name": "get_validation_log_for_stats",
-              "line": 755,
+              "line": 757,
               "args": [
                 "pair_filter",
                 "lookback_days"
@@ -1815,7 +1815,7 @@
             },
             {
               "name": "write_validation_stats",
-              "line": 784,
+              "line": 786,
               "args": [
                 "row"
               ]
@@ -1843,17 +1843,17 @@
           "functions": [
             {
               "name": "_yfinance_dl",
-              "line": 98,
+              "line": 96,
               "args": []
             },
             {
               "name": "_dxy_overnight_pct_abs",
-              "line": 104,
+              "line": 102,
               "args": []
             },
             {
               "name": "_max_abs_pair_overnight_pct",
-              "line": 135,
+              "line": 133,
               "args": [
                 "spots",
                 "universe"
@@ -1861,36 +1861,36 @@
             },
             {
               "name": "assess_stress",
-              "line": 155,
+              "line": 153,
               "args": []
             },
             {
               "name": "_dqs_confidence_cap",
-              "line": 184,
+              "line": 182,
               "args": [
                 "dqs"
               ]
             },
             {
               "name": "_log_dqs_band",
-              "line": 196,
+              "line": 194,
               "args": [
                 "dqs"
               ]
             },
             {
               "name": "_market_dislocation_notice_brief",
-              "line": 211,
+              "line": 209,
               "args": []
             },
             {
               "name": "_require_pipeline_runtime_env",
-              "line": 235,
+              "line": 233,
               "args": []
             },
             {
               "name": "get_regime_age",
-              "line": 269,
+              "line": 267,
               "args": [
                 "pair",
                 "current_regime"
@@ -1898,7 +1898,7 @@
             },
             {
               "name": "_universe_yield_tickers",
-              "line": 294,
+              "line": 292,
               "args": [
                 "universe",
                 "pair"
@@ -1906,7 +1906,7 @@
             },
             {
               "name": "_rate_spread_2y_for_pair",
-              "line": 306,
+              "line": 304,
               "args": [
                 "pair",
                 "universe",
@@ -1915,7 +1915,7 @@
             },
             {
               "name": "_rate_spread_10y_legacy",
-              "line": 330,
+              "line": 328,
               "args": [
                 "pair",
                 "yields_dict"
@@ -1923,7 +1923,7 @@
             },
             {
               "name": "_percentile",
-              "line": 363,
+              "line": 361,
               "args": [
                 "values",
                 "p"
@@ -1931,56 +1931,56 @@
             },
             {
               "name": "_to_float",
-              "line": 376,
+              "line": 374,
               "args": [
                 "value"
               ]
             },
             {
               "name": "_breakeven_series_chronological",
-              "line": 388,
+              "line": 386,
               "args": [
                 "historical_rows"
               ]
             },
             {
               "name": "_polymarket_json_for_llm",
-              "line": 418,
+              "line": 416,
               "args": [
                 "markets"
               ]
             },
             {
               "name": "_format_polymarket_context",
-              "line": 424,
+              "line": 422,
               "args": [
                 "markets"
               ]
             },
             {
               "name": "_signal_row_from_db",
-              "line": 452,
+              "line": 450,
               "args": [
                 "row"
               ]
             },
             {
               "name": "_regime_call_from_db",
-              "line": 487,
+              "line": 485,
               "args": [
                 "row"
               ]
             },
             {
               "name": "_first_todays_high_impact_matrix_for_pair",
-              "line": 524,
+              "line": 522,
               "args": [
                 "calendar_events"
               ]
             },
             {
               "name": "_upsert_macro_event_briefs",
-              "line": 546,
+              "line": 544,
               "args": [
                 "date_str",
                 "forward_days",
@@ -1989,7 +1989,7 @@
             },
             {
               "name": "_upsert_pair_briefs_for_date",
-              "line": 555,
+              "line": 553,
               "args": [
                 "date_str",
                 "polymarket_context"
@@ -1997,14 +1997,14 @@
             },
             {
               "name": "write_desk_open_cards_bulk_task",
-              "line": 622,
+              "line": 620,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "upsert_pair_briefs_task",
-              "line": 627,
+              "line": 625,
               "args": [
                 "date_str",
                 "polymarket_context"
@@ -2012,7 +2012,7 @@
             },
             {
               "name": "upsert_macro_event_briefs_task",
-              "line": 643,
+              "line": 641,
               "args": [
                 "date_str",
                 "forward_days",
@@ -2021,14 +2021,14 @@
             },
             {
               "name": "run_weekly",
-              "line": 1468,
+              "line": 1470,
               "args": [
                 "date_str"
               ]
             },
             {
               "name": "_norm_label",
-              "line": 275,
+              "line": 273,
               "args": [
                 "label"
               ]

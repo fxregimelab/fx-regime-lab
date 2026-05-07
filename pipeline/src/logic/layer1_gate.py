@@ -1,4 +1,5 @@
-"""Layer 1 deterministic regime gate — Aris priorities, composite hysteresis, Marcus invalidation."""
+"""Layer 1 deterministic regime gate — Aris priorities, composite hysteresis,
+Marcus invalidation."""
 
 from __future__ import annotations
 
