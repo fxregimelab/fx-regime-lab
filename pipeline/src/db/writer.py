@@ -17,6 +17,7 @@ from datetime import date
 from functools import lru_cache
 from typing import Any, cast
 
+from postgrest.exceptions import APIError
 from supabase import Client, create_client
 
 from src.types import DeskOpenCardRow, RegimeCall, SignalRow
@@ -754,6 +755,40 @@ def get_latest_research_memo_thesis_bullets() -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+def _normalize_validation_row(row: dict[str, Any]) -> dict[str, Any]:
+    """Normalize a legacy validation_log row to the modern schema.
+
+    Legacy schema stores returns as decimals (``actual_return_5d``) and
+    correctness in ``correct_5d``.  Modern schema uses bps
+    (``log_return_t5_bps``) and horizon-specific keys.  This helper maps
+    the legacy fields so that ``aggregate.py`` can consume either schema.
+    """
+    out = dict(row)
+
+    # Map legacy 5d fields → modern T+5 fields
+    ret_5d = row.get("actual_return_5d")
+    if ret_5d is not None and "log_return_t5_bps" not in row:
+        out["log_return_t5_bps"] = float(ret_5d) * 10_000.0
+
+    corr_5d = row.get("correct_5d")
+    if corr_5d is not None and "correct_t5" not in row:
+        out["correct_t5"] = bool(corr_5d)
+
+    if "actual_direction" in row and "actual_direction_t5" not in row:
+        out["actual_direction_t5"] = row["actual_direction"]
+
+    # Compute Brier score on-the-fly if missing but we have confidence + correctness
+    conf = row.get("confidence")
+    if conf is not None and "brier_score_t5" not in row:
+        if out.get("correct_t5") is True:
+            out["brier_score_t5"] = (float(conf) - 1.0) ** 2
+        elif out.get("correct_t5") is False:
+            out["brier_score_t5"] = float(conf) ** 2
+
+    # Legacy schema has no separate T+20 columns — leave them absent
+    return out
+
+
 def get_validation_log_for_stats(
     pair_filter: str | None = None,
     lookback_days: int | None = None,
@@ -762,25 +797,51 @@ def get_validation_log_for_stats(
 
     Returns rows with T+5/T+20 horizons populated (non-superseded only).
     If ``lookback_days`` is set, filter to calls within that window.
-    """
-    query = (
-        _client()
-        .table("validation_log")
-        .select(
-            "pair,predicted_direction,confidence,call_date,"
-            "actual_direction_t5,log_return_t5_bps,correct_t5,brier_score_t5,"
-            "actual_direction_t20,log_return_t20_bps,correct_t20,brier_score_t20"
-        )
-        .eq("is_superseded", False)
-    )
-    if pair_filter:
-        query = query.eq("pair", pair_filter)
-    if lookback_days is not None and lookback_days > 0:
-        cutoff = date.today() - __import__("datetime").timedelta(days=lookback_days)
-        query = query.gte("call_date", cutoff.isoformat())
 
-    res = query.execute()
-    return cast(list[dict[str, Any]], res.data or [])
+    Automatically adapts to both the **legacy** schema (pre-migration) and
+    the **modern** schema (post-migration).
+    """
+    modern_select = (
+        "pair,predicted_direction,confidence,date,"
+        "actual_direction_t5,log_return_t5_bps,correct_t5,brier_score_t5,"
+        "actual_direction_t20,log_return_t20_bps,correct_t20,brier_score_t20"
+    )
+    legacy_select = (
+        "pair,predicted_direction,confidence,date,"
+        "actual_direction,actual_return_1d,actual_return_5d,"
+        "correct_1d,correct_5d"
+    )
+
+    def _build_query(select: str, include_superseded_filter: bool):
+        q = _client().table("validation_log").select(select)
+        if include_superseded_filter:
+            q = q.eq("is_superseded", False)
+        if pair_filter:
+            q = q.eq("pair", pair_filter)
+        if lookback_days is not None and lookback_days > 0:
+            cutoff = date.today() - __import__("datetime").timedelta(days=lookback_days)
+            q = q.gte("date", cutoff.isoformat())
+        return q
+
+    # Attempt modern schema first
+    try:
+        res = _build_query(modern_select, include_superseded_filter=True).execute()
+        return cast(list[dict[str, Any]], res.data or [])
+    except APIError as exc:
+        msg = str(getattr(exc, "message", "")) or str(exc)
+        if "column validation_log." in msg:
+            # One or more modern columns are missing → fall back to legacy schema
+            try:
+                res = _build_query(legacy_select, include_superseded_filter=False).execute()
+            except APIError as exc2:
+                msg2 = str(getattr(exc2, "message", "")) or str(exc2)
+                if "is_superseded" in msg2:
+                    res = _build_query(legacy_select, include_superseded_filter=False).execute()
+                else:
+                    raise
+            rows = cast(list[dict[str, Any]], res.data or [])
+            return [_normalize_validation_row(r) for r in rows]
+        raise
 
 
 def write_validation_stats(row: Mapping[str, Any]) -> None:
