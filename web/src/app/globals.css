@@ -209,9 +209,13 @@
   --color-terminal-bg: var(--terminal-bg);
   --color-terminal-bg-elevated: var(--terminal-bg-elevated);
   --color-terminal-bg-sunken: var(--terminal-bg-sunken);
+  --color-terminal-bg: var(--terminal-bg);
   --color-terminal-fg: var(--terminal-fg);
+  --color-terminal-text: var(--terminal-fg);
   --color-terminal-fg-muted: var(--terminal-fg-muted);
+  --color-terminal-muted: var(--terminal-fg-muted);
   --color-terminal-fg-dim: var(--terminal-fg-dim);
+  --color-terminal-dim: var(--terminal-fg-dim);
   --color-terminal-border: var(--terminal-border);
   --color-terminal-border-subtle: var(--terminal-border-subtle);
   --color-terminal-border-bright: var(--terminal-border-bright);
@@ -226,6 +230,10 @@
   --color-shell-border: var(--shell-border);
   --color-shell-border-subtle: var(--shell-border-subtle);
   --color-shell-border-bright: var(--shell-border-bright);
+
+  /* Semantic bullish / bearish */
+  --color-bullish: var(--terminal-success);
+  --color-bearish: var(--terminal-danger);
 
   /* Pair colors */
   --color-pair-eurusd-dark: var(--pair-eurusd-dark);
