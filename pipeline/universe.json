@@ -1,5 +1,32 @@
 {
-  "EURUSD": {"class": "FX", "tickers": {"spot_ticker": "EURUSD=X", "volume_ticker": "6E=F", "yield_base": "DGS2", "yield_quote": "ECB_RATE", "cot_ticker": "099741"}},
-  "USDJPY": {"class": "FX", "tickers": {"spot_ticker": "JPY=X", "volume_ticker": "6J=F", "yield_base": "DGS2", "yield_quote": "IRLTLT01JPM156N", "cot_ticker": "097741"}},
-  "USDINR": {"class": "FX", "tickers": {"spot_ticker": "INR=X", "volume_ticker": null, "yield_base": "DGS2", "yield_quote": "IN2YT=RR", "cot_ticker": null}}
+    "EURUSD": {
+        "class": "FX",
+        "tickers": {
+            "spot_ticker": "EURUSD=X",
+            "volume_ticker": "6E=F",
+            "yield_base": "DGS2",
+            "yield_quote": "ECBDFR",
+            "cot_ticker": "099741"
+        }
+    },
+    "USDJPY": {
+        "class": "FX",
+        "tickers": {
+            "spot_ticker": "JPY=X",
+            "volume_ticker": "6J=F",
+            "yield_base": "DGS2",
+            "yield_quote": "IRLTLT01JPM156N",
+            "cot_ticker": "097741"
+        }
+    },
+    "USDINR": {
+        "class": "FX",
+        "tickers": {
+            "spot_ticker": "INR=X",
+            "volume_ticker": null,
+            "yield_base": "DGS2",
+            "yield_quote": "INDIRLTLT01STM",
+            "cot_ticker": null
+        }
+    }
 }
