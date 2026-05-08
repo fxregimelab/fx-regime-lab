@@ -61,11 +61,23 @@ CREATE TABLE IF NOT EXISTS public.audit_log (
 
 ---
 
+## Tamper Evidence
+
+5. **Every regime call has a deterministic hash.**
+   - `write_hash` is SHA-256 of sorted JSON-serialized signal inputs at call time.
+   - Changing the inputs changes the hash. Changing the hash requires regenerating the call.
+   - Verify: `SELECT write_hash FROM regime_calls WHERE id = ?` and recompute from inputs.
+
+6. **Every pipeline run is traceable.**
+   - `correlation_id` links all tables (`regime_calls`, `validation_log`, `audit_log`, `pipeline_errors`) to a single pipeline execution.
+   - Query: `SELECT * FROM regime_calls WHERE correlation_id = '...'`
+
 ## Python Compliance
 
 - `pipeline/src/db/writer.py::write_regime_call()` queries for existing `(pair, date)` before inserting. It never uses `upsert` for regime calls.
 - `pipeline/src/db/writer.py::write_validation_row()` strips T+5 fields from the payload if the existing row already has `log_return_t5_bps IS NOT NULL`.
 - `pipeline/src/db/writer.py::delete_pipeline_data_for_date()` requires `force=True`.
+- `pipeline/src/db/writer.py::compute_write_hash()` produces deterministic SHA-256 of inputs.
 
 ---
 

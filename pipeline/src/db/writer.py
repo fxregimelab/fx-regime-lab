@@ -9,6 +9,7 @@ authenticated writes and service-role reads for the pipeline.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from collections.abc import Mapping, Sequence
@@ -89,7 +90,21 @@ def write_signal_row(row: SignalRow) -> None:
     _client().table("signals").upsert(payload, on_conflict="pair,date").execute()
 
 
-def write_regime_call(call: RegimeCall) -> int | str | None:
+def compute_write_hash(inputs: dict[str, Any]) -> str:
+    """Return SHA-256 hex digest of sorted JSON-serialized inputs.
+
+    Used for tamper-evident regime call verification.
+    """
+    canonical = json.dumps(inputs, sort_keys=True, ensure_ascii=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def write_regime_call(
+    call: RegimeCall,
+    *,
+    correlation_id: str | None = None,
+    write_hash: str | None = None,
+) -> int | str | None:
     """Insert a regime call row.  Returns the existing or new row id.
 
     Uses INSERT with conflict detection rather than upsert so that the
@@ -97,6 +112,10 @@ def write_regime_call(call: RegimeCall) -> int | str | None:
     """
     payload: dict[str, Any] = asdict(call)
     payload["date"] = _date_iso(call.date)
+    if correlation_id is not None:
+        payload["correlation_id"] = correlation_id
+    if write_hash is not None:
+        payload["write_hash"] = write_hash
     client = _client()
 
     # Check for existing row first — avoids immutable-trigger UPDATE error
@@ -578,6 +597,29 @@ def delete_pipeline_data_for_date(date_str: str, *, force: bool = False) -> None
     for row in cast(list[dict[str, Any]], analog_rows.data or []):
         _log_audit(operation="DELETE", table_name="research_analogs", old_value=row)
     client.table("research_analogs").delete().eq("as_of_date", d).execute()
+
+
+def write_pipeline_error(
+    step: str,
+    error_type: str,
+    message: str,
+    traceback_str: str | None = None,
+    correlation_id: str | None = None,
+) -> None:
+    """Log a structured pipeline exception to ``pipeline_errors``."""
+    payload: dict[str, Any] = {
+        "step": step,
+        "error_type": error_type,
+        "message": message,
+    }
+    if traceback_str is not None:
+        payload["traceback"] = traceback_str
+    if correlation_id is not None:
+        payload["correlation_id"] = correlation_id
+    try:
+        _client().table("pipeline_errors").insert(payload).execute()
+    except Exception:
+        pass
 
 
 def _log_audit(

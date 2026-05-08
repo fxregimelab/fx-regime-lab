@@ -11,9 +11,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
+import uuid
 from datetime import date
 from typing import Any
 
+from src.db.writer import write_pipeline_error
 from src.monitoring.alerts import (
     alert_on_failure,
     send_success_heartbeat,
@@ -53,15 +55,22 @@ def run_pipeline(date_str: str | None = None) -> None:
     if date_str is None:
         date_str = date.today().isoformat()
 
+    correlation_id = str(uuid.uuid4())
     dqs_score: float | None = None
     regime_calls_count = 0
     failed_step = ""
 
     # ── Step 1: Daily orchestrator ──────────────────────────────────
     try:
-        _run_sync(run_daily(date_str))
+        _run_sync(run_daily(date_str, correlation_id=correlation_id))
     except Exception as exc:
         failed_step = "orchestrator"
+        write_pipeline_error(
+            step="orchestrator",
+            error_type=type(exc).__name__,
+            message=str(exc),
+            correlation_id=correlation_id,
+        )
         alert_on_failure(
             date_str=date_str,
             failed_step=failed_step,
@@ -81,6 +90,12 @@ def run_pipeline(date_str: str | None = None) -> None:
         run_overnight_check()
     except Exception as exc:
         failed_step = "overnight_check"
+        write_pipeline_error(
+            step="overnight_check",
+            error_type=type(exc).__name__,
+            message=str(exc),
+            correlation_id=correlation_id,
+        )
         alert_on_failure(
             date_str=date_str,
             failed_step=failed_step,
@@ -93,6 +108,12 @@ def run_pipeline(date_str: str | None = None) -> None:
         run_aggregate_stats()
     except Exception as exc:
         failed_step = "validation_aggregate"
+        write_pipeline_error(
+            step="validation_aggregate",
+            error_type=type(exc).__name__,
+            message=str(exc),
+            correlation_id=correlation_id,
+        )
         alert_on_failure(
             date_str=date_str,
             failed_step=failed_step,

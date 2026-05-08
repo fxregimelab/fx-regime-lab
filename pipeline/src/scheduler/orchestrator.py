@@ -13,6 +13,7 @@ import asyncio
 import logging
 import os
 import sys
+import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import date, timedelta
@@ -655,11 +656,17 @@ def upsert_macro_event_briefs_task(
 
 
 @flow(name="Daily G10 FX Pipeline", log_prints=True)
-async def run_daily(date_str: str | None = None) -> None:
+async def run_daily(
+    date_str: str | None = None,
+    *,
+    correlation_id: str | None = None,
+) -> None:
     if date_str is None:
         date_str = date.today().isoformat()
 
-    _require_pipeline_runtime_env()
+    if correlation_id is None:
+        correlation_id = str(uuid.uuid4())
+    logger.info("Pipeline correlation_id=%s for date=%s", correlation_id, date_str)
 
     universe = load_universe()
     buffer = await build_master_buffer_task()
@@ -1069,7 +1076,25 @@ async def run_daily(date_str: str | None = None) -> None:
                 pair,
             )
         else:
-            writer.write_regime_call(call)
+            write_hash = writer.compute_write_hash({
+                "pair": call.pair,
+                "date": call.date.isoformat(),
+                "regime": call.regime,
+                "confidence": call.confidence,
+                "signal_composite": call.signal_composite,
+                "rate_signal": call.rate_signal,
+                "primary_driver": call.primary_driver,
+                "entry_timing": call.entry_timing,
+                "position_size": call.position_size,
+                "stop_level": call.stop_level,
+                "data_quality_score": call.data_quality_score,
+                "stress_level": call.stress_level,
+            })
+            writer.write_regime_call(
+                call,
+                correlation_id=correlation_id,
+                write_hash=write_hash,
+            )
             ledger.log_initial_signal(
                 pair=pair,
                 target_date=today_bar.date,
