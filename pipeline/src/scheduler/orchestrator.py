@@ -42,6 +42,10 @@ from src.fetchers.substack import fetch_latest_substack_memo
 from src.fetchers.volatility import fetch_implied_vol, fetch_realized_vol
 from src.logic.layer2_directional import run_layer2_directional
 from src.logic.layer3_execution import run_layer3_execution
+from src.monitoring.alerts import (
+    alert_on_low_dqs,
+    send_success_heartbeat,
+)
 from src.regime.classifier import VOL_EXPANDING_SUFFIX, classify_regime_layer1
 from src.regime.composite import (
     TRADING_DAYS_3Y,
@@ -1461,6 +1465,27 @@ async def run_daily(date_str: str | None = None) -> None:
         logger.info("Validation engine completed for %s", date_str)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Validation engine failed for %s: %s", date_str, exc)
+
+    # ── Alerting / heartbeat ──────────────────────────────────────────
+    try:
+        if dqs_out.score < 0.70:
+            stale_sources: list[str] = []
+            if dqs_out.rates_freshness < 0.80:
+                stale_sources.append("rates")
+            if dqs_out.spots_freshness < 0.80:
+                stale_sources.append("spots")
+            if dqs_out.cot_freshness < 0.80:
+                stale_sources.append("cot")
+            alert_on_low_dqs(date_str, dqs_out.score, stale_sources)
+        else:
+            send_success_heartbeat(
+                date_str=date_str,
+                pairs_processed=len(pair_regimes),
+                regime_calls_count=len(pair_regimes),
+                dqs_score=dqs_out.score,
+            )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Alerting/heartbeat failed for %s: %s", date_str, exc)
 
     logger.info("Daily run complete for %s", date_str)
 

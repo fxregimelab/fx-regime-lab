@@ -30,7 +30,7 @@
 ### P0: Emergency Triage (Credibility Kill Shots) [COMPLETE — 2026-05-08]
 - [x] **P0-T1:** Wire Round 3 validation engine into production (`run_validation` now called by orchestrator; T+5/T+20 stored separately; Brier scores computed).
 - [x] **P0-T2:** Enforce immutable ledger (`write_regime_call` uses insert-or-ignore; `delete_pipeline_data_for_date` gated behind `force=True`; `audit_log` table + triggers in migration; `call_id` FK preserved).
-- [x] **P0-T3:** Pipeline failure alerting (`monitoring/alerts.py` with Slack + Resend email; `run_pipeline.py` wrapper with per-step failure isolation; success heartbeat on DQS >= 0.70).
+- [x] **P0-T3:** Pipeline failure alerting (`monitoring/alerts.py` with Slack + Resend email; success heartbeat + DQS alert wired into `orchestrator.py`; `.env.example` updated).
 - [x] Integration tests: `tests/integration/test_p0_validation_immutability.py` (3 cases).
 - [x] Alert tests: `tests/test_alerts.py` (9 cases).
 
