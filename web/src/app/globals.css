@@ -15,7 +15,7 @@
   --terminal-bg-sunken: #0a0807;
   --terminal-fg: #e7e5e4;
   --terminal-fg-muted: #a8a29e;
-  --terminal-fg-dim: #78716c;
+  --terminal-fg-dim: #8a8a8a;
   --terminal-fg-inverse: #0c0a09;
 
   /* Borders */
@@ -509,6 +509,15 @@ body.terminal-surface {
 .tabular-nums {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+
+/* =================================================================
+   Focus Visible Rings
+   ================================================================= */
+
+:focus-visible {
+  outline: 2px solid var(--terminal-accent);
+  outline-offset: 2px;
 }
 
 /* =================================================================

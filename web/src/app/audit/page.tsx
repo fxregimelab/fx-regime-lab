@@ -1,3 +1,4 @@
+export const revalidate = 3600;
 import fs from "node:fs";
 import path from "node:path";
 
