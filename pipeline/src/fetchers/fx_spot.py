@@ -303,11 +303,9 @@ async def _fetch_one_spot_async(
 
     frame = raw
     if isinstance(frame.columns, pd.MultiIndex):
-        if ticker in frame.columns.get_level_values(0):
-            frame = frame[ticker]
-        else:
-            logger.warning("multiindex frame missing ticker %s for %s", ticker, pair)
-            frame = pd.DataFrame()
+        # Single-ticker yfinance downloads use MultiIndex columns
+        # with names=['Price', 'Ticker']; flatten to simple columns.
+        frame.columns = frame.columns.get_level_values(0)
 
     bars = _bars_from_yf_frame(frame, pair, ticker)
     logger.info(
