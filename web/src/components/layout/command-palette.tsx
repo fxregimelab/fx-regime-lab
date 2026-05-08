@@ -22,14 +22,13 @@ const ALL_ITEMS: CommandItem[] = [
   { id: "about", label: "About", path: "/about", icon: <Info size={14} />, section: "Pages" },
   // Terminal
   { id: "terminal-overview", label: "Terminal Overview", path: "/terminal", icon: <Terminal size={14} />, section: "Terminal" },
-  { id: "terminal-mosaic", label: "Mosaic", path: "/terminal/mosaic", icon: <Sparkles size={14} />, section: "Terminal" },
+  { id: "terminal-fx-regime", label: "FX Regime Mosaic", path: "/terminal/fx-regime", icon: <Sparkles size={14} />, section: "Terminal" },
   { id: "terminal-calendar", label: "Calendar", path: "/terminal/calendar", icon: <Calendar size={14} />, section: "Terminal" },
   { id: "terminal-memos", label: "Memos", path: "/terminal/memos", icon: <Mail size={14} />, section: "Terminal" },
-  { id: "terminal-alpha", label: "Alpha Ledger", path: "/terminal/alpha-ledger", icon: <BarChart3 size={14} />, section: "Terminal" },
   // Pair desks
-  { id: "desk-eurusd", label: "EUR / USD Desk", path: "/terminal/eur-usd", icon: <Terminal size={14} />, section: "Pair Desks" },
-  { id: "desk-usdjpy", label: "USD / JPY Desk", path: "/terminal/usd-jpy", icon: <Terminal size={14} />, section: "Pair Desks" },
-  { id: "desk-usdinr", label: "USD / INR Desk", path: "/terminal/usd-inr", icon: <Terminal size={14} />, section: "Pair Desks" },
+  { id: "desk-eurusd", label: "EUR / USD Desk", path: "/terminal/fx-regime/eur-usd", icon: <Terminal size={14} />, section: "Pair Desks" },
+  { id: "desk-usdjpy", label: "USD / JPY Desk", path: "/terminal/fx-regime/usd-jpy", icon: <Terminal size={14} />, section: "Pair Desks" },
+  { id: "desk-usdinr", label: "USD / INR Desk", path: "/terminal/fx-regime/usd-inr", icon: <Terminal size={14} />, section: "Pair Desks" },
 ];
 
 export function CommandPalette() {

@@ -187,6 +187,24 @@
   --font-serif: var(--font-cormorant), ui-serif, Georgia, serif;
   --font-editorial: var(--font-cormorant), ui-serif, Georgia, serif;
 
+  /* Canonical color tokens (alias terminal dark palette) */
+  --color-void: var(--terminal-bg);
+  --color-surface: var(--terminal-bg-elevated);
+  --color-elevated: var(--terminal-bg-elevated);
+  --color-sunken: var(--terminal-bg-sunken);
+  --color-text: var(--terminal-fg);
+  --color-text-secondary: var(--terminal-fg-muted);
+  --color-text-muted: var(--terminal-fg-muted);
+  --color-text-dim: var(--terminal-fg-dim);
+  --color-border: var(--terminal-border);
+  --color-border-subtle: var(--terminal-border-subtle);
+  --color-border-bright: var(--terminal-border-bright);
+  --color-accent: var(--terminal-accent);
+  --color-accent-hover: #ffffff;
+  --color-up: var(--terminal-success);
+  --color-down: var(--terminal-danger);
+  --color-warn: var(--terminal-warning);
+
   /* Terminal colors mapped to Tailwind semantic slots */
   --color-terminal-bg: var(--terminal-bg);
   --color-terminal-bg-elevated: var(--terminal-bg-elevated);

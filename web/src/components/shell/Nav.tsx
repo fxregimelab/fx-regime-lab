@@ -14,13 +14,11 @@ const NAV_LINKS = [
 
 const TERMINAL_ITEMS = [
   { label: "Overview", href: "/terminal" },
-  { label: "Mosaic", href: "/terminal/mosaic" },
-  { label: "EUR / USD", href: "/terminal/eur-usd" },
-  { label: "USD / JPY", href: "/terminal/usd-jpy" },
-  { label: "USD / INR", href: "/terminal/usd-inr" },
+  { label: "EUR / USD", href: "/terminal/fx-regime/eur-usd" },
+  { label: "USD / JPY", href: "/terminal/fx-regime/usd-jpy" },
+  { label: "USD / INR", href: "/terminal/fx-regime/usd-inr" },
   { label: "Calendar", href: "/terminal/calendar" },
   { label: "Memos", href: "/terminal/memos" },
-  { label: "Alpha Ledger", href: "/terminal/alpha-ledger" },
 ];
 
 export function Nav() {
@@ -35,18 +33,6 @@ export function Nav() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && dropdownOpen) {
-        e.preventDefault();
-        setDropdownOpen(false);
-        triggerRef.current?.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [dropdownOpen]);
 
   useEffect(() => {
     if (!dropdownOpen) return;
@@ -74,11 +60,13 @@ export function Nav() {
 
   return (
     <header
-      className="sticky top-0 z-[var(--z-sticky)] border-b border-[#e5e5e5] bg-[#ffffff]"
+      className="sticky top-0 z-[var(--z-sticky)] border-b border-[var(--color-border)] bg-[var(--color-void)]"
       style={{
         height: 64,
         transition: "box-shadow 150ms ease-out",
-        boxShadow: scrolled ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+        boxShadow: scrolled
+          ? "0 1px 3px rgba(0,0,0,0.4)"
+          : "none",
       }}
     >
       <nav
@@ -88,11 +76,11 @@ export function Nav() {
         {/* Left: LogoMark + Brand */}
         <a
           href="/"
-          className="flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
+          className="flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
           style={{ borderRadius: 2 }}
         >
-          <LogoMark size={28} color="#0a0a0a" />
-          <span className="text-[0.875rem] font-medium tracking-tight text-[#0a0a0a]">
+          <LogoMark size={28} color="var(--color-text)" />
+          <span className="text-[0.875rem] font-medium tracking-tight text-[var(--color-text)]">
             FX Regime Lab
           </span>
         </a>
@@ -102,7 +90,7 @@ export function Nav() {
           {/* Performance */}
           <a
             href="/performance"
-            className="px-3 py-1.5 text-[0.8125rem] text-[#0a0a0a] outline-none transition-colors hover:bg-[rgba(28,25,23,0.04)] focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
+            className="px-3 py-1.5 text-[0.8125rem] text-[var(--color-text)] outline-none transition-colors hover:bg-[var(--color-surface)] focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
             style={{ borderRadius: 2 }}
           >
             Performance
@@ -116,7 +104,7 @@ export function Nav() {
               onClick={() => setDropdownOpen((p) => !p)}
               aria-expanded={dropdownOpen}
               aria-haspopup="menu"
-              className="flex items-center gap-1 px-3 py-1.5 text-[0.8125rem] text-[#0a0a0a] outline-none transition-colors hover:bg-[rgba(28,25,23,0.04)] focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
+              className="flex items-center gap-1 px-3 py-1.5 text-[0.8125rem] text-[var(--color-text)] outline-none transition-colors hover:bg-[var(--color-surface)] focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
               style={{ borderRadius: 2 }}
             >
               Terminal
@@ -130,7 +118,7 @@ export function Nav() {
             {dropdownOpen && (
               <ul
                 role="menu"
-                className="absolute right-0 top-full mt-1 w-52 border border-[#d6d3d1] bg-[#ffffff] py-1 shadow-lg outline-none"
+                className="absolute right-0 top-full mt-1 w-52 border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg outline-none"
                 style={{ borderRadius: 2, zIndex: "var(--z-dropdown)" }}
               >
                 {TERMINAL_ITEMS.map((item) => (
@@ -138,7 +126,7 @@ export function Nav() {
                     <button
                       role="menuitem"
                       onClick={() => handleTerminalClick(item.href)}
-                      className="w-full px-3 py-1.5 text-left text-[0.8125rem] text-[#1c1917] outline-none transition-colors hover:bg-[rgba(28,25,23,0.04)] focus-visible:bg-[rgba(28,25,23,0.08)]"
+                      className="w-full px-3 py-1.5 text-left text-[0.8125rem] text-[var(--color-text)] outline-none transition-colors hover:bg-[var(--color-elevated)] focus-visible:bg-[var(--color-elevated)]"
                       style={{ borderRadius: 2 }}
                     >
                       {item.label}
@@ -154,7 +142,7 @@ export function Nav() {
             <a
               key={link.href}
               href={link.href}
-              className="px-3 py-1.5 text-[0.8125rem] text-[#0a0a0a] outline-none transition-colors hover:bg-[rgba(28,25,23,0.04)] focus-visible:ring-2 focus-visible:ring-[#0a0a0a]"
+              className="px-3 py-1.5 text-[0.8125rem] text-[var(--color-text)] outline-none transition-colors hover:bg-[var(--color-surface)] focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
               style={{ borderRadius: 2 }}
             >
               {link.label}

@@ -13,16 +13,16 @@ export function MemoSidebar() {
 
   return (
     <>
-      <div className="flex h-full min-h-[60vh] w-full max-w-xl flex-col border-[#1a1a1a] bg-[#000000] text-[#ccc]">
-        <header className="border-b border-[#1a1a1a] px-4 py-3 font-mono text-[10px] tracking-widest text-[#888]">
+      <div className="flex h-full min-h-[60vh] w-full max-w-xl border-[var(--color-border)] bg-[var(--color-void)] text-[var(--color-text)]">
+        <header className="border-b border-[var(--color-border)] px-4 py-3 font-mono text-[10px] tracking-widest text-[var(--color-text-muted)]">
           WEEKLY MACRO MEMO
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
           {listQ.isLoading && (
-            <p className="font-mono text-[10px] text-[#666]">Loading…</p>
+            <p className="font-mono text-[10px] text-[var(--color-text-muted)]">Loading…</p>
           )}
           {listQ.isError && (
-            <p className="font-mono text-[10px] text-[#c45]">
+            <p className="font-mono text-[10px] text-[var(--color-down)]">
               Could not load memos.
             </p>
           )}
@@ -32,10 +32,10 @@ export function MemoSidebar() {
                 <button
                   type="button"
                   onClick={() => setReaderId(String(m.id))}
-                  className="w-full border border-transparent bg-transparent text-left font-mono text-[11px] text-[#e0e0e0] transition-colors hover:border-[#333] hover:bg-[#0a0a0a]"
+                  className="w-full border border-transparent bg-transparent text-left font-mono text-[11px] text-[var(--color-text)] transition-colors hover:border-[var(--color-border)] hover:bg-[var(--color-surface)]"
                 >
                   <span className="block truncate">{m.title}</span>
-                  <span className="block text-[9px] tracking-wider text-[#666]">
+                  <span className="block text-[9px] tracking-wider text-[var(--color-text-muted)]">
                     {m.date}
                   </span>
                 </button>
@@ -43,14 +43,14 @@ export function MemoSidebar() {
             ))}
           </ul>
         </div>
-        <footer className="shrink-0 border-t border-[#1a1a1a] p-3">
-          <p className="mb-2 font-mono text-[9px] tracking-widest text-[#555]">
+        <footer className="shrink-0 border-t border-[var(--color-border)] p-3">
+          <p className="mb-2 font-mono text-[9px] tracking-widest text-[var(--color-text-muted)]">
             SUBSCRIBE
           </p>
           <iframe
             src={SUBSTACK_EMBED}
             title="Substack subscription"
-            className="h-[140px] w-full border border-[#222] bg-[#0a0a0a]"
+            className="h-[140px] w-full border border-[var(--color-border)] bg-[var(--color-surface)]"
             style={{ filter: "grayscale(1)" }}
           />
         </footer>
@@ -69,13 +69,13 @@ export function MemoSidebar() {
             onClick={() => setReaderId(null)}
           />
           <div
-            className="relative z-[1] max-h-[90vh] w-full max-w-2xl overflow-y-auto border border-[#333] bg-[#000000] px-6 py-8 text-[#e8e8e8] shadow-2xl"
+            className="relative z-[1] max-h-[90vh] w-full max-w-2xl overflow-y-auto border border-[var(--color-border)] bg-[var(--color-void)] px-6 py-8 text-[var(--color-text)] shadow-2xl"
             style={{ fontFamily: 'Georgia, "Times New Roman", Times, serif' }}
           >
             <button
               type="button"
               onClick={() => setReaderId(null)}
-              className="absolute right-3 top-3 border border-[#444] bg-black px-2 py-1 font-mono text-[10px] text-[#aaa]"
+              className="absolute right-3 top-3 border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 font-mono text-[10px] text-[var(--color-text-muted)]"
             >
               CLOSE
             </button>
@@ -84,7 +84,7 @@ export function MemoSidebar() {
             ) : null}
             {readerQ.data ? (
               <>
-                <p className="mb-4 font-mono text-[10px] tracking-widest text-[#666]">
+                <p className="mb-4 font-mono text-[10px] tracking-widest text-[var(--color-text-muted)]">
                   {readerQ.data.date}
                 </p>
                 <h1 className="mb-6 text-xl font-normal leading-snug">
@@ -96,7 +96,7 @@ export function MemoSidebar() {
               </>
             ) : null}
             {!readerQ.isLoading && readerId && !readerQ.data ? (
-              <p className="font-mono text-[11px] text-[#888]">
+              <p className="font-mono text-[11px] text-[var(--color-text-muted)]">
                 Memo not found.
               </p>
             ) : null}

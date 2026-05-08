@@ -63,13 +63,13 @@ function Hero({
 
         {/* H1 */}
         <h1 className="font-sans font-semibold text-[clamp(40px,5vw,68px)] text-[var(--color-text)] leading-[1.08] tracking-tight mb-8 max-w-[640px] animate-fade-up delay-100">
-          G10 FX regime calls.
+          FX regime calls.
         </h1>
 
         {/* Manifesto paragraph */}
         <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[480px] mb-10 animate-fade-up delay-200">
-          Published before market open. Validated the next day. Seven pairs,
-          four signal families, one composite. The record is open.
+          Published daily. Validated out-of-sample. Three pairs,
+          five signal families, one composite. The record is open.
         </p>
 
         {/* System status strip */}
@@ -271,6 +271,7 @@ function SnapshotCard({
   spot,
   regime,
   confidence,
+  date,
   delay,
 }: {
   pair: string;
@@ -278,6 +279,7 @@ function SnapshotCard({
   spot: string;
   regime: string;
   confidence: number;
+  date?: string;
   delay: number;
 }) {
   return (
@@ -298,7 +300,7 @@ function SnapshotCard({
           {pair}
         </span>
         <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
-          Spot
+          {date ? date : "Spot"}
         </span>
       </div>
 
@@ -347,7 +349,7 @@ function LiveSnapshot({
         <div className="reveal mb-14">
           <SectionLabel>Live Snapshot</SectionLabel>
           <div className="flex items-end justify-between flex-wrap gap-4">
-            <SectionTitle>Today&apos;s regime calls</SectionTitle>
+            <SectionTitle>Latest regime calls</SectionTitle>
             <Link
               href="/terminal"
               className="font-sans text-[13px] text-[var(--color-text-muted)] underline decoration-[var(--color-border)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-text)]"
@@ -363,8 +365,8 @@ function LiveSnapshot({
               Awaiting data
             </p>
             <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[480px]">
-              No regime calls logged for today yet. The pipeline runs before
-              market open — check back after 06:00 UTC.
+              No regime calls logged yet. The pipeline runs daily — check back
+              soon.
             </p>
           </div>
         ) : (
@@ -380,6 +382,7 @@ function LiveSnapshot({
                   spot={signal?.spot?.toFixed(4) ?? "—"}
                   regime={call?.regime ?? "—"}
                   confidence={call?.confidence ?? 0}
+                  date={call?.date ?? undefined}
                   delay={(i + 1) * 100}
                 />
               );
@@ -447,6 +450,12 @@ function SignalArchitecture() {
       desc: "Open interest flows and 25-delta risk reversals. INR-specific series included.",
       weight: "~10%",
     },
+    {
+      n: "05",
+      label: "Special Factor",
+      desc: "Pair-specific cross-asset signal — ECB sentiment for EUR/USD, JPY funding stress for USD/JPY, EM carry/RBI for USD/INR.",
+      weight: "0–30%",
+    },
   ];
 
   return (
@@ -455,13 +464,13 @@ function SignalArchitecture() {
         <div className="reveal mb-14">
           <SectionLabel>Signal Architecture</SectionLabel>
           <SectionTitle>
-            Four signal families.
+            Five signal families.
             <br />
             One composite.
           </SectionTitle>
           <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[480px] mt-4">
-            Each family is normalized to a percentile rank before weighting. The
-            composite drives the regime label.
+            Each family is scored against its own history, then weighted by
+            pair-specific calibration. The composite drives the regime label.
           </p>
         </div>
 
@@ -526,7 +535,7 @@ function ValidationTrust({
       <div className="max-w-[1152px] mx-auto px-6">
         <div className="reveal mb-14">
           <SectionLabel>Validation</SectionLabel>
-          <SectionTitle>Every call validated. No ex-post edits.</SectionTitle>
+          <SectionTitle>Every call validated. Append-only by convention.</SectionTitle>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-12">
@@ -582,7 +591,7 @@ function AboutSnippet() {
 
           <div className="reveal">
             <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[560px] mb-6">
-              Studying how G10 FX regimes form and break using rate
+              Studying how major FX regimes form and break using rate
               differentials, COT positioning, and volatility. This site is the
               public trace of that work — dated calls, validated outcomes, no
               narrative added after the fact.

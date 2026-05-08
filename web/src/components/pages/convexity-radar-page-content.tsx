@@ -26,10 +26,10 @@ export function ConvexityRadarPageContent() {
 
   return (
     <section className="w-full px-6 md:px-8 py-10">
-      <h1 className="font-sans text-3xl font-bold mb-2 text-white">
+      <h1 className="font-sans text-3xl font-bold mb-2 text-[var(--color-text)]">
         Convexity Radar
       </h1>
-      <p className="font-mono text-[11px] text-[#8a8a8a] tracking-widest mb-6">
+      <p className="font-mono text-[11px] text-[var(--color-text-muted)] tracking-widest mb-6">
         MIE · T+1 EXHAUSTION BANDS · REGIME-CONDITIONED ASYMMETRY
       </p>
 
@@ -39,10 +39,10 @@ export function ConvexityRadarPageContent() {
             key={pair}
             type="button"
             onClick={() => setSelectedPair(pair)}
-            className={`border px-3 py-1 text-[10px] tracking-widest tabular-nums rounded-none shadow-none ${
+            className={`border px-3 py-1 text-[10px] tracking-widest tabular-nums rounded-none shadow-none transition-colors ${
               selectedPair === pair
-                ? "border-[#222] bg-[#111] text-white"
-                : "border-[#111] bg-[#000] text-[#888]"
+                ? "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
+                : "border-[var(--color-border-subtle)] bg-[var(--color-void)] text-[var(--color-text-muted)]"
             }`}
           >
             {pair}
@@ -51,8 +51,8 @@ export function ConvexityRadarPageContent() {
       </div>
 
       {eventsQ.isPending || matricesQ.isPending || signalsQ.isPending ? (
-        <div className="border border-[#111] bg-[#000] px-4 py-8">
-          <span className="font-mono text-[11px] text-[#666] tabular-nums">
+        <div className="border border-[var(--color-border)] bg-[var(--color-void)] px-4 py-8">
+          <span className="font-mono text-[11px] text-[var(--color-text-muted)] tabular-nums">
             LOADING CONVEXITY RADAR...
           </span>
         </div>
@@ -74,7 +74,7 @@ export function ConvexityRadarPageContent() {
         />
       )}
       {(eventsQ.isError || matricesQ.isError || signalsQ.isError) && (
-        <p className="mt-3 text-[11px] text-[#ef4444] tabular-nums">
+        <p className="mt-3 text-[11px] text-[var(--color-down)] tabular-nums">
           Failed to load convexity radar data.
         </p>
       )}

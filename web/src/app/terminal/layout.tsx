@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 export default function TerminalLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[var(--color-void)] text-[var(--color-text)] overflow-hidden">
+    <div data-surface="terminal" className="min-h-screen bg-[var(--color-void)] text-[var(--color-text)] overflow-hidden">
       <GlobalMacroPulse />
       <TerminalNav />
       <main

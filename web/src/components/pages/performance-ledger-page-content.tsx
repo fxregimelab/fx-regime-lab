@@ -14,13 +14,13 @@ export function PerformanceLedgerPageContent() {
 
   return (
     <section className="w-full px-6 md:px-8 py-10 shadow-none">
-      <p className="mb-2 font-mono text-[9px] tracking-widest text-[#777]">
+      <p className="mb-2 font-mono text-[9px] tracking-widest text-[var(--color-text-muted)]">
         ALPHA LEDGER · OOS
       </p>
-      <h1 className="mb-1 font-sans text-3xl font-bold text-white shadow-none">
+      <h1 className="mb-1 font-sans text-3xl font-bold text-[var(--color-text)] shadow-none">
         Performance
       </h1>
-      <p className="mb-6 font-mono text-[11px] tracking-wide text-[#8a8a8a] shadow-none">
+      <p className="mb-6 font-mono text-[11px] tracking-wide text-[var(--color-text-secondary)] shadow-none">
         Regime-cycle grouped forward-walking ledger (non-neutral). Thermal tint
         from T+5 resolution.
       </p>
@@ -31,10 +31,10 @@ export function PerformanceLedgerPageContent() {
             key={pair}
             type="button"
             onClick={() => setSelectedPair(pair)}
-            className={`rounded-none border border-solid px-3 py-1 font-mono text-[10px] tracking-widest tabular-nums shadow-none ${
+            className={`rounded-none border border-solid px-3 py-1 font-mono text-[10px] tracking-widest tabular-nums shadow-none transition-colors ${
               selectedPair === pair
-                ? "border-[#222] bg-[#111] text-white"
-                : "border-[#111] bg-[#000000] text-[#888]"
+                ? "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
+                : "border-[var(--color-border-subtle)] bg-[var(--color-void)] text-[var(--color-text-muted)]"
             }`}
           >
             {pair}
@@ -43,9 +43,9 @@ export function PerformanceLedgerPageContent() {
       </div>
 
       {ledgerQ.isPending ? (
-        <div className="h-40 animate-pulse border border-solid border-[#111] bg-[#000000] shadow-none" />
+        <div className="h-40 animate-pulse border border-solid border-[var(--color-border)] bg-[var(--color-void)] shadow-none" />
       ) : ledgerQ.isError ? (
-        <p className="font-mono text-sm text-[#ef4444] shadow-none">
+        <p className="font-mono text-sm text-[var(--color-down)] shadow-none">
           Could not load strategy ledger.
         </p>
       ) : (
