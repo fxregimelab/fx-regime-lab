@@ -21,7 +21,8 @@ pull:
       id: install-deps
       # PEP 668 images: upgrade yfinance/websockets in system site-packages before editable install.
       script: >-
-        pip install "websockets>=14.0" "yfinance>=0.2.65" --upgrade --break-system-packages
+        pip install "prefect==3.7.0" --upgrade --break-system-packages
+        && pip install "websockets>=14.0" "yfinance>=0.2.65" --upgrade --break-system-packages
         && pip install -e . --break-system-packages
       directory: "{{ clone.directory }}/pipeline"
       stream_output: true
