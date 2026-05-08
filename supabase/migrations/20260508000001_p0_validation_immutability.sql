@@ -37,6 +37,11 @@ ALTER TABLE public.validation_log
 -- Drop old unique index that conflicts with new semantics
 DROP INDEX IF EXISTS idx_validation_unique;
 
+-- Unique index on call_id for upsert idempotency
+CREATE UNIQUE INDEX IF NOT EXISTS idx_validation_call_id
+    ON public.validation_log (call_id)
+    WHERE call_id IS NOT NULL;
+
 -- Unique index on (call_date, pair) for new rows
 -- (Legacy rows have call_date = NULL; Postgres NULLs do not conflict.)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_validation_call_pair

@@ -364,6 +364,11 @@ def write_validation_row(row: Mapping[str, Any]) -> None:
                 payload.pop(col_match, None)
                 continue
 
+            # No unique constraint on call_id yet — fall back to pair,date
+            if "no unique or exclusion constraint matching the ON CONFLICT" in msg:
+                conflict_key = "pair,date"
+                continue
+
             # Legacy fallback for call_date
             if (
                 "column validation_log.call_date does not exist" in msg
