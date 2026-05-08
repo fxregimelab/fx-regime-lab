@@ -778,8 +778,13 @@ async def run_daily(date_str: str | None = None) -> None:
             logger.warning("No spot bars for %s — skipping", pair)
             continue
 
-        today_bar = spot_bars[-1]
-        yest_bar = spot_bars[-2] if len(spot_bars) >= 2 else today_bar
+        # Find bar matching as_of_day for backfill; fall back to latest
+        _as_of_idx = next(
+            (i for i, b in enumerate(spot_bars) if b.date == as_of_day),
+            len(spot_bars) - 1,
+        )
+        today_bar = spot_bars[_as_of_idx]
+        yest_bar = spot_bars[_as_of_idx - 1] if _as_of_idx >= 1 else today_bar
 
         rate_spread_2y = _rate_spread_2y_for_pair(pair, universe, yields_dict)
         if rate_spread_2y is None:
@@ -1565,6 +1570,8 @@ if __name__ == "__main__":
     load_dotenv()
     _m = sys.argv[1] if len(sys.argv) > 1 else "daily"
     if _m == "weekly":
-        run_weekly()
+        _d = sys.argv[2] if len(sys.argv) > 2 else None
+        run_weekly(_d)
     else:
-        asyncio.run(run_daily())
+        _d = sys.argv[2] if len(sys.argv) > 2 else None
+        asyncio.run(run_daily(_d))

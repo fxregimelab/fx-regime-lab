@@ -1,0 +1,45 @@
+name: Daily FX Pipeline
+
+on:
+  schedule:
+    # 09:00 UTC — after FRED data typically updates (~08:30 UTC)
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+    inputs:
+      date_str:
+        description: "Override date (YYYY-MM-DD); leave empty for today"
+        required: false
+        default: ""
+
+jobs:
+  daily-pipeline:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./pipeline
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+
+      - name: Run daily pipeline
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ALPHAVANTAGE_API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
+        run: |
+          if [ -n "${{ github.event.inputs.date_str }}" ]; then
+            python src/scheduler/orchestrator.py daily "${{ github.event.inputs.date_str }}"
+          else
+            PYTHON=python bash run_daily.sh
+          fi
