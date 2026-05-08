@@ -21,7 +21,6 @@ from src.monitoring.alerts import (
 from src.scheduler.orchestrator import run_daily
 from src.scheduler.overnight_check import run_overnight_check
 from src.validation.aggregate import run_aggregate_stats
-from src.validation.engine import run_validation
 
 logger = logging.getLogger(__name__)
 
@@ -89,19 +88,7 @@ def run_pipeline(date_str: str | None = None) -> None:
         )
         raise
 
-    # ── Step 3: Validation engine ───────────────────────────────────
-    try:
-        run_validation(as_of_date=date.fromisoformat(date_str[:10]))
-    except Exception as exc:
-        failed_step = "validation_engine"
-        alert_on_failure(
-            date_str=date_str,
-            failed_step=failed_step,
-            exception=exc,
-        )
-        raise
-
-    # ── Step 4: Validation aggregate ────────────────────────────────
+    # ── Step 3: Validation aggregate ────────────────────────────────
     try:
         run_aggregate_stats()
     except Exception as exc:

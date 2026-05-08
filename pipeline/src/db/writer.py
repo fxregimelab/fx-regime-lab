@@ -246,34 +246,45 @@ def update_desk_open_card_telemetry_audit(
     )
 
 
+# Module-level cache: True = modern schema (call_date exists),
+# False = legacy schema (call_date missing), None = not yet probed.
+_has_call_date: bool | None = None
+
+
 def get_validation_log_entry(call_date: date | str, pair: str) -> dict[str, Any] | None:
     """Fetch existing validation_log row for a given call_date + pair.
 
     Falls back to ``date`` when ``call_date`` column is not yet migrated.
+    Probes the schema once and caches the result to avoid repeated failed
+    queries.
     """
+    global _has_call_date
     iso = _date_iso(call_date)
     client = _client()
 
-    # Try modern schema (call_date + pair)
-    try:
-        res = (
-            client.table("validation_log")
-            .select("*")
-            .eq("call_date", iso)
-            .eq("pair", pair)
-            .maybe_single()
-            .execute()
-        )
-        if res is not None:
-            raw = res.data
-            if isinstance(raw, dict):
-                return cast(dict[str, Any], raw)
-    except APIError as exc:
-        msg = str(getattr(exc, "message", "")) or str(exc)
-        if "column validation_log.call_date does not exist" not in msg:
-            raise
+    if _has_call_date is not False:
+        try:
+            res = (
+                client.table("validation_log")
+                .select("*")
+                .eq("call_date", iso)
+                .eq("pair", pair)
+                .maybe_single()
+                .execute()
+            )
+            if res is not None:
+                raw = res.data
+                if isinstance(raw, dict):
+                    _has_call_date = True
+                    return cast(dict[str, Any], raw)
+        except APIError as exc:
+            msg = str(getattr(exc, "message", "")) or str(exc)
+            if "column validation_log.call_date does not exist" in msg:
+                _has_call_date = False
+            else:
+                raise
 
-    # Fallback to legacy schema (date + pair)
+    # Legacy schema fallback
     res = (
         client.table("validation_log")
         .select("*")
