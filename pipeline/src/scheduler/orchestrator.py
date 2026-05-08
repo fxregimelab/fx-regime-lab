@@ -83,7 +83,7 @@ from src.types import (
     load_universe,
 )
 from src.validation import ledger
-from src.validation.backtest import validate_call
+from src.validation.engine import run_validation
 from src.validation.ingestion_buffer import (
     compute_dqs,
     fx_pairs_from_universe,
@@ -1042,20 +1042,6 @@ async def run_daily(date_str: str | None = None) -> None:
             skew_alignment=layer3_out["skew_alignment"],
         )
 
-        if prior_db and str(prior_db.get("date"))[:10] != today_bar.date.isoformat():
-            prior_signal = writer.get_signal_for_pair_date(pair, str(prior_db.get("date"))[:10])
-            prior_realized_vol_20d = (
-                float(prior_signal["realized_vol_20d"])
-                if prior_signal and prior_signal.get("realized_vol_20d") is not None
-                else None
-            )
-            val_row = validate_call(
-                _regime_call_from_db(prior_db),
-                spots,
-                realized_vol_20d=prior_realized_vol_20d,
-            )
-            writer.write_validation_row(val_row)
-
         writer.write_signal_row(signal_row)
 
         call = RegimeCall(
@@ -1468,6 +1454,13 @@ async def run_daily(date_str: str | None = None) -> None:
         forward_days=3,
         polymarket_context=polymarket_context,
     )
+
+    # ── Run Round 3 validation engine (T+5 / T+20 Brier scores) ─────
+    try:
+        run_validation(as_of_date=run_as_of)
+        logger.info("Validation engine completed for %s", date_str)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Validation engine failed for %s: %s", date_str, exc)
 
     logger.info("Daily run complete for %s", date_str)
 

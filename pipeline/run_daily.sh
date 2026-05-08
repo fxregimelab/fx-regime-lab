@@ -7,7 +7,4 @@ cd "$ROOT/pipeline"
 
 PYTHON="${PYTHON:-.venv/bin/python}"
 
-$PYTHON src/scheduler/orchestrator.py daily
-$PYTHON src/scheduler/overnight_check.py
-$PYTHON -m src.validation.engine
-$PYTHON -m src.validation.aggregate
+$PYTHON src/scheduler/run_pipeline.py

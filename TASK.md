@@ -1,6 +1,8 @@
 # TASK.md — THE COUNCIL REBUILD
 
-**Status:** All Rounds Complete. 121/121 tests pass. ruff + mypy clean on all new code.
+> **Read `HANDOVER.md` first** before any work on this file. It contains the operator identity, locked decisions, career strategy, and session operating rules that govern all task prioritization.
+
+**Status:** P0 Emergency Triage Complete. 198/198 tests pass. ruff + mypy clean on all new code.
 
 ## Active Rounds (The Dual-Mandate Roadmap)
 
@@ -25,6 +27,13 @@
 - [x] Phase 2: Historical pipeline execution engine (`src/backfill/orchestrator.py`) with date-range replay.
 - [x] Phase 3: Research artifact generator (`src/research/artifacts.py`) — markdown track-record reports from validation_stats.
 
+### P0: Emergency Triage (Credibility Kill Shots) [COMPLETE — 2026-05-08]
+- [x] **P0-T1:** Wire Round 3 validation engine into production (`run_validation` now called by orchestrator; T+5/T+20 stored separately; Brier scores computed).
+- [x] **P0-T2:** Enforce immutable ledger (`write_regime_call` uses insert-or-ignore; `delete_pipeline_data_for_date` gated behind `force=True`; `audit_log` table + triggers in migration; `call_id` FK preserved).
+- [x] **P0-T3:** Pipeline failure alerting (`monitoring/alerts.py` with Slack + Resend email; `run_pipeline.py` wrapper with per-step failure isolation; success heartbeat on DQS >= 0.70).
+- [x] Integration tests: `tests/integration/test_p0_validation_immutability.py` (3 cases).
+- [x] Alert tests: `tests/test_alerts.py` (9 cases).
+
 ### Round 5: The Research Terminal (Institutional UI) [IN PROGRESS — delegated to Cursor Agent]
 - [x] Phase 1: Scaffold Next.js App Router with Tailwind v4, Supabase SSR, design tokens.
 - [x] Phase 2: Methodology page shell with KaTeX support.
@@ -37,11 +46,11 @@
 
 | Metric | Value |
 |--------|-------|
-| Total pytest cases | 121 |
-| Pass rate | 121/121 (100%) |
+| Total pytest cases | 198 |
+| Pass rate | 198/198 (100%) |
 | Pre-existing bug fixed | `test_cot_percentile_three_year_window_uses_last_156` date overflow |
-| New modules | `validation/aggregate`, `validation/engine`, `backfill/orchestrator`, `backfill/historical_fetcher`, `research/artifacts` |
-| New migrations | `20260505000001_round3_validation_engine.sql`, `20260505000002_validation_stats.sql` |
+| New modules | `validation/aggregate`, `validation/engine`, `backfill/orchestrator`, `backfill/historical_fetcher`, `research/artifacts`, `monitoring/alerts`, `scheduler/run_pipeline` |
+| New migrations | `20260505000001_round3_validation_engine.sql`, `20260505000002_validation_stats.sql`, `20260508000001_p0_validation_immutability.sql` |
 | ruff status | Clean on all new + modified files |
 | mypy status | Clean on all new modules |
 

@@ -39,7 +39,7 @@ jobs:
           ALPHAVANTAGE_API_KEY: ${{ secrets.ALPHAVANTAGE_API_KEY }}
         run: |
           if [ -n "${{ github.event.inputs.date_str }}" ]; then
-            python src/scheduler/orchestrator.py daily "${{ github.event.inputs.date_str }}"
+            python src/scheduler/run_pipeline.py "${{ github.event.inputs.date_str }}"
           else
-            PYTHON=python bash run_daily.sh
+            python src/scheduler/run_pipeline.py
           fi

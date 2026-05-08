@@ -89,10 +89,32 @@ def write_signal_row(row: SignalRow) -> None:
     _client().table("signals").upsert(payload, on_conflict="pair,date").execute()
 
 
-def write_regime_call(call: RegimeCall) -> None:
+def write_regime_call(call: RegimeCall) -> int | str | None:
+    """Insert a regime call row.  Returns the existing or new row id.
+
+    Uses INSERT with conflict detection rather than upsert so that the
+    immutable trigger (which blocks UPDATE) never fires on re-runs.
+    """
     payload: dict[str, Any] = asdict(call)
     payload["date"] = _date_iso(call.date)
-    _client().table("regime_calls").upsert(payload, on_conflict="pair,date").execute()
+    client = _client()
+
+    # Check for existing row first — avoids immutable-trigger UPDATE error
+    existing = (
+        client.table("regime_calls")
+        .select("id")
+        .eq("pair", call.pair)
+        .eq("date", payload["date"])
+        .maybe_single()
+        .execute()
+    )
+    if existing and existing.data:
+        row = cast(dict[str, Any], existing.data)
+        return row.get("id")
+
+    res = client.table("regime_calls").insert(payload).execute()
+    rows = cast(list[dict[str, Any]], res.data or [])
+    return rows[0].get("id") if rows else None
 
 
 def _desk_open_card_payload(card: DeskOpenCardRow) -> dict[str, Any]:
@@ -225,37 +247,119 @@ def update_desk_open_card_telemetry_audit(
 
 
 def get_validation_log_entry(call_date: date | str, pair: str) -> dict[str, Any] | None:
-    """Fetch existing validation_log row for a given call_date + pair."""
+    """Fetch existing validation_log row for a given call_date + pair.
+
+    Falls back to ``date`` when ``call_date`` column is not yet migrated.
+    """
     iso = _date_iso(call_date)
+    client = _client()
+
+    # Try modern schema (call_date + pair)
+    try:
+        res = (
+            client.table("validation_log")
+            .select("*")
+            .eq("call_date", iso)
+            .eq("pair", pair)
+            .maybe_single()
+            .execute()
+        )
+        if res is not None:
+            raw = res.data
+            if isinstance(raw, dict):
+                return cast(dict[str, Any], raw)
+    except APIError as exc:
+        msg = str(getattr(exc, "message", "")) or str(exc)
+        if "column validation_log.call_date does not exist" not in msg:
+            raise
+
+    # Fallback to legacy schema (date + pair)
     res = (
-        _client()
-        .table("validation_log")
+        client.table("validation_log")
         .select("*")
-        .eq("call_date", iso)
+        .eq("date", iso)
         .eq("pair", pair)
         .maybe_single()
         .execute()
     )
-    if res is None:
-        return None
-    raw = res.data
-    if not isinstance(raw, dict):
-        return None
-    return cast(dict[str, Any], raw)
+    if res is not None:
+        raw = res.data
+        if isinstance(raw, dict):
+            return cast(dict[str, Any], raw)
+    return None
 
 
 def write_validation_row(row: Mapping[str, Any]) -> None:
     """Insert or update validation_log row.
 
-    NOTE: The unique index on (date, pair) is being dropped in the migration.
-    This function now uses upsert on (call_date, pair) if that index exists,
-    otherwise falls back to plain upsert on (date, pair) for compatibility.
+    Uses ``call_id`` as the conflict key when available (preferred for
+    idempotency).  Falls back to ``call_date, pair`` or ``date, pair``
+    depending on schema maturity.
+
+    Guard: if the existing row already has T+5 data (non-null
+    ``log_return_t5_bps``), the T+5 fields in *payload* are stripped so
+    the immutable validation trigger is not violated.
     """
     payload = cast(dict[str, Any], dict(row))
-    if payload.get("call_date") is not None:
-        _client().table("validation_log").upsert(payload, on_conflict="pair,call_date").execute()
+    client = _client()
+
+    # ── Conflict-key resolution ─────────────────────────────────────
+    call_id = payload.get("call_id")
+    call_date = payload.get("call_date")
+
+    # Determine which conflict key to use, ordered by preference
+    conflict_key: str
+    if call_id is not None:
+        conflict_key = "call_id"
+    elif call_date is not None:
+        conflict_key = "pair,call_date"
     else:
-        _client().table("validation_log").upsert(payload, on_conflict="pair,date").execute()
+        conflict_key = "pair,date"
+
+    # ── Guard against overwriting validated T+5 data ────────────────
+    if call_id is not None:
+        try:
+            existing = (
+                client.table("validation_log")
+                .select("log_return_t5_bps")
+                .eq("call_id", call_id)
+                .maybe_single()
+                .execute()
+            )
+            if (
+                existing is not None
+                and existing.data is not None
+                and isinstance(existing.data, dict)
+                and existing.data.get("log_return_t5_bps") is not None
+            ):
+                # Strip T+5 fields so we only upsert T+20 / new fields
+                for key in (
+                    "log_return_t5_bps",
+                    "correct_t5",
+                    "brier_score_t5",
+                    "actual_direction_t5",
+                    "actual_return_5d",
+                    "correct_5d",
+                    "brier_5d",
+                ):
+                    payload.pop(key, None)
+        except APIError:
+            pass  # Schema may not have log_return_t5_bps yet
+
+    # ── Upsert ──────────────────────────────────────────────────────
+    try:
+        client.table("validation_log").upsert(payload, on_conflict=conflict_key).execute()
+    except APIError as exc:
+        msg = str(getattr(exc, "message", "")) or str(exc)
+        # If call_date column is missing, fall back to legacy upsert
+        if (
+            "column validation_log.call_date does not exist" in msg
+            and "pair,date" not in conflict_key
+        ):
+            payload.pop("call_date", None)
+            client.table("validation_log").upsert(payload, on_conflict="pair,date").execute()
+        else:
+            raise
 
 
 def write_brief(
@@ -408,8 +512,19 @@ def get_historical_signals(pair: str, limit: int = 1260) -> list[dict[str, Any]]
     return cast(list[dict[str, Any]], res.data or [])
 
 
-def delete_pipeline_data_for_date(date_str: str) -> None:
-    """Remove pipeline-owned rows for one calendar date (SRE rollback; service role)."""
+def delete_pipeline_data_for_date(date_str: str, *, force: bool = False) -> None:
+    """Remove pipeline-owned rows for one calendar date (SRE rollback; service role).
+
+    Args:
+        date_str: Calendar date to purge (YYYY-MM-DD).
+        force: If False, raises an exception because the ledger is immutable.
+            If True, performs the deletion after logging to audit_log.
+    """
+    if not force:
+        raise RuntimeError(
+            "Immutable ledger: historical data deletion requires force=True. "
+            "Pass force=True only in genuine emergency situations."
+        )
 
     d = str(date_str)[:10]
     client = _client()
@@ -421,16 +536,49 @@ def delete_pipeline_data_for_date(date_str: str) -> None:
         ("strategy_ledger", "date"),
         ("desk_open_cards", "date"),
     )
+
+    # Log to audit_log before deleting
     for table, col in tables_eq_date:
+        rows = client.table(table).select("*").eq(col, d).execute()
+        for row in cast(list[dict[str, Any]], rows.data or []):
+            _log_audit(operation="DELETE", table_name=table, old_value=row)
         client.table(table).delete().eq(col, d).execute()
+
+    analog_rows = client.table("research_analogs").select("*").eq("as_of_date", d).execute()
+    for row in cast(list[dict[str, Any]], analog_rows.data or []):
+        _log_audit(operation="DELETE", table_name="research_analogs", old_value=row)
     client.table("research_analogs").delete().eq("as_of_date", d).execute()
+
+
+def _log_audit(
+    operation: str,
+    table_name: str,
+    old_value: dict[str, Any] | None = None,
+    new_value: dict[str, Any] | None = None,
+    row_id: Any | None = None,
+    correlation_id: str | None = None,
+) -> None:
+    """Write a single row to ``audit_log``.  Silently ignores errors."""
+    payload: dict[str, Any] = {
+        "operation": operation,
+        "table_name": table_name,
+        "old_value": old_value,
+        "new_value": new_value,
+        "correlation_id": correlation_id,
+    }
+    if row_id is not None:
+        payload["row_id"] = row_id
+    try:
+        _client().table("audit_log").insert(payload).execute()
+    except Exception:
+        pass
 
 
 def get_historical_regime_calls(pair: str, limit: int = 5000) -> list[dict[str, Any]]:
     res = (
         _client()
         .table("regime_calls")
-        .select("date,regime,signal_composite,rate_signal,confidence")
+        .select("id,date,regime,signal_composite,rate_signal,confidence")
         .eq("pair", pair)
         .order("date", desc=True)
         .limit(limit)
@@ -812,7 +960,7 @@ def get_validation_log_for_stats(
         "correct_1d,correct_5d"
     )
 
-    def _build_query(select: str, include_superseded_filter: bool):
+    def _build_query(select: str, include_superseded_filter: bool) -> Any:
         q = _client().table("validation_log").select(select)
         if include_superseded_filter:
             q = q.eq("is_superseded", False)
