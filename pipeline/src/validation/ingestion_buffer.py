@@ -322,9 +322,9 @@ def compute_dqs(buffer: dict[str, Any], universe: dict[str, Any], as_of: date) -
 
     rates_f = _rates_bucket_freshness(buffer, universe, as_of)
     spots_f = _spots_bucket_freshness(buffer, universe, as_of)
-    cot_f = _cot_bucket_freshness(buffer, universe)
-    comm_f = _commodities_bucket_freshness(buffer, universe)
-    x_f = _cross_asset_bucket_freshness(buffer, universe)
+    cot_f = _cot_bucket_freshness(buffer, universe, as_of)
+    comm_f = _commodities_bucket_freshness(buffer, universe, as_of)
+    x_f = _cross_asset_bucket_freshness(buffer, universe, as_of)
 
     wr = _W_RATES / _WEIGHT_SUM
     ws = _W_SPOTS / _WEIGHT_SUM
