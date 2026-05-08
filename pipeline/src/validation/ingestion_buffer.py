@@ -321,7 +321,7 @@ def compute_dqs(buffer: dict[str, Any], universe: dict[str, Any], as_of: date) -
     """Weighted freshness composite with critical-leg penalty (rates + spots)."""
 
     rates_f = _rates_bucket_freshness(buffer, universe, as_of)
-    spots_f = _spots_bucket_freshness(buffer, universe)
+    spots_f = _spots_bucket_freshness(buffer, universe, as_of)
     cot_f = _cot_bucket_freshness(buffer, universe)
     comm_f = _commodities_bucket_freshness(buffer, universe)
     x_f = _cross_asset_bucket_freshness(buffer, universe)
