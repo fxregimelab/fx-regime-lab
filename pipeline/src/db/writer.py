@@ -347,18 +347,32 @@ def write_validation_row(row: Mapping[str, Any]) -> None:
             pass  # Schema may not have log_return_t5_bps yet
 
     # ── Upsert ──────────────────────────────────────────────────────
-    try:
-        client.table("validation_log").upsert(payload, on_conflict=conflict_key).execute()
-    except APIError as exc:
-        msg = str(getattr(exc, "message", "")) or str(exc)
-        # If call_date column is missing, fall back to legacy upsert
-        if (
-            "column validation_log.call_date does not exist" in msg
-            and "pair,date" not in conflict_key
-        ):
-            payload.pop("call_date", None)
-            client.table("validation_log").upsert(payload, on_conflict="pair,date").execute()
-        else:
+    # Retry loop: if PostgREST complains about a missing column, strip it
+    # and retry.  This lets the code work against both legacy and modern
+    # schemas without requiring a prior schema probe.
+    max_retries = 10
+    for _attempt in range(max_retries):
+        try:
+            client.table("validation_log").upsert(payload, on_conflict=conflict_key).execute()
+            return
+        except APIError as exc:
+            msg = str(getattr(exc, "message", "")) or str(exc)
+
+            # Specific missing column — strip and retry
+            if "Could not find the '" in msg and "' column of 'validation_log'" in msg:
+                col_match = msg.split("Could not find the '")[1].split("'")[0]
+                payload.pop(col_match, None)
+                continue
+
+            # Legacy fallback for call_date
+            if (
+                "column validation_log.call_date does not exist" in msg
+                and "pair,date" not in conflict_key
+            ):
+                payload.pop("call_date", None)
+                conflict_key = "pair,date"
+                continue
+
             raise
 
 
