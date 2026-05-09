@@ -29,6 +29,18 @@ from prefect import flow, task
 # process sees the symbol before any @task-decorated function is called.
 import prefect.results as _pr
 
+if not hasattr(_pr, "_get_default_persist_result"):
+    def _get_default_persist_result() -> bool:
+        persist_result = _pr.should_persist_result()
+        if persist_result or _pr._has_current_run_context():
+            return persist_result
+        default_block = _pr.get_current_settings().results.default_storage_block
+        if default_block is not None:
+            return True
+        return _pr._read_server_default_result_storage_block_id() is not None
+
+    _pr._get_default_persist_result = _get_default_persist_result  # type: ignore[attr-defined]
+
 if not hasattr(_pr, "_aget_default_persist_result"):
     async def _aget_default_persist_result() -> bool:
         persist_result = _pr.should_persist_result()
