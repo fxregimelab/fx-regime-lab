@@ -83,7 +83,7 @@
   /* Shadows */
   --shell-shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.06);
   --shell-shadow-md: 0 4px 6px rgba(28, 25, 23, 0.08);
-  --shell-shadow-lg: 0 10px 15px rgba(28, 25, 23, 0.10);
+  --shell-shadow-lg: 0 10px 15px rgba(28, 25, 23, 0.1);
 
   /* Scrollbar */
   --shell-scrollbar-track: #e7e5e0;
@@ -183,7 +183,8 @@
 @theme inline {
   /* Font families */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular,
+    monospace;
   --font-serif: var(--font-cormorant), ui-serif, Georgia, serif;
   --font-editorial: var(--font-cormorant), ui-serif, Georgia, serif;
 
@@ -278,7 +279,8 @@
 }
 
 @keyframes gentle-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -319,7 +321,8 @@
 }
 
 @keyframes omega-heartbeat {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -378,10 +381,10 @@
    ================================================================= */
 
 .reveal {
-  opacity: 0;
-  transform: translateY(12px);
-  transition: opacity var(--motion-slow) var(--motion-ease-out),
-              transform var(--motion-slow) var(--motion-ease-out);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--motion-slow) var(--motion-ease-out), transform
+    var(--motion-slow) var(--motion-ease-out);
 }
 
 .revealed {
@@ -390,8 +393,8 @@
 }
 
 .hover-lift {
-  transition: transform var(--motion-fast) var(--motion-ease-out),
-              box-shadow var(--motion-fast) var(--motion-ease-out);
+  transition: transform var(--motion-fast) var(--motion-ease-out), box-shadow
+    var(--motion-fast) var(--motion-ease-out);
 }
 
 .hover-lift:hover {
@@ -460,7 +463,8 @@
 [data-surface="terminal"],
 .terminal-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--terminal-scrollbar-thumb) var(--terminal-scrollbar-track);
+  scrollbar-color: var(--terminal-scrollbar-thumb)
+    var(--terminal-scrollbar-track);
 }
 
 [data-surface="shell"],

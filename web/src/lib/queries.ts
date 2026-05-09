@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { G10CorrelationJson } from "./g10Correlation";
 import { createClient } from "./supabase/client";
 import type { Database } from "./supabase/database.types";
-import type { G10CorrelationJson } from "./g10Correlation";
 
 type UniverseRow = Database["public"]["Tables"]["universe"]["Row"];
 type RegimeCallRow = Database["public"]["Tables"]["regime_calls"]["Row"];
@@ -11,11 +11,14 @@ type SignalRow = Database["public"]["Tables"]["signals"]["Row"];
 type DeskOpenCardsRow = Database["public"]["Tables"]["desk_open_cards"]["Row"];
 type ValidationLogRow = Database["public"]["Tables"]["validation_log"]["Row"];
 type BriefLogRow = Database["public"]["Tables"]["brief_log"]["Row"];
-export type StrategyLedgerRow = Database["public"]["Tables"]["strategy_ledger"]["Row"];
+export type StrategyLedgerRow =
+  Database["public"]["Tables"]["strategy_ledger"]["Row"];
 type MacroEventsRow = Database["public"]["Tables"]["macro_events"]["Row"];
-type ResearchAnalogsRow = Database["public"]["Tables"]["research_analogs"]["Row"];
+type ResearchAnalogsRow =
+  Database["public"]["Tables"]["research_analogs"]["Row"];
 type ResearchMemoRow = Database["public"]["Tables"]["research_memos"]["Row"];
-type HistoricalPricesRow = Database["public"]["Tables"]["historical_prices"]["Row"];
+type HistoricalPricesRow =
+  Database["public"]["Tables"]["historical_prices"]["Row"];
 
 const CANONICAL_PAIRS = ["eur-usd", "usd-jpy", "usd-inr"] as const;
 type CanonicalPair = (typeof CANONICAL_PAIRS)[number];
@@ -178,7 +181,6 @@ export function useLatestSignals() {
       const { data, error } = await supabase
         .from("signals")
         .select("*")
-        .is("invalidated_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       const rows = (data ?? []) as SignalRow[];
@@ -316,7 +318,6 @@ export function useCrossAssetPulse() {
         supabase
           .from("signals")
           .select("*")
-          .is("invalidated_at", null)
           .order("created_at", { ascending: false })
           .limit(10),
         supabase
@@ -332,10 +333,10 @@ export function useCrossAssetPulse() {
       if (pricesRes.error) throw pricesRes.error;
 
       const regimes = ((regimesRes.data ?? []) as RegimeCallRow[]).filter((r) =>
-        isCanonicalPair(r.pair)
+        isCanonicalPair(r.pair),
       );
       const signals = ((signalsRes.data ?? []) as SignalRow[]).filter((r) =>
-        isCanonicalPair(r.pair)
+        isCanonicalPair(r.pair),
       );
       const prices = (pricesRes.data ?? []) as HistoricalPricesRow[];
 
@@ -347,10 +348,8 @@ export function useCrossAssetPulse() {
       }[] = [];
 
       for (const pair of CANONICAL_PAIRS) {
-        const latestRegime =
-          regimes.find((r) => r.pair === pair) ?? null;
-        const latestSignal =
-          signals.find((r) => r.pair === pair) ?? null;
+        const latestRegime = regimes.find((r) => r.pair === pair) ?? null;
+        const latestSignal = signals.find((r) => r.pair === pair) ?? null;
         const latestPriceRow = prices.find((p) => p.pair === pair);
         result.push({
           pair,
@@ -384,7 +383,9 @@ export function useValidationLog(pair?: string) {
       }
       const { data, error } = await query;
       if (error) throw error;
-      return ((data ?? []) as ValidationLogRow[]).filter((r) => isCanonicalPair(r.pair));
+      return ((data ?? []) as ValidationLogRow[]).filter((r) =>
+        isCanonicalPair(r.pair),
+      );
     },
   });
 }
@@ -409,7 +410,9 @@ export function useStrategyLedger(pair?: string) {
       }
       const { data, error } = await query;
       if (error) throw error;
-      return ((data ?? []) as StrategyLedgerRow[]).filter((r) => isCanonicalPair(r.pair));
+      return ((data ?? []) as StrategyLedgerRow[]).filter((r) =>
+        isCanonicalPair(r.pair),
+      );
     },
   });
 }
@@ -430,10 +433,9 @@ export function useUpcomingMacroEvents(days = 7) {
       const { data, error } = await supabase
         .from("macro_events")
         .select("*")
-        .gte("event_date", today)
-        .lte("event_date", future)
-        .order("event_date", { ascending: true })
-        .order("event_time", { ascending: true })
+        .gte("date", today)
+        .lte("date", future)
+        .order("date", { ascending: true })
         .limit(50);
       if (error) throw error;
       return data ?? [];
@@ -482,7 +484,7 @@ export function useG10CorrelationMatrix() {
           const pMap = new Map(pRows.map((r) => [r.date, r.close]));
           const qMap = new Map(qRows.map((r) => [r.date, r.close]));
           const commonDates = Array.from(pMap.keys()).filter((d) =>
-            qMap.has(d)
+            qMap.has(d),
           );
           const pVals = commonDates.map((d) => pMap.get(d)!);
           const qVals = commonDates.map((d) => qMap.get(d)!);
@@ -516,9 +518,7 @@ export function useG10CorrelationMatrix() {
    ────────────────────────────────────────────── */
 
 export function useResearchMemosList() {
-  return useQuery<
-    Pick<ResearchMemoRow, "id" | "date" | "title">[]
-  >({
+  return useQuery<Pick<ResearchMemoRow, "id" | "date" | "title">[]>({
     queryKey: ["research_memos", "list"],
     queryFn: async () => {
       const supabase = createClient();
@@ -583,7 +583,10 @@ export function useTelemetryStatus(pair: string) {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      const row = data as Pick<DeskOpenCardsRow, "invalidation_triggered" | "telemetry_status"> | null;
+      const row = data as Pick<
+        DeskOpenCardsRow,
+        "invalidation_triggered" | "telemetry_status"
+      > | null;
       if (!row) return null;
       return {
         invalidation_triggered: Boolean(row.invalidation_triggered),
@@ -638,9 +641,10 @@ export function useBriefLogDominanceSeries(limit = 5) {
 }
 
 export function useResearchMemoReader(id: string | null) {
-  return useQuery<
-    Pick<ResearchMemoRow, "id" | "date" | "title" | "raw_content" | "link_url"> | null
-  >({
+  return useQuery<Pick<
+    ResearchMemoRow,
+    "id" | "date" | "title" | "raw_content" | "link_url"
+  > | null>({
     queryKey: ["research_memos", "reader", id],
     queryFn: async () => {
       if (!id) return null;
