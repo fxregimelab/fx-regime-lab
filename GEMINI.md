@@ -2,13 +2,16 @@
 
 This document provides foundational instructions and context for the FX Regime Lab project.
 
+> **Read `HANDOVER.md` first** for complete operator identity, locked decisions, career strategy, and session operating rules.
+
 ## Project Overview
 
 FX Regime Lab is a professional **Quantamental Research Rig** focused on G10 FX regime classification and alpha generation. It is designed as a live, verifiable research operation for institutional-grade macro analysis.
 
 **Absolute Source of Truth:** 
-1. **`CONTEXT.md`**: The macro thesis, 3-layer signal framework, and operational identity.
-2. **`OMEGA_PROTOCOL.md`**: The 13-persona Council and 6-phase development workflow.
+1. **`HANDOVER.md`**: Operator identity, locked career path, locked decisions, session rules, macro backdrop. **Read this first.**
+2. **`CONTEXT.md`**: The macro thesis, 3-layer signal framework, and technical operational identity.
+3. **`OMEGA_PROTOCOL.md`**: The 13-persona Council and 6-phase development workflow.
 
 ### Core Stack
 - **Pipeline**: Python 3.11+ (yfinance, pandas, fredapi, supabase-py)
@@ -54,7 +57,8 @@ Every modification MUST be vetted by the **Triple-Chamber Council** defined in `
 - **Fallbacks**: Never assume external APIs (FRED, CFTC) are stable. Implement explicit `None` handling and data resilience.
 
 ## Key Reference Files
-- `CONTEXT.md`: Full macro thesis (Read first).
-- `CLAUDE.md`: AI workflow and persona reference.
+- `HANDOVER.md`: **Read first.** Complete operator and career context.
+- `CONTEXT.md`: Full macro thesis and technical project context.
+- `CLAUDE.md`: AI workflow, persona, locked decisions, and session rules.
 - `TASK.md`: Current active tasks.
 - `ROADMAP.md`: The 5-round master plan.

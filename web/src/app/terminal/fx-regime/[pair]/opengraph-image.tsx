@@ -1,4 +1,4 @@
-import { PAIRS } from "@/lib/mockData";
+import { PAIRS } from "@/lib/constants";
 import { createClient } from "@supabase/supabase-js";
 import { ImageResponse } from "next/og";
 

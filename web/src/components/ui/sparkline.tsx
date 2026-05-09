@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
+import type React from "react";
+import { useMemo } from "react";
 
 interface SparklineProps {
   data: number[];
@@ -39,7 +40,10 @@ export const Sparkline: React.FC<SparklineProps> = ({
   const last = data[data.length - 1];
   const trendUp = last >= first;
   const resolvedColor =
-    color ?? (trendUp ? "var(--terminal-success, #22c55e)" : "var(--terminal-danger, #ef4444)");
+    color ??
+    (trendUp
+      ? "var(--terminal-success, #22c55e)"
+      : "var(--terminal-danger, #ef4444)");
 
   return (
     <svg
@@ -49,6 +53,8 @@ export const Sparkline: React.FC<SparklineProps> = ({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{ display: "block" }}
+      aria-label="Signal composite sparkline"
+      role="img"
     >
       <path d={areaPath} fill={resolvedColor} fillOpacity={fillOpacity} />
       <path

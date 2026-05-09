@@ -3,10 +3,11 @@
 Welcome to the **FX Regime Lab** research rig. Use this file to navigate the repository and understand the relationships between code and research.
 
 ## 🧭 High-Level Context
-- [[CONTEXT]]: The macro thesis, signal framework, and career goals (Absolute SOT).
-- [[OMEGA_PROTOCOL]]: The 11-persona council and 5-phase OMEGA loop.
+- [[HANDOVER]]: **START HERE.** Operator identity, locked career path, locked decisions, session rules, macro backdrop, and networking status. This is the complete personal/career context.
+- [[CONTEXT]]: The macro thesis, signal framework, and technical project context (Absolute SOT for technical decisions).
+- [[OMEGA_PROTOCOL]]: The 13-persona council and 6-phase OMEGA loop.
 - [[GEMINI]]: Repository instructions and hard rules.
-- [[CLAUDE]]: The Quant Research Assistant persona and chamber simulator.
+- [[CLAUDE]]: The Quant Research Assistant persona, locked decisions, and session operating rules.
 - [[TASK]]: Current sprint state and the rebuild rounds.
 
 ## 🏛️ The 3-Layer Framework (Signal Logic)

@@ -329,77 +329,139 @@ def write_validation_row(row: Mapping[str, Any]) -> None:
     Guard: if the existing row already has T+5 data (non-null
     ``log_return_t5_bps``), the T+5 fields in *payload* are stripped so
     the immutable validation trigger is not violated.
+
+    If no unique constraint exists for upsert, falls back to manual
+    select-then-insert/update to avoid silent failures.
     """
     payload = cast(dict[str, Any], dict(row))
     client = _client()
 
-    # ── Conflict-key resolution ─────────────────────────────────────
     call_id = payload.get("call_id")
     call_date = payload.get("call_date")
-
-    # Determine which conflict key to use, ordered by preference
-    conflict_key: str
-    if call_id is not None:
-        conflict_key = "call_id"
-    elif call_date is not None:
-        conflict_key = "pair,call_date"
-    else:
-        conflict_key = "pair,date"
+    pair = payload.get("pair")
+    date_val = call_date or payload.get("date")
 
     # ── Guard against overwriting validated T+5 data ────────────────
+    existing_id: int | None = None
     if call_id is not None:
         try:
             existing = (
                 client.table("validation_log")
-                .select("log_return_t5_bps")
+                .select("id,log_return_t5_bps")
                 .eq("call_id", call_id)
                 .maybe_single()
                 .execute()
             )
-            if (
-                existing is not None
-                and existing.data is not None
-                and isinstance(existing.data, dict)
-                and existing.data.get("log_return_t5_bps") is not None
-            ):
-                # Strip T+5 fields so we only upsert T+20 / new fields
-                for key in (
-                    "log_return_t5_bps",
-                    "correct_t5",
-                    "brier_score_t5",
-                    "actual_direction_t5",
-                    "actual_return_5d",
-                    "correct_5d",
-                    "brier_5d",
-                ):
-                    payload.pop(key, None)
+            if existing is not None and existing.data is not None:
+                raw = existing.data
+                if isinstance(raw, dict):
+                    if raw.get("log_return_t5_bps") is not None:
+                        for key in (
+                            "log_return_t5_bps",
+                            "correct_t5",
+                            "brier_score_t5",
+                            "actual_direction_t5",
+                            "actual_return_5d",
+                            "correct_5d",
+                            "brier_5d",
+                        ):
+                            payload.pop(key, None)
+                    existing_id = raw.get("id")
         except APIError:
-            pass  # Schema may not have log_return_t5_bps yet
+            pass  # Schema may not have call_id yet
 
-    # ── Upsert ──────────────────────────────────────────────────────
-    # Retry loop: if PostgREST complains about a missing column, strip it
-    # and retry.  This lets the code work against both legacy and modern
-    # schemas without requiring a prior schema probe.
-    max_retries = 10
-    for _attempt in range(max_retries):
+    # If no existing row by call_id, try by date+pair
+    if existing_id is None and pair is not None and date_val is not None:
+        try:
+            res = (
+                client.table("validation_log")
+                .select("id,log_return_t5_bps")
+                .eq("pair", pair)
+                .eq("date", date_val)
+                .maybe_single()
+                .execute()
+            )
+            if res is not None and res.data is not None:
+                raw = res.data
+                if isinstance(raw, dict):
+                    if raw.get("log_return_t5_bps") is not None:
+                        for key in (
+                            "log_return_t5_bps",
+                            "correct_t5",
+                            "brier_score_t5",
+                            "actual_direction_t5",
+                            "actual_return_5d",
+                            "correct_5d",
+                            "brier_5d",
+                        ):
+                            payload.pop(key, None)
+                    existing_id = raw.get("id")
+        except APIError:
+            pass
+
+    # ── Write: upsert preferred, manual update/insert fallback ──────
+    _upsert_validation_log(payload, existing_id)
+
+
+def _upsert_validation_log(payload: dict[str, Any], existing_id: int | None) -> None:
+    """Attempt upsert; if unique constraint missing, fall back to update/insert."""
+    client = _client()
+
+    # Prefer update when we know the row id
+    if existing_id is not None:
+        try:
+            update_payload = {k: v for k, v in payload.items() if k != "id"}
+            client.table("validation_log").update(update_payload).eq("id", existing_id).execute()
+            return
+        except APIError as exc:
+            msg = str(getattr(exc, "message", "")) or str(exc)
+            if "Could not find the '" in msg and "' column of 'validation_log'" in msg:
+                col_match = msg.split("Could not find the '")[1].split("'")[0]
+                update_payload.pop(col_match, None)
+                (
+                    client.table("validation_log")
+                    .update(update_payload)
+                    .eq("id", existing_id)
+                    .execute()
+                )
+                return
+            raise
+
+    # Try upsert first
+    conflict_key = "pair,date"
+    if payload.get("call_id") is not None:
+        conflict_key = "call_id"
+    elif payload.get("call_date") is not None:
+        conflict_key = "pair,call_date"
+
+    for _attempt in range(10):
         try:
             client.table("validation_log").upsert(payload, on_conflict=conflict_key).execute()
             return
         except APIError as exc:
             msg = str(getattr(exc, "message", "")) or str(exc)
 
-            # Specific missing column — strip and retry
             if "Could not find the '" in msg and "' column of 'validation_log'" in msg:
                 col_match = msg.split("Could not find the '")[1].split("'")[0]
                 payload.pop(col_match, None)
                 continue
 
-            # No unique constraint on call_id yet — fall back to pair,date
             if "no unique or exclusion constraint matching the ON CONFLICT" in msg:
-                conflict_key = "pair,date"
-                continue
+                # No upsert possible — fall back to plain insert
+                # (duplicates are unlikely because we checked for existing rows above)
+                try:
+                    client.table("validation_log").insert(payload).execute()
+                    return
+                except APIError as exc2:
+                    msg2 = str(getattr(exc2, "message", "")) or str(exc2)
+                    if "Could not find the '" in msg2 and "' column of 'validation_log'" in msg2:
+                        col_match2 = msg2.split("Could not find the '")[1].split("'")[0]
+                        payload.pop(col_match2, None)
+                        continue
+                    if "duplicate key value violates unique constraint" in msg2:
+                        return  # Row already exists
+                    raise
 
-            # Legacy fallback for call_date
             if (
                 "column validation_log.call_date does not exist" in msg
                 and "pair,date" not in conflict_key
@@ -744,11 +806,47 @@ def get_historical_macro_surprises_date_universe(limit: int = 50000) -> list[dic
     return list(reversed(rows))
 
 
-def write_historical_prices(rows: Sequence[Mapping[str, Any]]) -> None:
+def write_historical_prices(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    source: str | None = None,
+) -> None:
+    """Upsert historical price rows.  Adds ``source`` and ``fetch_timestamp`` when provided.
+
+    Gracefully handles missing columns (schema not yet migrated) by stripping
+    unknown fields and retrying — identical to the ``validation_log`` strategy.
+    """
     if not rows:
         return
-    payload_rows = [cast(dict[str, Any], dict(r)) for r in rows]
-    _client().table("historical_prices").upsert(payload_rows, on_conflict="pair,date").execute()
+    from datetime import UTC, datetime
+
+    now = datetime.now(UTC).isoformat()
+    payload_rows: list[dict[str, Any]] = []
+    for r in rows:
+        row = cast(dict[str, Any], dict(r))
+        if source is not None:
+            row["source"] = source
+            row["fetch_timestamp"] = now
+        payload_rows.append(row)
+
+    client = _client()
+    max_retries = 10
+    for _attempt in range(max_retries):
+        try:
+            (
+                client.table("historical_prices")
+                .upsert(payload_rows, on_conflict="pair,date")
+                .execute()
+            )
+            return
+        except APIError as exc:
+            msg = str(getattr(exc, "message", "")) or str(exc)
+            if "Could not find the '" in msg and "' column of 'historical_prices'" in msg:
+                col_match = msg.split("Could not find the '")[1].split("'")[0]
+                for row in payload_rows:
+                    row.pop(col_match, None)
+                continue
+            raise
 
 
 def get_rpc_historical_analogs(
@@ -772,6 +870,112 @@ def get_rpc_historical_analogs(
         },
     ).execute()
     return cast(list[dict[str, Any]], res.data or [])
+
+
+def get_historical_price_for_date(pair: str, date_str: str) -> dict[str, Any] | None:
+    """Return a single historical price row for ``pair`` on ``date_str``.
+
+    Prefers ``close``; falls back to the latest available price on or before
+    ``date_str`` when an exact match is missing (forward-fill for weekends).
+    """
+    client = _client()
+    # Exact match first
+    res = (
+        client.table("historical_prices")
+        .select("date,pair,open,high,low,close,volume")
+        .eq("pair", pair)
+        .eq("date", str(date_str)[:10])
+        .maybe_single()
+        .execute()
+    )
+    if res is not None:
+        raw = res.data
+        if isinstance(raw, dict):
+            return cast(dict[str, Any], raw)
+
+    # Fallback: nearest earlier date (weekend / holiday gap)
+    res = (
+        client.table("historical_prices")
+        .select("date,pair,open,high,low,close,volume")
+        .eq("pair", pair)
+        .lte("date", str(date_str)[:10])
+        .order("date", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if res is not None:
+        raw = res.data
+        if isinstance(raw, list) and raw:
+            return cast(dict[str, Any], raw[0])
+        if isinstance(raw, dict):
+            return cast(dict[str, Any], raw)
+    return None
+
+
+def get_unvalidated_regime_calls(limit: int | None = None) -> list[dict[str, Any]]:
+    """Return regime_calls rows lacking a validation_log entry with brier_score_t5.
+
+    Ordered by date ascending (oldest first) so backfill proceeds chronologically.
+    """
+    query = (
+        _client()
+        .table("regime_calls")
+        .select("id,date,pair,regime,rate_signal,confidence")
+        .order("date", desc=False)
+    )
+    if limit is not None:
+        query = query.limit(limit)
+
+    res = query.execute()
+    calls = cast(list[dict[str, Any]], res.data or [])
+
+    # Filter out calls that already have validation_log entries with brier_score_t5
+    unvalidated: list[dict[str, Any]] = []
+    for call in calls:
+        call_id = call.get("id")
+        call_date = str(call.get("date"))[:10]
+        pair = str(call.get("pair"))
+
+        # Check validation_log by call_id when available
+        has_validation = False
+        if call_id is not None:
+            try:
+                vres = (
+                    _client()
+                    .table("validation_log")
+                    .select("brier_score_t5")
+                    .eq("call_id", call_id)
+                    .not_.is_("brier_score_t5", "null")
+                    .maybe_single()
+                    .execute()
+                )
+                if vres is not None and vres.data is not None:
+                    has_validation = True
+            except Exception:
+                pass
+
+        # Fallback: check by date + pair
+        if not has_validation:
+            try:
+                vres = (
+                    _client()
+                    .table("validation_log")
+                    .select("brier_score_t5")
+                    .eq("date", call_date)
+                    .eq("pair", pair)
+                    .not_.is_("brier_score_t5", "null")
+                    .maybe_single()
+                    .execute()
+                )
+                if vres is not None and vres.data is not None:
+                    has_validation = True
+            except Exception:
+                pass
+
+        if not has_validation:
+            unvalidated.append(call)
+
+    return unvalidated
 
 
 def get_historical_prices(pair: str, limit: int = 10000) -> list[dict[str, Any]]:

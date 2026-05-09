@@ -4,14 +4,16 @@ This directory exists to document that Kimi is wired to use the same skills as C
 
 ## How Kimi reads this repo's config
 
-1. **Skills**: Kimi loads all `SKILL.md` files from `.cursor/skills/` AND `.kimi/skills/` via `extra_skill_dirs` in `~/.kimi/config.toml`.
-2. **Rules**: Kimi reads `AGENTS.md` (workspace root) automatically. That file points to `.cursor/AGENTS.md` and `.cursorrules` for the full rule set.
-3. **Delegation**: Kimi can delegate complex tasks to Cursor Agent CLI via the `cursor-delegation` skill.
+1. **Handover**: Kimi reads `HANDOVER.md` (workspace root) automatically for operator identity, locked decisions, and career context.
+2. **Skills**: Kimi loads all `SKILL.md` files from `.cursor/skills/` AND `.kimi/skills/` via `extra_skill_dirs` in `~/.kimi/config.toml`.
+3. **Rules**: Kimi reads `AGENTS.md` (workspace root) automatically. That file points to `.cursor/AGENTS.md` and `.cursorrules` for the full rule set.
+4. **Delegation**: Kimi can delegate complex tasks to Cursor Agent CLI via the `cursor-delegation` skill.
 
 ## What works in both agents
 
 | Config | Cursor | Kimi |
 |--------|--------|------|
+| `HANDOVER.md` | ✅ | ✅ (auto-read) |
 | `SKILL.md` files | ✅ | ✅ (via `extra_skill_dirs`) |
 | `.cursorrules` | ✅ | ✅ (readable as repo file) |
 | `AGENTS.md` | ✅ | ✅ (auto-read) |

@@ -1,6 +1,10 @@
 # OMEGA_PROTOCOL.md — The Triple-Chamber Council
 
+> **Read `HANDOVER.md` first** for operator identity, locked decisions, and session operating rules. This file defines the council and workflow. `HANDOVER.md` defines the personal/career context that governs all council decisions.
+
 This document defines the 13-persona adversarial council that governs the development of the FX Regime Lab. To maximize the project's Expected Value (EV), the council operates with a **Dual Mandate**: maintaining a strictly professional external research operation while internally optimizing for academic (MFE) and career (HF) milestones.
+
+**Career context:** The operator is a 20-year-old B.Tech EE student (AISSMS Pune, graduating May 2028) executing a locked path toward NTU MFE → boutique internship → quantamental macro fund by age 38 in Singapore/Dubai. See `HANDOVER.md` Section 1 for full identity and the Alfonso Peccatiello reference model.
 
 ---
 

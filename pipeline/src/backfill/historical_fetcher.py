@@ -11,6 +11,8 @@ import logging
 from datetime import date, timedelta
 from typing import Any
 
+import pandas as pd
+
 from src.db import writer
 from src.types import SpotBar, spot_tickers_from_universe
 
@@ -40,13 +42,16 @@ def _yf_download(ticker: str, start: date, end: date) -> list[SpotBar]:
     if df is None or df.empty:
         return []
 
-    # yfinance returns MultiIndex columns in recent versions
-    # Normalise to flat column names
-    if hasattr(df.columns, "to_flat_index"):
-        df.columns = [
-            "_".join(str(c) for c in col).strip("_") if isinstance(col, tuple) else str(col)
-            for col in df.columns
-        ]
+    # yfinance returns MultiIndex columns in recent versions (Price, Ticker)
+    # Normalise to simple column names by dropping the Ticker level
+    if isinstance(df.columns, pd.MultiIndex):
+        if "Price" in df.columns.names:
+            df.columns = df.columns.droplevel("Ticker" if "Ticker" in df.columns.names else 1)
+        else:
+            df.columns = [
+                "_".join(str(c) for c in col).strip("_") if isinstance(col, tuple) else str(col)
+                for col in df.columns
+            ]
 
     bars: list[SpotBar] = []
     for idx, row in df.iterrows():
@@ -54,11 +59,11 @@ def _yf_download(ticker: str, start: date, end: date) -> list[SpotBar]:
             d = date.fromisoformat(str(idx)[:10])
         except ValueError:
             continue
-        open_v = row.get("Open") or row.get("Open_")
-        high_v = row.get("High") or row.get("High_")
-        low_v = row.get("Low") or row.get("Low_")
-        close_v = row.get("Close") or row.get("Close_")
-        vol_v = row.get("Volume") or row.get("Volume_") or 0.0
+        open_v = row.get("Open")
+        high_v = row.get("High")
+        low_v = row.get("Low")
+        close_v = row.get("Close")
+        vol_v = row.get("Volume") or 0.0
         if close_v is None:
             continue
         try:
@@ -124,5 +129,5 @@ def backfill_spot_for_pair(
             }
         )
 
-    writer.write_historical_prices(rows)
+    writer.write_historical_prices(rows, source="yfinance")
     return len(rows)

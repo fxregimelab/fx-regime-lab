@@ -179,4 +179,6 @@ def generate_track_record_report(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    print(generate_track_record_report())
+    report = generate_track_record_report()
+    if report:
+        print(report)  # noqa: T201

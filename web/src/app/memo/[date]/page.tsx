@@ -1,5 +1,5 @@
 import { DeskCard } from "@/components/ui/desk-card";
-import { PAIRS } from "@/lib/mockData";
+import { PAIRS } from "@/lib/constants";
 import type {
   DominanceItem,
   MarkovPayload,

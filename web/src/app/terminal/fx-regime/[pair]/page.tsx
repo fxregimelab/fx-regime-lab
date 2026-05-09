@@ -1,19 +1,39 @@
 import { RegimeCard } from "@/components/regime/RegimeCard";
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline } from "@/components/ui/sparkline";
 import { fmt2, fmtInt, fmtPct } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import {
+  getHistoricalPrices,
   getHistoricalRegimeCalls,
   getLatestRegimeCalls,
   getLatestSignals,
+  getPairValidationHistory,
+  getPairValidationSummary,
 } from "@/lib/supabase/queries";
-import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
+import type {
+  LatestRegimeCall,
+  LatestSignal,
+  PairValidationHistoryItem,
+  PairValidationSummary,
+} from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 interface PairDeskPageProps {
   params: Promise<{ pair: string }>;
+}
+
+export async function generateMetadata({ params }: PairDeskPageProps) {
+  const { pair: pairSlug } = await params;
+  const pairMeta = PAIRS.find((p) => p.urlSlug === pairSlug);
+  return {
+    title: pairMeta
+      ? `${pairMeta.display} Desk | FX Regime Lab`
+      : "FX Regime Lab",
+  };
 }
 
 function getBias(
@@ -138,6 +158,209 @@ const SIGNAL_ARCH = [
   { label: "OI", weight: 10 },
 ];
 
+function OutcomeBadge({ outcome }: { outcome: string }) {
+  if (outcome === "CORRECT")
+    return (
+      <span className="font-mono text-[10px] text-[var(--color-up)] font-bold">
+        ✓ CORRECT
+      </span>
+    );
+  if (outcome === "WRONG")
+    return (
+      <span className="font-mono text-[10px] text-[var(--color-down)] font-bold">
+        ✗ WRONG
+      </span>
+    );
+  return (
+    <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
+      {outcome}
+    </span>
+  );
+}
+
+function ValidationHistoryTable({
+  rows,
+}: {
+  rows: PairValidationHistoryItem[];
+}) {
+  if (rows.length === 0) {
+    return (
+      <div className="px-5 py-6 text-center">
+        <span className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider">
+          NO VALIDATION DATA FOR THIS PAIR
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse font-mono text-[11px]">
+        <thead>
+          <tr className="border-b border-[var(--color-border)] bg-[var(--color-elevated)]">
+            {[
+              "DATE",
+              "PRED",
+              "T+5 OUT",
+              "T+5 RET",
+              "T+5 BRIER",
+              "T+20 OUT",
+              "T+20 RET",
+              "T+20 BRIER",
+            ].map((h) => (
+              <th
+                key={h}
+                scope="col"
+                className="px-3 py-2 text-left text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] font-semibold whitespace-nowrap"
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr
+              key={r.date}
+              className={`border-b border-[var(--color-border-subtle)] last:border-b-0 ${i % 2 === 1 ? "bg-[var(--color-elevated)]" : "bg-[var(--color-surface)]"}`}
+            >
+              <td className="px-3 py-2 text-[var(--color-text-muted)] whitespace-nowrap">
+                {r.date}
+              </td>
+              <td className="px-3 py-2 text-[var(--color-text-secondary)]">
+                {r.predicted}
+              </td>
+              <td className="px-3 py-2">
+                <OutcomeBadge outcome={r.t5Outcome} />
+              </td>
+              <td
+                className={`px-3 py-2 tabular-nums ${r.t5ReturnBps != null && r.t5ReturnBps >= 0 ? "text-[var(--color-up)]" : "text-[var(--color-down)]"}`}
+              >
+                {r.t5ReturnBps != null
+                  ? `${r.t5ReturnBps >= 0 ? "+" : ""}${r.t5ReturnBps.toFixed(1)}`
+                  : "—"}
+              </td>
+              <td className="px-3 py-2 text-[var(--color-text)] tabular-nums">
+                {r.t5Brier != null ? r.t5Brier.toFixed(3) : "—"}
+              </td>
+              <td className="px-3 py-2">
+                <OutcomeBadge outcome={r.t20Outcome} />
+              </td>
+              <td
+                className={`px-3 py-2 tabular-nums ${r.t20ReturnBps != null && r.t20ReturnBps >= 0 ? "text-[var(--color-up)]" : "text-[var(--color-down)]"}`}
+              >
+                {r.t20ReturnBps != null
+                  ? `${r.t20ReturnBps >= 0 ? "+" : ""}${r.t20ReturnBps.toFixed(1)}`
+                  : "—"}
+              </td>
+              <td className="px-3 py-2 text-[var(--color-text)] tabular-nums">
+                {r.t20Brier != null ? r.t20Brier.toFixed(3) : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ValidationStatsRow({
+  stats,
+}: {
+  stats: PairValidationSummary | null;
+}) {
+  const tiles = [
+    { label: "T+5 WIN", value: fmtPct(stats?.t5WinRate) },
+    {
+      label: "T+5 BRIER",
+      value: stats?.t5Brier != null ? stats.t5Brier.toFixed(3) : "—",
+    },
+    { label: "T+5 SHARPE", value: fmt2(stats?.t5SharpeLike) },
+    { label: "T+20 WIN", value: fmtPct(stats?.t20WinRate) },
+    {
+      label: "T+20 BRIER",
+      value: stats?.t20Brier != null ? stats.t20Brier.toFixed(3) : "—",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-4">
+      {tiles.map((t) => (
+        <div key={t.label} className="bg-[var(--color-surface)] p-4">
+          <p className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-1">
+            {t.label}
+          </p>
+          <p className="font-mono text-[clamp(16px,2vw,20px)] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
+            {t.value}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ExecutionPanel({
+  call,
+  sig,
+  pairLabel,
+}: {
+  call: LatestRegimeCall | undefined;
+  sig: LatestSignal | undefined;
+  pairLabel: string;
+}) {
+  const hasData =
+    call?.entry_timing != null ||
+    call?.position_size != null ||
+    call?.stop_level != null ||
+    sig?.realized_vol_rank != null;
+
+  if (!hasData) return null;
+
+  return (
+    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] px-5 py-3 mb-4">
+      <p className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-2">
+        Execution Parameters
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div>
+          <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+            ENTRY
+          </span>
+          <p className="font-mono text-[11px] text-[var(--color-text)] font-medium">
+            {call?.entry_timing ?? "—"}
+          </p>
+        </div>
+        <div>
+          <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+            SIZE
+          </span>
+          <p className="font-mono text-[11px] text-[var(--color-text)] font-medium">
+            {call?.position_size ?? "—"}
+          </p>
+        </div>
+        <div>
+          <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+            STOP
+          </span>
+          <p className="font-mono text-[11px] text-[var(--color-text)] font-medium tabular-nums">
+            {call?.stop_level != null
+              ? call.stop_level.toFixed(pairLabel === "USDJPY" ? 2 : 4)
+              : "—"}
+          </p>
+        </div>
+        <div>
+          <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+            RVOL RANK
+          </span>
+          <p className="font-mono text-[11px] text-[var(--color-text)] font-medium tabular-nums">
+            {fmtInt(sig?.realized_vol_rank)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default async function PairDeskPage({ params }: PairDeskPageProps) {
   const { pair: pairSlug } = await params;
   const pairMeta = PAIRS.find((p) => p.urlSlug === pairSlug);
@@ -145,11 +368,15 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
 
   const supabase = await createClient();
 
-  const [calls, signals, history] = await Promise.all([
-    getLatestRegimeCalls(supabase),
-    getLatestSignals(supabase),
-    getHistoricalRegimeCalls(supabase, pairMeta.label, 30),
-  ]);
+  const [calls, signals, history, prices, valStats, valHistory] =
+    await Promise.all([
+      getLatestRegimeCalls(supabase),
+      getLatestSignals(supabase),
+      getHistoricalRegimeCalls(supabase, pairMeta.label, 30),
+      getHistoricalPrices(supabase, pairMeta.label, 30),
+      getPairValidationSummary(supabase, pairMeta.label),
+      getPairValidationHistory(supabase, pairMeta.label, 20),
+    ]);
 
   const call = calls[pairMeta.label] as LatestRegimeCall | undefined;
   const sig = signals[pairMeta.label] as LatestSignal | undefined;
@@ -202,8 +429,20 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
     ],
   ] as const;
 
+  const priceSparkline = prices.map((p) => p.close);
+
   return (
     <div>
+      {/* Back navigation */}
+      <div className="mb-4">
+        <Link
+          href="/terminal"
+          className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider hover:text-[var(--color-text)] transition-colors"
+        >
+          ← TERMINAL
+        </Link>
+      </div>
+
       {/* Top strip: spot + regime + confidence + composite */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-px bg-[var(--color-border)]">
         <div className="bg-[var(--color-elevated)] px-5 py-5">
@@ -356,6 +595,29 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
         </div>
       </div>
 
+      {/* Spot Price Sparkline */}
+      {priceSparkline.length >= 2 && (
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] px-5 py-4 mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-[0.15em]">
+              SPOT PRICE (30D)
+            </span>
+            <span className="font-mono text-[9px] text-[var(--color-text-dim)]">
+              {prices[0]?.date} → {prices[prices.length - 1]?.date}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <Sparkline
+              data={priceSparkline}
+              width={800}
+              height={60}
+              color={pairMeta.pairColor}
+              fillOpacity={0.1}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Signal Architecture Visualization */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] px-5 py-3 mb-4">
         <div className="flex justify-between items-center mb-2">
@@ -487,6 +749,12 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
         </span>
       </div>
 
+      {/* Validation Stats */}
+      <ValidationStatsRow stats={valStats} />
+
+      {/* Execution Panel */}
+      <ExecutionPanel call={call} sig={sig} pairLabel={pairMeta.label} />
+
       {/* Main grid: signals table + sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-px bg-[var(--color-border)]">
         {/* Left panel */}
@@ -570,6 +838,16 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               </span>
             </div>
           )}
+
+          {/* Validation History Table */}
+          <div className="border-t border-[var(--color-border)]">
+            <div className="px-4 py-3 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface)]">
+              <span className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-[0.15em]">
+                VALIDATION HISTORY (LAST 20)
+              </span>
+            </div>
+            <ValidationHistoryTable rows={valHistory} />
+          </div>
         </div>
 
         {/* Right sidebar */}

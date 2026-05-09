@@ -1,6 +1,7 @@
 # FX Regime Lab — Quick Reference
 
 ## Read First
+- **Handover (START HERE):** `HANDOVER.md` — Operator identity, locked decisions, career strategy, session rules
 - **Master manifest:** `.agent/index.json`
 - **Code map:** `.agent/maps/CODEMAP.json`
 - **Hot files:** `.agent/context/HOTFILES.md`

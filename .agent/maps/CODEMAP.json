@@ -2,7 +2,7 @@
   "meta": {
     "generated": "$(date -Iseconds)",
     "description": "FX Regime Lab codebase. Read this first before exploring.",
-    "total_files": 150
+    "total_files": 178
   },
   "pipeline": {
     "fetchers": [
@@ -199,24 +199,46 @@
       },
       {
         "file": "./pipeline/src/fetchers/fx_spot.py",
-        "desc": "FX spot OHLC: Alpha Vantage FX_DAILY (primary) with yfinance fallback.",
+        "desc": "FX spot OHLC: Polygon.io (primary) \u2192 Alpha Vantage (secondary) \u2192 yfinance (tertiary).",
         "symbols": {
           "functions": [
             {
               "name": "_yfinance",
-              "line": 26,
+              "line": 28,
               "args": []
             },
             {
+              "name": "_polygon_ticker",
+              "line": 39,
+              "args": [
+                "pair"
+              ]
+            },
+            {
+              "name": "_parse_polygon_aggs",
+              "line": 44,
+              "args": [
+                "pair",
+                "data"
+              ]
+            },
+            {
+              "name": "fetch_fx_spot_polygon",
+              "line": 82,
+              "args": [
+                "pair"
+              ]
+            },
+            {
               "name": "_alphavantage_payload_suggests_stop",
-              "line": 32,
+              "line": 130,
               "args": [
                 "data"
               ]
             },
             {
               "name": "_trim_lookback",
-              "line": 46,
+              "line": 144,
               "args": [
                 "bars",
                 "lookback_days"
@@ -224,7 +246,7 @@
             },
             {
               "name": "_parse_av_fx_daily",
-              "line": 55,
+              "line": 153,
               "args": [
                 "pair",
                 "data"
@@ -232,21 +254,21 @@
             },
             {
               "name": "_alphavantage_fx_daily_request",
-              "line": 80,
+              "line": 178,
               "args": [
                 "pair"
               ]
             },
             {
               "name": "fetch_fx_spot_alphavantage",
-              "line": 133,
+              "line": 231,
               "args": [
                 "pair"
               ]
             },
             {
               "name": "_fetch_fx_spot_yfinance_batch",
-              "line": 143,
+              "line": 241,
               "args": [
                 "yf_map",
                 "pairs_subset",
@@ -255,14 +277,14 @@
             },
             {
               "name": "fetch_fx_spot",
-              "line": 211,
+              "line": 309,
               "args": [
                 "lookback_days"
               ]
             },
             {
               "name": "_bars_from_yf_frame",
-              "line": 246,
+              "line": 359,
               "args": [
                 "raw",
                 "pair",
@@ -271,19 +293,21 @@
             },
             {
               "name": "_download",
-              "line": 285,
+              "line": 398,
               "args": []
             },
             {
               "name": "_av_sync",
-              "line": 359,
+              "line": 483,
               "args": []
             }
           ],
           "classes": [],
           "constants": [
             "_AV_BASE",
-            "_AV_REQUEST_TIMEOUT_S"
+            "_AV_REQUEST_TIMEOUT_S",
+            "_POLYGON_BASE",
+            "_POLYGON_TIMEOUT_S"
           ]
         }
       },
@@ -1460,85 +1484,92 @@
           "functions": [
             {
               "name": "_client",
-              "line": 26,
+              "line": 28,
               "args": []
             },
             {
               "name": "fetch_universe_registry",
-              "line": 38,
+              "line": 40,
               "args": []
             },
             {
               "name": "_date_iso",
-              "line": 51,
+              "line": 53,
               "args": [
                 "d"
               ]
             },
             {
               "name": "write_signal_row",
-              "line": 57,
+              "line": 59,
               "args": [
                 "row"
               ]
             },
             {
+              "name": "compute_write_hash",
+              "line": 93,
+              "args": [
+                "inputs"
+              ]
+            },
+            {
               "name": "write_regime_call",
-              "line": 91,
+              "line": 102,
               "args": [
                 "call"
               ]
             },
             {
               "name": "_desk_open_card_payload",
-              "line": 97,
+              "line": 139,
               "args": [
                 "card"
               ]
             },
             {
               "name": "write_desk_open_card",
-              "line": 103,
+              "line": 145,
               "args": [
                 "card"
               ]
             },
             {
               "name": "write_desk_open_cards_bulk",
-              "line": 109,
+              "line": 151,
               "args": [
                 "cards"
               ]
             },
             {
               "name": "get_desk_open_cards_for_date",
-              "line": 116,
+              "line": 158,
               "args": [
                 "date_str"
               ]
             },
             {
               "name": "get_rpc_g10_correlation_matrix",
-              "line": 127,
+              "line": 169,
               "args": []
             },
             {
               "name": "_parse_corr_matrix_json",
-              "line": 141,
+              "line": 183,
               "args": [
                 "obj"
               ]
             },
             {
               "name": "get_latest_desk_open_card",
-              "line": 159,
+              "line": 201,
               "args": [
                 "pair"
               ]
             },
             {
               "name": "update_desk_open_card_flags",
-              "line": 173,
+              "line": 215,
               "args": [
                 "pair",
                 "date_str"
@@ -1546,7 +1577,7 @@
             },
             {
               "name": "update_desk_open_card_telemetry_audit",
-              "line": 197,
+              "line": 239,
               "args": [
                 "pair",
                 "date_str",
@@ -1555,7 +1586,7 @@
             },
             {
               "name": "get_validation_log_entry",
-              "line": 226,
+              "line": 273,
               "args": [
                 "call_date",
                 "pair"
@@ -1563,14 +1594,22 @@
             },
             {
               "name": "write_validation_row",
-              "line": 246,
+              "line": 322,
               "args": [
                 "row"
               ]
             },
             {
+              "name": "_upsert_validation_log",
+              "line": 406,
+              "args": [
+                "payload",
+                "existing_id"
+              ]
+            },
+            {
               "name": "write_brief",
-              "line": 260,
+              "line": 476,
               "args": [
                 "date_str",
                 "pair",
@@ -1581,7 +1620,7 @@
             },
             {
               "name": "write_brief_log",
-              "line": 284,
+              "line": 500,
               "args": [
                 "date_str",
                 "brief_text",
@@ -1590,7 +1629,7 @@
             },
             {
               "name": "get_rpc_calculate_dual_correlation",
-              "line": 305,
+              "line": 521,
               "args": [
                 "pair",
                 "lookback"
@@ -1598,14 +1637,14 @@
             },
             {
               "name": "write_macro_events",
-              "line": 331,
+              "line": 547,
               "args": [
                 "events"
               ]
             },
             {
               "name": "write_ai_request",
-              "line": 339,
+              "line": 555,
               "args": [
                 "date_str",
                 "purpose",
@@ -1614,21 +1653,21 @@
             },
             {
               "name": "get_ai_request_count_today",
-              "line": 346,
+              "line": 562,
               "args": [
                 "date_str"
               ]
             },
             {
               "name": "get_latest_regime_call",
-              "line": 354,
+              "line": 570,
               "args": [
                 "pair"
               ]
             },
             {
               "name": "get_brief_for_date",
-              "line": 368,
+              "line": 584,
               "args": [
                 "pair",
                 "date_str"
@@ -1636,7 +1675,7 @@
             },
             {
               "name": "get_signal_for_pair_date",
-              "line": 381,
+              "line": 597,
               "args": [
                 "pair",
                 "date_str"
@@ -1644,7 +1683,7 @@
             },
             {
               "name": "get_historical_signals",
-              "line": 394,
+              "line": 610,
               "args": [
                 "pair",
                 "limit"
@@ -1652,14 +1691,36 @@
             },
             {
               "name": "delete_pipeline_data_for_date",
-              "line": 410,
+              "line": 626,
               "args": [
                 "date_str"
               ]
             },
             {
+              "name": "write_pipeline_error",
+              "line": 664,
+              "args": [
+                "step",
+                "error_type",
+                "message",
+                "traceback_str",
+                "correlation_id"
+              ]
+            },
+            {
+              "name": "_log_audit",
+              "line": 687,
+              "args": [
+                "operation",
+                "table_name",
+                "old_value",
+                "new_value",
+                "row_id"
+              ]
+            },
+            {
               "name": "get_historical_regime_calls",
-              "line": 428,
+              "line": 711,
               "args": [
                 "pair",
                 "limit"
@@ -1667,7 +1728,7 @@
             },
             {
               "name": "update_macro_event_ai_brief",
-              "line": 442,
+              "line": 725,
               "args": [
                 "date_str",
                 "event",
@@ -1676,7 +1737,7 @@
             },
             {
               "name": "list_high_impact_events_needing_brief",
-              "line": 453,
+              "line": 736,
               "args": [
                 "start_iso",
                 "end_iso"
@@ -1684,40 +1745,40 @@
             },
             {
               "name": "write_historical_macro_surprises",
-              "line": 467,
+              "line": 750,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "fetch_event_aliases",
-              "line": 485,
+              "line": 768,
               "args": []
             },
             {
               "name": "get_historical_macro_surprises",
-              "line": 495,
+              "line": 778,
               "args": [
                 "event_name"
               ]
             },
             {
               "name": "get_historical_macro_surprises_date_universe",
-              "line": 512,
+              "line": 795,
               "args": [
                 "limit"
               ]
             },
             {
               "name": "write_historical_prices",
-              "line": 526,
+              "line": 809,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "get_rpc_historical_analogs",
-              "line": 533,
+              "line": 852,
               "args": [
                 "pair",
                 "as_of_date",
@@ -1726,8 +1787,23 @@
               ]
             },
             {
+              "name": "get_historical_price_for_date",
+              "line": 875,
+              "args": [
+                "pair",
+                "date_str"
+              ]
+            },
+            {
+              "name": "get_unvalidated_regime_calls",
+              "line": 915,
+              "args": [
+                "limit"
+              ]
+            },
+            {
               "name": "get_historical_prices",
-              "line": 556,
+              "line": 981,
               "args": [
                 "pair",
                 "limit"
@@ -1735,14 +1811,14 @@
             },
             {
               "name": "write_research_analogs",
-              "line": 571,
+              "line": 996,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "get_latest_research_analogs",
-              "line": 583,
+              "line": 1008,
               "args": [
                 "pair",
                 "as_of_date"
@@ -1750,14 +1826,14 @@
             },
             {
               "name": "write_event_risk_matrices",
-              "line": 599,
+              "line": 1024,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "get_event_risk_matrix",
-              "line": 616,
+              "line": 1041,
               "args": [
                 "date_str",
                 "pair",
@@ -1766,7 +1842,7 @@
             },
             {
               "name": "get_strategy_ledger_entry",
-              "line": 636,
+              "line": 1061,
               "args": [
                 "ledger_date",
                 "pair",
@@ -1776,38 +1852,45 @@
             },
             {
               "name": "write_ledger_entry",
-              "line": 662,
+              "line": 1087,
               "args": [
                 "row"
               ]
             },
             {
               "name": "get_open_ledger_entries",
-              "line": 674,
+              "line": 1099,
               "args": [
                 "pair"
               ]
             },
             {
               "name": "update_ledger_entries",
-              "line": 686,
+              "line": 1111,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "write_research_memo",
-              "line": 703,
+              "line": 1128,
               "args": []
             },
             {
               "name": "get_latest_research_memo_thesis_bullets",
-              "line": 721,
+              "line": 1146,
               "args": []
             },
             {
+              "name": "_normalize_validation_row",
+              "line": 1182,
+              "args": [
+                "row"
+              ]
+            },
+            {
               "name": "get_validation_log_for_stats",
-              "line": 757,
+              "line": 1216,
               "args": [
                 "pair_filter",
                 "lookback_days"
@@ -1815,9 +1898,17 @@
             },
             {
               "name": "write_validation_stats",
-              "line": 786,
+              "line": 1271,
               "args": [
                 "row"
+              ]
+            },
+            {
+              "name": "_build_query",
+              "line": 1239,
+              "args": [
+                "select",
+                "include_superseded_filter"
               ]
             }
           ],
@@ -1843,17 +1934,17 @@
           "functions": [
             {
               "name": "_yfinance_dl",
-              "line": 96,
+              "line": 101,
               "args": []
             },
             {
               "name": "_dxy_overnight_pct_abs",
-              "line": 102,
+              "line": 107,
               "args": []
             },
             {
               "name": "_max_abs_pair_overnight_pct",
-              "line": 133,
+              "line": 138,
               "args": [
                 "spots",
                 "universe"
@@ -1861,36 +1952,36 @@
             },
             {
               "name": "assess_stress",
-              "line": 153,
+              "line": 158,
               "args": []
             },
             {
               "name": "_dqs_confidence_cap",
-              "line": 182,
+              "line": 187,
               "args": [
                 "dqs"
               ]
             },
             {
               "name": "_log_dqs_band",
-              "line": 194,
+              "line": 199,
               "args": [
                 "dqs"
               ]
             },
             {
               "name": "_market_dislocation_notice_brief",
-              "line": 209,
+              "line": 214,
               "args": []
             },
             {
               "name": "_require_pipeline_runtime_env",
-              "line": 233,
+              "line": 238,
               "args": []
             },
             {
               "name": "get_regime_age",
-              "line": 267,
+              "line": 272,
               "args": [
                 "pair",
                 "current_regime"
@@ -1898,7 +1989,7 @@
             },
             {
               "name": "_universe_yield_tickers",
-              "line": 292,
+              "line": 297,
               "args": [
                 "universe",
                 "pair"
@@ -1906,7 +1997,7 @@
             },
             {
               "name": "_rate_spread_2y_for_pair",
-              "line": 304,
+              "line": 309,
               "args": [
                 "pair",
                 "universe",
@@ -1915,7 +2006,7 @@
             },
             {
               "name": "_rate_spread_10y_legacy",
-              "line": 328,
+              "line": 333,
               "args": [
                 "pair",
                 "yields_dict"
@@ -1923,7 +2014,7 @@
             },
             {
               "name": "_percentile",
-              "line": 361,
+              "line": 366,
               "args": [
                 "values",
                 "p"
@@ -1931,56 +2022,56 @@
             },
             {
               "name": "_to_float",
-              "line": 374,
+              "line": 379,
               "args": [
                 "value"
               ]
             },
             {
               "name": "_breakeven_series_chronological",
-              "line": 386,
+              "line": 391,
               "args": [
                 "historical_rows"
               ]
             },
             {
               "name": "_polymarket_json_for_llm",
-              "line": 416,
+              "line": 421,
               "args": [
                 "markets"
               ]
             },
             {
               "name": "_format_polymarket_context",
-              "line": 422,
+              "line": 427,
               "args": [
                 "markets"
               ]
             },
             {
               "name": "_signal_row_from_db",
-              "line": 450,
+              "line": 455,
               "args": [
                 "row"
               ]
             },
             {
               "name": "_regime_call_from_db",
-              "line": 485,
+              "line": 490,
               "args": [
                 "row"
               ]
             },
             {
               "name": "_first_todays_high_impact_matrix_for_pair",
-              "line": 522,
+              "line": 527,
               "args": [
                 "calendar_events"
               ]
             },
             {
               "name": "_upsert_macro_event_briefs",
-              "line": 544,
+              "line": 549,
               "args": [
                 "date_str",
                 "forward_days",
@@ -1989,7 +2080,7 @@
             },
             {
               "name": "_upsert_pair_briefs_for_date",
-              "line": 553,
+              "line": 558,
               "args": [
                 "date_str",
                 "polymarket_context"
@@ -1997,14 +2088,14 @@
             },
             {
               "name": "write_desk_open_cards_bulk_task",
-              "line": 620,
+              "line": 625,
               "args": [
                 "rows"
               ]
             },
             {
               "name": "upsert_pair_briefs_task",
-              "line": 625,
+              "line": 630,
               "args": [
                 "date_str",
                 "polymarket_context"
@@ -2012,7 +2103,7 @@
             },
             {
               "name": "upsert_macro_event_briefs_task",
-              "line": 641,
+              "line": 646,
               "args": [
                 "date_str",
                 "forward_days",
@@ -2021,14 +2112,14 @@
             },
             {
               "name": "run_weekly",
-              "line": 1470,
+              "line": 1518,
               "args": [
                 "date_str"
               ]
             },
             {
               "name": "_norm_label",
-              "line": 273,
+              "line": 278,
               "args": [
                 "label"
               ]
@@ -2093,6 +2184,30 @@
             "_INVALIDATION_PERSISTENCE_TICKS"
           ]
         }
+      },
+      {
+        "file": "./pipeline/src/scheduler/run_pipeline.py",
+        "desc": "Pipeline execution wrapper with alerting.",
+        "symbols": {
+          "functions": [
+            {
+              "name": "_run_sync",
+              "line": 30,
+              "args": [
+                "coro"
+              ]
+            },
+            {
+              "name": "run_pipeline",
+              "line": 40,
+              "args": [
+                "date_str"
+              ]
+            }
+          ],
+          "classes": [],
+          "constants": []
+        }
       }
     ],
     "tests": [
@@ -2105,12 +2220,60 @@
         "desc": ""
       },
       {
+        "file": "./pipeline/tests/auto/test_deploy.py",
+        "desc": "Tests for auto/deploy.py \u2014 deployment engine."
+      },
+      {
+        "file": "./pipeline/tests/auto/test_fix.py",
+        "desc": "Tests for auto/fix.py \u2014 auto-fix loop engine."
+      },
+      {
+        "file": "./pipeline/tests/auto/test_monitor.py",
+        "desc": "Tests for auto/monitor.py \u2014 post-deploy health monitoring."
+      },
+      {
+        "file": "./pipeline/tests/auto/test_plan.py",
+        "desc": "Tests for auto/plan.py \u2014 spec generation engine."
+      },
+      {
+        "file": "./pipeline/tests/auto/test_readiness.py",
+        "desc": "Tests for auto/readiness.py \u2014 pre-deploy readiness checks."
+      },
+      {
+        "file": "./pipeline/tests/auto/test_report.py",
+        "desc": "Tests for auto/report.py \u2014 execution reporting."
+      },
+      {
+        "file": "./pipeline/tests/auto/test_self_heal.py",
+        "desc": "Tests for auto/self_heal.py \u2014 post-deploy self-healing engine."
+      },
+      {
         "file": "./pipeline/tests/auto/test_triage.py",
         "desc": "Tests for auto/triage.py task classification engine."
       },
       {
+        "file": "./pipeline/tests/integration/__init__.py",
+        "desc": ""
+      },
+      {
+        "file": "./pipeline/tests/integration/test_p0_validation_immutability.py",
+        "desc": "P0-T1+T2 integration test: validation engine wiring + immutability guards."
+      },
+      {
+        "file": "./pipeline/tests/integration/test_validation_backfill.py",
+        "desc": "Integration test for P1-T1 validation backfill."
+      },
+      {
+        "file": "./pipeline/tests/test_alerts.py",
+        "desc": "Tests for the alerting module."
+      },
+      {
         "file": "./pipeline/tests/test_backfill.py",
         "desc": "Tests for Round 4 \u2014 Historical backfill infrastructure."
+      },
+      {
+        "file": "./pipeline/tests/test_fx_spot_fallback.py",
+        "desc": "Tests for P1-T4: 3-tier FX spot fallback chain (Polygon \u2192 AV \u2192 yfinance)."
       },
       {
         "file": "./pipeline/tests/test_ingestion_buffer.py",
@@ -2155,6 +2318,10 @@
       {
         "file": "./pipeline/tests/test_validation_engine.py",
         "desc": "Round 3 validation engine tests."
+      },
+      {
+        "file": "./pipeline/tests/test_writer.py",
+        "desc": "Tests for writer utility functions (compute_write_hash, write_pipeline_error)."
       }
     ]
   },
@@ -2216,19 +2383,46 @@
     ],
     "components": [
       {
+        "file": "./web/src/components/dashboard/AlertStrip.tsx"
+      },
+      {
+        "file": "./web/src/components/dashboard/CrossAssetMatrix.tsx"
+      },
+      {
+        "file": "./web/src/components/dashboard/DailyBriefPanel.tsx"
+      },
+      {
+        "file": "./web/src/components/dashboard/MacroCalendarStrip.tsx"
+      },
+      {
+        "file": "./web/src/components/dashboard/SignalCard.tsx"
+      },
+      {
+        "file": "./web/src/components/dashboard/SystemStatusBar.tsx"
+      },
+      {
         "file": "./web/src/components/layout/command-palette.tsx"
       },
       {
         "file": "./web/src/components/layout/global-macro-pulse.tsx"
       },
       {
-        "file": "./web/src/components/layout/terminal-nav.tsx"
-      },
-      {
         "file": "./web/src/components/pages/convexity-radar-page-content.tsx"
       },
       {
         "file": "./web/src/components/pages/performance-ledger-page-content.tsx"
+      },
+      {
+        "file": "./web/src/components/performance/BrierChart.tsx"
+      },
+      {
+        "file": "./web/src/components/performance/PairBreakdownTable.tsx"
+      },
+      {
+        "file": "./web/src/components/performance/StatsCard.tsx"
+      },
+      {
+        "file": "./web/src/components/providers/query-provider.tsx"
       },
       {
         "file": "./web/src/components/regime/RegimeCard.tsx"
@@ -2246,6 +2440,9 @@
         "file": "./web/src/components/terminal/TerminalNav.tsx"
       },
       {
+        "file": "./web/src/components/terminal/TerminalSubNav.tsx"
+      },
+      {
         "file": "./web/src/components/ui/BinaryResolve.tsx"
       },
       {
@@ -2258,13 +2455,7 @@
         "file": "./web/src/components/ui/alpha-ledger.tsx"
       },
       {
-        "file": "./web/src/components/ui/command-palette.tsx"
-      },
-      {
         "file": "./web/src/components/ui/confidence-bar.tsx"
-      },
-      {
-        "file": "./web/src/components/ui/connect-desk-modal.tsx"
       },
       {
         "file": "./web/src/components/ui/convexity-radar.tsx"
@@ -2286,6 +2477,9 @@
       },
       {
         "file": "./web/src/components/ui/memo-sidebar.tsx"
+      },
+      {
+        "file": "./web/src/components/ui/skeleton.tsx"
       },
       {
         "file": "./web/src/components/ui/sparkline.tsx"
@@ -2340,7 +2534,7 @@
         "file": "./web/src/lib/supabase/server.ts"
       },
       {
-        "file": "./web/src/lib/validation-format.ts"
+        "file": "./web/src/lib/utils.ts"
       }
     ]
   },
@@ -2453,6 +2647,21 @@
       },
       {
         "file": "./supabase/migrations/20260505000003_layer3_execution_schema.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260508000001_p0_validation_immutability.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260508000002_p1_audit_trail.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260508000003_p1_data_lineage.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260509000001_p1_audit_trail.sql"
+      },
+      {
+        "file": "./supabase/migrations/20260509000002_p1_audit_trail_fix.sql"
       },
       {
         "file": "./web/supabase/migrations/20260505_council_schema_upgrade.sql"

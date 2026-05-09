@@ -8,11 +8,12 @@ alwaysApply: true
 
 ## STEP 0 — READ BEFORE TOUCHING ANYTHING
 
-1. Read `AGENTS.md` — full project context, locked decisions, current state
-2. Read `TASK.md` — current sprint status
-3. Read `OMEGA_PROTOCOL.md` — persona council for complex decisions
-4. If working on signals/math: read `docs/SIGNAL_DEFINITIONS.md`
-5. If working on frontend: read `OMEGA_UI_SWARM_PROMPT.md`
+1. Read `HANDOVER.md` — **START HERE.** Operator identity, locked decisions, career strategy, session rules
+2. Read `AGENTS.md` — full project context, tech stack, build commands, testing
+3. Read `TASK.md` — current sprint status
+4. Read `OMEGA_PROTOCOL.md` — persona council for complex decisions
+5. If working on signals/math: read `docs/SIGNAL_DEFINITIONS.md`
+6. If working on frontend: read `OMEGA_UI_SWARM_PROMPT.md`
 
 State the current focus and today's deliverable explicitly before writing code:
 > "Today's session will build [X]. It touches [files]. It writes to [Supabase tables]. Tests: [pytest / npm run build]."
@@ -53,6 +54,7 @@ yields → fx_spot → cot → volatility → open_interest → macro_calendar �
 
 ## BEFORE WRITING ANY CODE
 
+- [ ] `HANDOVER.md` read and confirmed
 - [ ] `AGENTS.md` read and confirmed
 - [ ] `TASK.md` read and confirmed
 - [ ] Session deliverable stated explicitly

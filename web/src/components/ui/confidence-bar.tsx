@@ -1,5 +1,3 @@
-
-
 interface ConfidenceBarProps {
   value?: number | null;
   tone?: "dark" | "light";

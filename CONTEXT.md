@@ -1,5 +1,7 @@
 # CONTEXT.md — FX Regime Lab
 
+> **Read `HANDOVER.md` first** for complete operator identity, career context, locked decisions, and session operating rules. This file contains the technical project context. `HANDOVER.md` contains the personal/career context. Both are required for full context.
+
 ## IDENTITY
 
 I am an independent quantamental macro researcher based in Pune, India.
@@ -7,11 +9,15 @@ I operate a live research operation focused on G10 FX regime classification and 
 
 This platform is a live research operation. It is the primary evidence of a rigorous, institutional-grade methodology executed in public, in real time.
 
+**Operator context:** See `HANDOVER.md` Section 1 for full operator identity and career path. The external-facing identity is strictly professional — no student framing, no age references, no personal narrative on any public-facing output.
+
 ## LONG-TERM STRATEGIC VISION
 
 The objective of this operation is twofold:
 1. **Academic Contribution:** To contribute to the field of systematic macro through a series of published research papers and technical theses (targeting SSRN and academic peer review).
 2. **Institutional Transition:** To transition this proprietary methodology into a full-scale quantamental macro fund, specifically targeting expansion into global financial hubs (Singapore/Dubai).
+
+**Career path context:** See `HANDOVER.md` Section 1 for the locked two-year mandate (NTU MFE → boutique internship → fund trajectory). The Alfonso Peccatiello model is the reference: institutional credibility first → content/platform second → fund launch third.
 
 ---
 
@@ -44,7 +50,18 @@ The platform covers three pairs:
 - USD/JPY — primary, carry trade mechanics + BoJ policy asymmetry.
 - USD/INR — secondary, RBI intervention + managed float dynamics.
 
+**Hard rule:** These three pairs ONLY. No additions until Phase D (see Forward Phases below).
+
 ---
+
+## CURRENT MACRO BACKDROP (May 2026)
+
+See `HANDOVER.md` Section 3 for full analytical framework context. Key snapshot:
+
+- **Fed:** 3.5–3.75%, pausing. Two cuts expected in 2026. Kevin Warsh replacing Powell in May 2026.
+- **BoJ:** 0.75%. Next hike likely H2 2026. Terminal rate 1.0–1.5%.
+- **EUR/USD:** Positioning at 97th percentile crowded long — **reversal risk dominant.**
+- **USD/JPY:** Carry partially unwound. JPY leveraged money at 67th percentile neutral. Spread compression thesis intact but not urgent.
 
 ## THE SIGNAL FRAMEWORK — THREE LAYERS
 
@@ -81,6 +98,46 @@ Output: entry timing recommendation, stop placement level, position sizing guida
 
 ---
 
+## DESIGN SYSTEM
+
+**Terminal dark system (data interfaces):**
+- Background: `#0a0a0f`
+- Bearish: `#b91c1c`
+- Bullish: `#15803d`
+- Zero gradients. Zero animations.
+
+**Full site redesign (in progress):**
+- Background: dark navy `#080c14`
+- Fonts: Inter (body) + Playfair Display (display/headings) + JetBrains Mono (all data)
+- Accent: amber `#e8a045` — monochromatic with single amber accent only
+- Regime labels: Fraunces italic
+- Layout: magazine scroll, paired pages, command-bar navigation
+
+**Explicitly excluded:** gradients, animations (except cinematic landing intro), any design that reads as a student portfolio.
+
+## FORWARD PHASES
+
+**Phase A (immediate):**
+- Signal quality fix
+- Brief text cleanup
+- Accuracy above 55%
+
+**Phase B:**
+- All pages live (About, Methodology)
+- Regime history strip
+- Event calendar
+
+**Phase C (scoped for Sem 7):**
+- Regime Divergence Alert system
+- SSRN methodology paper
+- Out-of-sample validation logging active NOW
+
+**Phase D:**
+- Six-month track record
+- Performance page (live accuracy metrics, public)
+- GBP/USD addition
+- Full MFE application package assembled
+
 ## TRACK RECORD — THE IMMUTABLE LEDGER
 
 Every regime call is logged in `regime_calls` with:
@@ -99,6 +156,15 @@ Validation logic (Round 3 — Immutable Ledger):
 - Legacy T+1 arithmetic-return validations remain in `validation_log` for backward compatibility.
 - This dataset serves as the basis for professional research theses and performance audits.
 
+## PROTECTED DIRECTORIES — DO NOT TOUCH
+
+These are off-limits to AI tools:
+- `data/`
+- `briefs/`
+- `runs/`
+- `_docs/`
+- `.venv/`
+
 ---
 
 ## THE RESEARCH TERMINAL
@@ -115,3 +181,12 @@ The website is a live research terminal. It must demonstrate that the framework 
 
 This platform is held to institutional research standards. 
 Every data point must be verifiable; every formula must be transparent.
+
+---
+
+**Cross-references:**
+- `HANDOVER.md` — Operator identity, career strategy, locked decisions, session rules
+- `OMEGA_PROTOCOL.md` — The 13-persona council and 6-phase workflow
+- `CLAUDE.md` — AI persona, dual mandate, technical workflows
+- `TASK.md` — Current sprint state
+- `ROADMAP.md` — The 5-round master plan

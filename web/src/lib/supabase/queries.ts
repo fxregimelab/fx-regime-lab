@@ -3,7 +3,12 @@ import type { Database } from "./database.types";
 type RegimeCallRow = Database["public"]["Tables"]["regime_calls"]["Row"];
 type SignalRow = Database["public"]["Tables"]["signals"]["Row"];
 type ValidationLogRow = Database["public"]["Tables"]["validation_log"]["Row"];
-type BriefLogRow = Database["public"]["Tables"]["brief_log"]["Row"];
+type ValidationStatsRow =
+  Database["public"]["Tables"]["validation_stats"]["Row"];
+export type BriefLogRow = Database["public"]["Tables"]["brief_log"]["Row"];
+export type MacroEventRow = Database["public"]["Tables"]["macro_events"]["Row"];
+type HistoricalPriceRow =
+  Database["public"]["Tables"]["historical_prices"]["Row"];
 
 export interface LatestRegimeCall {
   pair: string;
@@ -19,6 +24,10 @@ export interface LatestRegimeCall {
   data_quality_score: number | null;
   stress_level: string | null;
   created_at: string;
+  predicted_direction: string | null;
+  entry_timing: string | null;
+  position_size: string | null;
+  stop_level: number | null;
 }
 
 export interface LatestSignal {
@@ -32,6 +41,15 @@ export interface LatestSignal {
   implied_vol_30d: number | null;
   day_change: number | null;
   day_change_pct: number | null;
+  cross_asset_vix: number | null;
+  cross_asset_dxy: number | null;
+  cross_asset_oil: number | null;
+  cross_asset_us10y: number | null;
+  cross_asset_gold: number | null;
+  cross_asset_copper: number | null;
+  cross_asset_stoxx: number | null;
+  volume_rvol: number | null;
+  realized_vol_rank: number | null;
   created_at: string;
 }
 
@@ -41,6 +59,29 @@ export interface ValidationRow {
   call: string;
   outcome: "correct" | "incorrect";
   return_pct: number;
+}
+
+export interface ValidationStats {
+  pair: string;
+  horizon: "t5" | "t20";
+  winRate: number | null;
+  brierScore: number | null;
+  sampleSize: number | null;
+  avgReturnBps: number | null;
+  sharpeLike: number | null;
+  asOfDate: string;
+}
+
+export interface ValidationRowT5 {
+  date: string;
+  pair: string;
+  predicted: string;
+  t5ReturnBps: number | null;
+  t5Outcome: "CORRECT" | "WRONG" | "NEUTRAL" | "—";
+  t5Brier: number | null;
+  t20ReturnBps: number | null;
+  t20Outcome: "CORRECT" | "WRONG" | "NEUTRAL" | "—";
+  t20Brier: number | null;
 }
 
 function toLatestRegimeCall(row: RegimeCallRow): LatestRegimeCall {
@@ -58,6 +99,10 @@ function toLatestRegimeCall(row: RegimeCallRow): LatestRegimeCall {
     data_quality_score: row.data_quality_score,
     stress_level: row.stress_level,
     created_at: row.created_at,
+    predicted_direction: row.predicted_direction,
+    entry_timing: row.entry_timing,
+    position_size: row.position_size,
+    stop_level: row.stop_level,
   };
 }
 
@@ -73,15 +118,25 @@ function toLatestSignal(row: SignalRow): LatestSignal {
     implied_vol_30d: row.implied_vol_30d,
     day_change: row.day_change,
     day_change_pct: row.day_change_pct,
+    cross_asset_vix: row.cross_asset_vix,
+    cross_asset_dxy: row.cross_asset_dxy,
+    cross_asset_oil: row.cross_asset_oil,
+    cross_asset_us10y: row.cross_asset_us10y,
+    cross_asset_gold: row.cross_asset_gold,
+    cross_asset_copper: row.cross_asset_copper,
+    cross_asset_stoxx: row.cross_asset_stoxx,
+    volume_rvol: row.volume_rvol,
+    realized_vol_rank: row.realized_vol_rank,
     created_at: row.created_at,
   };
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: Supabase client type alias
-type SupabaseClient = any;
+import type { createClient } from "./server";
+
+type TypedSupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 export async function getLatestRegimeCalls(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
 ): Promise<Record<string, LatestRegimeCall>> {
   const { data, error } = await supabase
     .from("regime_calls")
@@ -102,7 +157,7 @@ export async function getLatestRegimeCalls(
 }
 
 export async function getLatestSignals(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
 ): Promise<Record<string, LatestSignal>> {
   const { data, error } = await supabase
     .from("signals")
@@ -123,7 +178,7 @@ export async function getLatestSignals(
 }
 
 export async function getValidationLog(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   limit = 500,
 ): Promise<ValidationRow[]> {
   const { data, error } = await supabase
@@ -152,7 +207,7 @@ export async function getValidationLog(
 }
 
 export async function getLatestBrief(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
 ): Promise<BriefLogRow | null> {
   const { data, error } = await supabase
     .from("brief_log")
@@ -165,14 +220,158 @@ export async function getLatestBrief(
   return data as BriefLogRow | null;
 }
 
+export async function getValidationStats(
+  supabase: TypedSupabaseClient,
+  horizon: "t5" | "t20",
+): Promise<ValidationStats[]> {
+  const { data, error } = await supabase
+    .from("validation_stats")
+    .select("*")
+    .order("as_of_date", { ascending: false })
+    .limit(100);
+
+  if (error || !data) return [];
+
+  const rows = data as ValidationStatsRow[];
+  // Get latest as_of_date
+  const latestDate = rows[0]?.as_of_date;
+  if (!latestDate) return [];
+
+  // Filter to latest date only
+  const latest = rows.filter((r) => r.as_of_date === latestDate);
+
+  const prefix = horizon === "t5" ? "t5" : "t20";
+  const mapRow = (r: ValidationStatsRow): ValidationStats => ({
+    pair: r.pair,
+    horizon,
+    winRate: r[`${prefix}_win_rate` as keyof ValidationStatsRow] as
+      | number
+      | null,
+    brierScore: r[`${prefix}_mean_brier` as keyof ValidationStatsRow] as
+      | number
+      | null,
+    sampleSize: r[`${prefix}_total_calls` as keyof ValidationStatsRow] as
+      | number
+      | null,
+    avgReturnBps: r[
+      `${prefix}_mean_log_return_bps` as keyof ValidationStatsRow
+    ] as number | null,
+    sharpeLike: r[`${prefix}_sharpe_like` as keyof ValidationStatsRow] as
+      | number
+      | null,
+    asOfDate: r.as_of_date,
+  });
+
+  return latest.map(mapRow);
+}
+
+export async function getValidationLogT5T20(
+  supabase: TypedSupabaseClient,
+  limit = 500,
+): Promise<ValidationRowT5[]> {
+  const { data, error } = await supabase
+    .from("validation_log")
+    .select("*")
+    .not("brier_score_t5", "is", null)
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  const PAIR_DISPLAY: Record<string, string> = {
+    EURUSD: "EUR/USD",
+    USDJPY: "USD/JPY",
+    USDINR: "USD/INR",
+  };
+
+  return (data as ValidationLogRow[]).map((r) => ({
+    date: r.date,
+    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
+    predicted: r.predicted_direction ?? "—",
+    t5ReturnBps: r.log_return_t5_bps,
+    t5Outcome: r.correct_t5
+      ? "CORRECT"
+      : r.actual_direction_t5 === "NEUTRAL"
+        ? "NEUTRAL"
+        : r.actual_direction_t5 != null
+          ? "WRONG"
+          : "—",
+    t5Brier: r.brier_score_t5,
+    t20ReturnBps: r.log_return_t20_bps,
+    t20Outcome: r.correct_t20
+      ? "CORRECT"
+      : r.actual_direction_t20 === "NEUTRAL"
+        ? "NEUTRAL"
+        : r.actual_direction_t20 != null
+          ? "WRONG"
+          : "—",
+    t20Brier: r.brier_score_t20,
+  }));
+}
+
+export async function getValidationLogForPair(
+  supabase: TypedSupabaseClient,
+  pair: string,
+  limit = 200,
+): Promise<ValidationRowT5[]> {
+  const PAIR_CODE: Record<string, string> = {
+    "EUR/USD": "EURUSD",
+    "USD/JPY": "USDJPY",
+    "USD/INR": "USDINR",
+  };
+  const code = PAIR_CODE[pair] ?? pair;
+
+  const { data, error } = await supabase
+    .from("validation_log")
+    .select("*")
+    .eq("pair", code)
+    .not("brier_score_t5", "is", null)
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  const PAIR_DISPLAY: Record<string, string> = {
+    EURUSD: "EUR/USD",
+    USDJPY: "USD/JPY",
+    USDINR: "USD/INR",
+  };
+
+  return (data as ValidationLogRow[]).map((r) => ({
+    date: r.date,
+    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
+    predicted: r.predicted_direction ?? "—",
+    t5ReturnBps: r.log_return_t5_bps,
+    t5Outcome: r.correct_t5
+      ? "CORRECT"
+      : r.actual_direction_t5 === "NEUTRAL"
+        ? "NEUTRAL"
+        : r.actual_direction_t5 != null
+          ? "WRONG"
+          : "—",
+    t5Brier: r.brier_score_t5,
+    t20ReturnBps: r.log_return_t20_bps,
+    t20Outcome: r.correct_t20
+      ? "CORRECT"
+      : r.actual_direction_t20 === "NEUTRAL"
+        ? "NEUTRAL"
+        : r.actual_direction_t20 != null
+          ? "WRONG"
+          : "—",
+    t20Brier: r.brier_score_t20,
+  }));
+}
+
 export async function getHistoricalRegimeCalls(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   pair: string,
   limit = 30,
 ) {
   const { data, error } = await supabase
     .from("regime_calls")
-    .select("date,regime,confidence,signal_composite,primary_driver")
+    .select(
+      "date,regime,confidence,signal_composite,primary_driver,rate_signal,entry_timing,position_size,stop_level,created_at,predicted_direction",
+    )
     .eq("pair", pair)
     .order("date", { ascending: false })
     .limit(limit);
@@ -184,11 +383,17 @@ export async function getHistoricalRegimeCalls(
     confidence: number;
     signal_composite: number;
     primary_driver: string | null;
+    rate_signal: string | null;
+    entry_timing: string | null;
+    position_size: string | null;
+    stop_level: number | null;
+    created_at: string;
+    predicted_direction: string | null;
   }>;
 }
 
 export async function getSignalHistory(
-  supabase: SupabaseClient,
+  supabase: TypedSupabaseClient,
   pair: string,
   limit = 90,
 ) {
@@ -209,4 +414,208 @@ export async function getSignalHistory(
       realized_vol_20d: number | null;
     }>
   ).reverse();
+}
+
+export interface PairValidationSummary {
+  t5WinRate: number | null;
+  t5Brier: number | null;
+  t5SampleSize: number | null;
+  t5SharpeLike: number | null;
+  t20WinRate: number | null;
+  t20Brier: number | null;
+  t20SampleSize: number | null;
+  t20SharpeLike: number | null;
+}
+
+export async function getPairValidationSummary(
+  supabase: TypedSupabaseClient,
+  pair: string,
+): Promise<PairValidationSummary | null> {
+  const { data, error } = await supabase
+    .from("validation_stats")
+    .select("*")
+    .eq("pair", pair)
+    .order("as_of_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const row = data as ValidationStatsRow;
+  return {
+    t5WinRate: row.t5_win_rate,
+    t5Brier: row.t5_mean_brier,
+    t5SampleSize: row.t5_total_calls,
+    t5SharpeLike: row.t5_sharpe_like,
+    t20WinRate: row.t20_win_rate,
+    t20Brier: row.t20_mean_brier,
+    t20SampleSize: row.t20_total_calls,
+    t20SharpeLike: row.t20_sharpe_like,
+  };
+}
+
+export interface PairValidationHistoryItem {
+  date: string;
+  predicted: string;
+  t5Outcome: string;
+  t5ReturnBps: number | null;
+  t5Brier: number | null;
+  t20Outcome: string;
+  t20ReturnBps: number | null;
+  t20Brier: number | null;
+}
+
+export async function getPairValidationHistory(
+  supabase: TypedSupabaseClient,
+  pair: string,
+  limit = 20,
+): Promise<PairValidationHistoryItem[]> {
+  const { data, error } = await supabase
+    .from("validation_log")
+    .select("*")
+    .eq("pair", pair)
+    .not("brier_score_t5", "is", null)
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  return (data as ValidationLogRow[]).map((r) => ({
+    date: r.date,
+    predicted: r.predicted_direction ?? "—",
+    t5Outcome: r.correct_t5
+      ? "CORRECT"
+      : r.actual_direction_t5 === "NEUTRAL"
+        ? "NEUTRAL"
+        : r.actual_direction_t5 != null
+          ? "WRONG"
+          : "—",
+    t5ReturnBps: r.log_return_t5_bps,
+    t5Brier: r.brier_score_t5,
+    t20Outcome: r.correct_t20
+      ? "CORRECT"
+      : r.actual_direction_t20 === "NEUTRAL"
+        ? "NEUTRAL"
+        : r.actual_direction_t20 != null
+          ? "WRONG"
+          : "—",
+    t20ReturnBps: r.log_return_t20_bps,
+    t20Brier: r.brier_score_t20,
+  }));
+}
+
+export async function getHistoricalPrices(
+  supabase: TypedSupabaseClient,
+  pair: string,
+  limit = 30,
+): Promise<{ date: string; close: number }[]> {
+  const { data, error } = await supabase
+    .from("historical_prices")
+    .select("date,close")
+    .eq("pair", pair)
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+  return (data as HistoricalPriceRow[])
+    .filter((r) => r.close != null)
+    .map((r) => ({ date: r.date, close: r.close as number }))
+    .reverse();
+}
+
+export interface CrossAssetSnapshot {
+  vix: { value: number | null; change: number | null };
+  dxy: { value: number | null; change: number | null };
+  oil: { value: number | null; change: number | null };
+  gold: { value: number | null; change: number | null };
+  copper: { value: number | null; change: number | null };
+  stoxx: { value: number | null; change: number | null };
+  us10y: { value: number | null; change: number | null };
+}
+
+export async function getCrossAssetSnapshot(
+  supabase: TypedSupabaseClient,
+): Promise<CrossAssetSnapshot> {
+  const { data, error } = await supabase
+    .from("signals")
+    .select(
+      "date,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_gold,cross_asset_copper,cross_asset_stoxx,cross_asset_us10y",
+    )
+    .order("date", { ascending: false })
+    .limit(6);
+
+  if (error || !data || data.length === 0) {
+    return {
+      vix: { value: null, change: null },
+      dxy: { value: null, change: null },
+      oil: { value: null, change: null },
+      gold: { value: null, change: null },
+      copper: { value: null, change: null },
+      stoxx: { value: null, change: null },
+      us10y: { value: null, change: null },
+    };
+  }
+
+  const rows = data as SignalRow[];
+  const latestDate = rows[0].date;
+  const latestRow = rows.find((r) => r.date === latestDate) ?? rows[0];
+
+  const prevRow = rows.find((r) => r.date !== latestDate);
+
+  const compute = (key: keyof SignalRow) => {
+    const curr = latestRow[key] as number | null;
+    const prev = prevRow ? (prevRow[key] as number | null) : null;
+    const change = curr != null && prev != null ? curr - prev : null;
+    return { value: curr, change };
+  };
+
+  return {
+    vix: compute("cross_asset_vix"),
+    dxy: compute("cross_asset_dxy"),
+    oil: compute("cross_asset_oil"),
+    gold: compute("cross_asset_gold"),
+    copper: compute("cross_asset_copper"),
+    stoxx: compute("cross_asset_stoxx"),
+    us10y: compute("cross_asset_us10y"),
+  };
+}
+
+export async function getMacroEventsToday(
+  supabase: TypedSupabaseClient,
+): Promise<MacroEventRow[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from("macro_events")
+    .select("*")
+    .eq("date", today)
+    .eq("impact", "HIGH")
+    .order("event", { ascending: true });
+
+  if (error || !data) return [];
+  return data as MacroEventRow[];
+}
+
+export async function getSignalHistoryForAllPairs(
+  supabase: TypedSupabaseClient,
+  limit = 30,
+): Promise<Record<string, SignalRow[]>> {
+  const { data, error } = await supabase
+    .from("signals")
+    .select("*")
+    .order("date", { ascending: false })
+    .limit(limit * 3);
+
+  if (error || !data) return {};
+
+  const result: Record<string, SignalRow[]> = {};
+  for (const row of data as SignalRow[]) {
+    const arr = result[row.pair] ?? [];
+    arr.push(row);
+    result[row.pair] = arr;
+  }
+  // Ensure each pair's array is sorted ascending for sparklines
+  for (const pair of Object.keys(result)) {
+    result[pair].sort((a, b) => a.date.localeCompare(b.date));
+  }
+  return result;
 }

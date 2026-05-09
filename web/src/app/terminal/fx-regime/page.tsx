@@ -8,8 +8,8 @@ import { CorrelationMatrix } from "@/components/ui/correlation-matrix";
 import { DeskCard } from "@/components/ui/desk-card";
 import { MacroDriftEngine } from "@/components/ui/macro-drift-engine";
 import { fmt2, fmtPct } from "@/components/ui/utils";
+import { PAIRS } from "@/lib/constants";
 import { G10_MATRIX_ORDER, topCorrelatedPeer } from "@/lib/g10Correlation";
-import { PAIRS } from "@/lib/mockData";
 import {
   type DeskOpenCardSnapshotRow,
   type DeskOpenCardsSnapshot,

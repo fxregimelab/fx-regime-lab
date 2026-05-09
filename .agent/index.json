@@ -42,6 +42,7 @@
     "report.py": "Generates human-readable execution reports from context"
   },
   "maps": {
+    "HANDOVER": "HANDOVER.md — Complete operator identity, locked decisions, career strategy, session rules (READ FIRST)",
     "CODEMAP": ".agent/maps/CODEMAP.json — 148 files",
     "SKILLMAP": ".agent/maps/SKILLMAP.json — 13 skills",
     "RULEMAP": ".agent/maps/RULEMAP.json — 6 rules",

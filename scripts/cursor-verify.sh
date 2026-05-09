@@ -86,10 +86,10 @@ print_summary() {
 run_tests() {
   local exit_code=0
 
-  run_check "Pipeline Tests" "cd pipeline && pytest" "false" || exit_code=1
+  run_check "Pipeline Tests" "cd pipeline && .venv/bin/python -m pytest" "false" || exit_code=1
   run_check "Frontend Build" "cd web && npm run build" "true" || exit_code=1
   run_check "Frontend Lint" "cd web && npm run lint" "true" || exit_code=1
-  run_check "Pipeline Lint" "cd pipeline && ruff check ." "false" || exit_code=1
+  run_check "Pipeline Lint" "cd pipeline && .venv/bin/python -m ruff check ." "false" || exit_code=1
 
   echo ""
   echo "=== Git Diff ==="

@@ -148,7 +148,7 @@ if __name__ == "__main__":
 
     if args.spots_only:
         counts = backfill_spots(start_d, end_d, args.pairs)
-        print(counts)
+        logger.info("Backfill spots: %s", counts)
         sys.exit(0)
 
     results = run_backfill_range(
@@ -158,4 +158,4 @@ if __name__ == "__main__":
         step_days=args.step,
     )
     ok = sum(1 for r in results if r.get("status") == "ok")
-    print(f"Backfill complete: {ok}/{len(results)} dates succeeded")
+    logger.info("Backfill complete: %d/%d dates succeeded", ok, len(results))

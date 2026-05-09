@@ -1,8 +1,9 @@
 # FX Regime Lab — Cursor Agent Reference
 
-> **Cursor = Execution.** Read `.cursorrules` first. Execute Kimi's Implementation Specs exactly.
+> **Cursor = Execution.** Read `.cursorrules` first, then `HANDOVER.md`. Execute Kimi's Implementation Specs exactly.
 
 ## Quick Links
+- **Handover (START HERE):** `../HANDOVER.md` — Operator identity, locked decisions, career strategy, session rules
 - **Master manifest:** `../.agent/index.json`
 - **Code map:** `../.agent/maps/CODEMAP.json`
 - **Skill map:** `.cursor/skills/*/SKILL.md`

@@ -8,10 +8,11 @@ You are building the FX Regime Lab — a live quantamental macro intelligence pl
 
 ## Read Before Every Session
 
-1. `AGENTS.md` — project overview, tech stack, build commands, testing
-2. `OMEGA_PROTOCOL.md` — 13-persona council and 6-phase OMEGA loop
-3. `TASK.md` — current sprint status and checklist
-4. `docs/SIGNAL_DEFINITIONS.md` — exact math, weights, thresholds
+1. `HANDOVER.md` — **START HERE.** Operator identity, locked decisions, career strategy, session rules
+2. `AGENTS.md` — project overview, tech stack, build commands, testing
+3. `OMEGA_PROTOCOL.md` — 13-persona council and 6-phase OMEGA loop
+4. `TASK.md` — current sprint status and checklist
+5. `docs/SIGNAL_DEFINITIONS.md` — exact math, weights, thresholds
 
 ## Hard Rules — Non-Negotiable
 

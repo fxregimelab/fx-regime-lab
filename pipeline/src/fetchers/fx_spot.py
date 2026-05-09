@@ -1,4 +1,4 @@
-"""FX spot OHLC: Alpha Vantage FX_DAILY (primary) with yfinance fallback."""
+"""FX spot OHLC: Polygon.io (primary) → Alpha Vantage (secondary) → yfinance (tertiary)."""
 
 from __future__ import annotations
 
@@ -21,12 +21,110 @@ logger = logging.getLogger(__name__)
 
 _AV_BASE = "https://www.alphavantage.co/query"
 _AV_REQUEST_TIMEOUT_S = 75.0
+_POLYGON_BASE = "https://api.polygon.io/v2/aggs/ticker"
+_POLYGON_TIMEOUT_S = 30.0
 
 
 def _yfinance() -> Any:
     import yfinance as yf
 
     return yf
+
+
+# ---------------------------------------------------------------------------
+# Polygon.io — primary FX spot source (P1-T4)
+# ---------------------------------------------------------------------------
+
+
+def _polygon_ticker(pair: str) -> str:
+    """Convert ``EUR/USD`` → ``C:EURUSD`` for Polygon forex aggregates."""
+    return f"C:{pair.replace('/', '')}"
+
+
+def _parse_polygon_aggs(pair: str, data: dict[str, Any]) -> list[SpotBar]:
+    """Parse Polygon v2 aggs response into ``SpotBar`` list."""
+    results = data.get("results")
+    if not isinstance(results, list) or not results:
+        return []
+    bars: list[SpotBar] = []
+    for r in results:
+        if not isinstance(r, dict):
+            continue
+        ts_ms = r.get("t")
+        if not isinstance(ts_ms, (int, float)):
+            continue
+        try:
+            d = date.fromtimestamp(int(ts_ms) / 1000.0)
+            o = float(r.get("o", "nan"))
+            h = float(r.get("h", "nan"))
+            lo = float(r.get("l", "nan"))
+            c = float(r.get("c", "nan"))
+            v = float(r.get("v", 0.0))
+        except (TypeError, ValueError):
+            continue
+        if any(np.isnan(v) for v in (o, h, lo, c)):
+            continue
+        bars.append(
+            SpotBar(
+                date=d,
+                pair=pair,
+                open=o,
+                high=h,
+                low=lo,
+                close=c,
+                volume=v,
+            ),
+        )
+    bars.sort(key=lambda b: b.date)
+    return bars
+
+
+def fetch_fx_spot_polygon(
+    pair: str,
+    *,
+    lookback_days: int = 30,
+) -> list[SpotBar] | None:
+    """Fetch FX daily OHLC from Polygon.io.
+
+    Returns ``None`` when the API key is missing or the request fails
+    (so the caller can fall back to the next source).
+    """
+    api_key = (os.environ.get("POLYGON_API_KEY") or "").strip()
+    if not api_key:
+        return None
+
+    ticker = _polygon_ticker(pair)
+    end = date.today()
+    start = end - timedelta(days=lookback_days + 5)  # buffer for weekends
+    url = (
+        f"{_POLYGON_BASE}/{ticker}/range/1/day/"
+        f"{start.isoformat()}/{end.isoformat()}"
+    )
+    try:
+        resp = requests.get(
+            url,
+            params={"apiKey": api_key, "adjusted": "true"},
+            timeout=_POLYGON_TIMEOUT_S,
+        )
+        resp.raise_for_status()
+        raw: Any = resp.json()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Polygon.io request failed for %s: %s", pair, exc)
+        return None
+
+    if not isinstance(raw, dict):
+        logger.warning("Polygon.io non-object JSON for %s", pair)
+        return None
+
+    status = raw.get("status")
+    if status == "ERROR" or status == "NOT_FOUND":
+        logger.warning("Polygon.io status=%s for %s", status, pair)
+        return None
+
+    bars = _parse_polygon_aggs(pair, raw)
+    if bars:
+        logger.info("Polygon.io pair=%s bars=%s", pair, len(bars))
+    return bars if bars else None
 
 
 def _alphavantage_payload_suggests_stop(data: dict[str, Any]) -> bool:
@@ -209,16 +307,30 @@ def _fetch_fx_spot_yfinance_batch(
 
 
 def fetch_fx_spot(lookback_days: int = 30) -> dict[str, list[SpotBar]]:
-    """Download spot history for all pairs; Alpha Vantage first, then yfinance for gaps."""
+    """Download spot history for all pairs.
+
+    3-tier fallback chain:
+      1. Polygon.io (primary)
+      2. Alpha Vantage FX_DAILY (secondary)
+      3. yfinance (tertiary)
+    """
 
     yf_map = spot_tickers_from_universe()
     out: dict[str, list[SpotBar]] = {p: [] for p in yf_map}
     pairs = list(yf_map.keys())
-    api_key = (os.environ.get("ALPHAVANTAGE_API_KEY") or "").strip()
 
-    if api_key:
+    # ── Tier 1: Polygon.io ──────────────────────────────────────────────
+    for pair in pairs:
+        bars = fetch_fx_spot_polygon(pair, lookback_days=lookback_days)
+        if bars:
+            out[pair] = bars
+
+    # ── Tier 2: Alpha Vantage ───────────────────────────────────────────
+    missing = [p for p in pairs if not out.get(p)]
+    api_key = (os.environ.get("ALPHAVANTAGE_API_KEY") or "").strip()
+    if missing and api_key:
         av_stop = False
-        for i, pair in enumerate(pairs):
+        for i, pair in enumerate(missing):
             if av_stop:
                 break
             if i > 0:
@@ -233,6 +345,7 @@ def fetch_fx_spot(lookback_days: int = 30) -> dict[str, list[SpotBar]]:
             if stop:
                 av_stop = True
 
+    # ── Tier 3: yfinance ────────────────────────────────────────────────
     missing = [p for p in pairs if not out.get(p)]
     if missing:
         yf_part = _fetch_fx_spot_yfinance_batch(yf_map, missing, lookback_days)
@@ -325,7 +438,10 @@ async def fetch_fx_spot_async(
     lookback_days: int = 30,
     fetcher: AsyncFetcher | None = None,
 ) -> dict[str, list[SpotBar]]:
-    """Spot per instrument: Alpha Vantage (sequential, rate-limited), then yfinance."""
+    """Spot per instrument: Polygon → Alpha Vantage → yfinance.
+
+    3-tier fallback chain identical to ``fetch_fx_spot``.
+    """
 
     _ = session  # reserved for future HTTP-backed spot providers
     period = f"{max(lookback_days, 1)}d"
@@ -344,11 +460,21 @@ async def fetch_fx_spot_async(
         tasks.append((sym, spot_t))
 
     out: dict[str, list[SpotBar]] = {}
-    api_key = (os.environ.get("ALPHAVANTAGE_API_KEY") or "").strip()
 
-    if api_key:
+    # ── Tier 1: Polygon.io ──────────────────────────────────────────────
+    for pair, _yf_ticker in tasks:
+        bars = await asyncio.to_thread(
+            fetch_fx_spot_polygon, pair, lookback_days=lookback_days
+        )
+        if bars:
+            out[pair] = bars
+
+    # ── Tier 2: Alpha Vantage ───────────────────────────────────────────
+    missing_tasks = [(p, t) for p, t in tasks if not out.get(p)]
+    api_key = (os.environ.get("ALPHAVANTAGE_API_KEY") or "").strip()
+    if missing_tasks and api_key:
         av_stop = False
-        for i, (pair, _yf_ticker) in enumerate(tasks):
+        for i, (pair, _yf_ticker) in enumerate(missing_tasks):
             if av_stop:
                 break
             if i > 0:
@@ -367,6 +493,7 @@ async def fetch_fx_spot_async(
             if stop:
                 av_stop = True
 
+    # ── Tier 3: yfinance ────────────────────────────────────────────────
     missing_tasks = [(p, t) for p, t in tasks if not out.get(p)]
     t_batch = time.perf_counter()
     if missing_tasks:

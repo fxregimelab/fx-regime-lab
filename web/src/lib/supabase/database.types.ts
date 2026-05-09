@@ -39,6 +39,17 @@ export interface Database {
           created_at: string;
           day_change: number | null;
           day_change_pct: number | null;
+          structural_instability: number | null;
+          breakeven_inflation_10y: number | null;
+          rate_diff_10y_real: number | null;
+          rate_z_tactical: number | null;
+          rate_z_structural: number | null;
+          volume_rvol: number | null;
+          rate_diff_mom: number | null;
+          cot_net_pos: number | null;
+          realized_vol_21: number | null;
+          realized_vol_rank: number | null;
+          skew_alignment: number | null;
         };
         Insert: {
           id?: number;
@@ -69,6 +80,17 @@ export interface Database {
           created_at?: string;
           day_change?: number | null;
           day_change_pct?: number | null;
+          structural_instability?: number | null;
+          breakeven_inflation_10y?: number | null;
+          rate_diff_10y_real?: number | null;
+          rate_z_tactical?: number | null;
+          rate_z_structural?: number | null;
+          volume_rvol?: number | null;
+          rate_diff_mom?: number | null;
+          cot_net_pos?: number | null;
+          realized_vol_21?: number | null;
+          realized_vol_rank?: number | null;
+          skew_alignment?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["signals"]["Insert"]>;
       };
@@ -154,6 +176,14 @@ export interface Database {
           data_quality_score: number | null;
           stress_level: string | null;
           created_at: string;
+          predicted_direction: string | null;
+          directional_bias: string | null;
+          conviction: string | null;
+          entry_timing: string | null;
+          position_size: string | null;
+          stop_level: number | null;
+          correlation_id: string | null;
+          write_hash: string | null;
         };
         Insert: {
           id?: number;
@@ -174,6 +204,14 @@ export interface Database {
           data_quality_score?: number | null;
           stress_level?: string | null;
           created_at?: string;
+          predicted_direction?: string | null;
+          directional_bias?: string | null;
+          conviction?: string | null;
+          entry_timing?: string | null;
+          position_size?: string | null;
+          stop_level?: number | null;
+          correlation_id?: string | null;
+          write_hash?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["regime_calls"]["Insert"]>;
       };
@@ -197,6 +235,24 @@ export interface Database {
           regime_at_call: string | null;
           notes: string | null;
           created_at: string;
+          call_id: number | null;
+          validation_date: string | null;
+          is_correct: boolean | null;
+          pnl_bps: number | null;
+          call_date: string | null;
+          actual_direction_t5: string | null;
+          actual_direction_t20: string | null;
+          log_return_t5_bps: number | null;
+          log_return_t20_bps: number | null;
+          correct_t5: boolean | null;
+          correct_t20: boolean | null;
+          brier_score_t5: number | null;
+          brier_score_t20: number | null;
+          is_superseded: boolean | null;
+          actual_return_20d: number | null;
+          correct_20d: boolean | null;
+          brier_20d: number | null;
+          brier_5d: number | null;
         };
         Insert: {
           id?: number;
@@ -217,9 +273,90 @@ export interface Database {
           regime_at_call?: string | null;
           notes?: string | null;
           created_at?: string;
+          call_id?: number | null;
+          validation_date?: string | null;
+          is_correct?: boolean | null;
+          pnl_bps?: number | null;
+          call_date?: string | null;
+          actual_direction_t5?: string | null;
+          actual_direction_t20?: string | null;
+          log_return_t5_bps?: number | null;
+          log_return_t20_bps?: number | null;
+          correct_t5?: boolean | null;
+          correct_t20?: boolean | null;
+          brier_score_t5?: number | null;
+          brier_score_t20?: number | null;
+          is_superseded?: boolean | null;
+          actual_return_20d?: number | null;
+          correct_20d?: boolean | null;
+          brier_20d?: number | null;
+          brier_5d?: number | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["validation_log"]["Insert"]
+        >;
+      };
+      validation_stats: {
+        Row: {
+          id: number;
+          as_of_date: string;
+          pair: string;
+          computed_at: string | null;
+          t5_total_calls: number | null;
+          t5_directional_calls: number | null;
+          t5_wins: number | null;
+          t5_win_rate: number | null;
+          t5_mean_brier: number | null;
+          t5_brier_skill: number | null;
+          t5_mean_log_return_bps: number | null;
+          t5_return_std_bps: number | null;
+          t5_sharpe_like: number | null;
+          t5_max_drawdown_bps: number | null;
+          t5_calibration_json: string | null;
+          t20_total_calls: number | null;
+          t20_directional_calls: number | null;
+          t20_wins: number | null;
+          t20_win_rate: number | null;
+          t20_mean_brier: number | null;
+          t20_brier_skill: number | null;
+          t20_mean_log_return_bps: number | null;
+          t20_return_std_bps: number | null;
+          t20_sharpe_like: number | null;
+          t20_max_drawdown_bps: number | null;
+          t20_calibration_json: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          as_of_date: string;
+          pair: string;
+          computed_at?: string | null;
+          t5_total_calls?: number | null;
+          t5_directional_calls?: number | null;
+          t5_wins?: number | null;
+          t5_win_rate?: number | null;
+          t5_mean_brier?: number | null;
+          t5_brier_skill?: number | null;
+          t5_mean_log_return_bps?: number | null;
+          t5_return_std_bps?: number | null;
+          t5_sharpe_like?: number | null;
+          t5_max_drawdown_bps?: number | null;
+          t5_calibration_json?: string | null;
+          t20_total_calls?: number | null;
+          t20_directional_calls?: number | null;
+          t20_wins?: number | null;
+          t20_win_rate?: number | null;
+          t20_mean_brier?: number | null;
+          t20_brier_skill?: number | null;
+          t20_mean_log_return_bps?: number | null;
+          t20_return_std_bps?: number | null;
+          t20_sharpe_like?: number | null;
+          t20_max_drawdown_bps?: number | null;
+          t20_calibration_json?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["validation_stats"]["Insert"]
         >;
       };
       brief_log: {
@@ -340,7 +477,7 @@ export interface Database {
       };
       historical_prices: {
         Row: {
-          id: number;
+          id: string;
           date: string;
           pair: string;
           open: number | null;
@@ -349,9 +486,11 @@ export interface Database {
           close: number | null;
           volume: number | null;
           created_at: string;
+          source: string | null;
+          fetch_timestamp: string | null;
         };
         Insert: {
-          id?: number;
+          id?: string;
           date: string;
           pair: string;
           open?: number | null;
@@ -360,6 +499,8 @@ export interface Database {
           close?: number | null;
           volume?: number | null;
           created_at?: string;
+          source?: string | null;
+          fetch_timestamp?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["historical_prices"]["Insert"]
