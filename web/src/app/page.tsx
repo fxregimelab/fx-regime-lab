@@ -1,5 +1,6 @@
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
+import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
 import { PAIRS } from "@/lib/constants";
 import {
   getLatestRegimeCalls,
@@ -43,12 +44,10 @@ function Hero({
   latestCallDate,
   totalCalls,
   accuracy7d,
-  streak,
 }: {
   latestCallDate: string | null;
   totalCalls: number;
   accuracy7d: number;
-  streak: { type: "W" | "L"; count: number } | null;
 }) {
   return (
     <section className="min-h-[100dvh] flex flex-col justify-between relative">
@@ -63,13 +62,13 @@ function Hero({
 
         {/* H1 */}
         <h1 className="font-sans font-semibold text-[clamp(40px,5vw,68px)] text-[var(--color-text)] leading-[1.08] tracking-tight mb-8 max-w-[640px] animate-fade-up delay-100">
-          FX regime calls.
+          FX Regime Classification System.
         </h1>
 
         {/* Manifesto paragraph */}
         <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[480px] mb-10 animate-fade-up delay-200">
-          Published daily. Validated out-of-sample. Three pairs,
-          five signal families, one composite. The record is open.
+          Published daily. Validated out-of-sample. Three pairs, five signal
+          families, one composite. The record is open.
         </p>
 
         {/* System status strip */}
@@ -103,34 +102,12 @@ function Hero({
           <span className="text-[var(--color-border)]">·</span>
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-[11px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
-              7D accuracy
+              7D Calibration
             </span>
             <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
               {totalCalls > 0 ? `${accuracy7d.toFixed(1)}%` : "—"}
             </span>
           </div>
-          {streak && (
-            <>
-              <span className="text-[var(--color-border)]">·</span>
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-[11px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
-                  Streak
-                </span>
-                <span
-                  className="font-mono text-[11px] font-medium tabular-nums"
-                  style={{
-                    color:
-                      streak.type === "W"
-                        ? "var(--color-up)"
-                        : "var(--color-down)",
-                  }}
-                >
-                  {streak.type}
-                  {streak.count}
-                </span>
-              </div>
-            </>
-          )}
         </div>
 
         {/* Single CTA */}
@@ -535,7 +512,9 @@ function ValidationTrust({
       <div className="max-w-[1152px] mx-auto px-6">
         <div className="reveal mb-14">
           <SectionLabel>Validation</SectionLabel>
-          <SectionTitle>Every call validated. Append-only by convention.</SectionTitle>
+          <SectionTitle>
+            Every call validated. Append-only by convention.
+          </SectionTitle>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-12">
@@ -561,10 +540,10 @@ function ValidationTrust({
             scores computed for directional calls.
           </p>
           <Link
-            href="/performance"
+            href="/methodology"
             className="font-sans text-[13px] text-[var(--color-text-muted)] underline decoration-[var(--color-border)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-text)]"
           >
-            View full ledger →
+            View methodology →
           </Link>
         </div>
       </div>
@@ -651,21 +630,6 @@ export default async function HomePage() {
       .sort()
       .pop() ?? null;
 
-  // Streak
-  const streak = (() => {
-    if (validation.length === 0) return null;
-    const sorted = [...validation].sort((a, b) => a.date.localeCompare(b.date));
-    const last = sorted[sorted.length - 1];
-    const type: "W" | "L" = last.outcome === "correct" ? "W" : "L";
-    let count = 0;
-    for (let i = sorted.length - 1; i >= 0; i--) {
-      const expected = type === "W" ? "correct" : "incorrect";
-      if (sorted[i].outcome === expected) count++;
-      else break;
-    }
-    return { type, count };
-  })();
-
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
@@ -674,7 +638,6 @@ export default async function HomePage() {
           latestCallDate={latestCallDate}
           totalCalls={count ?? 0}
           accuracy7d={accuracy7d}
-          streak={streak}
         />
         <ValidationTicker rows={validation} />
         <LiveSnapshot calls={calls} signals={signals} />
@@ -686,6 +649,7 @@ export default async function HomePage() {
           totalCalls={count ?? 0}
         />
         <AboutSnippet />
+        <ResearchDisclaimer />
       </main>
       <Footer />
     </div>

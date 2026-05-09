@@ -1,19 +1,15 @@
 "use client";
 
-import React, { useState, FormEvent } from "react";
+import React, { useState, type FormEvent } from "react";
 
 const NAV_LINKS = [
-  { label: "Performance", href: "/performance" },
   { label: "Terminal", href: "/terminal" },
   { label: "Methodology", href: "/methodology" },
   { label: "Brief", href: "/brief" },
   { label: "About", href: "/about" },
 ];
 
-const TRANSPARENCY_LINKS = [
-  { label: "Methodology", href: "/methodology" },
-  { label: "Performance", href: "/performance" },
-];
+const TRANSPARENCY_LINKS = [{ label: "Methodology", href: "/methodology" }];
 
 export function Footer() {
   const [email, setEmail] = useState("");
@@ -105,7 +101,8 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-[var(--color-border)] pt-6 md:flex-row">
           <p className="text-[0.6875rem] text-[var(--color-text-dim)]">
-            © 2026 FX Regime Lab. Research and learning only. Not investment advice.
+            © 2026 FX Regime Lab. Research and learning only. Not investment
+            advice.
           </p>
           <p className="text-[0.6875rem] text-[var(--color-text-dim)]">
             Built with institutional discipline. Validated out-of-sample.

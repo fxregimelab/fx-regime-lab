@@ -1,5 +1,6 @@
 import { RegimeCard } from "@/components/regime/RegimeCard";
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
+import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline } from "@/components/ui/sparkline";
 import { fmt2, fmtInt, fmtPct } from "@/components/ui/utils";
@@ -270,13 +271,13 @@ function ValidationStatsRow({
   stats: PairValidationSummary | null;
 }) {
   const tiles = [
-    { label: "T+5 WIN", value: fmtPct(stats?.t5WinRate) },
+    { label: "T+5 CAL", value: fmtPct(stats?.t5WinRate) },
     {
       label: "T+5 BRIER",
       value: stats?.t5Brier != null ? stats.t5Brier.toFixed(3) : "—",
     },
     { label: "T+5 SHARPE", value: fmt2(stats?.t5SharpeLike) },
-    { label: "T+20 WIN", value: fmtPct(stats?.t20WinRate) },
+    { label: "T+20 CAL", value: fmtPct(stats?.t20WinRate) },
     {
       label: "T+20 BRIER",
       value: stats?.t20Brier != null ? stats.t20Brier.toFixed(3) : "—",
@@ -319,7 +320,7 @@ function ExecutionPanel({
   return (
     <div className="bg-[var(--color-surface)] border border-[var(--color-border)] px-5 py-3 mb-4">
       <p className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-2">
-        Execution Parameters
+        HYPOTHETICAL — BACKTEST PARAMETERS
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div>
@@ -433,13 +434,16 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
 
   return (
     <div>
+      {/* Research Disclaimer */}
+      <ResearchDisclaimer />
+
       {/* Back navigation */}
       <div className="mb-4">
         <Link
           href="/terminal"
           className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider hover:text-[var(--color-text)] transition-colors"
         >
-          ← TERMINAL
+          ← REGIME RESEARCH TERMINAL
         </Link>
       </div>
 
@@ -503,7 +507,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
         </div>
         <div className="bg-[var(--color-elevated)] px-5 py-5">
           <p className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.15em] mb-2">
-            COMPOSITE
+            SIGNAL COMPOSITE
           </p>
           <p
             className={`font-mono text-[32px] font-medium tracking-tight leading-none ${
@@ -541,7 +545,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
       <div className="bg-[var(--color-elevated)] border border-[var(--color-border)] px-5 py-3.5 mb-px flex flex-wrap gap-x-6 gap-y-2 items-center">
         <div className="flex items-center gap-2">
           <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">
-            BIAS
+            DIRECTIONAL BIAS
           </span>
           <span
             className="font-mono text-[11px] font-bold tracking-wider"
@@ -567,7 +571,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">
-            INVALIDATION
+            MARCUS INVALIDATION
           </span>
           <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
             {invalidation}
@@ -575,7 +579,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
         </div>
         <div className="flex items-center gap-2 ml-auto">
           <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">
-            WATCHLIST
+            RISK FLAGS
           </span>
           <div className="flex gap-1.5">
             {watchlist.map((w) => (
@@ -622,7 +626,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] px-5 py-3 mb-4">
         <div className="flex justify-between items-center mb-2">
           <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.15em]">
-            SIGNAL ARCHITECTURE
+            SIGNAL DECOMPOSITION
           </span>
           <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
             WEIGHTED COMPOSITE
@@ -663,7 +667,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
       {/* Signal chips */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border)] px-5 py-3 flex gap-2 items-center mb-4 flex-wrap">
         <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] mr-1">
-          SIGNALS:
+          REGIME FACTORS:
         </span>
         {[
           [

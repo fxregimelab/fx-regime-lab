@@ -4,6 +4,7 @@ import { DailyBriefPanel } from "@/components/dashboard/DailyBriefPanel";
 import { MacroCalendarStrip } from "@/components/dashboard/MacroCalendarStrip";
 import { SignalCard } from "@/components/dashboard/SignalCard";
 import { SystemStatusBar } from "@/components/dashboard/SystemStatusBar";
+import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
 import { PAIRS } from "@/lib/constants";
 import {
   getCrossAssetSnapshot,
@@ -74,6 +75,9 @@ export default async function TerminalIndexPage() {
 
   return (
     <div>
+      {/* Research Disclaimer */}
+      <ResearchDisclaimer />
+
       {/* System Status Bar */}
       <SystemStatusBar
         dqs={dqs}
@@ -94,7 +98,7 @@ export default async function TerminalIndexPage() {
       {/* Signal Cards — 3-pair grid */}
       <div className="mb-10">
         <p className="font-mono text-[9px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase mb-3">
-          Live Cross-Pair Overview
+          Systemic Regime Monitor
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-[var(--color-border)]">
           {PAIRS.map((p, i) => {

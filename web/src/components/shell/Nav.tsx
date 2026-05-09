@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { ChevronDown } from "lucide-react";
 import { LogoMark } from "@/components/ui/logo-mark";
+import { ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 
 const NAV_LINKS = [
-  { label: "Performance", href: "/performance" },
   { label: "Methodology", href: "/methodology" },
   { label: "Brief", href: "/brief" },
   { label: "About", href: "/about" },
@@ -14,9 +13,9 @@ const NAV_LINKS = [
 
 const TERMINAL_ITEMS = [
   { label: "Overview", href: "/terminal" },
-  { label: "EUR / USD", href: "/terminal/fx-regime/eur-usd" },
-  { label: "USD / JPY", href: "/terminal/fx-regime/usd-jpy" },
-  { label: "USD / INR", href: "/terminal/fx-regime/usd-inr" },
+  { label: "EUR / USD", href: "/terminal/fx-regime/eurusd" },
+  { label: "USD / JPY", href: "/terminal/fx-regime/usdjpy" },
+  { label: "USD / INR", href: "/terminal/fx-regime/usdinr" },
   { label: "Calendar", href: "/terminal/calendar" },
   { label: "Memos", href: "/terminal/memos" },
 ];
@@ -55,7 +54,7 @@ export function Nav() {
       setDropdownOpen(false);
       router.push(href);
     },
-    [router]
+    [router],
   );
 
   return (
@@ -64,9 +63,7 @@ export function Nav() {
       style={{
         height: 64,
         transition: "box-shadow 150ms ease-out",
-        boxShadow: scrolled
-          ? "0 1px 3px rgba(0,0,0,0.4)"
-          : "none",
+        boxShadow: scrolled ? "0 1px 3px rgba(0,0,0,0.4)" : "none",
       }}
     >
       <nav
@@ -87,15 +84,6 @@ export function Nav() {
 
         {/* Right: Nav links */}
         <div className="flex items-center gap-1">
-          {/* Performance */}
-          <a
-            href="/performance"
-            className="px-3 py-1.5 text-[0.8125rem] text-[var(--color-text)] outline-none transition-colors hover:bg-[var(--color-surface)] focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
-            style={{ borderRadius: 2 }}
-          >
-            Performance
-          </a>
-
           {/* Terminal dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
@@ -111,7 +99,9 @@ export function Nav() {
               <ChevronDown
                 size={14}
                 className="transition-transform"
-                style={{ transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+                style={{
+                  transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                }}
               />
             </button>
 
@@ -124,6 +114,7 @@ export function Nav() {
                 {TERMINAL_ITEMS.map((item) => (
                   <li key={item.href} role="none">
                     <button
+                      type="button"
                       role="menuitem"
                       onClick={() => handleTerminalClick(item.href)}
                       className="w-full px-3 py-1.5 text-left text-[0.8125rem] text-[var(--color-text)] outline-none transition-colors hover:bg-[var(--color-elevated)] focus-visible:bg-[var(--color-elevated)]"
@@ -138,7 +129,7 @@ export function Nav() {
           </div>
 
           {/* Remaining links */}
-          {NAV_LINKS.slice(1).map((link) => (
+          {NAV_LINKS.map((link) => (
             <a
               key={link.href}
               href={link.href}

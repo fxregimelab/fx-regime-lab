@@ -7,7 +7,7 @@ const SECTIONS = [
   { label: "Overview", href: "/terminal" },
   { label: "FX Regime", href: "/terminal/fx-regime" },
   { label: "Calendar", href: "/terminal/calendar" },
-  { label: "Performance", href: "/terminal/performance" },
+  { label: "Track Record", href: "/terminal/performance" },
   { label: "Memos", href: "/terminal/memos" },
 ];
 

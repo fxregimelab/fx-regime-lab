@@ -47,10 +47,10 @@ export default function AboutPage() {
                 Open terminal →
               </Link>
               <Link
-                href="/performance"
+                href="/methodology"
                 className="px-5 py-2.5 border border-[var(--color-border)] font-sans text-[13px] text-[var(--color-text-secondary)] transition-all duration-300 hover:bg-[var(--color-elevated)] hover:text-[var(--color-text)] hover:border-[var(--color-border)]"
               >
-                Track record →
+                Methodology →
               </Link>
             </div>
           </div>
@@ -230,7 +230,7 @@ export default function AboutPage() {
                 Why public validation matters
               </h2>
               <Link
-                href="/performance"
+                href="/methodology"
                 className="inline-block px-5 py-2 border border-[var(--color-border)] font-mono text-[11px] text-[var(--color-text-secondary)] transition-all duration-300 hover:bg-[var(--color-elevated)] hover:text-[var(--color-text)] hover:border-[var(--color-border)]"
               >
                 Full track record →
@@ -255,12 +255,12 @@ export default function AboutPage() {
                   {
                     label: "7D ACCURACY",
                     value: "—",
-                    sub: "Live on Performance",
+                    sub: "Track record in development",
                   },
                   {
                     label: "CALLS LOGGED",
                     value: "—",
-                    sub: "Live on Performance",
+                    sub: "Track record in development",
                   },
                   {
                     label: "PAIRS COVERED",

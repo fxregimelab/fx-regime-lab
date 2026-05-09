@@ -10,7 +10,7 @@ export function DailyBriefPanel({ brief }: DailyBriefPanelProps) {
     <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
       <div className="px-5 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
         <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
-          Daily Brief
+          Macro Regime Dispatch
         </p>
         {brief?.date && (
           <span className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">

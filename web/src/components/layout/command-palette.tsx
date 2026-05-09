@@ -1,9 +1,20 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Search, FileText, BarChart3, Terminal, BookOpen, Mail, Info, Calendar, Sparkles, Newspaper } from "lucide-react";
 import { BinaryResolve } from "@/components/ui/BinaryResolve";
+import {
+  BookOpen,
+  Calendar,
+  FileText,
+  Info,
+  Mail,
+  Newspaper,
+  Search,
+  Sparkles,
+  Terminal,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface CommandItem {
   id: string;
@@ -15,20 +26,86 @@ interface CommandItem {
 
 const ALL_ITEMS: CommandItem[] = [
   // Pages
-  { id: "home", label: "Home", path: "/", icon: <FileText size={14} />, section: "Pages" },
-  { id: "performance", label: "Performance", path: "/performance", icon: <BarChart3 size={14} />, section: "Pages" },
-  { id: "methodology", label: "Methodology", path: "/methodology", icon: <BookOpen size={14} />, section: "Pages" },
-  { id: "brief", label: "Brief", path: "/brief", icon: <Newspaper size={14} />, section: "Pages" },
-  { id: "about", label: "About", path: "/about", icon: <Info size={14} />, section: "Pages" },
+  {
+    id: "home",
+    label: "Home",
+    path: "/",
+    icon: <FileText size={14} />,
+    section: "Pages",
+  },
+
+  {
+    id: "methodology",
+    label: "Methodology",
+    path: "/methodology",
+    icon: <BookOpen size={14} />,
+    section: "Pages",
+  },
+  {
+    id: "brief",
+    label: "Brief",
+    path: "/brief",
+    icon: <Newspaper size={14} />,
+    section: "Pages",
+  },
+  {
+    id: "about",
+    label: "About",
+    path: "/about",
+    icon: <Info size={14} />,
+    section: "Pages",
+  },
   // Terminal
-  { id: "terminal-overview", label: "Terminal Overview", path: "/terminal", icon: <Terminal size={14} />, section: "Terminal" },
-  { id: "terminal-fx-regime", label: "FX Regime Mosaic", path: "/terminal/fx-regime", icon: <Sparkles size={14} />, section: "Terminal" },
-  { id: "terminal-calendar", label: "Calendar", path: "/terminal/calendar", icon: <Calendar size={14} />, section: "Terminal" },
-  { id: "terminal-memos", label: "Memos", path: "/terminal/memos", icon: <Mail size={14} />, section: "Terminal" },
+  {
+    id: "terminal-overview",
+    label: "Terminal Overview",
+    path: "/terminal",
+    icon: <Terminal size={14} />,
+    section: "Terminal",
+  },
+  {
+    id: "terminal-fx-regime",
+    label: "FX Regime Mosaic",
+    path: "/terminal/fx-regime",
+    icon: <Sparkles size={14} />,
+    section: "Terminal",
+  },
+  {
+    id: "terminal-calendar",
+    label: "Calendar",
+    path: "/terminal/calendar",
+    icon: <Calendar size={14} />,
+    section: "Terminal",
+  },
+  {
+    id: "terminal-memos",
+    label: "Memos",
+    path: "/terminal/memos",
+    icon: <Mail size={14} />,
+    section: "Terminal",
+  },
   // Pair desks
-  { id: "desk-eurusd", label: "EUR / USD Desk", path: "/terminal/fx-regime/eur-usd", icon: <Terminal size={14} />, section: "Pair Desks" },
-  { id: "desk-usdjpy", label: "USD / JPY Desk", path: "/terminal/fx-regime/usd-jpy", icon: <Terminal size={14} />, section: "Pair Desks" },
-  { id: "desk-usdinr", label: "USD / INR Desk", path: "/terminal/fx-regime/usd-inr", icon: <Terminal size={14} />, section: "Pair Desks" },
+  {
+    id: "desk-eurusd",
+    label: "EUR / USD Desk",
+    path: "/terminal/fx-regime/eurusd",
+    icon: <Terminal size={14} />,
+    section: "Pair Desks",
+  },
+  {
+    id: "desk-usdjpy",
+    label: "USD / JPY Desk",
+    path: "/terminal/fx-regime/usdjpy",
+    icon: <Terminal size={14} />,
+    section: "Pair Desks",
+  },
+  {
+    id: "desk-usdinr",
+    label: "USD / INR Desk",
+    path: "/terminal/fx-regime/usdinr",
+    icon: <Terminal size={14} />,
+    section: "Pair Desks",
+  },
 ];
 
 export function CommandPalette() {
@@ -48,7 +125,7 @@ export function CommandPalette() {
       (item) =>
         item.label.toLowerCase().includes(q) ||
         item.path.toLowerCase().includes(q) ||
-        item.section.toLowerCase().includes(q)
+        item.section.toLowerCase().includes(q),
     );
   }, [query]);
 
@@ -93,7 +170,9 @@ export function CommandPalette() {
         setSelectedIndex((prev) => (prev + 1) % filtered.length);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + filtered.length) % filtered.length);
+        setSelectedIndex(
+          (prev) => (prev - 1 + filtered.length) % filtered.length,
+        );
       } else if (e.key === "Enter") {
         e.preventDefault();
         const item = filtered[selectedIndex];
@@ -135,7 +214,7 @@ export function CommandPalette() {
         router.push(item.path);
       }, 150);
     },
-    [router]
+    [router],
   );
 
   if (!open) return null;
@@ -183,8 +262,16 @@ export function CommandPalette() {
             aria-label="Command palette search"
           />
           {/* ⌘K hint */}
-          <kbd className="hidden items-center gap-0.5 border border-[var(--shell-border-subtle)] bg-[var(--shell-bg-sunken)] px-1.5 py-0.5 text-[0.6875rem] text-[var(--shell-fg-dim)] sm:flex" style={{ borderRadius: 2 }}>
-            <span>{typeof navigator !== "undefined" && navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}</span>
+          <kbd
+            className="hidden items-center gap-0.5 border border-[var(--shell-border-subtle)] bg-[var(--shell-bg-sunken)] px-1.5 py-0.5 text-[0.6875rem] text-[var(--shell-fg-dim)] sm:flex"
+            style={{ borderRadius: 2 }}
+          >
+            <span>
+              {typeof navigator !== "undefined" &&
+              navigator.platform.includes("Mac")
+                ? "⌘"
+                : "Ctrl"}
+            </span>
             <span>K</span>
           </kbd>
         </div>
@@ -209,25 +296,40 @@ export function CommandPalette() {
                     return (
                       <button
                         key={item.id}
-                        ref={(el) => { itemRefs.current[idx] = el; }}
+                        ref={(el) => {
+                          itemRefs.current[idx] = el;
+                        }}
                         onClick={() => handleSelect(item)}
                         onMouseEnter={() => setSelectedIndex(idx)}
                         className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[0.8125rem] outline-none transition-colors"
                         style={{
                           borderRadius: 2,
-                          backgroundColor: isSelected ? "#0a0a0a" : "transparent",
+                          backgroundColor: isSelected
+                            ? "#0a0a0a"
+                            : "transparent",
                           color: isSelected ? "#f5f5f0" : "var(--shell-fg)",
                         }}
                       >
                         <span
                           className="flex items-center justify-center"
-                          style={{ color: isSelected ? "#f5f5f0" : "var(--shell-fg-dim)" }}
+                          style={{
+                            color: isSelected
+                              ? "#f5f5f0"
+                              : "var(--shell-fg-dim)",
+                          }}
                         >
                           {item.icon}
                         </span>
                         <span className="flex-1">{item.label}</span>
                         {teleportTarget === item.path && (
-                          <span className="font-mono text-[0.6875rem]" style={{ color: isSelected ? "#a8a29e" : "var(--shell-fg-dim)" }}>
+                          <span
+                            className="font-mono text-[0.6875rem]"
+                            style={{
+                              color: isSelected
+                                ? "#a8a29e"
+                                : "var(--shell-fg-dim)",
+                            }}
+                          >
                             <BinaryResolve
                               value={item.path}
                               resolveKey={`teleport-${item.id}`}
@@ -250,20 +352,42 @@ export function CommandPalette() {
         <div className="flex items-center justify-between border-t border-[var(--shell-border-subtle)] px-3 py-2 text-[0.6875rem] text-[var(--shell-fg-dim)]">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="border border-[var(--shell-border-subtle)] bg-[var(--shell-bg-sunken)] px-1" style={{ borderRadius: 2 }}>↑</kbd>
-              <kbd className="border border-[var(--shell-border-subtle)] bg-[var(--shell-bg-sunken)] px-1" style={{ borderRadius: 2 }}>↓</kbd>
+              <kbd
+                className="border border-[var(--shell-border-subtle)] bg-[var(--shell-bg-sunken)] px-1"
+                style={{ borderRadius: 2 }}
+              >
+                ↑
+              </kbd>
+              <kbd
+                className="border border-[var(--shell-border-subtle)] bg-[var(--shell-bg-sunken)] px-1"
+                style={{ borderRadius: 2 }}
+              >
+                ↓
+              </kbd>
               <span>navigate</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="border border-[var(--shell-border-subtle)] bg-[var(--shell-bg-sunken)] px-1" style={{ borderRadius: 2 }}>↵</kbd>
+              <kbd
+                className="border border-[var(--shell-border-subtle)] bg-[var(--shell-bg-sunken)] px-1"
+                style={{ borderRadius: 2 }}
+              >
+                ↵
+              </kbd>
               <span>teleport</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="border border-[var(--shell-border-subtle)] bg-[var(--shell-bg-sunken)] px-1" style={{ borderRadius: 2 }}>Esc</kbd>
+              <kbd
+                className="border border-[var(--shell-border-subtle)] bg-[var(--shell-bg-sunken)] px-1"
+                style={{ borderRadius: 2 }}
+              >
+                Esc
+              </kbd>
               <span>close</span>
             </span>
           </div>
-          <span>{filtered.length} result{filtered.length !== 1 ? "s" : ""}</span>
+          <span>
+            {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+          </span>
         </div>
       </div>
     </div>
