@@ -3,10 +3,12 @@
 Workaround for Prefect managed worker base-image bug where task_engine.py
 expects _aget_default_persist_result but results.py doesn't define it.
 
-This patches results.py at runtime to add the missing symbol.
+This patches results.py at runtime and clears the pycache so the patched
+version is loaded by the flow runner process.
 """
 import inspect
 import os
+import shutil
 import sys
 
 
@@ -37,10 +39,30 @@ async def _aget_default_persist_result() -> bool:
 
     print("Patch applied successfully")
 
-    # Verify
+    # Clear pycache so the patched version is loaded by the flow runner
+    prefect_pkg_dir = os.path.dirname(results_path)
+    pycache_dir = os.path.join(prefect_pkg_dir, "__pycache__")
+    if os.path.isdir(pycache_dir):
+        shutil.rmtree(pycache_dir)
+        print(f"Cleared pycache: {pycache_dir}")
+
+    # Also remove any .pyc files in the prefect package
+    for root, dirs, files in os.walk(prefect_pkg_dir):
+        for f in files:
+            if f.endswith(".pyc"):
+                os.remove(os.path.join(root, f))
+        # Don't recurse into sub-packages
+        break
+
+    # Verify in this process
     import importlib
 
-    importlib.reload(sys.modules["prefect.results"])
+    importlib.invalidate_caches()
+    if "prefect.results" in sys.modules:
+        del sys.modules["prefect.results"]
+    if "prefect.task_engine" in sys.modules:
+        del sys.modules["prefect.task_engine"]
+
     from prefect.results import _aget_default_persist_result
 
     print(f"Verification OK: {_aget_default_persist_result}")
