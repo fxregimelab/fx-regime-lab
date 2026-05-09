@@ -24,10 +24,64 @@ from prefect import flow, task
 
 # ── Prefect managed worker patch ──────────────────────────────────────────────
 # Prefect's managed worker base images currently ship with a broken prefect
-# install where task_engine.py expects _aget_default_persist_result but
-# results.py doesn't define it. We inject it at import time so the flow runner
-# process sees the symbol before any @task-decorated function is called.
+# install where task_engine.py expects internal symbols that results.py doesn't
+# define. We inject all missing internals at import time so the flow runner
+# process sees them before any @task-decorated function is called.
 import prefect.results as _pr
+
+if not hasattr(_pr, "_has_current_run_context"):
+    def _has_current_run_context() -> bool:
+        from prefect.context import FlowRunContext, TaskRunContext
+        return TaskRunContext.get() is not None or FlowRunContext.get() is not None
+
+    _pr._has_current_run_context = _has_current_run_context  # type: ignore[attr-defined]
+
+if not hasattr(_pr, "get_current_settings"):
+    def get_current_settings():
+        from prefect.context import SettingsContext
+        from prefect.settings import Settings
+        settings_context = SettingsContext.get()
+        if settings_context is not None:
+            return settings_context.settings
+        return Settings()
+
+    _pr.get_current_settings = get_current_settings  # type: ignore[attr-defined]
+
+if not hasattr(_pr, "get_default_persist_setting"):
+    def get_default_persist_setting() -> bool:
+        return _pr.get_current_settings().results.persist_by_default
+
+    _pr.get_default_persist_setting = get_default_persist_setting  # type: ignore[attr-defined]
+
+if not hasattr(_pr, "_read_server_default_result_storage_block_id"):
+    from uuid import UUID
+    def _read_server_default_result_storage_block_id() -> UUID | None:
+        from prefect.client.orchestration import get_client
+        import httpx
+        from prefect.exceptions import PrefectHTTPStatusError
+        try:
+            client = get_client(sync_client=True)
+            configuration = client.read_server_default_result_storage()
+        except (PrefectHTTPStatusError, httpx.HTTPError, RuntimeError, ValueError):
+            return None
+        return configuration.default_result_storage_block_id
+
+    _pr._read_server_default_result_storage_block_id = _read_server_default_result_storage_block_id  # type: ignore[attr-defined]
+
+if not hasattr(_pr, "_aread_server_default_result_storage_block_id"):
+    from uuid import UUID
+    async def _aread_server_default_result_storage_block_id() -> UUID | None:
+        from prefect.client.orchestration import get_client
+        import httpx
+        from prefect.exceptions import PrefectHTTPStatusError
+        try:
+            client = get_client()
+            configuration = await client.read_server_default_result_storage()
+        except (PrefectHTTPStatusError, httpx.HTTPError, RuntimeError, ValueError):
+            return None
+        return configuration.default_result_storage_block_id
+
+    _pr._aread_server_default_result_storage_block_id = _aread_server_default_result_storage_block_id  # type: ignore[attr-defined]
 
 if not hasattr(_pr, "_get_default_persist_result"):
     def _get_default_persist_result() -> bool:
