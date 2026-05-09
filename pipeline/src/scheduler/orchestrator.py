@@ -22,6 +22,26 @@ from typing import Any, Literal, cast
 from dotenv import load_dotenv
 from prefect import flow, task
 
+# ── Prefect managed worker patch ──────────────────────────────────────────────
+# Prefect's managed worker base images currently ship with a broken prefect
+# install where task_engine.py expects _aget_default_persist_result but
+# results.py doesn't define it. We inject it at import time so the flow runner
+# process sees the symbol before any @task-decorated function is called.
+import prefect.results as _pr
+
+if not hasattr(_pr, "_aget_default_persist_result"):
+    async def _aget_default_persist_result() -> bool:
+        persist_result = _pr.should_persist_result()
+        if persist_result or _pr._has_current_run_context():
+            return persist_result
+        default_block = _pr.get_current_settings().results.default_storage_block
+        if default_block is not None:
+            return True
+        return await _pr._aread_server_default_result_storage_block_id() is not None
+
+    _pr._aget_default_persist_result = _aget_default_persist_result  # type: ignore[attr-defined]
+# ──────────────────────────────────────────────────────────────────────────────
+
 from src.ai.client import desk_card_brief_fallback
 from src.analysis.asymmetry import compute_pain_index
 from src.analysis.event_risk import compute_event_risk_matrix
