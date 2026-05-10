@@ -338,12 +338,14 @@ export default function FxRegimePairSelectionPage() {
         telemetryAudit={rank1.telemetry_audit}
         parameterInstability={rank1.parameter_instability}
         mathRateZTactical={
-          sigs?.[rank1.pair]?.rate_diff_zscore != null
-            ? Number(sigs[rank1.pair]?.rate_diff_zscore)
+          sigs?.[rank1.pair]?.rate_z_tactical != null
+            ? Number(sigs[rank1.pair]?.rate_z_tactical)
             : null
         }
         mathRateZStructural={
-          rank1.telemetry_audit?.rate_z_structural_mad ?? null
+          sigs?.[rank1.pair]?.rate_z_structural != null
+            ? Number(sigs[rank1.pair]?.rate_z_structural)
+            : rank1.telemetry_audit?.rate_z_structural_mad ?? null
         }
         mathDynamicBeta={rank1.dominance_array[0]?.beta ?? null}
         pausedBinaryResolve={!!validHover && validHover !== rank1.pair}

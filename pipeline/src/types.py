@@ -286,6 +286,9 @@ class RegimeCall:
     cot_signal: str | None = None
     vol_signal: str | None = None
     oi_signal: str | None = None
+    rr_signal: str | None = None
+    special_signal_value: float | None = None
+    special_signal_label: str | None = None
     # Backfill tracking
     model_version: str | None = None
 

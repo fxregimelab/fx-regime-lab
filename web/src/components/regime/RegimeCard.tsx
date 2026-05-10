@@ -72,7 +72,10 @@ export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
       <div className="border-t border-[#1a1a1a] mt-2.5 pt-2.5 flex flex-col gap-1">
         {[
           ["RATE DIFF", fmt2(signals?.rate_diff_2y)],
-          ["COT PCT", fmtInt(signals?.cot_percentile)],
+          [
+            "COT PCT",
+            pairMeta?.label === "USDINR" ? "N/A" : fmtInt(signals?.cot_percentile),
+          ],
           ["RVOL 20D", fmt2(signals?.realized_vol_20d)],
         ].map(([lbl, val]) => (
           <div key={lbl} className="flex justify-between">

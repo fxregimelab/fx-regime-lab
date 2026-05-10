@@ -20,7 +20,7 @@ type ResearchMemoRow = Database["public"]["Tables"]["research_memos"]["Row"];
 type HistoricalPricesRow =
   Database["public"]["Tables"]["historical_prices"]["Row"];
 
-const CANONICAL_PAIRS = ["eur-usd", "usd-jpy", "usd-inr"] as const;
+const CANONICAL_PAIRS = ["EURUSD", "USDJPY", "USDINR"] as const;
 type CanonicalPair = (typeof CANONICAL_PAIRS)[number];
 
 function isCanonicalPair(pair: string): pair is CanonicalPair {
@@ -36,21 +36,16 @@ export type LatestSignalRow = Pick<
   | "spot"
   | "rate_diff_2y"
   | "rate_diff_10y"
-  | "rate_diff_zscore"
-  | "cot_percentile"
+  | "rate_diff_10y_real"
+  | "breakeven_inflation_10y"
+  | "rate_z_tactical"
+  | "rate_z_structural"
+  | "skew_alignment"
   | "realized_vol_20d"
   | "realized_vol_5d"
   | "implied_vol_30d"
-  | "cross_asset_vix"
-  | "cross_asset_dxy"
-  | "cross_asset_oil"
   | "cross_asset_us10y"
-  | "cross_asset_gold"
-  | "cross_asset_copper"
-  | "cross_asset_stoxx"
   | "day_change_pct"
-  | "cot_lev_money_net"
-  | "oi_delta"
   | "created_at"
 >;
 

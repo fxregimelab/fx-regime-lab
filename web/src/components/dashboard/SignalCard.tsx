@@ -121,7 +121,9 @@ export function SignalCard({
               COT
             </span>
             <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
-              {fmtInt(signal?.cot_percentile)}
+              {pairLabel === "USDINR"
+                ? "N/A"
+                : fmtInt(signal?.cot_percentile)}
             </span>
           </div>
           <div className="flex justify-between">

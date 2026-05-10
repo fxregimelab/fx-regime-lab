@@ -505,6 +505,7 @@ def write_brief_log(
     dollar_dominance: float | None = None,
     idiosyncratic_outlier: str | None = None,
     sentiment_json: Mapping[str, Any] | None = None,
+    pair_regimes: Mapping[str, str] | None = None,
 ) -> None:
     """Upsert unified daily summary into `brief_log` (systemic + sentiment pre-baked for UI)."""
     payload: dict[str, Any] = {
@@ -515,6 +516,15 @@ def write_brief_log(
         "idiosyncratic_outlier": idiosyncratic_outlier,
         "sentiment_json": dict(sentiment_json) if sentiment_json is not None else None,
     }
+    if pair_regimes is not None:
+        payload["pair_regimes"] = dict(pair_regimes)
+        for pair, regime in pair_regimes.items():
+            col = f"{pair.lower()}_regime"
+            if col in {
+                "eurusd_regime", "usdjpy_regime", "usdinr_regime",
+                "gbpusd_regime", "audusd_regime", "usdcad_regime", "usdchf_regime",
+            }:
+                payload[col] = regime
     _client().table("brief_log").upsert(payload, on_conflict="date").execute()
 
 
@@ -1123,6 +1133,19 @@ def update_ledger_entries(rows: list[dict[str, Any]]) -> None:
         .upsert(payload_rows, on_conflict="date,pair,regime,primary_driver")
         .execute()
     )
+
+
+def research_memo_exists(link_url: str) -> bool:
+    """Return True if a research_memo with this link_url already exists."""
+    res = (
+        _client()
+        .table("research_memos")
+        .select("id")
+        .eq("link_url", link_url)
+        .maybe_single()
+        .execute()
+    )
+    return res is not None and res.data is not None
 
 
 def write_research_memo(

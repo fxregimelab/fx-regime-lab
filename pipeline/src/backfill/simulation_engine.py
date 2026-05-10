@@ -363,6 +363,12 @@ def simulate_all_days(
         )
         oi_label = "NEUTRAL"
 
+        special_label = {
+            "EURUSD": "EURUSD_placeholder",
+            "USDJPY": "VIX_funding_stress",
+            "USDINR": "EM_oil_DXY",
+        }.get(pair)
+
         call = RegimeCall(
             pair=pair,
             date=as_of,
@@ -382,6 +388,9 @@ def simulate_all_days(
             cot_signal=cot_label,
             vol_signal=vol_label,
             oi_signal=oi_label,
+            rr_signal="NEUTRAL",
+            special_signal_value=special_signal,
+            special_signal_label=special_label,
             model_version="2.0-historical",
         )
 
@@ -429,7 +438,8 @@ def _batch_write(pair: str, results: list[tuple[SignalRow, RegimeCall]]) -> None
             call.entry_timing, call.position_size, call.stop_level,
             call.data_quality_score, call.stress_level, call.predicted_direction,
             call.directional_bias, call.conviction, call.cot_signal,
-            call.vol_signal, call.oi_signal, call.model_version,
+            call.vol_signal, call.oi_signal, call.rr_signal,
+            call.special_signal_value, call.special_signal_label, call.model_version,
         ))
 
     # Batch insert signals using multi-row INSERT with per-batch commit
@@ -495,7 +505,7 @@ def _batch_write(pair: str, results: list[tuple[SignalRow, RegimeCall]]) -> None
                 f"(:{prefix}pair, :{prefix}date, :{prefix}regime, :{prefix}conf, :{prefix}comp, "
                 f":{prefix}rate, :{prefix}driver, :{prefix}et, :{prefix}ps, :{prefix}sl, "
                 f":{prefix}dqs, :{prefix}stress, :{prefix}pred, :{prefix}bias, :{prefix}conv, "
-                f":{prefix}cot, :{prefix}vol, :{prefix}oi, :{prefix}mv)"
+                f":{prefix}cot, :{prefix}vol, :{prefix}oi, :{prefix}rr, :{prefix}ssv, :{prefix}ssl, :{prefix}mv)"
             )
             params[f"{prefix}pair"] = row[0]
             params[f"{prefix}date"] = row[1]
@@ -515,12 +525,16 @@ def _batch_write(pair: str, results: list[tuple[SignalRow, RegimeCall]]) -> None
             params[f"{prefix}cot"] = row[15]
             params[f"{prefix}vol"] = row[16]
             params[f"{prefix}oi"] = row[17]
-            params[f"{prefix}mv"] = row[18]
+            params[f"{prefix}rr"] = row[18]
+            params[f"{prefix}ssv"] = row[19]
+            params[f"{prefix}ssl"] = row[20]
+            params[f"{prefix}mv"] = row[21]
         sql = (
             "INSERT INTO regime_calls (pair, date, regime, confidence, signal_composite, "
             "rate_signal, primary_driver, entry_timing, position_size, stop_level, "
             "data_quality_score, stress_level, predicted_direction, directional_bias, "
-            "conviction, cot_signal, vol_signal, oi_signal, model_version) VALUES " + ",".join(values_sql)
+            "conviction, cot_signal, vol_signal, oi_signal, rr_signal, special_signal_value, "
+            "special_signal_label, model_version) VALUES " + ",".join(values_sql)
         )
         conn.run(sql, **params)
         logger.info("Regime batch %d-%d inserted", i, i + len(batch) - 1)

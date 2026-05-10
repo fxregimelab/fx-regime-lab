@@ -410,7 +410,11 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
 
   const tableRows = [
     ["Rate differential 2Y", fmt2(sig?.rate_diff_2y), sig?.rate_diff_2y],
-    ["COT net position pctile", fmtInt(cotPct ?? null), cotPct ?? null],
+    [
+      "COT net position pctile",
+      pairMeta.label === "USDINR" ? "N/A" : fmtInt(cotPct ?? null),
+      cotPct ?? null,
+    ],
     ["Realized vol 20d", fmt2(sig?.realized_vol_20d), sig?.realized_vol_20d],
     ["Realized vol 5d", fmt2(sig?.realized_vol_5d), sig?.realized_vol_5d],
     [

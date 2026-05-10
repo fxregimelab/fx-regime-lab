@@ -39,7 +39,7 @@ export interface Database {
           created_at: string;
           day_change: number | null;
           day_change_pct: number | null;
-          structural_instability: number | null;
+          structural_instability: boolean | null;
           breakeven_inflation_10y: number | null;
           rate_diff_10y_real: number | null;
           rate_z_tactical: number | null;
@@ -80,7 +80,7 @@ export interface Database {
           created_at?: string;
           day_change?: number | null;
           day_change_pct?: number | null;
-          structural_instability?: number | null;
+          structural_instability?: boolean | null;
           breakeven_inflation_10y?: number | null;
           rate_diff_10y_real?: number | null;
           rate_z_tactical?: number | null;

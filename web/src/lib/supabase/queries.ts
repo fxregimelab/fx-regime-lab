@@ -9,6 +9,7 @@ export type BriefLogRow = Database["public"]["Tables"]["brief_log"]["Row"];
 export type MacroEventRow = Database["public"]["Tables"]["macro_events"]["Row"];
 type HistoricalPriceRow =
   Database["public"]["Tables"]["historical_prices"]["Row"];
+type ResearchMemoRow = Database["public"]["Tables"]["research_memos"]["Row"];
 
 export interface LatestRegimeCall {
   pair: string;
@@ -41,15 +42,13 @@ export interface LatestSignal {
   implied_vol_30d: number | null;
   day_change: number | null;
   day_change_pct: number | null;
-  cross_asset_vix: number | null;
-  cross_asset_dxy: number | null;
-  cross_asset_oil: number | null;
   cross_asset_us10y: number | null;
-  cross_asset_gold: number | null;
-  cross_asset_copper: number | null;
-  cross_asset_stoxx: number | null;
-  volume_rvol: number | null;
   realized_vol_rank: number | null;
+  rate_z_tactical: number | null;
+  rate_z_structural: number | null;
+  rate_diff_10y_real: number | null;
+  breakeven_inflation_10y: number | null;
+  skew_alignment: number | null;
   created_at: string;
 }
 
@@ -118,15 +117,13 @@ function toLatestSignal(row: SignalRow): LatestSignal {
     implied_vol_30d: row.implied_vol_30d,
     day_change: row.day_change,
     day_change_pct: row.day_change_pct,
-    cross_asset_vix: row.cross_asset_vix,
-    cross_asset_dxy: row.cross_asset_dxy,
-    cross_asset_oil: row.cross_asset_oil,
     cross_asset_us10y: row.cross_asset_us10y,
-    cross_asset_gold: row.cross_asset_gold,
-    cross_asset_copper: row.cross_asset_copper,
-    cross_asset_stoxx: row.cross_asset_stoxx,
-    volume_rvol: row.volume_rvol,
     realized_vol_rank: row.realized_vol_rank,
+    rate_z_tactical: row.rate_z_tactical,
+    rate_z_structural: row.rate_z_structural,
+    rate_diff_10y_real: row.rate_diff_10y_real,
+    breakeven_inflation_10y: row.breakeven_inflation_10y,
+    skew_alignment: row.skew_alignment,
     created_at: row.created_at,
   };
 }
@@ -618,4 +615,32 @@ export async function getSignalHistoryForAllPairs(
     result[pair].sort((a, b) => a.date.localeCompare(b.date));
   }
   return result;
+}
+
+export async function getResearchMemosList(
+  supabase: TypedSupabaseClient,
+  limit = 50,
+): Promise<Pick<ResearchMemoRow, "id" | "date" | "title" | "link_url">[]> {
+  const { data, error } = await supabase
+    .from("research_memos")
+    .select("id, date, title, link_url")
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+  return data as Pick<ResearchMemoRow, "id" | "date" | "title" | "link_url">[];
+}
+
+export async function getResearchMemoByDate(
+  supabase: TypedSupabaseClient,
+  date: string,
+): Promise<ResearchMemoRow | null> {
+  const { data, error } = await supabase
+    .from("research_memos")
+    .select("*")
+    .eq("date", date)
+    .maybeSingle();
+
+  if (error) return null;
+  return data as ResearchMemoRow | null;
 }

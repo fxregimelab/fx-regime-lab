@@ -10,6 +10,7 @@ FX regime classification and intelligence pipelines.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -346,6 +347,13 @@ def _require_pipeline_runtime_env() -> None:
 async def _ingest_weekly_research_memo(iso_date: str) -> None:
     """Weekly memo ingestion — fetch Substack and generate AI thesis summary."""
     memo = fetch_latest_substack_memo()
+    link_url = str(memo["link_url"])
+
+    # Idempotency check — skip if already ingested
+    if writer.research_memo_exists(link_url):
+        logger.info("Weekly memo already ingested: %s", link_url)
+        return
+
     date_str = str(memo["date"])[:10]
     raw_content = str(memo["raw_content"])
     try:
@@ -360,7 +368,7 @@ async def _ingest_weekly_research_memo(iso_date: str) -> None:
         title=str(memo["title"]),
         raw_content=raw_content,
         ai_thesis_summary=ai_summary,
-        link_url=str(memo["link_url"]),
+        link_url=link_url,
     )
 
 
@@ -616,6 +624,16 @@ def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
             else None
         ),
         stress_level=str(row["stress_level"]) if row.get("stress_level") else None,
+        predicted_direction=str(row.get("predicted_direction")) if row.get("predicted_direction") else None,
+        directional_bias=str(row.get("directional_bias")) if row.get("directional_bias") else None,
+        conviction=int(row["conviction"]) if row.get("conviction") is not None else None,
+        cot_signal=str(row.get("cot_signal")) if row.get("cot_signal") else None,
+        vol_signal=str(row.get("vol_signal")) if row.get("vol_signal") else None,
+        oi_signal=str(row.get("oi_signal")) if row.get("oi_signal") else None,
+        rr_signal=str(row.get("rr_signal")) if row.get("rr_signal") else None,
+        special_signal_value=float(row["special_signal_value"]) if row.get("special_signal_value") is not None else None,
+        special_signal_label=str(row.get("special_signal_label")) if row.get("special_signal_label") else None,
+        model_version=str(row.get("model_version")) if row.get("model_version") else None,
     )
 
 
@@ -1217,6 +1235,12 @@ async def run_daily(
             ("BEARISH" if oi_norm is not None and oi_norm < -0.15 else "NEUTRAL")
         )
 
+        special_label = {
+            "EURUSD": "EURUSD_placeholder",
+            "USDJPY": "VIX_funding_stress",
+            "USDINR": "EM_oil_DXY",
+        }.get(pair)
+
         call = RegimeCall(
             pair=pair,
             date=today_bar.date,
@@ -1236,6 +1260,10 @@ async def run_daily(
             cot_signal=cot_label,
             vol_signal=vol_label,
             oi_signal=oi_label,
+            rr_signal="NEUTRAL",
+            special_signal_value=special_signal,
+            special_signal_label=special_label,
+            model_version="2.0-live",
         )
         if stress_red:
             logger.warning(
@@ -1653,6 +1681,7 @@ async def run_daily(
         dollar_dominance=dollar_pct,
         idiosyncratic_outlier=outlier_pair,
         sentiment_json=sentiment_json,
+        pair_regimes=pair_regimes,
     )
 
     # Populate macro event briefs for the next 3 days immediately
