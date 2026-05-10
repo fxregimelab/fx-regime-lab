@@ -15,6 +15,19 @@ venv/
 .pytest_cache/
 supabase/.branches/
 supabase/.temp/
+web/supabase/.temp/
+
+# Agent artifacts
+.agent/
+.cursor/
+
+# Random clutter
+*.canvas
+*.base
+Pasted image.png
+png error 1/
+tsconfig.tsbuildinfo
+ui_rebuit_kimi/
 
 # Build artifacts
 

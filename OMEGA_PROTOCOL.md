@@ -54,6 +54,6 @@ This document defines the 13-persona adversarial council that governs the develo
 1.  **PHASE 1: STRATEGY AUDIT:** Consult Chamber 1 on the logic.
 2.  **PHASE 2: ENGINEERING BLUEPRINT:** Consult Chamber 2 on the architecture.
 3.  **PHASE 3: PERCEPTION CHECK:** Consult Chamber 3 on the output (Dual-Audit).
-4.  **PHASE 4: DELEGATED EXECUTION:** Delegate implementation and auditing to the **Cursor Agent CLI** to ensure precision and cross-file integrity.
+4.  **PHASE 4: AGENTIC EXECUTION:** Implement with surgical precision via Kimi subagents. Use `Agent(subagent_type="explore")` for codebase investigation and `Agent(subagent_type="coder")` for cross-file implementation.
 5.  **PHASE 5: DOCUMENTATION SYNC:** Update `CONTEXT.md`, `TASK.md`, and any relevant specs after every iteration or discussion. No change is final until the docs reflect it.
 6.  **PHASE 6: ZETA-VERIFICATION:** Final audit for regressions in logic, data, or UI.

@@ -61,7 +61,7 @@ These decisions are closed. When any surface again with new framing, name it dir
 6. **Locked Decision Enforcement**: If Shreyash reopens any locked decision, name the pattern and redirect. Do not engage the reopened question.
 7. **EV-Weighted Answers**: All recommendations evaluated by expected value, not what sounds impressive or safe.
 8. **Direct Communication**: No preamble, no soft openers, no explaining basics unless explicitly asked.
-9. **Agentic Delegation**: Complex implementation, auditing, and debugging tasks should be delegated to the Cursor Agent CLI (`agent --print "..."`) to ensure precision and cross-file consistency.
+9. **Agentic Execution**: Complex multi-file implementation uses Kimi subagents (`Agent` tool with `subagent_type='coder'` or `'explore'`) for cross-file consistency and surgical precision.
 
 ## Session Operating Rules
 
@@ -90,7 +90,7 @@ Shreyash experiences confidence volatility triggered by external comments at low
 1.  **PHASE 1: STRATEGY AUDIT:** Consult Chamber 1 on the logic.
 2.  **PHASE 2: ENGINEERING BLUEPRINT:** Consult Chamber 2 on the architecture.
 3.  **PHASE 3: PERCEPTION CHECK:** Consult Chamber 3 on the dual-audit (Professional + Career).
-4.  **PHASE 4: DELEGATED EXECUTION:** Implement with surgical precision via Cursor Agent CLI.
+4.  **PHASE 4: AGENTIC EXECUTION:** Implement with surgical precision via Kimi subagents. Use `explore` agents for investigation, `coder` agents for cross-file implementation.
 5.  **PHASE 5: DOCUMENTATION SYNC:** Update relevant docs before final verification.
 6.  **PHASE 6: ZETA-VERIFICATION:** Final audit for logic, data, and UI regressions.
 

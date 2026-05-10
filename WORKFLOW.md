@@ -64,18 +64,14 @@
 | `/audit` | Pipeline run history, DQS scores, error log |
 | `/brief` | Latest AI-generated daily brief |
 
-### Layer 5: Agent System (Kimi ↔ Cursor)
+### Layer 5: Agent System (Kimi + Subagents)
 | Component | Purpose |
 |-----------|---------|
-| `fx-agent` | Unified CLI: `spec create`, `run`, `verify`, `review`, `cleanup`, `status`, `self-test` |
-| `scripts/cursor-delegate.sh` | Wraps Cursor Agent CLI for execution delegation |
-| `scripts/cursor-verify.sh` | Post-delegation verification (pytest, build, lint, ruff) |
-| `scripts/kimi-cursor-orchestrator.sh` | Parallel execution, auto-retry, session tracking |
-| `.agent/index.json` | Master manifest v5: maps, skills, rules, templates |
-| `.agent/maps/CODEMAP.json` | 148 files mapped (pipeline, web, database, deployment) |
-| `.agent/maps/SKILLMAP.json` | 13 skills (quant math, Supabase writes, Prefect deploy, etc.) |
-| `.cursorrules` | Shared rules readable by both Kimi and Cursor |
-| Git hooks | Pre-commit (pytest + build), post-commit/post-merge (map regeneration) |
+| `Agent(subagent_type="explore")` | Fast codebase exploration: find files, trace code paths, understand modules |
+| `Agent(subagent_type="coder")` | Cross-file implementation, debugging, running commands |
+| `Agent(subagent_type="plan")` | Architecture decisions and implementation planning |
+| Pre-commit hook | Runs pytest (pipeline) + npm build (web) before allowing commit |
+| Git | Standard git workflow: branch → implement → test → commit → push |
 
 ### Layer 6: Deployment Infrastructure
 | Component | Technology | Purpose |
@@ -100,7 +96,7 @@
 | **Immutable ledger** | Every regime call is timestamped and frozen. You cannot retroactively change a call. This creates a real track record — the only thing that matters for credibility. |
 | **3-layer separation** | Layer 1 (regime gate) prevents trading in wrong environments. Layer 2 (directional) measures conviction. Layer 3 (timing) manages risk. Each layer has its own invalidation rules. |
 | **Public by design** | The research terminal is public. The Substack is public. This forces discipline and turns the system into a marketing engine — every correct call is a credential. |
-| **Agent-augmented velocity** | Kimi plans, Cursor executes. This allows one operator to maintain institutional-grade infrastructure without a team. |
+| **Agent-augmented velocity** | Kimi plans and executes directly. Complex multi-file work is delegated to Kimi subagents for cross-file consistency. This allows one operator to maintain institutional-grade infrastructure without a team. |
 
 ### Why Each Component Exists
 
@@ -136,14 +132,14 @@
 | **Immutable track record** | Every regime call is persisted with timestamp. No retroactive editing possible. |
 | **Institutional-grade terminal** | Swiss monochrome aesthetic, KaTeX math, tabular-nums, dense data tables. Looks like a Bloomberg terminal, not a dashboard. |
 | **Self-healing maps** | Any git commit auto-regenerates CODEMAP, SKILLMAP, RULEMAP. The system stays synchronized with itself. |
-| **Two-agent operating model** | Kimi = strategy, Cursor = execution. No single point of failure. No context overload. |
+| **Subagent operating model** | Kimi = strategy + direct execution. Complex tasks = Kimi subagents for surgical precision. No context overload. |
 
 ### What This System Can Do Today
 1. **Run a full daily pipeline** in 90 seconds: fetch data → compute 3-layer signals → classify regimes → write to Supabase → generate AI brief
 2. **Display live pair desks** for EUR/USD, USD/JPY, USD/INR with spot, regime, confidence, composite, and invalidation levels
 3. **Track out-of-sample accuracy** with Brier scores and win rates by regime type
 4. **Generate research memos** from historical backtests with markdown artifacts
-5. **Accept delegation specs** via `fx-agent` and route them to Cursor for implementation with automatic verification
+5. **Accept complex specs** via Kimi subagents for cross-file implementation with automatic verification
 6. **Regenerate its own maps** when files change, keeping agent context fresh without manual work
 
 ---
@@ -183,18 +179,17 @@ open https://fxregimelab.com/terminal/performance
 
 ### The Development EV Loop (As Needed)
 ```bash
-# 1. Need a new signal? Write a spec:
-fx-agent spec create signal
+# 1. Need a new signal? Plan first:
+# Use EnterPlanMode for non-trivial implementation
 
-# 2. Edit the spec (what to build, what files to touch, acceptance criteria)
-vim .cursor/delegation/queue/my-spec.md
+# 2. Explore the codebase:
+# Use Agent(subagent_type="explore") to find relevant files
 
-# 3. Delegate to Cursor:
-fx-agent run .cursor/delegation/queue/my-spec.md
+# 3. Implement directly or delegate to subagent:
+# Use Agent(subagent_type="coder") for cross-file implementation
 
-# 4. Cursor implements, fx-agent verifies automatically
-# 5. Review: fx-agent review
-# 6. Commit: git commit (hooks auto-update maps)
+# 4. Verify: pytest, ruff, npm run build
+# 5. Commit: git commit (pre-commit hook runs tests)
 ```
 
 ### The Credibility EV Loop (Continuous)
@@ -218,7 +213,7 @@ fx-agent run .cursor/delegation/queue/my-spec.md
 | **Validation Engine** | When Brier score for a regime >0.45, recalibrate. The engine tells you when you're overconfident before your capital does. |
 | **AI Briefs** | Use them as first drafts, not final copy. The AI is good at structure and tone. You add the macro narrative and the specific thesis. |
 | **Research Terminal** | Share the `/terminal/performance` link with PMs. It is your credibility page. The Brier score table is more convincing than any pitch deck. |
-| **Agent System** | Never write boilerplate code again. Specs for fetchers, components, and DB migrations all delegate to Cursor. You only review and verify. |
+| **Agent System** | Never write boilerplate code alone. Specs for fetchers, components, and DB migrations are implemented by Kimi subagents. You review and verify. |
 
 ### What NOT to Do (EV Destroyers)
 | Anti-Pattern | Why It Destroys EV |
@@ -257,27 +252,25 @@ fx-agent run .cursor/delegation/queue/my-spec.md
 
 ```bash
 # Morning
-fx-agent status                    # check system health
 pipeline/run_daily.sh              # or let Prefect run it
 open https://fxregimelab.com/terminal/fx-regime
 
 # Weekly
 pipeline/run_weekly.sh
-fx-agent review                    # see what Cursor built
 
 # When you need to build something
-fx-agent spec create <type> <name>
-vim .cursor/delegation/queue/<name>.md
-fx-agent run .cursor/delegation/queue/<name>.md
+# Use EnterPlanMode for non-trivial implementation
+# Use Agent(subagent_type="explore") to investigate
+# Use Agent(subagent_type="coder") for cross-file work
 
 # Verify everything
-fx-agent verify                    # full suite
-fx-agent verify --quick            # fast (pytest + ruff only)
-fx-agent self-test                 # agent system health
+cd pipeline && pytest              # full test suite
+cd pipeline && ruff check .        # lint
+cd web && npm run build            # frontend build
 
 # Maintenance
-fx-agent cleanup                   # archive old specs
-fx-agent maps                      # regenerate maps manually
+git log --oneline -10              # review recent commits
+pytest                             # run tests before any deploy
 ```
 
 ---

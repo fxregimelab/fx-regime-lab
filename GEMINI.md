@@ -15,7 +15,7 @@ FX Regime Lab is a professional **Quantamental Research Rig** focused on G10 FX 
 
 ### Core Stack
 - **Pipeline**: Python 3.11+ (yfinance, pandas, fredapi, supabase-py)
-- **Frontend**: Next.js 16+ (App Router, Tailwind CSS 4, TanStack Query, Recharts, KaTeX for math)
+- **Frontend**: Next.js 15+ (App Router, Tailwind CSS 4, TanStack Query, Recharts, KaTeX, lightweight-charts)
 - **Database**: Supabase (PostgreSQL)
 - **Deployment**: Vercel (Frontend), GitHub Actions (Pipeline)
 
