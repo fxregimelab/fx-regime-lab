@@ -340,7 +340,12 @@ def fetch_forexfactory_week_high_impact() -> list[dict[str, Any]]:
             logger.debug("Skipping unmapped high-impact event: %s %s", country, title)
             continue
 
-        meta = _impact_meta()[canonical]
+        impact_meta = _impact_meta()
+        if canonical not in impact_meta:
+            logger.debug("Skipping high-impact event without meta: %s", canonical)
+            continue
+
+        meta = impact_meta[canonical]
         _, cal_impact, cat = meta
         time_s = _elem_text(ev.find("time")) or None
         forecast = _elem_text(ev.find("forecast")) or None

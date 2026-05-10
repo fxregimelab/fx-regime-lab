@@ -87,6 +87,22 @@ Every task MUST be checked by the chambers for **Dual-Alignment**:
 3.  **Chamber 3 (Perception):** Is the output "Institutional Research" grade? (Admissions/HF Level)
 4.  **Delegated Execution:** Delegate implementation to the Cursor Agent CLI (`agent --print "..."`).
 
+## Deploy
+
+- [x] **Commit:** `dc7e5a1` — 61 files, 7984 insertions, 934 deletions. All P0–P4 changes committed.
+- [x] **Push to main** → `dc7e5a1` pushed. Vercel auto-deploy triggered.
+- [x] **Post-deploy smoke tests:** All 6 routes return HTTP 200 with expected content:
+  - `/` — OK
+  - `/terminal` — System Status, Cross-Asset, Signal, Daily Brief rendered
+  - `/terminal/fx-regime/eurusd` — EUR/USD, Execution panel rendered
+  - `/performance` — T+5, T+20, Brier, Equity, Win Rate rendered
+  - `/methodology` — OK
+  - `/about` — OK
+- [x] **Prefect smoke test:** FIXED. Test run `vagabond-yak` COMPLETED successfully.
+  - Root cause: Prefect managed worker base image ships with broken `prefect.results` (missing `_aget_default_persist_result`, `_get_default_persist_result`, `_has_current_run_context`, `get_current_settings`, `_read_server_default_result_storage_block_id`, `_aread_server_default_result_storage_block_id`).
+  - Fix: Comprehensive monkey-patch injected at module import time in `src/scheduler/orchestrator.py`. Patch runs in the flow runner process before any `@task` decorator triggers `prefect.task_engine` import.
+  - Deployment re-deployed with `prefecthq/prefect:3-python3.12` full image (not `prefect-client`).
+
 ## Notes
 
 - **Cloaked Professionalism:** Strictly NO student/admissions language in public files.

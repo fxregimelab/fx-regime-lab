@@ -286,6 +286,8 @@ class RegimeCall:
     cot_signal: str | None = None
     vol_signal: str | None = None
     oi_signal: str | None = None
+    # Backfill tracking
+    model_version: str | None = None
 
 
 @dataclass
