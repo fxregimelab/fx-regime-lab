@@ -1,15 +1,15 @@
-import { ComingSoon } from "@/components/ui/coming-soon";
+"use client";
 
-export const metadata = {
-  title: "Track Record | FX Regime Lab",
-};
+import { PerformanceLedgerPageContent } from "@/components/pages/performance-ledger-page-content";
 
 export default function TerminalPerformancePage() {
   return (
-    <ComingSoon
-      phase="PHASE 2"
-      title="Track Record & Calibration"
-      description="Out-of-sample validation metrics are being compiled. This section will present Brier scores, directional calibration, and regime-conditioned accuracy statistics derived from the immutable ledger."
-    />
+    <main
+      id="main-content"
+      className="min-h-screen bg-[#000000] text-white rounded-none"
+      style={{ marginTop: "var(--terminal-nav-h, 76px)" }}
+    >
+      <PerformanceLedgerPageContent />
+    </main>
   );
 }

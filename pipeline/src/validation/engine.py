@@ -120,7 +120,7 @@ def run_validation(as_of_date: date | None = None) -> None:
 
             existing = writer.get_validation_log_entry(call_date, pair)
 
-            predicted = str(call.get("rate_signal") or "")
+            predicted = str(call.get("predicted_direction") or call.get("rate_signal") or "")
             confidence = float(call.get("confidence") or 0.0)
 
             payload: dict[str, Any] = {

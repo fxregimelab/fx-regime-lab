@@ -344,13 +344,22 @@ def _require_pipeline_runtime_env() -> None:
 
 
 async def _ingest_weekly_research_memo(iso_date: str) -> None:
-    """Weekly memo ingestion — AI summarization on hold."""
+    """Weekly memo ingestion — fetch Substack and generate AI thesis summary."""
     memo = fetch_latest_substack_memo()
+    date_str = str(memo["date"])[:10]
+    raw_content = str(memo["raw_content"])
+    try:
+        from src.ai.client import summarize_weekly_memo_async
+        theses = await summarize_weekly_memo_async(raw_content, date_str=date_str)
+        ai_summary = json.dumps(theses)
+    except Exception as exc:
+        logger.warning("Weekly memo AI summarization failed: %s", exc)
+        ai_summary = None
     writer.write_research_memo(
-        date_str=str(memo["date"])[:10],
+        date_str=date_str,
         title=str(memo["title"]),
-        raw_content=str(memo["raw_content"]),
-        ai_thesis_summary=None,
+        raw_content=raw_content,
+        ai_thesis_summary=ai_summary,
         link_url=str(memo["link_url"]),
     )
 
@@ -648,7 +657,9 @@ def _upsert_pair_briefs_for_date(
     dollar_dominance_pct: float | None = None,
     polymarket_odds_json: str = "[]",
 ) -> list[str]:
-    """Pair AI briefs — on hold. Returns telemetry context only."""
+    """Generate per-pair AI briefs and return telemetry context strings."""
+    from src.ai.client import generate_brief
+
     pair_contexts: list[str] = []
     for pair in PAIRS:
         prior = writer.get_latest_regime_call(pair)
@@ -662,12 +673,37 @@ def _upsert_pair_briefs_for_date(
             continue
         signal_row = _signal_row_from_db(sig)
 
-        pair_contexts.append(
-            f"{pair} regime={prior.get('regime')} conf={float(prior['confidence']):.2f} "
-            f"driver={prior.get('primary_driver') or 'unknown'} "
-            f"r2y={signal_row.rate_diff_2y} r10y={signal_row.rate_diff_10y} "
-            f"oil={signal_row.cross_asset_oil} spot={signal_row.spot}"
-        )
+        try:
+            brief = generate_brief(
+                pair=pair,
+                regime=str(prior.get("regime") or ""),
+                confidence=float(prior.get("confidence") or 0.0),
+                composite=float(prior.get("signal_composite") or 0.0),
+                signal_row=signal_row,
+                date_str=date_str,
+                primary_driver=str(prior.get("primary_driver")) if prior.get("primary_driver") else None,
+                polymarket_context=polymarket_context,
+                dollar_dominance_pct=dollar_dominance_pct,
+                polymarket_odds_json=polymarket_odds_json,
+            )
+            writer.write_brief(
+                date_str=date_str,
+                pair=pair,
+                regime=str(prior.get("regime") or ""),
+                confidence=float(prior.get("confidence") or 0.0),
+                composite=float(prior.get("signal_composite") or 0.0),
+                analysis=brief,
+                primary_driver=str(prior.get("primary_driver")) if prior.get("primary_driver") else "",
+            )
+            pair_contexts.append(brief)
+        except Exception as exc:
+            logger.warning("Pair brief generation failed for %s: %s", pair, exc)
+            pair_contexts.append(
+                f"{pair} regime={prior.get('regime')} conf={float(prior['confidence']):.2f} "
+                f"driver={prior.get('primary_driver') or 'unknown'} "
+                f"r2y={signal_row.rate_diff_2y} r10y={signal_row.rate_diff_10y} "
+                f"oil={signal_row.cross_asset_oil} spot={signal_row.spot}"
+            )
     return pair_contexts
 
 
@@ -689,21 +725,37 @@ async def build_master_buffer_task(
 async def batch_desk_briefs_task(
     pending_desk_cards: list[dict[str, Any]],
 ) -> list[Any]:
-    """Generate desk-card briefs — AI on hold; deterministic fallback only."""
+    """Generate desk-card briefs — AI first, deterministic fallback on failure."""
+    from src.ai.client import generate_desk_card_brief_async
 
     outcomes: list[Any] = []
     for item in pending_desk_cards:
         bkw = cast(dict[str, Any], item["brief_kw"])
-        fb = desk_card_brief_fallback(
-            regime=str(bkw.get("regime") or ""),
-            primary_driver=bkw.get("primary_driver"),
-            pain_index=bkw.get("pain_index"),
-            rvol=bkw.get("rvol"),
-            todays_event_matrix=bkw.get("todays_event_matrix"),
-            dollar_dominance_score=bkw.get("dollar_dominance_score"),
-            dollar_bias=bkw.get("dollar_bias"),
-        )
-        outcomes.append((fb, False))
+        try:
+            brief, human_grounding = await generate_desk_card_brief_async(
+                pair=str(bkw.get("pair") or ""),
+                regime=str(bkw.get("regime") or ""),
+                date_str=str(bkw.get("date_str") or ""),
+                primary_driver=bkw.get("primary_driver"),
+                pain_index=bkw.get("pain_index"),
+                rvol=bkw.get("rvol"),
+                todays_event_matrix=bkw.get("todays_event_matrix"),
+                dollar_dominance_score=bkw.get("dollar_dominance_score"),
+                dollar_bias=bkw.get("dollar_bias"),
+            )
+            outcomes.append((brief, human_grounding))
+        except Exception as exc:
+            logger.warning("Desk card AI brief failed: %s", exc)
+            fb = desk_card_brief_fallback(
+                regime=str(bkw.get("regime") or ""),
+                primary_driver=bkw.get("primary_driver"),
+                pain_index=bkw.get("pain_index"),
+                rvol=bkw.get("rvol"),
+                todays_event_matrix=bkw.get("todays_event_matrix"),
+                dollar_dominance_score=bkw.get("dollar_dominance_score"),
+                dollar_bias=bkw.get("dollar_bias"),
+            )
+            outcomes.append((fb, False))
     return outcomes
 
 
@@ -897,7 +949,6 @@ async def run_daily(
             if rate_spread_10y is None
             else (float(rate_spread_10y) - bei if bei is not None else float(rate_spread_10y))
         )
-        rate_dir = rate_direction_from_spreads(rate_spread_2y, rate_spread_10y_real)
         rate_spread_for_norm = rate_spread_2y if rate_spread_2y is not None else rate_spread_10y
 
         cot_pct = compute_cot_percentile(cot_rows, pair, as_of=today_bar.date)
@@ -927,6 +978,10 @@ async def run_daily(
         rate_norm = rate_norm_z.z_tactical if rate_norm_z is not None else None
         rate_z_structural_val = (
             rate_norm_z.z_structural if rate_norm_z is not None else None
+        )
+        # Rate direction uses z-score when available (detects changes, not levels).
+        rate_dir = rate_direction_from_spreads(
+            rate_spread_2y, rate_spread_10y_real, z_tactical=rate_norm
         )
         vol_90th = _percentile(historical_rv5, 0.90) if historical_rv5 else None
         vol_norm = compute_vol_signal(rv5, rv20, vol_90th)
@@ -1017,8 +1072,8 @@ async def run_daily(
             brent_above_p80=brent_above_p80,
         )
         if pair == "USDINR" and cot_pct is None:
-            # Best-effort mode when INR COT is unavailable: keep call, reduce confidence.
-            confidence = max(0.40, confidence - 0.15)
+            # INR does not have liquid CFTC positioning — do not penalise for missing COT.
+            pass
         driver = get_primary_driver(betas_5y)
         driver_family = max(
             ("rate", "cot", "vol", "oi"),
@@ -1083,15 +1138,15 @@ async def run_daily(
             realized_vol_rank=rv_rank_layer3,
             risk_reversal_series_bps=(),
         )
-        confidence = min(
-            float(confidence),
-            0.35 + 0.11 * float(layer2_out["conviction"]),
-        )
+        # Layer2 conviction cap: less aggressive than v1.
+        # Conviction 1→5 maps to cap 0.50→0.90 (was 0.46→0.90).
+        conviction_cap = 0.42 + 0.10 * float(layer2_out["conviction"])
+        confidence = min(float(confidence), conviction_cap)
         dqs_cap = _dqs_confidence_cap(dqs_out.score)
         if dqs_cap is not None:
             confidence = min(float(confidence), dqs_cap)
         if stress_level == "AMBER":
-            confidence = min(float(confidence), 0.70)
+            confidence = min(float(confidence), 0.72)
         day_change = today_bar.close - yest_bar.close
         day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
         iv = fetch_implied_vol(pair)
@@ -1141,6 +1196,27 @@ async def run_daily(
 
         writer.write_signal_row(signal_row)
 
+        # Map Layer2 bias to validation-compatible predicted_direction.
+        bias = layer2_out["directional_bias"]
+        predicted_direction = (
+            "BULLISH" if bias == "LONG" else ("BEARISH" if bias == "SHORT" else "NEUTRAL")
+        )
+
+        # Signal family labels for audit / explainability.
+        cot_label = (
+            "BULLISH" if cot_norm is not None and cot_norm > 0.15 else
+            ("BEARISH" if cot_norm is not None and cot_norm < -0.15 else "NEUTRAL")
+        )
+        vol_label = (
+            "VOL_EXPANDING" if vol_exp else
+            ("BULLISH" if vol_norm is not None and vol_norm > 0.15 else
+             ("BEARISH" if vol_norm is not None and vol_norm < -0.15 else "NEUTRAL"))
+        )
+        oi_label = (
+            "BULLISH" if oi_norm is not None and oi_norm > 0.15 else
+            ("BEARISH" if oi_norm is not None and oi_norm < -0.15 else "NEUTRAL")
+        )
+
         call = RegimeCall(
             pair=pair,
             date=today_bar.date,
@@ -1154,6 +1230,12 @@ async def run_daily(
             stop_level=layer3_out["stop_level"],
             data_quality_score=round(float(dqs_out.score), 2),
             stress_level=stress_level,
+            predicted_direction=predicted_direction,
+            directional_bias=bias,
+            conviction=layer2_out["conviction"],
+            cot_signal=cot_label,
+            vol_signal=vol_label,
+            oi_signal=oi_label,
         )
         if stress_red:
             logger.warning(
@@ -1186,7 +1268,7 @@ async def run_daily(
                 target_date=today_bar.date,
                 regime=call.regime,
                 primary_driver=str(call.primary_driver or ""),
-                direction=call.rate_signal,
+                direction=str(call.predicted_direction or call.rate_signal),
                 entry_close=float(today_bar.close),
                 confidence=float(call.confidence),
             )
@@ -1541,19 +1623,29 @@ async def run_daily(
         )
         logger.warning("RED Stress Mode — publishing dislocation notice only")
     else:
-        upsert_pair_briefs_task(
+        pair_contexts = upsert_pair_briefs_task(
             date_str,
             polymarket_context,
             dollar_dominance_pct=dollar_pct,
             polymarket_odds_json=pm_json,
         )
-        global_summary = (
-            f"FX Regime Lab telemetry for {date_str}. "
-            f"Active pairs: {', '.join(pair_regimes.keys())}. "
-            f"Dollar dominance: {dollar_pct:.1f}%. "
-            f"Idiosyncratic outlier: {outlier_pair or 'none'}. "
-            f"AI brief generation on hold; regime telemetry available in terminal."
-        )
+        try:
+            from src.ai.client import generate_global_macro_summary
+            global_summary = generate_global_macro_summary(
+                date_str=date_str,
+                pair_contexts=pair_contexts,
+                macro_context=polymarket_context,
+                dollar_dominance_pct=dollar_pct,
+                polymarket_odds_json=pm_json,
+            )
+        except Exception as exc:
+            logger.warning("Global macro summary generation failed: %s", exc)
+            global_summary = (
+                f"FX Regime Lab telemetry for {date_str}. "
+                f"Active pairs: {', '.join(pair_regimes.keys())}. "
+                f"Dollar dominance: {dollar_pct:.1f}%. "
+                f"Idiosyncratic outlier: {outlier_pair or 'none'}."
+            )
     writer.write_brief_log(
         date_str,
         global_summary,

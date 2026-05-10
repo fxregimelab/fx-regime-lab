@@ -2,12 +2,14 @@
 
 import { LogoMark } from "@/components/ui/logo-mark";
 import { ChevronDown } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 
 const NAV_LINKS = [
   { label: "Methodology", href: "/methodology" },
   { label: "Brief", href: "/brief" },
+  { label: "Track Record", href: "/performance" },
   { label: "About", href: "/about" },
 ];
 
@@ -76,10 +78,15 @@ export function Nav() {
           className="flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
           style={{ borderRadius: 2 }}
         >
-          <LogoMark size={28} color="var(--color-text)" />
-          <span className="text-[0.875rem] font-medium tracking-tight text-[var(--color-text)]">
-            FX Regime Lab
-          </span>
+          <LogoMark size={28} />
+          <Image
+            src="/logos/wordmark-without-bg.png"
+            alt="FX Regime Lab"
+            width={140}
+            height={28}
+            className="object-contain h-[22px] w-auto"
+            priority
+          />
         </a>
 
         {/* Right: Nav links */}
@@ -112,7 +119,7 @@ export function Nav() {
                 style={{ borderRadius: 2, zIndex: "var(--z-dropdown)" }}
               >
                 {TERMINAL_ITEMS.map((item) => (
-                  <li key={item.href} role="none">
+                  <li key={item.href}>
                     <button
                       type="button"
                       role="menuitem"

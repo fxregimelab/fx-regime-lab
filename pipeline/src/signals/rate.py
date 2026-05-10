@@ -120,15 +120,29 @@ def structural_instability_from_carry_history(carry_chronological: list[float]) 
 def rate_direction_from_spreads(
     spread_2y: float | None,
     spread_10y: float | None,
+    *,
+    z_tactical: float | None = None,
 ) -> str:
-    """Map 2Y (preferred) or 10Y spread in pp to BULLISH / BEARISH / NEUTRAL."""
+    """Map rate spread to BULLISH / BEARISH / NEUTRAL.
+
+    Prefers z-score when available (detects regime changes vs static level bias).
+    Falls back to raw spread with a 1.0 pp threshold to avoid always-BULLISH
+    bias from persistent yield differentials (e.g. USDJPY ~+3 pp for years).
+    """
+    # Z-score path: detects changes, not levels.
+    if z_tactical is not None:
+        if z_tactical > 0.30:
+            return "BULLISH"
+        if z_tactical < -0.30:
+            return "BEARISH"
+        return "NEUTRAL"
 
     directional = spread_2y if spread_2y is not None else spread_10y
     if directional is None:
         return "NEUTRAL"
-    if directional > 0.5:
+    if directional > 1.0:
         return "BULLISH"
-    if directional < -0.5:
+    if directional < -1.0:
         return "BEARISH"
     return "NEUTRAL"
 

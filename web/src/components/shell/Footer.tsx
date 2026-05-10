@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { label: "Terminal", href: "/terminal" },
   { label: "Methodology", href: "/methodology" },
   { label: "Brief", href: "/brief" },
+  { label: "Track Record", href: "/performance" },
   { label: "About", href: "/about" },
 ];
 

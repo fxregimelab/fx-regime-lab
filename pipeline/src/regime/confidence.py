@@ -1,4 +1,18 @@
-"""Confidence score from composite magnitude and signal agreement."""
+"""Confidence score from composite magnitude and signal agreement.
+
+Confidence is NOT a probability of being correct. It is an internal consistency
+metric: how strong and coherent the composite signal is. Stronger composites
+with agreeing sub-signals receive higher confidence. Mixed or weak signals
+receive lower confidence.
+
+Formula (v2):
+  base = |composite| / 2.0                     # signal strength in [0, 1]
+  align_bonus = +0.05 if rate/cot agree        # directional alignment
+  strength_bonus = +0.05 if both |rate|,|cot| > 0.3  # both materially non-zero
+  pair_adj = pair-specific adjustment          # e.g. JPY carry, INR oil
+  raw = clip(base + align_bonus + strength_bonus + pair_adj, 0.30, 0.95)
+  confidence = clip(raw - 0.03, 0.30, 0.90)   # institutional -3pp haircut
+"""
 
 from __future__ import annotations
 
@@ -18,9 +32,12 @@ def compute_confidence(
     wti_wcs_agree: bool | None = None,
     brent_above_p80: bool | None = None,
 ) -> float:
-    thresholds = (-1.0, -0.4, 0.4, 1.0)
-    distance = min(abs(composite - t) for t in thresholds)
-    base_conf = float(np.clip(distance / 0.6, 0.10, 0.90))
+    """Return confidence in [0.30, 0.90] from composite strength and signal coherence."""
+    # Base confidence = signal strength (|composite| / 2.0).
+    # Composite is clipped to [-2, 2] upstream; typical range is [-1, 1].
+    base_conf = float(np.clip(abs(float(composite)) / 2.0, 0.10, 0.90))
+
+    # Alignment bonus: rate and COT point the same way.
     bonus = 0.0
     if rate_norm is not None and cot_norm is not None:
         if (rate_norm > 0 and cot_norm > 0) or (rate_norm < 0 and cot_norm < 0):
@@ -49,6 +66,6 @@ def compute_confidence(
         if brent_above_p80 is True:
             pair_adj -= 0.05
 
-    raw = float(np.clip(base_conf + bonus + pair_adj, 0.40, 0.95))
-    # Institutional −5pp haircut (under-promise / over-deliver).
-    return float(np.clip(raw - 0.05, 0.40, 0.90))
+    raw = float(np.clip(base_conf + bonus + pair_adj, 0.30, 0.95))
+    # Institutional −3pp haircut (under-promise / over-deliver).
+    return float(np.clip(raw - 0.03, 0.30, 0.90))

@@ -4,19 +4,19 @@ export const PAIRS = [
     label: "EURUSD" as const,
     display: "EUR/USD",
     urlSlug: "eurusd",
-    pairColor: "#4BA3E3",
+    pairColor: "#4080e0",
   },
   {
     label: "USDJPY" as const,
     display: "USD/JPY",
     urlSlug: "usdjpy",
-    pairColor: "#F5923A",
+    pairColor: "#e08020",
   },
   {
     label: "USDINR" as const,
     display: "USD/INR",
     urlSlug: "usdinr",
-    pairColor: "#FB923C",
+    pairColor: "#c04020",
   },
 ];
 
@@ -33,9 +33,9 @@ export const PAIR_DISPLAY: Record<PairSlug, string> = {
 };
 
 export const PAIR_COLORS: Record<PairSlug, string> = {
-  "eur-usd": "#3b82f6", // blue-500
-  "usd-jpy": "#ef4444", // red-500
-  "usd-inr": "#10b981", // emerald-500
+  "eur-usd": "#4080e0", // logo blue
+  "usd-jpy": "#e08020", // logo orange
+  "usd-inr": "#c04020", // logo red
 };
 
 // Merged regime heatmap colors (old + new regimes)

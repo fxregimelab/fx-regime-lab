@@ -1,5 +1,6 @@
 """Layer 2 directional conviction: COT percentile, crowding ramp, conviction
-multiplier, Marcus B clash."""
+multiplier, Marcus B clash, composite-informed direction.
+"""
 
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ _CROWD_VETO_HI = 97.0
 _CROWD_VETO_LO = 3.0
 _Z_EPS = 0.12
 _POS_DEADBAND = 5.0
+_COMPOSITE_STRONG = 0.30
 
 
 def _phi_upper_tail(pi: float) -> float:
@@ -46,6 +48,17 @@ def marcus_b_rate_positioning_clash(rate_sign: int, pos_sign: int) -> bool:
     if rate_sign == 0 or pos_sign == 0:
         return False
     return rate_sign * pos_sign < 0
+
+
+def composite_rate_clash(composite: float | None, rate_sign: int) -> bool:
+    """Marcus C: composite strongly disagrees with rate direction."""
+
+    if composite is None or rate_sign == 0:
+        return False
+    comp_sign = 1 if composite > _COMPOSITE_STRONG else (-1 if composite < -_COMPOSITE_STRONG else 0)
+    if comp_sign == 0:
+        return False
+    return comp_sign * rate_sign < 0
 
 
 def effective_rate_sign(
@@ -101,6 +114,14 @@ def conviction_multiplier_pi(
     return float(max(0.52, min(1.08, m)))
 
 
+def _bias_label_from_sign(sign: int) -> Layer2DirectionalBias:
+    if sign > 0:
+        return "LONG"
+    if sign < 0:
+        return "SHORT"
+    return "NEUTRAL"
+
+
 def run_layer2_directional(
     *,
     composite: float | None,
@@ -110,7 +131,17 @@ def run_layer2_directional(
     positioning_percentile: float | None,
     layer1_invalidated: bool,
 ) -> Layer2DirectionalOutput:
-    """Chamber 1 Layer 2: π, crowding, m_π, integer conviction, Marcus B bias."""
+    """Chamber 1 Layer 2: π, crowding, m_π, integer conviction, Marcus B bias.
+
+    Direction logic (v2):
+      1. If Layer1 invalidated / crowd veto / Marcus B clash / composite-rate clash → NEUTRAL.
+      2. If composite is materially non-zero (|S| > 0.30), composite drives direction.
+      3. Otherwise rate sign drives direction.
+      4. If both composite and rate are neutral → NEUTRAL.
+
+    This prevents the model from making directional calls when the composite
+    (which subsumes rate, COT, vol, OI) strongly disagrees with the rate signal alone.
+    """
 
     p_crowd, crowd_flag, crowd_veto = crowding_metrics_pi(positioning_percentile)
     if layer1_invalidated:
@@ -118,7 +149,8 @@ def run_layer2_directional(
     else:
         rate_s = effective_rate_sign(rate_direction, z_tactical, z_structural)
     pos_s = positioning_sign_pi(positioning_percentile)
-    clash = marcus_b_rate_positioning_clash(rate_s, pos_s)
+    clash_b = marcus_b_rate_positioning_clash(rate_s, pos_s)
+    clash_c = composite_rate_clash(composite, rate_s)
     m_pi = conviction_multiplier_pi(positioning_percentile, p_crowd, rate_s, pos_s)
 
     if composite is not None:
@@ -128,15 +160,18 @@ def run_layer2_directional(
         base_c = 2.35
 
     c_float = float(base_c) * float(m_pi)
-    if layer1_invalidated or crowd_veto or clash:
+    if layer1_invalidated or crowd_veto or clash_b or clash_c:
         c_float = min(c_float, 3.0)
     c_float = max(1.0, min(5.0, c_float))
     conviction = int(round(c_float))
     conviction = max(1, min(5, conviction))
 
+    # Direction: composite wins when strong; otherwise rate; clash → neutral.
     bias: Layer2DirectionalBias
-    if layer1_invalidated or crowd_veto or clash:
+    if layer1_invalidated or crowd_veto or clash_b or clash_c:
         bias = "NEUTRAL"
+    elif composite is not None and abs(composite) > _COMPOSITE_STRONG:
+        bias = _bias_label_from_sign(1 if composite > 0 else -1)
     elif rate_s > 0:
         bias = "LONG"
     elif rate_s < 0:
@@ -152,6 +187,6 @@ def run_layer2_directional(
         "conviction_multiplier": m_pi,
         "conviction": conviction,
         "directional_bias": bias,
-        "rate_positioning_clash": clash,
+        "rate_positioning_clash": clash_b,
     }
     return out

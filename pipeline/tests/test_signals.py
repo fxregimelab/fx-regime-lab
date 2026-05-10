@@ -82,9 +82,17 @@ def test_rate_direction_neutral_when_spreads_missing() -> None:
 
 
 def test_rate_direction_from_2y() -> None:
-    assert rate_direction_from_spreads(1.0, None) == "BULLISH"
-    assert rate_direction_from_spreads(-1.0, None) == "BEARISH"
-    assert rate_direction_from_spreads(0.0, None) == "NEUTRAL"
+    # Raw-spread threshold tightened to 1.0 pp.
+    assert rate_direction_from_spreads(1.5, None) == "BULLISH"
+    assert rate_direction_from_spreads(-1.5, None) == "BEARISH"
+    assert rate_direction_from_spreads(0.5, None) == "NEUTRAL"
+
+
+def test_rate_direction_from_z() -> None:
+    # Z-score path: prefers normalized signal over raw level.
+    assert rate_direction_from_spreads(0.5, None, z_tactical=0.5) == "BULLISH"
+    assert rate_direction_from_spreads(0.5, None, z_tactical=-0.5) == "BEARISH"
+    assert rate_direction_from_spreads(0.5, None, z_tactical=0.1) == "NEUTRAL"
 
 
 def test_risk_adjusted_carry() -> None:

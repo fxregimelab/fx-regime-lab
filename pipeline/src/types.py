@@ -278,6 +278,14 @@ class RegimeCall:
     stop_level: float | None = None
     data_quality_score: float | None = None
     stress_level: str | None = None
+    # Layer 2 outputs (persisted for validation transparency)
+    predicted_direction: str | None = None  # BULLISH / BEARISH / NEUTRAL (Layer2 bias)
+    directional_bias: str | None = None  # LONG / SHORT / NEUTRAL
+    conviction: int | None = None
+    # Signal family snapshots (for audit / explainability)
+    cot_signal: str | None = None
+    vol_signal: str | None = None
+    oi_signal: str | None = None
 
 
 @dataclass

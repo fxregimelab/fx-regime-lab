@@ -11,6 +11,7 @@ import {
   Search,
   Sparkles,
   Terminal,
+  TrendingUp,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -49,6 +50,13 @@ const ALL_ITEMS: CommandItem[] = [
     section: "Pages",
   },
   {
+    id: "track-record",
+    label: "Track Record",
+    path: "/performance",
+    icon: <TrendingUp size={14} />,
+    section: "Pages",
+  },
+  {
     id: "about",
     label: "About",
     path: "/about",
@@ -75,6 +83,13 @@ const ALL_ITEMS: CommandItem[] = [
     label: "Calendar",
     path: "/terminal/calendar",
     icon: <Calendar size={14} />,
+    section: "Terminal",
+  },
+  {
+    id: "terminal-track-record",
+    label: "Track Record",
+    path: "/terminal/performance",
+    icon: <TrendingUp size={14} />,
     section: "Terminal",
   },
   {

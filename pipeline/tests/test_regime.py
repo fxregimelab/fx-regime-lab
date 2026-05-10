@@ -43,10 +43,14 @@ def test_non_neutral_vol_expanding_unchanged() -> None:
 
 
 def test_confidence_midband() -> None:
+    # composite=0.7 → base=0.35; rate/cot agree + both >0.3 → +0.10
+    # raw=0.45; haircut → 0.42
     c = compute_confidence(0.7, 0.6, 0.5)
-    assert 0.50 < c < 0.91
+    assert 0.40 < c < 0.50
 
 
 def test_confidence_minimum() -> None:
+    # composite=0.4 → base=0.20; rate/cot agree but weak → +0.05
+    # raw=0.25 → clipped to floor 0.30; haircut → 0.27 → clipped to 0.30
     c = compute_confidence(0.4, 0.1, 0.1)
-    assert c >= 0.40
+    assert c >= 0.30
