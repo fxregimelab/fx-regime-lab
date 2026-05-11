@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Literal, NamedTuple
 
+import numpy as np
+
 from src.fetchers.buffer_keys import KEY_COT, KEY_CROSS_ASSET, KEY_FX_SPOT, KEY_YIELDS
 from src.types import CotRow, SpotBar
 
@@ -69,7 +71,8 @@ def _calendar_age_hours(as_of: date, observed: date | None) -> float | None:
         return None
     if observed > as_of:
         return 0.0
-    return float((as_of - observed).days * 24)
+    trading_days = int(np.busday_count(observed.isoformat(), as_of.isoformat()))
+    return float(trading_days * 24)
 
 
 def fx_pairs_from_universe(universe: dict[str, Any]) -> list[str]:
