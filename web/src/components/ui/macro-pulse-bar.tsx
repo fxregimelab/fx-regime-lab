@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
+import type React from "react";
+import { useMemo } from "react";
 
 interface MacroPulseBarProps {
   dxy?: number;
@@ -22,7 +23,7 @@ export const MacroPulseBar: React.FC<MacroPulseBarProps> = ({
       { label: "VIX", value: vix, decimals: 2 },
       { label: "WTI", value: wti, decimals: 2 },
     ],
-    [dxy, us10y, vix, wti]
+    [dxy, us10y, vix, wti],
   );
 
   const content = (
@@ -46,7 +47,9 @@ export const MacroPulseBar: React.FC<MacroPulseBarProps> = ({
             color: "var(--terminal-fg-muted, #a8a29e)",
           }}
         >
-          <span style={{ color: "var(--terminal-fg-dim, #78716c)" }}>{item.label}</span>
+          <span style={{ color: "var(--terminal-fg-dim, #78716c)" }}>
+            {item.label}
+          </span>
           <span style={{ color: "var(--terminal-fg, #e7e5e4)" }}>
             {item.value.toFixed(item.decimals)}
           </span>

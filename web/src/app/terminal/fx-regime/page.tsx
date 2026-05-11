@@ -345,7 +345,7 @@ export default function FxRegimePairSelectionPage() {
         mathRateZStructural={
           sigs?.[rank1.pair]?.rate_z_structural != null
             ? Number(sigs[rank1.pair]?.rate_z_structural)
-            : rank1.telemetry_audit?.rate_z_structural_mad ?? null
+            : (rank1.telemetry_audit?.rate_z_structural_mad ?? null)
         }
         mathDynamicBeta={rank1.dominance_array[0]?.beta ?? null}
         pausedBinaryResolve={!!validHover && validHover !== rank1.pair}

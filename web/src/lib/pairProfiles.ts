@@ -1,4 +1,4 @@
-import { PAIR_SLUGS, PAIR_DISPLAY, PAIR_COLORS } from "./constants";
+import { PAIR_COLORS, PAIR_DISPLAY, PAIR_SLUGS } from "./constants";
 import type { PairSlug } from "./constants";
 
 export interface PairProfile {
@@ -53,17 +53,14 @@ export function formatSpotForPair(spot: number, slug: string): string {
 export function pipsForPair(
   entry: number,
   current: number,
-  slug: string
+  slug: string,
 ): number {
   const profile = getPairProfile(slug);
   const mult = profile?.pipMultiplier ?? 10000;
   return (current - entry) * mult;
 }
 
-export function weightedSignalScore(
-  confidence: number,
-  slug: string
-): number {
+export function weightedSignalScore(confidence: number, slug: string): number {
   const profile = getPairProfile(slug);
   const weight = profile?.signalWeight ?? 1.0;
   return confidence * weight;
