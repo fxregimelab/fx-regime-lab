@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
 
 const HEX_CHARS = "0123456789ABCDEF";
 
@@ -38,7 +39,7 @@ export const BinaryResolve: React.FC<BinaryResolveProps> = ({
       value
         .split("")
         .map(() => HEX_CHARS[Math.floor(Math.random() * 16)])
-        .join("")
+        .join(""),
     );
 
     intervalRef.current = setInterval(() => {
@@ -46,7 +47,7 @@ export const BinaryResolve: React.FC<BinaryResolveProps> = ({
         value
           .split("")
           .map(() => HEX_CHARS[Math.floor(Math.random() * 16)])
-          .join("")
+          .join(""),
       );
     }, tickMs);
 
@@ -69,7 +70,11 @@ export const BinaryResolve: React.FC<BinaryResolveProps> = ({
       style={{
         fontFamily: "var(--font-mono), ui-monospace, monospace",
         fontVariantNumeric: "tabular-nums",
-        color: flashing ? "#ffffff" : resolved ? undefined : "var(--terminal-fg-muted, #a8a29e)",
+        color: flashing
+          ? "#ffffff"
+          : resolved
+            ? undefined
+            : "var(--terminal-fg-muted, #a8a29e)",
         transition: "color 150ms ease-out",
         textShadow: flashing ? "0 0 8px rgba(255,255,255,0.5)" : undefined,
       }}

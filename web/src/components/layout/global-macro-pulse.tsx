@@ -10,7 +10,10 @@ export function GlobalMacroPulse() {
     >
       <span
         className="text-[0.6875rem] font-medium tracking-wider text-[#e7e5e4]"
-        style={{ fontVariantNumeric: "tabular-nums", fontFeatureSettings: '"tnum"' }}
+        style={{
+          fontVariantNumeric: "tabular-nums",
+          fontFeatureSettings: '"tnum"',
+        }}
       >
         DXY · US10Y · VIX · WTI
       </span>

@@ -74,7 +74,9 @@ export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
           ["RATE DIFF", fmt2(signals?.rate_diff_2y)],
           [
             "COT PCT",
-            pairMeta?.label === "USDINR" ? "N/A" : fmtInt(signals?.cot_percentile),
+            pairMeta?.label === "USDINR"
+              ? "N/A"
+              : fmtInt(signals?.cot_percentile),
           ],
           ["RVOL 20D", fmt2(signals?.realized_vol_20d)],
         ].map(([lbl, val]) => (

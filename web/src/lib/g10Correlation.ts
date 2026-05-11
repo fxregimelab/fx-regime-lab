@@ -1,6 +1,7 @@
 import type { Database } from "./supabase/database.types";
 
-type HistoricalPricesRow = Database["public"]["Tables"]["historical_prices"]["Row"];
+type HistoricalPricesRow =
+  Database["public"]["Tables"]["historical_prices"]["Row"];
 
 export type CorrelationMatrix = {
   pair: string;
@@ -17,7 +18,7 @@ export type CorrelationCell = {
 
 export function computeCorrelationMatrix(
   rows: HistoricalPricesRow[],
-  pairs: string[]
+  pairs: string[],
 ): CorrelationMatrix {
   const byPair = new Map<string, HistoricalPricesRow[]>();
   for (const row of rows) {
@@ -103,7 +104,7 @@ export function flattenMatrix(matrix: CorrelationMatrix): CorrelationCell[] {
 export function getPairCorrelation(
   matrix: CorrelationMatrix,
   pairA: string,
-  pairB: string
+  pairB: string,
 ): number {
   const row = matrix.find((r) => r.pair === pairA);
   if (!row) return 0;
