@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -97,7 +97,7 @@ class TestFetchFxSpotFallback:
         """Polygon fails → Alpha Vantage succeeds → yfinance NOT called."""
         mock_get.return_value = _FakeResponse({"status": "ERROR"})
         bars = [
-            SpotBar(date=date(2024, 1, 15), pair="EURUSD", open=1.0, high=1.1, low=0.9, close=1.05)
+            SpotBar(date=date.today() - timedelta(days=1), pair="EURUSD", open=1.0, high=1.1, low=0.9, close=1.05)
         ]
         mock_av.return_value = (bars, False)
         mock_yf.return_value = {}

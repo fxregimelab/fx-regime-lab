@@ -150,6 +150,14 @@ def _trim_lookback(bars: list[SpotBar], lookback_days: int) -> list[SpotBar]:
     return [b for b in ordered if b.date >= start]
 
 
+def _av_data_stale(bars: list[SpotBar]) -> bool:
+    """Return True if the latest bar from Alpha Vantage is > 2 calendar days old."""
+    if not bars:
+        return False
+    latest = max(b.date for b in bars)
+    return (date.today() - latest).days > 2
+
+
 def _parse_av_fx_daily(pair: str, data: dict[str, Any]) -> list[SpotBar]:
     ts = data.get("Time Series FX (Daily)")
     if not isinstance(ts, dict) or not ts:
@@ -341,7 +349,14 @@ def fetch_fx_spot(lookback_days: int = 30) -> dict[str, list[SpotBar]]:
                 lookback_days=lookback_days,
             )
             if bars:
-                out[pair] = bars
+                if _av_data_stale(bars):
+                    logger.warning(
+                        "Alpha Vantage data for %s is stale (latest %s); discarding for yfinance fallback",
+                        pair,
+                        bars[-1].date,
+                    )
+                else:
+                    out[pair] = bars
             if stop:
                 av_stop = True
 
@@ -489,7 +504,14 @@ async def fetch_fx_spot_async(
 
             bars, stop = await asyncio.to_thread(_av_sync)
             if bars:
-                out[pair] = bars
+                if _av_data_stale(bars):
+                    logger.warning(
+                        "Alpha Vantage data for %s is stale (latest %s); discarding for yfinance fallback",
+                        pair,
+                        bars[-1].date,
+                    )
+                else:
+                    out[pair] = bars
             if stop:
                 av_stop = True
 
