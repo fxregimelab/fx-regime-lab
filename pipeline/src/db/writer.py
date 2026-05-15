@@ -1270,23 +1270,40 @@ def get_validation_log_for_stats(
             q = q.gte("date", cutoff.isoformat())
         return q
 
+    def _fetch_all(q: Any) -> list[dict[str, Any]]:
+        """Paginate through Supabase's 1000-row default limit."""
+        all_rows: list[dict[str, Any]] = []
+        page_size = 1000
+        page = 0
+        while True:
+            res = q.range(page * page_size, (page + 1) * page_size - 1).execute()
+            rows = cast(list[dict[str, Any]], res.data or [])
+            if not rows:
+                break
+            all_rows.extend(rows)
+            if len(rows) < page_size:
+                break
+            page += 1
+        return all_rows
+
     # Attempt modern schema first
     try:
-        res = _build_query(modern_select, include_superseded_filter=True).execute()
-        return cast(list[dict[str, Any]], res.data or [])
+        q = _build_query(modern_select, include_superseded_filter=True)
+        return _fetch_all(q)
     except APIError as exc:
         msg = str(getattr(exc, "message", "")) or str(exc)
         if "column validation_log." in msg:
             # One or more modern columns are missing → fall back to legacy schema
             try:
-                res = _build_query(legacy_select, include_superseded_filter=False).execute()
+                q = _build_query(legacy_select, include_superseded_filter=False)
+                rows = _fetch_all(q)
             except APIError as exc2:
                 msg2 = str(getattr(exc2, "message", "")) or str(exc2)
                 if "is_superseded" in msg2:
-                    res = _build_query(legacy_select, include_superseded_filter=False).execute()
+                    q = _build_query(legacy_select, include_superseded_filter=False)
+                    rows = _fetch_all(q)
                 else:
                     raise
-            rows = cast(list[dict[str, Any]], res.data or [])
             return [_normalize_validation_row(r) for r in rows]
         raise
 
