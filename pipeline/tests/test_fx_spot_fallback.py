@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -26,7 +26,7 @@ class _FakeResponse:
 
 
 def _polygon_response(pair: str) -> dict[str, Any]:
-    ts = int(date(2024, 1, 15).strftime("%s")) * 1000
+    ts = int(datetime.combine(date(2024, 1, 15), datetime.min.time()).timestamp()) * 1000
     return {
         "ticker": f"C:{pair.replace('/', '')}",
         "status": "OK",
