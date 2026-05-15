@@ -10,6 +10,7 @@ import {
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import Script from "next/script";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
@@ -646,8 +647,36 @@ export default async function HomePage() {
   const eurStats = statsT5.find((s) => s.pair === "EURUSD");
   const accuracy90d = eurStats?.rolling90dAccuracy ?? null;
 
+  const schemaOrgDataset = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    name: "FX Regime Lab — Daily Regime Classifications",
+    description:
+      "Published daily regime classifications for EUR/USD, USD/JPY, and USD/INR. Validated out-of-sample with Brier scores and directional accuracy.",
+    url: "https://fxregimelab.com",
+    creator: {
+      "@type": "Person",
+      name: "Shreyash Sakhare",
+      url: "https://fxregimelab.com/about",
+    },
+    license: "https://creativecommons.org/licenses/by-nc/4.0/",
+    variableMeasured: ["FX Regime", "Directional Accuracy", "Brier Score"],
+    temporalCoverage: "2024/..",
+    spatialCoverage: "Global FX Markets",
+    distribution: {
+      "@type": "DataDownload",
+      contentUrl: "https://fxregimelab.com/performance",
+      encodingFormat: "HTML",
+    },
+  };
+
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
+      <Script
+        id="schema-dataset"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrgDataset) }}
+      />
       <Nav />
       <main id="main-content">
         <Hero
