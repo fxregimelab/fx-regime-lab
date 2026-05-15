@@ -68,6 +68,7 @@ export interface ValidationStats {
   sampleSize: number | null;
   avgReturnBps: number | null;
   sharpeLike: number | null;
+  rolling90dAccuracy: number | null;
   asOfDate: string;
 }
 
@@ -256,6 +257,9 @@ export async function getValidationStats(
     sharpeLike: r[`${prefix}_sharpe_like` as keyof ValidationStatsRow] as
       | number
       | null,
+    rolling90dAccuracy: r[
+      `${prefix}_rolling_90d_accuracy` as keyof ValidationStatsRow
+    ] as number | null,
     asOfDate: r.as_of_date,
   });
 

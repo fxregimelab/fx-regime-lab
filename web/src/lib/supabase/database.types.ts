@@ -313,6 +313,7 @@ export interface Database {
           t5_sharpe_like: number | null;
           t5_max_drawdown_bps: number | null;
           t5_calibration_json: string | null;
+          t5_rolling_90d_accuracy: number | null;
           t20_total_calls: number | null;
           t20_directional_calls: number | null;
           t20_wins: number | null;
@@ -324,6 +325,7 @@ export interface Database {
           t20_sharpe_like: number | null;
           t20_max_drawdown_bps: number | null;
           t20_calibration_json: string | null;
+          t20_rolling_90d_accuracy: number | null;
           created_at: string;
         };
         Insert: {
@@ -342,6 +344,7 @@ export interface Database {
           t5_sharpe_like?: number | null;
           t5_max_drawdown_bps?: number | null;
           t5_calibration_json?: string | null;
+          t5_rolling_90d_accuracy?: number | null;
           t20_total_calls?: number | null;
           t20_directional_calls?: number | null;
           t20_wins?: number | null;
@@ -353,6 +356,7 @@ export interface Database {
           t20_sharpe_like?: number | null;
           t20_max_drawdown_bps?: number | null;
           t20_calibration_json?: string | null;
+          t20_rolling_90d_accuracy?: number | null;
           created_at?: string;
         };
         Update: Partial<
