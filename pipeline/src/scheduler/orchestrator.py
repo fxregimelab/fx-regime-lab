@@ -664,8 +664,46 @@ def _upsert_macro_event_briefs(
     forward_days: int = 7,
     polymarket_context: str = "",
 ) -> None:
-    """Macro event AI briefs — on hold. Telemetry-only pass."""
-    logger.info("Macro event AI briefs skipped (AI on hold).")
+    """Generate AI briefs for high-impact macro events in the forward window."""
+    from src.ai.client import generate_event_brief
+
+    start_d = date.fromisoformat(date_str)
+    end_d = start_d + timedelta(days=forward_days)
+    try:
+        macro_rows = writer.list_high_impact_events_needing_brief(
+            start_d.isoformat(),
+            end_d.isoformat(),
+        )
+    except Exception as exc:
+        logger.warning("Failed to list macro events needing brief: %s", exc)
+        return
+
+    for ev in macro_rows:
+        ev_date = str(ev.get("date"))[:10]
+        ev_name = str(ev.get("event"))
+        try:
+            # Build a minimal risk matrix dict for the event
+            risk_matrix = {
+                "event_name": ev_name,
+                "pair": ",".join(list(ev.get("pairs") or PAIRS)),
+                "active_regime": "NEUTRAL",
+                "sample_size": 0,
+                "median_mie_multiplier": None,
+                "asymmetry_ratio": None,
+                "asymmetry_direction": None,
+            }
+            ai_text = generate_event_brief(
+                risk_matrix,
+                date_str=date_str,
+                polymarket_context=polymarket_context,
+            )
+            writer.update_macro_event_ai_brief(ev_date, ev_name, ai_text)
+            logger.info("Macro event AI brief generated for %s", ev_name)
+        except RuntimeError as exc:
+            logger.warning("Stopping macro AI updates: %s", exc)
+            break
+        except Exception as exc:
+            logger.warning("Macro event brief failed for %s: %s", ev_name, exc)
 
 
 def _upsert_pair_briefs_for_date(
