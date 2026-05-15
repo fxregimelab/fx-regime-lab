@@ -47,3 +47,13 @@ reports/
 
 # UV lock (regenerate in CI)
 pipeline/uv.lock
+
+# Backup files
+pipeline/src/ai/client_v1_backup.py
+pipeline/src/ai/client_v2_openrouter_only.py
+
+# Sample data
+data/*.csv
+
+# Generated audit reports
+docs/PIPELINE_AUDIT_AND_10_10_PLAN.md
