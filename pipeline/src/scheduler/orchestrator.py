@@ -133,7 +133,26 @@ if _PREFECT_AVAILABLE and _PREFECT_VERSION < (3, 8):
 # ──────────────────────────────────────────────────────────────────────────────
 
 from dotenv import load_dotenv
-from prefect import flow, task
+
+try:
+    from prefect import flow, task
+except Exception:  # pragma: no cover
+
+    def _make_dummy(name):
+        def decorator(*args, **kwargs):
+            if len(args) == 1 and callable(args[0]):
+                return args[0]
+
+            def inner(fn):
+                return fn
+
+            return inner
+
+        decorator.__name__ = name
+        return decorator
+
+    flow = _make_dummy("flow")
+    task = _make_dummy("task")
 
 from src.ai.client import desk_card_brief_fallback
 from src.analysis.asymmetry import compute_pain_index
@@ -1745,6 +1764,7 @@ async def run_daily(
                     call,
                     correlation_id=correlation_id,
                     write_hash=write_hash,
+                    model_version="v2",
                 )
                 ledger.log_initial_signal(
                     pair=call.pair,
@@ -2201,7 +2221,7 @@ async def run_pair(pair: str, date_str: str | None = None) -> dict[str, Any]:
                 "stress_level": call.stress_level,
             }
         )
-        writer.write_regime_call(call, write_hash=write_hash)
+        writer.write_regime_call(call, write_hash=write_hash, model_version="v2")
         ledger.log_initial_signal(
             pair=call.pair,
             target_date=call.date,
