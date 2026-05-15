@@ -10,7 +10,9 @@
 - **All AI calls** → `pipeline/src/ai/client.py`
 - **Immutable ledger:** `regime_calls` + `validation_log` append-only
 - **No GitHub Actions** — Prefect Cloud only
-- **Tests:** `pytest` 219+ tests + `npm run build` + `biome check` must pass
+- **Tests:** `pytest` 878+ tests + `npm run build` + `biome check` must pass
+- **Primary success metric:** EUR/USD rolling 90-day directional accuracy (target ≥ 55%)
+- **No new pairs until EUR/USD ≥ 55% on 90-day window** (3-pair lock)
 
 ## Kimi Workflow
 
@@ -52,4 +54,4 @@ cd web && npm run lint             # biome/eslint
 - `OMEGA_PROTOCOL.md` — The 13-persona council and 6-phase workflow
 - `CLAUDE.md` — AI persona, locked decisions, session rules
 
-*Last updated: 2026-05-10*
+*Last updated: 2026-05-15*
