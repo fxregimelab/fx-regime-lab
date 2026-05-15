@@ -34,3 +34,16 @@ ui_rebuit_kimi/
 # Legacy archive — tracked separately, not needed in production
 pipeline/src/legacy/
 .vercel
+
+# Local agent state
+.claude/
+.kimi/skills/
+
+# Local data samples
+ data/
+
+# Audit reports (generated)
+reports/
+
+# UV lock (regenerate in CI)
+pipeline/uv.lock
