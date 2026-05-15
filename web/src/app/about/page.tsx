@@ -2,8 +2,8 @@
 
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
-import { PAIRS } from "@/lib/constants";
+import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
+import { Github, Mail, Twitter } from "lucide-react";
 import Link from "next/link";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -14,276 +14,224 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function AboutPage() {
-  useScrollReveal();
+/* ─── Hero ──────────────────────────────────────────────────────────── */
 
+function Hero() {
+  return (
+    <section className="reveal mb-20 pb-16 border-b border-[var(--color-border)]">
+      <SectionLabel>About</SectionLabel>
+      <h1 className="font-sans font-semibold text-[clamp(32px,4vw,52px)] text-[var(--color-text)] tracking-tight leading-[1.1] mb-6">
+        About FX Regime Lab
+      </h1>
+      <p className="font-sans text-[17px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[560px]">
+        Systematic FX macro research, published daily.
+      </p>
+    </section>
+  );
+}
+
+/* ─── Author Identity ───────────────────────────────────────────────── */
+
+function AuthorIdentity() {
+  return (
+    <section className="reveal mb-24">
+      <div className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-10 items-start">
+        {/* Profile placeholder */}
+        <div className="flex-shrink-0">
+          <div className="w-[120px] h-[120px] md:w-[140px] md:h-[140px] rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center">
+            <span className="font-sans font-semibold text-[32px] text-[var(--color-text-muted)]">
+              SS
+            </span>
+          </div>
+        </div>
+
+        {/* Bio */}
+        <div>
+          <h2 className="font-sans font-semibold text-[22px] text-[var(--color-text)] tracking-tight leading-snug mb-1">
+            Shreyash Sakhare
+          </h2>
+          <p className="font-mono text-[11px] text-emerald-400 tracking-wide mb-5">
+            Founder &amp; Lead Researcher
+          </p>
+          <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[560px]">
+            Macro researcher focused on systematic FX regime classification.
+            Built FX Regime Lab to bridge the gap between institutional-grade
+            quantitative research and publicly accessible daily signals.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Methodology Summary ───────────────────────────────────────────── */
+
+function MethodologySummary() {
+  const bullets = [
+    {
+      label: "3-layer regime engine",
+      desc: "Macro, technical, and micro-structure layers are scored independently and fused into a composite regime label.",
+    },
+    {
+      label: "8 signal families",
+      desc: "Rates, COT, volatility, risk reversal, open interest, cross-asset, carry, and momentum — each calibrated per pair.",
+    },
+    {
+      label: "Out-of-sample validation",
+      desc: "Every call is scored with Brier scores and directional accuracy. No ex-post fitting, no narrative revision.",
+    },
+    {
+      label: "Immutable ledger",
+      desc: "Every call is logged and validated in an append-only record. The database is the source of truth.",
+    },
+  ];
+
+  return (
+    <section className="reveal mb-24">
+      <SectionLabel>Methodology</SectionLabel>
+      <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
+        How we classify regimes
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {bullets.map((b) => (
+          <div
+            key={b.label}
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] p-6"
+          >
+            <p className="font-sans font-semibold text-[14px] text-[var(--color-text)] mb-2">
+              {b.label}
+            </p>
+            <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.6]">
+              {b.desc}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── Track Record Highlights ───────────────────────────────────────── */
+
+function TrackRecordHighlights() {
+  const stats = [
+    { value: "17,000+", label: "Validated regime calls" },
+    {
+      value: "3",
+      label: "Currency pairs: EUR/USD, USD/JPY, USD/INR",
+    },
+    { value: "T+5 & T+20", label: "Horizon validation" },
+    { value: "Live", label: "Rolling 90-day accuracy" },
+  ];
+
+  return (
+    <section className="reveal mb-24">
+      <SectionLabel>Track Record</SectionLabel>
+      <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
+        Highlights
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            className="bg-[var(--color-surface)] p-6 md:p-8"
+          >
+            <p className="font-mono text-[clamp(28px,4vw,40px)] font-medium text-emerald-400 tracking-tight leading-none mb-3 tabular-nums">
+              {s.value}
+            </p>
+            <p className="font-mono text-[9px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase leading-relaxed">
+              {s.label}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── Contact / Connect ─────────────────────────────────────────────── */
+
+function ContactConnect() {
+  const links = [
+    {
+      icon: Mail,
+      label: "Email",
+      href: "mailto:shreyash@fxregimelab.com",
+      display: "shreyash@fxregimelab.com",
+    },
+    {
+      icon: Github,
+      label: "GitHub",
+      href: "https://github.com/fxregimelab",
+      display: "github.com/fxregimelab",
+    },
+    {
+      icon: Twitter,
+      label: "X / Twitter",
+      href: "#",
+      display: "@fxregimelab",
+    },
+  ];
+
+  return (
+    <section className="reveal mb-24">
+      <SectionLabel>Contact</SectionLabel>
+      <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
+        Connect
+      </h2>
+      <div className="flex flex-col gap-3 max-w-[480px]">
+        {links.map((l) => (
+          <Link
+            key={l.label}
+            href={l.href}
+            className="group flex items-center gap-4 px-5 py-3.5 border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-300 hover:bg-[var(--color-elevated)] hover:border-[var(--color-border-bright)]"
+          >
+            <l.icon className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-[var(--color-text)] transition-colors duration-300" />
+            <div>
+              <p className="font-sans text-[13px] text-[var(--color-text)] font-medium">
+                {l.label}
+              </p>
+              <p className="font-mono text-[11px] text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)] transition-colors duration-300">
+                {l.display}
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── Disclaimer ────────────────────────────────────────────────────── */
+
+function Disclaimer() {
+  return (
+    <section className="reveal mb-10">
+      <p className="font-mono text-[10px] text-[var(--color-text-muted)] leading-relaxed max-w-[640px]">
+        FX Regime Lab is a research publication, not investment advice. Past
+        performance does not guarantee future results.
+      </p>
+    </section>
+  );
+}
+
+/* ─── Page ──────────────────────────────────────────────────────────── */
+
+export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
       <main
         id="main-content"
-        className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full"
+        className="max-w-4xl mx-auto px-6 pt-28 pb-20 w-full"
       >
-        {/* Header */}
-        <div className="reveal grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-20 mb-24 pb-16 border-b border-[var(--color-border)]">
-          <div>
-            <SectionLabel>About</SectionLabel>
-            <h1 className="font-sans font-semibold text-[clamp(32px,4vw,48px)] text-[var(--color-text)] tracking-tight leading-[1.1] mb-8">
-              A research system.
-              <br />
-              Public by design.
-            </h1>
-            <div className="flex flex-col gap-2.5">
-              <Link
-                href="/brief"
-                className="px-5 py-2.5 bg-[var(--color-accent)] text-[var(--color-void)] font-sans text-[13px] tracking-wide transition-all duration-300 hover:bg-[var(--color-accent-hover)]"
-              >
-                Today&apos;s brief →
-              </Link>
-              <Link
-                href="/terminal"
-                className="px-5 py-2.5 border border-[var(--color-border)] font-sans text-[13px] text-[var(--color-text-secondary)] transition-all duration-300 hover:bg-[var(--color-elevated)] hover:text-[var(--color-text)] hover:border-[var(--color-border)]"
-              >
-                Open terminal →
-              </Link>
-              <Link
-                href="/methodology"
-                className="px-5 py-2.5 border border-[var(--color-border)] font-sans text-[13px] text-[var(--color-text-secondary)] transition-all duration-300 hover:bg-[var(--color-elevated)] hover:text-[var(--color-text)] hover:border-[var(--color-border)]"
-              >
-                Methodology →
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <h2 className="font-sans font-semibold text-lg text-[var(--color-text)] tracking-tight mb-4">
-              Shreyash Sakhare
-            </h2>
-            <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] mb-5">
-              EE undergrad. Studying how G10 FX regimes form and break using
-              rate differentials, COT positioning, and volatility. This is not a
-              learning journal or a student project in disguise. It is a
-              discretionary macro research system that happens to be public.
-            </p>
-            <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] mb-8">
-              The site is the public trace of that work — dated calls, validated
-              outcomes, no narrative added after the fact. Credibility compounds
-              through calendar discipline and honest validation, not marketing.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
-              <div className="bg-[var(--color-surface)] p-6">
-                <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
-                  This is
-                </p>
-                <ul className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-relaxed list-none p-0 m-0">
-                  {[
-                    "Daily regime calls for G10 pairs",
-                    "Public validation trail",
-                    "Composite signal from 4 families",
-                    "Morning brief before market open",
-                    "Terminal for dense monitoring",
-                  ].map((t) => (
-                    <li key={t} className="flex gap-2.5 items-start mb-2">
-                      <span className="font-mono text-[11px] pt-0.5 flex-shrink-0 text-[var(--color-text-muted)]">
-                        +
-                      </span>
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="bg-[var(--color-elevated)] p-6">
-                <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
-                  This is not
-                </p>
-                <ul className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-relaxed list-none p-0 m-0">
-                  {[
-                    "A SaaS or subscription product",
-                    "Investment advice",
-                    "An automated trading system",
-                    "Generic macro commentary",
-                  ].map((t) => (
-                    <li key={t} className="flex gap-2.5 items-start mb-2">
-                      <span className="font-mono text-[11px] pt-0.5 flex-shrink-0 text-[var(--color-text-muted)]">
-                        —
-                      </span>
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pipeline */}
-        <div className="reveal mb-24">
-          <SectionLabel>Methodology</SectionLabel>
-          <div className="flex items-baseline justify-between mb-8 flex-wrap gap-4">
-            <h2 className="font-sans font-semibold text-[26px] text-[var(--color-text)] tracking-tight">
-              How the pipeline works
-            </h2>
-            <p className="font-mono text-[11px] text-[var(--color-text-muted)]">
-              Five stages from raw data to public call
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-5 border border-[var(--color-border)] mb-10">
-            {[
-              { n: "01", title: "Data Ingestion" },
-              { n: "02", title: "Normalization" },
-              { n: "03", title: "Composite" },
-              { n: "04", title: "Classification" },
-              { n: "05", title: "Validation" },
-            ].map((s, i) => (
-              <div
-                key={s.n}
-                className={`px-4 py-4 ${i < 4 ? "border-b md:border-b-0 md:border-r" : ""} border-[var(--color-border)] bg-[var(--color-elevated)]`}
-              >
-                <span className="block font-mono text-[10px] text-[var(--color-text-muted)] mb-1">
-                  {s.n}
-                </span>
-                <span className="font-mono text-[10px] text-[var(--color-text-secondary)] font-medium tracking-wide uppercase">
-                  {s.title}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div>
-              <h3 className="font-sans font-semibold text-[20px] text-[var(--color-text)] tracking-tight mb-4">
-                Pipeline overview
-              </h3>
-              <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] mb-4">
-                Every trading day, a Python pipeline ingests public market data
-                from multiple sources. Raw values are normalized to rolling
-                percentile ranks, then combined into a weighted composite score.
-                The composite is mapped to a regime label via threshold bands.
-                The call is published before market open and validated the next
-                trading day.
-              </p>
-              <p className="font-sans text-[13px] text-[var(--color-text-muted)] leading-[1.6]">
-                No proprietary feeds — only publicly available data. No ex-post
-                revisions. Every outcome is logged and displayed publicly.
-              </p>
-            </div>
-            <div className="bg-[var(--color-surface)] p-6 border border-[var(--color-border)]">
-              <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
-                Signal Weights
-              </p>
-              <div className="flex flex-col gap-3">
-                {[
-                  ["Rate Differential 2Y", "~40%"],
-                  ["COT Positioning", "~30%"],
-                  ["Realized Volatility", "~20%"],
-                  ["OI / Risk Reversals", "~10%"],
-                ].map(([label, weight]) => (
-                  <div key={label} className="flex items-center gap-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-text-muted)] flex-shrink-0" />
-                    <span className="font-mono text-[11px] text-[var(--color-text-secondary)] flex-1">
-                      {label}
-                    </span>
-                    <span className="font-mono text-[11px] text-[var(--color-text)] font-medium">
-                      {weight}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 pt-4 border-t border-[var(--color-border)]">
-                <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-3">
-                  Thresholds
-                </p>
-                <div className="flex flex-col gap-2">
-                  {[
-                    ["STRONG USD STRENGTH", "> +1.2"],
-                    ["MODERATE USD STRENGTH", "+0.6 to +1.2"],
-                    ["NEUTRAL", "-0.4 to +0.4"],
-                    ["MODERATE USD WEAKNESS", "-1.2 to -0.6"],
-                    ["VOL_EXPANDING", "IV > 90th pctile"],
-                  ].map(([label, range]) => (
-                    <div
-                      key={label}
-                      className="flex justify-between font-mono text-[10px]"
-                    >
-                      <span className="text-[var(--color-text-secondary)]">
-                        {label}
-                      </span>
-                      <span className="text-[var(--color-text)] font-medium">
-                        {range}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Validation */}
-        <div className="reveal border-t border-[var(--color-border)] pt-16">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-16">
-            <div>
-              <SectionLabel>Validation</SectionLabel>
-              <h2 className="font-sans font-semibold text-[26px] text-[var(--color-text)] tracking-tight leading-snug mb-4">
-                Why public validation matters
-              </h2>
-              <Link
-                href="/methodology"
-                className="inline-block px-5 py-2 border border-[var(--color-border)] font-mono text-[11px] text-[var(--color-text-secondary)] transition-all duration-300 hover:bg-[var(--color-elevated)] hover:text-[var(--color-text)] hover:border-[var(--color-border)]"
-              >
-                Full track record →
-              </Link>
-            </div>
-            <div>
-              <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] mb-5">
-                Any discretionary framework can be constructed to look correct
-                in hindsight. The discipline of publishing a call before the
-                outcome is known — and logging the result without revision — is
-                the only meaningful test.
-              </p>
-              <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] mb-8">
-                Each call is validated on next-day close-to-close spot movement.
-                If the regime was MODERATE USD WEAKNESS and EUR/USD closed
-                higher, it is correct. If it closed lower, it is incorrect.
-                There is no partial credit, no adjustments for vol regimes, no
-                &quot;context&quot; that modifies the record.
-              </p>
-              <div className="grid grid-cols-3 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
-                {[
-                  {
-                    label: "7D ACCURACY",
-                    value: "—",
-                    sub: "Track record in development",
-                  },
-                  {
-                    label: "CALLS LOGGED",
-                    value: "—",
-                    sub: "Track record in development",
-                  },
-                  {
-                    label: "PAIRS COVERED",
-                    value: String(PAIRS.length),
-                    sub: PAIRS.map((p) => p.display).join(", "),
-                  },
-                ].map((m) => (
-                  <div key={m.label} className="bg-[var(--color-surface)] p-5">
-                    <p className="font-mono text-[9px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase mb-2">
-                      {m.label}
-                    </p>
-                    <p className="font-mono text-[26px] font-medium text-[var(--color-text)] tracking-tight tabular-nums">
-                      {m.value}
-                    </p>
-                    <p className="font-mono text-[9px] text-[var(--color-text-muted)] mt-1">
-                      {m.sub}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        <Hero />
+        <AuthorIdentity />
+        <MethodologySummary />
+        <TrackRecordHighlights />
+        <ContactConnect />
+        <Disclaimer />
+        <ResearchDisclaimer />
       </main>
       <Footer />
     </div>
