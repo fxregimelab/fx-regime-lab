@@ -1,0 +1,1 @@
+"""EURUSD pair pipeline."""
