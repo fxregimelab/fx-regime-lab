@@ -14,100 +14,126 @@ import json
 import logging
 import os
 import sys
+import time
 import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import date, timedelta
 from typing import Any, Literal, cast
 
-from dotenv import load_dotenv
-from prefect import flow, task
-
 # ── Prefect managed worker patch ──────────────────────────────────────────────
 # Prefect's managed worker base images currently ship with a broken prefect
 # install where task_engine.py expects internal symbols that results.py doesn't
 # define. We inject all missing internals at import time so the flow runner
 # process sees them before any @task-decorated function is called.
-import prefect.results as _pr
+try:
+    import prefect
 
-if not hasattr(_pr, "_has_current_run_context"):
-    def _has_current_run_context() -> bool:
-        from prefect.context import FlowRunContext, TaskRunContext
-        return TaskRunContext.get() is not None or FlowRunContext.get() is not None
+    _PREFECT_VERSION = tuple(int(x) for x in prefect.__version__.split(".")[:2])
+    _PREFECT_AVAILABLE = True
+except Exception:
+    _PREFECT_VERSION = (3, 0)
+    _PREFECT_AVAILABLE = False
 
-    _pr._has_current_run_context = _has_current_run_context  # type: ignore[attr-defined]
+if _PREFECT_AVAILABLE and _PREFECT_VERSION < (3, 8):
+    import prefect.results as _pr
 
-if not hasattr(_pr, "get_current_settings"):
-    def get_current_settings():
-        from prefect.context import SettingsContext
-        from prefect.settings import Settings
-        settings_context = SettingsContext.get()
-        if settings_context is not None:
-            return settings_context.settings
-        return Settings()
+    if not hasattr(_pr, "_has_current_run_context"):
 
-    _pr.get_current_settings = get_current_settings  # type: ignore[attr-defined]
+        def _has_current_run_context() -> bool:
+            from prefect.context import FlowRunContext, TaskRunContext
 
-if not hasattr(_pr, "get_default_persist_setting"):
-    def get_default_persist_setting() -> bool:
-        return _pr.get_current_settings().results.persist_by_default
+            return TaskRunContext.get() is not None or FlowRunContext.get() is not None
 
-    _pr.get_default_persist_setting = get_default_persist_setting  # type: ignore[attr-defined]
+        _pr._has_current_run_context = _has_current_run_context  # type: ignore[attr-defined]
 
-if not hasattr(_pr, "_read_server_default_result_storage_block_id"):
-    from uuid import UUID
-    def _read_server_default_result_storage_block_id() -> UUID | None:
-        from prefect.client.orchestration import get_client
-        import httpx
-        from prefect.exceptions import PrefectHTTPStatusError
-        try:
-            client = get_client(sync_client=True)
-            configuration = client.read_server_default_result_storage()
-        except (PrefectHTTPStatusError, httpx.HTTPError, RuntimeError, ValueError):
-            return None
-        return configuration.default_result_storage_block_id
+    if not hasattr(_pr, "get_current_settings"):
 
-    _pr._read_server_default_result_storage_block_id = _read_server_default_result_storage_block_id  # type: ignore[attr-defined]
+        def get_current_settings():
+            from prefect.context import SettingsContext
+            from prefect.settings import Settings
 
-if not hasattr(_pr, "_aread_server_default_result_storage_block_id"):
-    from uuid import UUID
-    async def _aread_server_default_result_storage_block_id() -> UUID | None:
-        from prefect.client.orchestration import get_client
-        import httpx
-        from prefect.exceptions import PrefectHTTPStatusError
-        try:
-            client = get_client()
-            configuration = await client.read_server_default_result_storage()
-        except (PrefectHTTPStatusError, httpx.HTTPError, RuntimeError, ValueError):
-            return None
-        return configuration.default_result_storage_block_id
+            settings_context = SettingsContext.get()
+            if settings_context is not None:
+                return settings_context.settings
+            return Settings()
 
-    _pr._aread_server_default_result_storage_block_id = _aread_server_default_result_storage_block_id  # type: ignore[attr-defined]
+        _pr.get_current_settings = get_current_settings  # type: ignore[attr-defined]
 
-if not hasattr(_pr, "_get_default_persist_result"):
-    def _get_default_persist_result() -> bool:
-        persist_result = _pr.should_persist_result()
-        if persist_result or _pr._has_current_run_context():
-            return persist_result
-        default_block = _pr.get_current_settings().results.default_storage_block
-        if default_block is not None:
-            return True
-        return _pr._read_server_default_result_storage_block_id() is not None
+    if not hasattr(_pr, "get_default_persist_setting"):
 
-    _pr._get_default_persist_result = _get_default_persist_result  # type: ignore[attr-defined]
+        def get_default_persist_setting() -> bool:
+            return _pr.get_current_settings().results.persist_by_default
 
-if not hasattr(_pr, "_aget_default_persist_result"):
-    async def _aget_default_persist_result() -> bool:
-        persist_result = _pr.should_persist_result()
-        if persist_result or _pr._has_current_run_context():
-            return persist_result
-        default_block = _pr.get_current_settings().results.default_storage_block
-        if default_block is not None:
-            return True
-        return await _pr._aread_server_default_result_storage_block_id() is not None
+        _pr.get_default_persist_setting = get_default_persist_setting  # type: ignore[attr-defined]
 
-    _pr._aget_default_persist_result = _aget_default_persist_result  # type: ignore[attr-defined]
+    if not hasattr(_pr, "_read_server_default_result_storage_block_id"):
+        from uuid import UUID
+
+        def _read_server_default_result_storage_block_id() -> UUID | None:
+            import httpx
+            from prefect.client.orchestration import get_client
+            from prefect.exceptions import PrefectHTTPStatusError
+
+            try:
+                client = get_client(sync_client=True)
+                configuration = client.read_server_default_result_storage()
+            except (PrefectHTTPStatusError, httpx.HTTPError, RuntimeError, ValueError):
+                return None
+            return configuration.default_result_storage_block_id
+
+        _pr._read_server_default_result_storage_block_id = (  # type: ignore[attr-defined]
+            _read_server_default_result_storage_block_id
+        )
+
+    if not hasattr(_pr, "_aread_server_default_result_storage_block_id"):
+        from uuid import UUID
+
+        async def _aread_server_default_result_storage_block_id() -> UUID | None:
+            import httpx
+            from prefect.client.orchestration import get_client
+            from prefect.exceptions import PrefectHTTPStatusError
+
+            try:
+                client = get_client()
+                configuration = await client.read_server_default_result_storage()
+            except (PrefectHTTPStatusError, httpx.HTTPError, RuntimeError, ValueError):
+                return None
+            return configuration.default_result_storage_block_id
+
+        _pr._aread_server_default_result_storage_block_id = (  # type: ignore[attr-defined]
+            _aread_server_default_result_storage_block_id
+        )
+
+    if not hasattr(_pr, "_get_default_persist_result"):
+
+        def _get_default_persist_result() -> bool:
+            persist_result = _pr.should_persist_result()
+            if persist_result or _pr._has_current_run_context():
+                return persist_result
+            default_block = _pr.get_current_settings().results.default_storage_block
+            if default_block is not None:
+                return True
+            return _pr._read_server_default_result_storage_block_id() is not None
+
+        _pr._get_default_persist_result = _get_default_persist_result  # type: ignore[attr-defined]
+
+    if not hasattr(_pr, "_aget_default_persist_result"):
+
+        async def _aget_default_persist_result() -> bool:
+            persist_result = _pr.should_persist_result()
+            if persist_result or _pr._has_current_run_context():
+                return persist_result
+            default_block = _pr.get_current_settings().results.default_storage_block
+            if default_block is not None:
+                return True
+            return await _pr._aread_server_default_result_storage_block_id() is not None
+
+        _pr._aget_default_persist_result = _aget_default_persist_result  # type: ignore[attr-defined]
 # ──────────────────────────────────────────────────────────────────────────────
+
+from dotenv import load_dotenv
+from prefect import flow, task
 
 from src.ai.client import desk_card_brief_fallback
 from src.analysis.asymmetry import compute_pain_index
@@ -128,12 +154,26 @@ from src.fetchers.macro_calendar import fetch_macro_events
 from src.fetchers.open_interest import compute_oi_delta_from_cot, compute_oi_from_cot
 from src.fetchers.substack import fetch_latest_substack_memo
 from src.fetchers.volatility import fetch_implied_vol, fetch_realized_vol
+from src.fx_types import (
+    PAIRS,
+    CotRow,
+    DeskOpenCardRow,
+    Layer1ClassifierContext,
+    Layer3EntryTiming,
+    Layer3PositionSize,
+    RegimeCall,
+    SignalRow,
+    SpotBar,
+    load_universe,
+)
 from src.logic.layer2_directional import run_layer2_directional
 from src.logic.layer3_execution import run_layer3_execution
 from src.monitoring.alerts import (
     alert_on_low_dqs,
     send_success_heartbeat,
 )
+from src.monitoring.portfolio_risk import PortfolioRiskManager
+from src.monitoring.stress_controls import assess_stress_mode
 from src.regime.classifier import VOL_EXPANDING_SUFFIX, classify_regime_layer1
 from src.regime.composite import (
     TRADING_DAYS_3Y,
@@ -161,18 +201,6 @@ from src.signals.volatility import (
     compute_rvol,
     compute_vol_signal,
     is_vol_expanding,
-)
-from src.types import (
-    PAIRS,
-    CotRow,
-    DeskOpenCardRow,
-    Layer1ClassifierContext,
-    Layer3EntryTiming,
-    Layer3PositionSize,
-    RegimeCall,
-    SignalRow,
-    SpotBar,
-    load_universe,
 )
 from src.validation import ledger
 from src.validation.engine import run_validation
@@ -329,9 +357,11 @@ def _require_pipeline_runtime_env() -> None:
         "SUPABASE_URL": "Supabase project URL (Prefect job_variables.env or secrets).",
         "SUPABASE_SERVICE_ROLE_KEY": "Service role key for pipeline DB writes.",
         "FRED_API_KEY": "FRED API key for yields and macro series.",
-        "OPENROUTER_API_KEY": "OpenRouter key for AI briefs and desk card copy.",
     }
     missing = [name for name in required if not os.environ.get(name)]
+    # AI provider: Gemini (primary) or OpenRouter (fallback) — at least one required
+    if not os.environ.get("GEMINI_API_KEY") and not os.environ.get("OPENROUTER_API_KEY"):
+        missing.append("GEMINI_API_KEY or OPENROUTER_API_KEY")
     if missing:
         detail = "\n".join(f"  - {k}: {required[k]}" for k in missing)
         raise RuntimeError(
@@ -358,6 +388,7 @@ async def _ingest_weekly_research_memo(iso_date: str) -> None:
     raw_content = str(memo["raw_content"])
     try:
         from src.ai.client import summarize_weekly_memo_async
+
         theses = await summarize_weekly_memo_async(raw_content, date_str=date_str)
         ai_summary = json.dumps(theses)
     except Exception as exc:
@@ -458,10 +489,12 @@ def _rate_spread_10y_legacy(
 
 try:
     from src.fetchers.polymarket import (
+        fetch_economics_markets_async,
         get_active_economics_markets,
         polymarket_odds_json_for_prompt,
     )
 except ImportError:  # pragma: no cover - optional module in some environments
+    fetch_economics_markets_async = None  # type: ignore[assignment]
     get_active_economics_markets = None  # type: ignore[assignment]
     polymarket_odds_json_for_prompt = None  # type: ignore[assignment]
 
@@ -578,7 +611,6 @@ def _signal_row_from_db(row: dict[str, Any]) -> SignalRow:
         oi_delta=row.get("oi_delta"),
         volume_rvol=row.get("volume_rvol"),
         structural_instability=row.get("structural_instability", False),
-
         breakeven_inflation_10y=row.get("breakeven_inflation_10y"),
         rate_diff_10y_real=row.get("rate_diff_10y_real"),
         rate_z_tactical=row.get("rate_z_tactical"),
@@ -619,20 +651,26 @@ def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
         position_size=position_size,
         stop_level=stop_level,
         data_quality_score=(
-            float(row["data_quality_score"])
-            if row.get("data_quality_score") is not None
-            else None
+            float(row["data_quality_score"]) if row.get("data_quality_score") is not None else None
         ),
         stress_level=str(row["stress_level"]) if row.get("stress_level") else None,
-        predicted_direction=str(row.get("predicted_direction")) if row.get("predicted_direction") else None,
+        predicted_direction=(
+            str(row.get("predicted_direction")) if row.get("predicted_direction") else None
+        ),
         directional_bias=str(row.get("directional_bias")) if row.get("directional_bias") else None,
         conviction=int(row["conviction"]) if row.get("conviction") is not None else None,
         cot_signal=str(row.get("cot_signal")) if row.get("cot_signal") else None,
         vol_signal=str(row.get("vol_signal")) if row.get("vol_signal") else None,
         oi_signal=str(row.get("oi_signal")) if row.get("oi_signal") else None,
         rr_signal=str(row.get("rr_signal")) if row.get("rr_signal") else None,
-        special_signal_value=float(row["special_signal_value"]) if row.get("special_signal_value") is not None else None,
-        special_signal_label=str(row.get("special_signal_label")) if row.get("special_signal_label") else None,
+        special_signal_value=(
+            float(row["special_signal_value"])
+            if row.get("special_signal_value") is not None
+            else None
+        ),
+        special_signal_label=(
+            str(row.get("special_signal_label")) if row.get("special_signal_label") else None
+        ),
         model_version=str(row.get("model_version")) if row.get("model_version") else None,
     )
 
@@ -674,11 +712,12 @@ def _upsert_pair_briefs_for_date(
     *,
     dollar_dominance_pct: float | None = None,
     polymarket_odds_json: str = "[]",
-) -> list[str]:
+) -> tuple[list[str], dict[str, int]]:
     """Generate per-pair AI briefs and return telemetry context strings."""
     from src.ai.client import generate_brief
 
     pair_contexts: list[str] = []
+    stats: dict[str, int] = {"ai_calls_made": 0, "ai_calls_failed": 0}
     for pair in PAIRS:
         prior = writer.get_latest_regime_call(pair)
         if not prior:
@@ -691,6 +730,7 @@ def _upsert_pair_briefs_for_date(
             continue
         signal_row = _signal_row_from_db(sig)
 
+        stats["ai_calls_made"] += 1
         try:
             brief = generate_brief(
                 pair=pair,
@@ -699,7 +739,9 @@ def _upsert_pair_briefs_for_date(
                 composite=float(prior.get("signal_composite") or 0.0),
                 signal_row=signal_row,
                 date_str=date_str,
-                primary_driver=str(prior.get("primary_driver")) if prior.get("primary_driver") else None,
+                primary_driver=(
+                    str(prior.get("primary_driver")) if prior.get("primary_driver") else None
+                ),
                 polymarket_context=polymarket_context,
                 dollar_dominance_pct=dollar_dominance_pct,
                 polymarket_odds_json=polymarket_odds_json,
@@ -711,10 +753,13 @@ def _upsert_pair_briefs_for_date(
                 confidence=float(prior.get("confidence") or 0.0),
                 composite=float(prior.get("signal_composite") or 0.0),
                 analysis=brief,
-                primary_driver=str(prior.get("primary_driver")) if prior.get("primary_driver") else "",
+                primary_driver=(
+                    str(prior.get("primary_driver")) if prior.get("primary_driver") else ""
+                ),
             )
             pair_contexts.append(brief)
         except Exception as exc:
+            stats["ai_calls_failed"] += 1
             logger.warning("Pair brief generation failed for %s: %s", pair, exc)
             pair_contexts.append(
                 f"{pair} regime={prior.get('regime')} conf={float(prior['confidence']):.2f} "
@@ -722,10 +767,10 @@ def _upsert_pair_briefs_for_date(
                 f"r2y={signal_row.rate_diff_2y} r10y={signal_row.rate_diff_10y} "
                 f"oil={signal_row.cross_asset_oil} spot={signal_row.spot}"
             )
-    return pair_contexts
+    return pair_contexts, stats
 
 
-@task(retries=3, retry_delay_seconds=30)
+@task(retries=3, retry_delay_seconds=30, timeout_seconds=300)
 async def build_master_buffer_task(
     *,
     spot_lookback_days: int = 120,
@@ -739,31 +784,54 @@ async def build_master_buffer_task(
     )
 
 
-@task
+@task(timeout_seconds=180)
 async def batch_desk_briefs_task(
     pending_desk_cards: list[dict[str, Any]],
-) -> list[Any]:
+) -> tuple[list[Any], dict[str, int]]:
     """Generate desk-card briefs — AI first, deterministic fallback on failure."""
     from src.ai.client import generate_desk_card_brief_async
 
     outcomes: list[Any] = []
-    for item in pending_desk_cards:
-        bkw = cast(dict[str, Any], item["brief_kw"])
-        try:
-            brief, human_grounding = await generate_desk_card_brief_async(
-                pair=str(bkw.get("pair") or ""),
-                regime=str(bkw.get("regime") or ""),
-                date_str=str(bkw.get("date_str") or ""),
-                primary_driver=bkw.get("primary_driver"),
-                pain_index=bkw.get("pain_index"),
-                rvol=bkw.get("rvol"),
-                todays_event_matrix=bkw.get("todays_event_matrix"),
-                dollar_dominance_score=bkw.get("dollar_dominance_score"),
-                dollar_bias=bkw.get("dollar_bias"),
-            )
-            outcomes.append((brief, human_grounding))
-        except Exception as exc:
-            logger.warning("Desk card AI brief failed: %s", exc)
+    stats: dict[str, int] = {"ai_calls_made": 0, "ai_calls_failed": 0}
+    try:
+        for item in pending_desk_cards:
+            bkw = cast(dict[str, Any], item["brief_kw"])
+            stats["ai_calls_made"] += 1
+            try:
+                brief, human_grounding = await generate_desk_card_brief_async(
+                    pair=str(bkw.get("pair") or ""),
+                    regime=str(bkw.get("regime") or ""),
+                    date_str=str(bkw.get("date_str") or ""),
+                    primary_driver=bkw.get("primary_driver"),
+                    pain_index=bkw.get("pain_index"),
+                    rvol=bkw.get("rvol"),
+                    todays_event_matrix=bkw.get("todays_event_matrix"),
+                    dollar_dominance_score=bkw.get("dollar_dominance_score"),
+                    dollar_bias=bkw.get("dollar_bias"),
+                )
+                outcomes.append((brief, human_grounding))
+            except TimeoutError:
+                raise
+            except Exception as exc:
+                stats["ai_calls_failed"] += 1
+                logger.warning("Desk card AI brief failed: %s", exc)
+                fb = desk_card_brief_fallback(
+                    regime=str(bkw.get("regime") or ""),
+                    primary_driver=bkw.get("primary_driver"),
+                    pain_index=bkw.get("pain_index"),
+                    rvol=bkw.get("rvol"),
+                    todays_event_matrix=bkw.get("todays_event_matrix"),
+                    dollar_dominance_score=bkw.get("dollar_dominance_score"),
+                    dollar_bias=bkw.get("dollar_bias"),
+                )
+                outcomes.append((fb, False))
+    except TimeoutError:
+        logger.warning(
+            "batch_desk_briefs_task timed out — falling back to deterministic desk cards"
+        )
+        outcomes = []
+        for item in pending_desk_cards:
+            bkw = cast(dict[str, Any], item["brief_kw"])
             fb = desk_card_brief_fallback(
                 regime=str(bkw.get("regime") or ""),
                 primary_driver=bkw.get("primary_driver"),
@@ -774,22 +842,23 @@ async def batch_desk_briefs_task(
                 dollar_bias=bkw.get("dollar_bias"),
             )
             outcomes.append((fb, False))
-    return outcomes
+        stats = {"ai_calls_made": 0, "ai_calls_failed": len(pending_desk_cards)}
+    return outcomes, stats
 
 
-@task
+@task(timeout_seconds=60)
 def write_desk_open_cards_bulk_task(rows: list[DeskOpenCardRow]) -> None:
     writer.write_desk_open_cards_bulk(rows)
 
 
-@task
+@task(timeout_seconds=120)
 def upsert_pair_briefs_task(
     date_str: str,
     polymarket_context: str,
     *,
     dollar_dominance_pct: float | None = None,
     polymarket_odds_json: str = "[]",
-) -> list[str]:
+) -> tuple[list[str], dict[str, int]]:
     return _upsert_pair_briefs_for_date(
         date_str,
         polymarket_context,
@@ -811,27 +880,675 @@ def upsert_macro_event_briefs_task(
     )
 
 
+def _validate_env() -> None:
+    """Validate required environment variables have acceptable formats."""
+
+    errors: list[str] = []
+
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    if not supabase_url.startswith("https://") and not supabase_url.startswith("http://127.0.0.1"):
+        errors.append("SUPABASE_URL must start with https://")
+
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if len(supabase_key) <= 20:
+        errors.append("SUPABASE_SERVICE_ROLE_KEY must be longer than 20 characters")
+
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not gemini_key and not openrouter_key:
+        errors.append("GEMINI_API_KEY or OPENROUTER_API_KEY must be non-empty")
+
+    fred_key = os.environ.get("FRED_API_KEY", "")
+    if not fred_key:
+        errors.append("FRED_API_KEY must be non-empty")
+
+    polygon_key = os.environ.get("POLYGON_API_KEY", "")
+    if not polygon_key:
+        errors.append("POLYGON_API_KEY must be non-empty")
+
+    if errors:
+        msg = "Environment validation failed: " + "; ".join(errors)
+        logger.critical(msg)
+        raise RuntimeError(msg)
+
+
+def _finalize_health_report(
+    hr: dict[str, Any],
+    t0: float,
+    status: str | None = None,
+) -> None:
+    if status is not None:
+        hr["status"] = status
+    hr["duration_seconds"] = round(time.perf_counter() - t0, 3)
+    logger.info("Pipeline health report: %s", json.dumps(hr, default=str))
+    writer.write_pipeline_run(hr)
+
+
+def _estimate_risk_amount(call: RegimeCall) -> float:
+    """Heuristic risk amount based on position sizing for portfolio heat checks."""
+    if call.entry_timing != "ENTER":
+        return 0.0
+    if call.position_size == "FULL":
+        return 0.01
+    if call.position_size == "HALF":
+        return 0.005
+    return 0.0
+
+
+async def _run_pair_pipeline(
+    pair: str,
+    *,
+    as_of_day: date,
+    universe: dict[str, Any],
+    spots: dict[str, Sequence[SpotBar]],
+    yields_dict: dict[str, float | None],
+    cot_rows: list[CotRow],
+    cross: dict[str, float | None],
+    cross_for_special: dict[str, Any],
+    vol_data: dict[str, Any],
+    events: list[dict[str, Any]],
+    dqs_out: Any,
+    stress_level: Literal["GREEN", "AMBER", "RED"],
+    stress_red: bool,
+    stress_result: dict[str, Any],
+    correlation_id: str,
+) -> dict[str, Any]:
+    """Execute the full signal-to-regime pipeline for a single pair.
+
+    Returns a dict with all computed artefacts; regime-call writes are
+    deferred to the caller so portfolio-level risk checks can be applied.
+    """
+    result: dict[str, Any] = {
+        "pair": pair,
+        "skipped": False,
+        "skip_reason": "",
+        "signal_row_written": False,
+        "regime_call": None,
+        "desk_card_data": None,
+        "spot_close": None,
+        "health_pairs_processed": 0,
+        "health_errors": [],
+    }
+
+    prior_db = writer.get_latest_regime_call(pair)
+    historical_rows = writer.get_historical_signals(pair, limit=2520)
+    historical_carry = build_carry_history_from_rows(historical_rows, max_points=2520)
+    historical_real_10y = build_real_yield_10y_spread_history_from_rows(
+        historical_rows, max_points=2520
+    )
+    structural_instability = structural_instability_from_carry_history(historical_carry)
+    historical_us10y = [
+        float(v) for row in historical_rows if (v := row.get("cross_asset_us10y")) is not None
+    ]
+    historical_oi_delta = [
+        int(v) for row in historical_rows if (v := row.get("oi_delta")) is not None
+    ]
+    historical_rv5 = [
+        float(v) for row in historical_rows if (v := row.get("realized_vol_5d")) is not None
+    ]
+    spot_bars = spots.get(pair, [])
+    if not spot_bars:
+        logger.warning("No spot bars for %s — skipping", pair)
+        result["skipped"] = True
+        result["skip_reason"] = f"No spot bars for {pair}"
+        return result
+
+    # Find bar matching as_of_day for backfill; fall back to latest
+    _as_of_idx = next(
+        (i for i, b in enumerate(spot_bars) if b.date == as_of_day),
+        len(spot_bars) - 1,
+    )
+    today_bar = spot_bars[_as_of_idx]
+    yest_bar = spot_bars[_as_of_idx - 1] if _as_of_idx >= 1 else today_bar
+    result["spot_close"] = float(today_bar.close) if today_bar.close else 0.0
+
+    rate_spread_2y = _rate_spread_2y_for_pair(pair, universe, yields_dict)
+    if rate_spread_2y is None:
+        logger.warning(
+            "Rate 2Y spread unavailable for %s — dominance scores computed without rate carry",
+            pair,
+        )
+    rate_spread_10y = _rate_spread_10y_legacy(pair, yields_dict)
+    bei_raw = yields_dict.get("T10YIE") if isinstance(yields_dict, dict) else None
+    bei = float(bei_raw) if bei_raw is not None else None
+    rate_spread_10y_real = (
+        None
+        if rate_spread_10y is None
+        else (float(rate_spread_10y) - bei if bei is not None else float(rate_spread_10y))
+    )
+    rate_spread_for_norm = rate_spread_2y if rate_spread_2y is not None else rate_spread_10y
+
+    cot_pct = compute_cot_percentile(cot_rows, pair, as_of=today_bar.date)
+    cot_norm = normalize_cot_signal(cot_pct)
+
+    rv = vol_data.get(pair, {})
+    rv5 = rv.get("realized_vol_5d")
+    rv20 = rv.get("realized_vol_20d")
+    risk_adjusted_carry = compute_risk_adjusted_carry(rate_spread_2y, rv20, pair)
+    if risk_adjusted_carry is not None:
+        rate_spread_for_norm = risk_adjusted_carry
+    rate_norm_z = None
+    if rate_spread_for_norm is not None:
+        struct_spread = rate_spread_10y_real
+        struct_hist = (
+            historical_real_10y
+            if struct_spread is not None and len(historical_real_10y) >= 5
+            else None
+        )
+        rate_norm_z = normalize_rate_signal(
+            float(rate_spread_for_norm),
+            pair,
+            historical_carry,
+            spread_structural=struct_spread,
+            historical_structural=struct_hist,
+        )
+    rate_norm = rate_norm_z.z_tactical if rate_norm_z is not None else None
+    rate_z_structural_val = rate_norm_z.z_structural if rate_norm_z is not None else None
+    # Rate direction uses z-score when available (detects changes, not levels).
+    rate_dir = rate_direction_from_spreads(
+        rate_spread_2y, rate_spread_10y_real, z_tactical=rate_norm
+    )
+    vol_90th = _percentile(historical_rv5, 0.90) if historical_rv5 else None
+    vol_norm = compute_vol_signal(rv5, rv20, vol_90th)
+    vol_exp = is_vol_expanding(rv5, vol_90th) if rv5 is not None and vol_90th is not None else False
+
+    oi_pct = compute_oi_from_cot(cot_rows, pair)
+    oi_delta = compute_oi_delta_from_cot(cot_rows, pair)
+    if oi_delta is None and historical_oi_delta:
+        oi_delta = historical_oi_delta[0]
+        logger.warning(
+            "OI delta unavailable for %s; using latest historical value %s",
+            pair,
+            oi_delta,
+        )
+    oi_norm = compute_oi_signal(oi_pct)
+    betas_5y = compute_dynamic_betas(historical_rows)
+    betas_3y: dict[str, float] | None
+    if len(historical_rows) >= TRADING_DAYS_3Y:
+        betas_3y = compute_dynamic_betas(historical_rows[:TRADING_DAYS_3Y])
+    else:
+        betas_3y = None
+        logger.info(
+            "parameter_instability skipped for %s: history %s < %s sessions",
+            pair,
+            len(historical_rows),
+            TRADING_DAYS_3Y,
+        )
+    special_signal = compute_special_signal(pair, cross_for_special)
+    special_norm = special_signal if special_signal is not None else 0.0
+
+    top_5y = dominance_top_family(
+        betas_5y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm
+    )
+    top_3y = (
+        dominance_top_family(
+            betas_3y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm
+        )
+        if betas_3y is not None
+        else None
+    )
+    parameter_instability = top_5y is not None and top_3y is not None and top_5y != top_3y
+    dominance_scores = compute_dominance_scores(
+        rate_norm=rate_norm,
+        cot_norm=cot_norm,
+        vol_norm=vol_norm,
+        oi_norm=oi_norm,
+        betas=betas_5y,
+        special_norm=special_norm,
+    )
+    composite = compute_composite(
+        rate_norm,
+        cot_norm,
+        vol_norm,
+        oi_norm,
+        pair=pair,
+        special_signal=special_signal,
+    )
+    if composite is None:
+        logger.warning("Not enough data for %s — skipping", pair)
+        result["skipped"] = True
+        result["skip_reason"] = f"Not enough data for {pair}"
+        return result
+
+    # Pair-specific confidence adjustments
+    commodity_components_agree = None
+    wti_wcs_agree = None
+    brent_above_p80 = None
+    if pair == "AUDUSD":
+        # Commodity convergence: all 3 components same sign and non-neutral
+        hist = cross_for_special.get("hist", {})
+        if hist:
+            # Simplified: if special_signal is strong, components likely agree
+            commodity_components_agree = abs(special_signal or 0.0) > 0.5
+    elif pair == "USDCAD":
+        wti_wcs_agree = abs(special_signal or 0.0) > 0.5
+    elif pair == "USDINR":
+        brent_above_p80 = (cross.get("oil") or 0) > 80  # crude proxy
+
+    confidence = compute_confidence(
+        composite,
+        rate_norm,
+        cot_norm,
+        pair=pair,
+        special_signal=special_signal,
+        commodity_components_agree=commodity_components_agree,
+        wti_wcs_agree=wti_wcs_agree,
+        brent_above_p80=brent_above_p80,
+    )
+    if pair == "USDINR" and cot_pct is None:
+        # INR does not have liquid CFTC positioning — do not penalise for missing COT.
+        pass
+    driver = get_primary_driver(betas_5y)
+    driver_family = max(
+        ("rate", "cot", "vol", "oi"),
+        key=lambda f: abs(float(betas_5y.get(f, 0.0))),
+    )
+    logger.info(
+        "pair=%s primary_driver=%s EMA_Spearman_Beta=%.4f",
+        pair,
+        driver,
+        float(betas_5y.get(driver_family, 0.0)),
+    )
+    prior_label = (
+        str(prior_db["regime"]) if prior_db and prior_db.get("regime") is not None else None
+    )
+    spot_closes = tuple(float(bar.close) for bar in spot_bars)
+    carry_gate: tuple[float, ...] = tuple(float(x) for x in historical_carry)
+    if risk_adjusted_carry is not None:
+        carry_gate = carry_gate + (float(risk_adjusted_carry),)
+    bei_series = _breakeven_series_chronological(historical_rows, today_be=bei)
+    gate_out = classify_regime_layer1(
+        Layer1ClassifierContext(
+            pair=pair,
+            composite=float(composite),
+            vol_expanding=vol_exp,
+            structural_instability=structural_instability,
+            prior_regime_label=prior_label,
+            carry_risk_adjusted_chronological=carry_gate,
+            spot_closes_chronological=spot_closes,
+            breakeven_inflation_chronological=bei_series,
+            rate_diff_2y=rate_spread_2y,
+            realized_vol_20d=rv20,
+        ),
+    )
+    regime = gate_out["regime"]
+    if gate_out["invalidated"]:
+        rate_dir = "NEUTRAL"
+        confidence = float(max(0.40, confidence * 0.50))
+        logger.warning(
+            "Layer 1 invalidated for %s (stale: %s) — directional bias flattened",
+            pair,
+            ",".join(gate_out["stale_fields"]),
+        )
+
+    layer2_out = run_layer2_directional(
+        composite=float(composite),
+        z_tactical=rate_norm,
+        z_structural=rate_z_structural_val,
+        rate_direction=rate_dir,
+        positioning_percentile=cot_pct,
+        layer1_invalidated=bool(gate_out["invalidated"]),
+    )
+    rv_rank_layer3 = compute_realized_vol_rank_from_closes(
+        tuple(float(b.close) for b in spot_bars),
+        window=TRADING_DAYS_3Y_VOL_RANK,
+    )
+    layer3_out = run_layer3_execution(
+        layer2=layer2_out,
+        spot=float(today_bar.close) if today_bar.close else None,
+        spot_bars=spot_bars,
+        realized_vol_rank=rv_rank_layer3,
+        risk_reversal_series_bps=(),
+    )
+    # Layer2 conviction cap: less aggressive than v1.
+    # Conviction 1→5 maps to cap 0.50→0.90 (was 0.46→0.90).
+    conviction_cap = 0.42 + 0.10 * float(layer2_out["conviction"])
+    confidence = min(float(confidence), conviction_cap)
+    dqs_cap = _dqs_confidence_cap(dqs_out.score)
+    if dqs_cap is not None:
+        confidence = min(float(confidence), dqs_cap)
+    if stress_level == "AMBER":
+        confidence = min(float(confidence), 0.72)
+
+    # Apply stress-mode conviction cap
+    stress_conviction_cap = 0.42 + 0.10 * float(stress_result.get("conviction_cap", 5))
+    confidence = min(float(confidence), stress_conviction_cap)
+
+    day_change = today_bar.close - yest_bar.close
+    day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
+    iv = fetch_implied_vol(pair)
+
+    us10y_value = yields_dict.get("us_10y")
+    if us10y_value is None and historical_us10y:
+        us10y_value = historical_us10y[0]
+        logger.warning(
+            "US10Y missing for %s; using latest historical value %.4f",
+            pair,
+            us10y_value,
+        )
+
+    # Pillar 2: RVOL calculation (Institutional Proxy)
+    volumes = [b.volume for b in spot_bars if b.volume > 0]
+    rvol = compute_rvol(volumes)
+
+    signal_row = SignalRow(
+        pair=pair,
+        date=today_bar.date,
+        rate_diff_2y=rate_spread_2y,
+        rate_diff_10y=rate_spread_10y,
+        cot_percentile=cot_pct,
+        realized_vol_20d=rv20,
+        realized_vol_5d=rv5,
+        implied_vol_30d=iv,
+        spot=today_bar.close,
+        day_change=day_change,
+        day_change_pct=day_chg_pct,
+        cross_asset_vix=cross.get("vix"),
+        cross_asset_dxy=cross.get("dxy"),
+        cross_asset_oil=cross.get("oil"),
+        cross_asset_us10y=us10y_value,
+        cross_asset_gold=cross.get("gold"),
+        cross_asset_copper=cross.get("copper"),
+        cross_asset_stoxx=cross.get("stoxx"),
+        oi_delta=oi_delta,
+        volume_rvol=rvol,
+        structural_instability=structural_instability,
+        breakeven_inflation_10y=bei,
+        rate_diff_10y_real=rate_spread_10y_real,
+        rate_z_tactical=rate_norm,
+        rate_z_structural=rate_z_structural_val,
+        realized_vol_rank=layer3_out["realized_vol_rank"],
+        skew_alignment=layer3_out["skew_alignment"],
+    )
+
+    writer.write_signal_row(signal_row)
+    result["signal_row_written"] = True
+
+    # Map Layer2 bias to validation-compatible predicted_direction.
+    bias = layer2_out["directional_bias"]
+    predicted_direction = (
+        "BULLISH" if bias == "LONG" else ("BEARISH" if bias == "SHORT" else "NEUTRAL")
+    )
+
+    # Signal family labels for audit / explainability.
+    cot_label = (
+        "BULLISH"
+        if cot_norm is not None and cot_norm > 0.15
+        else ("BEARISH" if cot_norm is not None and cot_norm < -0.15 else "NEUTRAL")
+    )
+    vol_label = (
+        "VOL_EXPANDING"
+        if vol_exp
+        else (
+            "BULLISH"
+            if vol_norm is not None and vol_norm > 0.15
+            else ("BEARISH" if vol_norm is not None and vol_norm < -0.15 else "NEUTRAL")
+        )
+    )
+    oi_label = (
+        "BULLISH"
+        if oi_norm is not None and oi_norm > 0.15
+        else ("BEARISH" if oi_norm is not None and oi_norm < -0.15 else "NEUTRAL")
+    )
+
+    special_label = {
+        "EURUSD": "EURUSD_placeholder",
+        "USDJPY": "VIX_funding_stress",
+        "USDINR": "EM_oil_DXY",
+    }.get(pair)
+
+    # Stress-adjusted position sizing
+    entry_timing = layer3_out["entry_timing"]
+    position_size = layer3_out["position_size"]
+    max_pos = stress_result.get("max_position_size", 0.01)
+    if max_pos == 0.0:
+        entry_timing = "WAIT"
+        position_size = None
+    elif max_pos < 0.0075 and position_size == "FULL":
+        position_size = "HALF"
+
+    call = RegimeCall(
+        pair=pair,
+        date=today_bar.date,
+        regime=regime,
+        confidence=confidence,
+        signal_composite=composite,
+        rate_signal=rate_dir,
+        primary_driver=driver,
+        entry_timing=entry_timing,
+        position_size=position_size,
+        stop_level=layer3_out["stop_level"],
+        data_quality_score=round(float(dqs_out.score), 2),
+        stress_level=stress_level,
+        predicted_direction=predicted_direction,
+        directional_bias=bias,
+        conviction=layer2_out["conviction"],
+        cot_signal=cot_label,
+        vol_signal=vol_label,
+        oi_signal=oi_label,
+        rr_signal="NEUTRAL",
+        special_signal_value=special_signal,
+        special_signal_label=special_label,
+        model_version="2.0-live",
+    )
+    result["regime_call"] = call
+
+    if stress_red:
+        logger.warning(
+            "RED Stress Mode — withholding regime call publication for %s (signals still saved)",
+            pair,
+        )
+    else:
+        result["health_pairs_processed"] = 1
+
+    try:
+        recent_closes = [float(bar.close) for bar in spot_bars[-10:]]
+        if len(recent_closes) >= 6 and recent_closes[-6] != 0:
+            current_trend_5d = ((recent_closes[-1] / recent_closes[-6]) - 1.0) * 100.0
+        else:
+            current_trend_5d = 0.0
+        analog_rpc = writer.get_rpc_historical_analogs(
+            pair,
+            today_bar.date.isoformat(),
+            current_trend_5d,
+            float(composite),
+        )
+        if analog_rpc:
+            payload_analogs: list[Mapping[str, Any]] = []
+            for r in analog_rpc:
+                md = r.get("match_date")
+                match_date_str = str(md)[:10] if md is not None else ""
+                payload_analogs.append(
+                    {
+                        "as_of_date": today_bar.date.isoformat(),
+                        "pair": pair,
+                        "rank": int(r.get("rank", 0)),
+                        "match_date": match_date_str,
+                        "match_score": float(r.get("match_score", 0.0)),
+                        "forward_30d_return": r.get("forward_30d_return"),
+                        "regime_stability": r.get("regime_stability"),
+                        "context_label": r.get("context_label"),
+                        "current_trend_5d": r.get("current_trend_5d"),
+                        "matched_trend_5d": r.get("matched_trend_5d"),
+                        "current_composite": r.get("current_composite"),
+                    }
+                )
+            writer.write_research_analogs(payload_analogs)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Analog RPC failed for %s: %s", pair, exc)
+
+    carry_by_date: dict[date, float] = {}
+    for row in historical_rows:
+        rd = row.get("date")
+        if rd is None:
+            continue
+        try:
+            d_co = date.fromisoformat(str(rd)[:10])
+        except ValueError:
+            continue
+        r2c = row.get("rate_diff_2y")
+        if r2c is not None:
+            carry_by_date[d_co] = float(r2c)
+    if rate_spread_2y is not None:
+        carry_by_date[today_bar.date] = float(rate_spread_2y)
+
+    try:
+        pain = None
+        pain = compute_pain_index(
+            pair=pair,
+            as_of_date=today_bar.date,
+            regime=regime,
+            cot_percentile=cot_pct,
+            cot_rows=cot_rows,
+            spot_bars=spot_bars,
+            realized_vol_20d=rv20,
+            implied_vol_30d=iv,
+            carry_by_date=carry_by_date,
+            rvol=rvol,
+        )
+        logger.info("Pain index (%s): %s", pair, pain)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Pain index failed for %s: %s", pair, exc)
+
+    try:
+        markov = None
+        markov = compute_time_decayed_markov(
+            pair=pair,
+            as_of_date=today_bar.date,
+            current_regime=regime,
+            historical_prices=writer.get_historical_prices(pair, limit=5000),
+            regime_calls=writer.get_historical_regime_calls(pair, limit=5000),
+            forward_days=5,
+            half_life_years=3.0,
+        )
+        logger.info("Markov transition (%s): %s", pair, markov)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Markov analysis failed for %s: %s", pair, exc)
+
+    dominance_array = [
+        {
+            "rank": row.rank,
+            "signal_family": row.signal_family,
+            "signal_strength": row.signal_strength,
+            "beta": row.beta,
+            "dominance_score": row.dominance_score,
+        }
+        for row in dominance_scores
+    ]
+    markov_probabilities = (
+        {
+            "continuation_probability": markov.continuation_probability,
+            "transitions": markov.transition_probabilities,
+            "weighted_sample_size": markov.weighted_sample_size,
+        }
+        if markov is not None
+        else {"continuation_probability": 0.0, "transitions": {}, "weighted_sample_size": 0.0}
+    )
+    telemetry_audit = {
+        "cot_is_stale": pain.cot_is_stale if pain is not None else True,
+        "cot_age_days": pain.cot_age_days if pain is not None else None,
+        "underwater_triggered": pain.underwater_triggered if pain is not None else False,
+        "weighted_sample_size": (markov.weighted_sample_size if markov is not None else 0.0),
+        "parameter_instability": parameter_instability,
+        "layer2_directional": dict(layer2_out),
+        "layer3_execution": dict(layer3_out),
+        "data_quality_score": float(dqs_out.score),
+        "stress_level": stress_level,
+        "dqs_stale_data_warning": 0.50 <= dqs_out.score < 0.60,
+        "dqs_flag_review": 0.60 <= dqs_out.score < 0.75,
+    }
+    todays_event_matrix = _first_todays_high_impact_matrix_for_pair(
+        events,
+        pair=pair,
+        as_of=today_bar.date,
+    )
+    regime_age = get_regime_age(pair, regime, as_of=today_bar.date)
+
+    if not stress_red:
+        result["desk_card_data"] = {
+            "confidence": confidence,
+            "brief_kw": {
+                "pair": pair,
+                "regime": regime,
+                "date_str": today_bar.date.isoformat(),
+                "primary_driver": driver,
+                "pain_index": pain.pain_index if pain is not None else None,
+                "rvol": rvol,
+                "todays_event_matrix": todays_event_matrix,
+                "dollar_dominance_score": None,
+                "dollar_bias": None,
+            },
+            "card": {
+                "date": today_bar.date,
+                "pair": pair,
+                "structural_regime": regime,
+                "dominance_array": dominance_array,
+                "pain_index": pain.pain_index if pain is not None else None,
+                "markov_probabilities": markov_probabilities,
+                "telemetry_audit": telemetry_audit,
+                "invalidation_triggered": False,
+                "telemetry_status": "ONLINE",
+                "regime_age": regime_age,
+            },
+        }
+
+    return result
+
+
 @flow(name="Daily G10 FX Pipeline", log_prints=True)
 async def run_daily(
     date_str: str | None = None,
     *,
     correlation_id: str | None = None,
 ) -> None:
+    t_start = time.perf_counter()
+
     if date_str is None:
         date_str = date.today().isoformat()
 
     if correlation_id is None:
         correlation_id = str(uuid.uuid4())
+
+    health_report: dict[str, Any] = {
+        "correlation_id": correlation_id,
+        "date": date_str,
+        "status": "COMPLETE",
+        "dqs_score": 0.0,
+        "pairs_processed": 0,
+        "pairs_skipped": [],
+        "ai_calls_made": 0,
+        "ai_calls_failed": 0,
+        "sources_used": {
+            "polygon": bool(os.environ.get("POLYGON_API_KEY")),
+            "alphavantage": bool(os.environ.get("ALPHAVANTAGE_API_KEY")),
+            "yfinance": True,
+        },
+        "duration_seconds": 0.0,
+        "errors": [],
+    }
+
     logger.info("Pipeline correlation_id=%s for date=%s", correlation_id, date_str)
+
+    try:
+        _validate_env()
+    except RuntimeError as exc:
+        health_report["status"] = "ABORTED"
+        health_report["errors"].append(str(exc))
+        _finalize_health_report(health_report, t_start)
+        raise
 
     universe = load_universe()
     buffer = await build_master_buffer_task()
     gate = validate_ingestion_buffer(buffer, universe=universe)
     if gate.telemetry_status == "OFFLINE":
-        logger.critical(
+        msg = (
             "Daily run aborted: telemetry OFFLINE — spot ingestion quorum breach "
             "(refusing to write signals/regime to protect systemic matrix)"
         )
+        logger.critical(msg)
+        health_report["status"] = "ABORTED"
+        health_report["errors"].append(msg)
+        _finalize_health_report(health_report, t_start)
         return
     buffer = gate.buffer
 
@@ -850,12 +1567,32 @@ async def run_daily(
         dqs_out.spot_observation_date,
         dqs_out.cot_observation_date,
     )
+    health_report["dqs_score"] = dqs_out.score
+    skip_ai = False
     if dqs_out.score < 0.50:
         logger.critical(
-            "Pipeline aborted: DQS %.4f below CRITICAL threshold 0.50 — refusing to publish",
+            "Pipeline aborted: DQS %.4f below CRITICAL threshold 0.50 — refusing to publish. "
+            "Per-bucket scores: rates=%.3f spots=%.3f cot=%.3f comm=%.3f cross=%.3f penalty=%s",
+            dqs_out.score,
+            dqs_out.rates_freshness,
+            dqs_out.spots_freshness,
+            dqs_out.cot_freshness,
+            dqs_out.commodities_freshness,
+            dqs_out.cross_asset_freshness,
+            dqs_out.critical_penalty_applied,
+        )
+        err_msg = f"Data Quality Score critical: {dqs_out.score:.4f} < 0.50"
+        health_report["status"] = "ABORTED"
+        health_report["errors"].append(err_msg)
+        _finalize_health_report(health_report, t_start)
+        raise RuntimeError(err_msg)
+    elif dqs_out.score < 0.70:
+        logger.warning(
+            "DQS degraded (%.4f) — running math only, skipping AI briefs",
             dqs_out.score,
         )
-        raise RuntimeError(f"Data Quality Score critical: {dqs_out.score:.4f} < 0.50")
+        health_report["status"] = "DEGRADED"
+        skip_ai = True
     _log_dqs_band(dqs_out.score)
 
     spots_raw = buffer.get(KEY_FX_SPOT)
@@ -917,545 +1654,116 @@ async def run_daily(
 
     pending_desk_cards: list[dict[str, Any]] = []
 
-    for pair in PAIRS:
-        prior_db = writer.get_latest_regime_call(pair)
-        historical_rows = writer.get_historical_signals(pair, limit=2520)
-        historical_carry = build_carry_history_from_rows(historical_rows, max_points=2520)
-        historical_real_10y = build_real_yield_10y_spread_history_from_rows(
-            historical_rows, max_points=2520
-        )
-        structural_instability = structural_instability_from_carry_history(historical_carry)
-        historical_us10y = [
-            float(v)
-            for row in historical_rows
-            if (v := row.get("cross_asset_us10y")) is not None
-        ]
-        historical_oi_delta = [
-            int(v)
-            for row in historical_rows
-            if (v := row.get("oi_delta")) is not None
-        ]
-        historical_rv5 = [
-            float(v)
-            for row in historical_rows
-            if (v := row.get("realized_vol_5d")) is not None
-        ]
-        spot_bars = spots.get(pair, [])
-        if not spot_bars:
-            logger.warning("No spot bars for %s — skipping", pair)
-            continue
-
-        # Find bar matching as_of_day for backfill; fall back to latest
-        _as_of_idx = next(
-            (i for i, b in enumerate(spot_bars) if b.date == as_of_day),
-            len(spot_bars) - 1,
-        )
-        today_bar = spot_bars[_as_of_idx]
-        yest_bar = spot_bars[_as_of_idx - 1] if _as_of_idx >= 1 else today_bar
-
-        rate_spread_2y = _rate_spread_2y_for_pair(pair, universe, yields_dict)
-        if rate_spread_2y is None:
-            logger.warning(
-                "Rate 2Y spread unavailable for %s — dominance scores computed without rate carry",
-                pair,
-            )
-        rate_spread_10y = _rate_spread_10y_legacy(pair, yields_dict)
-        bei_raw = yields_dict.get("T10YIE") if isinstance(yields_dict, dict) else None
-        bei = float(bei_raw) if bei_raw is not None else None
-        rate_spread_10y_real = (
-            None
-            if rate_spread_10y is None
-            else (float(rate_spread_10y) - bei if bei is not None else float(rate_spread_10y))
-        )
-        rate_spread_for_norm = rate_spread_2y if rate_spread_2y is not None else rate_spread_10y
-
-        cot_pct = compute_cot_percentile(cot_rows, pair, as_of=today_bar.date)
-        cot_norm = normalize_cot_signal(cot_pct)
-
-        rv = vol_data.get(pair, {})
-        rv5 = rv.get("realized_vol_5d")
-        rv20 = rv.get("realized_vol_20d")
-        risk_adjusted_carry = compute_risk_adjusted_carry(rate_spread_2y, rv20, pair)
-        if risk_adjusted_carry is not None:
-            rate_spread_for_norm = risk_adjusted_carry
-        rate_norm_z = None
-        if rate_spread_for_norm is not None:
-            struct_spread = rate_spread_10y_real
-            struct_hist = (
-                historical_real_10y
-                if struct_spread is not None and len(historical_real_10y) >= 5
-                else None
-            )
-            rate_norm_z = normalize_rate_signal(
-                float(rate_spread_for_norm),
-                pair,
-                historical_carry,
-                spread_structural=struct_spread,
-                historical_structural=struct_hist,
-            )
-        rate_norm = rate_norm_z.z_tactical if rate_norm_z is not None else None
-        rate_z_structural_val = (
-            rate_norm_z.z_structural if rate_norm_z is not None else None
-        )
-        # Rate direction uses z-score when available (detects changes, not levels).
-        rate_dir = rate_direction_from_spreads(
-            rate_spread_2y, rate_spread_10y_real, z_tactical=rate_norm
-        )
-        vol_90th = _percentile(historical_rv5, 0.90) if historical_rv5 else None
-        vol_norm = compute_vol_signal(rv5, rv20, vol_90th)
-        vol_exp = (
-            is_vol_expanding(rv5, vol_90th)
-            if rv5 is not None and vol_90th is not None
-            else False
-        )
-
-        oi_pct = compute_oi_from_cot(cot_rows, pair)
-        oi_delta = compute_oi_delta_from_cot(cot_rows, pair)
-        if oi_delta is None and historical_oi_delta:
-            oi_delta = historical_oi_delta[0]
-            logger.warning(
-                "OI delta unavailable for %s; using latest historical value %s",
-                pair,
-                oi_delta,
-            )
-        oi_norm = compute_oi_signal(oi_pct)
-        betas_5y = compute_dynamic_betas(historical_rows)
-        betas_3y: dict[str, float] | None
-        if len(historical_rows) >= TRADING_DAYS_3Y:
-            betas_3y = compute_dynamic_betas(historical_rows[:TRADING_DAYS_3Y])
-        else:
-            betas_3y = None
-            logger.info(
-                "parameter_instability skipped for %s: history %s < %s sessions",
-                pair,
-                len(historical_rows),
-                TRADING_DAYS_3Y,
-            )
-        special_signal = compute_special_signal(pair, cross_for_special)
-        special_norm = special_signal if special_signal is not None else 0.0
-
-        top_5y = dominance_top_family(
-            betas_5y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm
-        )
-        top_3y = (
-            dominance_top_family(
-                betas_3y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm
-            )
-            if betas_3y is not None
-            else None
-        )
-        parameter_instability = (
-            top_5y is not None
-            and top_3y is not None
-            and top_5y != top_3y
-        )
-        dominance_scores = compute_dominance_scores(
-            rate_norm=rate_norm,
-            cot_norm=cot_norm,
-            vol_norm=vol_norm,
-            oi_norm=oi_norm,
-            betas=betas_5y,
-            special_norm=special_norm,
-        )
-        composite = compute_composite(
-            rate_norm, cot_norm, vol_norm, oi_norm,
-            pair=pair,
-            special_signal=special_signal,
-        )
-        if composite is None:
-            logger.warning("Not enough data for %s — skipping", pair)
-            continue
-
-        # Pair-specific confidence adjustments
-        commodity_components_agree = None
-        wti_wcs_agree = None
-        brent_above_p80 = None
-        if pair == "AUDUSD":
-            # Commodity convergence: all 3 components same sign and non-neutral
-            hist = cross_for_special.get("hist", {})
-            if hist:
-                # Simplified: if special_signal is strong, components likely agree
-                commodity_components_agree = abs(special_signal or 0.0) > 0.5
-        elif pair == "USDCAD":
-            wti_wcs_agree = abs(special_signal or 0.0) > 0.5
-        elif pair == "USDINR":
-            brent_above_p80 = (cross.get("oil") or 0) > 80  # crude proxy
-
-        confidence = compute_confidence(
-            composite, rate_norm, cot_norm,
-            pair=pair,
-            special_signal=special_signal,
-            commodity_components_agree=commodity_components_agree,
-            wti_wcs_agree=wti_wcs_agree,
-            brent_above_p80=brent_above_p80,
-        )
-        if pair == "USDINR" and cot_pct is None:
-            # INR does not have liquid CFTC positioning — do not penalise for missing COT.
-            pass
-        driver = get_primary_driver(betas_5y)
-        driver_family = max(
-            ("rate", "cot", "vol", "oi"),
-            key=lambda f: abs(float(betas_5y.get(f, 0.0))),
-        )
+    # Assess granular stress mode (augmenting legacy GREEN/AMBER/RED)
+    stress_result = assess_stress_mode(
+        vix=vix_val,
+        dxy_overnight_pct=dxy_overnight_pct,
+        max_pair_overnight_pct=max_pair_overnight_pct,
+    )
+    if stress_result["is_stress"]:
         logger.info(
-            "pair=%s primary_driver=%s EMA_Spearman_Beta=%.4f",
-            pair,
-            driver,
-            float(betas_5y.get(driver_family, 0.0)),
+            "Granular stress mode active: %s — max_position=%s "
+            "conviction_cap=%s skip_ai=%s reduce_existing=%s",
+            stress_result["active_modes"],
+            stress_result["max_position_size"],
+            stress_result["conviction_cap"],
+            stress_result["skip_ai_briefs"],
+            stress_result["reduce_existing"],
         )
-        prior_label = (
-            str(prior_db["regime"])
-            if prior_db and prior_db.get("regime") is not None
-            else None
-        )
-        spot_closes = tuple(float(bar.close) for bar in spot_bars)
-        carry_gate: tuple[float, ...] = tuple(float(x) for x in historical_carry)
-        if risk_adjusted_carry is not None:
-            carry_gate = carry_gate + (float(risk_adjusted_carry),)
-        bei_series = _breakeven_series_chronological(historical_rows, today_be=bei)
-        gate_out = classify_regime_layer1(
-            Layer1ClassifierContext(
-                pair=pair,
-                composite=float(composite),
-                vol_expanding=vol_exp,
-                structural_instability=structural_instability,
-                prior_regime_label=prior_label,
-                carry_risk_adjusted_chronological=carry_gate,
-                spot_closes_chronological=spot_closes,
-                breakeven_inflation_chronological=bei_series,
-                rate_diff_2y=rate_spread_2y,
-                realized_vol_20d=rv20,
-            ),
-        )
-        regime = gate_out["regime"]
-        if gate_out["invalidated"]:
-            rate_dir = "NEUTRAL"
-            confidence = float(max(0.40, confidence * 0.50))
-            logger.warning(
-                "Layer 1 invalidated for %s (stale: %s) — directional bias flattened",
-                pair,
-                ",".join(gate_out["stale_fields"]),
-            )
 
-        layer2_out = run_layer2_directional(
-            composite=float(composite),
-            z_tactical=rate_norm,
-            z_structural=rate_z_structural_val,
-            rate_direction=rate_dir,
-            positioning_percentile=cot_pct,
-            layer1_invalidated=bool(gate_out["invalidated"]),
-        )
-        rv_rank_layer3 = compute_realized_vol_rank_from_closes(
-            tuple(float(b.close) for b in spot_bars),
-            window=TRADING_DAYS_3Y_VOL_RANK,
-        )
-        layer3_out = run_layer3_execution(
-            layer2=layer2_out,
-            spot=float(today_bar.close) if today_bar.close else None,
-            spot_bars=spot_bars,
-            realized_vol_rank=rv_rank_layer3,
-            risk_reversal_series_bps=(),
-        )
-        # Layer2 conviction cap: less aggressive than v1.
-        # Conviction 1→5 maps to cap 0.50→0.90 (was 0.46→0.90).
-        conviction_cap = 0.42 + 0.10 * float(layer2_out["conviction"])
-        confidence = min(float(confidence), conviction_cap)
-        dqs_cap = _dqs_confidence_cap(dqs_out.score)
-        if dqs_cap is not None:
-            confidence = min(float(confidence), dqs_cap)
-        if stress_level == "AMBER":
-            confidence = min(float(confidence), 0.72)
-        day_change = today_bar.close - yest_bar.close
-        day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
-        iv = fetch_implied_vol(pair)
+    # Fetch correlation matrix for portfolio risk adjustments
+    corr_matrix: dict[str, dict[str, float]] = {}
+    try:
+        corr_matrix = writer.get_rpc_g10_correlation_matrix()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("G10 correlation matrix RPC failed: %s", exc)
 
-        us10y_value = yields_dict.get("us_10y")
-        if us10y_value is None and historical_us10y:
-            us10y_value = historical_us10y[0]
-            logger.warning(
-                "US10Y missing for %s; using latest historical value %.4f",
-                pair,
-                us10y_value,
-            )
-
-        # Pillar 2: RVOL calculation (Institutional Proxy)
-        volumes = [b.volume for b in spot_bars if b.volume > 0]
-        rvol = compute_rvol(volumes)
-
-        signal_row = SignalRow(
+    # Run all pairs in parallel
+    pair_tasks = [
+        _run_pair_pipeline(
             pair=pair,
-            date=today_bar.date,
-            rate_diff_2y=rate_spread_2y,
-            rate_diff_10y=rate_spread_10y,
-            cot_percentile=cot_pct,
-            realized_vol_20d=rv20,
-            realized_vol_5d=rv5,
-            implied_vol_30d=iv,
-            spot=today_bar.close,
-            day_change=day_change,
-            day_change_pct=day_chg_pct,
-            cross_asset_vix=cross.get("vix"),
-            cross_asset_dxy=cross.get("dxy"),
-            cross_asset_oil=cross.get("oil"),
-            cross_asset_us10y=us10y_value,
-            cross_asset_gold=cross.get("gold"),
-            cross_asset_copper=cross.get("copper"),
-            cross_asset_stoxx=cross.get("stoxx"),
-            oi_delta=oi_delta,
-            volume_rvol=rvol,
-            structural_instability=structural_instability,
-            breakeven_inflation_10y=bei,
-            rate_diff_10y_real=rate_spread_10y_real,
-            rate_z_tactical=rate_norm,
-            rate_z_structural=rate_z_structural_val,
-            realized_vol_rank=layer3_out["realized_vol_rank"],
-            skew_alignment=layer3_out["skew_alignment"],
-        )
-
-        writer.write_signal_row(signal_row)
-
-        # Map Layer2 bias to validation-compatible predicted_direction.
-        bias = layer2_out["directional_bias"]
-        predicted_direction = (
-            "BULLISH" if bias == "LONG" else ("BEARISH" if bias == "SHORT" else "NEUTRAL")
-        )
-
-        # Signal family labels for audit / explainability.
-        cot_label = (
-            "BULLISH" if cot_norm is not None and cot_norm > 0.15 else
-            ("BEARISH" if cot_norm is not None and cot_norm < -0.15 else "NEUTRAL")
-        )
-        vol_label = (
-            "VOL_EXPANDING" if vol_exp else
-            ("BULLISH" if vol_norm is not None and vol_norm > 0.15 else
-             ("BEARISH" if vol_norm is not None and vol_norm < -0.15 else "NEUTRAL"))
-        )
-        oi_label = (
-            "BULLISH" if oi_norm is not None and oi_norm > 0.15 else
-            ("BEARISH" if oi_norm is not None and oi_norm < -0.15 else "NEUTRAL")
-        )
-
-        special_label = {
-            "EURUSD": "EURUSD_placeholder",
-            "USDJPY": "VIX_funding_stress",
-            "USDINR": "EM_oil_DXY",
-        }.get(pair)
-
-        call = RegimeCall(
-            pair=pair,
-            date=today_bar.date,
-            regime=regime,
-            confidence=confidence,
-            signal_composite=composite,
-            rate_signal=rate_dir,
-            primary_driver=driver,
-            entry_timing=layer3_out["entry_timing"],
-            position_size=layer3_out["position_size"],
-            stop_level=layer3_out["stop_level"],
-            data_quality_score=round(float(dqs_out.score), 2),
+            as_of_day=as_of_day,
+            universe=universe,
+            spots=spots,
+            yields_dict=yields_dict,
+            cot_rows=cot_rows,
+            cross=cross,
+            cross_for_special=cross_for_special,
+            vol_data=vol_data,
+            events=events,
+            dqs_out=dqs_out,
             stress_level=stress_level,
-            predicted_direction=predicted_direction,
-            directional_bias=bias,
-            conviction=layer2_out["conviction"],
-            cot_signal=cot_label,
-            vol_signal=vol_label,
-            oi_signal=oi_label,
-            rr_signal="NEUTRAL",
-            special_signal_value=special_signal,
-            special_signal_label=special_label,
-            model_version="2.0-live",
+            stress_red=stress_red,
+            stress_result=stress_result,
+            correlation_id=correlation_id,
         )
-        if stress_red:
-            logger.warning(
-                "RED Stress Mode — withholding regime call "
-                "publication for %s (signals still saved)",
-                pair,
-            )
-        else:
-            write_hash = writer.compute_write_hash({
-                "pair": call.pair,
-                "date": call.date.isoformat(),
-                "regime": call.regime,
-                "confidence": call.confidence,
-                "signal_composite": call.signal_composite,
-                "rate_signal": call.rate_signal,
-                "primary_driver": call.primary_driver,
-                "entry_timing": call.entry_timing,
-                "position_size": call.position_size,
-                "stop_level": call.stop_level,
-                "data_quality_score": call.data_quality_score,
-                "stress_level": call.stress_level,
-            })
-            writer.write_regime_call(
-                call,
-                correlation_id=correlation_id,
-                write_hash=write_hash,
-            )
-            ledger.log_initial_signal(
-                pair=pair,
-                target_date=today_bar.date,
-                regime=call.regime,
-                primary_driver=str(call.primary_driver or ""),
-                direction=str(call.predicted_direction or call.rate_signal),
-                entry_close=float(today_bar.close),
-                confidence=float(call.confidence),
-            )
+        for pair in PAIRS
+    ]
+    pair_results = await asyncio.gather(*pair_tasks, return_exceptions=True)
 
-        try:
-            recent_closes = [float(bar.close) for bar in spot_bars[-10:]]
-            if len(recent_closes) >= 6 and recent_closes[-6] != 0:
-                current_trend_5d = (
-                    (recent_closes[-1] / recent_closes[-6]) - 1.0
-                ) * 100.0
+    # Portfolio-level risk checks before writing regime calls
+    prm = PortfolioRiskManager(max_portfolio_heat=0.03)
+
+    for res in pair_results:
+        if isinstance(res, Exception):
+            logger.warning("Pair pipeline raised exception: %s", res)
+            health_report["errors"].append(str(res))
+            continue
+
+        if res.get("skipped"):
+            health_report["pairs_skipped"].append(res["pair"])
+            if res.get("skip_reason"):
+                health_report["errors"].append(res["skip_reason"])
+            continue
+
+        health_report["pairs_processed"] += res.get("health_pairs_processed", 0)
+
+        call = res.get("regime_call")
+        if call is not None and not stress_red:
+            # Estimate risk amount for portfolio heat check
+            risk_amount = _estimate_risk_amount(call)
+            if prm.can_add_position(call.pair, risk_amount):
+                adjusted_risk = prm.adjust_for_correlation(call.pair, risk_amount, corr_matrix)
+                # Write regime call
+                write_hash = writer.compute_write_hash(
+                    {
+                        "pair": call.pair,
+                        "date": call.date.isoformat(),
+                        "regime": call.regime,
+                        "confidence": call.confidence,
+                        "signal_composite": call.signal_composite,
+                        "rate_signal": call.rate_signal,
+                        "primary_driver": call.primary_driver,
+                        "entry_timing": call.entry_timing,
+                        "position_size": call.position_size,
+                        "stop_level": call.stop_level,
+                        "data_quality_score": call.data_quality_score,
+                        "stress_level": call.stress_level,
+                    }
+                )
+                writer.write_regime_call(
+                    call,
+                    correlation_id=correlation_id,
+                    write_hash=write_hash,
+                )
+                ledger.log_initial_signal(
+                    pair=call.pair,
+                    target_date=call.date,
+                    regime=call.regime,
+                    primary_driver=str(call.primary_driver or ""),
+                    direction=str(call.predicted_direction or call.rate_signal),
+                    entry_close=res.get("spot_close", 0.0),
+                    confidence=float(call.confidence),
+                )
+                prm.add_position(call.pair, adjusted_risk)
             else:
-                current_trend_5d = 0.0
-            analog_rpc = writer.get_rpc_historical_analogs(
-                pair,
-                today_bar.date.isoformat(),
-                current_trend_5d,
-                float(composite),
-            )
-            if analog_rpc:
-                payload_analogs: list[Mapping[str, Any]] = []
-                for r in analog_rpc:
-                    md = r.get("match_date")
-                    match_date_str = str(md)[:10] if md is not None else ""
-                    payload_analogs.append(
-                        {
-                            "as_of_date": today_bar.date.isoformat(),
-                            "pair": pair,
-                            "rank": int(r.get("rank", 0)),
-                            "match_date": match_date_str,
-                            "match_score": float(r.get("match_score", 0.0)),
-                            "forward_30d_return": r.get("forward_30d_return"),
-                            "regime_stability": r.get("regime_stability"),
-                            "context_label": r.get("context_label"),
-                            "current_trend_5d": r.get("current_trend_5d"),
-                            "matched_trend_5d": r.get("matched_trend_5d"),
-                            "current_composite": r.get("current_composite"),
-                        }
-                    )
-                writer.write_research_analogs(payload_analogs)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Analog RPC failed for %s: %s", pair, exc)
+                logger.warning(
+                    "Portfolio heat limit exceeded for %s — withholding regime call",
+                    call.pair,
+                )
 
-        carry_by_date: dict[date, float] = {}
-        for row in historical_rows:
-            rd = row.get("date")
-            if rd is None:
-                continue
-            try:
-                d_co = date.fromisoformat(str(rd)[:10])
-            except ValueError:
-                continue
-            r2c = row.get("rate_diff_2y")
-            if r2c is not None:
-                carry_by_date[d_co] = float(r2c)
-        if rate_spread_2y is not None:
-            carry_by_date[today_bar.date] = float(rate_spread_2y)
-
-        try:
-            pain = None
-            pain = compute_pain_index(
-                pair=pair,
-                as_of_date=today_bar.date,
-                regime=regime,
-                cot_percentile=cot_pct,
-                cot_rows=cot_rows,
-                spot_bars=spot_bars,
-                realized_vol_20d=rv20,
-                implied_vol_30d=iv,
-                carry_by_date=carry_by_date,
-                rvol=rvol,
-            )
-            logger.info("Pain index (%s): %s", pair, pain)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Pain index failed for %s: %s", pair, exc)
-
-        try:
-            markov = None
-            markov = compute_time_decayed_markov(
-                pair=pair,
-                as_of_date=today_bar.date,
-                current_regime=regime,
-                historical_prices=writer.get_historical_prices(pair, limit=5000),
-                regime_calls=writer.get_historical_regime_calls(pair, limit=5000),
-                forward_days=5,
-                half_life_years=3.0,
-            )
-            logger.info("Markov transition (%s): %s", pair, markov)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Markov analysis failed for %s: %s", pair, exc)
-
-        dominance_array = [
-            {
-                "rank": row.rank,
-                "signal_family": row.signal_family,
-                "signal_strength": row.signal_strength,
-                "beta": row.beta,
-                "dominance_score": row.dominance_score,
-            }
-            for row in dominance_scores
-        ]
-        markov_probabilities = (
-            {
-                "continuation_probability": markov.continuation_probability,
-                "transitions": markov.transition_probabilities,
-                "weighted_sample_size": markov.weighted_sample_size,
-            }
-            if markov is not None
-            else {"continuation_probability": 0.0, "transitions": {}, "weighted_sample_size": 0.0}
-        )
-        telemetry_audit = {
-            "cot_is_stale": pain.cot_is_stale if pain is not None else True,
-            "cot_age_days": pain.cot_age_days if pain is not None else None,
-            "underwater_triggered": pain.underwater_triggered if pain is not None else False,
-            "weighted_sample_size": (
-                markov.weighted_sample_size if markov is not None else 0.0
-            ),
-            "parameter_instability": parameter_instability,
-            "layer2_directional": dict(layer2_out),
-            "layer3_execution": dict(layer3_out),
-            "data_quality_score": float(dqs_out.score),
-            "stress_level": stress_level,
-            "dqs_stale_data_warning": 0.50 <= dqs_out.score < 0.60,
-            "dqs_flag_review": 0.60 <= dqs_out.score < 0.75,
-        }
-        todays_event_matrix = _first_todays_high_impact_matrix_for_pair(
-            events,
-            pair=pair,
-            as_of=today_bar.date,
-        )
-        regime_age = get_regime_age(pair, regime, as_of=today_bar.date)
-        if not stress_red:
-            pending_desk_cards.append(
-                {
-                    "confidence": confidence,
-                    "brief_kw": {
-                        "pair": pair,
-                        "regime": regime,
-                        "date_str": today_bar.date.isoformat(),
-                        "primary_driver": driver,
-                        "pain_index": pain.pain_index if pain is not None else None,
-                        "rvol": rvol,
-                        "todays_event_matrix": todays_event_matrix,
-                        "dollar_dominance_score": None,
-                        "dollar_bias": None,
-                    },
-                    "card": {
-                        "date": today_bar.date,
-                        "pair": pair,
-                        "structural_regime": regime,
-                        "dominance_array": dominance_array,
-                        "pain_index": pain.pain_index if pain is not None else None,
-                        "markov_probabilities": markov_probabilities,
-                        "telemetry_audit": telemetry_audit,
-                        "invalidation_triggered": False,
-                        "telemetry_status": "ONLINE",
-                        "regime_age": regime_age,
-                    },
-                }
-            )
+        if res.get("desk_card_data"):
+            pending_desk_cards.append(res["desk_card_data"])
 
     if pending_desk_cards:
         pair_regimes_today = {
@@ -1524,7 +1832,42 @@ async def run_daily(
                 ta = cast(dict[str, Any], item["card"]["telemetry_audit"])
                 item["card"]["telemetry_audit"] = apply_cluster_to_telemetry(ta, systemic_cluster)
 
-        brief_outcomes = await batch_desk_briefs_task(pending_desk_cards)
+        if skip_ai:
+            brief_outcomes = []
+            for item in pending_desk_cards:
+                bkw = cast(dict[str, Any], item["brief_kw"])
+                fb = desk_card_brief_fallback(
+                    regime=str(bkw.get("regime") or ""),
+                    primary_driver=bkw.get("primary_driver"),
+                    pain_index=bkw.get("pain_index"),
+                    rvol=bkw.get("rvol"),
+                    todays_event_matrix=bkw.get("todays_event_matrix"),
+                    dollar_dominance_score=bkw.get("dollar_dominance_score"),
+                    dollar_bias=bkw.get("dollar_bias"),
+                )
+                brief_outcomes.append((fb, False))
+            desk_stats = {"ai_calls_made": 0, "ai_calls_failed": 0}
+        else:
+            try:
+                brief_outcomes, desk_stats = await batch_desk_briefs_task(pending_desk_cards)
+            except Exception as exc:
+                logger.warning("batch_desk_briefs_task failed: %s — using fallback", exc)
+                brief_outcomes = []
+                for item in pending_desk_cards:
+                    bkw = cast(dict[str, Any], item["brief_kw"])
+                    fb = desk_card_brief_fallback(
+                        regime=str(bkw.get("regime") or ""),
+                        primary_driver=bkw.get("primary_driver"),
+                        pain_index=bkw.get("pain_index"),
+                        rvol=bkw.get("rvol"),
+                        todays_event_matrix=bkw.get("todays_event_matrix"),
+                        dollar_dominance_score=bkw.get("dollar_dominance_score"),
+                        dollar_bias=bkw.get("dollar_bias"),
+                    )
+                    brief_outcomes.append((fb, False))
+                desk_stats = {"ai_calls_made": 0, "ai_calls_failed": len(pending_desk_cards)}
+        health_report["ai_calls_made"] += desk_stats.get("ai_calls_made", 0)
+        health_report["ai_calls_failed"] += desk_stats.get("ai_calls_failed", 0)
         bulk_desk: list[DeskOpenCardRow] = []
         for idx, item in enumerate(pending_desk_cards):
             raw_brief = brief_outcomes[idx]
@@ -1546,9 +1889,7 @@ async def run_daily(
                     dollar_bias=bkw.get("dollar_bias"),
                 )
             else:
-                brief_pair = cast(tuple[str, bool], raw_brief)
-                ai_brief = brief_pair[0]
-                human_grounding = brief_pair[1]
+                ai_brief, human_grounding = raw_brief
             telemetry_merged = dict(cast(dict[str, Any], card["telemetry_audit"]))
             telemetry_merged["human_grounding_active"] = human_grounding
             pair_key = str(card["pair"])
@@ -1585,9 +1926,9 @@ async def run_daily(
 
     markets: list[dict[str, Any]] = []
     polymarket_context = ""
-    if get_active_economics_markets is not None:
+    if fetch_economics_markets_async is not None:
         try:
-            markets = get_active_economics_markets()
+            markets = await fetch_economics_markets_async()
             polymarket_context = _format_polymarket_context(markets)
         except Exception as exc:  # noqa: BLE001
             logger.warning("Polymarket fetch failed during daily summary: %s", exc)
@@ -1650,23 +1991,44 @@ async def run_daily(
             dqs_score=dqs_out.score,
         )
         logger.warning("RED Stress Mode — publishing dislocation notice only")
-    else:
-        pair_contexts = upsert_pair_briefs_task(
-            date_str,
-            polymarket_context,
-            dollar_dominance_pct=dollar_pct,
-            polymarket_odds_json=pm_json,
+    elif skip_ai:
+        pair_contexts: list[str] = []
+        global_summary = (
+            f"FX Regime Lab telemetry for {date_str}. "
+            f"DQS degraded ({dqs_out.score:.4f}) — AI briefs skipped. "
+            f"Active pairs: {', '.join(pair_regimes.keys())}. "
+            f"Dollar dominance: {dollar_pct:.1f}%. "
+            f"Idiosyncratic outlier: {outlier_pair or 'none'}."
         )
+    else:
         try:
-            from src.ai.client import generate_global_macro_summary
-            global_summary = generate_global_macro_summary(
+            pair_contexts, pair_stats = upsert_pair_briefs_task(
+                date_str,
+                polymarket_context,
+                dollar_dominance_pct=dollar_pct,
+                polymarket_odds_json=pm_json,
+            )
+            health_report["ai_calls_made"] += pair_stats.get("ai_calls_made", 0)
+            health_report["ai_calls_failed"] += pair_stats.get("ai_calls_failed", 0)
+        except Exception as exc:
+            logger.warning("upsert_pair_briefs_task failed: %s — using fallback", exc)
+            pair_contexts = []
+            health_report["ai_calls_failed"] += len(PAIRS)
+        try:
+            from src.ai.client import generate_global_macro_summary_async
+
+            global_summary = await generate_global_macro_summary_async(
                 date_str=date_str,
                 pair_contexts=pair_contexts,
                 macro_context=polymarket_context,
                 dollar_dominance_pct=dollar_pct,
                 polymarket_odds_json=pm_json,
             )
+            health_report["ai_calls_made"] += 1
         except Exception as exc:
+            health_report["ai_calls_made"] += 1
+            health_report["ai_calls_failed"] += 1
+            health_report["errors"].append(f"Global macro summary generation failed: {exc}")
             logger.warning("Global macro summary generation failed: %s", exc)
             global_summary = (
                 f"FX Regime Lab telemetry for {date_str}. "
@@ -1696,6 +2058,7 @@ async def run_daily(
         run_validation(as_of_date=run_as_of)
         logger.info("Validation engine completed for %s", date_str)
     except Exception as exc:  # noqa: BLE001
+        health_report["errors"].append(f"Validation engine failed: {exc}")
         logger.warning("Validation engine failed for %s: %s", date_str, exc)
 
     # ── Alerting / heartbeat ──────────────────────────────────────────
@@ -1719,7 +2082,137 @@ async def run_daily(
     except Exception as exc:  # noqa: BLE001
         logger.warning("Alerting/heartbeat failed for %s: %s", date_str, exc)
 
+    if health_report["status"] == "COMPLETE":
+        if (
+            health_report["pairs_skipped"]
+            or health_report["ai_calls_failed"]
+            or health_report["errors"]
+        ):
+            health_report["status"] = "DEGRADED"
+    _finalize_health_report(health_report, t_start)
     logger.info("Daily run complete for %s", date_str)
+
+
+@flow(name="Single Pair FX Pipeline", log_prints=True)
+async def run_pair(pair: str, date_str: str | None = None) -> dict[str, Any]:
+    """Run pipeline for a single pair."""
+    if date_str is None:
+        date_str = date.today().isoformat()
+
+    _validate_env()
+    universe = load_universe()
+    buffer = await build_master_buffer_task()
+    gate = validate_ingestion_buffer(buffer, universe=universe)
+    if gate.telemetry_status == "OFFLINE":
+        raise RuntimeError("Telemetry OFFLINE — cannot run single-pair pipeline")
+    buffer = gate.buffer
+
+    as_of_day = date.fromisoformat(date_str[:10])
+    dqs_out = compute_dqs(buffer, universe, as_of_day)
+    if dqs_out.score < 0.50:
+        raise RuntimeError(f"DQS critical ({dqs_out.score:.4f}) — aborting single-pair run")
+
+    spots_raw = buffer.get(KEY_FX_SPOT)
+    spots: dict[str, Sequence[SpotBar]] = (
+        cast(dict[str, Sequence[SpotBar]], spots_raw) if isinstance(spots_raw, dict) else {}
+    )
+    yields_dict_raw = buffer.get(KEY_YIELDS)
+    yields_dict: dict[str, float | None] = (
+        yields_dict_raw if isinstance(yields_dict_raw, dict) else {}
+    )
+    cot_raw = buffer.get(KEY_COT)
+    cot_rows: list[CotRow] = cast(list[CotRow], cot_raw) if isinstance(cot_raw, list) else []
+    cross_raw = buffer.get(KEY_CROSS_ASSET)
+    cross: dict[str, float | None] = (
+        {k: v for k, v in cross_raw.items() if k != "hist"}
+        if isinstance(cross_raw, dict)
+        else {
+            "vix": None,
+            "dxy": None,
+            "oil": None,
+            "gold": None,
+            "copper": None,
+            "stoxx": None,
+        }
+    )
+    cross_for_special: dict[str, Any] = dict(cross_raw) if isinstance(cross_raw, dict) else {}
+
+    vix_raw = cross.get("vix")
+    vix_val: float | None = None
+    if vix_raw is not None:
+        try:
+            vix_val = float(vix_raw)
+        except (TypeError, ValueError):
+            vix_val = None
+    dxy_overnight_pct = _dxy_overnight_pct_abs()
+    max_pair_overnight_pct = _max_abs_pair_overnight_pct(spots, universe)
+    stress_score, stress_level = assess_stress(
+        vix=vix_val,
+        dxy_overnight_pct_abs=dxy_overnight_pct,
+        max_pair_overnight_pct_abs=max_pair_overnight_pct,
+    )
+    stress_red = stress_level == "RED"
+    stress_result = assess_stress_mode(
+        vix=vix_val,
+        dxy_overnight_pct=dxy_overnight_pct,
+        max_pair_overnight_pct=max_pair_overnight_pct,
+    )
+
+    vol_data = fetch_realized_vol(spots)
+    events = fetch_macro_events()
+    writer.write_macro_events(events)
+
+    result = await _run_pair_pipeline(
+        pair=pair,
+        as_of_day=as_of_day,
+        universe=universe,
+        spots=spots,
+        yields_dict=yields_dict,
+        cot_rows=cot_rows,
+        cross=cross,
+        cross_for_special=cross_for_special,
+        vol_data=vol_data,
+        events=events,
+        dqs_out=dqs_out,
+        stress_level=stress_level,
+        stress_red=stress_red,
+        stress_result=stress_result,
+        correlation_id="single-pair-" + pair.lower(),
+    )
+
+    if result.get("skipped"):
+        return result
+
+    call = result.get("regime_call")
+    if call is not None and not stress_red:
+        write_hash = writer.compute_write_hash(
+            {
+                "pair": call.pair,
+                "date": call.date.isoformat(),
+                "regime": call.regime,
+                "confidence": call.confidence,
+                "signal_composite": call.signal_composite,
+                "rate_signal": call.rate_signal,
+                "primary_driver": call.primary_driver,
+                "entry_timing": call.entry_timing,
+                "position_size": call.position_size,
+                "stop_level": call.stop_level,
+                "data_quality_score": call.data_quality_score,
+                "stress_level": call.stress_level,
+            }
+        )
+        writer.write_regime_call(call, write_hash=write_hash)
+        ledger.log_initial_signal(
+            pair=call.pair,
+            target_date=call.date,
+            regime=call.regime,
+            primary_driver=str(call.primary_driver or ""),
+            direction=str(call.predicted_direction or call.rate_signal),
+            entry_close=result.get("spot_close", 0.0),
+            confidence=float(call.confidence),
+        )
+
+    return result
 
 
 def run_weekly(date_str: str | None = None) -> None:

@@ -5,6 +5,7 @@ and upserts via pg8000 direct SQL for speed.
 """
 
 from __future__ import annotations
+import os
 
 import logging
 import ssl
@@ -28,10 +29,10 @@ BROWSER_UA = (
 def _pg_conn() -> pg8000.native.Connection:
     ctx = ssl._create_unverified_context()
     return pg8000.native.Connection(
-        host="db.weaaacohvzzgkgxzpaee.supabase.co",
+        host=os.environ.get("SUPABASE_DB_HOST", ""),
         database="postgres",
         user="postgres",
-        password="FXRegimelab04553",
+        password=os.environ.get("SUPABASE_DB_PASSWORD", ""),
         ssl_context=ctx,
     )
 

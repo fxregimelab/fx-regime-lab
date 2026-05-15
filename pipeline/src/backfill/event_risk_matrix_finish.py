@@ -1,5 +1,6 @@
 """Finish the remaining event risk matrices using pure SQL."""
 from __future__ import annotations
+import os
 
 import json
 import logging
@@ -15,10 +16,10 @@ logging.basicConfig(level=logging.INFO)
 def _pg_conn() -> Any:
     ctx = ssl._create_unverified_context()
     return pg8000.native.Connection(
-        host="db.weaaacohvzzgkgxzpaee.supabase.co",
+        host=os.environ.get("SUPABASE_DB_HOST", ""),
         database="postgres",
         user="postgres",
-        password="FXRegimelab04553",
+        password=os.environ.get("SUPABASE_DB_PASSWORD", ""),
         ssl_context=ctx,
     )
 

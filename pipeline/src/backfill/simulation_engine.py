@@ -55,18 +55,23 @@ YIELD_ID_MAP: dict[str, dict[str, str]] = {
 
 
 def _pg_conn(max_retries: int = 5):
+    import os
     import ssl
     import time
     import pg8000.native
     ctx = ssl._create_unverified_context()
     last_err = None
+    host = os.environ.get("SUPABASE_DB_HOST", "")
+    password = os.environ.get("SUPABASE_DB_PASSWORD", "")
+    if not host or not password:
+        raise RuntimeError("SUPABASE_DB_HOST and SUPABASE_DB_PASSWORD must be set")
     for attempt in range(max_retries):
         try:
             return pg8000.native.Connection(
-                host="db.weaaacohvzzgkgxzpaee.supabase.co",
+                host=host,
                 database="postgres",
                 user="postgres",
-                password="FXRegimelab04553",
+                password=password,
                 ssl_context=ctx,
                 timeout=30,
             )
