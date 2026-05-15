@@ -1,0 +1,15 @@
+-- Add missing signal columns required by write_signal_row and get_historical_signals
+
+ALTER TABLE signals
+  ADD COLUMN IF NOT EXISTS rate_diff_10y DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS cross_asset_vix DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS cross_asset_dxy DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS cross_asset_oil DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS oi_delta INTEGER,
+  ADD COLUMN IF NOT EXISTS volume_rvol DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS breakeven_inflation_10y DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS rate_diff_10y_real DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS rate_z_tactical DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS rate_z_structural DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS realized_vol_rank DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS skew_alignment INTEGER;
