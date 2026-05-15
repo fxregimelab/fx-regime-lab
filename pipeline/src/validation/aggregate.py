@@ -43,6 +43,7 @@ class HorizonStats:
     sharpe_like: float | None
     max_drawdown_bps: float | None
     calibration_json: str
+    rolling_90d_accuracy: float | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,6 +127,7 @@ def _compute_horizon(
     brier_key: str,
     correct_key: str,
     return_key: str,
+    as_of_date: date,
 ) -> HorizonStats:
     total = len(rows)
     directional: list[dict[str, Any]] = []
@@ -168,6 +170,31 @@ def _compute_horizon(
     corrects = [bool(r.get(correct_key)) for r in directional if r.get(correct_key) is not None]
     calib = _calibration_buckets(confidences, corrects)
 
+    # v1.0: rolling 90-day accuracy (last 90 calendar days of directional calls)
+    from datetime import timedelta
+    cutoff_90d = as_of_date - timedelta(days=90)
+
+    def _parse_date(raw: Any) -> date | None:
+        if isinstance(raw, date):
+            return raw
+        if raw:
+            try:
+                return date.fromisoformat(str(raw)[:10])
+            except Exception:
+                return None
+        return None
+
+    recent_directional = [
+        r for r in directional
+        if (d := _parse_date(r.get("date") or r.get("call_date"))) is not None and d >= cutoff_90d
+    ]
+    recent_wins = sum(1 for r in recent_directional if r.get(correct_key) is True)
+    rolling_90d_acc = (
+        recent_wins / len(recent_directional)
+        if recent_directional
+        else None
+    )
+
     return HorizonStats(
         horizon=horizon,
         total_calls=total,
@@ -181,6 +208,7 @@ def _compute_horizon(
         sharpe_like=round(sharpe, 6) if sharpe is not None else None,
         max_drawdown_bps=round(mdd, 6) if mdd is not None else None,
         calibration_json=json.dumps(calib),
+        rolling_90d_accuracy=round(rolling_90d_acc, 6) if rolling_90d_acc is not None else None,
     )
 
 
@@ -217,9 +245,9 @@ def compute_aggregate_stats(
         prs = by_pair.get(pair, [])
         if not prs:
             continue
-        t5 = _compute_horizon(prs, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps")
+        t5 = _compute_horizon(prs, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps", as_of_date)
         t20 = _compute_horizon(
-            prs, "T+20", "brier_score_t20", "correct_t20", "log_return_t20_bps"
+            prs, "T+20", "brier_score_t20", "correct_t20", "log_return_t20_bps", as_of_date
         )
         results.append(AggregateStats(pair=pair, as_of_date=as_of_date, t5=t5, t20=t20))
 
@@ -229,10 +257,10 @@ def compute_aggregate_stats(
         for prs in by_pair.values():
             all_rows.extend(prs)
         t5_all = _compute_horizon(
-            all_rows, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps"
+            all_rows, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps", as_of_date
         )
         t20_all = _compute_horizon(
-            all_rows, "T+20", "brier_score_t20", "correct_t20", "log_return_t20_bps"
+            all_rows, "T+20", "brier_score_t20", "correct_t20", "log_return_t20_bps", as_of_date
         )
         results.append(AggregateStats(pair="ALL", as_of_date=as_of_date, t5=t5_all, t20=t20_all))
 
@@ -260,6 +288,7 @@ def _stats_to_payload(stats: AggregateStats) -> dict[str, Any]:
         base[f"{prefix}sharpe_like"] = h.sharpe_like
         base[f"{prefix}max_drawdown_bps"] = h.max_drawdown_bps
         base[f"{prefix}calibration_json"] = h.calibration_json
+        base[f"{prefix}rolling_90d_accuracy"] = h.rolling_90d_accuracy
     return base
 
 

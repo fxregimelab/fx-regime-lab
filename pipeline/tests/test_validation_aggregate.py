@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 from src.validation.aggregate import (
@@ -77,7 +79,7 @@ def test_compute_horizon_all_hits() -> None:
             "brier_score_t5": 0.09,
         },
     ]
-    h = _compute_horizon(rows, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps")
+    h = _compute_horizon(rows, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps", date(2026, 5, 15))
     assert h.total_calls == 2
     assert h.directional_calls == 2
     assert h.wins == 2
@@ -107,7 +109,7 @@ def test_compute_horizon_with_neutral() -> None:
             "brier_score_t5": 0.16,
         },
     ]
-    h = _compute_horizon(rows, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps")
+    h = _compute_horizon(rows, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps", date(2026, 5, 15))
     assert h.total_calls == 2
     assert h.directional_calls == 1
     assert h.wins == 1
@@ -115,7 +117,7 @@ def test_compute_horizon_with_neutral() -> None:
 
 
 def test_compute_horizon_no_rows() -> None:
-    h = _compute_horizon([], "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps")
+    h = _compute_horizon([], "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps", date(2026, 5, 15))
     assert h.total_calls == 0
     assert h.directional_calls == 0
     assert h.win_rate is None
