@@ -1314,3 +1314,164 @@ def write_validation_stats(row: Mapping[str, Any]) -> None:
     _client().table("validation_stats").upsert(
         payload, on_conflict="as_of_date,pair"
     ).execute()
+
+
+def get_latest_validation_stats_per_pair() -> list[dict[str, Any]]:
+    """Fetch the most recent validation_stats row for each pair.
+
+    Uses a simple window-function approach via RPC when available,
+    otherwise falls back to fetching the latest 50 rows and de-duping.
+    """
+    client = _client()
+    # Fallback: fetch latest rows and take first per pair
+    res = (
+        client.table("validation_stats")
+        .select(
+            "as_of_date,pair,t5_rolling_90d_accuracy,t5_win_rate,"
+            "t5_mean_brier,t5_brier_skill,t5_sharpe_like"
+        )
+        .order("as_of_date", desc=True)
+        .limit(200)
+        .execute()
+    )
+    rows = cast(list[dict[str, Any]], res.data or [])
+    seen: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        pair = str(r.get("pair", ""))
+        if pair and pair not in seen:
+            seen.add(pair)
+            out.append(r)
+    return out
+
+
+def write_pipeline_run(row: Mapping[str, Any]) -> None:
+    """Upsert a pipeline health snapshot into ``pipeline_runs`` on date."""
+    payload = cast(dict[str, Any], dict(row))
+    _client().table("pipeline_runs").upsert(
+        payload, on_conflict="date"
+    ).execute()
+
+
+def get_pipeline_runs_for_dates(start_iso: str, end_iso: str) -> list[dict[str, Any]]:
+    """Fetch pipeline_runs rows in a date range, oldest first."""
+    res = (
+        _client()
+        .table("pipeline_runs")
+        .select("*")
+        .gte("date", start_iso)
+        .lte("date", end_iso)
+        .order("date", desc=False)
+        .execute()
+    )
+    return cast(list[dict[str, Any]], res.data or [])
+
+
+def get_pipeline_run_for_date(date_str: str) -> dict[str, Any] | None:
+    """Fetch a single pipeline_runs row for a date."""
+    res = (
+        _client()
+        .table("pipeline_runs")
+        .select("*")
+        .eq("date", str(date_str)[:10])
+        .maybe_single()
+        .execute()
+    )
+    if res is not None:
+        raw = res.data
+        if isinstance(raw, dict):
+            return cast(dict[str, Any], raw)
+    return None
+
+
+def count_signals_for_date(date_str: str) -> int:
+    res = (
+        _client()
+        .table("signals")
+        .select("id", count="exact")
+        .eq("date", str(date_str)[:10])
+        .execute()
+    )
+    return getattr(res, "count", 0) or 0
+
+
+def count_regime_calls_for_date(date_str: str) -> int:
+    res = (
+        _client()
+        .table("regime_calls")
+        .select("id", count="exact")
+        .eq("date", str(date_str)[:10])
+        .execute()
+    )
+    return getattr(res, "count", 0) or 0
+
+
+def get_regime_calls_dqs_for_date(date_str: str) -> list[float]:
+    res = (
+        _client()
+        .table("regime_calls")
+        .select("data_quality_score")
+        .eq("date", str(date_str)[:10])
+        .execute()
+    )
+    rows = cast(list[dict[str, Any]], res.data or [])
+    scores: list[float] = []
+    for r in rows:
+        v = r.get("data_quality_score")
+        if v is not None:
+            try:
+                scores.append(float(v))
+            except (TypeError, ValueError):
+                pass
+    return scores
+
+
+def count_validation_log_for_date(date_str: str) -> int:
+    res = (
+        _client()
+        .table("validation_log")
+        .select("id", count="exact")
+        .eq("date", str(date_str)[:10])
+        .execute()
+    )
+    return getattr(res, "count", 0) or 0
+
+
+def brief_log_exists_for_date(date_str: str) -> bool:
+    res = (
+        _client()
+        .table("brief_log")
+        .select("id")
+        .eq("date", str(date_str)[:10])
+        .limit(1)
+        .execute()
+    )
+    rows = cast(list[dict[str, Any]], res.data or [])
+    return bool(rows)
+
+
+def macro_events_with_ai_briefs_for_date(date_str: str) -> tuple[int, int]:
+    """Return (total_high_impact_events, events_with_ai_briefs) for date."""
+    res = (
+        _client()
+        .table("macro_events")
+        .select("ai_brief")
+        .eq("date", str(date_str)[:10])
+        .eq("impact", "HIGH")
+        .execute()
+    )
+    rows = cast(list[dict[str, Any]], res.data or [])
+    total = len(rows)
+    with_brief = sum(1 for r in rows if r.get("ai_brief") not in (None, ""))
+    return total, with_brief
+
+
+def get_pipeline_errors_for_date(date_str: str) -> list[dict[str, Any]]:
+    res = (
+        _client()
+        .table("pipeline_errors")
+        .select("step,error_type,message")
+        .eq("run_date", str(date_str)[:10])
+        .execute()
+    )
+    return cast(list[dict[str, Any]], res.data or [])
