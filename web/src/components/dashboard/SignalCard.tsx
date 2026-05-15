@@ -11,6 +11,8 @@ interface SignalCardProps {
   signal?: LatestSignal | null;
   signalHistory?: number[];
   regimeHistory?: Array<{ date: string; regime: string }>;
+  rolling90dAccuracyT5?: number | null;
+  rolling90dAccuracyT20?: number | null;
 }
 
 export function SignalCard({
@@ -19,6 +21,8 @@ export function SignalCard({
   signal,
   signalHistory,
   regimeHistory,
+  rolling90dAccuracyT5,
+  rolling90dAccuracyT20,
 }: SignalCardProps) {
   const pairMeta = PAIRS.find((p) => p.label === pairLabel);
   const chg = signal?.day_change_pct;
@@ -52,16 +56,25 @@ export function SignalCard({
           >
             {pairMeta?.display ?? pairLabel}
           </span>
-          {chg != null && (
-            <span
-              className={`font-mono text-[10px] font-medium ${
-                chg >= 0 ? "text-[var(--color-up)]" : "text-[var(--color-down)]"
-              }`}
-            >
-              {chg >= 0 ? "+" : ""}
-              {chg.toFixed(2)}%
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {rolling90dAccuracyT5 != null && (
+              <span className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">
+                90D:{(rolling90dAccuracyT5 * 100).toFixed(1)}%
+              </span>
+            )}
+            {chg != null && (
+              <span
+                className={`font-mono text-[10px] font-medium ${
+                  chg >= 0
+                    ? "text-[var(--color-up)]"
+                    : "text-[var(--color-down)]"
+                }`}
+              >
+                {chg >= 0 ? "+" : ""}
+                {chg.toFixed(2)}%
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-baseline gap-3">
           <p className="font-mono text-[28px] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
@@ -121,9 +134,7 @@ export function SignalCard({
               COT
             </span>
             <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
-              {pairLabel === "USDINR"
-                ? "N/A"
-                : fmtInt(signal?.cot_percentile)}
+              {pairLabel === "USDINR" ? "N/A" : fmtInt(signal?.cot_percentile)}
             </span>
           </div>
           <div className="flex justify-between">

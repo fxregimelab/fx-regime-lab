@@ -6,6 +6,7 @@ import {
   getLatestRegimeCalls,
   getLatestSignals,
   getValidationLog,
+  getValidationStats,
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
@@ -44,10 +45,12 @@ function Hero({
   latestCallDate,
   totalCalls,
   accuracy7d,
+  accuracy90d,
 }: {
   latestCallDate: string | null;
   totalCalls: number;
   accuracy7d: number;
+  accuracy90d: number | null;
 }) {
   return (
     <section className="min-h-[100dvh] flex flex-col justify-between relative">
@@ -106,6 +109,15 @@ function Hero({
             </span>
             <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
               {totalCalls > 0 ? `${accuracy7d.toFixed(1)}%` : "—"}
+            </span>
+          </div>
+          <span className="text-[var(--color-border)]">·</span>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-[11px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
+              90D Accuracy
+            </span>
+            <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
+              {accuracy90d != null ? `${(accuracy90d * 100).toFixed(1)}%` : "—"}
             </span>
           </div>
         </div>
@@ -601,10 +613,11 @@ function AboutSnippet() {
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const [calls, signals, validation] = await Promise.all([
+  const [calls, signals, validation, statsT5] = await Promise.all([
     getLatestRegimeCalls(supabase),
     getLatestSignals(supabase),
     getValidationLog(supabase),
+    getValidationStats(supabase, "t5"),
   ]);
 
   const { count } = await supabase
@@ -630,6 +643,9 @@ export default async function HomePage() {
       .sort()
       .pop() ?? null;
 
+  const eurStats = statsT5.find((s) => s.pair === "EURUSD");
+  const accuracy90d = eurStats?.rolling90dAccuracy ?? null;
+
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
@@ -638,6 +654,7 @@ export default async function HomePage() {
           latestCallDate={latestCallDate}
           totalCalls={count ?? 0}
           accuracy7d={accuracy7d}
+          accuracy90d={accuracy90d}
         />
         <ValidationTicker rows={validation} />
         <LiveSnapshot calls={calls} signals={signals} />

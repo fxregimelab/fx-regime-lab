@@ -30,6 +30,7 @@ export default async function TerminalIndexPage() {
     macroEvents,
     brief,
     statsT5,
+    statsT20,
     ...pairHistories
   ] = await Promise.all([
     getLatestRegimeCalls(supabase),
@@ -38,6 +39,7 @@ export default async function TerminalIndexPage() {
     getMacroEventsToday(supabase),
     getLatestBrief(supabase),
     getValidationStats(supabase, "t5"),
+    getValidationStats(supabase, "t20"),
     ...PAIRS.map((p) => getHistoricalRegimeCalls(supabase, p.label, 30)),
   ]);
 
@@ -111,6 +113,9 @@ export default async function TerminalIndexPage() {
               .map((r) => r.signal_composite)
               .reverse();
 
+            const pairStatT5 = statsT5.find((s) => s.pair === p.label);
+            const pairStatT20 = statsT20.find((s) => s.pair === p.label);
+
             return (
               <SignalCard
                 key={p.label}
@@ -122,6 +127,8 @@ export default async function TerminalIndexPage() {
                   date: r.date,
                   regime: r.regime,
                 }))}
+                rolling90dAccuracyT5={pairStatT5?.rolling90dAccuracy ?? null}
+                rolling90dAccuracyT20={pairStatT20?.rolling90dAccuracy ?? null}
               />
             );
           })}

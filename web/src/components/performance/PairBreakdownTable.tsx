@@ -22,6 +22,11 @@ function fmtNum(n: number | null | undefined) {
   return n.toFixed(0);
 }
 
+function fmtAcc(n: number | null | undefined) {
+  if (n == null) return "—";
+  return `${(n * 100).toFixed(1)}%`;
+}
+
 export function PairBreakdownTable({
   statsT5,
   statsT20,
@@ -44,9 +49,11 @@ export function PairBreakdownTable({
                 "PAIR",
                 "T+5 WIN",
                 "T+5 BRIER",
+                "T+5 90D",
                 "T+5 N",
                 "T+20 WIN",
                 "T+20 BRIER",
+                "T+20 90D",
                 "T+20 N",
               ].map((h) => (
                 <th
@@ -78,6 +85,9 @@ export function PairBreakdownTable({
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
                     {fmtBrier(t5?.brierScore)}
                   </td>
+                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
+                    {fmtAcc(t5?.rolling90dAccuracy)}
+                  </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
                     {fmtNum(t5?.sampleSize)}
                   </td>
@@ -86,6 +96,9 @@ export function PairBreakdownTable({
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
                     {fmtBrier(t20?.brierScore)}
+                  </td>
+                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
+                    {fmtAcc(t20?.rolling90dAccuracy)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
                     {fmtNum(t20?.sampleSize)}
@@ -109,6 +122,9 @@ export function PairBreakdownTable({
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
                     {fmtBrier(allT5?.brierScore)}
                   </td>
+                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
+                    {fmtAcc(allT5?.rolling90dAccuracy)}
+                  </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
                     {fmtNum(allT5?.sampleSize)}
                   </td>
@@ -117,6 +133,9 @@ export function PairBreakdownTable({
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
                     {fmtBrier(allT20?.brierScore)}
+                  </td>
+                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
+                    {fmtAcc(allT20?.rolling90dAccuracy)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
                     {fmtNum(allT20?.sampleSize)}
