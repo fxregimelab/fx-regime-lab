@@ -1,8 +1,8 @@
 """
-@agent_context: Centralized OpenRouter AI client for generating research briefs 
+@agent_context: Centralized OpenRouter AI client for generating research briefs
 and event risk summaries using free-tier LLMs.
-@allowed_imports: [asyncio, json, logging, os, dataclasses, typing, openai, 
-src.analysis, src.db, src.types]
+@allowed_imports: [asyncio, json, logging, os, dataclasses, typing, openai,
+src.analysis, src.db, src.fx_types]
 @forbidden_imports: [src.fetchers]
 @obsidian_link: [[AI Intelligence#OpenRouter Integration]]
 """
@@ -20,22 +20,50 @@ from openai import APITimeoutError, AsyncOpenAI, OpenAI
 
 from src.analysis.event_risk import EventRiskResult
 from src.db import writer
-from src.types import SignalRow
+from src.fx_types import SignalRow
 
 logger = logging.getLogger(__name__)
 
-PRIMARY_MODEL = "google/gemma-3-27b-it:free"
+# ── Provider configuration ───────────────────────────────────────────
+# Gemini (primary) — Google AI Studio free tier: 1,500 req/day, 15 RPM
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash")
 
-# Free-model fallbacks (primary tried first via _call / _call_preferred_model)
-FREE_MODELS = [
-    PRIMARY_MODEL,
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "google/gemma-3-27b-it:free",
-    "nousresearch/hermes-3-llama-3.1-405b:free",
-    "openrouter/free",
-]
+# OpenRouter (fallback)
+OPENROUTER_PRIMARY_MODEL = os.environ.get("OPENROUTER_PRIMARY_MODEL", "openrouter/free")
+_FALLBACK_MODELS_DEFAULT = (
+    "meta-llama/llama-3.3-70b-instruct:free,"
+    "google/gemma-3-27b-it:free,"
+    "nousresearch/hermes-3-llama-3.1-405b:free,"
+    "openrouter/free"
+)
+_FREE_MODELS_RAW = os.environ.get("OPENROUTER_FALLBACK_MODELS", _FALLBACK_MODELS_DEFAULT)
+FREE_MODELS = [m.strip() for m in _FREE_MODELS_RAW.split(",") if m.strip()]
+if FREE_MODELS and FREE_MODELS[0] != OPENROUTER_PRIMARY_MODEL:
+    FREE_MODELS = [OPENROUTER_PRIMARY_MODEL] + [
+        m for m in FREE_MODELS if m != OPENROUTER_PRIMARY_MODEL
+    ]
 
-DAILY_REQUEST_LIMIT = 180
+DAILY_REQUEST_LIMIT = int(os.environ.get("OPENROUTER_DAILY_LIMIT", "180"))
+
+_AI_TIMEOUT_S = float(
+    os.environ.get("AI_TIMEOUT_S", os.environ.get("OPENROUTER_TIMEOUT_S", "60.0"))
+)
+_AI_DESK_TIMEOUT_S = float(
+    os.environ.get("AI_DESK_TIMEOUT_S", os.environ.get("OPENROUTER_DESK_TIMEOUT_S", "15.0"))
+)
+
+# Circuit breaker state
+_consecutive_failures = 0
+_CIRCUIT_BREAKER_THRESHOLD = 3
+
+
+def _check_circuit_breaker() -> None:
+    global _consecutive_failures
+    if _consecutive_failures >= _CIRCUIT_BREAKER_THRESHOLD:
+        raise RuntimeError(
+            f"OpenRouter circuit breaker open: {_consecutive_failures} consecutive failures"
+        )
 
 
 def _openrouter_headers() -> dict[str, str]:
@@ -43,6 +71,31 @@ def _openrouter_headers() -> dict[str, str]:
         "HTTP-Referer": "https://fxregimelab.com",
         "X-Title": "FX Regime Lab",
     }
+
+
+def _gemini_api_key() -> str | None:
+    key = os.environ.get("GEMINI_API_KEY")
+    return str(key).strip() if key and str(key).strip() else None
+
+
+def _gemini_client() -> OpenAI:
+    key = _gemini_api_key()
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    return OpenAI(
+        api_key=key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+
+
+def _async_gemini_client() -> AsyncOpenAI:
+    key = _gemini_api_key()
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    return AsyncOpenAI(
+        api_key=key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
 
 
 def _openrouter_api_key() -> str:
@@ -73,6 +126,61 @@ def _async_openrouter_client() -> AsyncOpenAI:
     )
 
 
+# ── Gemini-first call wrappers ───────────────────────────────────────
+
+
+def _gemini_available() -> bool:
+    return _gemini_api_key() is not None
+
+
+async def _call_gemini_first_async(
+    messages: list[dict[str, str]],
+    max_tokens: int,
+    model: str,
+    temperature: float = 0.3,
+    response_format: dict[str, str] | None = None,
+    timeout_seconds: float | None = None,
+) -> str:
+    """Try Gemini; if unavailable or fails, raise so caller can fall back."""
+    client = _async_gemini_client()
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": cast(Any, messages),
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }
+    if response_format is not None:
+        kwargs["response_format"] = cast(Any, response_format)
+    if timeout_seconds is not None:
+        kwargs["timeout"] = timeout_seconds
+    resp = await client.chat.completions.create(**kwargs)
+    return resp.choices[0].message.content or ""
+
+
+def _call_gemini_first(
+    messages: list[dict[str, str]],
+    max_tokens: int,
+    model: str,
+    temperature: float = 0.3,
+    response_format: dict[str, str] | None = None,
+    timeout_seconds: float | None = None,
+) -> str:
+    """Sync wrapper for Gemini call."""
+    client = _gemini_client()
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": cast(Any, messages),
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }
+    if response_format is not None:
+        kwargs["response_format"] = cast(Any, response_format)
+    if timeout_seconds is not None:
+        kwargs["timeout"] = timeout_seconds
+    resp = client.chat.completions.create(**kwargs)
+    return resp.choices[0].message.content or ""
+
+
 def _check_limit(date_str: str) -> None:
     from src.db import writer
 
@@ -83,21 +191,46 @@ def _check_limit(date_str: str) -> None:
 
 
 def _call(messages: list[dict[str, str]], max_tokens: int, date_str: str, purpose: str) -> str:
-    """Try available free models in order."""
+    """Try Gemini primary, then OpenRouter fallback rotation."""
     from src.db import writer
 
+    global _consecutive_failures
+    _check_circuit_breaker()
     _check_limit(date_str)
+
+    # ── Gemini primary ───────────────────────────────────────────────
+    if _gemini_available():
+        for gemini_model in (GEMINI_MODEL, GEMINI_FALLBACK_MODEL):
+            try:
+                logger.info("Attempting AI call with Gemini model: %s", gemini_model)
+                content = _call_gemini_first(
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    model=gemini_model,
+                    timeout_seconds=_AI_TIMEOUT_S,
+                )
+                writer.write_ai_request(date_str, purpose, gemini_model)
+                _consecutive_failures = 0
+                return content
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Gemini model %s failed: %s", gemini_model, exc)
+
+    # ── OpenRouter fallback ──────────────────────────────────────────
     for attempt in range(1, 4):
         for model in FREE_MODELS:
             try:
-                logger.info("Attempting AI call with model: %s (attempt %s)", model, attempt)
+                logger.info(
+                    "Attempting AI call with OpenRouter model: %s (attempt %s)", model, attempt
+                )
                 resp = _openrouter_client().chat.completions.create(
                     model=model,
                     messages=cast(Any, messages),
                     max_tokens=max_tokens,
                     temperature=0.3,
+                    timeout=_AI_TIMEOUT_S,
                 )
                 writer.write_ai_request(date_str, purpose, model)
+                _consecutive_failures = 0
                 return resp.choices[0].message.content or ""
             except Exception as exc:  # noqa: BLE001
                 logger.warning("OpenRouter model %s failed: %s", model, exc)
@@ -109,8 +242,10 @@ def _call(messages: list[dict[str, str]], max_tokens: int, date_str: str, purpos
                 sleep_time,
             )
             import time
+
             time.sleep(sleep_time)
-    raise RuntimeError("All OpenRouter free models failed after retries")
+    _consecutive_failures += 1
+    raise RuntimeError("All AI providers (Gemini + OpenRouter) failed after retries")
 
 
 async def _call_async(
@@ -119,21 +254,48 @@ async def _call_async(
     date_str: str,
     purpose: str,
 ) -> str:
-    """Try available free models in order (async)."""
+    """Try Gemini primary, then OpenRouter fallback rotation (async)."""
     from src.db import writer
 
+    global _consecutive_failures
+    _check_circuit_breaker()
+    _check_limit(date_str)
+
+    # ── Gemini primary ───────────────────────────────────────────────
+    if _gemini_available():
+        for gemini_model in (GEMINI_MODEL, GEMINI_FALLBACK_MODEL):
+            try:
+                logger.info("Attempting async AI call with Gemini model: %s", gemini_model)
+                content = await _call_gemini_first_async(
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    model=gemini_model,
+                    timeout_seconds=_AI_TIMEOUT_S,
+                )
+                writer.write_ai_request(date_str, purpose, gemini_model)
+                _consecutive_failures = 0
+                return content
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Gemini model %s failed: %s", gemini_model, exc)
+
+    # ── OpenRouter fallback ──────────────────────────────────────────
     for attempt in range(1, 4):
         for model in FREE_MODELS:
             try:
-                _check_limit(date_str)
-                logger.info("Attempting async AI call with model: %s (attempt %s)", model, attempt)
+                logger.info(
+                    "Attempting async AI call with OpenRouter model: %s (attempt %s)",
+                    model,
+                    attempt,
+                )
                 resp = await _async_openrouter_client().chat.completions.create(
                     model=model,
                     messages=cast(Any, messages),
                     max_tokens=max_tokens,
                     temperature=0.3,
+                    timeout=_AI_TIMEOUT_S,
                 )
                 writer.write_ai_request(date_str, purpose, model)
+                _consecutive_failures = 0
                 return resp.choices[0].message.content or ""
             except Exception as exc:  # noqa: BLE001
                 logger.warning("OpenRouter model %s failed: %s", model, exc)
@@ -145,8 +307,10 @@ async def _call_async(
                 sleep_time,
             )
             import asyncio
+
             await asyncio.sleep(sleep_time)
-    raise RuntimeError("All OpenRouter free models failed after retries")
+    _consecutive_failures += 1
+    raise RuntimeError("All AI providers (Gemini + OpenRouter) failed after retries")
 
 
 async def _call_preferred_model_async(
@@ -159,27 +323,49 @@ async def _call_preferred_model_async(
     response_format: dict[str, str] | None = None,
     timeout_seconds: float | None = None,
 ) -> str:
-    """Call a preferred model once, then fall back to free-model rotation (async)."""
+    """Call preferred model (Gemini if available, else OpenRouter), then fall back."""
     from src.db import writer
 
+    global _consecutive_failures
+    _check_circuit_breaker()
     _check_limit(date_str)
+    timeout = timeout_seconds if timeout_seconds is not None else _AI_TIMEOUT_S
+
+    # ── Gemini primary ───────────────────────────────────────────────
+    if _gemini_available():
+        for gemini_model in (GEMINI_MODEL, GEMINI_FALLBACK_MODEL):
+            try:
+                logger.info("Attempting async AI call with Gemini model: %s", gemini_model)
+                content = await _call_gemini_first_async(
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    model=gemini_model,
+                    response_format=response_format,
+                    timeout_seconds=timeout,
+                )
+                writer.write_ai_request(date_str, purpose, gemini_model)
+                _consecutive_failures = 0
+                return content
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Gemini model %s failed: %s; falling back", gemini_model, exc)
+
+    # ── OpenRouter fallback ──────────────────────────────────────────
     try:
-        logger.info("Attempting async AI call with preferred model: %s", model)
+        logger.info("Attempting async AI call with OpenRouter preferred model: %s", model)
         resp = await _async_openrouter_client().chat.completions.create(
             model=model,
             messages=cast(Any, messages),
             max_tokens=max_tokens,
             temperature=0.3,
             response_format=cast(Any, response_format),
-            timeout=timeout_seconds,
+            timeout=timeout,
         )
         writer.write_ai_request(date_str, purpose, model)
+        _consecutive_failures = 0
         return resp.choices[0].message.content or ""
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Preferred model %s failed: %s; falling back", model, exc)
-    return await _call_async(
-        messages, max_tokens=max_tokens, date_str=date_str, purpose=purpose
-    )
+        logger.warning("OpenRouter preferred model %s failed: %s; falling back", model, exc)
+    return await _call_async(messages, max_tokens=max_tokens, date_str=date_str, purpose=purpose)
 
 
 def _call_preferred_model(
@@ -236,7 +422,7 @@ def _deterministic_desk_card_brief(
     else:
         tag = "ELEVATED" if float(pain_index) >= 80 else "CONTROLLED"
         squeeze_bits.append(f"{tag} (PAIN {float(pain_index):.1f})")
-    
+
     if rvol is not None:
         squeeze_bits.append(f"RVOL {float(rvol):.2f}X")
 
@@ -255,10 +441,19 @@ def _deterministic_desk_card_brief(
     return json.dumps(payload)
 
 
-def _parse_desk_card_json(
-    payload_text: str, *, required_keys: tuple[str, ...]
-) -> dict[str, str]:
-    parsed = json.loads(payload_text)
+def _parse_desk_card_json(payload_text: str, *, required_keys: tuple[str, ...]) -> dict[str, str]:
+    text = (payload_text or "").strip()
+    if not text:
+        raise ValueError("Desk card response is empty")
+    # Strip markdown code fences if present
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].startswith("```"):
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    parsed = json.loads(text)
     if not isinstance(parsed, dict):
         raise ValueError("Desk card response is not a JSON object")
 
@@ -318,7 +513,6 @@ def desk_card_brief_fallback(
     )
 
 
-
 def _parse_weekly_memo_thesis(payload_text: str) -> list[str]:
     parsed = json.loads(payload_text)
     if isinstance(parsed, list):
@@ -356,13 +550,13 @@ async def summarize_weekly_memo_async(raw_text: str, *, date_str: str) -> list[s
         "You are a Quant Fund Researcher. Summarize the following Macro Memo into exactly 5 "
         "'Structural Thesis' bullets. Focus on: 1. Primary Bias (Bull/Bear), 2. Key Level, "
         "3. Narrative Driver.\n"
-        "Return ONLY a strict JSON object with exactly one key \"theses\" whose value is a "
+        'Return ONLY a strict JSON object with exactly one key "theses" whose value is a '
         "JSON array of exactly 5 strings (each string is one bullet).\n"
         f"MEMO_TEXT:\n{body}\n"
     )
     messages = [{"role": "user", "content": prompt}]
     raw = await _call_preferred_model_async(
-        model=PRIMARY_MODEL,
+        model=OPENROUTER_PRIMARY_MODEL,
         messages=messages,
         max_tokens=600,
         date_str=date_str,
@@ -476,19 +670,21 @@ async def generate_desk_card_brief_async(
         f"{squeeze_rules}"
         f"{dollar_rule}"
         "- Do not add markdown, prose wrappers, or extra keys.\n"
+        "- CRITICAL: Output ONLY the raw JSON object. No preamble. "
+        "No explanations. No 'Here is the JSON' text.\n"
     )
     required_keys: tuple[str, ...] = ("bias_summary", "catalyst_driver", "squeeze_risk")
     messages = [{"role": "user", "content": prompt}]
     for attempt in range(2):
         try:
             raw = await _call_preferred_model_async(
-                model=PRIMARY_MODEL,
+                model=OPENROUTER_PRIMARY_MODEL,
                 messages=messages,
-                max_tokens=220,
+                max_tokens=1200,
                 date_str=date_str,
                 purpose=f"desk_card_{pair}",
                 response_format={"type": "json_object"},
-                timeout_seconds=5.0,
+                timeout_seconds=_AI_DESK_TIMEOUT_S,
             )
             parsed = _parse_desk_card_json(raw, required_keys=required_keys)
             return json.dumps(parsed), human_grounding_active
@@ -524,11 +720,7 @@ def generate_brief(
     """Generate pair brief. Cache-check must be done by caller (orchestrator)."""
     chg = signal_row.day_change_pct
     chg_s = f"{chg:+.2f}%" if chg is not None else "NA"
-    dom_txt = (
-        "null"
-        if dollar_dominance_pct is None
-        else f"{float(dollar_dominance_pct):.2f}"
-    )
+    dom_txt = "null" if dollar_dominance_pct is None else f"{float(dollar_dominance_pct):.2f}"
     prompt = (
         "TASK: FX analyst brief. 3 short paragraphs. Under 200 words total.\n"
         f"PAIR:{pair} DATE:{date_str}\n"
@@ -606,13 +798,13 @@ def generate_event_brief(
     for attempt in range(2):
         try:
             raw = _call_preferred_model(
-                model=PRIMARY_MODEL,
+                model=OPENROUTER_PRIMARY_MODEL,
                 messages=messages,
                 max_tokens=170,
                 date_str=date_str,
                 purpose=safe_purpose,
                 response_format={"type": "json_object"},
-                timeout_seconds=5.0,
+                timeout_seconds=_AI_DESK_TIMEOUT_S,
             )
             return _parse_event_brief_json(raw)
         except Exception as exc:  # noqa: BLE001
@@ -648,8 +840,8 @@ async def generate_linkedin_alpha_hook_async(
         "- STRICTLY NO MARKETING FLUFF.\n"
         "- No emojis.\n"
         "- No hashtags.\n"
-        "- Style: institutional shorthand only (e.g., \"1.5x MAD breach,\" \"COT extremes,\" "
-        "\"Asymmetric Downside\").\n"
+        '- Style: institutional shorthand only (e.g., "1.5x MAD breach," "COT extremes," '
+        '"Asymmetric Downside").\n'
         "- Structure exactly four blocks separated by line breaks:\n"
         "  [REGIME ALERT] then [THE NUMBERS] then [THE SQUEEZE RISK] then [LINK]\n"
         "- In [LINK], give one plain URL: use pair slug from data (lowercase, e.g. eurusd) as "
@@ -659,7 +851,7 @@ async def generate_linkedin_alpha_hook_async(
     )
     messages = [{"role": "user", "content": prompt}]
     return await _call_preferred_model_async(
-        model=PRIMARY_MODEL,
+        model=OPENROUTER_PRIMARY_MODEL,
         messages=messages,
         max_tokens=520,
         date_str=date_str,
@@ -675,7 +867,7 @@ def generate_linkedin_alpha_hook(card_data: dict[str, Any]) -> str:
     return asyncio.run(generate_linkedin_alpha_hook_async(card_data, date_str=ds))
 
 
-def generate_global_macro_summary(
+async def generate_global_macro_summary_async(
     *,
     date_str: str,
     pair_contexts: list[str],
@@ -683,12 +875,8 @@ def generate_global_macro_summary(
     dollar_dominance_pct: float | None = None,
     polymarket_odds_json: str = "[]",
 ) -> str:
-    """Generate a unified global macro brief for `brief_log`."""
-    dom_txt = (
-        "null"
-        if dollar_dominance_pct is None
-        else f"{float(dollar_dominance_pct):.2f}"
-    )
+    """Generate a unified global macro brief for `brief_log` (async)."""
+    dom_txt = "null" if dollar_dominance_pct is None else f"{float(dollar_dominance_pct):.2f}"
     prompt = (
         "TASK: Create a global FX macro summary in ~150 words.\n"
         f"DATE:{date_str}\n"
@@ -705,10 +893,30 @@ def generate_global_macro_summary(
         "OUTPUT: plain text only. No markdown. No headers."
     )
     messages = [{"role": "user", "content": prompt}]
-    return _call_preferred_model(
-        model=PRIMARY_MODEL,
+    return await _call_preferred_model_async(
+        model=OPENROUTER_PRIMARY_MODEL,
         messages=messages,
         max_tokens=220,
         date_str=date_str,
         purpose="global_macro_summary",
+    )
+
+
+def generate_global_macro_summary(
+    *,
+    date_str: str,
+    pair_contexts: list[str],
+    macro_context: str,
+    dollar_dominance_pct: float | None = None,
+    polymarket_odds_json: str = "[]",
+) -> str:
+    """Generate a unified global macro brief for `brief_log` (sync wrapper)."""
+    return asyncio.run(
+        generate_global_macro_summary_async(
+            date_str=date_str,
+            pair_contexts=pair_contexts,
+            macro_context=macro_context,
+            dollar_dominance_pct=dollar_dominance_pct,
+            polymarket_odds_json=polymarket_odds_json,
+        )
     )

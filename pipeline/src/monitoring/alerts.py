@@ -107,9 +107,7 @@ def _format_failure_blocks(
         {"type": "mrkdwn", "text": f"*Step:*\n{failed_step}"},
     ]
     if dqs_score is not None:
-        fields.append(
-            {"type": "mrkdwn", "text": f"*DQS:*\n{dqs_score:.2f}"}
-        )
+        fields.append({"type": "mrkdwn", "text": f"*DQS:*\n{dqs_score:.2f}"})
     return [
         {
             "type": "header",

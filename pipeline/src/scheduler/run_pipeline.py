@@ -4,12 +4,17 @@ Replaces the shell-based run_daily.sh for the primary execution path.
 Runs the daily orchestrator, overnight check, validation engine, and
 validation aggregate — each with failure isolation — then sends the
 appropriate Slack/email alerts.
+
+Optional v3 shadow mode runs the pair-specific pipeline alongside the
+legacy v2 orchestrator so both model versions are logged for comparison.
 """
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import logging
+import subprocess
 import sys
 import uuid
 from datetime import date
@@ -37,13 +42,64 @@ def _run_sync(coro: Any) -> Any:
         return loop.run_until_complete(coro)
 
 
-def run_pipeline(date_str: str | None = None) -> None:
+def _run_v3_shadow(date_str: str, correlation_id: str, *, live: bool = False) -> int:
+    """Run the v3 pair-specific pipeline in shadow mode.
+
+    Returns the subprocess exit code.  Failures are logged but do NOT
+    block the main v2 pipeline.
+    """
+    cmd = [
+        sys.executable,
+        "-m",
+        "src.pairs.runner",
+        "--all",
+        "--date",
+        date_str,
+    ]
+    if not live:
+        cmd.append("--dry-run")
+    logger.info(
+        "Starting v3 shadow pipeline: cid=%s cmd=%s",
+        correlation_id,
+        " ".join(cmd),
+    )
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=600,
+            check=False,
+        )
+        if result.returncode != 0:
+            logger.warning(
+                "v3 shadow pipeline exited %d: stderr=%s",
+                result.returncode,
+                result.stderr[:500],
+            )
+        else:
+            logger.info("v3 shadow pipeline completed successfully")
+        return result.returncode
+    except subprocess.TimeoutExpired:
+        logger.warning("v3 shadow pipeline timed out after 600s")
+        return 124
+    except Exception as exc:
+        logger.warning("v3 shadow pipeline launch failed: %s", exc)
+        return 1
+
+
+def run_pipeline(
+    date_str: str | None = None,
+    *,
+    v3_shadow: bool = False,
+    v3_live: bool = False,
+) -> None:
     """Execute the full daily pipeline with alerting.
 
     Steps:
-      1. Daily orchestrator (signals, regime calls, briefs)
-      2. Overnight check (invalidation, persistence)
-      3. Validation engine (T+5/T+20 Brier scores)
+      1. Daily orchestrator (signals, regime calls, briefs) — v2
+      2. v3 shadow pipeline (pair-specific models) — optional
+      3. Overnight check (invalidation, persistence)
       4. Validation aggregate (track-record stats)
 
     Alerting behavior:
@@ -51,6 +107,7 @@ def run_pipeline(date_str: str | None = None) -> None:
       * DQS < 0.70 (no crash)   → email alert
       * DQS >= 0.70 success     → Slack heartbeat
       * Subsequent step crash   → Slack failure alert (step name included)
+      * v3 shadow failure       → logged only (non-blocking)
     """
     if date_str is None:
         date_str = date.today().isoformat()
@@ -60,7 +117,7 @@ def run_pipeline(date_str: str | None = None) -> None:
     regime_calls_count = 0
     failed_step = ""
 
-    # ── Step 1: Daily orchestrator ──────────────────────────────────
+    # ── Step 1: Daily orchestrator (v2) ─────────────────────────────
     try:
         _run_sync(run_daily(date_str, correlation_id=correlation_id))
     except Exception as exc:
@@ -78,6 +135,10 @@ def run_pipeline(date_str: str | None = None) -> None:
             dqs_score=dqs_score,
         )
         raise
+
+    # ── Step 1b: v3 shadow pipeline (non-blocking) ──────────────────
+    if v3_shadow or v3_live:
+        _run_v3_shadow(date_str, correlation_id, live=v3_live)
 
     # DQS and regime-call count are not directly exposed by run_daily,
     # so we infer success from the absence of an exception.  If future
@@ -135,7 +196,34 @@ def run_pipeline(date_str: str | None = None) -> None:
     logger.info("Pipeline complete for %s", date_str)
 
 
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Daily pipeline runner with alerting")
+    parser.add_argument("date", nargs="?", default=None, help="Override date (YYYY-MM-DD)")
+    parser.add_argument(
+        "--v3-shadow",
+        action="store_true",
+        dest="v3_shadow",
+        help="Run v3 pair-specific pipeline in shadow mode after v2 (non-blocking, dry-run)",
+    )
+    parser.add_argument(
+        "--v3-live",
+        action="store_true",
+        dest="v3_live",
+        help="Run v3 pipeline and WRITE to DB (requires meta migration)",
+    )
+    args = parser.parse_args(argv)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
+    try:
+        run_pipeline(args.date, v3_shadow=args.v3_shadow, v3_live=args.v3_live)
+    except Exception:
+        return 1
+    return 0
+
+
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    date_override = sys.argv[1] if len(sys.argv) > 1 else None
-    run_pipeline(date_override)
+    sys.exit(main())

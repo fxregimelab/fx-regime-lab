@@ -104,6 +104,7 @@ def write_regime_call(
     *,
     correlation_id: str | None = None,
     write_hash: str | None = None,
+    model_version: str | None = None,
 ) -> int | str | None:
     """Insert a regime call row.  Returns the existing or new row id.
 
@@ -116,17 +117,23 @@ def write_regime_call(
         payload["correlation_id"] = correlation_id
     if write_hash is not None:
         payload["write_hash"] = write_hash
+    if model_version is not None:
+        payload["model_version"] = model_version
     client = _client()
 
-    # Check for existing row first — avoids immutable-trigger UPDATE error
-    existing = (
+    # Check for existing row first — avoids immutable-trigger UPDATE error.
+    # Include model_version so v2 and v3 calls can coexist for the same pair/date.
+    existing_q = (
         client.table("regime_calls")
         .select("id")
         .eq("pair", call.pair)
         .eq("date", payload["date"])
-        .maybe_single()
-        .execute()
     )
+    if model_version is not None:
+        existing_q = existing_q.eq("model_version", model_version)
+    else:
+        existing_q = existing_q.is_("model_version", "null")
+    existing = existing_q.maybe_single().execute()
     if existing and existing.data:
         row = cast(dict[str, Any], existing.data)
         return row.get("id")
@@ -156,13 +163,7 @@ def write_desk_open_cards_bulk(cards: Sequence[DeskOpenCardRow]) -> None:
 
 
 def get_desk_open_cards_for_date(date_str: str) -> list[dict[str, Any]]:
-    res = (
-        _client()
-        .table("desk_open_cards")
-        .select("*")
-        .eq("date", str(date_str)[:10])
-        .execute()
-    )
+    res = _client().table("desk_open_cards").select("*").eq("date", str(date_str)[:10]).execute()
     return cast(list[dict[str, Any]], res.data or [])
 
 
@@ -521,8 +522,13 @@ def write_brief_log(
         for pair, regime in pair_regimes.items():
             col = f"{pair.lower()}_regime"
             if col in {
-                "eurusd_regime", "usdjpy_regime", "usdinr_regime",
-                "gbpusd_regime", "audusd_regime", "usdcad_regime", "usdchf_regime",
+                "eurusd_regime",
+                "usdjpy_regime",
+                "usdinr_regime",
+                "gbpusd_regime",
+                "audusd_regime",
+                "usdcad_regime",
+                "usdchf_regime",
             }:
                 payload[col] = regime
     _client().table("brief_log").upsert(payload, on_conflict="date").execute()
@@ -564,8 +570,7 @@ def write_macro_events(events: list[dict[str, Any]]) -> None:
 
 def write_ai_request(date_str: str, purpose: str, model: str) -> None:
     _client().rpc(
-        "increment_ai_usage",
-        {"p_date": date_str, "p_purpose": purpose, "p_model": model}
+        "increment_ai_usage", {"p_date": date_str, "p_purpose": purpose, "p_model": model}
     ).execute()
 
 
@@ -593,26 +598,14 @@ def get_latest_regime_call(pair: str) -> dict[str, Any] | None:
 
 def get_brief_for_date(pair: str, date_str: str) -> str | None:
     res = (
-        _client()
-        .table("brief")
-        .select("analysis")
-        .eq("pair", pair)
-        .eq("date", date_str)
-        .execute()
+        _client().table("brief").select("analysis").eq("pair", pair).eq("date", date_str).execute()
     )
     data = cast(list[dict[str, Any]], res.data or [])
     return str(data[0]["analysis"]) if data else None
 
 
 def get_signal_for_pair_date(pair: str, date_str: str) -> dict[str, Any] | None:
-    res = (
-        _client()
-        .table("signals")
-        .select("*")
-        .eq("pair", pair)
-        .eq("date", date_str)
-        .execute()
-    )
+    res = _client().table("signals").select("*").eq("pair", pair).eq("date", date_str).execute()
     data = cast(list[dict[str, Any]], res.data or [])
     return data[0] if data else None
 
@@ -776,12 +769,7 @@ def write_historical_macro_surprises(rows: list[Mapping[str, Any]]) -> None:
 
 
 def fetch_event_aliases() -> list[dict[str, Any]]:
-    res = (
-        _client()
-        .table("event_aliases")
-        .select("canonical_name,alias_name")
-        .execute()
-    )
+    res = _client().table("event_aliases").select("canonical_name,alias_name").execute()
     return cast(list[dict[str, Any]], res.data or [])
 
 
@@ -869,16 +857,20 @@ def get_rpc_historical_analogs(
 ) -> list[dict[str, Any]]:
     """Run ``match_historical_analogs`` in Postgres (no deep history fetch in Python)."""
 
-    res = _client().rpc(
-        "match_historical_analogs",
-        {
-            "target_pair": pair,
-            "as_of_date": as_of_date,
-            "current_trend": current_trend,
-            "current_comp": current_comp,
-            "limit_rows": limit_rows,
-        },
-    ).execute()
+    res = (
+        _client()
+        .rpc(
+            "match_historical_analogs",
+            {
+                "target_pair": pair,
+                "as_of_date": as_of_date,
+                "current_trend": current_trend,
+                "current_comp": current_comp,
+                "limit_rows": limit_rows,
+            },
+        )
+        .execute()
+    )
     return cast(list[dict[str, Any]], res.data or [])
 
 
@@ -1294,6 +1286,26 @@ def get_validation_log_for_stats(
 def write_validation_stats(row: Mapping[str, Any]) -> None:
     """Upsert aggregate stats into ``validation_stats`` on (as_of_date, pair)."""
     payload = cast(dict[str, Any], dict(row))
-    _client().table("validation_stats").upsert(
-        payload, on_conflict="as_of_date,pair"
-    ).execute()
+    _client().table("validation_stats").upsert(payload, on_conflict="as_of_date,pair").execute()
+
+
+def write_pipeline_run(payload: dict[str, Any]) -> None:
+    """Insert a pipeline run record into ``pipeline_runs``.
+
+    Skips if a record already exists for the same ``date`` and
+    silently ignores all DB errors.
+    """
+    try:
+        client = _client()
+        existing = (
+            client.table("pipeline_runs")
+            .select("id")
+            .eq("date", payload.get("date"))
+            .maybe_single()
+            .execute()
+        )
+        if existing and existing.data:
+            return
+        client.table("pipeline_runs").insert(payload).execute()
+    except Exception:
+        pass
