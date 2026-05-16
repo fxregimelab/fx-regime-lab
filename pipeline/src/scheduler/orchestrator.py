@@ -749,10 +749,14 @@ def _upsert_pair_briefs_for_date(
         prior = writer.get_latest_regime_call(pair)
         if not prior:
             continue
-        if str(prior.get("date"))[:10] != date_str:
+        prior_date = str(prior.get("date") or "")[:10]
+        # Accept latest regime call regardless of exact date — on weekends the
+        # trading date (e.g. Friday) won't match the run date (e.g. Saturday).
+        if not prior_date:
             continue
 
-        sig = writer.get_signal_for_pair_date(pair, date_str)
+        # Look up signal using the regime call's actual trading date.
+        sig = writer.get_signal_for_pair_date(pair, prior_date)
         if not sig:
             continue
         signal_row = _signal_row_from_db(sig)
@@ -1617,6 +1621,7 @@ async def run_daily(
     if pending_desk_cards:
         ref_raw = pending_desk_cards[0]["card"]["date"]
         ref_date = ref_raw if isinstance(ref_raw, date) else date.fromisoformat(str(ref_raw)[:10])
+        trading_date_str = ref_date.isoformat()
         yesterday = (ref_date - timedelta(days=1)).isoformat()
         y_rows = writer.get_desk_open_cards_for_date(yesterday)
         yb_rank, yb_apex, incumbent = build_yesterday_rank_maps(y_rows)
@@ -1743,7 +1748,10 @@ async def run_daily(
         rc = writer.get_latest_regime_call(p)
         if rc is None:
             continue
-        if str(rc.get("date") or "")[:10] != date_str:
+        rc_date = str(rc.get("date") or "")[:10]
+        # Accept regime call if it matches run date OR the actual trading date
+        # (on weekends the trading date is Friday while run date is Saturday).
+        if rc_date != date_str and rc_date != trading_date_str:
             continue
         pair_regimes[p] = str(rc.get("regime") or "")
 
