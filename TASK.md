@@ -2,7 +2,7 @@
 
 > **Read `HANDOVER.md` first** before any work on this file. It contains the operator identity, locked decisions, career strategy, and session operating rules that govern all task prioritization.
 
-**Status:** PRODUCTION READY — All P0–P4 complete. 218/218 tests pass. Build zero errors. TypeScript clean.
+**Status:** v2.0 RELEASED — FPI flow + risk reversal wired into live pipeline. 228/228 tests pass. Build zero errors. TypeScript clean. Deployed to Vercel.
 
 ## Active Rounds (The Dual-Mandate Roadmap)
 
@@ -102,6 +102,23 @@ Every task MUST be checked by the chambers for **Dual-Alignment**:
   - Root cause: Prefect managed worker base image ships with broken `prefect.results` (missing `_aget_default_persist_result`, `_get_default_persist_result`, `_has_current_run_context`, `get_current_settings`, `_read_server_default_result_storage_block_id`, `_aread_server_default_result_storage_block_id`).
   - Fix: Comprehensive monkey-patch injected at module import time in `src/scheduler/orchestrator.py`. Patch runs in the flow runner process before any `@task` decorator triggers `prefect.task_engine` import.
   - Deployment re-deployed with `prefecthq/prefect:3-python3.12` full image (not `prefect-client`).
+
+### v2.0: OTC Risk Reversal + FPI Integration [COMPLETE — 2026-05-15]
+- [x] **Backend:** `fpi_flow` column added to `signals` table via Supabase migration.
+- [x] **Backend:** SEBI FPI scraper (`src/fetchers/fpi_india.py`) wired into daily orchestrator for USDINR.
+- [x] **Backend:** FPI normalization signal — 20-day z-score clipped to [-1, 1] (`src/signals/fpi.py`).
+- [x] **Backend:** Risk reversal 25d synthetic proxy wired into all pairs (`rv20 * 0.3 * sign(day_change)`).
+- [x] **Backend:** Layer 3 execution now receives actual RR series (was empty tuple `()`).
+- [x] **Backend:** USDINR composite weights updated — rate 0.25, special 0.20, fpi 0.15.
+- [x] **Backend:** `compute_composite`, `compute_dominance_scores`, `dominance_top_family` support `fpi` family.
+- [x] **Backend:** `rr_signal` computed dynamically (BULLISH/BEARISH/NEUTRAL) instead of hardcoded.
+- [x] **Frontend:** `risk_reversal_25d` displayed on SignalCard and pair desk.
+- [x] **Frontend:** `fpi_flow` displayed on SignalCard and pair desk (USDINR only).
+- [x] **Frontend:** FPI Flow signal family added to methodology decomposition.
+- [x] **Tests:** 228 pytest cases pass (6 new: 2 composite + 4 FPI normalization).
+- [x] **Build:** `npm run build` passes in WSL2, `npx tsc --noEmit` clean.
+- [x] **Deploy:** Committed `181a83a`, pushed to main. Vercel auto-deploy triggered.
+- [x] **Lighthouse:** Audit script created at `web/scripts/lighthouse-audit.js` (thresholds: mobile perf ≥85, desktop ≥90).
 
 ## Notes
 
