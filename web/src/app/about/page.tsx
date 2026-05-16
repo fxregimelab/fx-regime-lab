@@ -3,7 +3,7 @@
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
 import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
-import { Github, Mail, Twitter } from "lucide-react";
+import { Globe, Link2, Mail, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -160,13 +160,13 @@ function ContactConnect() {
       display: "shreyash@fxregimelab.com",
     },
     {
-      icon: Github,
+      icon: Link2,
       label: "GitHub",
       href: "https://github.com/fxregimelab",
       display: "github.com/fxregimelab",
     },
     {
-      icon: Twitter,
+      icon: MessageCircle,
       label: "X / Twitter",
       href: "#",
       display: "@fxregimelab",
