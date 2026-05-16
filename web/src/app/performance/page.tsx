@@ -10,10 +10,17 @@ import {
   getValidationStats,
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Performance | FX Regime Lab",
+  description:
+    "T+5 and T+20 validation track record. Brier scores, win rates, Sharpe-like ratios, and calibration analysis.",
+};
 
 /* ─── helpers ───────────────────────────────────────────────────────────── */
 
-function fmtPct(n: number | null | undefined, digits = 1) {
+function fmtPctRaw(n: number | null | undefined, digits = 1) {
   if (n == null) return "—";
   const sign = n >= 0 ? "+" : "";
   return `${sign}${(n * 100).toFixed(digits)}%`;
@@ -139,7 +146,7 @@ function EquityCurveSVG({
             fontFamily="JetBrains Mono, monospace"
             style={{ fontVariantNumeric: "tabular-nums" }}
           >
-            {fmtPct(v)}
+            {fmtPctRaw(v)}
           </text>
         );
       })}
@@ -267,7 +274,7 @@ export default async function PerformancePage() {
         >
           <StatsCard
             label="T+5 WIN RATE"
-            value={fmtPct(allT5?.winRate)}
+            value={fmtPctRaw(allT5?.winRate)}
             sub={`${allT5?.sampleSize ?? 0} calls`}
           />
           <StatsCard
@@ -287,7 +294,7 @@ export default async function PerformancePage() {
           />
           <StatsCard
             label="T+20 WIN RATE"
-            value={fmtPct(allT20?.winRate)}
+            value={fmtPctRaw(allT20?.winRate)}
             sub={`${allT20?.sampleSize ?? 0} calls`}
           />
           <StatsCard
@@ -348,7 +355,7 @@ export default async function PerformancePage() {
               <span className="font-mono text-[10px] text-[var(--color-text-muted)] tabular-nums">
                 Max DD:{" "}
                 <span style={{ color: "var(--color-down)" }}>
-                  {fmtPct(-maxDD / 100)}
+                  {fmtPctRaw(-maxDD / 100)}
                 </span>
               </span>
             </div>

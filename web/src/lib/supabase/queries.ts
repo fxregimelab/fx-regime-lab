@@ -692,7 +692,8 @@ export async function getPipelineHealth(
     .from("health_checks")
     .select("*")
     .gte("pipeline_date", cutoffStr)
-    .order("pipeline_date", { ascending: false });
+    .order("pipeline_date", { ascending: false })
+    .limit(100);
 
   if (!healthError && healthData && healthData.length > 0) {
     return (healthData as HealthCheckRow[]).map((row) => {

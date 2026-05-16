@@ -5,6 +5,13 @@ import { getDriverTag } from "@/lib/pairProfiles";
 import { getLatestBrief } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Daily Brief | FX Regime Lab",
+  description:
+    "Institutional morning desk brief. Macro summary, pair regime calls, and tactical execution notes.",
+};
 
 function DollarDominanceIndex({
   brief,

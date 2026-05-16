@@ -16,6 +16,13 @@ import {
   getValidationStats,
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terminal | FX Regime Lab",
+  description:
+    "Live institutional-grade FX regime terminal. Real-time signals, cross-asset matrix, and daily briefs for EUR/USD, USD/JPY, and USD/INR.",
+};
 
 export const dynamic = "force-dynamic";
 

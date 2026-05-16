@@ -7,7 +7,7 @@ import { ConfidenceBar } from "@/components/ui/confidence-bar";
 import { CorrelationMatrix } from "@/components/ui/correlation-matrix";
 import { DeskCard } from "@/components/ui/desk-card";
 import { MacroDriftEngine } from "@/components/ui/macro-drift-engine";
-import { fmt2, fmtPct } from "@/components/ui/utils";
+import { fmt2, fmtConfidence } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import { G10_MATRIX_ORDER, topCorrelatedPeer } from "@/lib/g10Correlation";
 import {
@@ -171,7 +171,7 @@ function MosaicCell({
             color={p.pairColor}
           />
           <p className={`font-mono text-[8px] tabular-nums ${lum.meta} mt-1`}>
-            CONF {fmtPct(call?.confidence as number | undefined)}
+            CONF {fmtConfidence(call?.confidence as number | undefined)}
           </p>
         </div>
       </div>

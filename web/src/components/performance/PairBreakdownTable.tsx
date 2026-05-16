@@ -6,7 +6,7 @@ interface PairBreakdownTableProps {
   statsT20: ValidationStats[];
 }
 
-function fmtPct(n: number | null | undefined, digits = 1) {
+function fmtPctDigits(n: number | null | undefined, digits = 1) {
   if (n == null) return "—";
   const sign = n >= 0 ? "+" : "";
   return `${sign}${(n * 100).toFixed(digits)}%`;
@@ -80,7 +80,7 @@ export function PairBreakdownTable({
                     {p.display}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtPct(t5?.winRate)}
+                    {fmtPctDigits(t5?.winRate)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
                     {fmtBrier(t5?.brierScore)}
@@ -92,7 +92,7 @@ export function PairBreakdownTable({
                     {fmtNum(t5?.sampleSize)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtPct(t20?.winRate)}
+                    {fmtPctDigits(t20?.winRate)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
                     {fmtBrier(t20?.brierScore)}
@@ -117,7 +117,7 @@ export function PairBreakdownTable({
                     ALL
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtPct(allT5?.winRate)}
+                    {fmtPctDigits(allT5?.winRate)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
                     {fmtBrier(allT5?.brierScore)}
@@ -129,7 +129,7 @@ export function PairBreakdownTable({
                     {fmtNum(allT5?.sampleSize)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtPct(allT20?.winRate)}
+                    {fmtPctDigits(allT20?.winRate)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
                     {fmtBrier(allT20?.brierScore)}

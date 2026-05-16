@@ -149,7 +149,8 @@ export function useLatestRegimeCalls() {
       const { data, error } = await supabase
         .from("regime_calls")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(50);
       if (error) throw error;
       const rows = (data ?? []) as RegimeCallRow[];
       const filtered = rows.filter((r) => isCanonicalPair(r.pair));
@@ -176,7 +177,8 @@ export function useLatestSignals() {
       const { data, error } = await supabase
         .from("signals")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(50);
       if (error) throw error;
       const rows = (data ?? []) as SignalRow[];
       const filtered = rows.filter((r) => isCanonicalPair(r.pair));

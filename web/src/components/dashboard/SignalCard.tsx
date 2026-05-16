@@ -1,6 +1,6 @@
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
 import { Sparkline } from "@/components/ui/sparkline";
-import { fmt2, fmtInt, fmtPct } from "@/components/ui/utils";
+import { fmt2, fmtInt, fmtConfidence } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
 import Link from "next/link";
@@ -238,7 +238,7 @@ export function SignalCard({
             CONF
           </span>
           <span className="font-mono text-[10px] text-[var(--color-text)] font-bold">
-            {fmtPct(call?.confidence)}
+            {fmtConfidence(call?.confidence)}
           </span>
         </div>
         <ConfidenceBar

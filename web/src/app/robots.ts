@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: "/terminal/",
+      disallow: ["/api/", "/_next/"],
     },
     sitemap: "https://fxregimelab.com/sitemap.xml",
   };

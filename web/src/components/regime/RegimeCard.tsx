@@ -1,5 +1,5 @@
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
-import { fmt2, fmtInt, fmtPct } from "@/components/ui/utils";
+import { fmt2, fmtInt, fmtConfidence } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
 
@@ -66,7 +66,7 @@ export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
           CONF
         </span>
         <span className="font-mono text-[10px] text-[#ccc] font-bold">
-          {fmtPct(call?.confidence)}
+          {fmtConfidence(call?.confidence)}
         </span>
       </div>
       <div className="border-t border-[#1a1a1a] mt-2.5 pt-2.5 flex flex-col gap-1">

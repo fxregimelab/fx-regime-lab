@@ -132,6 +132,7 @@ from src.fetchers.volatility import fetch_implied_vol, fetch_realized_vol
 from src.logic.layer2_directional import run_layer2_directional
 from src.logic.layer3_execution import run_layer3_execution
 from src.monitoring.alerts import (
+    alert_on_failure,
     alert_on_low_dqs,
     send_success_heartbeat,
 )
@@ -333,6 +334,14 @@ def _require_pipeline_runtime_env() -> None:
         "FRED_API_KEY": "FRED API key for yields and macro series.",
         "OPENROUTER_API_KEY": "OpenRouter key for AI briefs and desk card copy.",
     }
+    warned: dict[str, str] = {
+        "SLACK_WEBHOOK_URL": "Slack webhook for failure alerts (optional but recommended).",
+        "RESEND_API_KEY": "Resend API key for email alerts (optional but recommended).",
+    }
+    missing_warned = [name for name in warned if not os.environ.get(name)]
+    if missing_warned:
+        detail_warned = "\n".join(f"  - {k}: {warned[k]}" for k in missing_warned)
+        logger.warning("Missing optional environment variables:\n%s", detail_warned)
     missing = [name for name in required if not os.environ.get(name)]
     if missing:
         detail = "\n".join(f"  - {k}: {required[k]}" for k in missing)
@@ -779,7 +788,7 @@ async def build_master_buffer_task(
     )
 
 
-@task
+@task(retries=2, retry_delay_seconds=30)
 async def batch_desk_briefs_task(
     pending_desk_cards: list[dict[str, Any]],
 ) -> list[Any]:
@@ -817,12 +826,12 @@ async def batch_desk_briefs_task(
     return outcomes
 
 
-@task
+@task(retries=2, retry_delay_seconds=30)
 def write_desk_open_cards_bulk_task(rows: list[DeskOpenCardRow]) -> None:
     writer.write_desk_open_cards_bulk(rows)
 
 
-@task
+@task(retries=2, retry_delay_seconds=30)
 def upsert_pair_briefs_task(
     date_str: str,
     polymarket_context: str,
@@ -838,7 +847,7 @@ def upsert_pair_briefs_task(
     )
 
 
-@task
+@task(retries=2, retry_delay_seconds=30)
 def upsert_macro_event_briefs_task(
     date_str: str,
     forward_days: int = 3,
@@ -851,7 +860,7 @@ def upsert_macro_event_briefs_task(
     )
 
 
-@flow(name="Daily G10 FX Pipeline", log_prints=True)
+@flow(name="Daily G10 FX Pipeline", log_prints=True, timeout_seconds=1800)
 async def run_daily(
     date_str: str | None = None,
     *,
@@ -864,6 +873,8 @@ async def run_daily(
         correlation_id = str(uuid.uuid4())
     logger.info("Pipeline correlation_id=%s for date=%s", correlation_id, date_str)
 
+    _require_pipeline_runtime_env()
+
     universe = load_universe()
     buffer = await build_master_buffer_task()
     gate = validate_ingestion_buffer(buffer, universe=universe)
@@ -872,7 +883,7 @@ async def run_daily(
             "Daily run aborted: telemetry OFFLINE — spot ingestion quorum breach "
             "(refusing to write signals/regime to protect systemic matrix)"
         )
-        return
+        raise RuntimeError("Spot ingestion quorum breach — telemetry OFFLINE.")
     buffer = gate.buffer
 
     as_of_day = date.fromisoformat(date_str[:10])
@@ -1089,7 +1100,7 @@ async def run_daily(
         fpi_raw: dict[str, Any] | None = None
         if pair == "USDINR":
             try:
-                fpi_raw = fetch_fpi_flows(today_bar.date.isoformat())
+                fpi_raw = fetch_fpi_flows(today_bar.date)
                 if fpi_raw:
                     fpi_flow_cr = fpi_raw.get("fpi_total_net_cr")
                     fpi_signal = normalize_fpi_signal(
@@ -1538,6 +1549,9 @@ async def run_daily(
                     },
                 }
             )
+
+    if not pending_desk_cards:
+        raise RuntimeError("No regime calls produced for any pair — systemic data failure.")
 
     if pending_desk_cards:
         pair_regimes_today = {

@@ -3,7 +3,7 @@ import { ConfidenceBar } from "@/components/ui/confidence-bar";
 import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline } from "@/components/ui/sparkline";
-import { fmt2, fmtInt, fmtPct } from "@/components/ui/utils";
+import { fmt2, fmtInt, fmtConfidence } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import {
   getHistoricalPrices,
@@ -271,13 +271,13 @@ function ValidationStatsRow({
   stats: PairValidationSummary | null;
 }) {
   const tiles = [
-    { label: "T+5 CAL", value: fmtPct(stats?.t5WinRate) },
+    { label: "T+5 CAL", value: fmtConfidence(stats?.t5WinRate) },
     {
       label: "T+5 BRIER",
       value: stats?.t5Brier != null ? stats.t5Brier.toFixed(3) : "—",
     },
     { label: "T+5 SHARPE", value: fmt2(stats?.t5SharpeLike) },
-    { label: "T+20 CAL", value: fmtPct(stats?.t20WinRate) },
+    { label: "T+20 CAL", value: fmtConfidence(stats?.t20WinRate) },
     {
       label: "T+20 BRIER",
       value: stats?.t20Brier != null ? stats.t20Brier.toFixed(3) : "—",

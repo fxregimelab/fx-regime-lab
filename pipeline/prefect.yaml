@@ -31,7 +31,7 @@ deployments:
     description: Automated 24h G10 FX Regime Context Generation
     entrypoint: src/scheduler/orchestrator.py:run_daily
     schedule:
-      interval: 86400
+      cron: "0 9 * * *"
     work_pool:
       name: default
       job_variables:

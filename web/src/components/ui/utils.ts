@@ -13,7 +13,7 @@ export function fmt4(v: number | null | undefined) {
   return v == null || Number.isNaN(v) ? "—" : v.toFixed(4);
 }
 
-export function fmtPct(v: number | null | undefined) {
+export function fmtConfidence(v: number | null | undefined) {
   if (v == null || Number.isNaN(v)) return "—";
   // Defensive: if value is already > 1 (e.g. bad DB data), clip and warn
   const clamped = Math.min(1, Math.max(0, v));
