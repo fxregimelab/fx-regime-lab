@@ -120,6 +120,15 @@ Every task MUST be checked by the chambers for **Dual-Alignment**:
 - [x] **Deploy:** Committed `181a83a`, pushed to main. Vercel auto-deploy triggered.
 - [x] **Lighthouse:** Audit script created at `web/scripts/lighthouse-audit.js` (thresholds: mobile perf ≥85, desktop ≥90).
 
+### Emergency Data Fix + UI Hardening [COMPLETE — 2026-05-16]
+- [x] **Root cause identified:** 2026-05-15 pipeline run aborted due to missing Prefect env vars (API keys), but partial bad data was written to DB.
+- [x] **DB cleanup:** Migration `20260515000002_cleanup_bad_may15_data.sql` applied — deleted bad regime_calls + signals for 2026-05-15.
+- [x] **UI hardening:** `fmtPct` now clips to [0, 1] before formatting (prevents 4514% display).
+- [x] **UI hardening:** `ConfidenceBar` clips width to [0, 100].
+- [x] **UI hardening:** All direct `confidence * 100` calculations clipped across page.tsx, opengraph-image.tsx, desk-card.tsx.
+- [x] **SignalCard:** Added `SKEW` metric, muted styling for missing RR/FPI/SKEW, balanced 2-col grid.
+- [x] **Verification:** No more crazy percentages on live site. All routes 200. Build passes. TypeScript clean.
+
 ## Notes
 
 - **Cloaked Professionalism:** Strictly NO student/admissions language in public files.
