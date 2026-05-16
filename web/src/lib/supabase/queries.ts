@@ -16,8 +16,8 @@ export interface LatestRegimeCall {
   pair: string;
   date: string;
   regime: string;
-  confidence: number;
-  signal_composite: number;
+  confidence: number | null;
+  signal_composite: number | null;
   rate_signal: string | null;
   primary_driver: string | null;
   special_signal_value: number | null;
