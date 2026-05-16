@@ -25,7 +25,7 @@ export interface LatestRegimeCall {
   model_version: string | null;
   data_quality_score: number | null;
   stress_level: string | null;
-  created_at: string;
+  created_at: string | null;
   predicted_direction: string | null;
   entry_timing: string | null;
   position_size: string | null;
