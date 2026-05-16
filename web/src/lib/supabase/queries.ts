@@ -10,6 +10,7 @@ export type MacroEventRow = Database["public"]["Tables"]["macro_events"]["Row"];
 type HistoricalPriceRow =
   Database["public"]["Tables"]["historical_prices"]["Row"];
 type ResearchMemoRow = Database["public"]["Tables"]["research_memos"]["Row"];
+type HealthCheckRow = Database["public"]["Tables"]["health_checks"]["Row"];
 
 export interface LatestRegimeCall {
   pair: string;
@@ -647,4 +648,254 @@ export async function getResearchMemoByDate(
 
   if (error) return null;
   return data as ResearchMemoRow | null;
+}
+
+/* ─── Pipeline Health ───────────────────────────────────────────────────── */
+
+export interface PipelineDayHealth {
+  date: string;
+  status: "HEALTHY" | "DEGRADED" | "FAILED" | "UNKNOWN";
+  dqs: number | null;
+  regimeCallsCount: number;
+  stepsCompleted: string[];
+  stepsFailed: string[];
+  validationComputed: boolean;
+  aiBriefsGenerated: boolean;
+  errors: string[];
+}
+
+function inferStatusFromHealthCheck(row: HealthCheckRow): PipelineDayHealth["status"] {
+  if (row.completed_at == null) return "FAILED";
+  const dqs = row.data_quality_score ?? 0;
+  const pairs = row.pairs_published ?? 0;
+  const failed = row.sources_failed ?? 0;
+  if (pairs >= 3 && dqs >= 0.8 && failed === 0) return "HEALTHY";
+  if (pairs >= 3 && dqs >= 0.5) return "DEGRADED";
+  if (pairs === 0 && dqs === 0) return "UNKNOWN";
+  return "FAILED";
+}
+
+export async function getPipelineHealth(
+  supabase: TypedSupabaseClient,
+  days = 14,
+): Promise<PipelineDayHealth[]> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+  // Try health_checks first
+  const { data: healthData, error: healthError } = await supabase
+    .from("health_checks")
+    .select("*")
+    .gte("pipeline_date", cutoffStr)
+    .order("pipeline_date", { ascending: false });
+
+  if (!healthError && healthData && healthData.length > 0) {
+    return (healthData as HealthCheckRow[]).map((row) => {
+      const status = inferStatusFromHealthCheck(row);
+      const errors: string[] = [];
+      if (row.error_log) errors.push(row.error_log);
+      const stepsCompleted: string[] = [];
+      const stepsFailed: string[] = [];
+      if (row.completed_at) {
+        stepsCompleted.push("Pipeline completion");
+      } else {
+        stepsFailed.push("Pipeline completion");
+      }
+      if ((row.pairs_published ?? 0) >= 3) {
+        stepsCompleted.push("Pair publication");
+      } else {
+        stepsFailed.push("Pair publication");
+      }
+      if ((row.data_quality_score ?? 0) >= 0.8) {
+        stepsCompleted.push("Data quality gate");
+      } else {
+        stepsFailed.push("Data quality gate");
+      }
+      return {
+        date: row.pipeline_date,
+        status,
+        dqs: row.data_quality_score,
+        regimeCallsCount: row.pairs_published ?? 0,
+        stepsCompleted,
+        stepsFailed,
+        validationComputed: status !== "FAILED" && status !== "UNKNOWN",
+        aiBriefsGenerated: status === "HEALTHY",
+        errors,
+      };
+    });
+  }
+
+  // Fallback: infer from data presence
+  const [{ data: callsData }, { data: signalsData }, { data: briefData }, { data: valStatsData }] =
+    await Promise.all([
+      supabase
+        .from("regime_calls")
+        .select("date,pair")
+        .gte("date", cutoffStr)
+        .order("date", { ascending: false }),
+      supabase
+        .from("signals")
+        .select("date,pair")
+        .gte("date", cutoffStr)
+        .order("date", { ascending: false }),
+      supabase
+        .from("brief_log")
+        .select("date")
+        .gte("date", cutoffStr)
+        .order("date", { ascending: false }),
+      supabase
+        .from("validation_stats")
+        .select("as_of_date,pair")
+        .gte("as_of_date", cutoffStr)
+        .order("as_of_date", { ascending: false }),
+    ]);
+
+  // Build date map
+  const dateMap = new Map<string, PipelineDayHealth>();
+
+  // Initialize all dates in range
+  for (let i = 0; i < days; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    dateMap.set(dateStr, {
+      date: dateStr,
+      status: "UNKNOWN",
+      dqs: null,
+      regimeCallsCount: 0,
+      stepsCompleted: [],
+      stepsFailed: [],
+      validationComputed: false,
+      aiBriefsGenerated: false,
+      errors: [],
+    });
+  }
+
+  // Aggregate regime_calls per date
+  for (const row of (callsData ?? []) as Array<{ date: string; pair: string }>) {
+    const day = dateMap.get(row.date);
+    if (day) {
+      day.regimeCallsCount += 1;
+    }
+  }
+
+  // Aggregate signals per date
+  const signalDates = new Set<string>();
+  for (const row of (signalsData ?? []) as Array<{ date: string; pair: string }>) {
+    signalDates.add(row.date);
+  }
+
+  // Aggregate briefs per date
+  const briefDates = new Set<string>();
+  for (const row of (briefData ?? []) as Array<{ date: string }>) {
+    briefDates.add(row.date);
+  }
+
+  // Aggregate validation stats per date
+  const valDates = new Set<string>();
+  for (const row of (valStatsData ?? []) as Array<{ as_of_date: string; pair: string }>) {
+    valDates.add(row.as_of_date);
+  }
+
+  // Determine status for each date
+  for (const day of dateMap.values()) {
+    const hasSignals = signalDates.has(day.date);
+    const hasCalls = day.regimeCallsCount > 0;
+    const hasBrief = briefDates.has(day.date);
+    const hasValidation = valDates.has(day.date);
+
+    day.stepsCompleted = [];
+    day.stepsFailed = [];
+
+    if (hasSignals) day.stepsCompleted.push("Data ingestion");
+    else day.stepsFailed.push("Data ingestion");
+
+    if (hasCalls) day.stepsCompleted.push("Regime inference");
+    else day.stepsFailed.push("Regime inference");
+
+    if (hasValidation) {
+      day.stepsCompleted.push("Validation");
+      day.validationComputed = true;
+    } else {
+      day.stepsFailed.push("Validation");
+      day.validationComputed = false;
+    }
+
+    if (hasBrief) {
+      day.stepsCompleted.push("AI briefs");
+      day.aiBriefsGenerated = true;
+    } else {
+      day.stepsFailed.push("AI briefs");
+      day.aiBriefsGenerated = false;
+    }
+
+    // Infer DQS from regime_calls if available
+    if (hasCalls && hasSignals) {
+      day.dqs = day.regimeCallsCount >= 3 ? 0.95 : 0.7;
+    } else if (hasCalls || hasSignals) {
+      day.dqs = 0.5;
+    }
+
+    if (hasSignals && hasCalls && hasValidation && hasBrief) {
+      day.status = "HEALTHY";
+    } else if (hasSignals || hasCalls) {
+      day.status = "DEGRADED";
+    } else if (hasBrief || hasValidation) {
+      day.status = "DEGRADED";
+    } else {
+      day.status = "UNKNOWN";
+    }
+  }
+
+  return Array.from(dateMap.values()).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export interface AccuracyAlert {
+  pair: string;
+  accuracy: number;
+  threshold: number;
+  severity: "critical" | "warning";
+}
+
+export async function getLatestAccuracyAlerts(
+  supabase: TypedSupabaseClient,
+): Promise<AccuracyAlert[]> {
+  const { data, error } = await supabase
+    .from("validation_stats")
+    .select("*")
+    .order("as_of_date", { ascending: false })
+    .limit(20);
+
+  if (error || !data) return [];
+
+  const rows = data as ValidationStatsRow[];
+  const latestDate = rows[0]?.as_of_date;
+  if (!latestDate) return [];
+
+  const latest = rows.filter((r) => r.as_of_date === latestDate && r.pair !== "ALL");
+  const alerts: AccuracyAlert[] = [];
+
+  for (const row of latest) {
+    const acc = row.t5_rolling_90d_accuracy ?? row.t20_rolling_90d_accuracy ?? null;
+    if (acc == null) continue;
+
+    if (acc < 0.5) {
+      alerts.push({
+        pair: row.pair,
+        accuracy: acc,
+        threshold: 0.5,
+        severity: "critical",
+      });
+    } else if (row.pair === "EURUSD" && acc < 0.55) {
+      alerts.push({
+        pair: row.pair,
+        accuracy: acc,
+        threshold: 0.55,
+        severity: "warning",
+      });
+    }
+  }
+
+  return alerts;
 }

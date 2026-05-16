@@ -19,7 +19,7 @@ export function TerminalSubNav() {
       className="border-b border-[var(--color-border)] bg-[var(--color-void)]"
       aria-label="Terminal sections"
     >
-      <div className="mx-auto flex h-[36px] max-w-[1152px] items-center gap-0.5 px-6">
+      <div className="mx-auto flex h-[36px] max-w-[1152px] items-center gap-0.5 overflow-x-auto px-6">
         {SECTIONS.map((section) => {
           const active =
             pathname === section.href ||

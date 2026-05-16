@@ -1,5 +1,6 @@
 "use client";
 
+import SignalDecomposition from "@/components/methodology/SignalDecomposition";
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -304,6 +305,9 @@ export default function MethodologyPage() {
               <KatexMath latex="\\text{Stop} = \\begin{cases} S_t - \\text{buffer} & \\text{LONG} \\ S_t + \\text{buffer} & \\text{SHORT} \\ \\text{none} & \\text{NEUTRAL} \\end{cases}" />
             </Subsection>
 
+            {/* ── Signal Decomposition ────────────────────────────────── */}
+            <SignalDecomposition />
+
             {/* ── Per-Pair Differences ────────────────────────────────── */}
             <Subsection title="Per-Pair Methodology">
               <Body>
@@ -462,8 +466,8 @@ export default function MethodologyPage() {
                 stale rather than interpolated.
               </Body>
 
-              <div className="border border-[var(--color-border)] mb-6">
-                <table className="w-full border-collapse font-mono text-[11px]">
+              <div className="border border-[var(--color-border)] mb-6 overflow-x-auto">
+                <table className="w-full border-collapse font-mono text-[11px] min-w-[600px]">
                   <thead>
                     <tr className="border-b border-[var(--color-border-subtle)] bg-[var(--color-elevated)]">
                       <th className="px-4 py-2.5 text-left text-[var(--color-text-muted)] tracking-[0.1em]">

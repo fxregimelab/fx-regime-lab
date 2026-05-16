@@ -4,7 +4,21 @@ export const metadata = {
   title: "Audit Log | FX Regime Lab",
 };
 
-export default function AuditPage() {
+import { PipelineHealthDashboard } from "@/components/audit/PipelineHealthDashboard";
+import {
+  getPipelineHealth,
+  getLatestAccuracyAlerts,
+} from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
+
+export default async function AuditPage() {
+  const supabase = await createClient();
+
+  const [health, alerts] = await Promise.all([
+    getPipelineHealth(supabase, 14),
+    getLatestAccuracyAlerts(supabase),
+  ]);
+
   return (
     <main
       id="main-content"
@@ -24,7 +38,20 @@ export default function AuditPage() {
           Immutable audit trail of all regime calls and validation events.
         </p>
       </header>
-      <div className="mx-auto max-w-3xl space-y-3 px-4 py-6">
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+        {/* Pipeline Health Dashboard */}
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase">
+              Pipeline Health
+            </h2>
+            <span className="font-mono text-[9px] text-[var(--color-text-dim)] tabular-nums">
+              {new Date().toISOString().slice(0, 10)} UTC
+            </span>
+          </div>
+          <PipelineHealthDashboard health={health} alerts={alerts} />
+        </section>
+
         <article className="border border-solid border-[#222] bg-[#000000] p-4 rounded-none">
           <p className="font-mono text-[11px] leading-relaxed text-[#9a9a9a] tabular-nums">
             The full system audit log is maintained in the immutable ledger

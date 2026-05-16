@@ -1,7 +1,7 @@
 "use client";
 
 import { LogoMark } from "@/components/ui/logo-mark";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState, useCallback } from "react";
@@ -25,9 +25,11 @@ const TERMINAL_ITEMS = [
 export function Nav() {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const mobileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
@@ -51,9 +53,24 @@ export function Nav() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [dropdownOpen]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (
+        mobileRef.current &&
+        !mobileRef.current.contains(e.target as Node)
+      ) {
+        setMobileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [mobileOpen]);
+
   const handleTerminalClick = useCallback(
     (href: string) => {
       setDropdownOpen(false);
+      setMobileOpen(false);
       router.push(href);
     },
     [router],
@@ -89,8 +106,8 @@ export function Nav() {
           />
         </a>
 
-        {/* Right: Nav links */}
-        <div className="flex items-center gap-1">
+        {/* Right: Desktop Nav links */}
+        <div className="hidden md:flex items-center gap-1">
           {/* Terminal dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
@@ -147,7 +164,57 @@ export function Nav() {
             </a>
           ))}
         </div>
+
+        {/* Mobile hamburger */}
+        <button
+          type="button"
+          onClick={() => setMobileOpen((p) => !p)}
+          aria-expanded={mobileOpen}
+          aria-label="Toggle navigation menu"
+          className="md:hidden flex items-center justify-center w-10 h-10 text-[var(--color-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
+          style={{ borderRadius: 2 }}
+        >
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
       </nav>
+
+      {/* Mobile menu */}
+      {mobileOpen && (
+        <div
+          ref={mobileRef}
+          className="md:hidden absolute top-full left-0 right-0 border-b border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg"
+          style={{ zIndex: "var(--z-dropdown)" }}
+        >
+          <div className="px-4 py-3 space-y-1">
+            <p className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase px-3 py-1.5">
+              Terminal
+            </p>
+            {TERMINAL_ITEMS.map((item) => (
+              <button
+                key={item.href}
+                type="button"
+                onClick={() => handleTerminalClick(item.href)}
+                className="w-full text-left px-3 py-2 text-[0.8125rem] text-[var(--color-text)] outline-none transition-colors hover:bg-[var(--color-elevated)] focus-visible:bg-[var(--color-elevated)]"
+                style={{ borderRadius: 2 }}
+              >
+                {item.label}
+              </button>
+            ))}
+            <div className="border-t border-[var(--color-border)] my-2" />
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className="block px-3 py-2 text-[0.8125rem] text-[var(--color-text)] outline-none transition-colors hover:bg-[var(--color-elevated)] focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
+                style={{ borderRadius: 2 }}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </header>
   );
 }

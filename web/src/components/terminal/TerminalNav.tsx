@@ -78,7 +78,7 @@ export function TerminalNav({ signals }: TerminalNavProps) {
           )}
         </div>
 
-        <div className="flex gap-0.5">
+        <div className="flex gap-0.5 overflow-x-auto">
           {PAIRS.map((p) => {
             const active = pathname.includes(p.urlSlug);
             const sig = signals?.[p.label];

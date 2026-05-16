@@ -51,10 +51,11 @@ export function ValidationTable({
 
   return (
     <div className={`border ${border} overflow-hidden`}>
-      <table
-        className="w-full border-collapse font-mono"
-        aria-label="Validation log"
-      >
+      <div className="overflow-x-auto">
+        <table
+          className="w-full border-collapse font-mono"
+          aria-label="Validation log"
+        >
         <thead>
           <tr className={`border-b ${border} ${headBg}`}>
             {headers.map((h) => (
@@ -166,6 +167,7 @@ export function ValidationTable({
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
