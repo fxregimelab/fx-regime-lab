@@ -496,7 +496,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             className="font-mono text-[32px] font-medium tracking-tight leading-none"
             style={{ color: pairMeta.pairColor }}
           >
-            {call ? Math.round(call.confidence * 100) : "—"}
+            {call?.confidence != null ? Math.round(call.confidence * 100) : "—"}
             <span className="text-base text-[var(--color-text-dim)] font-normal">
               {call ? "%" : ""}
             </span>
