@@ -196,7 +196,7 @@ function ValidationHistoryTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse font-mono text-[11px]">
+      <table className="w-full border-collapse font-mono text-[11px]" aria-label="Validation history">
         <thead>
           <tr className="border-b border-[var(--color-border)] bg-[var(--color-elevated)]">
             {[
@@ -225,7 +225,7 @@ function ValidationHistoryTable({
               key={r.date}
               className={`border-b border-[var(--color-border-subtle)] last:border-b-0 ${i % 2 === 1 ? "bg-[var(--color-elevated)]" : "bg-[var(--color-surface)]"}`}
             >
-              <td className="px-3 py-2 text-[var(--color-text-muted)] whitespace-nowrap">
+              <td scope="row" className="px-3 py-2 text-[var(--color-text-muted)] whitespace-nowrap">
                 {r.date}
               </td>
               <td className="px-3 py-2 text-[var(--color-text-secondary)]">
@@ -432,6 +432,25 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
       sig?.risk_reversal_25d != null ? fmt2(sig.risk_reversal_25d) : "—",
       sig?.risk_reversal_25d ?? null,
     ],
+    ...(pairMeta.label !== "USDINR"
+      ? [
+          [
+            "COT net position",
+            sig?.cot_net_pos != null ? fmtInt(sig.cot_net_pos) : "—",
+            sig?.cot_net_pos ?? null,
+          ] as const,
+          [
+            "COT asset mgr net",
+            sig?.cot_asset_mgr_net != null ? fmtInt(sig.cot_asset_mgr_net) : "—",
+            sig?.cot_asset_mgr_net ?? null,
+          ] as const,
+          [
+            "COT lev money net",
+            sig?.cot_lev_money_net != null ? fmtInt(sig.cot_lev_money_net) : "—",
+            sig?.cot_lev_money_net ?? null,
+          ] as const,
+        ]
+      : []),
     ...(pairMeta.label === "USDINR"
       ? [
           [
@@ -665,7 +684,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             />
           ))}
         </div>
-        <div className="flex justify-between mt-2">
+        <div className="flex flex-wrap justify-between mt-2 gap-y-1.5">
           {SIGNAL_ARCH.map((s) => (
             <div key={s.label} className="flex items-center gap-1.5">
               <div
@@ -787,7 +806,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse font-mono">
+            <table className="w-full border-collapse font-mono" aria-label="Signal decomposition">
               <thead>
                 <tr className="border-b border-[var(--color-border-subtle)] bg-[var(--color-void)]">
                 <th
@@ -831,7 +850,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                           : "var(--color-surface)",
                     }}
                   >
-                    <td className="px-4 py-3 text-[11px] text-[var(--color-text-muted)]">
+                    <td scope="row" className="px-4 py-3 text-[11px] text-[var(--color-text-muted)]">
                       {label}
                     </td>
                     <td className="px-4 py-3 text-[13px] text-[var(--color-text)] font-medium text-left tabular-nums">

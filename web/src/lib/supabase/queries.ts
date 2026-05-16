@@ -52,6 +52,9 @@ export interface LatestSignal {
   skew_alignment: number | null;
   risk_reversal_25d: number | null;
   fpi_flow: number | null;
+  cot_net_pos: number | null;
+  cot_asset_mgr_net: number | null;
+  cot_lev_money_net: number | null;
   created_at: string | null;
 }
 
@@ -130,6 +133,9 @@ function toLatestSignal(row: SignalRow): LatestSignal {
     skew_alignment: row.skew_alignment,
     risk_reversal_25d: row.risk_reversal_25d,
     fpi_flow: row.fpi_flow,
+    cot_net_pos: row.cot_net_pos,
+    cot_asset_mgr_net: row.cot_asset_mgr_net,
+    cot_lev_money_net: row.cot_lev_money_net,
     created_at: row.created_at,
   };
 }
