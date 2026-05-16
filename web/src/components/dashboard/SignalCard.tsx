@@ -153,6 +153,28 @@ export function SignalCard({
               {fmt2(signal?.realized_vol_20d)}
             </span>
           </div>
+          <div className="flex justify-between">
+            <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+              RR 25D
+            </span>
+            <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
+              {signal?.risk_reversal_25d != null
+                ? signal.risk_reversal_25d.toFixed(2)
+                : "—"}
+            </span>
+          </div>
+          {pairLabel === "USDINR" && (
+            <div className="flex justify-between">
+              <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+                FPI (Cr)
+              </span>
+              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
+                {signal?.fpi_flow != null
+                  ? signal.fpi_flow.toFixed(0)
+                  : "—"}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

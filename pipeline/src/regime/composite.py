@@ -22,13 +22,13 @@ from src.types import PairWeightConfig, normalize_fx_pair_key
 WEIGHTS = {"rate": 0.40, "cot": 0.30, "vol": 0.20, "oi": 0.10}
 
 PAIR_COMPOSITE_WEIGHTS: dict[str, PairWeightConfig] = {
-    "EURUSD": PairWeightConfig(rate=0.40, cot=0.25, vol=0.20, oi=0.10, special=0.05),
-    "USDJPY": PairWeightConfig(rate=0.30, cot=0.20, vol=0.25, oi=0.15, special=0.10),
-    "GBPUSD": PairWeightConfig(rate=0.35, cot=0.25, vol=0.25, oi=0.10, special=0.05),
-    "AUDUSD": PairWeightConfig(rate=0.25, cot=0.20, vol=0.20, oi=0.10, special=0.25),
-    "USDCAD": PairWeightConfig(rate=0.25, cot=0.15, vol=0.20, oi=0.10, special=0.30),
-    "USDCHF": PairWeightConfig(rate=0.30, cot=0.15, vol=0.20, oi=0.10, special=0.25),
-    "USDINR": PairWeightConfig(rate=0.30, cot=0.10, vol=0.20, oi=0.10, special=0.30),
+    "EURUSD": PairWeightConfig(rate=0.40, cot=0.25, vol=0.20, oi=0.10, special=0.05, fpi=0.0),
+    "USDJPY": PairWeightConfig(rate=0.30, cot=0.20, vol=0.25, oi=0.15, special=0.10, fpi=0.0),
+    "GBPUSD": PairWeightConfig(rate=0.35, cot=0.25, vol=0.25, oi=0.10, special=0.05, fpi=0.0),
+    "AUDUSD": PairWeightConfig(rate=0.25, cot=0.20, vol=0.20, oi=0.10, special=0.25, fpi=0.0),
+    "USDCAD": PairWeightConfig(rate=0.25, cot=0.15, vol=0.20, oi=0.10, special=0.30, fpi=0.0),
+    "USDCHF": PairWeightConfig(rate=0.30, cot=0.15, vol=0.20, oi=0.10, special=0.25, fpi=0.0),
+    "USDINR": PairWeightConfig(rate=0.25, cot=0.10, vol=0.20, oi=0.10, special=0.20, fpi=0.15),
 }
 
 logger = logging.getLogger(__name__)
@@ -43,6 +43,7 @@ _DRIVER_LABELS: dict[str, str] = {
     "vol": "Volatility dynamics dominate",
     "oi": "Open interest flow is the primary driver",
     "special": "Cross-asset special factor is the primary driver",
+    "fpi": "FPI flow is the primary driver",
 }
 
 
@@ -209,6 +210,7 @@ def compute_dominance_scores(
     betas: dict[str, float],
     *,
     special_norm: float | None = None,
+    fpi_norm: float | None = None,
 ) -> list[DominanceScore]:
     strengths = {
         "rate": 0.0 if rate_norm is None else rate_norm,
@@ -220,7 +222,10 @@ def compute_dominance_scores(
     families: tuple[str, ...] = ("rate", "cot", "vol", "oi")
     if special_norm is not None:
         strengths["special"] = float(special_norm)
-        families = ("rate", "cot", "vol", "oi", "special")
+        families = (*families, "special")
+    if fpi_norm is not None:
+        strengths["fpi"] = float(fpi_norm)
+        families = (*families, "fpi")
     for family in families:
         strength = strengths[family]
         beta = float(betas.get(family, 0.0))
@@ -254,6 +259,7 @@ def dominance_top_family(
     oi_norm: float | None,
     *,
     special_norm: float | None = None,
+    fpi_norm: float | None = None,
 ) -> str | None:
     """Family with largest |strength * beta| (same strength map as dominance scores)."""
 
@@ -266,7 +272,10 @@ def dominance_top_family(
     families: tuple[str, ...] = ("rate", "cot", "vol", "oi")
     if special_norm is not None:
         strengths["special"] = float(special_norm)
-        families = ("rate", "cot", "vol", "oi", "special")
+        families = (*families, "special")
+    if fpi_norm is not None:
+        strengths["fpi"] = float(fpi_norm)
+        families = (*families, "fpi")
     best: str | None = None
     best_abs = 0.0
     for family in families:
@@ -286,13 +295,16 @@ def _weights_for_pair(pair: str | None) -> dict[str, float]:
     if key is None or key not in PAIR_COMPOSITE_WEIGHTS:
         return dict(WEIGHTS)
     cfg = PAIR_COMPOSITE_WEIGHTS[key]
-    return {
+    out = {
         "rate": cfg.rate,
         "cot": cfg.cot,
         "vol": cfg.vol,
         "oi": cfg.oi,
         "special": cfg.special,
     }
+    if cfg.fpi > 0.0:
+        out["fpi"] = cfg.fpi
+    return out
 
 
 def compute_composite(
@@ -303,6 +315,7 @@ def compute_composite(
     *,
     pair: str | None = None,
     special_signal: float | None = None,
+    fpi_signal: float | None = None,
 ) -> float | None:
     """Weighted composite; missing legs drop out and remaining weights renormalize."""
 
@@ -315,6 +328,8 @@ def compute_composite(
     }
     if "special" in weights and special_signal is not None:
         values["special"] = special_signal
+    if "fpi" in weights and fpi_signal is not None:
+        values["fpi"] = fpi_signal
     active = [k for k, v in values.items() if v is not None]
     if not active:
         return None
@@ -337,7 +352,7 @@ def compute_composite(
 def get_primary_driver(betas: dict[str, float]) -> str:
     """Driver = signal family with largest magnitude of smoothed Spearman beta."""
 
-    families = ("rate", "cot", "vol", "oi", "special")
+    families = ("rate", "cot", "vol", "oi", "special", "fpi")
     best = max(families, key=lambda f: abs(float(betas.get(f, 0.0))))
     mag = abs(float(betas.get(best, 0.0)))
     if mag < 0.1:

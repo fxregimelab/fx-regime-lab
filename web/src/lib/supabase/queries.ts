@@ -50,6 +50,8 @@ export interface LatestSignal {
   rate_diff_10y_real: number | null;
   breakeven_inflation_10y: number | null;
   skew_alignment: number | null;
+  risk_reversal_25d: number | null;
+  fpi_flow: number | null;
   created_at: string | null;
 }
 
@@ -126,6 +128,8 @@ function toLatestSignal(row: SignalRow): LatestSignal {
     rate_diff_10y_real: row.rate_diff_10y_real,
     breakeven_inflation_10y: row.breakeven_inflation_10y,
     skew_alignment: row.skew_alignment,
+    risk_reversal_25d: row.risk_reversal_25d,
+    fpi_flow: row.fpi_flow,
     created_at: row.created_at,
   };
 }

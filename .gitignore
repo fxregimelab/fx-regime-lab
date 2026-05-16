@@ -34,3 +34,9 @@ ui_rebuit_kimi/
 # Legacy archive — tracked separately, not needed in production
 pipeline/src/legacy/
 .vercel
+
+# Agent scripts (non-production)
+fx-agent
+scripts/agent-health-check.sh
+scripts/init-agent-system.sh
+scripts/auto/*.sh

@@ -86,6 +86,8 @@ def write_signal_row(row: SignalRow) -> None:
         "rate_z_structural": row.rate_z_structural,
         "realized_vol_rank": row.realized_vol_rank,
         "skew_alignment": row.skew_alignment,
+        "risk_reversal_25d": row.risk_reversal_25d,
+        "fpi_flow": row.fpi_flow,
     }
     _client().table("signals").upsert(payload, on_conflict="pair,date").execute()
 

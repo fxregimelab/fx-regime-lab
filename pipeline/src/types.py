@@ -32,6 +32,7 @@ class PairWeightConfig:
     vol: float
     oi: float
     special: float
+    fpi: float = 0.0
 
 
 def _universe_rows_to_dict(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -192,6 +193,8 @@ class SignalRow:
     rate_z_structural: float | None = None
     realized_vol_rank: float | None = None
     skew_alignment: int | None = None
+    risk_reversal_25d: float | None = None
+    fpi_flow: float | None = None
 
     @property
     def breakeven_inflation(self) -> float | None:

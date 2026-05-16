@@ -428,6 +428,20 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
       call?.signal_composite ?? null,
     ],
     [
+      "Risk reversal 25d",
+      sig?.risk_reversal_25d != null ? fmt2(sig.risk_reversal_25d) : "—",
+      sig?.risk_reversal_25d ?? null,
+    ],
+    ...(pairMeta.label === "USDINR"
+      ? [
+          [
+            "FPI flow (INR Cr)",
+            sig?.fpi_flow != null ? fmt2(sig.fpi_flow) : "—",
+            sig?.fpi_flow ?? null,
+          ] as const,
+        ]
+      : []),
+    [
       "Spot",
       sig?.spot?.toFixed(pairMeta.label === "USDJPY" ? 2 : 4) ?? "—",
       sig?.spot ?? null,

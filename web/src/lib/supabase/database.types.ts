@@ -1211,6 +1211,7 @@ export type Database = {
           date: string
           day_change: number | null
           day_change_pct: number | null
+          fpi_flow: number | null
           id: number
           implied_vol_30d: number | null
           oi_delta: number | null
@@ -1252,6 +1253,7 @@ export type Database = {
           date: string
           day_change?: number | null
           day_change_pct?: number | null
+          fpi_flow?: number | null
           id?: number
           implied_vol_30d?: number | null
           oi_delta?: number | null
@@ -1293,6 +1295,7 @@ export type Database = {
           date?: string
           day_change?: number | null
           day_change_pct?: number | null
+          fpi_flow?: number | null
           id?: number
           implied_vol_30d?: number | null
           oi_delta?: number | null

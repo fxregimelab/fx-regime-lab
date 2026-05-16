@@ -126,6 +126,7 @@ from src.fetchers.async_engine import build_master_buffer
 from src.fetchers.buffer_keys import KEY_COT, KEY_CROSS_ASSET, KEY_FX_SPOT, KEY_YIELDS
 from src.fetchers.macro_calendar import fetch_macro_events
 from src.fetchers.open_interest import compute_oi_delta_from_cot, compute_oi_from_cot
+from src.fetchers.fpi_india import fetch_fpi_flows
 from src.fetchers.substack import fetch_latest_substack_memo
 from src.fetchers.volatility import fetch_implied_vol, fetch_realized_vol
 from src.logic.layer2_directional import run_layer2_directional
@@ -154,6 +155,7 @@ from src.signals.rate import (
     rate_direction_from_spreads,
     structural_instability_from_carry_history,
 )
+from src.signals.fpi import normalize_fpi_signal
 from src.signals.special import compute_special_signal
 from src.signals.volatility import (
     TRADING_DAYS_3Y_VOL_RANK,
@@ -978,6 +980,16 @@ async def run_daily(
             for row in historical_rows
             if (v := row.get("realized_vol_5d")) is not None
         ]
+        historical_rr = [
+            float(v)
+            for row in historical_rows
+            if (v := row.get("risk_reversal_25d")) is not None
+        ]
+        historical_fpi = [
+            float(v)
+            for row in historical_rows
+            if (v := row.get("fpi_flow")) is not None
+        ]
         spot_bars = spots.get(pair, [])
         if not spot_bars:
             logger.warning("No spot bars for %s — skipping", pair)
@@ -1072,12 +1084,28 @@ async def run_daily(
         special_signal = compute_special_signal(pair, cross_for_special)
         special_norm = special_signal if special_signal is not None else 0.0
 
+        # ── FPI flow (USDINR only) ──────────────────────────────────────────
+        fpi_signal: float | None = None
+        fpi_raw: dict[str, Any] | None = None
+        if pair == "USDINR":
+            try:
+                fpi_raw = fetch_fpi_flows(today_bar.date.isoformat())
+                if fpi_raw:
+                    fpi_flow_cr = fpi_raw.get("fpi_total_net_cr")
+                    fpi_signal = normalize_fpi_signal(
+                        latest_flow=fpi_flow_cr,
+                        history=historical_fpi,
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("FPI fetch failed for %s: %s", pair, exc)
+        fpi_norm = fpi_signal if fpi_signal is not None else 0.0
+
         top_5y = dominance_top_family(
-            betas_5y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm
+            betas_5y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm, fpi_norm=fpi_norm
         )
         top_3y = (
             dominance_top_family(
-                betas_3y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm
+                betas_3y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm, fpi_norm=fpi_norm
             )
             if betas_3y is not None
             else None
@@ -1094,11 +1122,13 @@ async def run_daily(
             oi_norm=oi_norm,
             betas=betas_5y,
             special_norm=special_norm,
+            fpi_norm=fpi_norm,
         )
         composite = compute_composite(
             rate_norm, cot_norm, vol_norm, oi_norm,
             pair=pair,
             special_signal=special_signal,
+            fpi_signal=fpi_signal,
         )
         if composite is None:
             logger.warning("Not enough data for %s — skipping", pair)
@@ -1192,7 +1222,7 @@ async def run_daily(
             spot=float(today_bar.close) if today_bar.close else None,
             spot_bars=spot_bars,
             realized_vol_rank=rv_rank_layer3,
-            risk_reversal_series_bps=(),
+            risk_reversal_series_bps=rr_series,
         )
         # Layer2 conviction cap: less aggressive than v1.
         # Conviction 1→5 maps to cap 0.50→0.90 (was 0.46→0.90).
@@ -1205,6 +1235,13 @@ async def run_daily(
             confidence = min(float(confidence), 0.72)
         day_change = today_bar.close - yest_bar.close
         day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
+
+        # ── Risk reversal proxy (all pairs) ─────────────────────────────────
+        rr_proxy = None
+        if rv20 is not None and day_change != 0:
+            rr_proxy = rv20 * 0.3 * (1.0 if day_change > 0 else -1.0)
+        rr_series = tuple(historical_rr + ([rr_proxy] if rr_proxy is not None else []))
+
         iv = fetch_implied_vol(pair)
 
         us10y_value = yields_dict.get("us_10y")
@@ -1248,6 +1285,8 @@ async def run_daily(
             rate_z_structural=rate_z_structural_val,
             realized_vol_rank=layer3_out["realized_vol_rank"],
             skew_alignment=layer3_out["skew_alignment"],
+            risk_reversal_25d=rr_proxy,
+            fpi_flow=fpi_raw.get("fpi_total_net_cr") if fpi_raw else None,
         )
 
         writer.write_signal_row(signal_row)
@@ -1271,6 +1310,10 @@ async def run_daily(
         oi_label = (
             "BULLISH" if oi_norm is not None and oi_norm > 0.15 else
             ("BEARISH" if oi_norm is not None and oi_norm < -0.15 else "NEUTRAL")
+        )
+        rr_label = (
+            "BULLISH" if rr_proxy is not None and rr_proxy > 0.15 else
+            ("BEARISH" if rr_proxy is not None and rr_proxy < -0.15 else "NEUTRAL")
         )
 
         special_label = {
@@ -1298,7 +1341,7 @@ async def run_daily(
             cot_signal=cot_label,
             vol_signal=vol_label,
             oi_signal=oi_label,
-            rr_signal="NEUTRAL",
+            rr_signal=rr_label,
             special_signal_value=special_signal,
             special_signal_label=special_label,
             model_version="2.0-live",

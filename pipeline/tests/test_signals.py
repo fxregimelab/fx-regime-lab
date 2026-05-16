@@ -187,3 +187,29 @@ def test_composite_both_none_reweights() -> None:
 
 def test_composite_all_none() -> None:
     assert compute_composite(None, None, None, None) is None
+
+
+def test_composite_with_fpi_reweights() -> None:
+    """USDINR composite renormalizes when fpi is present and special is missing."""
+    c = compute_composite(
+        0.5, None, None, None,
+        pair="USDINR",
+        special_signal=None,
+        fpi_signal=0.8,
+    )
+    # rate=0.25, fpi=0.15 → active weights 0.25+0.15=0.40
+    # normalized: rate=0.25/0.40=0.625, fpi=0.15/0.40=0.375
+    # composite = 0.5*0.625 + 0.8*0.375 = 0.3125 + 0.3 = 0.6125
+    assert c == pytest.approx(0.6125, abs=0.01)
+
+
+def test_composite_fpi_ignored_for_eurusd() -> None:
+    """EURUSD weights have fpi=0.0, so fpi_signal should be ignored."""
+    c = compute_composite(
+        0.5, None, None, None,
+        pair="EURUSD",
+        special_signal=None,
+        fpi_signal=0.8,
+    )
+    # Only rate is active, weight renormalizes to 1.0
+    assert c == pytest.approx(0.5, abs=0.01)

@@ -119,6 +119,19 @@ const SIGNALS: SignalFamily[] = [
     sampleValue: 0.09,
     sampleBias: "NEUTRAL",
   },
+  {
+    key: "fpi",
+    label: "FPI Flow",
+    weight: 15,
+    color: "#14b8a6",
+    description:
+      "Foreign Portfolio Investment daily net flow into Indian equities and debt. Captures hot-money momentum for USD/INR.",
+    computation:
+      "SEBI daily FPI bulletin total net flow (INR crores) z-scored over a 20-day causal window, clipped to [-1, 1].",
+    source: "SEBI FPI Daily Bulletin",
+    sampleValue: 0.55,
+    sampleBias: "BULLISH",
+  },
 ];
 
 function BiasBadge({ bias }: { bias: "BULLISH" | "BEARISH" | "NEUTRAL" }) {
