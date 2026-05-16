@@ -40,3 +40,4 @@ fx-agent
 scripts/agent-health-check.sh
 scripts/init-agent-system.sh
 scripts/auto/*.sh
+lighthouse-reports/
