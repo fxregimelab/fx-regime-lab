@@ -50,7 +50,7 @@ export interface LatestSignal {
   rate_diff_10y_real: number | null;
   breakeven_inflation_10y: number | null;
   skew_alignment: number | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface ValidationRow {
@@ -389,7 +389,7 @@ export async function getHistoricalRegimeCalls(
     entry_timing: string | null;
     position_size: string | null;
     stop_level: number | null;
-    created_at: string;
+    created_at: string | null;
     predicted_direction: string | null;
   }>;
 }
