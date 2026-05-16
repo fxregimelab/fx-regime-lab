@@ -1,19 +1,17 @@
-import { createClient } from "@supabase/supabase-js";
 import { ImageResponse } from "next/og";
+import { createClient } from "@/lib/supabase/server";
 
-export const runtime = "edge";
-export const alt = "FX Regime Lab — Performance";
+export const alt = "Performance | FX Regime Lab";
 export const size = { width: 1200, height: 630 };
+export const runtime = "edge";
 export const contentType = "image/png";
 
 export default async function Image() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  let winRate: number | null = null;
+  let t5WinRate: number | null = null;
   let sampleSize: number | null = null;
 
-  if (url && anon) {
-    const supabase = createClient(url, anon);
+  try {
+    const supabase = await createClient();
     const { data } = await supabase
       .from("validation_stats")
       .select("t5_win_rate, t5_total_calls")
@@ -21,78 +19,97 @@ export default async function Image() {
       .order("as_of_date", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const row = data as { t5_win_rate?: number; t5_total_calls?: number } | null;
-    if (row?.t5_win_rate != null) winRate = row.t5_win_rate;
-    if (row?.t5_total_calls != null) sampleSize = row.t5_total_calls;
+
+    const row = data as { t5_win_rate: number; t5_total_calls: number } | null;
+    if (row) {
+      t5WinRate = row.t5_win_rate;
+      sampleSize = row.t5_total_calls;
+    }
+  } catch {
+    // Fallback
   }
 
-  const wrStr = winRate != null ? `${(winRate * 100).toFixed(1)}%` : "—";
-  const ssStr = sampleSize != null ? `${sampleSize.toLocaleString()}` : "—";
+  const winRatePct = t5WinRate != null ? Math.round(t5WinRate * 100) : null;
 
   return new ImageResponse(
-    <div
-      style={{
-        width: size.width,
-        height: size.height,
-        background: "#000000",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        padding: 48,
-        color: "#ffffff",
-      }}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <div
-          style={{
-            fontSize: 72,
-            fontWeight: 800,
-            letterSpacing: -2,
-            lineHeight: 1,
-          }}
-        >
-          Performance
-        </div>
-        <div
-          style={{
-            fontSize: 38,
-            color: "#a3a3a3",
-            maxWidth: 1000,
-            lineHeight: 1.2,
-          }}
-        >
-          Track record & validation metrics
-        </div>
-        <div style={{ display: "flex", gap: 40, marginTop: 16 }}>
-          <div>
-            <div style={{ fontSize: 52, fontWeight: 700, color: "#10b981" }}>
-              {wrStr}
-            </div>
-            <div style={{ fontSize: 22, color: "#666666", letterSpacing: "0.2em", textTransform: "uppercase" }}>
-              T+5 Win Rate
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 52, fontWeight: 700, color: "#10b981" }}>
-              {ssStr}
-            </div>
-            <div style={{ fontSize: 22, color: "#666666", letterSpacing: "0.2em", textTransform: "uppercase" }}>
-              Validated Calls
-            </div>
-          </div>
-        </div>
-      </div>
+    (
       <div
         style={{
-          fontSize: 24,
-          color: "#666666",
-          letterSpacing: "0.35em",
-          textTransform: "uppercase",
+          width: size.width,
+          height: size.height,
+          background: "#0a0a0a",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          padding: 48,
+          color: "#ffffff",
+          border: "4px solid #10b981",
+          fontFamily:
+            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
         }}
       >
-        FX Regime Lab
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div
+            style={{
+              fontSize: 24,
+              color: "#525252",
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+            }}
+          >
+            FX Regime Lab
+          </div>
+          <div
+            style={{
+              fontSize: 72,
+              fontWeight: 700,
+              letterSpacing: -2,
+              lineHeight: 1,
+              color: "#ffffff",
+            }}
+          >
+            Performance
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              marginTop: 24,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 36,
+                color: "#10b981",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              T+5 WIN RATE {winRatePct != null ? winRatePct + "%" : "—"}
+            </div>
+            <div
+              style={{
+                fontSize: 28,
+                color: "#a3a3a3",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              SAMPLE SIZE {sampleSize != null ? String(sampleSize) : "—"} CALLS
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            fontSize: 20,
+            color: "#404040",
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+          }}
+        >
+          Track Record · Updated Daily
+        </div>
       </div>
-    </div>,
+    ),
     { ...size },
   );
 }
