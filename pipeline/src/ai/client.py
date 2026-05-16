@@ -296,8 +296,25 @@ def _call(
     date_str: str,
     purpose: str,
 ) -> str:
-    """Sync wrapper around the async provider chain."""
-    return asyncio.run(_call_async(messages, max_tokens, date_str, purpose))
+    """Sync wrapper around the async provider chain.
+
+    Handles being called from within an already-running event loop
+    (e.g. inside a Prefect async flow) by offloading to a thread.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(_call_async(messages, max_tokens, date_str, purpose))
+
+    # Already inside an event loop — asyncio.run() would raise.
+    import concurrent.futures
+
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        future = pool.submit(
+            asyncio.run,
+            _call_async(messages, max_tokens, date_str, purpose),
+        )
+        return future.result()
 
 
 # ── Preferred-model entry points (backward compatible) ───────────────────────
