@@ -598,11 +598,6 @@ def _signal_row_from_db(row: dict[str, Any]) -> SignalRow:
         skew_alignment=int(row["skew_alignment"])
         if row.get("skew_alignment") is not None
         else None,
-        risk_reversal_25d=row.get("risk_reversal_25d"),
-        fpi_flow=row.get("fpi_flow"),
-        cot_net_pos=row.get("cot_net_pos"),
-        cot_asset_mgr_net=row.get("cot_asset_mgr_net"),
-        cot_lev_money_net=row.get("cot_lev_money_net"),
     )
 
 
@@ -1038,16 +1033,6 @@ async def run_daily(
         cot_pct = compute_cot_percentile(cot_rows, pair, as_of=today_bar.date)
         cot_norm = normalize_cot_signal(cot_pct)
 
-        # Extract latest COT breakdowns for signal row.
-        pair_cot_rows = sorted(
-            [r for r in cot_rows if r.pair == pair and r.date <= today_bar.date],
-            key=lambda r: r.date,
-        )
-        latest_cot = pair_cot_rows[-1] if pair_cot_rows else None
-        cot_net_pos = latest_cot.net_long if latest_cot else None
-        cot_asset_mgr_net = latest_cot.asset_mgr_net if latest_cot else None
-        cot_lev_money_net = latest_cot.lev_money_net if latest_cot else None
-
         rv = vol_data.get(pair, {})
         rv5 = rv.get("realized_vol_5d")
         rv20 = rv.get("realized_vol_20d")
@@ -1314,9 +1299,6 @@ async def run_daily(
             skew_alignment=layer3_out["skew_alignment"],
             risk_reversal_25d=rr_proxy,
             fpi_flow=fpi_raw.get("fpi_total_net_cr") if fpi_raw else None,
-            cot_net_pos=cot_net_pos,
-            cot_asset_mgr_net=cot_asset_mgr_net,
-            cot_lev_money_net=cot_lev_money_net,
         )
 
         writer.write_signal_row(signal_row)

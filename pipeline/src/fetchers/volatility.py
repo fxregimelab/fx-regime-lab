@@ -31,14 +31,26 @@ def fetch_realized_vol(spots: dict[str, Sequence[SpotBar]]) -> dict[str, dict[st
 
 
 def fetch_implied_vol(pair: str) -> float | None:
-    """Best-effort implied vol proxy from CBOE FX volatility indices.
+    """Best-effort implied vol proxy from CBOE FX volatility indices."""
+    vol_symbol_by_pair: dict[str, str | None] = {
+        "EURUSD": "^EUV",
+        "USDJPY": "^JXV",
+        "USDINR": None,
+    }
+    symbol = vol_symbol_by_pair.get(pair)
+    if symbol is None:
+        return None
 
-    .. note::
-        CBOE FX vol indices (^EUV, ^JXV) were delisted from Yahoo Finance.
-        This function currently returns ``None`` for all pairs until a
-        replacement data source (e.g. CME options vol, broker feed) is
-        wired in.
-    """
-    _ = pair
-    logger.debug("implied_vol_30d is currently unavailable — CBOE FX vol indices delisted")
-    return None
+    try:
+        import yfinance as yf
+
+        history = yf.Ticker(symbol).history(period="5d")
+        if history is None or history.empty or "Close" not in history:
+            return None
+        closes = history["Close"].dropna()
+        if closes.empty:
+            return None
+        return float(closes.iloc[-1])
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("implied vol unavailable for %s via %s: %s", pair, symbol, exc)
+        return None

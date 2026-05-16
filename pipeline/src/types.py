@@ -162,8 +162,6 @@ class CotRow:
     pair: str
     net_long: int
     open_interest: int
-    asset_mgr_net: int | None = None
-    lev_money_net: int | None = None
 
 
 @dataclass
@@ -197,9 +195,6 @@ class SignalRow:
     skew_alignment: int | None = None
     risk_reversal_25d: float | None = None
     fpi_flow: float | None = None
-    cot_net_pos: int | None = None
-    cot_asset_mgr_net: int | None = None
-    cot_lev_money_net: int | None = None
 
     @property
     def breakeven_inflation(self) -> float | None:

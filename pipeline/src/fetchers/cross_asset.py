@@ -195,24 +195,16 @@ async def fetch_cross_asset_async(
         async with fetcher.semaphore:
 
             def _work() -> tuple[float | None, list[float]]:
-                for attempt in range(1, 3):
-                    try:
-                        df = _yfinance().download(
-                            ticker, period=period, auto_adjust=True, progress=False
-                        )
-                        latest, _ = _latest_and_change_1d(df)
-                        hist_s = _close_history(df, tail=tail_arg) if tail_arg else []
-                        if latest is not None:
-                            return latest, hist_s
-                        logger.warning(
-                            "%s (%s) returned None on attempt %s", label, ticker, attempt
-                        )
-                    except Exception as exc:  # noqa: BLE001
-                        logger.warning(
-                            "%s (%s) async fetch failed (attempt %s): %s",
-                            label, ticker, attempt, exc,
-                        )
-                return None, []
+                try:
+                    df = _yfinance().download(
+                        ticker, period=period, auto_adjust=True, progress=False
+                    )
+                    latest, _ = _latest_and_change_1d(df)
+                    hist_s = _close_history(df, tail=tail_arg) if tail_arg else []
+                    return latest, hist_s
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("%s (%s) async fetch failed: %s", label, ticker, exc)
+                    return None, []
 
             val, hist_s = await asyncio.to_thread(_work)
         logger.info(
@@ -240,12 +232,6 @@ async def fetch_cross_asset_async(
         "iron_ore": copper_t[1],
         stoxx_t[0]: stoxx_t[1],
     }
-    snapshot_vals = [v for k, v in out.items() if k != "iron_ore"]
-    if all(v is None for v in snapshot_vals):
-        raise RuntimeError(
-            "fetch_cross_asset_async: all tickers returned None — "
-            "likely network/yfinance failure"
-        )
     if hist_tail is not None:
         out["hist"] = {
             "vix": vix_t[2],
