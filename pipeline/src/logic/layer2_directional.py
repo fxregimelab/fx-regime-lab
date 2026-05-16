@@ -55,7 +55,9 @@ def composite_rate_clash(composite: float | None, rate_sign: int) -> bool:
 
     if composite is None or rate_sign == 0:
         return False
-    comp_sign = 1 if composite > _COMPOSITE_STRONG else (-1 if composite < -_COMPOSITE_STRONG else 0)
+    comp_sign = 1 if composite > _COMPOSITE_STRONG else (
+        -1 if composite < -_COMPOSITE_STRONG else 0
+    )
     if comp_sign == 0:
         return False
     return comp_sign * rate_sign < 0

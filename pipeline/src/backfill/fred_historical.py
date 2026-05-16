@@ -10,7 +10,6 @@ from __future__ import annotations
 import logging
 import os
 import time
-from datetime import date
 from typing import Any
 
 from fredapi import Fred
@@ -37,7 +36,9 @@ def _fred_client() -> Fred | None:
     return Fred(api_key=key)
 
 
-def fetch_series_observations(series_id: str, start: str, end: str | None = None) -> list[dict[str, Any]]:
+def fetch_series_observations(
+    series_id: str, start: str, end: str | None = None
+) -> list[dict[str, Any]]:
     """Fetch all observations for a FRED series."""
     fred = _fred_client()
     if fred is None:

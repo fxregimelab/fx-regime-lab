@@ -20,15 +20,14 @@ from dataclasses import asdict
 from datetime import date, timedelta
 from typing import Any, Literal, cast
 
-from dotenv import load_dotenv
-from prefect import flow, task
-
 # ── Prefect managed worker patch ──────────────────────────────────────────────
 # Prefect's managed worker base images currently ship with a broken prefect
 # install where task_engine.py expects internal symbols that results.py doesn't
 # define. We inject all missing internals at import time so the flow runner
 # process sees them before any @task-decorated function is called.
 import prefect.results as _pr
+from dotenv import load_dotenv
+from prefect import flow, task
 
 if not hasattr(_pr, "_has_current_run_context"):
     def _has_current_run_context() -> bool:
@@ -57,8 +56,8 @@ if not hasattr(_pr, "get_default_persist_setting"):
 if not hasattr(_pr, "_read_server_default_result_storage_block_id"):
     from uuid import UUID
     def _read_server_default_result_storage_block_id() -> UUID | None:
-        from prefect.client.orchestration import get_client
         import httpx
+        from prefect.client.orchestration import get_client
         from prefect.exceptions import PrefectHTTPStatusError
         try:
             client = get_client(sync_client=True)
@@ -72,8 +71,8 @@ if not hasattr(_pr, "_read_server_default_result_storage_block_id"):
 if not hasattr(_pr, "_aread_server_default_result_storage_block_id"):
     from uuid import UUID
     async def _aread_server_default_result_storage_block_id() -> UUID | None:
-        from prefect.client.orchestration import get_client
         import httpx
+        from prefect.client.orchestration import get_client
         from prefect.exceptions import PrefectHTTPStatusError
         try:
             client = get_client()
@@ -82,7 +81,9 @@ if not hasattr(_pr, "_aread_server_default_result_storage_block_id"):
             return None
         return configuration.default_result_storage_block_id
 
-    _pr._aread_server_default_result_storage_block_id = _aread_server_default_result_storage_block_id  # type: ignore[attr-defined]
+    _pr._aread_server_default_result_storage_block_id = (  # type: ignore[attr-defined]
+        _aread_server_default_result_storage_block_id
+    )
 
 if not hasattr(_pr, "_get_default_persist_result"):
     def _get_default_persist_result() -> bool:
@@ -124,15 +125,14 @@ from src.analysis.systemic import (
 from src.db import writer
 from src.fetchers.async_engine import build_master_buffer
 from src.fetchers.buffer_keys import KEY_COT, KEY_CROSS_ASSET, KEY_FX_SPOT, KEY_YIELDS
+from src.fetchers.fpi_india import fetch_fpi_flows
 from src.fetchers.macro_calendar import fetch_macro_events
 from src.fetchers.open_interest import compute_oi_delta_from_cot, compute_oi_from_cot
-from src.fetchers.fpi_india import fetch_fpi_flows
 from src.fetchers.substack import fetch_latest_substack_memo
 from src.fetchers.volatility import fetch_implied_vol, fetch_realized_vol
 from src.logic.layer2_directional import run_layer2_directional
 from src.logic.layer3_execution import run_layer3_execution
 from src.monitoring.alerts import (
-    alert_on_failure,
     alert_on_low_dqs,
     send_success_heartbeat,
 )
@@ -147,6 +147,7 @@ from src.regime.composite import (
 )
 from src.regime.confidence import compute_confidence
 from src.signals.cot import compute_cot_percentile, normalize_cot_signal
+from src.signals.fpi import normalize_fpi_signal
 from src.signals.open_interest import compute_oi_signal
 from src.signals.rate import (
     build_carry_history_from_rows,
@@ -156,7 +157,6 @@ from src.signals.rate import (
     rate_direction_from_spreads,
     structural_instability_from_carry_history,
 )
-from src.signals.fpi import normalize_fpi_signal
 from src.signals.special import compute_special_signal
 from src.signals.volatility import (
     TRADING_DAYS_3Y_VOL_RANK,
@@ -469,10 +469,12 @@ def _rate_spread_10y_legacy(
 
 try:
     from src.fetchers.polymarket import (
+        fetch_economics_markets_async,
         get_active_economics_markets,
         polymarket_odds_json_for_prompt,
     )
 except ImportError:  # pragma: no cover - optional module in some environments
+    fetch_economics_markets_async = None  # type: ignore[assignment]
     get_active_economics_markets = None  # type: ignore[assignment]
     polymarket_odds_json_for_prompt = None  # type: ignore[assignment]
 
@@ -640,15 +642,25 @@ def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
             else None
         ),
         stress_level=str(row["stress_level"]) if row.get("stress_level") else None,
-        predicted_direction=str(row.get("predicted_direction")) if row.get("predicted_direction") else None,
+        predicted_direction=(
+            str(row.get("predicted_direction")) if row.get("predicted_direction") else None
+        ),
         directional_bias=str(row.get("directional_bias")) if row.get("directional_bias") else None,
         conviction=int(row["conviction"]) if row.get("conviction") is not None else None,
         cot_signal=str(row.get("cot_signal")) if row.get("cot_signal") else None,
         vol_signal=str(row.get("vol_signal")) if row.get("vol_signal") else None,
         oi_signal=str(row.get("oi_signal")) if row.get("oi_signal") else None,
         rr_signal=str(row.get("rr_signal")) if row.get("rr_signal") else None,
-        special_signal_value=float(row["special_signal_value"]) if row.get("special_signal_value") is not None else None,
-        special_signal_label=str(row.get("special_signal_label")) if row.get("special_signal_label") else None,
+        special_signal_value=(
+            float(row["special_signal_value"])
+            if row.get("special_signal_value") is not None
+            else None
+        ),
+        special_signal_label=(
+            str(row.get("special_signal_label"))
+            if row.get("special_signal_label")
+            else None
+        ),
         model_version=str(row.get("model_version")) if row.get("model_version") else None,
     )
 
@@ -753,7 +765,11 @@ def _upsert_pair_briefs_for_date(
                 composite=float(prior.get("signal_composite") or 0.0),
                 signal_row=signal_row,
                 date_str=date_str,
-                primary_driver=str(prior.get("primary_driver")) if prior.get("primary_driver") else None,
+                primary_driver=(
+                    str(prior.get("primary_driver"))
+                    if prior.get("primary_driver")
+                    else None
+                ),
                 polymarket_context=polymarket_context,
                 dollar_dominance_pct=dollar_dominance_pct,
                 polymarket_odds_json=polymarket_odds_json,
@@ -765,7 +781,11 @@ def _upsert_pair_briefs_for_date(
                 confidence=float(prior.get("confidence") or 0.0),
                 composite=float(prior.get("signal_composite") or 0.0),
                 analysis=brief,
-                primary_driver=str(prior.get("primary_driver")) if prior.get("primary_driver") else "",
+                primary_driver=(
+                    str(prior.get("primary_driver"))
+                    if prior.get("primary_driver")
+                    else ""
+                ),
             )
             pair_contexts.append(brief)
         except Exception as exc:
@@ -1127,11 +1147,23 @@ async def run_daily(
         fpi_norm = fpi_signal if fpi_signal is not None else 0.0
 
         top_5y = dominance_top_family(
-            betas_5y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm, fpi_norm=fpi_norm
+            betas_5y,
+            rate_norm,
+            cot_norm,
+            vol_norm,
+            oi_norm,
+            special_norm=special_norm,
+            fpi_norm=fpi_norm,
         )
         top_3y = (
             dominance_top_family(
-                betas_3y, rate_norm, cot_norm, vol_norm, oi_norm, special_norm=special_norm, fpi_norm=fpi_norm
+                betas_3y,
+                rate_norm,
+                cot_norm,
+                vol_norm,
+                oi_norm,
+                special_norm=special_norm,
+                fpi_norm=fpi_norm,
             )
             if betas_3y is not None
             else None
@@ -1699,9 +1731,9 @@ async def run_daily(
 
     markets: list[dict[str, Any]] = []
     polymarket_context = ""
-    if get_active_economics_markets is not None:
+    if fetch_economics_markets_async is not None:
         try:
-            markets = get_active_economics_markets()
+            markets = await fetch_economics_markets_async()
             polymarket_context = _format_polymarket_context(markets)
         except Exception as exc:  # noqa: BLE001
             logger.warning("Polymarket fetch failed during daily summary: %s", exc)
@@ -1773,7 +1805,7 @@ async def run_daily(
         )
         try:
             from src.ai.client import generate_global_macro_summary
-            global_summary = generate_global_macro_summary(
+            global_summary = await generate_global_macro_summary(
                 date_str=date_str,
                 pair_contexts=pair_contexts,
                 macro_context=polymarket_context,

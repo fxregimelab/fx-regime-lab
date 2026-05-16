@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 def _pg_conn() -> Any:
     import ssl
+
     import pg8000.native
 
     ctx = ssl._create_unverified_context()

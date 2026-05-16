@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import logging
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date
 from typing import Any
 
 import numpy as np
@@ -57,6 +57,7 @@ YIELD_ID_MAP: dict[str, dict[str, str]] = {
 def _pg_conn(max_retries: int = 5):
     import ssl
     import time
+
     import pg8000.native
     ctx = ssl._create_unverified_context()
     last_err = None
@@ -79,7 +80,9 @@ def _pg_conn(max_retries: int = 5):
 
 def _load_all_yields() -> dict[str, dict[date, float]]:
     conn = _pg_conn()
-    result = conn.run("SELECT series_id, date, value FROM historical_yields ORDER BY series_id, date")
+    result = conn.run(
+        "SELECT series_id, date, value FROM historical_yields ORDER BY series_id, date"
+    )
     out: dict[str, dict[date, float]] = defaultdict(dict)
     for row in result:
         d = row[1] if isinstance(row[1], date) else date.fromisoformat(str(row[1])[:10])
@@ -113,7 +116,9 @@ def _load_all_spot_bars(pair: str) -> dict[date, SpotBar]:
     return out
 
 
-def _get_yield(series_id: str, target_date: date, yields_by_series: dict[str, dict[date, float]]) -> float | None:
+def _get_yield(
+    series_id: str, target_date: date, yields_by_series: dict[str, dict[date, float]]
+) -> float | None:
     series = yields_by_series.get(series_id, {})
     if target_date in series:
         return series[target_date]
@@ -226,7 +231,11 @@ def simulate_all_days(
         rate_spread_10y_real = (
             None
             if rate_spread_10y is None
-            else (float(rate_spread_10y) - float(bei) if bei is not None else float(rate_spread_10y))
+            else (
+                float(rate_spread_10y) - float(bei)
+                if bei is not None
+                else float(rate_spread_10y)
+            )
         )
 
         # Forward-fill carry history for Layer 1 gate
@@ -304,7 +313,11 @@ def simulate_all_days(
             layer1_invalidated=bool(gate_out["invalidated"]),
         )
 
-        rv_rank_layer3 = float(all_rv_rank[full_idx]) if not np.isnan(all_rv_rank[full_idx]) else None
+        rv_rank_layer3 = (
+            float(all_rv_rank[full_idx])
+            if not np.isnan(all_rv_rank[full_idx])
+            else None
+        )
         layer3_out = run_layer3_execution(
             layer2=layer2_out,
             spot=float(today_bar.close) if today_bar.close else None,
@@ -426,7 +439,8 @@ def _batch_write(pair: str, results: list[tuple[SignalRow, RegimeCall]]) -> None
             signal_row.realized_vol_5d, signal_row.implied_vol_30d, signal_row.spot,
             signal_row.day_change, signal_row.day_change_pct, signal_row.cross_asset_vix,
             signal_row.cross_asset_dxy, signal_row.cross_asset_oil, signal_row.cross_asset_us10y,
-            signal_row.cross_asset_gold, signal_row.cross_asset_copper, signal_row.cross_asset_stoxx,
+            signal_row.cross_asset_gold, signal_row.cross_asset_copper,
+            signal_row.cross_asset_stoxx,
             signal_row.oi_delta, signal_row.volume_rvol, signal_row.structural_instability,
             signal_row.breakeven_inflation_10y, signal_row.rate_diff_10y_real,
             signal_row.rate_z_tactical, signal_row.rate_z_structural,
@@ -443,19 +457,22 @@ def _batch_write(pair: str, results: list[tuple[SignalRow, RegimeCall]]) -> None
         ))
 
     # Batch insert signals using multi-row INSERT with per-batch commit
-    BATCH = 500
-    for i in range(0, len(signal_rows), BATCH):
-        batch = signal_rows[i:i + BATCH]
+    batch_size = 500
+    for i in range(0, len(signal_rows), batch_size):
+        batch = signal_rows[i:i + batch_size]
         values_sql = []
         params: dict[str, Any] = {}
         for j, row in enumerate(batch):
             prefix = f"r{j}_"
             values_sql.append(
                 f"(:{prefix}pair, :{prefix}date, :{prefix}r2y, :{prefix}r10y, :{prefix}cot, "
-                f":{prefix}rv20, :{prefix}rv5, :{prefix}iv, :{prefix}spot, :{prefix}dc, :{prefix}dcp, "
-                f":{prefix}vix, :{prefix}dxy, :{prefix}oil, :{prefix}us10y, :{prefix}gold, "
+                f":{prefix}rv20, :{prefix}rv5, :{prefix}iv, :{prefix}spot, "
+                f":{prefix}dc, :{prefix}dcp, "
+                f":{prefix}vix, :{prefix}dxy, :{prefix}oil, "
+                f":{prefix}us10y, :{prefix}gold, "
                 f":{prefix}copper, :{prefix}stoxx, :{prefix}oi, :{prefix}rvol, :{prefix}si, "
-                f":{prefix}bei, :{prefix}r10r, :{prefix}rzt, :{prefix}rzs, :{prefix}rvr, :{prefix}sa)"
+                f":{prefix}bei, :{prefix}r10r, :{prefix}rzt, :{prefix}rzs, "
+                f":{prefix}rvr, :{prefix}sa)"
             )
             params[f"{prefix}pair"] = row[0]
             params[f"{prefix}date"] = row[1]
@@ -487,7 +504,8 @@ def _batch_write(pair: str, results: list[tuple[SignalRow, RegimeCall]]) -> None
         sql = (
             "INSERT INTO signals (pair, date, rate_diff_2y, rate_diff_10y, cot_percentile, "
             "realized_vol_20d, realized_vol_5d, implied_vol_30d, spot, day_change, day_change_pct, "
-            "cross_asset_vix, cross_asset_dxy, cross_asset_oil, cross_asset_us10y, cross_asset_gold, "
+            "cross_asset_vix, cross_asset_dxy, cross_asset_oil, "
+            "cross_asset_us10y, cross_asset_gold, "
             "cross_asset_copper, cross_asset_stoxx, oi_delta, volume_rvol, structural_instability, "
             "breakeven_inflation_10y, rate_diff_10y_real, rate_z_tactical, rate_z_structural, "
             "realized_vol_rank, skew_alignment) VALUES " + ",".join(values_sql)
@@ -495,8 +513,8 @@ def _batch_write(pair: str, results: list[tuple[SignalRow, RegimeCall]]) -> None
         conn.run(sql, **params)
         logger.info("Signals batch %d-%d inserted", i, i + len(batch) - 1)
 
-    for i in range(0, len(regime_rows), BATCH):
-        batch = regime_rows[i:i + BATCH]
+    for i in range(0, len(regime_rows), batch_size):
+        batch = regime_rows[i:i + batch_size]
         values_sql = []
         params: dict[str, Any] = {}
         for j, row in enumerate(batch):
@@ -505,7 +523,8 @@ def _batch_write(pair: str, results: list[tuple[SignalRow, RegimeCall]]) -> None
                 f"(:{prefix}pair, :{prefix}date, :{prefix}regime, :{prefix}conf, :{prefix}comp, "
                 f":{prefix}rate, :{prefix}driver, :{prefix}et, :{prefix}ps, :{prefix}sl, "
                 f":{prefix}dqs, :{prefix}stress, :{prefix}pred, :{prefix}bias, :{prefix}conv, "
-                f":{prefix}cot, :{prefix}vol, :{prefix}oi, :{prefix}rr, :{prefix}ssv, :{prefix}ssl, :{prefix}mv)"
+                f":{prefix}cot, :{prefix}vol, :{prefix}oi, :{prefix}rr, "
+                f":{prefix}ssv, :{prefix}ssl, :{prefix}mv)"
             )
             params[f"{prefix}pair"] = row[0]
             params[f"{prefix}date"] = row[1]
@@ -544,7 +563,12 @@ def _batch_write(pair: str, results: list[tuple[SignalRow, RegimeCall]]) -> None
     conn.run("ALTER TABLE validation_log ENABLE TRIGGER trg_protect_immutable_validation")
 
     conn.close()
-    logger.info("Batch wrote %d signals and %d regime_calls for %s", len(signal_rows), len(regime_rows), pair)
+    logger.info(
+        "Batch wrote %d signals and %d regime_calls for %s",
+        len(signal_rows),
+        len(regime_rows),
+        pair,
+    )
 
 
 def run_pair_simulation(

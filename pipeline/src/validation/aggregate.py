@@ -245,7 +245,9 @@ def compute_aggregate_stats(
         prs = by_pair.get(pair, [])
         if not prs:
             continue
-        t5 = _compute_horizon(prs, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps", as_of_date)
+        t5 = _compute_horizon(
+            prs, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps", as_of_date
+        )
         t20 = _compute_horizon(
             prs, "T+20", "brier_score_t20", "correct_t20", "log_return_t20_bps", as_of_date
         )

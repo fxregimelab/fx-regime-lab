@@ -10,7 +10,7 @@ import argparse
 import logging
 import math
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from src.validation.calendar import add_trading_days
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 def _pg_conn():
     import ssl
+
     import pg8000.native
     ctx = ssl._create_unverified_context()
     return pg8000.native.Connection(
@@ -91,7 +92,8 @@ def _load_prices() -> dict[str, dict[date, float]]:
 def _load_regime_calls() -> list[dict[str, Any]]:
     conn = _pg_conn()
     result = conn.run(
-        "SELECT id, date, pair, regime, predicted_direction, confidence FROM regime_calls ORDER BY date"
+        "SELECT id, date, pair, regime, predicted_direction, confidence "
+        "FROM regime_calls ORDER BY date"
     )
     out: list[dict[str, Any]] = []
     for row in result:
@@ -156,7 +158,7 @@ def _build_validation_rows(
             "confidence": confidence,
             "call_id": call["id"],
             "validation_date": as_of,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(datetime.UTC).isoformat(),
             "is_superseded": False,
         }
 

@@ -112,6 +112,7 @@ def generate_cpi_dates(start_year: int, end_year: int) -> list[date]:
 
 def _pg_conn() -> Any:
     import ssl
+
     import pg8000.native
 
     ctx = ssl._create_unverified_context()
@@ -143,9 +144,9 @@ def _load_prices() -> dict[str, dict[date, tuple[float, float, float, float]]]:
         "FROM historical_prices ORDER BY pair, date"
     )
     out: dict[str, dict[date, tuple[float, float, float, float]]] = defaultdict(dict)
-    for pair, dt, o, h, l, c in rows:
+    for pair, dt, o, h, low, c in rows:
         d = date.fromisoformat(str(dt)[:10])
-        out[str(pair)][d] = (float(o), float(h), float(l), float(c))
+        out[str(pair)][d] = (float(o), float(h), float(low), float(c))
     return dict(out)
 
 
@@ -445,7 +446,12 @@ def backfill_event_risk_matrices(*, dry_run: bool = False) -> dict[str, int]:
                 conn.run(sql, **params)
                 events_created += len(batch)
             except Exception as exc:  # noqa: BLE001
-                logger.warning("Batch insert macro events failed %d-%d: %s", i, i + len(batch) - 1, exc)
+                logger.warning(
+                    "Batch insert macro events failed %d-%d: %s",
+                    i,
+                    i + len(batch) - 1,
+                    exc,
+                )
 
     logger.info(" macro_events inserted: %d", events_created)
 

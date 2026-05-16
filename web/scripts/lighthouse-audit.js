@@ -10,8 +10,8 @@
  * Exits with code 1 if any category score falls below threshold.
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const lighthouse = require("lighthouse");
 const chromeLauncher = require("chrome-launcher");
 

@@ -118,7 +118,13 @@ def fetch_fpi_flows(target_date: date | None = None) -> dict[str, Any] | None:
                 "fpi_total_net_cr": total,
                 "source": "SEBI_FPI_BULLETIN",
             }
-            logger.info("FPI flows for %s: equity=%s debt=%s total=%s", target_date, equity, debt, total)
+            logger.info(
+                "FPI flows for %s: equity=%s debt=%s total=%s",
+                target_date,
+                equity,
+                debt,
+                total,
+            )
             return result
 
     logger.warning("No FPI data found for %s on SEBI bulletin", target_date)

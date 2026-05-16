@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 def _pg_conn(max_retries: int = 5):
     import ssl
     import time
+
     import pg8000.native
     ctx = ssl._create_unverified_context()
     last_err = None
@@ -104,7 +105,10 @@ def _compute_horizon(
     return_key: str,
 ) -> dict[str, Any]:
     total = len(rows)
-    directional = [r for r in rows if str(r.get("predicted_direction") or "").strip().upper() != "NEUTRAL"]
+    directional = [
+        r for r in rows
+        if str(r.get("predicted_direction") or "").strip().upper() != "NEUTRAL"
+    ]
     directional_calls = len(directional)
     wins = sum(1 for r in directional if r.get(correct_key) is True)
     win_rate = wins / directional_calls if directional_calls > 0 else None
@@ -119,7 +123,10 @@ def _compute_horizon(
     sharpe = _sharpe_like(returns) if returns else None
     mdd = _max_drawdown_bps(returns) if returns else None
 
-    confidences = [float(r.get("confidence") or 0.0) for r in directional if r.get("confidence") is not None]
+    confidences = [
+        float(r.get("confidence") or 0.0) for r in directional
+        if r.get("confidence") is not None
+    ]
     corrects = [bool(r.get(correct_key)) for r in directional if r.get(correct_key) is not None]
     calib = _calibration_buckets(confidences, corrects)
 
@@ -168,7 +175,9 @@ def _load_validation_rows() -> list[dict[str, Any]]:
     return rows
 
 
-def _stats_to_payload(pair: str, as_of: date, t5: dict[str, Any], t20: dict[str, Any]) -> dict[str, Any]:
+def _stats_to_payload(
+    pair: str, as_of: date, t5: dict[str, Any], t20: dict[str, Any]
+) -> dict[str, Any]:
     base: dict[str, Any] = {
         "as_of_date": as_of.isoformat(),
         "pair": pair,
@@ -243,8 +252,12 @@ def run_batch_stats() -> None:
     all_rows = []
     for prs in by_pair.values():
         all_rows.extend(prs)
-    t5_all = _compute_horizon(all_rows, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps")
-    t20_all = _compute_horizon(all_rows, "T+20", "brier_score_t20", "correct_t20", "log_return_t20_bps")
+    t5_all = _compute_horizon(
+        all_rows, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps"
+    )
+    t20_all = _compute_horizon(
+        all_rows, "T+20", "brier_score_t20", "correct_t20", "log_return_t20_bps"
+    )
     stats_rows.append(_stats_to_payload("ALL", as_of, t5_all, t20_all))
     logger.info(
         "ALL: T+5 win_rate=%s brier=%s | T+20 win_rate=%s brier=%s",
