@@ -1,10 +1,11 @@
 """
-@agent_context: Centralized OpenRouter AI client for generating research briefs 
-and event risk summaries using free-tier LLMs.
-@allowed_imports: [asyncio, json, logging, os, dataclasses, typing, openai, 
+@agent_context: Multi-provider AI client for generating research briefs and event
+risk summaries. Hierarchy: Groq primary -> Gemini secondary -> NIM tertiary ->
+OpenRouter fallback.
+@allowed_imports: [asyncio, json, logging, os, dataclasses, typing, openai,
 src.analysis, src.db, src.types]
 @forbidden_imports: [src.fetchers]
-@obsidian_link: [[AI Intelligence#OpenRouter Integration]]
+@obsidian_link: [[AI Intelligence#Multi-Provider Integration]]
 """
 
 from __future__ import annotations
@@ -24,18 +25,37 @@ from src.types import SignalRow
 
 logger = logging.getLogger(__name__)
 
-PRIMARY_MODEL = "google/gemma-3-27b-it:free"
+# ── Provider model configuration ─────────────────────────────────────────────
 
-# Free-model fallbacks (primary tried first via _call / _call_preferred_model)
-FREE_MODELS = [
-    PRIMARY_MODEL,
-    "meta-llama/llama-3.3-70b-instruct:free",
+GROQ_PRIMARY_MODEL = "llama-3.3-70b-versatile"
+GROQ_FALLBACK_MODELS = [
+    "llama-3.1-70b-versatile",
+    "llama-3.1-8b-instant",
+    "llama4-scout-17b-16e-instruct",
+]
+
+GEMINI_PRIMARY_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash")
+
+NIM_PRIMARY_MODEL = "meta/llama-3.3-70b-instruct"
+NIM_FALLBACK_MODELS = [
+    "meta/llama-3.1-70b-instruct",
+    "nvidia/llama-3.1-nemotron-70b-instruct",
+]
+
+# OpenRouter is the final fallback tier
+OPENROUTER_PRIMARY_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+OPENROUTER_FALLBACK_MODELS = [
+    OPENROUTER_PRIMARY_MODEL,
     "google/gemma-3-27b-it:free",
     "nousresearch/hermes-3-llama-3.1-405b:free",
     "openrouter/free",
 ]
 
 DAILY_REQUEST_LIMIT = 180
+
+
+# ── OpenRouter helpers ───────────────────────────────────────────────────────
 
 
 def _openrouter_headers() -> dict[str, str]:
@@ -45,32 +65,122 @@ def _openrouter_headers() -> dict[str, str]:
     }
 
 
-def _openrouter_api_key() -> str:
+def _openrouter_api_key() -> str | None:
     key = os.environ.get("OPENROUTER_API_KEY")
-    if not key or not str(key).strip():
-        raise RuntimeError(
-            "OPENROUTER_API_KEY is not set. Configure it in Prefect job_variables.env "
-            "(managed workers) or in .env for local runs before calling OpenRouter."
-        )
-    return str(key).strip()
+    return str(key).strip() if key and str(key).strip() else None
+
+
+def _openrouter_available() -> bool:
+    return _openrouter_api_key() is not None
 
 
 def _openrouter_client() -> OpenAI:
+    key = _openrouter_api_key()
+    if not key:
+        raise RuntimeError("OPENROUTER_API_KEY is not set")
     return OpenAI(
-        api_key=_openrouter_api_key(),
+        api_key=key,
         base_url="https://openrouter.ai/api/v1",
         default_headers=_openrouter_headers(),
     )
 
 
 def _async_openrouter_client() -> AsyncOpenAI:
-    """Build async client at call time so missing keys raise with a clear message."""
-
+    key = _openrouter_api_key()
+    if not key:
+        raise RuntimeError("OPENROUTER_API_KEY is not set")
     return AsyncOpenAI(
-        api_key=_openrouter_api_key(),
+        api_key=key,
         base_url="https://openrouter.ai/api/v1",
         default_headers=_openrouter_headers(),
     )
+
+
+# ── Groq helpers ─────────────────────────────────────────────────────────────
+
+
+def _groq_api_key() -> str | None:
+    key = os.environ.get("GROQ_API_KEY")
+    return str(key).strip() if key and str(key).strip() else None
+
+
+def _groq_available() -> bool:
+    return _groq_api_key() is not None
+
+
+def _groq_client() -> OpenAI:
+    key = _groq_api_key()
+    if not key:
+        raise RuntimeError("GROQ_API_KEY is not set")
+    return OpenAI(api_key=key, base_url="https://api.groq.com/openai/v1")
+
+
+def _async_groq_client() -> AsyncOpenAI:
+    key = _groq_api_key()
+    if not key:
+        raise RuntimeError("GROQ_API_KEY is not set")
+    return AsyncOpenAI(api_key=key, base_url="https://api.groq.com/openai/v1")
+
+
+# ── Gemini helpers ───────────────────────────────────────────────────────────
+
+
+def _gemini_api_key() -> str | None:
+    key = os.environ.get("GEMINI_API_KEY")
+    return str(key).strip() if key and str(key).strip() else None
+
+
+def _gemini_available() -> bool:
+    return _gemini_api_key() is not None
+
+
+def _gemini_client() -> OpenAI:
+    key = _gemini_api_key()
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    return OpenAI(
+        api_key=key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+
+
+def _async_gemini_client() -> AsyncOpenAI:
+    key = _gemini_api_key()
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    return AsyncOpenAI(
+        api_key=key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+
+
+# ── NVIDIA NIM helpers ───────────────────────────────────────────────────────
+
+
+def _nim_api_key() -> str | None:
+    key = os.environ.get("NVIDIA_NIM_API_KEY")
+    return str(key).strip() if key and str(key).strip() else None
+
+
+def _nim_available() -> bool:
+    return _nim_api_key() is not None
+
+
+def _nim_client() -> OpenAI:
+    key = _nim_api_key()
+    if not key:
+        raise RuntimeError("NVIDIA_NIM_API_KEY is not set")
+    return OpenAI(api_key=key, base_url="https://integrate.api.nvidia.com/v1")
+
+
+def _async_nim_client() -> AsyncOpenAI:
+    key = _nim_api_key()
+    if not key:
+        raise RuntimeError("NVIDIA_NIM_API_KEY is not set")
+    return AsyncOpenAI(api_key=key, base_url="https://integrate.api.nvidia.com/v1")
+
+
+# ── Rate-limit gate ──────────────────────────────────────────────────────────
 
 
 def _check_limit(date_str: str) -> None:
@@ -78,39 +188,11 @@ def _check_limit(date_str: str) -> None:
 
     count = writer.get_ai_request_count_today(date_str)
     if count >= DAILY_REQUEST_LIMIT:
-        msg = f"Daily OpenRouter request limit reached ({count}/{DAILY_REQUEST_LIMIT})"
+        msg = f"Daily AI request limit reached ({count}/{DAILY_REQUEST_LIMIT})"
         raise RuntimeError(msg)
 
 
-def _call(messages: list[dict[str, str]], max_tokens: int, date_str: str, purpose: str) -> str:
-    """Try available free models in order."""
-    from src.db import writer
-
-    _check_limit(date_str)
-    for attempt in range(1, 4):
-        for model in FREE_MODELS:
-            try:
-                logger.info("Attempting AI call with model: %s (attempt %s)", model, attempt)
-                resp = _openrouter_client().chat.completions.create(
-                    model=model,
-                    messages=cast(Any, messages),
-                    max_tokens=max_tokens,
-                    temperature=0.3,
-                )
-                writer.write_ai_request(date_str, purpose, model)
-                return resp.choices[0].message.content or ""
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("OpenRouter model %s failed: %s", model, exc)
-        if attempt < 3:
-            sleep_time = 5 * attempt
-            logger.warning(
-                "All OpenRouter free models failed on attempt %s. Retrying in %s seconds.",
-                attempt,
-                sleep_time,
-            )
-            import time
-            time.sleep(sleep_time)
-    raise RuntimeError("All OpenRouter free models failed after retries")
+# ── Unified provider chain (async) ───────────────────────────────────────────
 
 
 async def _call_async(
@@ -118,20 +200,77 @@ async def _call_async(
     max_tokens: int,
     date_str: str,
     purpose: str,
+    *,
+    response_format: dict[str, str] | None = None,
+    timeout_seconds: float | None = None,
 ) -> str:
-    """Try available free models in order (async)."""
+    """Try providers in hierarchy: Groq -> Gemini -> NIM -> OpenRouter."""
     from src.db import writer
 
-    for attempt in range(1, 4):
-        for model in FREE_MODELS:
+    kwargs_base: dict[str, Any] = {
+        "messages": cast(Any, messages),
+        "max_tokens": max_tokens,
+        "temperature": 0.3,
+    }
+    if response_format is not None:
+        kwargs_base["response_format"] = cast(Any, response_format)
+    if timeout_seconds is not None:
+        kwargs_base["timeout"] = timeout_seconds
+
+    # ── 1. Groq (primary) ──────────────────────────────────────────────────
+    if _groq_available():
+        for model in [GROQ_PRIMARY_MODEL, *GROQ_FALLBACK_MODELS]:
             try:
                 _check_limit(date_str)
-                logger.info("Attempting async AI call with model: %s (attempt %s)", model, attempt)
+                logger.info("Attempting async AI call with Groq model: %s", model)
+                resp = await _async_groq_client().chat.completions.create(
+                    model=model, **kwargs_base
+                )
+                writer.write_ai_request(date_str, purpose, model)
+                return resp.choices[0].message.content or ""
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Groq model %s failed: %s", model, exc)
+
+    # ── 2. Gemini (secondary) ──────────────────────────────────────────────
+    if _gemini_available():
+        for model in (GEMINI_PRIMARY_MODEL, GEMINI_FALLBACK_MODEL):
+            try:
+                _check_limit(date_str)
+                logger.info("Attempting async AI call with Gemini model: %s", model)
+                resp = await _async_gemini_client().chat.completions.create(
+                    model=model, **kwargs_base
+                )
+                writer.write_ai_request(date_str, purpose, model)
+                return resp.choices[0].message.content or ""
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Gemini model %s failed: %s", model, exc)
+
+    # ── 3. NVIDIA NIM (tertiary) ───────────────────────────────────────────
+    if _nim_available():
+        for model in [NIM_PRIMARY_MODEL, *NIM_FALLBACK_MODELS]:
+            try:
+                _check_limit(date_str)
+                logger.info("Attempting async AI call with NIM model: %s", model)
+                resp = await _async_nim_client().chat.completions.create(
+                    model=model, **kwargs_base
+                )
+                writer.write_ai_request(date_str, purpose, model)
+                return resp.choices[0].message.content or ""
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("NIM model %s failed: %s", model, exc)
+
+    # ── 4. OpenRouter (fallback) ───────────────────────────────────────────
+    for attempt in range(1, 4):
+        for model in OPENROUTER_FALLBACK_MODELS:
+            try:
+                _check_limit(date_str)
+                logger.info(
+                    "Attempting async AI call with OpenRouter model: %s (attempt %s)",
+                    model,
+                    attempt,
+                )
                 resp = await _async_openrouter_client().chat.completions.create(
-                    model=model,
-                    messages=cast(Any, messages),
-                    max_tokens=max_tokens,
-                    temperature=0.3,
+                    model=model, **kwargs_base
                 )
                 writer.write_ai_request(date_str, purpose, model)
                 return resp.choices[0].message.content or ""
@@ -140,13 +279,28 @@ async def _call_async(
         if attempt < 3:
             sleep_time = 5 * attempt
             logger.warning(
-                "All OpenRouter free models failed on attempt %s. Retrying in %s seconds.",
+                "All OpenRouter models failed on attempt %s. Retrying in %s seconds.",
                 attempt,
                 sleep_time,
             )
-            import asyncio
             await asyncio.sleep(sleep_time)
-    raise RuntimeError("All OpenRouter free models failed after retries")
+    raise RuntimeError("All AI providers failed after retries")
+
+
+# ── Sync wrapper ─────────────────────────────────────────────────────────────
+
+
+def _call(
+    messages: list[dict[str, str]],
+    max_tokens: int,
+    date_str: str,
+    purpose: str,
+) -> str:
+    """Sync wrapper around the async provider chain."""
+    return asyncio.run(_call_async(messages, max_tokens, date_str, purpose))
+
+
+# ── Preferred-model entry points (backward compatible) ───────────────────────
 
 
 async def _call_preferred_model_async(
@@ -159,26 +313,19 @@ async def _call_preferred_model_async(
     response_format: dict[str, str] | None = None,
     timeout_seconds: float | None = None,
 ) -> str:
-    """Call a preferred model once, then fall back to free-model rotation (async)."""
-    from src.db import writer
+    """Call the unified provider chain (model hint ignored; hierarchy rules).
 
-    _check_limit(date_str)
-    try:
-        logger.info("Attempting async AI call with preferred model: %s", model)
-        resp = await _async_openrouter_client().chat.completions.create(
-            model=model,
-            messages=cast(Any, messages),
-            max_tokens=max_tokens,
-            temperature=0.3,
-            response_format=cast(Any, response_format),
-            timeout=timeout_seconds,
-        )
-        writer.write_ai_request(date_str, purpose, model)
-        return resp.choices[0].message.content or ""
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Preferred model %s failed: %s; falling back", model, exc)
+    The *model* parameter is kept for backward compatibility with callers that
+    pass PRIMARY_MODEL, but the actual provider order is:
+    Groq -> Gemini -> NIM -> OpenRouter.
+    """
     return await _call_async(
-        messages, max_tokens=max_tokens, date_str=date_str, purpose=purpose
+        messages,
+        max_tokens,
+        date_str,
+        purpose,
+        response_format=response_format,
+        timeout_seconds=timeout_seconds,
     )
 
 
@@ -192,8 +339,7 @@ def _call_preferred_model(
     response_format: dict[str, str] | None = None,
     timeout_seconds: float | None = None,
 ) -> str:
-    """Sync wrapper: preferred model + fallback (used by non-async call sites)."""
-
+    """Sync wrapper for preferred-model path."""
     return asyncio.run(
         _call_preferred_model_async(
             model=model,
@@ -207,8 +353,14 @@ def _call_preferred_model(
     )
 
 
+# ── Timeout helper ───────────────────────────────────────────────────────────
+
+
 def _is_timeout_error(exc: Exception) -> bool:
     return isinstance(exc, APITimeoutError) or "timeout" in str(exc).lower()
+
+
+# ── Deterministic fallbacks ──────────────────────────────────────────────────
 
 
 def _deterministic_desk_card_brief(
@@ -236,7 +388,7 @@ def _deterministic_desk_card_brief(
     else:
         tag = "ELEVATED" if float(pain_index) >= 80 else "CONTROLLED"
         squeeze_bits.append(f"{tag} (PAIN {float(pain_index):.1f})")
-    
+
     if rvol is not None:
         squeeze_bits.append(f"RVOL {float(rvol):.2f}X")
 
@@ -244,8 +396,8 @@ def _deterministic_desk_card_brief(
         evn = str(todays_event_matrix.get("event_name") or "MACRO EVENT")
         ar = todays_event_matrix.get("asymmetry_ratio")
         ar_txt = f"{float(ar):.2f}" if ar is not None else "N/A"
-        squeeze_bits.append(f"EVENT: {evn} · ASYM {ar_txt}")
-    squeeze_risk = " · ".join(squeeze_bits) if squeeze_bits else "UNAVAILABLE"
+        squeeze_bits.append(f"EVENT: {evn} \u00b7 ASYM {ar_txt}")
+    squeeze_risk = " \u00b7 ".join(squeeze_bits) if squeeze_bits else "UNAVAILABLE"
 
     payload: dict[str, str] = {
         "bias_summary": bias_summary[:180],
@@ -318,7 +470,6 @@ def desk_card_brief_fallback(
     )
 
 
-
 def _parse_weekly_memo_thesis(payload_text: str) -> list[str]:
     parsed = json.loads(payload_text)
     if isinstance(parsed, list):
@@ -347,6 +498,9 @@ def _parse_weekly_memo_thesis(payload_text: str) -> list[str]:
     return out2
 
 
+# ── Public API ───────────────────────────────────────────────────────────────
+
+
 async def summarize_weekly_memo_async(raw_text: str, *, date_str: str) -> list[str]:
     """Summarize ingested Substack memo into five structural thesis bullets (JSON)."""
 
@@ -362,7 +516,7 @@ async def summarize_weekly_memo_async(raw_text: str, *, date_str: str) -> list[s
     )
     messages = [{"role": "user", "content": prompt}]
     raw = await _call_preferred_model_async(
-        model=PRIMARY_MODEL,
+        model=GROQ_PRIMARY_MODEL,
         messages=messages,
         max_tokens=600,
         date_str=date_str,
@@ -407,7 +561,7 @@ async def generate_desk_card_brief_async(
             "Your primary directive is to find mathematical evidence that CONTRADICTS the thesis. "
             "If the math disputes the thesis, encode the contradiction in catalyst_driver or "
             "squeeze_risk (terse labels only); put the directional read in bias_summary. "
-            "If the math confirms the thesis, align bias_summary accordingly—still no prose "
+            "If the math confirms the thesis, align bias_summary accordingly\u2014still no prose "
             "paragraphs.\n\n"
         )
     else:
@@ -416,7 +570,7 @@ async def generate_desk_card_brief_async(
             "reference a 'Project Founder' view, 'macro memo', or any off-book narrative. "
             "Ground bias_summary, catalyst_driver, and squeeze_risk ONLY in the explicit numeric "
             "and categorical fields above (REGIME, PRIMARY_DRIVER, PAIN_INDEX, RATE_Z_*_MAD, "
-            "DOLLAR_*). If a field is null or telemetry is stale, say so plainly—do not fill "
+            "DOLLAR_*). If a field is null or telemetry is stale, say so plainly\u2014do not fill "
             "gaps with speculative macro story.\n\n"
         )
 
@@ -455,7 +609,7 @@ async def generate_desk_card_brief_async(
             "  Example shape: 'MODERATE USD STRENGTH (DOLLAR STRENGTH)'.\n"
         )
     prompt = (
-        "You are a deterministic FX desk-card encoder. Output machine-readable labels only—"
+        "You are a deterministic FX desk-card encoder. Output machine-readable labels only\u2014"
         "NO paragraphs, NO narrative sentences, NO filler words like 'Regime remains'.\n"
         "Return ONLY a strict JSON object with exactly these keys:\n"
         f"{keys_literal}\n"
@@ -482,7 +636,7 @@ async def generate_desk_card_brief_async(
     for attempt in range(2):
         try:
             raw = await _call_preferred_model_async(
-                model=PRIMARY_MODEL,
+                model=GROQ_PRIMARY_MODEL,
                 messages=messages,
                 max_tokens=220,
                 date_str=date_str,
@@ -606,7 +760,7 @@ def generate_event_brief(
     for attempt in range(2):
         try:
             raw = _call_preferred_model(
-                model=PRIMARY_MODEL,
+                model=GROQ_PRIMARY_MODEL,
                 messages=messages,
                 max_tokens=170,
                 date_str=date_str,
@@ -659,7 +813,7 @@ async def generate_linkedin_alpha_hook_async(
     )
     messages = [{"role": "user", "content": prompt}]
     return await _call_preferred_model_async(
-        model=PRIMARY_MODEL,
+        model=GROQ_PRIMARY_MODEL,
         messages=messages,
         max_tokens=520,
         date_str=date_str,
@@ -675,7 +829,7 @@ def generate_linkedin_alpha_hook(card_data: dict[str, Any]) -> str:
     return asyncio.run(generate_linkedin_alpha_hook_async(card_data, date_str=ds))
 
 
-def generate_global_macro_summary(
+async def generate_global_macro_summary(
     *,
     date_str: str,
     pair_contexts: list[str],
@@ -695,7 +849,7 @@ def generate_global_macro_summary(
         f"PAIR_CONTEXTS:{' | '.join(pair_contexts)}\n"
         f"MACRO_CONTEXT:{macro_context}\n"
         f"DOLLAR_DOMINANCE_PCT:{dom_txt} "
-        "(0–100 book-wide USD thematic alignment from regime classifier metadata)\n"
+        "(0\u2013100 book-wide USD thematic alignment from regime classifier metadata)\n"
         f"POLYMARKET_ODDS_JSON:{polymarket_odds_json}\n"
         "You MUST synthesize DOLLAR_DOMINANCE_PCT with POLYMARKET_ODDS_JSON: explain how "
         "prediction-market odds on Fed / recession / macro outcomes reconcile with or diverge "
@@ -705,8 +859,8 @@ def generate_global_macro_summary(
         "OUTPUT: plain text only. No markdown. No headers."
     )
     messages = [{"role": "user", "content": prompt}]
-    return _call_preferred_model(
-        model=PRIMARY_MODEL,
+    return await _call_preferred_model_async(
+        model=GROQ_PRIMARY_MODEL,
         messages=messages,
         max_tokens=220,
         date_str=date_str,
