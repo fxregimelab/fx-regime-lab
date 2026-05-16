@@ -9,7 +9,7 @@ export function ConfidenceBar({
   tone = "dark",
   color,
 }: ConfidenceBarProps) {
-  const pct = value == null ? 0 : Math.round(value * 100);
+  const pct = value == null ? 0 : Math.min(100, Math.max(0, Math.round(value * 100)));
   const barColor = color || "#F5923A";
   const trackColor = tone === "dark" ? "#1e1e1e" : "#ebebeb";
 

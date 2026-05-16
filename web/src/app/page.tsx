@@ -310,13 +310,13 @@ function SnapshotCard({
             Confidence
           </span>
           <span className="font-mono text-[13px] text-[var(--color-text-secondary)] font-medium">
-            {Math.round(confidence * 100)}%
+            {Math.min(100, Math.max(0, Math.round(confidence * 100)))}%
           </span>
         </div>
         <div className="h-[3px] bg-[var(--color-border)] overflow-hidden">
           <div
             className="h-full bg-[var(--color-accent)] transition-all duration-1000 ease-out"
-            style={{ width: `${confidence * 100}%` }}
+            style={{ width: `${Math.min(100, Math.max(0, confidence * 100))}%` }}
           />
         </div>
       </div>

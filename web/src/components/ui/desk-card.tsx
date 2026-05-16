@@ -86,7 +86,7 @@ export function DeskCardTelemetryRow({
   parameterInstability,
   paused = false,
 }: DeskCardTelemetryRowProps) {
-  const pct = confidence != null ? Math.round(confidence * 100) : null;
+  const pct = confidence != null ? Math.min(100, Math.max(0, Math.round(confidence * 100))) : null;
   const modelUnstable =
     parameterInstability ?? Boolean(telemetryAudit?.parameter_instability);
   return (
@@ -213,7 +213,7 @@ export function DeskCard({
   const showGhostStrip =
     (whisper != null && whisper !== "") ||
     (corrLockedWhisper != null && corrLockedWhisper !== "");
-  const confPct = confidence != null ? Math.round(confidence * 100) : null;
+  const confPct = confidence != null ? Math.min(100, Math.max(0, Math.round(confidence * 100))) : null;
   const aiRows = parseDeskAiBriefRows(aiBrief);
 
   const zT =

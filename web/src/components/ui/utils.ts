@@ -14,7 +14,10 @@ export function fmt4(v: number | null | undefined) {
 }
 
 export function fmtPct(v: number | null | undefined) {
-  return v == null || Number.isNaN(v) ? "—" : `${Math.round(v * 100)}%`;
+  if (v == null || Number.isNaN(v)) return "—";
+  // Defensive: if value is already > 1 (e.g. bad DB data), clip and warn
+  const clamped = Math.min(1, Math.max(0, v));
+  return `${Math.round(clamped * 100)}%`;
 }
 
 export function fmtInt(v: number | null | undefined) {

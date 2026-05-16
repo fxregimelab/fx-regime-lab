@@ -78,8 +78,8 @@ export default async function Image({
   }
 
   const regimeColor = getRegimeColor(regime);
-  const confPct = confidence != null ? Math.round(confidence * 100) : null;
-  const accPct = rolling90d != null ? Math.round(rolling90d * 100) : null;
+  const confPct = confidence != null ? Math.min(100, Math.max(0, Math.round(confidence * 100))) : null;
+  const accPct = rolling90d != null ? Math.min(100, Math.max(0, Math.round(rolling90d * 100))) : null;
 
   return new ImageResponse(
     (

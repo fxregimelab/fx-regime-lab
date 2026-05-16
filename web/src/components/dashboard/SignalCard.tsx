@@ -157,9 +157,19 @@ export function SignalCard({
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               RR 25D
             </span>
-            <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
+            <span className={`font-mono text-[10px] font-medium tabular-nums ${signal?.risk_reversal_25d == null ? "text-[var(--color-text-muted)]" : "text-[var(--color-text)]"}`}>
               {signal?.risk_reversal_25d != null
                 ? signal.risk_reversal_25d.toFixed(2)
+                : "—"}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+              SKEW
+            </span>
+            <span className={`font-mono text-[10px] font-medium tabular-nums ${signal?.skew_alignment == null ? "text-[var(--color-text-muted)]" : "text-[var(--color-text)]"}`}>
+              {signal?.skew_alignment != null
+                ? signal.skew_alignment.toFixed(0)
                 : "—"}
             </span>
           </div>
@@ -168,7 +178,7 @@ export function SignalCard({
               <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
                 FPI (Cr)
               </span>
-              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
+              <span className={`font-mono text-[10px] font-medium tabular-nums ${signal?.fpi_flow == null ? "text-[var(--color-text-muted)]" : "text-[var(--color-text)]"}`}>
                 {signal?.fpi_flow != null
                   ? signal.fpi_flow.toFixed(0)
                   : "—"}

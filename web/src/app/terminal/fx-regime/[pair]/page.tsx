@@ -510,7 +510,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             className="font-mono text-[32px] font-medium tracking-tight leading-none"
             style={{ color: pairMeta.pairColor }}
           >
-            {call?.confidence != null ? Math.round(call.confidence * 100) : "—"}
+            {call?.confidence != null ? Math.min(100, Math.max(0, Math.round(call.confidence * 100))) : "—"}
             <span className="text-base text-[var(--color-text-dim)] font-normal">
               {call ? "%" : ""}
             </span>
@@ -917,7 +917,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                   className="font-mono text-[10px] font-medium"
                   style={{ color: pairMeta.pairColor }}
                 >
-                  {Math.round(h.confidence * 100)}%
+                  {Math.min(100, Math.max(0, Math.round(h.confidence * 100)))}%
                 </span>
               </div>
             ))}
@@ -962,7 +962,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                         background: regimeDotColor(h.regime),
                         opacity: 0.85,
                       }}
-                      title={`${h.date}: ${h.regime} (${Math.round(h.confidence * 100)}%)`}
+                      title={`${h.date}: ${h.regime} (${Math.min(100, Math.max(0, Math.round(h.confidence * 100)))}%)`}
                     />
                     {/* Tooltip on hover */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10 whitespace-nowrap">
