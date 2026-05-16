@@ -15,7 +15,7 @@ export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
   );
   const regimeAccent =
     call &&
-    call.confidence >= 0.55 &&
+    call.confidence != null && call.confidence >= 0.55 &&
     (call.regime.includes("STRENGTH") ||
       call.regime.includes("WEAKNESS") ||
       call.regime.includes("PRESSURE") ||

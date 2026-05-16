@@ -387,7 +387,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
 
   const regimeAccent =
     call &&
-    call.confidence >= 0.55 &&
+    call.confidence != null && call.confidence >= 0.55 &&
     (call.regime.includes("STRENGTH") ||
       call.regime.includes("WEAKNESS") ||
       call.regime.includes("PRESSURE") ||
@@ -581,7 +581,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             {invalidation}
           </span>
         </div>
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto">
           <span className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.1em]">
             RISK FLAGS
           </span>
@@ -772,9 +772,10 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               SIGNALS TABLE
             </span>
           </div>
-          <table className="w-full border-collapse font-mono">
-            <thead>
-              <tr className="border-b border-[var(--color-border-subtle)] bg-[var(--color-void)]">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse font-mono">
+              <thead>
+                <tr className="border-b border-[var(--color-border-subtle)] bg-[var(--color-void)]">
                 <th
                   scope="col"
                   className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
@@ -836,6 +837,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               })}
             </tbody>
           </table>
+          </div>
           {call?.primary_driver && (
             <div className="px-4 py-3 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface)]">
               <span className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] mr-3">
