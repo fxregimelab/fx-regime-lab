@@ -10,7 +10,7 @@
 - **All AI calls** → `pipeline/src/ai/client.py`
 - **Immutable ledger:** `regime_calls` + `validation_log` append-only
 - **No GitHub Actions** — Prefect Cloud only
-- **Tests:** `pytest` 878+ tests + `npm run build` + `biome check` must pass
+- **Tests:** `pytest` 219 tests + `npm run build` + `biome check` must pass
 - **Primary success metric:** EUR/USD rolling 90-day directional accuracy (target ≥ 55%)
 - **No new pairs until EUR/USD ≥ 55% on 90-day window** (3-pair lock)
 
@@ -54,4 +54,22 @@ cd web && npm run lint             # biome/eslint
 - `OMEGA_PROTOCOL.md` — The 13-persona council and 6-phase workflow
 - `CLAUDE.md` — AI persona, locked decisions, session rules
 
-*Last updated: 2026-05-15*
+*Last updated: 2026-05-16*
+
+## Current Status (v1.0 Launch Complete)
+
+| Component | Status |
+|-----------|--------|
+| Rolling 90-day accuracy (backend) | ✅ Computed + backfilled |
+| Rolling 90-day accuracy (frontend) | ✅ Landing, Terminal, Performance pages |
+| OG Images (social sharing) | ✅ Terminal pairs, Performance, Memo |
+| About page | ✅ Author identity + methodology summary |
+| SEO | ✅ Sitemap.xml, robots.txt, Schema.org Dataset |
+| Pipeline health dashboard | ✅ Backend + frontend (audit page) |
+| Accuracy alert system | ✅ Slack alerts at 50%/55% gates |
+| WSL2 dev environment | ✅ Ubuntu 24.04 + Node 24 + Python 3.11 |
+| Methodology interactive signals | ✅ 8-signal decomposition component |
+| Accuracy milestone tracker | ✅ Performance page integration |
+| SSRN paper draft | ✅ docs/SSRN_PAPER_DRAFT.md |
+| NSDL FPI research | ✅ docs/V2_NSDL_FPI_RESEARCH.md |
+| OTC Risk Reversal research | ✅ docs/V2_RISK_REVERSAL_RESEARCH.md |
