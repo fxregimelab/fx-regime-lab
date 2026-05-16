@@ -30,6 +30,10 @@ _K_OIa = "open interest (all)"
 _K_OIb = "open interest all"
 _KL_NEW = ("asset mgr positions long all", "lev money positions long all", "other rept positions long all")  # noqa: E501
 _KS_NEW = ("asset mgr positions short all", "lev money positions short all", "other rept positions short all")  # noqa: E501
+_K_AM_LONG = "asset mgr positions long all"
+_K_AM_SHORT = "asset mgr positions short all"
+_K_LM_LONG = "lev money positions long all"
+_K_LM_SHORT = "lev money positions short all"
 _USER_AGENTS = (
     (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -81,6 +85,16 @@ def _pair_from_market(name: str) -> str | None:
         return "USDCHF"
     return None
 
+def _parse_int(nr: dict[str, str], key: str) -> int | None:
+    s = nr.get(key, "")
+    if not s:
+        return None
+    try:
+        return int(float(s.replace(",", "")))
+    except ValueError:
+        return None
+
+
 def _spec_ls(nr: dict[str, str]) -> tuple[int, int] | None:
     lo, sh = nr.get(_K_LO), nr.get(_K_SH)
     if lo and sh:
@@ -91,6 +105,17 @@ def _spec_ls(nr: dict[str, str]) -> tuple[int, int] | None:
         sum(int(float(nr[k].replace(",", ""))) for k in _KL_NEW),
         sum(int(float(nr[k].replace(",", ""))) for k in _KS_NEW),
     )
+
+
+def _breakdown_ls(nr: dict[str, str]) -> tuple[int | None, int | None]:
+    """Return (asset_mgr_net, lev_money_net) from normalized row."""
+    am_long = _parse_int(nr, _K_AM_LONG)
+    am_short = _parse_int(nr, _K_AM_SHORT)
+    lm_long = _parse_int(nr, _K_LM_LONG)
+    lm_short = _parse_int(nr, _K_LM_SHORT)
+    am_net = (am_long - am_short) if am_long is not None and am_short is not None else None
+    lm_net = (lm_long - lm_short) if lm_long is not None and lm_short is not None else None
+    return am_net, lm_net
 
 def _rows_from_download(content: bytes, *, from_zip: bool) -> list[dict[str, Any]]:
     if from_zip:
@@ -196,8 +221,17 @@ def fetch_cot(year: int | None = None) -> list[CotRow]:
             long_v, short_v = ls
             oi_s = nr.get(_K_OIa, "") or nr.get(_K_OIb, "")
             oi_v = int(float(oi_s.replace(",", ""))) if oi_s else 0
+            am_net, lm_net = _breakdown_ls(nr)
             by_pair[pair].append(
-                CotRow(date=d, pair=pair, net_long=long_v - short_v, open_interest=oi_v))
+                CotRow(
+                    date=d,
+                    pair=pair,
+                    net_long=long_v - short_v,
+                    open_interest=oi_v,
+                    asset_mgr_net=am_net,
+                    lev_money_net=lm_net,
+                )
+            )
         except Exception as exc:  # noqa: BLE001
             logger.debug("skip COT row: %s", exc)
     merged: list[CotRow] = []

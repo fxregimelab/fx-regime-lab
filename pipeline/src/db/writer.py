@@ -88,6 +88,9 @@ def write_signal_row(row: SignalRow) -> None:
         "skew_alignment": row.skew_alignment,
         "risk_reversal_25d": row.risk_reversal_25d,
         "fpi_flow": row.fpi_flow,
+        "cot_net_pos": row.cot_net_pos,
+        "cot_asset_mgr_net": row.cot_asset_mgr_net,
+        "cot_lev_money_net": row.cot_lev_money_net,
     }
     _client().table("signals").upsert(payload, on_conflict="pair,date").execute()
 
