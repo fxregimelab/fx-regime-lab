@@ -1213,6 +1213,15 @@ async def run_daily(
             positioning_percentile=cot_pct,
             layer1_invalidated=bool(gate_out["invalidated"]),
         )
+        day_change = today_bar.close - yest_bar.close
+        day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
+
+        # ── Risk reversal proxy (all pairs) ─────────────────────────────────
+        rr_proxy = None
+        if rv20 is not None and day_change != 0:
+            rr_proxy = rv20 * 0.3 * (1.0 if day_change > 0 else -1.0)
+        rr_series = tuple(historical_rr + ([rr_proxy] if rr_proxy is not None else []))
+
         rv_rank_layer3 = compute_realized_vol_rank_from_closes(
             tuple(float(b.close) for b in spot_bars),
             window=TRADING_DAYS_3Y_VOL_RANK,
@@ -1233,14 +1242,6 @@ async def run_daily(
             confidence = min(float(confidence), dqs_cap)
         if stress_level == "AMBER":
             confidence = min(float(confidence), 0.72)
-        day_change = today_bar.close - yest_bar.close
-        day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
-
-        # ── Risk reversal proxy (all pairs) ─────────────────────────────────
-        rr_proxy = None
-        if rv20 is not None and day_change != 0:
-            rr_proxy = rv20 * 0.3 * (1.0 if day_change > 0 else -1.0)
-        rr_series = tuple(historical_rr + ([rr_proxy] if rr_proxy is not None else []))
 
         iv = fetch_implied_vol(pair)
 

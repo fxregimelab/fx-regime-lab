@@ -18,8 +18,8 @@ pull:
   - prefect.deployments.steps.run_shell_script:
       id: install-deps
       script: >-
-        python3 -m pip install "websockets>=14.0" "yfinance>=0.2.65" --upgrade --break-system-packages
-        && python3 -m pip install -e . --break-system-packages
+        python3 -m pip install "websockets>=14.0" "yfinance>=0.2.65" --upgrade
+        && python3 -m pip install -e .
       directory: "{{ clone.directory }}/pipeline"
       stream_output: true
       shell: true
@@ -35,15 +35,18 @@ deployments:
     work_pool:
       name: default
       job_variables:
-        # Use full prefect image to avoid prefect-client stripped-down issues.
-        image: "prefecthq/prefect:3-python3.12"
-        # Managed workers: align websockets with yfinance before pull-step pip install.
+        # Prefect client image for managed execution (lighter, purpose-built).
+        image: "prefecthq/prefect-client:3-python3.12"
+        # Managed workers install these before pull steps; ensure core deps are present.
         pip_packages:
-          - websockets>=13.0
+          - websockets>=14.0
+          - yfinance>=0.2.65
         # Injected into the flow run process (required by `run_daily` / `_require_pipeline_runtime_env`).
         env:
           SUPABASE_URL: "{{ $SUPABASE_URL }}"
           SUPABASE_SERVICE_ROLE_KEY: "{{ $SUPABASE_SERVICE_ROLE_KEY }}"
           FRED_API_KEY: "{{ $FRED_API_KEY }}"
+          POLYGON_API_KEY: "{{ $POLYGON_API_KEY }}"
           OPENROUTER_API_KEY: "{{ $OPENROUTER_API_KEY }}"
+          GEMINI_API_KEY: "{{ $GEMINI_API_KEY }}"
           ALPHAVANTAGE_API_KEY: "{{ $ALPHAVANTAGE_API_KEY }}"
