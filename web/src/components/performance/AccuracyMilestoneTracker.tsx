@@ -22,23 +22,53 @@ const MAX_BAR = 0.6;
 function StatusBadge({ accuracy }: { accuracy: number }) {
   if (accuracy >= GATE) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-none border border-emerald-400/30 bg-emerald-400/10 px-2 py-1 font-mono text-[10px] tracking-wider text-emerald-400">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      <span
+        className="inline-flex items-center gap-1.5 rounded-none border px-2 py-1 font-mono text-[10px] tracking-wider"
+        style={{
+          borderColor: "color-mix(in srgb, var(--color-up) 30%, transparent)",
+          backgroundColor: "color-mix(in srgb, var(--color-up) 10%, transparent)",
+          color: "var(--color-up)",
+        }}
+      >
+        <span
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ background: "var(--color-up)" }}
+        />
         ABOVE GATE
       </span>
     );
   }
   if (accuracy >= 0.45) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-none border border-amber-400/30 bg-amber-400/10 px-2 py-1 font-mono text-[10px] tracking-wider text-amber-400">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+      <span
+        className="inline-flex items-center gap-1.5 rounded-none border px-2 py-1 font-mono text-[10px] tracking-wider"
+        style={{
+          borderColor: "color-mix(in srgb, var(--color-warn) 30%, transparent)",
+          backgroundColor: "color-mix(in srgb, var(--color-warn) 10%, transparent)",
+          color: "var(--color-warn)",
+        }}
+      >
+        <span
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ background: "var(--color-warn)" }}
+        />
         APPROACHING
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-none border border-red-400/30 bg-red-400/10 px-2 py-1 font-mono text-[10px] tracking-wider text-red-400">
-      <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+    <span
+      className="inline-flex items-center gap-1.5 rounded-none border px-2 py-1 font-mono text-[10px] tracking-wider"
+      style={{
+        borderColor: "color-mix(in srgb, var(--color-down) 30%, transparent)",
+        backgroundColor: "color-mix(in srgb, var(--color-down) 10%, transparent)",
+        color: "var(--color-down)",
+      }}
+    >
+      <span
+        className="h-1.5 w-1.5 rounded-full"
+        style={{ background: "var(--color-down)" }}
+      />
       BELOW BASELINE
     </span>
   );
@@ -148,7 +178,10 @@ export function AccuracyMilestoneTracker({
           <span className="block font-mono text-[9px] tracking-wider text-[var(--color-text-muted)] uppercase">
             Target
           </span>
-          <span className="font-mono text-[18px] font-medium text-emerald-400 tabular-nums">
+          <span
+            className="font-mono text-[18px] font-medium tabular-nums"
+            style={{ color: "var(--color-up)" }}
+          >
             55.0%
           </span>
           <span className="block font-mono text-[9px] text-[var(--color-text-dim)]">
@@ -161,24 +194,42 @@ export function AccuracyMilestoneTracker({
       <div className="mb-6">
         <div className="relative h-3 w-full bg-[var(--color-void)]">
           {/* Zone backgrounds */}
-          <div className="absolute left-0 top-0 h-full w-[75%] bg-red-400/10" />
-          <div className="absolute left-[75%] top-0 h-full w-[8.3%] bg-amber-400/10" />
-          <div className="absolute left-[83.3%] top-0 h-full w-[16.7%] bg-emerald-400/10" />
+          <div
+            className="absolute left-0 top-0 h-full w-[75%]"
+            style={{ background: "color-mix(in srgb, var(--color-down) 10%, transparent)" }}
+          />
+          <div
+            className="absolute left-[75%] top-0 h-full w-[8.3%]"
+            style={{ background: "color-mix(in srgb, var(--color-warn) 10%, transparent)" }}
+          />
+          <div
+            className="absolute left-[83.3%] top-0 h-full w-[16.7%]"
+            style={{ background: "color-mix(in srgb, var(--color-up) 10%, transparent)" }}
+          />
 
           {/* Gate marker */}
           <div
-            className="absolute top-[-4px] h-[20px] w-[1px] bg-emerald-400"
-            style={{ left: `${gatePct * 100}%` }}
+            className="absolute top-[-4px] h-[20px] w-[1px]"
+            style={{
+              left: `${gatePct * 100}%`,
+              background: "var(--color-up)",
+            }}
           >
-            <span className="absolute left-1/2 top-[-16px] -translate-x-1/2 font-mono text-[8px] tracking-wider text-emerald-400">
+            <span
+              className="absolute left-1/2 top-[-16px] -translate-x-1/2 font-mono text-[8px] tracking-wider"
+              style={{ color: "var(--color-up)" }}
+            >
               GATE
             </span>
           </div>
 
           {/* Current position */}
           <div
-            className="absolute top-0 h-full bg-emerald-400 transition-all duration-1000"
-            style={{ width: `${barPct * 100}%` }}
+            className="absolute top-0 h-full transition-all duration-1000"
+            style={{
+              width: `${barPct * 100}%`,
+              background: "var(--color-up)",
+            }}
           />
         </div>
         {/* Milestone labels */}

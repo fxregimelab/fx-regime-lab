@@ -533,17 +533,19 @@ export default async function PerformancePage() {
                 currentAccuracy={acc}
                 history={recent}
                 daysAboveGate={recent.filter((h) => h.accuracy >= 0.55).length}
-                currentStreak={
-                  recent[recent.length - 1].accuracy >= 0.55
-                    ? recent
-                        .slice()
-                        .reverse()
-                        .findIndex((h) => h.accuracy < 0.55)
-                    : -recent
-                        .slice()
-                        .reverse()
-                        .findIndex((h) => h.accuracy >= 0.55)
-                }
+                currentStreak={(() => {
+                  const rev = recent.slice().reverse();
+                  const lastAbove = rev[0].accuracy >= 0.55;
+                  const idx = rev.findIndex(
+                    (h) =>
+                      lastAbove ? h.accuracy < 0.55 : h.accuracy >= 0.55,
+                  );
+                  return lastAbove
+                    ? idx === -1
+                      ? recent.length
+                      : idx
+                    : -(idx === -1 ? recent.length : idx);
+                })()}
                 bestWindowAccuracy={Math.max(...recent.map((h) => h.accuracy))}
               />
             </div>

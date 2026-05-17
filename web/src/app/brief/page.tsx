@@ -183,6 +183,41 @@ export default async function BriefPage() {
                 if (para.trim() === "") {
                   return <div key={`sp-${paraKey}`} className="h-2" />;
                 }
+                // Bullet list
+                if (para.trim().startsWith("- ")) {
+                  return (
+                    <ul key={`ul-${paraKey}`} className="list-disc list-inside mb-4">
+                      {para.split("\n").map((line) => {
+                        const trimmed = line.trim();
+                        if (!trimmed.startsWith("- ")) return null;
+                        const itemKey = trimmed.slice(0, 20);
+                        const itemText = trimmed.slice(2);
+                        const itemParts = itemText.split(/(\*\*.*?\*\*)/g);
+                        return (
+                          <li
+                            key={`li-${itemKey}`}
+                            className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] mb-1"
+                          >
+                            {itemParts.map((part) => {
+                              const pk = part.slice(0, 10) || "empty";
+                              if (part.startsWith("**") && part.endsWith("**")) {
+                                return (
+                                  <strong
+                                    key={`sb-${pk}`}
+                                    className="text-[var(--color-text)]"
+                                  >
+                                    {part.slice(2, -2)}
+                                  </strong>
+                                );
+                              }
+                              return <span key={`ssp-${pk}`}>{part}</span>;
+                            })}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  );
+                }
                 const parts = para.split(/(\*\*.*?\*\*)/g);
                 return (
                   <p
@@ -237,6 +272,7 @@ export default async function BriefPage() {
                   string
                 > | null;
                 const regime =
+                  pairRegimes?.[p.label] ??
                   pairRegimes?.[p.urlSlug] ??
                   (brief as unknown as Record<string, string>)[
                     `${p.urlSlug}_regime`
