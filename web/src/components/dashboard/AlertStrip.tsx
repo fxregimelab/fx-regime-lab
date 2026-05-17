@@ -1,3 +1,4 @@
+import { PAIRS } from "@/lib/constants";
 import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
 
 interface AlertStripProps {
@@ -13,8 +14,10 @@ interface Alert {
 
 export function AlertStrip({ calls, signals }: AlertStripProps) {
   const alerts: Alert[] = [];
+  const trackedLabels = new Set(PAIRS.map((p) => p.label));
 
   for (const pair of Object.keys(signals)) {
+    if (!trackedLabels.has(pair)) continue;
     const sig = signals[pair];
     const call = calls[pair];
 

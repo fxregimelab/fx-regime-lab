@@ -122,7 +122,7 @@ export function SignalCard({
           </DataLineage>
           <DataLineage lineage={LINEAGE.regime(call)}>
             <p className="font-mono text-[10px] text-[var(--color-text-secondary)] font-medium tracking-wider">
-              {call?.regime ?? "—"}
+              {(call?.regime ?? "—").replace(/_/g, " ")}
             </p>
           </DataLineage>
         </div>
@@ -148,7 +148,7 @@ export function SignalCard({
         <div className="flex justify-between items-center">
           <DataLineage lineage={LINEAGE.regime(call)}>
             <span className="font-mono text-[11px] text-[var(--color-text-secondary)]">
-              {call?.regime ?? "—"}
+              {(call?.regime ?? "—").replace(/_/g, " ")}
             </span>
           </DataLineage>
           {regimeAge != null && (
