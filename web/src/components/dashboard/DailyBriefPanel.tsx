@@ -24,8 +24,8 @@ export function DailyBriefPanel({ brief }: DailyBriefPanelProps) {
         {brief?.brief_text ? (
           <>
             <p className="font-sans text-[14px] text-[var(--color-text-secondary)] leading-relaxed">
-              {brief.brief_text.length > 300
-                ? `${brief.brief_text.slice(0, 300)}...`
+              {brief.brief_text.length > 400
+                ? `${brief.brief_text.slice(0, 400)}...`
                 : brief.brief_text}
             </p>
             {dd != null && (

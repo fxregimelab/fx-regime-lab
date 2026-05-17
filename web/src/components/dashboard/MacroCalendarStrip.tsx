@@ -35,7 +35,7 @@ export function MacroCalendarStrip({ events }: MacroCalendarStripProps) {
               {e.event}
             </p>
             <p className="font-mono text-[9px] text-[var(--color-text-secondary)] mt-0.5">
-              {e.pairs.join(", ")}
+              {e.pairs?.join(", ") ?? "—"}
             </p>
           </div>
         ))}

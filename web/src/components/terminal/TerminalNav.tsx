@@ -3,12 +3,12 @@
 import { LogoMark } from "@/components/ui/logo-mark";
 import { fmtChg } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
-import type { LatestSignalRow } from "@/lib/queries";
+import type { LatestSignal } from "@/lib/supabase/queries";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 interface TerminalNavProps {
-  signals?: Record<string, LatestSignalRow>;
+  signals?: Record<string, LatestSignal>;
 }
 
 export function TerminalNav({ signals }: TerminalNavProps) {

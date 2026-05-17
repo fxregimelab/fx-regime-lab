@@ -5,7 +5,8 @@ import { VimNavProvider } from "@/components/terminal/VimNavProvider";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import { CircuitBreaker } from "@/components/ui/circuit-breaker";
 import { DensityIndicator } from "@/components/ui/density-indicator";
-import { getPipelineHealth } from "@/lib/supabase/queries";
+import { getLatestSignals, getPipelineHealth } from "@/lib/supabase/queries";
+import type { LatestSignal } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { ReactNode } from "react";
 
@@ -17,16 +18,21 @@ export default async function TerminalLayout({
   let lastRunAt: string | null = null;
   let status: "HEALTHY" | "DEGRADED" | "FAILED" | "UNKNOWN" = "UNKNOWN";
   let errors: string[] = [];
+  let signals: Record<string, LatestSignal> = {};
 
   try {
     const supabase = await createClient();
-    const health = await getPipelineHealth(supabase, 1);
+    const [health, latestSignals] = await Promise.all([
+      getPipelineHealth(supabase, 1),
+      getLatestSignals(supabase),
+    ]);
     if (health.length > 0) {
       const latest = health[0];
       lastRunAt = latest.date;
       status = latest.status;
       errors = latest.errors;
     }
+    signals = latestSignals;
   } catch {
     // Graceful fallback: banner will show UNKNOWN state
   }
@@ -38,7 +44,7 @@ export default async function TerminalLayout({
     >
       <VimNavProvider />
       <GlobalMacroPulse />
-      <TerminalNav />
+      <TerminalNav signals={signals} />
       <TerminalSubNav />
 
       {/* Circuit breaker banner — appears when pipeline is interrupted */}

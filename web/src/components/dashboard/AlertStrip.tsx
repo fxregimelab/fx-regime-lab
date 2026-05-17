@@ -8,6 +8,7 @@ interface AlertStripProps {
 
 interface Alert {
   pair: string;
+  display: string;
   message: string;
   severity: "red" | "amber" | "green";
 }
@@ -15,6 +16,9 @@ interface Alert {
 export function AlertStrip({ calls, signals }: AlertStripProps) {
   const alerts: Alert[] = [];
   const trackedLabels = new Set<string>(PAIRS.map((p) => p.label));
+  const displayMap = new Map<string, string>(
+    PAIRS.map((p) => [p.label, p.display]),
+  );
 
   for (const pair of Object.keys(signals)) {
     if (!trackedLabels.has(pair)) continue;
@@ -25,7 +29,12 @@ export function AlertStrip({ calls, signals }: AlertStripProps) {
 
     // RVOL > 8
     if (sig.realized_vol_20d != null && sig.realized_vol_20d > 8) {
-      alerts.push({ pair, message: "RVOL ELEVATED", severity: "amber" });
+      alerts.push({
+        pair,
+        display: displayMap.get(pair) ?? pair,
+        message: "RVOL ELEVATED",
+        severity: "amber",
+      });
     }
 
     // IV > RVOL
@@ -34,7 +43,12 @@ export function AlertStrip({ calls, signals }: AlertStripProps) {
       sig.realized_vol_20d != null &&
       sig.implied_vol_30d > sig.realized_vol_20d
     ) {
-      alerts.push({ pair, message: "IV PREMIUM", severity: "amber" });
+      alerts.push({
+        pair,
+        display: displayMap.get(pair) ?? pair,
+        message: "IV PREMIUM",
+        severity: "amber",
+      });
     }
 
     // COT extreme
@@ -42,18 +56,29 @@ export function AlertStrip({ calls, signals }: AlertStripProps) {
       sig.cot_percentile != null &&
       (sig.cot_percentile > 85 || sig.cot_percentile < 15)
     ) {
-      alerts.push({ pair, message: "COT EXTREME", severity: "amber" });
+      alerts.push({
+        pair,
+        display: displayMap.get(pair) ?? pair,
+        message: "COT EXTREME",
+        severity: "amber",
+      });
     }
 
     // Rate divergence
     if (call?.rate_signal && call.rate_signal !== "NEUTRAL") {
-      alerts.push({ pair, message: "RATE DIVERGENCE", severity: "green" });
+      alerts.push({
+        pair,
+        display: displayMap.get(pair) ?? pair,
+        message: "RATE DIVERGENCE",
+        severity: "green",
+      });
     }
 
     // Red stress
     if (call?.stress_level === "RED") {
       alerts.push({
         pair,
+        display: displayMap.get(pair) ?? pair,
         message: "RED STRESS — SIGNALS WITHHELD",
         severity: "red",
       });
@@ -61,7 +86,12 @@ export function AlertStrip({ calls, signals }: AlertStripProps) {
 
     // DQS degraded
     if (call?.data_quality_score != null && call.data_quality_score < 0.75) {
-      alerts.push({ pair, message: "DQS DEGRADED", severity: "amber" });
+      alerts.push({
+        pair,
+        display: displayMap.get(pair) ?? pair,
+        message: "DQS DEGRADED",
+        severity: "amber",
+      });
     }
   }
 
@@ -97,7 +127,7 @@ export function AlertStrip({ calls, signals }: AlertStripProps) {
           key={`${a.pair}:${a.message}`}
           className={`font-mono text-[9px] tracking-[0.1em] border px-2 py-1 ${severityBorder[a.severity]}`}
         >
-          {a.pair} — {a.message}
+          {a.display} — {a.message}
         </span>
       ))}
     </div>

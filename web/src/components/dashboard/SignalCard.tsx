@@ -69,27 +69,29 @@ export function SignalCard({
         <div className="flex justify-between items-center mb-3">
           <span
             className="font-mono text-[11px] font-bold tracking-wider"
-            style={{ color: pairMeta?.pairColor ?? "var(--terminal-fg-muted)" }}
+            style={{
+              color: pairMeta?.pairColor ?? "var(--color-text-secondary)",
+            }}
           >
             {pairMeta?.display ?? pairLabel}
           </span>
-          <ReproducibilityExport
-            payload={{
-              query: "getLatestRegimeCalls + getLatestSignals",
-              parameters: {
-                pair: pairLabel,
-                date:
-                  call?.date ??
-                  signal?.date ??
-                  new Date().toISOString().slice(0, 10),
-              },
-              timestamp: new Date().toISOString(),
-              dataVersion: call?.model_version ?? "v3",
-              sourceTable: "regime_calls, signals",
-            }}
-            variant="icon"
-          />
           <div className="flex items-center gap-3">
+            <ReproducibilityExport
+              payload={{
+                query: "getLatestRegimeCalls + getLatestSignals",
+                parameters: {
+                  pair: pairLabel,
+                  date:
+                    call?.date ??
+                    signal?.date ??
+                    new Date().toISOString().slice(0, 10),
+                },
+                timestamp: new Date().toISOString(),
+                dataVersion: call?.model_version ?? "v3",
+                sourceTable: "regime_calls, signals",
+              }}
+              variant="icon"
+            />
             <FreshnessIndicator
               lastUpdatedAt={signal?.created_at ?? call?.created_at}
               dot

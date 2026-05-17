@@ -44,9 +44,9 @@ export function fmtKM(v: number | null | undefined): string {
 
 export function fmtChg(v: number | null | undefined) {
   if (v == null || Number.isNaN(v))
-    return { str: "—", color: "var(--terminal-fg-dim)" };
+    return { str: "—", color: "var(--color-text-dim)" };
   const sign = v >= 0 ? "+" : "";
-  const color = v >= 0 ? "var(--terminal-success)" : "var(--terminal-danger)";
+  const color = v >= 0 ? "var(--color-up)" : "var(--color-down)";
   return { str: `${sign}${v.toFixed(2)}%`, color };
 }
 

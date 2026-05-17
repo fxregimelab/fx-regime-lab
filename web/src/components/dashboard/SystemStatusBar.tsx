@@ -49,7 +49,7 @@ export function SystemStatusBar({
           </p>
         </div>
         {/* Visual gauge */}
-        <div className="h-[4px] w-full bg-[var(--terminal-bg-sunken)] overflow-hidden">
+        <div className="h-[4px] w-full bg-[var(--color-elevated)] overflow-hidden">
           <div
             className="h-full transition-all duration-700"
             style={{
