@@ -17,21 +17,21 @@ export function TerminalNav({ signals }: TerminalNavProps) {
   const pair = PAIRS.find((p) => activeSlug === p.urlSlug);
 
   return (
-    <header className="border-b border-terminal-border bg-terminal-bg sticky top-0 z-50">
+    <header className="border-b border-[var(--color-border)] bg-[var(--color-void)] sticky top-0 z-50">
       {/* Brand bar */}
-      <div className="border-b border-terminal-border-subtle px-6 h-[38px] flex items-center justify-between max-w-[1152px] mx-auto">
+      <div className="border-b border-[var(--color-border-subtle)] px-6 h-[38px] flex items-center justify-between max-w-[1152px] mx-auto">
         <div className="flex items-center gap-2.5">
           <LogoMark size={16} />
-          <span className="font-sans font-bold text-[13px] text-terminal-text tracking-tight">
+          <span className="font-sans font-bold text-[13px] text-[var(--color-text)] tracking-tight">
             FX Regime Lab
           </span>
-          <span className="font-mono text-[10px] text-terminal-dim ml-1">
+          <span className="font-mono text-[10px] text-[var(--color-text-dim)] ml-1">
             / Terminal
           </span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-[5px] h-[5px] rounded-full bg-bullish" />
-          <span className="font-mono text-[10px] text-terminal-muted">
+          <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
             LIVE
           </span>
         </div>
@@ -42,27 +42,27 @@ export function TerminalNav({ signals }: TerminalNavProps) {
         <div className="flex items-center gap-1.5 font-mono text-[10px]">
           <Link
             href="/"
-            className="text-terminal-muted hover:text-terminal-text transition-colors"
+            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
           >
             shell
           </Link>
-          <span className="text-terminal-dim">/</span>
+          <span className="text-[var(--color-text-dim)]">/</span>
           <Link
             href="/terminal"
             className={`transition-colors ${
               pathname === "/terminal"
-                ? "text-terminal-text"
-                : "text-terminal-muted hover:text-terminal-text"
+                ? "text-[var(--color-text)]"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
             }`}
           >
             terminal
           </Link>
           {pathname.includes("/fx-regime") && (
             <>
-              <span className="text-terminal-dim">/</span>
+              <span className="text-[var(--color-text-dim)]">/</span>
               <Link
                 href="/terminal"
-                className="text-terminal-muted hover:text-terminal-text transition-colors"
+                className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
               >
                 fx-regime
               </Link>
@@ -70,7 +70,7 @@ export function TerminalNav({ signals }: TerminalNavProps) {
           )}
           {pair && (
             <>
-              <span className="text-terminal-dim">/</span>
+              <span className="text-[var(--color-text-dim)]">/</span>
               <span className="font-semibold" style={{ color: pair.pairColor }}>
                 {pair.urlSlug}
               </span>
@@ -90,8 +90,8 @@ export function TerminalNav({ signals }: TerminalNavProps) {
                 href={`/terminal/fx-regime/${p.urlSlug}`}
                 className={`flex items-center gap-2 px-3 py-1 font-mono text-[10px] transition-all -mb-[1px] ${
                   active
-                    ? "bg-[var(--terminal-bg-sunken)]"
-                    : "bg-transparent hover:bg-[var(--terminal-bg-elevated)]"
+                    ? "bg-[var(--color-elevated)]"
+                    : "bg-transparent hover:bg-[var(--color-surface)]"
                 }`}
                 style={{
                   borderBottom: active

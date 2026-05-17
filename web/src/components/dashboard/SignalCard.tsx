@@ -98,7 +98,7 @@ export function SignalCard({
             />
             {rolling90dAccuracyT5 != null && (
               <span className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">
-                90D:
+                ACC:
                 {((normalizeProp(rolling90dAccuracyT5) ?? 0) * 100).toFixed(1)}%
               </span>
             )}
@@ -264,35 +264,43 @@ export function SignalCard({
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               ENTRY
             </span>
-            <span className="font-mono text-[10px] text-[var(--color-text)] font-medium">
-              {call?.entry_timing ?? "—"}
-            </span>
+            <DataLineage lineage={LINEAGE.entryTiming(call)}>
+              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium">
+                {call?.entry_timing ?? "—"}
+              </span>
+            </DataLineage>
           </div>
           <div className="flex justify-between">
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               SIZE
             </span>
-            <span className="font-mono text-[10px] text-[var(--color-text)] font-medium">
-              {call?.position_size ?? "—"}
-            </span>
+            <DataLineage lineage={LINEAGE.positionSize(call)}>
+              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium">
+                {call?.position_size ?? "—"}
+              </span>
+            </DataLineage>
           </div>
           <div className="flex justify-between">
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               STOP
             </span>
-            <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
-              {call?.stop_level != null
-                ? call.stop_level.toFixed(pairLabel === "USDJPY" ? 2 : 4)
-                : "—"}
-            </span>
+            <DataLineage lineage={LINEAGE.stopLevel(call, pairLabel)}>
+              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
+                {call?.stop_level != null
+                  ? call.stop_level.toFixed(pairLabel === "USDJPY" ? 2 : 4)
+                  : "—"}
+              </span>
+            </DataLineage>
           </div>
           <div className="flex justify-between">
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               RVOL RANK
             </span>
-            <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
-              {fmtInt(signal?.realized_vol_rank)}
-            </span>
+            <DataLineage lineage={LINEAGE.rvolRank(signal)}>
+              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
+                {fmtInt(signal?.realized_vol_rank)}
+              </span>
+            </DataLineage>
           </div>
         </div>
       </div>

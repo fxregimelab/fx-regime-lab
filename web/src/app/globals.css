@@ -234,8 +234,8 @@
   --color-shell-border-bright: var(--shell-border-bright);
 
   /* Semantic bullish / bearish */
-  --color-bullish: var(--terminal-success);
-  --color-bearish: var(--terminal-danger);
+  --color-bullish: var(--color-up);
+  --color-bearish: var(--color-down);
 
   /* Pair colors */
   --color-pair-eurusd-dark: var(--pair-eurusd-dark);

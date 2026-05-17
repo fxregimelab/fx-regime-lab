@@ -14,9 +14,9 @@ export function ConfidenceBar({
   const prop = normalizeProp(value) ?? 0;
   const pct =
     value == null ? 0 : Math.min(100, Math.max(0, Math.round(prop * 100)));
-  const barColor = color || "var(--terminal-warning)";
+  const barColor = color || "var(--color-warn)";
   const trackColor =
-    tone === "dark" ? "var(--terminal-bg-sunken)" : "var(--shell-bg-sunken)";
+    tone === "dark" ? "var(--color-elevated)" : "var(--color-surface)";
 
   return (
     <div

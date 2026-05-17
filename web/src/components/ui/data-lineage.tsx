@@ -23,51 +23,51 @@ export function DataLineage({ lineage, children }: DataLineageProps) {
       {children}
       <div
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-[var(--z-tooltip)] mb-2 hidden w-[260px] -translate-x-1/2 border border-[var(--terminal-border-bright)] bg-[var(--terminal-bg-elevated)] p-3 shadow-lg group-hover:block group-focus:block"
+        className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden w-[260px] -translate-x-1/2 border border-[var(--color-border)] bg-[var(--color-elevated)] p-3 shadow-lg group-hover:block group-focus:block"
         style={{ borderRadius: 2 }}
       >
-        <span className="block font-mono text-[9px] tracking-widest text-[var(--terminal-warning)] uppercase mb-2">
+        <span className="block font-mono text-[9px] tracking-widest text-[var(--color-warn)] uppercase mb-2">
           Data Lineage
         </span>
 
-        <span className="block font-mono text-[9px] text-[var(--terminal-fg-dim)] uppercase tracking-wider mb-0.5">
+        <span className="block font-mono text-[9px] text-[var(--color-text-dim)] uppercase tracking-wider mb-0.5">
           Source
         </span>
-        <span className="block font-mono text-[10px] text-[var(--terminal-fg)] mb-2">
+        <span className="block font-mono text-[10px] text-[var(--color-text)] mb-2">
           {lineage.source}
         </span>
 
         {lineage.rawValue && (
           <>
-            <span className="block font-mono text-[9px] text-[var(--terminal-fg-dim)] uppercase tracking-wider mb-0.5">
+            <span className="block font-mono text-[9px] text-[var(--color-text-dim)] uppercase tracking-wider mb-0.5">
               Raw Value
             </span>
-            <span className="block font-mono text-[10px] text-[var(--terminal-fg-muted)] mb-2">
+            <span className="block font-mono text-[10px] text-[var(--color-text-muted)] mb-2">
               {lineage.rawValue}
             </span>
           </>
         )}
 
-        <span className="block font-mono text-[9px] text-[var(--terminal-fg-dim)] uppercase tracking-wider mb-0.5">
+        <span className="block font-mono text-[9px] text-[var(--color-text-dim)] uppercase tracking-wider mb-0.5">
           Transformation
         </span>
-        <span className="block font-mono text-[10px] text-[var(--terminal-fg-muted)] mb-2">
+        <span className="block font-mono text-[10px] text-[var(--color-text-muted)] mb-2">
           {lineage.transformation}
         </span>
 
         {lineage.updatedAt && (
           <>
-            <span className="block font-mono text-[9px] text-[var(--terminal-fg-dim)] uppercase tracking-wider mb-0.5">
+            <span className="block font-mono text-[9px] text-[var(--color-text-dim)] uppercase tracking-wider mb-0.5">
               Last Update
             </span>
-            <span className="block font-mono text-[10px] text-[var(--terminal-fg-muted)]">
+            <span className="block font-mono text-[10px] text-[var(--color-text-muted)]">
               {lineage.updatedAt}
             </span>
           </>
         )}
 
         {/* Arrow */}
-        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[var(--terminal-border-bright)]" />
+        <span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[var(--color-border)]" />
       </div>
     </div>
   );
@@ -182,5 +182,44 @@ export const LINEAGE = {
     transformation: "Weekly FPI net flow → INR Crores",
     rawValue:
       sig?.fpi_flow != null ? `${sig.fpi_flow.toFixed(0)} Cr` : undefined,
+  }),
+  entryTiming: (
+    call?: { entry_timing: string | null; created_at?: string | null } | null,
+  ): LineageInfo => ({
+    source: "FX Regime Lab model v3",
+    updatedAt: call?.created_at?.slice(0, 10) ?? null,
+    transformation: "Signal composite + vol regime → entry timing recommendation",
+    rawValue: call?.entry_timing ?? undefined,
+  }),
+  positionSize: (
+    call?: { position_size: string | null; created_at?: string | null } | null,
+  ): LineageInfo => ({
+    source: "FX Regime Lab model v3",
+    updatedAt: call?.created_at?.slice(0, 10) ?? null,
+    transformation: "Confidence × vol rank → position sizing tier",
+    rawValue: call?.position_size ?? undefined,
+  }),
+  stopLevel: (
+    call?: { stop_level: number | null; created_at?: string | null } | null,
+    pairLabel?: string,
+  ): LineageInfo => ({
+    source: "FX Regime Lab model v3",
+    updatedAt: call?.created_at?.slice(0, 10) ?? null,
+    transformation: "Spot ± 0.5% buffer → hypothetical stop level",
+    rawValue:
+      call?.stop_level != null
+        ? call.stop_level.toFixed(pairLabel === "USDJPY" ? 2 : 4)
+        : undefined,
+  }),
+  rvolRank: (
+    sig?: { realized_vol_rank: number | null; created_at?: string | null } | null,
+  ): LineageInfo => ({
+    source: "Market realized volatility",
+    updatedAt: sig?.created_at?.slice(0, 10) ?? null,
+    transformation: "20-day RVOL percentile rank across 90-day history",
+    rawValue:
+      sig?.realized_vol_rank != null
+        ? `${sig.realized_vol_rank.toFixed(0)} / 100`
+        : undefined,
   }),
 } as const;

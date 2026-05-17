@@ -71,7 +71,7 @@ export function CircuitBreaker({
 
   return (
     <div
-      className="border border-[var(--terminal-danger)] bg-[var(--terminal-bg-sunken)]"
+      className="border border-[var(--color-down)] bg-[var(--color-elevated)]"
       role="alert"
       aria-live="assertive"
     >
@@ -79,30 +79,30 @@ export function CircuitBreaker({
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer hover:bg-[var(--terminal-bg-elevated)] transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer hover:bg-[var(--color-surface)] transition-colors"
         aria-expanded={expanded}
       >
         <div className="flex items-center gap-3">
           <span
             className="inline-block h-2 w-2 animate-pulse"
-            style={{ background: "var(--terminal-danger)" }}
+            style={{ background: "var(--color-down)" }}
           />
-          <span className="font-mono text-[10px] tracking-[0.15em] text-[var(--terminal-danger)] uppercase">
+          <span className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-down)] uppercase">
             [ PIPELINE INTERRUPTED ]
           </span>
-          <span className="font-mono text-[9px] text-[var(--terminal-fg-dim)] tabular-nums hidden sm:inline">
+          <span className="font-mono text-[9px] text-[var(--color-text-dim)] tabular-nums hidden sm:inline">
             Last successful run: {ageText} · Expected next: {nextRun}
           </span>
         </div>
-        <span className="font-mono text-[9px] text-[var(--terminal-fg-dim)]">
+        <span className="font-mono text-[9px] text-[var(--color-text-dim)]">
           {expanded ? "[−]" : "[+]"}
         </span>
       </button>
 
       {/* Expanded details */}
       {expanded && (
-        <div className="border-t border-[var(--terminal-danger)]/30 px-4 py-3 space-y-2">
-          <p className="font-mono text-[9px] text-[var(--terminal-fg-muted)] leading-relaxed">
+        <div className="border-t border-[var(--color-down)]/30 px-4 py-3 space-y-2">
+          <p className="font-mono text-[9px] text-[var(--color-text-muted)] leading-relaxed">
             The daily regime pipeline has not completed its expected run.
             Signals shown may be stale or missing. The system will automatically
             resume when the pipeline completes.
@@ -110,7 +110,7 @@ export function CircuitBreaker({
 
           <div className="grid grid-cols-2 gap-2 mt-2">
             <div>
-              <p className="font-mono text-[9px] tracking-widest text-[var(--terminal-fg-dim)] uppercase">
+              <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-dim)] uppercase">
                 Status
               </p>
               <p
@@ -118,36 +118,36 @@ export function CircuitBreaker({
                 style={{
                   color:
                     status === "HEALTHY"
-                      ? "var(--terminal-success)"
+                      ? "var(--color-up)"
                       : status === "DEGRADED"
-                        ? "var(--terminal-warning)"
-                        : "var(--terminal-danger)",
+                        ? "var(--color-warn)"
+                        : "var(--color-down)",
                 }}
               >
                 {status}
               </p>
             </div>
             <div>
-              <p className="font-mono text-[9px] tracking-widest text-[var(--terminal-fg-dim)] uppercase">
+              <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-dim)] uppercase">
                 Last Run
               </p>
-              <p className="font-mono text-[10px] text-[var(--terminal-fg-muted)] tabular-nums">
+              <p className="font-mono text-[10px] text-[var(--color-text-muted)] tabular-nums">
                 {lastRunAt?.slice(0, 19) ?? "—"} UTC
               </p>
             </div>
             <div>
-              <p className="font-mono text-[9px] tracking-widest text-[var(--terminal-fg-dim)] uppercase">
+              <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-dim)] uppercase">
                 Next Expected
               </p>
-              <p className="font-mono text-[10px] text-[var(--terminal-fg-muted)] tabular-nums">
+              <p className="font-mono text-[10px] text-[var(--color-text-muted)] tabular-nums">
                 {nextRun}
               </p>
             </div>
             <div>
-              <p className="font-mono text-[9px] tracking-widest text-[var(--terminal-fg-dim)] uppercase">
+              <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-dim)] uppercase">
                 Errors
               </p>
-              <p className="font-mono text-[10px] text-[var(--terminal-fg-muted)]">
+              <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
                 {errors.length > 0 ? errors.length : "None"}
               </p>
             </div>
@@ -158,7 +158,7 @@ export function CircuitBreaker({
               {errors.map((err) => (
                 <li
                   key={err}
-                  className="font-mono text-[9px] text-[var(--terminal-danger)]"
+                  className="font-mono text-[9px] text-[var(--color-down)]"
                 >
                   › {err}
                 </li>
@@ -169,7 +169,7 @@ export function CircuitBreaker({
           <div className="pt-2">
             <a
               href="/audit"
-              className="font-mono text-[9px] tracking-widest text-[var(--terminal-fg-muted)] hover:text-[var(--terminal-fg)] underline underline-offset-2"
+              className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] hover:text-[var(--color-text)] underline underline-offset-2"
             >
               VIEW FULL AUDIT LOG →
             </a>
@@ -191,7 +191,7 @@ export function CircuitBreakerBorder({
   const tripped = isTripped(lastRunAt, status);
 
   return (
-    <div className={tripped ? "ring-1 ring-[var(--terminal-danger)]" : ""}>
+    <div className={tripped ? "ring-1 ring-[var(--color-down)]" : ""}>
       <CircuitBreaker
         lastRunAt={lastRunAt}
         status={status}

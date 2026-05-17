@@ -84,7 +84,7 @@ export function ReproducibilityExport({
         <button
           type="button"
           onClick={handleCopy}
-          className="font-mono text-[9px] tracking-widest text-[var(--terminal-fg-dim)] hover:text-[var(--terminal-fg-muted)] transition-colors"
+          className="font-mono text-[9px] tracking-widest text-[var(--color-text-dim)] hover:text-[var(--color-text-muted)] transition-colors"
           aria-label="Copy reproducibility parameters"
           title="Copy reproducibility parameters"
         >
@@ -93,7 +93,7 @@ export function ReproducibilityExport({
         <button
           type="button"
           onClick={handleDownload}
-          className="font-mono text-[9px] tracking-widest text-[var(--terminal-fg-dim)] hover:text-[var(--terminal-fg-muted)] transition-colors"
+          className="font-mono text-[9px] tracking-widest text-[var(--color-text-dim)] hover:text-[var(--color-text-muted)] transition-colors"
           aria-label="Download reproducibility JSON"
           title="Download reproducibility JSON"
         >
@@ -108,7 +108,7 @@ export function ReproducibilityExport({
       <button
         type="button"
         onClick={handleCopy}
-        className="border border-[var(--terminal-border-bright)] bg-transparent px-2 py-1 font-mono text-[9px] tracking-widest text-[var(--terminal-fg-muted)] hover:text-[var(--terminal-fg)] hover:border-[var(--terminal-fg)] transition-colors"
+        className="border border-[var(--color-border)] bg-transparent px-2 py-1 font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-text)] transition-colors"
         style={{ borderRadius: 2 }}
       >
         {label}
@@ -116,7 +116,7 @@ export function ReproducibilityExport({
       <button
         type="button"
         onClick={handleDownload}
-        className="border border-[var(--terminal-border-bright)] bg-transparent px-2 py-1 font-mono text-[9px] tracking-widest text-[var(--terminal-fg-muted)] hover:text-[var(--terminal-fg)] hover:border-[var(--terminal-fg)] transition-colors"
+        className="border border-[var(--color-border)] bg-transparent px-2 py-1 font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-text)] transition-colors"
         style={{ borderRadius: 2 }}
       >
         JSON

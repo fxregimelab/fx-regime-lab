@@ -46,10 +46,10 @@ export function AuditTrailBanner({
 
   const statusColor =
     status === "HEALTHY"
-      ? "var(--terminal-success)"
+      ? "var(--color-up)"
       : status === "DEGRADED"
-        ? "var(--terminal-warning)"
-        : "var(--terminal-danger)";
+        ? "var(--color-warn)"
+        : "var(--color-down)";
 
   const dqsText = dqs != null ? dqs.toFixed(2) : "—";
 
@@ -60,21 +60,21 @@ export function AuditTrailBanner({
 
   if (variant === "terminal") {
     return (
-      <div className="border-t border-[var(--terminal-border)] bg-[var(--terminal-bg-sunken)] px-4 py-2">
+      <div className="border-t border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2">
         <div className="max-w-[1152px] mx-auto flex items-center justify-between flex-wrap gap-2">
-          <p className="font-mono text-[9px] tracking-wider text-[var(--terminal-fg-dim)]">
-            <span className="text-[var(--terminal-fg-muted)]">
+          <p className="font-mono text-[9px] tracking-wider text-[var(--color-text-dim)]">
+            <span className="text-[var(--color-text-muted)]">
               System integrity verified:
             </span>{" "}
             <span className="tabular-nums">{timestamp}</span>
           </p>
           <div className="flex items-center gap-3">
-            <span className="font-mono text-[9px] tracking-wider text-[var(--terminal-fg-dim)]">
+            <span className="font-mono text-[9px] tracking-wider text-[var(--color-text-dim)]">
               Pipeline: <span style={{ color: statusColor }}>{statusText}</span>
             </span>
-            <span className="font-mono text-[9px] tracking-wider text-[var(--terminal-fg-dim)]">
+            <span className="font-mono text-[9px] tracking-wider text-[var(--color-text-dim)]">
               DQS:{" "}
-              <span className="tabular-nums text-[var(--terminal-fg-muted)]">
+              <span className="tabular-nums text-[var(--color-text-muted)]">
                 {dqsText}
               </span>
             </span>
