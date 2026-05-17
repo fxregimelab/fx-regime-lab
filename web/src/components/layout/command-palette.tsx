@@ -70,13 +70,6 @@ const ALL_ITEMS: CommandItem[] = [
     section: "Terminal",
   },
   {
-    id: "terminal-fx-regime",
-    label: "FX Regime Mosaic",
-    path: "/terminal/fx-regime",
-    icon: <Sparkles size={14} />,
-    section: "Terminal",
-  },
-  {
     id: "terminal-calendar",
     label: "Calendar",
     path: "/terminal/calendar",
@@ -149,20 +142,17 @@ function parseNaturalLanguage(
     };
   }
 
-  // Regime queries
+  // Regime queries → route directly to pair desk
   if (/regime|regimes/.test(lower)) {
-    const params = new URLSearchParams();
-    if (pair) params.set("pair", pair);
-    if (/risk-on|risk on|bullish|long/.test(lower))
-      params.set("regime", "Risk-On");
-    else if (/risk-off|risk off|bearish|short/.test(lower))
-      params.set("regime", "Risk-Off");
-    else if (/neutral|transitional/.test(lower))
-      params.set("regime", "Neutral");
-    const query = params.toString();
+    if (pair) {
+      return {
+        path: `/terminal/fx-regime/${pair}`,
+        label: `${pair.toUpperCase()} Desk`,
+      };
+    }
     return {
-      path: `/terminal/fx-regime${query ? `?${query}` : ""}`,
-      label: pair ? `${pair.toUpperCase()} Regimes` : "FX Regime Mosaic",
+      path: "/terminal",
+      label: "Terminal Overview",
     };
   }
 

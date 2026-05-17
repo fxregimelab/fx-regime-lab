@@ -6,6 +6,19 @@ const PAIR_SLUGS = new Set(["eurusd", "usdjpy", "usdinr"]);
 
 export function middleware(request: NextRequest) {
   const segments = request.nextUrl.pathname.split("/").filter(Boolean);
+
+  // Redirect Mosaic grid to Terminal Overview (broken layout, only 3 pairs)
+  if (
+    segments.length === 2 &&
+    segments[0] === "terminal" &&
+    segments[1] === "fx-regime"
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/terminal";
+    return NextResponse.redirect(url);
+  }
+
+  // Canonical pair slugs — short URLs `/terminal/eurusd` rewrite to pair desk
   if (segments.length === 2 && segments[0] === "terminal") {
     const slug = segments[1].toLowerCase();
     if (PAIR_SLUGS.has(slug)) {

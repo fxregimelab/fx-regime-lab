@@ -1195,7 +1195,9 @@ export type Database = {
       signals: {
         Row: {
           atm_vol: number | null;
+          boj_policy_rate: number | null;
           breakeven_inflation_10y: number | null;
+          bund_btp_spread: number | null;
           cot_asset_mgr_net: number | null;
           cot_lev_money_net: number | null;
           cot_net_pos: number | null;
@@ -1208,11 +1210,14 @@ export type Database = {
           cross_asset_stoxx: number | null;
           cross_asset_us10y: number | null;
           cross_asset_vix: number | null;
+          ecb_balance_sheet: number | null;
           date: string;
           day_change: number | null;
           day_change_pct: number | null;
           fpi_flow: number | null;
           id: number;
+          india_vix: number | null;
+          inr_forward_premium: number | null;
           implied_vol_30d: number | null;
           oi_delta: number | null;
           oi_price_alignment: string | null;
@@ -1237,7 +1242,9 @@ export type Database = {
         };
         Insert: {
           atm_vol?: number | null;
+          boj_policy_rate?: number | null;
           breakeven_inflation_10y?: number | null;
+          bund_btp_spread?: number | null;
           cot_asset_mgr_net?: number | null;
           cot_lev_money_net?: number | null;
           cot_net_pos?: number | null;
@@ -1250,11 +1257,14 @@ export type Database = {
           cross_asset_stoxx?: number | null;
           cross_asset_us10y?: number | null;
           cross_asset_vix?: number | null;
+          ecb_balance_sheet?: number | null;
           date: string;
           day_change?: number | null;
           day_change_pct?: number | null;
           fpi_flow?: number | null;
           id?: number;
+          india_vix?: number | null;
+          inr_forward_premium?: number | null;
           implied_vol_30d?: number | null;
           oi_delta?: number | null;
           oi_price_alignment?: string | null;
@@ -1279,7 +1289,9 @@ export type Database = {
         };
         Update: {
           atm_vol?: number | null;
+          boj_policy_rate?: number | null;
           breakeven_inflation_10y?: number | null;
+          bund_btp_spread?: number | null;
           cot_asset_mgr_net?: number | null;
           cot_lev_money_net?: number | null;
           cot_net_pos?: number | null;
@@ -1639,27 +1651,7 @@ export type Database = {
         };
         Relationships: [];
       };
-      webhook_subscriptions: {
-        Row: {
-          created_at: string;
-          id: string;
-          pair_filter: string | null;
-          webhook_url_encrypted: string;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          pair_filter?: string | null;
-          webhook_url_encrypted: string;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          pair_filter?: string | null;
-          webhook_url_encrypted?: string;
-        };
-        Relationships: [];
-      };
+
     };
     Views: {
       [_ in never]: never;
