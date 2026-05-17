@@ -75,7 +75,7 @@ export function PairBreakdownTable({
           </thead>
           <tbody>
             {PAIRS.map((p, i) => {
-              const label = p.label;
+              const label = p.display;
               const t5 = t5Map.get(label);
               const t20 = t20Map.get(label);
               return (
