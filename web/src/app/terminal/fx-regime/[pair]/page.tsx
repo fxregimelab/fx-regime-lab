@@ -246,7 +246,7 @@ function ValidationHistoryTable({
                 {r.date}
               </th>
               <td className="px-3 py-2 text-[var(--color-text-secondary)]">
-                {r.predicted}
+                {(r.predicted ?? "—").replace(/_/g, " ")}
               </td>
               <td className="px-3 py-2">
                 <OutcomeBadge outcome={r.t5Outcome} />

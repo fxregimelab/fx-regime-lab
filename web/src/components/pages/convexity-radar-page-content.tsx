@@ -1,6 +1,7 @@
 "use client";
 
 import { ConvexityRadar } from "@/components/ui/convexity-radar";
+import { PAIRS } from "@/lib/constants";
 import {
   useEventRiskMatrices,
   useLatestSignals,
@@ -34,20 +35,23 @@ export function ConvexityRadarPageContent() {
       </p>
 
       <div className="mb-4 flex gap-2">
-        {trackedPairs.map((pair) => (
-          <button
-            key={pair}
-            type="button"
-            onClick={() => setSelectedPair(pair)}
-            className={`border px-3 py-1 text-[10px] tracking-widest tabular-nums rounded-none shadow-none transition-colors ${
-              selectedPair === pair
-                ? "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
-                : "border-[var(--color-border-subtle)] bg-[var(--color-void)] text-[var(--color-text-muted)]"
-            }`}
-          >
-            {pair}
-          </button>
-        ))}
+        {trackedPairs.map((pair) => {
+          const display = PAIRS.find((p) => p.label === pair)?.display ?? pair;
+          return (
+            <button
+              key={pair}
+              type="button"
+              onClick={() => setSelectedPair(pair)}
+              className={`border px-3 py-1 text-[10px] tracking-widest tabular-nums rounded-none shadow-none transition-colors ${
+                selectedPair === pair
+                  ? "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
+                  : "border-[var(--color-border-subtle)] bg-[var(--color-void)] text-[var(--color-text-muted)]"
+              }`}
+            >
+              {display}
+            </button>
+          );
+        })}
       </div>
 
       {eventsQ.isPending || matricesQ.isPending || signalsQ.isPending ? (

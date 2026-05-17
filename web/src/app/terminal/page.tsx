@@ -105,7 +105,7 @@ export default async function TerminalIndexPage() {
 
       {/* Signal Cards — 3-pair grid */}
       <div className="mb-10">
-        <p className="font-mono text-[9px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase mb-3">
+        <p className="font-mono text-[9px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase mb-3">
           Systemic Regime Monitor
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-[var(--color-border)]">

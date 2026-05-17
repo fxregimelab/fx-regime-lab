@@ -22,11 +22,11 @@ function getFreshnessLevel(ageMinutes: number): FreshnessLevel {
 function freshnessColor(level: FreshnessLevel): string {
   switch (level) {
     case "fresh":
-      return "var(--terminal-success)";
+      return "var(--color-up)";
     case "aging":
-      return "var(--terminal-warning)";
+      return "var(--color-warn)";
     case "stale":
-      return "var(--terminal-danger)";
+      return "var(--color-down)";
   }
 }
 
@@ -125,15 +125,15 @@ export function StaleDataBanner({
 
   return (
     <div
-      className="border border-[var(--terminal-danger)] bg-[var(--terminal-bg-sunken)] px-4 py-2 font-mono"
+      className="border border-[var(--color-down)] bg-[var(--color-elevated)] px-4 py-2 font-mono"
       role="alert"
       aria-live="polite"
     >
-      <p className="text-[10px] tracking-widest text-[var(--terminal-danger)] uppercase">
+      <p className="text-[10px] tracking-widest text-[var(--color-down)] uppercase">
         [ DATA STALE · {ageMinutes}m OLD ]
       </p>
       {source && (
-        <p className="text-[9px] text-[var(--terminal-fg-dim)] mt-0.5">
+        <p className="text-[9px] text-[var(--color-text-dim)] mt-0.5">
           Source: {source} · Last update:{" "}
           {lastUpdatedAt?.slice(0, 19) ?? "unknown"}
         </p>
@@ -148,8 +148,8 @@ export function freshnessHaloClass(level: FreshnessLevel): string {
     case "fresh":
       return "";
     case "aging":
-      return "ring-1 ring-[var(--terminal-warning)]/30";
+      return "ring-1 ring-[var(--color-warn)]/30";
     case "stale":
-      return "ring-1 ring-[var(--terminal-danger)]/40";
+      return "ring-1 ring-[var(--color-down)]/40";
   }
 }
