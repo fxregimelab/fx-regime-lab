@@ -42,14 +42,14 @@ export function CompareView({ pairsParam }: CompareViewProps) {
             [ NO PAIRS SELECTED ]
           </p>
           <p className="font-sans text-[14px] text-[var(--color-text-secondary)] leading-relaxed mb-4">
-            Cmd+Click (or Ctrl+Click) two pair cards on the FX Regime Mosaic to
+            Cmd+Click (or Ctrl+Click) two pair cards on the Terminal to
             compare them side-by-side.
           </p>
           <Link
-            href="/terminal/fx-regime"
+            href="/terminal"
             className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] hover:text-[var(--color-text)] underline underline-offset-2"
           >
-            ← BACK TO MOSAIC
+            ← BACK TO TERMINAL
           </Link>
         </div>
       </div>
@@ -63,10 +63,10 @@ export function CompareView({ pairsParam }: CompareViewProps) {
           Pair Comparison
         </p>
         <Link
-          href="/terminal/fx-regime"
+          href="/terminal"
           className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] hover:text-[var(--color-text)] underline underline-offset-2"
         >
-          ← BACK TO MOSAIC
+          ← BACK TO TERMINAL
         </Link>
       </div>
 

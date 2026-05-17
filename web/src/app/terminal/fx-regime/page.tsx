@@ -24,7 +24,7 @@ import {
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 const container = {
   hidden: { opacity: 0 },
@@ -240,6 +240,13 @@ export default function FxRegimePairSelectionPage() {
   const deskSnapQ = useLatestDeskOpenCardsSnapshot();
   const matrixQ = useG10CorrelationMatrix();
   const deskData = deskSnapQ.data as DeskOpenCardsSnapshot | undefined;
+
+  // Redirect to terminal overview when Mosaic data is not available
+  useEffect(() => {
+    if (!deskSnapQ.isPending && !deskSnapQ.isError && (deskData?.cards ?? []).length === 0) {
+      router.replace("/terminal");
+    }
+  }, [deskSnapQ.isPending, deskSnapQ.isError, deskData?.cards, router]);
 
   const calls = regimeQ.data;
   const sigs = signalsQ.data;
