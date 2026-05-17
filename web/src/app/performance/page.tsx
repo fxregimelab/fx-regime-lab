@@ -331,7 +331,7 @@ export default async function PerformancePage() {
     allT20,
   ];
 
-  // equity curve from T+5 cumulative log-returns (bps)
+  // equity curve from T+5 cumulative log-returns (proportion)
   const sortedAsc = [...validation].sort((a, b) =>
     a.date.localeCompare(b.date),
   );
@@ -346,7 +346,7 @@ export default async function PerformancePage() {
   const equityCurve = dates.map((d) => {
     const daily = byDate.get(d) ?? 0;
     cum += daily;
-    return { date: d, value: cum };
+    return { date: d, value: cum / 10000 }; // bps → proportion
   });
 
   // max drawdown
@@ -494,7 +494,7 @@ export default async function PerformancePage() {
 
         {/* ── Accuracy Milestone Tracker ─────────────────────────────────── */}
         {(() => {
-          const eurT5 = statsT5.find((s) => s.pair === "EURUSD");
+          const eurT5 = statsT5.find((s) => s.pair === "EUR/USD");
           const acc = eurT5?.rolling90dAccuracy ?? null;
           if (acc == null) return null;
 
@@ -560,7 +560,7 @@ export default async function PerformancePage() {
               <span className="font-mono text-[10px] text-[var(--color-text-muted)] tabular-nums">
                 Max DD:{" "}
                 <span style={{ color: "var(--color-down)" }}>
-                  {fmtPctRaw(-maxDD / 100)}
+                  {fmtPctRaw(-maxDD)}
                 </span>
               </span>
             </div>
