@@ -139,7 +139,7 @@ export default async function Image({
             textTransform: "uppercase",
           }}
         >
-          {regime}
+          {regime.replace(/_/g, " ")}
         </div>
         <div
           style={{

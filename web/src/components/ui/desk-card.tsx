@@ -134,7 +134,7 @@ export function DeskCardTelemetryRow({
           }}
         >
           <span className="font-mono text-[10px] text-[#b8b8b8] block truncate leading-snug">
-            {structuralRegime}
+            {structuralRegime.replace(/_/g, " ")}
           </span>
         </DataLineage>
         {modelUnstable ? (
@@ -451,7 +451,7 @@ export function DeskCard({
               transformation: "Weighted composite → regime classifier",
             }}
           >
-            <span className="inline-block">{structuralRegime}</span>
+            <span className="inline-block">{structuralRegime.replace(/_/g, " ")}</span>
           </DataLineage>
         </p>
       </div>

@@ -250,7 +250,7 @@ export function SignalInspector({
             Current Regime
           </p>
           <p className="font-mono text-[18px] font-bold text-[var(--terminal-fg)] leading-tight">
-            {regime || "—"}
+            {(regime || "—").replace(/_/g, " ")}
           </p>
           {primaryDriver && (
             <p className="font-mono text-[10px] text-[var(--terminal-fg-muted)] mt-1 truncate">

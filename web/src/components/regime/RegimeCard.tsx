@@ -57,7 +57,7 @@ export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
           regimeAccent ? "text-brand-accent" : "text-[var(--terminal-fg-muted)]"
         }`}
       >
-        {call?.regime ?? "—"}
+        {(call?.regime ?? "—").replace(/_/g, " ")}
       </p>
       <ConfidenceBar
         value={call?.confidence}

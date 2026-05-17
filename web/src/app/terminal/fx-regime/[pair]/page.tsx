@@ -592,7 +592,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                   : "text-[var(--color-text-secondary)]"
               }`}
             >
-              {call?.regime ?? "—"}
+              {(call?.regime ?? "—").replace(/_/g, " ")}
             </p>
             <p className="font-mono text-[9px] text-[var(--color-text-muted)] mt-2 truncate">
               {call?.primary_driver?.slice(0, 50)}…
@@ -1022,7 +1022,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                   {h.date}
                 </span>
                 <span className="font-mono text-[10px] text-[var(--color-text)] font-medium">
-                  {h.regime}
+                  {h.regime.replace(/_/g, " ")}
                 </span>
                 <span
                   className="font-mono text-[10px] font-medium"
@@ -1080,13 +1080,13 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                         background: regimeDotColor(h.regime),
                         opacity: 0.85,
                       }}
-                      title={`${h.date}: ${h.regime} (${Math.min(100, Math.max(0, Math.round((normalizeProp(h.confidence) ?? 0) * 100)))}%)`}
+                      title={`${h.date}: ${h.regime.replace(/_/g, " ")} (${Math.min(100, Math.max(0, Math.round((normalizeProp(h.confidence) ?? 0) * 100)))}%)`}
                     />
                     {/* Tooltip on hover */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10 whitespace-nowrap">
                       <div className="bg-[var(--color-elevated)] border border-[var(--color-border)] px-2 py-1">
                         <span className="font-mono text-[9px] text-[var(--color-text-secondary)]">
-                          {h.date} · {h.regime}
+                          {h.date} · {h.regime.replace(/_/g, " ")}
                         </span>
                       </div>
                     </div>

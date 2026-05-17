@@ -14,7 +14,7 @@ interface Alert {
 
 export function AlertStrip({ calls, signals }: AlertStripProps) {
   const alerts: Alert[] = [];
-  const trackedLabels = new Set(PAIRS.map((p) => p.label));
+  const trackedLabels = new Set<string>(PAIRS.map((p) => p.label));
 
   for (const pair of Object.keys(signals)) {
     if (!trackedLabels.has(pair)) continue;

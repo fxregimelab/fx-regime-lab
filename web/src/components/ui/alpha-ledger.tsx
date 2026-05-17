@@ -31,7 +31,7 @@ function hitAuditClass(v: number | null | undefined): string {
 }
 
 function regimeCycleTitle(regime: string): string {
-  const t = regime.trim();
+  const t = regime.trim().replace(/_/g, " ");
   if (!t) return "UNKNOWN CYCLE";
   return `${t.toUpperCase()} CYCLE`;
 }
@@ -212,7 +212,7 @@ export function AlphaLedger({ rows }: AlphaLedgerProps) {
                     {r.date}
                   </div>,
                   <div key={`${r.id}-reg`} className={baseCell}>
-                    {r.regime}
+                    {r.regime.replace(/_/g, " ")}
                   </div>,
                   <div key={`${r.id}-dir`} className={baseCell}>
                     {r.direction}

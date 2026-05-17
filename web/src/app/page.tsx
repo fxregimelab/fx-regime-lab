@@ -199,7 +199,7 @@ function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
         {item.pair}
       </span>
       <span className="font-mono text-[11px] text-[var(--color-text-secondary)] tracking-wide max-w-[180px] truncate">
-        {item.regime}
+        {item.regime.replace(/_/g, " ")}
       </span>
       <span
         className="font-mono text-[11px] font-medium tracking-wide uppercase"
@@ -380,7 +380,7 @@ function LiveSnapshot({
                   pair={pair.display}
                   pairColor={pair.pairColor}
                   spot={signal?.spot?.toFixed(4) ?? "—"}
-                  regime={call?.regime ?? "—"}
+                  regime={(call?.regime ?? "—").replace(/_/g, " ")}
                   confidence={call?.confidence ?? 0}
                   date={call?.date ?? undefined}
                   delay={(i + 1) * 100}
