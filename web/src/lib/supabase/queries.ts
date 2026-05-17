@@ -19,6 +19,10 @@ export interface LatestRegimeCall {
   confidence: number | null;
   signal_composite: number | null;
   rate_signal: string | null;
+  cot_signal: string | null;
+  vol_signal: string | null;
+  rr_signal: string | null;
+  oi_signal: string | null;
   primary_driver: string | null;
   special_signal_value: number | null;
   special_signal_label: string | null;
@@ -70,6 +74,7 @@ export interface ValidationStats {
   pair: string;
   horizon: "t5" | "t20";
   winRate: number | null;
+  wins: number | null;
   brierScore: number | null;
   sampleSize: number | null;
   avgReturnBps: number | null;
@@ -98,6 +103,10 @@ function toLatestRegimeCall(row: RegimeCallRow): LatestRegimeCall {
     confidence: row.confidence,
     signal_composite: row.signal_composite,
     rate_signal: row.rate_signal,
+    cot_signal: row.cot_signal,
+    vol_signal: row.vol_signal,
+    rr_signal: row.rr_signal,
+    oi_signal: row.oi_signal,
     primary_driver: row.primary_driver,
     special_signal_value: row.special_signal_value,
     special_signal_label: row.special_signal_label,
@@ -256,6 +265,7 @@ export async function getValidationStats(
     winRate: r[`${prefix}_win_rate` as keyof ValidationStatsRow] as
       | number
       | null,
+    wins: r[`${prefix}_wins` as keyof ValidationStatsRow] as number | null,
     brierScore: r[`${prefix}_mean_brier` as keyof ValidationStatsRow] as
       | number
       | null,
@@ -318,6 +328,63 @@ export async function getValidationLogT5T20(
           ? "WRONG"
           : "—",
     t20Brier: r.brier_score_t20,
+  }));
+}
+
+export interface RegimeBreakdownRow {
+  pair: string;
+  regime: string;
+  t5Outcome: "CORRECT" | "WRONG" | "NEUTRAL" | "—";
+  t20Outcome: "CORRECT" | "WRONG" | "NEUTRAL" | "—";
+}
+
+export async function getRegimeBreakdown(
+  supabase: TypedSupabaseClient,
+  limit = 500,
+): Promise<RegimeBreakdownRow[]> {
+  const { data, error } = await supabase
+    .from("validation_log")
+    .select(
+      "pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20, regime_calls!inner(regime)",
+    )
+    .not("brier_score_t5", "is", null)
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  const PAIR_DISPLAY: Record<string, string> = {
+    EURUSD: "EUR/USD",
+    USDJPY: "USD/JPY",
+    USDINR: "USD/INR",
+  };
+
+  return (
+    data as unknown as Array<{
+      pair: string;
+      correct_t5: boolean | null;
+      actual_direction_t5: string | null;
+      correct_t20: boolean | null;
+      actual_direction_t20: string | null;
+      regime_calls: { regime: string };
+    }>
+  ).map((r) => ({
+    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
+    regime: r.regime_calls.regime,
+    t5Outcome: r.correct_t5
+      ? "CORRECT"
+      : r.actual_direction_t5 === "NEUTRAL"
+        ? "NEUTRAL"
+        : r.actual_direction_t5 != null
+          ? "WRONG"
+          : "—",
+    t20Outcome: r.correct_t20
+      ? "CORRECT"
+      : r.actual_direction_t20 === "NEUTRAL"
+        ? "NEUTRAL"
+        : r.actual_direction_t20 != null
+          ? "WRONG"
+          : "—",
   }));
 }
 
@@ -674,7 +741,9 @@ export interface PipelineDayHealth {
   errors: string[];
 }
 
-function inferStatusFromHealthCheck(row: HealthCheckRow): PipelineDayHealth["status"] {
+function inferStatusFromHealthCheck(
+  row: HealthCheckRow,
+): PipelineDayHealth["status"] {
   if (row.completed_at == null) return "FAILED";
   const dqs = row.data_quality_score ?? 0;
   const pairs = row.pairs_published ?? 0;
@@ -738,29 +807,33 @@ export async function getPipelineHealth(
   }
 
   // Fallback: infer from data presence
-  const [{ data: callsData }, { data: signalsData }, { data: briefData }, { data: valStatsData }] =
-    await Promise.all([
-      supabase
-        .from("regime_calls")
-        .select("date,pair")
-        .gte("date", cutoffStr)
-        .order("date", { ascending: false }),
-      supabase
-        .from("signals")
-        .select("date,pair")
-        .gte("date", cutoffStr)
-        .order("date", { ascending: false }),
-      supabase
-        .from("brief_log")
-        .select("date")
-        .gte("date", cutoffStr)
-        .order("date", { ascending: false }),
-      supabase
-        .from("validation_stats")
-        .select("as_of_date,pair")
-        .gte("as_of_date", cutoffStr)
-        .order("as_of_date", { ascending: false }),
-    ]);
+  const [
+    { data: callsData },
+    { data: signalsData },
+    { data: briefData },
+    { data: valStatsData },
+  ] = await Promise.all([
+    supabase
+      .from("regime_calls")
+      .select("date,pair")
+      .gte("date", cutoffStr)
+      .order("date", { ascending: false }),
+    supabase
+      .from("signals")
+      .select("date,pair")
+      .gte("date", cutoffStr)
+      .order("date", { ascending: false }),
+    supabase
+      .from("brief_log")
+      .select("date")
+      .gte("date", cutoffStr)
+      .order("date", { ascending: false }),
+    supabase
+      .from("validation_stats")
+      .select("as_of_date,pair")
+      .gte("as_of_date", cutoffStr)
+      .order("as_of_date", { ascending: false }),
+  ]);
 
   // Build date map
   const dateMap = new Map<string, PipelineDayHealth>();
@@ -784,7 +857,10 @@ export async function getPipelineHealth(
   }
 
   // Aggregate regime_calls per date
-  for (const row of (callsData ?? []) as Array<{ date: string; pair: string }>) {
+  for (const row of (callsData ?? []) as Array<{
+    date: string;
+    pair: string;
+  }>) {
     const day = dateMap.get(row.date);
     if (day) {
       day.regimeCallsCount += 1;
@@ -793,7 +869,10 @@ export async function getPipelineHealth(
 
   // Aggregate signals per date
   const signalDates = new Set<string>();
-  for (const row of (signalsData ?? []) as Array<{ date: string; pair: string }>) {
+  for (const row of (signalsData ?? []) as Array<{
+    date: string;
+    pair: string;
+  }>) {
     signalDates.add(row.date);
   }
 
@@ -805,7 +884,10 @@ export async function getPipelineHealth(
 
   // Aggregate validation stats per date
   const valDates = new Set<string>();
-  for (const row of (valStatsData ?? []) as Array<{ as_of_date: string; pair: string }>) {
+  for (const row of (valStatsData ?? []) as Array<{
+    as_of_date: string;
+    pair: string;
+  }>) {
     valDates.add(row.as_of_date);
   }
 
@@ -859,7 +941,9 @@ export async function getPipelineHealth(
     }
   }
 
-  return Array.from(dateMap.values()).sort((a, b) => b.date.localeCompare(a.date));
+  return Array.from(dateMap.values()).sort((a, b) =>
+    b.date.localeCompare(a.date),
+  );
 }
 
 export interface AccuracyAlert {
@@ -884,11 +968,14 @@ export async function getLatestAccuracyAlerts(
   const latestDate = rows[0]?.as_of_date;
   if (!latestDate) return [];
 
-  const latest = rows.filter((r) => r.as_of_date === latestDate && r.pair !== "ALL");
+  const latest = rows.filter(
+    (r) => r.as_of_date === latestDate && r.pair !== "ALL",
+  );
   const alerts: AccuracyAlert[] = [];
 
   for (const row of latest) {
-    const acc = row.t5_rolling_90d_accuracy ?? row.t20_rolling_90d_accuracy ?? null;
+    const acc =
+      row.t5_rolling_90d_accuracy ?? row.t20_rolling_90d_accuracy ?? null;
     if (acc == null) continue;
 
     if (acc < 0.5) {

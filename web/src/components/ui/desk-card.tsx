@@ -2,6 +2,8 @@
 
 import { BinaryResolve } from "@/components/ui/BinaryResolve";
 import { GhostResolve } from "@/components/ui/GhostResolve";
+import { DataLineage } from "@/components/ui/data-lineage";
+import { ReproducibilityExport } from "@/components/ui/reproducibility-export";
 import type { DominanceItem, MarkovPayload } from "@/lib/queries";
 import type { TelemetryAuditPayload } from "@/lib/queries";
 import { AnimatePresence, motion } from "framer-motion";
@@ -86,7 +88,10 @@ export function DeskCardTelemetryRow({
   parameterInstability,
   paused = false,
 }: DeskCardTelemetryRowProps) {
-  const pct = confidence != null ? Math.min(100, Math.max(0, Math.round(confidence * 100))) : null;
+  const pct =
+    confidence != null
+      ? Math.min(100, Math.max(0, Math.round(confidence * 100)))
+      : null;
   const modelUnstable =
     parameterInstability ?? Boolean(telemetryAudit?.parameter_instability);
   return (
@@ -108,13 +113,27 @@ export function DeskCardTelemetryRow({
           paused={paused}
         />
       </span>
-      <span className="font-mono text-[10px] text-[#FFFFFF] tabular-nums shrink-0">
-        {pct != null ? `${pct}%` : "—"}
-      </span>
-      <div className="relative col-span-3 min-w-0 pr-[168px]">
-        <span className="font-mono text-[10px] text-[#b8b8b8] block truncate leading-snug">
-          {structuralRegime}
+      <DataLineage
+        lineage={{
+          source: "FX Regime Lab model v3",
+          transformation: "Signal dispersion → confidence score (0–1)",
+        }}
+      >
+        <span className="font-mono text-[10px] text-[#FFFFFF] tabular-nums shrink-0">
+          {pct != null ? `${pct}%` : "—"}
         </span>
+      </DataLineage>
+      <div className="relative col-span-3 min-w-0 pr-[168px]">
+        <DataLineage
+          lineage={{
+            source: "FX Regime Lab model v3",
+            transformation: "Weighted composite → regime classifier",
+          }}
+        >
+          <span className="font-mono text-[10px] text-[#b8b8b8] block truncate leading-snug">
+            {structuralRegime}
+          </span>
+        </DataLineage>
         {modelUnstable ? (
           <ModelInstabilityBadge className="absolute top-0 right-0 z-10" />
         ) : null}
@@ -213,7 +232,10 @@ export function DeskCard({
   const showGhostStrip =
     (whisper != null && whisper !== "") ||
     (corrLockedWhisper != null && corrLockedWhisper !== "");
-  const confPct = confidence != null ? Math.min(100, Math.max(0, Math.round(confidence * 100))) : null;
+  const confPct =
+    confidence != null
+      ? Math.min(100, Math.max(0, Math.round(confidence * 100)))
+      : null;
   const aiRows = parseDeskAiBriefRows(aiBrief);
 
   const zT =
@@ -262,6 +284,19 @@ export function DeskCard({
             </span>
           ) : null}
         </p>
+        <ReproducibilityExport
+          payload={{
+            query: "DeskCard snapshot",
+            parameters: {
+              pair: pairDisplay ?? "—",
+              regime: structuralRegime,
+              confidence: confidence ?? null,
+            },
+            timestamp: new Date().toISOString(),
+            sourceTable: "regime_calls, signals",
+          }}
+          variant="icon"
+        />
         <button
           type="button"
           onClick={() => setMathOpen((o) => !o)}
@@ -362,9 +397,16 @@ export function DeskCard({
               </span>
             ) : null}
             {confPct != null ? (
-              <span className="font-mono text-[10px] tabular-nums text-[#FFFFFF] tracking-widest">
-                CONF {confPct}%
-              </span>
+              <DataLineage
+                lineage={{
+                  source: "FX Regime Lab model v3",
+                  transformation: "Signal dispersion → confidence score (0–1)",
+                }}
+              >
+                <span className="font-mono text-[10px] tabular-nums text-[#FFFFFF] tracking-widest">
+                  CONF {confPct}%
+                </span>
+              </DataLineage>
             ) : null}
           </div>
           <p
@@ -397,7 +439,14 @@ export function DeskCard({
             isHero ? "text-[28px] leading-tight" : "text-[20px]"
           } ${isCrisis ? "line-through text-[#FFFFFF]" : "text-[#FFFFFF]"}`}
         >
-          {structuralRegime}
+          <DataLineage
+            lineage={{
+              source: "FX Regime Lab model v3",
+              transformation: "Weighted composite → regime classifier",
+            }}
+          >
+            <span className="inline-block">{structuralRegime}</span>
+          </DataLineage>
         </p>
       </div>
 

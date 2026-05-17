@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface LocalSettings {
   [key: string]: string | number | boolean;
@@ -30,13 +30,16 @@ export function useLocalSettings() {
     setSettingsState(readSettings());
   }, []);
 
-  const setSetting = useCallback((key: string, value: string | number | boolean) => {
-    setSettingsState((prev) => {
-      const next = { ...prev, [key]: value };
-      writeSettings(next);
-      return next;
-    });
-  }, []);
+  const setSetting = useCallback(
+    (key: string, value: string | number | boolean) => {
+      setSettingsState((prev) => {
+        const next = { ...prev, [key]: value };
+        writeSettings(next);
+        return next;
+      });
+    },
+    [],
+  );
 
   const removeSetting = useCallback((key: string) => {
     setSettingsState((prev) => {
@@ -51,7 +54,7 @@ export function useLocalSettings() {
     (key: string, fallback?: string | number | boolean) => {
       return settings[key] ?? fallback;
     },
-    [settings]
+    [settings],
   );
 
   return { settings, setSetting, removeSetting, getSetting };

@@ -1,6 +1,7 @@
 import type { Database } from "./supabase/database.types";
 
-type HistoricalPricesRow = Database["public"]["Tables"]["historical_prices"]["Row"];
+type HistoricalPricesRow =
+  Database["public"]["Tables"]["historical_prices"]["Row"];
 
 export type CorrelationMatrix = {
   pair: string;
@@ -17,7 +18,7 @@ export type CorrelationCell = {
 
 export function computeCorrelationMatrix(
   rows: HistoricalPricesRow[],
-  pairs: string[]
+  pairs: string[],
 ): CorrelationMatrix {
   const byPair = new Map<string, HistoricalPricesRow[]>();
   for (const row of rows) {
@@ -40,8 +41,16 @@ export function computeCorrelationMatrix(
       const pMap = new Map(pRows.map((r) => [r.date, r.close]));
       const qMap = new Map(qRows.map((r) => [r.date, r.close]));
       const commonDates = Array.from(pMap.keys()).filter((d) => qMap.has(d));
-      const pVals = commonDates.map((d) => pMap.get(d)!);
-      const qVals = commonDates.map((d) => qMap.get(d)!);
+      const pVals: number[] = [];
+      const qVals: number[] = [];
+      for (const d of commonDates) {
+        const pv = pMap.get(d);
+        const qv = qMap.get(d);
+        if (pv != null && qv != null) {
+          pVals.push(pv);
+          qVals.push(qv);
+        }
+      }
       if (pVals.length < 2) {
         correlations[q] = 0;
         continue;
@@ -103,7 +112,7 @@ export function flattenMatrix(matrix: CorrelationMatrix): CorrelationCell[] {
 export function getPairCorrelation(
   matrix: CorrelationMatrix,
   pairA: string,
-  pairB: string
+  pairB: string,
 ): number {
   const row = matrix.find((r) => r.pair === pairA);
   if (!row) return 0;

@@ -79,7 +79,10 @@ export function Footer() {
             <p className="mb-3 text-[0.8125rem] text-[var(--color-text-secondary)]">
               Weekly regime briefs delivered to your inbox.
             </p>
-            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col sm:flex-row gap-2"
+            >
               <input
                 type="email"
                 value={email}

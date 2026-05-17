@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useScrollReveal<T extends HTMLElement>(options?: {
   threshold?: number;
@@ -19,16 +19,16 @@ export function useScrollReveal<T extends HTMLElement>(options?: {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
+        for (const entry of entries) {
           if (entry.isIntersecting) {
             setRevealed(true);
           }
-        });
+        }
       },
       {
         threshold: options?.threshold ?? 0.1,
         rootMargin: options?.rootMargin ?? "0px 0px -40px 0px",
-      }
+      },
     );
 
     observer.observe(el);

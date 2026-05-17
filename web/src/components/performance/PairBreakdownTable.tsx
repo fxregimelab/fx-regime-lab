@@ -1,3 +1,4 @@
+import { SampleSizeBadge } from "@/components/ui/sample-size-badge";
 import { PAIRS } from "@/lib/constants";
 import type { ValidationStats } from "@/lib/supabase/queries";
 
@@ -42,7 +43,10 @@ export function PairBreakdownTable({
         </p>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse font-mono text-[11px]">
+        <table
+          className="w-full border-collapse font-mono text-[11px]"
+          aria-label="Per-pair performance breakdown"
+        >
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-[var(--color-elevated)]">
               {[
@@ -76,9 +80,12 @@ export function PairBreakdownTable({
                   key={p.label}
                   className={`border-b border-[var(--color-border-subtle)] last:border-b-0 ${i % 2 === 1 ? "bg-[var(--color-elevated)]" : "bg-[var(--color-surface)]"} hover:bg-[var(--color-elevated)] transition-colors`}
                 >
-                  <td className="px-4 py-2.5 text-[var(--color-text-secondary)] whitespace-nowrap font-medium">
+                  <th
+                    scope="row"
+                    className="px-4 py-2.5 text-[var(--color-text-secondary)] whitespace-nowrap font-medium text-left"
+                  >
                     {p.display}
-                  </td>
+                  </th>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
                     {fmtPctDigits(t5?.winRate)}
                   </td>
@@ -89,7 +96,7 @@ export function PairBreakdownTable({
                     {fmtAcc(t5?.rolling90dAccuracy)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
-                    {fmtNum(t5?.sampleSize)}
+                    <SampleSizeBadge n={t5?.sampleSize} />
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
                     {fmtPctDigits(t20?.winRate)}
@@ -101,7 +108,7 @@ export function PairBreakdownTable({
                     {fmtAcc(t20?.rolling90dAccuracy)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
-                    {fmtNum(t20?.sampleSize)}
+                    <SampleSizeBadge n={t20?.sampleSize} />
                   </td>
                 </tr>
               );
@@ -126,7 +133,7 @@ export function PairBreakdownTable({
                     {fmtAcc(allT5?.rolling90dAccuracy)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
-                    {fmtNum(allT5?.sampleSize)}
+                    <SampleSizeBadge n={allT5?.sampleSize} />
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
                     {fmtPctDigits(allT20?.winRate)}
@@ -138,7 +145,7 @@ export function PairBreakdownTable({
                     {fmtAcc(allT20?.rolling90dAccuracy)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
-                    {fmtNum(allT20?.sampleSize)}
+                    <SampleSizeBadge n={allT20?.sampleSize} />
                   </td>
                 </tr>
               );

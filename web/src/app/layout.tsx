@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Cormorant, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { CommandPalette } from "@/components/layout/command-palette";
+import { ToastProvider } from "@/components/ui/toast-context";
+import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "./providers";
 
 const inter = Inter({
@@ -36,7 +38,10 @@ export default function RootLayout({
       data-fxrl-app="omega"
       className={`${inter.variable} ${jetbrainsMono.variable} ${manifestoSerif.variable} antialiased`}
     >
-      <body className="relative min-h-screen w-full bg-[var(--color-void)] text-[var(--color-text)] font-sans">
+      <body
+        className="relative min-h-screen w-full bg-[var(--color-void)] text-[var(--color-text)] font-sans"
+        data-density="standard"
+      >
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[var(--color-surface)] focus:border focus:border-[var(--color-border)] focus:text-[var(--color-text)] focus:font-sans focus:text-[13px]"
@@ -44,8 +49,11 @@ export default function RootLayout({
           Skip to content
         </a>
         <Providers>
-          {children}
-          <CommandPalette />
+          <ToastProvider>
+            {children}
+            <CommandPalette />
+            <Toaster />
+          </ToastProvider>
         </Providers>
       </body>
     </html>

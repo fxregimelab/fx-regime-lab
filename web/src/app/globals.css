@@ -173,6 +173,7 @@
   --z-drawer: 300;
   --z-modal: 400;
   --z-popover: 500;
+  --z-tooltip: 550;
   --z-toast: 600;
   --z-command-palette: 700;
 }
@@ -478,14 +479,20 @@
    ================================================================= */
 
 ::selection {
-  background: rgba(28, 25, 23, 0.12);
+  background: rgba(232, 160, 69, 0.25);
   color: inherit;
 }
 
 [data-surface="terminal"] ::selection,
 .terminal-surface ::selection {
-  background: rgba(231, 229, 228, 0.18);
+  background: rgba(232, 160, 69, 0.35);
   color: inherit;
+}
+
+input,
+textarea,
+[contenteditable] {
+  caret-color: var(--terminal-accent, #e8a045);
 }
 
 /* =================================================================
@@ -562,4 +569,138 @@ body.terminal-surface {
   .animate-pulse-marquee {
     animation: none !important;
   }
+}
+
+/* =================================================================
+   Print Stylesheets
+   ================================================================= */
+
+@media print {
+  @page {
+    margin: 2cm 1.5cm;
+  }
+
+  /* Hide non-content elements */
+  nav,
+  .fixed,
+  [role="dialog"],
+  [aria-modal="true"],
+  .z-\[var\(--z-command-palette\)\],
+  .z-\[var\(--z-modal\)\],
+  .z-\[var\(--z-toast\)\],
+  button[type="button"],
+  .omega-haptic,
+  .animate-pulse,
+  .animate-ticker-marquee {
+    display: none !important;
+  }
+
+  /* Light background for printing */
+  body,
+  html,
+  [data-surface="terminal"] {
+    background: #ffffff !important;
+    color: #1c1917 !important;
+  }
+
+  /* Ensure text is dark */
+  * {
+    color: #1c1917 !important;
+  }
+
+  /* Muted text */
+  .text-muted,
+  .text-dim {
+    color: #57534e !important;
+  }
+
+  /* Borders visible on white */
+  * {
+    border-color: #d6d3d1 !important;
+  }
+
+  /* Page breaks for sections */
+  section,
+  .reveal,
+  .mb-10,
+  .mb-20 {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2 {
+    break-after: avoid;
+  }
+
+  /* KaTeX formulas */
+  .katex-wrapper,
+  .katex {
+    color: #1c1917 !important;
+  }
+
+  .katex .mord,
+  .katex .mbin,
+  .katex .mrel,
+  .katex .mtight {
+    color: #1c1917 !important;
+  }
+
+  /* Tables */
+  table {
+    break-inside: avoid;
+    font-size: 10pt !important;
+  }
+
+  /* Links show URL */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 8pt;
+    color: #57534e;
+  }
+
+  a[href^="/"]::after {
+    content: "";
+  }
+
+  /* Max width for readability */
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+}
+
+/* =================================================================
+   Data Density Presets
+   ================================================================= */
+
+/* Compact: maximum data density */
+[data-density="compact"] {
+  --density-gap: 0px;
+  --density-pad: 0.5rem;
+  --density-font-scale: 0.9;
+}
+
+[data-density="compact"] main {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+[data-density="compact"] .font-mono {
+  font-size: calc(var(--density-font-scale) * 1em);
+}
+
+/* Relaxed: for presentations/screenshots */
+[data-density="relaxed"] {
+  --density-gap: 1.5rem;
+  --density-pad: 1.5rem;
+  --density-font-scale: 1.05;
+}
+
+[data-density="relaxed"] main {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+[data-density="relaxed"] .font-mono {
+  font-size: calc(var(--density-font-scale) * 1em);
 }

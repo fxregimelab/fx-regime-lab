@@ -56,7 +56,7 @@ export function BrierChart({ data }: BrierChartProps) {
       className="w-full h-[180px] md:h-[220px] block"
     >
       <title>Brier Score Time Series</title>
-      <rect width={W} height={H} fill="#000000" />
+      <rect width={W} height={H} fill="var(--terminal-bg)" />
 
       {/* horizontal grid */}
       {yTicks.map((v) => {
@@ -68,7 +68,7 @@ export function BrierChart({ data }: BrierChartProps) {
             y1={y}
             x2={W - padR}
             y2={y}
-            stroke="#111111"
+            stroke="var(--terminal-bg-sunken)"
             strokeWidth={1}
           />
         );
@@ -81,7 +81,7 @@ export function BrierChart({ data }: BrierChartProps) {
       <path
         d={lineD}
         fill="none"
-        stroke="#d6d3d1"
+        stroke="var(--terminal-fg-muted)"
         strokeWidth={1.5}
         vectorEffect="non-scaling-stroke"
       />
@@ -95,7 +95,7 @@ export function BrierChart({ data }: BrierChartProps) {
             x={padL - 8}
             y={y + 3}
             textAnchor="end"
-            fill="#8a8a8a"
+            fill="var(--terminal-fg-dim)"
             fontSize={10}
             fontFamily="JetBrains Mono, monospace"
             style={{ fontVariantNumeric: "tabular-nums" }}
@@ -112,7 +112,7 @@ export function BrierChart({ data }: BrierChartProps) {
           x={p.x}
           y={H - 10}
           textAnchor="middle"
-          fill="#8a8a8a"
+          fill="var(--terminal-fg-dim)"
           fontSize={10}
           fontFamily="JetBrains Mono, monospace"
           style={{ fontVariantNumeric: "tabular-nums" }}

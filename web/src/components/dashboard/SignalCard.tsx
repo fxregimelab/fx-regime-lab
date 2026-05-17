@@ -1,6 +1,15 @@
+"use client";
+
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
+import { DataLineage, LINEAGE } from "@/components/ui/data-lineage";
+import {
+  FreshnessIndicator,
+  freshnessHaloClass,
+  useFreshness,
+} from "@/components/ui/freshness-indicator";
+import { ReproducibilityExport } from "@/components/ui/reproducibility-export";
 import { Sparkline } from "@/components/ui/sparkline";
-import { fmt2, fmtInt, fmtConfidence } from "@/components/ui/utils";
+import { fmt2, fmtConfidence, fmtInt } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
 import Link from "next/link";
@@ -26,6 +35,9 @@ export function SignalCard({
 }: SignalCardProps) {
   const pairMeta = PAIRS.find((p) => p.label === pairLabel);
   const chg = signal?.day_change_pct;
+  const { level: freshnessLevel } = useFreshness(
+    signal?.created_at ?? call?.created_at,
+  );
 
   // Regime age: days since last regime change
   // regimeHistory is descending (latest first)
@@ -45,18 +57,38 @@ export function SignalCard({
   return (
     <Link
       href={`/terminal/fx-regime/${pairMeta?.urlSlug ?? pairLabel.toLowerCase()}`}
-      className="block bg-[var(--color-surface)] border border-[var(--color-border)] transition-colors hover:bg-[var(--color-elevated)]"
+      className={`block bg-[var(--color-surface)] border border-[var(--color-border)] transition-colors hover:bg-[var(--color-elevated)] ${freshnessHaloClass(freshnessLevel)}`}
     >
       {/* Header */}
       <div className="px-5 py-4 border-b border-[var(--color-border)]">
         <div className="flex justify-between items-center mb-3">
           <span
             className="font-mono text-[11px] font-bold tracking-wider"
-            style={{ color: pairMeta?.pairColor ?? "#ccc" }}
+            style={{ color: pairMeta?.pairColor ?? "var(--terminal-fg-muted)" }}
           >
             {pairMeta?.display ?? pairLabel}
           </span>
+          <ReproducibilityExport
+            payload={{
+              query: "getLatestRegimeCalls + getLatestSignals",
+              parameters: {
+                pair: pairLabel,
+                date:
+                  call?.date ??
+                  signal?.date ??
+                  new Date().toISOString().slice(0, 10),
+              },
+              timestamp: new Date().toISOString(),
+              dataVersion: call?.model_version ?? "v3",
+              sourceTable: "regime_calls, signals",
+            }}
+            variant="icon"
+          />
           <div className="flex items-center gap-3">
+            <FreshnessIndicator
+              lastUpdatedAt={signal?.created_at ?? call?.created_at}
+              dot
+            />
             {rolling90dAccuracyT5 != null && (
               <span className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">
                 90D:{(rolling90dAccuracyT5 * 100).toFixed(1)}%
@@ -77,12 +109,16 @@ export function SignalCard({
           </div>
         </div>
         <div className="flex items-baseline gap-3">
-          <p className="font-mono text-[28px] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
-            {signal?.spot?.toFixed(pairLabel === "USDJPY" ? 2 : 4) ?? "—"}
-          </p>
-          <p className="font-mono text-[10px] text-[var(--color-text-secondary)] font-medium tracking-wider">
-            {call?.regime ?? "—"}
-          </p>
+          <DataLineage lineage={LINEAGE.spot(signal)}>
+            <p className="font-mono text-[28px] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
+              {signal?.spot?.toFixed(pairLabel === "USDJPY" ? 2 : 4) ?? "—"}
+            </p>
+          </DataLineage>
+          <DataLineage lineage={LINEAGE.regime(call)}>
+            <p className="font-mono text-[10px] text-[var(--color-text-secondary)] font-medium tracking-wider">
+              {call?.regime ?? "—"}
+            </p>
+          </DataLineage>
         </div>
       </div>
 
@@ -104,9 +140,11 @@ export function SignalCard({
           Layer 1 — Regime Gate
         </p>
         <div className="flex justify-between items-center">
-          <span className="font-mono text-[11px] text-[var(--color-text-secondary)]">
-            {call?.regime ?? "—"}
-          </span>
+          <DataLineage lineage={LINEAGE.regime(call)}>
+            <span className="font-mono text-[11px] text-[var(--color-text-secondary)]">
+              {call?.regime ?? "—"}
+            </span>
+          </DataLineage>
           {regimeAge != null && (
             <span className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">
               {regimeAge}D
@@ -125,64 +163,84 @@ export function SignalCard({
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               RATE
             </span>
-            <span className="font-mono text-[10px] text-[var(--color-text)] font-medium">
-              {call?.rate_signal ?? "—"}
-            </span>
+            <DataLineage lineage={LINEAGE.rateSignal(call)}>
+              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium">
+                {call?.rate_signal ?? "—"}
+              </span>
+            </DataLineage>
           </div>
           <div className="flex justify-between">
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               COT
             </span>
-            <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
-              {pairLabel === "USDINR" ? "N/A" : fmtInt(signal?.cot_percentile)}
-            </span>
+            <DataLineage lineage={LINEAGE.cotPercentile(signal)}>
+              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
+                {pairLabel === "USDINR"
+                  ? "N/A"
+                  : fmtInt(signal?.cot_percentile)}
+              </span>
+            </DataLineage>
           </div>
           <div className="flex justify-between">
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               COMP
             </span>
-            <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
-              {fmt2(call?.signal_composite)}
-            </span>
+            <DataLineage lineage={LINEAGE.composite(call)}>
+              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
+                {fmt2(call?.signal_composite)}
+              </span>
+            </DataLineage>
           </div>
           <div className="flex justify-between">
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               RVOL
             </span>
-            <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
-              {fmt2(signal?.realized_vol_20d)}
-            </span>
+            <DataLineage lineage={LINEAGE.rvol(signal)}>
+              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
+                {fmt2(signal?.realized_vol_20d)}
+              </span>
+            </DataLineage>
           </div>
           <div className="flex justify-between">
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               RR 25D
             </span>
-            <span className={`font-mono text-[10px] font-medium tabular-nums ${signal?.risk_reversal_25d == null ? "text-[var(--color-text-muted)]" : "text-[var(--color-text)]"}`}>
-              {signal?.risk_reversal_25d != null
-                ? signal.risk_reversal_25d.toFixed(2)
-                : "—"}
-            </span>
+            <DataLineage lineage={LINEAGE.riskReversal(signal)}>
+              <span
+                className={`font-mono text-[10px] font-medium tabular-nums ${signal?.risk_reversal_25d == null ? "text-[var(--color-text-muted)]" : "text-[var(--color-text)]"}`}
+              >
+                {signal?.risk_reversal_25d != null
+                  ? signal.risk_reversal_25d.toFixed(2)
+                  : "—"}
+              </span>
+            </DataLineage>
           </div>
           <div className="flex justify-between">
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               SKEW
             </span>
-            <span className={`font-mono text-[10px] font-medium tabular-nums ${signal?.skew_alignment == null ? "text-[var(--color-text-muted)]" : "text-[var(--color-text)]"}`}>
-              {signal?.skew_alignment != null
-                ? signal.skew_alignment.toFixed(0)
-                : "—"}
-            </span>
+            <DataLineage lineage={LINEAGE.skew(signal)}>
+              <span
+                className={`font-mono text-[10px] font-medium tabular-nums ${signal?.skew_alignment == null ? "text-[var(--color-text-muted)]" : "text-[var(--color-text)]"}`}
+              >
+                {signal?.skew_alignment != null
+                  ? signal.skew_alignment.toFixed(0)
+                  : "—"}
+              </span>
+            </DataLineage>
           </div>
           {pairLabel === "USDINR" && (
             <div className="flex justify-between">
               <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
                 FPI (Cr)
               </span>
-              <span className={`font-mono text-[10px] font-medium tabular-nums ${signal?.fpi_flow == null ? "text-[var(--color-text-muted)]" : "text-[var(--color-text)]"}`}>
-                {signal?.fpi_flow != null
-                  ? signal.fpi_flow.toFixed(0)
-                  : "—"}
-              </span>
+              <DataLineage lineage={LINEAGE.fpi(signal)}>
+                <span
+                  className={`font-mono text-[10px] font-medium tabular-nums ${signal?.fpi_flow == null ? "text-[var(--color-text-muted)]" : "text-[var(--color-text)]"}`}
+                >
+                  {signal?.fpi_flow != null ? signal.fpi_flow.toFixed(0) : "—"}
+                </span>
+              </DataLineage>
             </div>
           )}
         </div>
@@ -237,9 +295,11 @@ export function SignalCard({
           <span className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-[0.1em]">
             CONF
           </span>
-          <span className="font-mono text-[10px] text-[var(--color-text)] font-bold">
-            {fmtConfidence(call?.confidence)}
-          </span>
+          <DataLineage lineage={LINEAGE.confidence(call)}>
+            <span className="font-mono text-[10px] text-[var(--color-text)] font-bold">
+              {fmtConfidence(call?.confidence)}
+            </span>
+          </DataLineage>
         </div>
         <ConfidenceBar
           value={call?.confidence}

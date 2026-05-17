@@ -16,7 +16,7 @@ interface AccuracyMilestoneTrackerProps {
 }
 
 const GATE = 0.55;
-const MAX_BAR = 0.60;
+const MAX_BAR = 0.6;
 
 function StatusBadge({ accuracy }: { accuracy: number }) {
   if (accuracy >= GATE) {
@@ -57,7 +57,10 @@ function Sparkline({ data }: { data: HistoryPoint[] }) {
     return data
       .map((d, i) => {
         const x = padding + (i / (data.length - 1)) * (svgWidth - padding * 2);
-        const y = svgHeight - padding - ((d.accuracy - minAcc) / range) * (svgHeight - padding * 2);
+        const y =
+          svgHeight -
+          padding -
+          ((d.accuracy - minAcc) / range) * (svgHeight - padding * 2);
         return `${x},${y}`;
       })
       .join(" ");
@@ -68,19 +71,40 @@ function Sparkline({ data }: { data: HistoryPoint[] }) {
     const minAcc = Math.min(...data.map((d) => d.accuracy), GATE - 0.05);
     const maxAcc = Math.max(...data.map((d) => d.accuracy), GATE + 0.05);
     const range = maxAcc - minAcc || 0.01;
-    return svgHeight - padding - ((GATE - minAcc) / range) * (svgHeight - padding * 2);
+    return (
+      svgHeight -
+      padding -
+      ((GATE - minAcc) / range) * (svgHeight - padding * 2)
+    );
   }, [data]);
 
   return (
-    <svg width="100%" height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
+    <svg
+      width="100%"
+      height={svgHeight}
+      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      preserveAspectRatio="none"
+      role="img"
+      aria-label="Accuracy milestone tracker"
+    >
+      <title>Accuracy Milestone Tracker</title>
       {/* Gate line */}
-      <line x1={padding} y1={gateY} x2={svgWidth - padding} y2={gateY} stroke="#10b981" strokeWidth="0.5" strokeDasharray="4 2" opacity={0.5} />
+      <line
+        x1={padding}
+        y1={gateY}
+        x2={svgWidth - padding}
+        y2={gateY}
+        stroke="var(--terminal-success)"
+        strokeWidth="0.5"
+        strokeDasharray="4 2"
+        opacity={0.5}
+      />
       {/* Area under curve */}
       {points && (
         <polyline
           points={points}
           fill="none"
-          stroke="#10b981"
+          stroke="var(--terminal-success)"
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -158,9 +182,9 @@ export function AccuracyMilestoneTracker({
         <div className="relative mt-2 h-4">
           {[
             { label: "45%", pct: 0.45 / MAX_BAR },
-            { label: "50%", pct: 0.50 / MAX_BAR },
+            { label: "50%", pct: 0.5 / MAX_BAR },
             { label: "55%", pct: GATE / MAX_BAR },
-            { label: "60%", pct: 0.60 / MAX_BAR },
+            { label: "60%", pct: 0.6 / MAX_BAR },
           ].map((m) => (
             <span
               key={m.label}
@@ -187,7 +211,10 @@ export function AccuracyMilestoneTracker({
         <div className="grid grid-cols-2 gap-px bg-[var(--color-border)] md:grid-cols-1">
           {[
             { label: "Days Above Gate", value: `${daysAboveGate}/90` },
-            { label: "Current Streak", value: `${currentStreak > 0 ? "+" : ""}${currentStreak}d` },
+            {
+              label: "Current Streak",
+              value: `${currentStreak > 0 ? "+" : ""}${currentStreak}d`,
+            },
             { label: "Best Window", value: `${bestPct.toFixed(1)}%` },
             { label: "Gap to Gate", value: `${(55 - pct).toFixed(1)}pp` },
           ].map((s) => (

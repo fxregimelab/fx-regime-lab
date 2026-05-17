@@ -1,7 +1,7 @@
 "use client";
 
+import type { AccuracyAlert, PipelineDayHealth } from "@/lib/supabase/queries";
 import { useState } from "react";
-import type { PipelineDayHealth, AccuracyAlert } from "@/lib/supabase/queries";
 
 const STATUS_COLORS: Record<
   PipelineDayHealth["status"],
@@ -43,7 +43,9 @@ function fmtDate(dateStr: string) {
   return `${m}-${d}`;
 }
 
-function DQSSparkline({ data }: { data: { date: string; value: number | null }[] }) {
+function DQSSparkline({
+  data,
+}: { data: { date: string; value: number | null }[] }) {
   const valid = data.filter((d) => d.value != null);
   if (valid.length < 2) {
     return (
@@ -75,7 +77,7 @@ function DQSSparkline({ data }: { data: { date: string; value: number | null }[]
 
   const pts = valid.map((d, i) => {
     const x = padL + (i / (valid.length - 1)) * chartW;
-    const y = padT + chartH - ((d.value! - minV) / range) * chartH;
+    const y = padT + chartH - (((d.value ?? 0) - minV) / range) * chartH;
     return { x, y, date: d.date };
   });
 
@@ -86,7 +88,11 @@ function DQSSparkline({ data }: { data: { date: string; value: number | null }[]
   const areaD = `M ${pts[0].x.toFixed(1)} ${padT + chartH} ${pts.map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ")} L ${pts[pts.length - 1].x.toFixed(1)} ${padT + chartH} Z`;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-16 block">
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      className="w-full h-16 block"
+    >
       <title>DQS Trend</title>
       <rect width={W} height={H} fill="var(--color-surface)" />
       <path d={areaD} fill="rgba(52,211,153,0.08)" />
@@ -118,7 +124,9 @@ export function PipelineHealthDashboard({
   health: PipelineDayHealth[];
   alerts: AccuracyAlert[];
 }) {
-  const [selectedDate, setSelectedDate] = useState<string>(health[0]?.date ?? "");
+  const [selectedDate, setSelectedDate] = useState<string>(
+    health[0]?.date ?? "",
+  );
   const selectedDay = health.find((d) => d.date === selectedDate) ?? health[0];
 
   const dqsData = health
@@ -143,7 +151,9 @@ export function PipelineHealthDashboard({
               <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className={`inline-block h-2 w-2 rounded-full ${
-                    alert.severity === "critical" ? "bg-red-400" : "bg-amber-400"
+                    alert.severity === "critical"
+                      ? "bg-red-400"
+                      : "bg-amber-400"
                   }`}
                 />
                 <span className="font-mono text-[10px] tracking-wider uppercase text-[var(--color-text)]">
@@ -206,7 +216,8 @@ export function PipelineHealthDashboard({
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
                   <div className="border border-[var(--color-border)] bg-[var(--color-void)] px-2 py-1 whitespace-nowrap">
                     <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
-                      {day.regimeCallsCount} calls · DQS {day.dqs != null ? (day.dqs * 100).toFixed(0) : "—"}%
+                      {day.regimeCallsCount} calls · DQS{" "}
+                      {day.dqs != null ? (day.dqs * 100).toFixed(0) : "—"}%
                     </span>
                   </div>
                 </div>
@@ -280,7 +291,10 @@ export function PipelineHealthDashboard({
                           viewBox="0 0 12 12"
                           fill="none"
                           className="shrink-0"
+                          role="img"
+                          aria-label="Completed"
                         >
+                          <title>Completed</title>
                           <path
                             d="M2 6L5 9L10 3"
                             stroke="currentColor"
@@ -316,7 +330,10 @@ export function PipelineHealthDashboard({
                           viewBox="0 0 12 12"
                           fill="none"
                           className="shrink-0"
+                          role="img"
+                          aria-label="Failed"
                         >
+                          <title>Failed</title>
                           <path
                             d="M3 3L9 9M9 3L3 9"
                             stroke="currentColor"
@@ -350,7 +367,9 @@ export function PipelineHealthDashboard({
                 <div className="h-1.5 w-full bg-[var(--color-sunken)] overflow-hidden">
                   <div
                     className="h-full bg-emerald-400 transition-all"
-                    style={{ width: `${Math.min(100, Math.max(0, selectedDay.dqs * 100))}%` }}
+                    style={{
+                      width: `${Math.min(100, Math.max(0, selectedDay.dqs * 100))}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -395,9 +414,9 @@ export function PipelineHealthDashboard({
                   Errors
                 </p>
                 <ul className="space-y-1">
-                  {selectedDay.errors.map((err, i) => (
+                  {selectedDay.errors.map((err) => (
                     <li
-                      key={i}
+                      key={err}
                       className="font-mono text-[10px] text-red-300 leading-relaxed"
                     >
                       {err}
