@@ -14,7 +14,8 @@ const OMEGA_BEVEL =
   "border-0 border-t-[0.5px] border-t-[color-mix(in_srgb,var(--color-border)_8%,transparent)] border-l-[0.5px] border-l-[color-mix(in_srgb,var(--color-border)_3%,transparent)] bg-[var(--color-sunken)]";
 const OMEGA_BEVEL_CRISIS =
   "border-0 border-t-[0.5px] border-t-[var(--color-warn)] border-l-[0.5px] border-l-[color-mix(in_srgb,var(--color-border)_3%,transparent)] bg-[var(--color-sunken)]";
-const OMEGA_DIVIDER_Y = "border-b-[0.5px] border-b-[var(--color-border-subtle)]";
+const OMEGA_DIVIDER_Y =
+  "border-b-[0.5px] border-b-[var(--color-border-subtle)]";
 
 /** Desk `ai_brief` JSON: new triple (bias / catalyst / squeeze) or legacy regime_state keys. */
 export function parseDeskAiBriefRows(
@@ -164,7 +165,7 @@ type DeskCardProps = {
   telemetryAudit: TelemetryAuditPayload | null;
   /** Normalized from snapshot; falls back to ``telemetry_audit.parameter_instability``. */
   parameterInstability?: boolean;
-  /** When set (hero only), shows [ COPY LINKEDIN ALPHA ] → ``/api/linkedin-alpha-hook``. */
+  /** When set (hero only), shows [ SHARE REGIME NOTE ] → ``/api/linkedin-alpha-hook``. */
   linkedinCardData?: Record<string, unknown> | null;
   /** [∫] inspector — falls back to ``telemetry_audit`` MAD fields when null. */
   mathRateZTactical?: number | null;
@@ -223,7 +224,9 @@ export function DeskCard({
   const isOffline = telemetryStatus === "OFFLINE";
   const isCrisis = invalidationTriggered && !isOffline;
   const surfaceBevel = isCrisis ? OMEGA_BEVEL_CRISIS : OMEGA_BEVEL;
-  const muted = isOffline ? "text-[var(--color-text-dim)]" : "text-[var(--color-text)]";
+  const muted = isOffline
+    ? "text-[var(--color-text-dim)]"
+    : "text-[var(--color-text)]";
   const top = dominanceArray[0];
   const rest = dominanceArray.slice(1);
   const markovN = markovProbabilities?.weighted_sample_size ?? 0;
@@ -451,7 +454,9 @@ export function DeskCard({
               transformation: "Weighted composite → regime classifier",
             }}
           >
-            <span className="inline-block">{structuralRegime.replace(/_/g, " ")}</span>
+            <span className="inline-block">
+              {structuralRegime.replace(/_/g, " ")}
+            </span>
           </DataLineage>
         </p>
       </div>
@@ -463,7 +468,9 @@ export function DeskCard({
           </p>
           {top ? (
             <div className="border-0 border-t-[0.5px] border-t-[color-mix(in_srgb,var(--color-border)_6%,transparent)] bg-[var(--color-void)] p-3 mb-2">
-              <p className="font-mono text-[9px] text-[var(--color-text-secondary)]">RANK #1</p>
+              <p className="font-mono text-[9px] text-[var(--color-text-secondary)]">
+                RANK #1
+              </p>
               <p className="font-mono text-[13px] text-[var(--color-text-muted)] mt-1 tabular-nums">
                 {top.signal_family.toUpperCase()} (
                 {top.dominance_score.toFixed(3)})
@@ -603,7 +610,7 @@ export function DeskCard({
                   ? "[ GENERATING... ]"
                   : liPhase === "success"
                     ? "[ COPIED! ✓ ]"
-                    : "[ COPY LINKEDIN ALPHA ]"}
+                    : "[ SHARE REGIME NOTE ]"}
               </button>
               {liErr ? (
                 <p className="mt-2 font-mono text-[9px] text-[var(--color-down)] m-0">

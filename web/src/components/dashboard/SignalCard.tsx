@@ -270,28 +270,7 @@ export function SignalCard({
               </span>
             </DataLineage>
           </div>
-          <div className="flex justify-between">
-            <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
-              SIZE
-            </span>
-            <DataLineage lineage={LINEAGE.positionSize(call)}>
-              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium">
-                {call?.position_size ?? "—"}
-              </span>
-            </DataLineage>
-          </div>
-          <div className="flex justify-between">
-            <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
-              STOP
-            </span>
-            <DataLineage lineage={LINEAGE.stopLevel(call, pairLabel)}>
-              <span className="font-mono text-[10px] text-[var(--color-text)] font-medium tabular-nums">
-                {call?.stop_level != null
-                  ? call.stop_level.toFixed(pairLabel === "USDJPY" ? 2 : 4)
-                  : "—"}
-              </span>
-            </DataLineage>
-          </div>
+
           <div className="flex justify-between">
             <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
               RVOL RANK

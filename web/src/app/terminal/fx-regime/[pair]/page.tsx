@@ -326,11 +326,7 @@ function ExecutionPanel({
   sig: LatestSignal | undefined;
   pairLabel: string;
 }) {
-  const hasData =
-    call?.entry_timing != null ||
-    call?.position_size != null ||
-    call?.stop_level != null ||
-    sig?.realized_vol_rank != null;
+  const hasData = call?.entry_timing != null || sig?.realized_vol_rank != null;
 
   if (!hasData) return null;
 
@@ -339,31 +335,13 @@ function ExecutionPanel({
       <p className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-2">
         HYPOTHETICAL — BACKTEST PARAMETERS
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
             ENTRY
           </span>
           <p className="font-mono text-[11px] text-[var(--color-text)] font-medium">
             {call?.entry_timing ?? "—"}
-          </p>
-        </div>
-        <div>
-          <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
-            SIZE
-          </span>
-          <p className="font-mono text-[11px] text-[var(--color-text)] font-medium">
-            {call?.position_size ?? "—"}
-          </p>
-        </div>
-        <div>
-          <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
-            STOP
-          </span>
-          <p className="font-mono text-[11px] text-[var(--color-text)] font-medium tabular-nums">
-            {call?.stop_level != null
-              ? call.stop_level.toFixed(pairLabel === "USDJPY" ? 2 : 4)
-              : "—"}
           </p>
         </div>
         <div>

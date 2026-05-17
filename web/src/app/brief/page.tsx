@@ -25,10 +25,7 @@ function DollarDominanceIndex({
   let neutral = 0;
 
   for (const p of PAIRS) {
-    const regime =
-      pairRegimes?.[p.label] ??
-      pairRegimes?.[p.urlSlug] ??
-      "";
+    const regime = pairRegimes?.[p.label] ?? pairRegimes?.[p.urlSlug] ?? "";
     const u = regime.toUpperCase();
     if (
       u.includes("STRENGTH") ||
@@ -186,7 +183,10 @@ export default async function BriefPage() {
                 // Bullet list
                 if (para.trim().startsWith("- ")) {
                   return (
-                    <ul key={`ul-${paraKey}`} className="list-disc list-inside mb-4">
+                    <ul
+                      key={`ul-${paraKey}`}
+                      className="list-disc list-inside mb-4"
+                    >
                       {para.split("\n").map((line) => {
                         const trimmed = line.trim();
                         if (!trimmed.startsWith("- ")) return null;
@@ -200,7 +200,10 @@ export default async function BriefPage() {
                           >
                             {itemParts.map((part) => {
                               const pk = part.slice(0, 10) || "empty";
-                              if (part.startsWith("**") && part.endsWith("**")) {
+                              if (
+                                part.startsWith("**") &&
+                                part.endsWith("**")
+                              ) {
                                 return (
                                   <strong
                                     key={`sb-${pk}`}
@@ -312,8 +315,8 @@ export default async function BriefPage() {
 
         <div className="mt-10 pt-6 border-t border-[var(--color-border)]">
           <p className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider leading-relaxed">
-            RESEARCH AND LEARNING ONLY. NOT INVESTMENT ADVICE. ALL CALLS LOGGED
-            PRIOR TO MARKET OPEN. OUTCOMES VALIDATED AT T+5 AND T+20.
+            RESEARCH ONLY. NOT INVESTMENT ADVICE. ALL CALLS LOGGED PRIOR TO
+            MARKET OPEN. OUTCOMES VALIDATED AT T+5 AND T+20.
           </p>
         </div>
       </main>

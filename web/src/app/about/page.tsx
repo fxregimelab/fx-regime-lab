@@ -55,7 +55,8 @@ function AuthorIdentity() {
           <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[560px]">
             Macro researcher focused on systematic FX regime classification.
             Built FX Regime Lab to bridge the gap between institutional-grade
-            quantitative research and publicly accessible daily signals.
+            quantitative research and publicly accessible daily regime
+            classifications.
           </p>
         </div>
       </div>

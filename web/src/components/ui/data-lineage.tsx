@@ -188,31 +188,15 @@ export const LINEAGE = {
   ): LineageInfo => ({
     source: "FX Regime Lab model v3",
     updatedAt: call?.created_at?.slice(0, 10) ?? null,
-    transformation: "Signal composite + vol regime → entry timing recommendation",
+    transformation:
+      "Signal composite + vol regime → entry timing recommendation",
     rawValue: call?.entry_timing ?? undefined,
   }),
-  positionSize: (
-    call?: { position_size: string | null; created_at?: string | null } | null,
-  ): LineageInfo => ({
-    source: "FX Regime Lab model v3",
-    updatedAt: call?.created_at?.slice(0, 10) ?? null,
-    transformation: "Confidence × vol rank → position sizing tier",
-    rawValue: call?.position_size ?? undefined,
-  }),
-  stopLevel: (
-    call?: { stop_level: number | null; created_at?: string | null } | null,
-    pairLabel?: string,
-  ): LineageInfo => ({
-    source: "FX Regime Lab model v3",
-    updatedAt: call?.created_at?.slice(0, 10) ?? null,
-    transformation: "Spot ± 0.5% buffer → hypothetical stop level",
-    rawValue:
-      call?.stop_level != null
-        ? call.stop_level.toFixed(pairLabel === "USDJPY" ? 2 : 4)
-        : undefined,
-  }),
   rvolRank: (
-    sig?: { realized_vol_rank: number | null; created_at?: string | null } | null,
+    sig?: {
+      realized_vol_rank: number | null;
+      created_at?: string | null;
+    } | null,
   ): LineageInfo => ({
     source: "Market realized volatility",
     updatedAt: sig?.created_at?.slice(0, 10) ?? null,
