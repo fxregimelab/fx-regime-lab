@@ -274,7 +274,7 @@ export default async function BriefPage() {
         <div className="mt-10 pt-6 border-t border-[var(--color-border)]">
           <p className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider leading-relaxed">
             RESEARCH AND LEARNING ONLY. NOT INVESTMENT ADVICE. ALL CALLS LOGGED
-            PRIOR TO MARKET OPEN. OUTCOMES VALIDATED NEXT TRADING DAY.
+            PRIOR TO MARKET OPEN. OUTCOMES VALIDATED AT T+5 AND T+20.
           </p>
         </div>
       </main>
