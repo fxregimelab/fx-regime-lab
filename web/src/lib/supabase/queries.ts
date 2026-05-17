@@ -214,13 +214,13 @@ export async function getValidationLog(
   };
 
   return (data as ValidationLogRow[])
-    .filter((r) => r.correct_1d !== null && r.actual_return_1d != null)
+    .filter((r) => r.correct_t5 !== null && r.log_return_t5_bps != null)
     .map((r) => ({
       date: r.date,
       pair: PAIR_DISPLAY[r.pair] ?? r.pair,
       call: r.predicted_regime ?? "—",
-      outcome: r.correct_1d ? "correct" : "incorrect",
-      return_pct: Number(r.actual_return_1d),
+      outcome: r.correct_t5 ? "correct" : "incorrect",
+      return_pct: Number(r.log_return_t5_bps),
     }));
 }
 

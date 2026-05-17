@@ -99,7 +99,7 @@ function Hero({
           <span className="text-[var(--color-border)]">·</span>
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-[11px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
-              Calls validated
+              Calls since April 2026
             </span>
             <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
               {totalCalls > 0 ? totalCalls : "—"}
@@ -633,7 +633,8 @@ export default async function HomePage() {
 
   const { count } = await supabase
     .from("regime_calls")
-    .select("*", { count: "exact", head: true });
+    .select("*", { count: "exact", head: true })
+    .gte("date", "2026-04-01");
 
   const correctCount = validation.filter((r) => r.outcome === "correct").length;
   const accuracy =
@@ -654,8 +655,11 @@ export default async function HomePage() {
       .sort()
       .pop() ?? null;
 
-  const eurStats = statsT5.find((s) => s.pair === "EURUSD");
-  const accuracy90d = eurStats?.rolling90dAccuracy ?? null;
+  const accuracy90d =
+    statsT5.length > 0
+      ? statsT5.reduce((sum, s) => sum + (s.rolling90dAccuracy ?? 0), 0) /
+        statsT5.length
+      : null;
 
   const schemaOrgDataset = {
     "@context": "https://schema.org",
