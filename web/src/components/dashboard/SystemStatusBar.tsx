@@ -1,3 +1,4 @@
+import { FreshnessIndicator } from "@/components/ui/freshness-indicator";
 import { timeAgo } from "@/components/ui/utils";
 
 interface SystemStatusBarProps {
@@ -34,9 +35,9 @@ export function SystemStatusBar({
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-10">
       {/* DQS Gauge */}
-      <div className="bg-[var(--color-surface)] p-4 md:p-5 flex items-center justify-between">
-        <div>
-          <p className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-1">
+      <div className="bg-[var(--color-surface)] p-4 md:p-5">
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
             DQS
           </p>
           <p
@@ -46,15 +47,27 @@ export function SystemStatusBar({
             {dqs != null ? dqs.toFixed(2) : "—"}
           </p>
         </div>
-        <div
-          className="w-2 h-8"
-          style={{
-            background:
-              dqs == null
-                ? "#333"
-                : `linear-gradient(to top, ${dqsColor} ${Math.round((dqs ?? 0) * 100)}%, #1e1e1e ${Math.round((dqs ?? 0) * 100)}%)`,
-          }}
-        />
+        {/* Visual gauge */}
+        <div className="h-[4px] w-full bg-[var(--terminal-bg-sunken)] overflow-hidden">
+          <div
+            className="h-full transition-all duration-700"
+            style={{
+              width: `${(dqs ?? 0) * 100}%`,
+              background: dqsColor,
+            }}
+          />
+        </div>
+        <p className="font-mono text-[9px] text-[var(--color-text-dim)] mt-1">
+          {dqs == null
+            ? "—"
+            : dqs >= 0.9
+              ? "EXCELLENT"
+              : dqs >= 0.8
+                ? "GOOD"
+                : dqs >= 0.6
+                  ? "FAIR"
+                  : "POOR"}
+        </p>
       </div>
 
       {/* Stress Badge */}
@@ -75,9 +88,12 @@ export function SystemStatusBar({
 
       {/* Last Run */}
       <div className="bg-[var(--color-surface)] p-4 md:p-5">
-        <p className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-1">
-          LAST RUN
-        </p>
+        <div className="flex items-center gap-2 mb-1">
+          <p className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
+            LAST RUN
+          </p>
+          <FreshnessIndicator lastUpdatedAt={lastRunAt} dot />
+        </div>
         <p className="font-mono text-[clamp(18px,2.5vw,24px)] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
           {lastRunAt ? timeAgo(lastRunAt) : "—"}
         </p>

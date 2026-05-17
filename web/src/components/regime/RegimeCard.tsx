@@ -1,5 +1,5 @@
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
-import { fmt2, fmtInt, fmtConfidence } from "@/components/ui/utils";
+import { fmt2, fmtConfidence, fmtInt } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
 
@@ -15,7 +15,8 @@ export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
   );
   const regimeAccent =
     call &&
-    call.confidence != null && call.confidence >= 0.55 &&
+    call.confidence != null &&
+    call.confidence >= 0.55 &&
     (call.regime.includes("STRENGTH") ||
       call.regime.includes("WEAKNESS") ||
       call.regime.includes("PRESSURE") ||
@@ -25,13 +26,15 @@ export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
 
   return (
     <div
-      className="bg-[#0e0e0e] border border-terminal-border py-3.5 px-4"
-      style={{ borderLeft: `3px solid ${pairMeta?.pairColor ?? "#333"}` }}
+      className="bg-[var(--terminal-bg-sunken)] border border-terminal-border py-3.5 px-4"
+      style={{
+        borderLeft: `3px solid ${pairMeta?.pairColor ?? "var(--terminal-fg-dim)"}`,
+      }}
     >
       <div className="flex justify-between items-center mb-2">
         <span
           className="font-mono text-[11px] font-bold"
-          style={{ color: pairMeta?.pairColor ?? "#ccc" }}
+          style={{ color: pairMeta?.pairColor ?? "var(--terminal-fg)" }}
         >
           {pairDisplay ?? call?.pair}
         </span>
@@ -51,7 +54,7 @@ export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
       </p>
       <p
         className={`font-mono text-[10px] font-bold tracking-wide leading-snug mb-2.5 ${
-          regimeAccent ? "text-brand-accent" : "text-[#c0c0c0]"
+          regimeAccent ? "text-brand-accent" : "text-[var(--terminal-fg-muted)]"
         }`}
       >
         {call?.regime ?? "—"}
@@ -62,28 +65,31 @@ export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
         color={pairMeta?.pairColor}
       />
       <div className="flex justify-between mt-1">
-        <span className="font-mono text-[9px] text-[#777] tracking-[0.1em]">
-          CONF
+        <span className="font-mono text-[9px] text-[var(--terminal-fg-dim)] tracking-[0.1em]">
+          " CONF
         </span>
-        <span className="font-mono text-[10px] text-[#ccc] font-bold">
-          {fmtConfidence(call?.confidence)}
+        <span className="font-mono text-[10px] text-[var(--terminal-fg)] font-bold">
+          "{fmtConfidence(call?.confidence)}
         </span>
       </div>
-      <div className="border-t border-[#1a1a1a] mt-2.5 pt-2.5 flex flex-col gap-1">
+      <div className="border-t border-[var(--color-border)] mt-2.5 pt-2.5 flex flex-col gap-1">
+        "
         {[
           ["RATE DIFF", fmt2(signals?.rate_diff_2y)],
           [
             "COT PCT",
-            pairMeta?.label === "USDINR" ? "N/A" : fmtInt(signals?.cot_percentile),
+            pairMeta?.label === "USDINR"
+              ? "N/A"
+              : fmtInt(signals?.cot_percentile),
           ],
           ["RVOL 20D", fmt2(signals?.realized_vol_20d)],
         ].map(([lbl, val]) => (
           <div key={lbl} className="flex justify-between">
-            <span className="font-mono text-[9px] text-[#777] tracking-wider">
-              {lbl}
+            <span className="font-mono text-[9px] text-[var(--terminal-fg-dim)] tracking-wider">
+              "{lbl}
             </span>
-            <span className="font-mono text-[10px] text-[#e0e0e0] font-semibold">
-              {val}
+            <span className="font-mono text-[10px] text-[var(--terminal-fg)] font-semibold">
+              "{val}
             </span>
           </div>
         ))}

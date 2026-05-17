@@ -6,7 +6,7 @@ export default function TerminalMemosPage() {
   return (
     <main
       id="main-content"
-      className="min-h-screen bg-[#000000] text-white"
+      className="min-h-screen bg-[var(--terminal-bg)] text-[var(--terminal-fg)]"
       style={{ marginTop: "var(--terminal-nav-h, 76px)" }}
     >
       <div className="px-4 pb-8 pt-2">

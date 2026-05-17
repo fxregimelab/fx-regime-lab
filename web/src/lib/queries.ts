@@ -469,10 +469,11 @@ export function useG10CorrelationMatrix() {
       const result: G10CorrelationJson = {};
       const pairs = Array.from(byPair.keys());
       for (const p of pairs) {
-        result[p] = {};
+        const row: Record<string, number> = {};
+        result[p] = row;
         for (const q of pairs) {
           if (p === q) {
-            result[p]![q] = 1;
+            row[q] = 1;
             continue;
           }
           if (p > q) continue; // only populate p < q, symmetric access handled by correlationFromJson
@@ -483,10 +484,18 @@ export function useG10CorrelationMatrix() {
           const commonDates = Array.from(pMap.keys()).filter((d) =>
             qMap.has(d),
           );
-          const pVals = commonDates.map((d) => pMap.get(d)!);
-          const qVals = commonDates.map((d) => qMap.get(d)!);
+          const pVals: number[] = [];
+          const qVals: number[] = [];
+          for (const d of commonDates) {
+            const pv = pMap.get(d);
+            const qv = qMap.get(d);
+            if (pv != null && qv != null) {
+              pVals.push(pv);
+              qVals.push(qv);
+            }
+          }
           if (pVals.length < 2) {
-            result[p]![q] = 0;
+            row[q] = 0;
             continue;
           }
           const meanP = pVals.reduce((a, b) => a + b, 0) / pVals.length;
@@ -502,7 +511,7 @@ export function useG10CorrelationMatrix() {
             denQ += dq * dq;
           }
           const denom = Math.sqrt(denP * denQ);
-          result[p]![q] = denom === 0 ? 0 : num / denom;
+          row[q] = denom === 0 ? 0 : num / denom;
         }
       }
       return result;

@@ -32,27 +32,35 @@ export function CalendarTab({
           <div
             key={key}
             className={`border-l-2 pl-3 py-0.5 ${compact ? "" : "pr-1"}`}
-            style={{ borderColor: isHigh ? "#dc2626" : "#f59e0b" }}
+            style={{
+              borderColor: isHigh
+                ? "var(--terminal-danger)"
+                : "var(--terminal-warning)",
+            }}
           >
             <div className="flex justify-between items-baseline mb-1">
-              <span className="font-mono text-[9px] text-[#888]">
+              <span className="font-mono text-[9px] text-[var(--terminal-fg-dim)]">
                 {e.date.slice(5)}
               </span>
               <span
-                className={`font-mono text-[9px] ${days <= 2 ? "text-[#fff]" : "text-[#666]"}`}
+                className={`font-mono text-[9px] ${days <= 2 ? "text-[var(--terminal-fg)]" : "text-[var(--terminal-fg-dim)]"}`}
               >
                 {days === 0 ? "TODAY" : days === 1 ? "TOMORROW" : `${days}d`}
               </span>
             </div>
             <p
-              className={`font-sans ${compact ? "text-sm" : "text-xs"} font-semibold text-[#ddd] leading-tight mb-1`}
+              className={`font-sans ${compact ? "text-sm" : "text-xs"} font-semibold text-[var(--terminal-fg-muted)] leading-tight mb-1`}
             >
               {e.event}
             </p>
             <div className="flex items-center justify-between gap-2">
               <span
                 className="font-mono text-[8px] tracking-widest"
-                style={{ color: isHigh ? "#dc2626" : "#f59e0b" }}
+                style={{
+                  color: isHigh
+                    ? "var(--terminal-danger)"
+                    : "var(--terminal-warning)",
+                }}
               >
                 {e.impact}
               </span>
@@ -60,14 +68,14 @@ export function CalendarTab({
                 <button
                   type="button"
                   onClick={() => toggle(key)}
-                  className="font-mono text-[8px] tracking-widest text-[#888] hover:text-[#bbb]"
+                  className="font-mono text-[8px] tracking-widest text-[var(--terminal-fg-dim)] hover:text-[var(--terminal-fg-muted)]"
                 >
                   {expanded[key] ? "HIDE AI" : "SHOW AI"}
                 </button>
               )}
             </div>
             {expanded[key] && hasAi && (
-              <p className="mt-1.5 text-[10px] leading-relaxed text-[#9f9f9f] border border-[#1d1d1d] bg-[#111] p-2">
+              <p className="mt-1.5 text-[10px] leading-relaxed text-[var(--terminal-fg-dim)] border border-[var(--terminal-border-subtle)] bg-[var(--terminal-bg-sunken)] p-2">
                 {e.ai_brief}
               </p>
             )}

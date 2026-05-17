@@ -163,10 +163,8 @@ export default function SignalDecomposition() {
 
   const compositeScore =
     Math.round(
-      SIGNALS.reduce(
-        (sum, s) => sum + s.sampleValue * (s.weight / 100),
-        0,
-      ) * 100,
+      SIGNALS.reduce((sum, s) => sum + s.sampleValue * (s.weight / 100), 0) *
+        100,
     ) / 100;
 
   const regimeLabel =
@@ -187,9 +185,8 @@ export default function SignalDecomposition() {
       </p>
 
       {/* Stacked Bar */}
-      <div
+      <fieldset
         className="w-full h-10 flex rounded-[2px] overflow-hidden border border-[var(--color-border)] mb-6"
-        role="group"
         aria-label="Signal weight breakdown"
       >
         {SIGNALS.map((signal) => {
@@ -198,9 +195,7 @@ export default function SignalDecomposition() {
             <button
               key={signal.key}
               type="button"
-              onClick={() =>
-                setSelected(isActive ? null : signal.key)
-              }
+              onClick={() => setSelected(isActive ? null : signal.key)}
               className="relative h-full flex items-center justify-center transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-text)] focus-visible:ring-inset"
               style={{
                 width: `${signal.weight}%`,
@@ -217,7 +212,7 @@ export default function SignalDecomposition() {
             </button>
           );
         })}
-      </div>
+      </fieldset>
 
       {/* Legend (mobile-friendly) */}
       <div className="flex flex-wrap gap-x-4 gap-y-2 mb-6">
@@ -226,9 +221,7 @@ export default function SignalDecomposition() {
             key={signal.key}
             type="button"
             onClick={() =>
-              setSelected(
-                selected === signal.key ? null : signal.key,
-              )
+              setSelected(selected === signal.key ? null : signal.key)
             }
             className={`flex items-center gap-1.5 transition-opacity duration-200 ${
               selected === null || selected === signal.key
@@ -252,9 +245,8 @@ export default function SignalDecomposition() {
 
       {/* Detail Panel */}
       {selectedSignal && (
-        <div
+        <section
           className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5 mb-6 animate-fade-in"
-          role="region"
           aria-label={`${selectedSignal.label} details`}
         >
           <div className="flex items-center gap-2 mb-3">
@@ -303,7 +295,7 @@ export default function SignalDecomposition() {
             <span className="text-[var(--color-text-muted)]">·</span>
             <BiasBadge bias={selectedSignal.sampleBias} />
           </div>
-        </div>
+        </section>
       )}
 
       {/* Live Example */}
@@ -345,11 +337,7 @@ export default function SignalDecomposition() {
                   ×{signal.weight}%
                 </span>
                 <span className="tabular-nums text-[var(--color-text)] w-14 text-right">
-                  ={" "}
-                  {(
-                    signal.sampleValue *
-                    (signal.weight / 100)
-                  ).toFixed(3)}
+                  = {(signal.sampleValue * (signal.weight / 100)).toFixed(3)}
                 </span>
               </div>
             </div>

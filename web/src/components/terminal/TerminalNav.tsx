@@ -89,7 +89,9 @@ export function TerminalNav({ signals }: TerminalNavProps) {
                 key={p.label}
                 href={`/terminal/fx-regime/${p.urlSlug}`}
                 className={`flex items-center gap-2 px-3 py-1 font-mono text-[10px] transition-all -mb-[1px] ${
-                  active ? "bg-[#141414]" : "bg-transparent hover:bg-[#0f0f0f]"
+                  active
+                    ? "bg-[var(--terminal-bg-sunken)]"
+                    : "bg-transparent hover:bg-[var(--terminal-bg-elevated)]"
                 }`}
                 style={{
                   borderBottom: active

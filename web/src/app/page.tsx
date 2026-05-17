@@ -1,5 +1,6 @@
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
+import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
 import { PAIRS } from "@/lib/constants";
 import {
@@ -316,7 +317,9 @@ function SnapshotCard({
         <div className="h-[3px] bg-[var(--color-border)] overflow-hidden">
           <div
             className="h-full bg-[var(--color-accent)] transition-all duration-1000 ease-out"
-            style={{ width: `${Math.min(100, Math.max(0, confidence * 100))}%` }}
+            style={{
+              width: `${Math.min(100, Math.max(0, confidence * 100))}%`,
+            }}
           />
         </div>
       </div>
@@ -678,6 +681,7 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrgDataset) }}
       />
       <Nav />
+      <AuditTrailBannerServer variant="shell" />
       <main id="main-content">
         <Hero
           latestCallDate={latestCallDate}

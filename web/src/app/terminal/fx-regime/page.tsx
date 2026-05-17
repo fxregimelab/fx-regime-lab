@@ -1,5 +1,6 @@
 "use client";
 
+import { MosaicUrlSync } from "@/components/terminal/MosaicUrlSync";
 import { BinaryResolve } from "@/components/ui/BinaryResolve";
 import { GhostResolve } from "@/components/ui/GhostResolve";
 import { TerminalLabel } from "@/components/ui/TerminalLabel";
@@ -7,6 +8,7 @@ import { ConfidenceBar } from "@/components/ui/confidence-bar";
 import { CorrelationMatrix } from "@/components/ui/correlation-matrix";
 import { DeskCard } from "@/components/ui/desk-card";
 import { MacroDriftEngine } from "@/components/ui/macro-drift-engine";
+import { SignalCardSkeleton } from "@/components/ui/skeletons";
 import { fmt2, fmtConfidence } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import { G10_MATRIX_ORDER, topCorrelatedPeer } from "@/lib/g10Correlation";
@@ -67,7 +69,7 @@ function MosaicCell({
   card: DeskOpenCardSnapshotRow | undefined;
   calls: ReturnType<typeof useLatestRegimeCalls>["data"];
   sigs: ReturnType<typeof useLatestSignals>["data"];
-  onOpen: (slug: string) => void;
+  onOpen: (slug: string, e?: React.MouseEvent) => void;
   isDimmed: boolean;
   onHover: (hover: boolean) => void;
   corrGlow?: boolean;
@@ -116,7 +118,7 @@ function MosaicCell({
     <motion.button
       variants={item}
       type="button"
-      onClick={() => onOpen(p.urlSlug)}
+      onClick={(e) => onOpen(p.urlSlug, e)}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
       className={`flex min-h-[120px] flex-1 flex-col overflow-hidden border-0 border-l-[0.5px] border-l-white/[0.03] text-left shadow-none transition-all duration-200 hover:bg-[var(--color-surface)] will-change-transform omega-haptic ${
@@ -277,26 +279,47 @@ export default function FxRegimePairSelectionPage() {
     return `[ CORR_LOCKED: ${topPeer} ]`;
   };
 
-  const openPair = (slug: string) => {
+  const openPair = (slug: string, e?: React.MouseEvent) => {
+    if (e?.metaKey || e?.ctrlKey) {
+      // Cmd/Ctrl+Click → add to compare
+      const current = new URLSearchParams(window.location.search);
+      const existing = current.get("compare")?.split(",").filter(Boolean) ?? [];
+      if (existing.includes(slug)) {
+        router.push(`/terminal/compare?pairs=${existing.join(",")}`);
+      } else if (existing.length >= 1) {
+        router.push(`/terminal/compare?pairs=${existing.join(",")},${slug}`);
+      } else {
+        // First selection — just mark it, don't navigate yet
+        const next = new URLSearchParams(current);
+        next.set("compare", slug);
+        router.replace(`${window.location.pathname}?${next.toString()}`, {
+          scroll: false,
+        });
+      }
+      return;
+    }
+    // Normal click → navigate to pair desk
     router.push(`/terminal/fx-regime/${slug}`);
   };
 
   const rankSlot = (rank: number) => {
     const c = cardAtRank(cards, rank);
     return (
-      <MosaicCell
-        key={rank}
-        tier={tierForRank(rank)}
-        card={c}
-        calls={calls}
-        sigs={sigs}
-        onOpen={openPair}
-        isDimmed={!!validHover && validHover !== c?.pair}
-        onHover={(h) => setHoveredLabel(h && c ? c.pair : null)}
-        corrGlow={cellGlow(c?.pair)}
-        corrLockedWhisper={corrLockWhisper(c?.pair)}
-        pausedBinaryResolve={!!validHover && validHover !== c?.pair}
-      />
+      <div id={c ? `mosaic-cell-${pairMeta(c.pair).urlSlug}` : undefined}>
+        <MosaicCell
+          key={rank}
+          tier={tierForRank(rank)}
+          card={c}
+          calls={calls}
+          sigs={sigs}
+          onOpen={openPair}
+          isDimmed={!!validHover && validHover !== c?.pair}
+          onHover={(h) => setHoveredLabel(h && c ? c.pair : null)}
+          corrGlow={cellGlow(c?.pair)}
+          corrLockedWhisper={corrLockWhisper(c?.pair)}
+          pausedBinaryResolve={!!validHover && validHover !== c?.pair}
+        />
+      </div>
     );
   };
 
@@ -345,7 +368,7 @@ export default function FxRegimePairSelectionPage() {
         mathRateZStructural={
           sigs?.[rank1.pair]?.rate_z_structural != null
             ? Number(sigs[rank1.pair]?.rate_z_structural)
-            : rank1.telemetry_audit?.rate_z_structural_mad ?? null
+            : (rank1.telemetry_audit?.rate_z_structural_mad ?? null)
         }
         mathDynamicBeta={rank1.dominance_array[0]?.beta ?? null}
         pausedBinaryResolve={!!validHover && validHover !== rank1.pair}
@@ -383,6 +406,7 @@ export default function FxRegimePairSelectionPage() {
 
   return (
     <div className="h-screen max-h-screen overflow-hidden bg-[var(--color-void)] font-sans text-[var(--color-text-secondary)]">
+      <MosaicUrlSync />
       <motion.div
         variants={container}
         initial="hidden"
@@ -412,15 +436,12 @@ export default function FxRegimePairSelectionPage() {
 
         <div className="flex-1 min-h-0">
           {pending ? (
-            <div className="grid h-full grid-cols-3 grid-rows-3 gap-px">
-              {["s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"].map(
-                (k) => (
-                  <div
-                    key={k}
-                    className="animate-pulse border-0 border-t-[0.5px] border-t-white/[0.06] border-l-[0.5px] border-l-white/[0.03] bg-[var(--color-void)]"
-                  />
-                ),
-              )}
+            <div className="grid h-full grid-cols-1 gap-px lg:grid-cols-3 lg:grid-rows-3">
+              {Array.from({ length: 9 }).map(() => (
+                <div key="skeleton" className="bg-[var(--color-surface)]">
+                  <SignalCardSkeleton />
+                </div>
+              ))}
             </div>
           ) : (
             <div

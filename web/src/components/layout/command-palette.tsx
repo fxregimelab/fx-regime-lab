@@ -1,6 +1,5 @@
 "use client";
 
-import { BinaryResolve } from "@/components/ui/BinaryResolve";
 import {
   BookOpen,
   Calendar,
@@ -34,7 +33,6 @@ const ALL_ITEMS: CommandItem[] = [
     icon: <FileText size={14} />,
     section: "Pages",
   },
-
   {
     id: "methodology",
     label: "Methodology",
@@ -123,28 +121,164 @@ const ALL_ITEMS: CommandItem[] = [
   },
 ];
 
+/* ── Natural language routing ─────────────────────────────────────────── */
+
+function parseNaturalLanguage(
+  q: string,
+): { path: string; label: string } | null {
+  const lower = q.toLowerCase();
+
+  // Pair detection
+  let pair: string | null = null;
+  if (/eur\s*\/usd|eurusd/.test(lower)) pair = "eurusd";
+  else if (/usd\s*\/jpy|usdjpy/.test(lower)) pair = "usdjpy";
+  else if (/usd\s*\/inr|usdinr/.test(lower)) pair = "usdinr";
+
+  // Performance / accuracy queries
+  if (/accuracy|performance|track record|win rate|brier/.test(lower)) {
+    const params = new URLSearchParams();
+    if (pair) params.set("pair", pair);
+    const windowMatch = lower.match(/(?:last\s+)?(\d+)\s*(?:day|d)/);
+    if (windowMatch) params.set("window", `${windowMatch[1]}d`);
+    const query = params.toString();
+    return {
+      path: `/performance${query ? `?${query}` : ""}`,
+      label: pair
+        ? `${pair.toUpperCase()} Performance${windowMatch ? ` (${windowMatch[1]}d)` : ""}`
+        : "Performance",
+    };
+  }
+
+  // Regime queries
+  if (/regime|regimes/.test(lower)) {
+    const params = new URLSearchParams();
+    if (pair) params.set("pair", pair);
+    if (/risk-on|risk on|bullish|long/.test(lower))
+      params.set("regime", "Risk-On");
+    else if (/risk-off|risk off|bearish|short/.test(lower))
+      params.set("regime", "Risk-Off");
+    else if (/neutral|transitional/.test(lower))
+      params.set("regime", "Neutral");
+    const query = params.toString();
+    return {
+      path: `/terminal/fx-regime${query ? `?${query}` : ""}`,
+      label: pair ? `${pair.toUpperCase()} Regimes` : "FX Regime Mosaic",
+    };
+  }
+
+  // Direct pair desk
+  if (pair && !/accuracy|performance|regime/.test(lower)) {
+    return {
+      path: `/terminal/fx-regime/${pair}`,
+      label: `${pair.toUpperCase()} Desk`,
+    };
+  }
+
+  return null;
+}
+
+/* ── Fuzzy match score ────────────────────────────────────────────────── */
+
+function fuzzyScore(query: string, text: string): number {
+  const q = query.toLowerCase();
+  const t = text.toLowerCase();
+  if (t.includes(q)) return 100; // substring match
+
+  // Character-by-character fuzzy match
+  let qi = 0;
+  let ti = 0;
+  let score = 0;
+  while (qi < q.length && ti < t.length) {
+    if (q[qi] === t[ti]) {
+      score++;
+      qi++;
+    }
+    ti++;
+  }
+  if (qi < q.length) return 0; // not all chars matched
+  return score;
+}
+
 export function CommandPalette() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [teleportTarget, setTeleportTarget] = useState<string | null>(null);
+  const [nlResult, setNlResult] = useState<{
+    path: string;
+    label: string;
+  } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
+  // Listen for custom open event from VimNav
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ filter?: string }>) => {
+      setOpen(true);
+      if (e.detail?.filter === "pair") {
+        setQuery("desk ");
+      } else {
+        setQuery("");
+      }
+      setSelectedIndex(0);
+    };
+    document.addEventListener(
+      "fxrl:open-command-palette",
+      handler as EventListener,
+    );
+    return () =>
+      document.removeEventListener(
+        "fxrl:open-command-palette",
+        handler as EventListener,
+      );
+  }, []);
+
+  // Natural language parsing
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length > 2) {
+      const parsed = parseNaturalLanguage(q);
+      setNlResult(parsed);
+    } else {
+      setNlResult(null);
+    }
+  }, [query]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return ALL_ITEMS;
-    return ALL_ITEMS.filter(
-      (item) =>
-        item.label.toLowerCase().includes(q) ||
-        item.path.toLowerCase().includes(q) ||
-        item.section.toLowerCase().includes(q),
-    );
+    const scored = ALL_ITEMS.map((item) => ({
+      item,
+      score: Math.max(
+        fuzzyScore(q, item.label),
+        fuzzyScore(q, item.path),
+        fuzzyScore(q, item.section),
+      ),
+    }));
+    const filtered = scored.filter((s) => s.score > 0);
+    filtered.sort((a, b) => b.score - a.score);
+    return filtered.map((s) => s.item);
   }, [query]);
 
+  // Combine NL result with filtered items
+  const displayItems = useMemo(() => {
+    if (nlResult && query.trim().length > 2) {
+      const nlItem: CommandItem = {
+        id: "nl-result",
+        label: nlResult.label,
+        path: nlResult.path,
+        icon: <Search size={14} />,
+        section: "Search",
+      };
+      return [nlItem, ...filtered];
+    }
+    return filtered;
+  }, [nlResult, filtered, query]);
+
   // Reset selection when filter changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: query is the correct dependency
   useEffect(() => {
     setSelectedIndex(0);
   }, [query]);
@@ -155,6 +289,8 @@ export function CommandPalette() {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((prev) => !prev);
+        setQuery("");
+        setNlResult(null);
       }
     };
     document.addEventListener("keydown", down);
@@ -170,6 +306,7 @@ export function CommandPalette() {
         setOpen(false);
         setQuery("");
         setTeleportTarget(null);
+        setNlResult(null);
       }
     };
     document.addEventListener("keydown", down);
@@ -182,15 +319,15 @@ export function CommandPalette() {
     const down = (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % filtered.length);
+        setSelectedIndex((prev) => (prev + 1) % displayItems.length);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex(
-          (prev) => (prev - 1 + filtered.length) % filtered.length,
+          (prev) => (prev - 1 + displayItems.length) % displayItems.length,
         );
       } else if (e.key === "Enter") {
         e.preventDefault();
-        const item = filtered[selectedIndex];
+        const item = displayItems[selectedIndex];
         if (item) {
           handleSelect(item);
         }
@@ -198,7 +335,7 @@ export function CommandPalette() {
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, [open, filtered, selectedIndex]);
+  }, [open, displayItems, selectedIndex]);
 
   // Focus input when opened
   useEffect(() => {
@@ -226,6 +363,7 @@ export function CommandPalette() {
         setQuery("");
         setSelectedIndex(0);
         setTeleportTarget(null);
+        setNlResult(null);
         router.push(item.path);
       }, 150);
     },
@@ -236,18 +374,17 @@ export function CommandPalette() {
 
   // Group by section
   const grouped: Record<string, CommandItem[]> = {};
-  for (const item of filtered) {
+  for (const item of displayItems) {
     if (!grouped[item.section]) grouped[item.section] = [];
     grouped[item.section].push(item);
   }
   const sections = Object.keys(grouped);
 
   return (
-    <div
-      className="fixed inset-0 z-[var(--z-command-palette)] flex items-start justify-center pt-[20vh]"
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      className="fixed inset-0 z-[var(--z-command-palette)] flex items-start justify-center bg-transparent p-0 pt-[20vh] open:flex"
       aria-label="Command palette"
+      open
     >
       {/* Backdrop */}
       <div
@@ -256,7 +393,19 @@ export function CommandPalette() {
           setOpen(false);
           setQuery("");
           setTeleportTarget(null);
+          setNlResult(null);
         }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            setOpen(false);
+            setQuery("");
+            setTeleportTarget(null);
+            setNlResult(null);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Close command palette"
       />
 
       {/* Modal */}
@@ -293,7 +442,7 @@ export function CommandPalette() {
 
         {/* Results */}
         <div ref={listRef} className="max-h-[50vh] overflow-y-auto py-2">
-          {filtered.length === 0 ? (
+          {displayItems.length === 0 ? (
             <div className="px-4 py-6 text-center text-[0.8125rem] text-[var(--shell-fg-dim)]">
               No results found.
             </div>
@@ -306,10 +455,12 @@ export function CommandPalette() {
                     {section}
                   </div>
                   {items.map((item) => {
-                    const idx = filtered.indexOf(item);
+                    const idx = displayItems.indexOf(item);
                     const isSelected = idx === selectedIndex;
+                    const isNl = item.id === "nl-result";
                     return (
                       <button
+                        type="button"
                         key={item.id}
                         ref={(el) => {
                           itemRefs.current[idx] = el;
@@ -320,38 +471,41 @@ export function CommandPalette() {
                         style={{
                           borderRadius: 2,
                           backgroundColor: isSelected
-                            ? "#0a0a0a"
+                            ? "var(--terminal-bg-sunken)"
                             : "transparent",
-                          color: isSelected ? "#f5f5f0" : "var(--shell-fg)",
+                          color: isSelected
+                            ? "var(--terminal-fg)"
+                            : "var(--shell-fg)",
                         }}
                       >
                         <span
                           className="flex items-center justify-center"
                           style={{
                             color: isSelected
-                              ? "#f5f5f0"
+                              ? "var(--terminal-fg)"
                               : "var(--shell-fg-dim)",
                           }}
                         >
                           {item.icon}
                         </span>
-                        <span className="flex-1">{item.label}</span>
+                        <span className="flex-1">
+                          {item.label}
+                          {isNl && (
+                            <span className="ml-2 font-mono text-[9px] text-[var(--shell-fg-dim)]">
+                              → {item.path}
+                            </span>
+                          )}
+                        </span>
                         {teleportTarget === item.path && (
                           <span
                             className="font-mono text-[0.6875rem]"
                             style={{
                               color: isSelected
-                                ? "#a8a29e"
+                                ? "var(--terminal-fg-muted)"
                                 : "var(--shell-fg-dim)",
                             }}
                           >
-                            <BinaryResolve
-                              value={item.path}
-                              resolveKey={`teleport-${item.id}`}
-                              flickerMs={150}
-                              tickMs={40}
-                              paused={false}
-                            />
+                            {item.path}
                           </span>
                         )}
                       </button>
@@ -401,11 +555,11 @@ export function CommandPalette() {
             </span>
           </div>
           <span>
-            {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+            {displayItems.length} result{displayItems.length !== 1 ? "s" : ""}
           </span>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
 

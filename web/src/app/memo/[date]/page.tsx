@@ -1,8 +1,8 @@
-import Link from "next/link";
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { getResearchMemoByDate } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
 interface MemoDatePageProps {
   params: Promise<{ date: string }>;

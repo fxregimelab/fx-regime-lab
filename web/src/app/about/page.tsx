@@ -1,7 +1,6 @@
-"use client";
-
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
+import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
 import { Globe, Link2, Mail, MessageCircle } from "lucide-react";
 import Link from "next/link";
@@ -132,10 +131,7 @@ function TrackRecordHighlights() {
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
         {stats.map((s) => (
-          <div
-            key={s.label}
-            className="bg-[var(--color-surface)] p-6 md:p-8"
-          >
+          <div key={s.label} className="bg-[var(--color-surface)] p-6 md:p-8">
             <p className="font-mono text-[clamp(28px,4vw,40px)] font-medium text-emerald-400 tracking-tight leading-none mb-3 tabular-nums">
               {s.value}
             </p>
@@ -221,6 +217,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />
+      <AuditTrailBannerServer variant="shell" />
       <main
         id="main-content"
         className="max-w-4xl mx-auto px-6 pt-28 pb-20 w-full"

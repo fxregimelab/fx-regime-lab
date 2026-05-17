@@ -35,9 +35,10 @@ export function fmtKM(v: number | null | undefined): string {
 }
 
 export function fmtChg(v: number | null | undefined) {
-  if (v == null || Number.isNaN(v)) return { str: "—", color: "#666" };
+  if (v == null || Number.isNaN(v))
+    return { str: "—", color: "var(--terminal-fg-dim)" };
   const sign = v >= 0 ? "+" : "";
-  const color = v >= 0 ? "#22c55e" : "#ef4444";
+  const color = v >= 0 ? "var(--terminal-success)" : "var(--terminal-danger)";
   return { str: `${sign}${v.toFixed(2)}%`, color };
 }
 

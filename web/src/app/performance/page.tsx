@@ -1,11 +1,16 @@
 import { AccuracyMilestoneTracker } from "@/components/performance/AccuracyMilestoneTracker";
 import { BrierChart } from "@/components/performance/BrierChart";
 import { PairBreakdownTable } from "@/components/performance/PairBreakdownTable";
+import { PerformanceUrlSync } from "@/components/performance/PerformanceUrlSync";
+import { RegimeBreakdown } from "@/components/performance/RegimeBreakdown";
 import { StatsCard } from "@/components/performance/StatsCard";
 import { ValidationTable } from "@/components/regime/ValidationTable";
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
+import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
+import { fmtMeanCI, fmtPropCI, meanCI, wilsonCI } from "@/lib/stats";
 import {
+  getRegimeBreakdown,
   getValidationLogT5T20,
   getValidationStats,
 } from "@/lib/supabase/queries";
@@ -175,10 +180,11 @@ export const dynamic = "force-dynamic";
 
 export default async function PerformancePage() {
   const supabase = await createClient();
-  const [statsT5, statsT20, validation] = await Promise.all([
+  const [statsT5, statsT20, validation, regimeBreakdown] = await Promise.all([
     getValidationStats(supabase, "t5"),
     getValidationStats(supabase, "t20"),
     getValidationLogT5T20(supabase, 500),
+    getRegimeBreakdown(supabase, 500),
   ]);
 
   const allT5 = statsT5.find((s) => s.pair === "ALL");
@@ -231,9 +237,24 @@ export default async function PerformancePage() {
       5 * 24 * 60 * 60 * 1000
     : true;
 
+  // ── 95% confidence intervals ────────────────────────────────────────────
+  const t5WinCI = wilsonCI(allT5?.wins ?? 0, allT5?.sampleSize ?? 0);
+  const t20WinCI = wilsonCI(allT20?.wins ?? 0, allT20?.sampleSize ?? 0);
+
+  const t5BrierValues = validation
+    .map((r) => r.t5Brier)
+    .filter((v): v is number => v != null);
+  const t20BrierValues = validation
+    .map((r) => r.t20Brier)
+    .filter((v): v is number => v != null);
+  const t5BrierCI = meanCI(t5BrierValues);
+  const t20BrierCI = meanCI(t20BrierValues);
+
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
+      <PerformanceUrlSync />
       <Nav />
+      <AuditTrailBannerServer variant="shell" />
       <main
         id="main-content"
         className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full"
@@ -275,7 +296,9 @@ export default async function PerformancePage() {
           <StatsCard
             label="T+5 WIN RATE"
             value={fmtPctRaw(allT5?.winRate)}
-            sub={`${allT5?.sampleSize ?? 0} calls`}
+            sub="calls"
+            sampleSize={allT5?.sampleSize}
+            ci={fmtPropCI(allT5?.winRate ?? null, t5WinCI)}
           />
           <StatsCard
             label="T+5 BRIER"
@@ -291,11 +314,15 @@ export default async function PerformancePage() {
                       : "Poor"
                 : undefined
             }
+            sampleSize={allT5?.sampleSize}
+            ci={fmtMeanCI(allT5?.brierScore ?? null, t5BrierCI)}
           />
           <StatsCard
             label="T+20 WIN RATE"
             value={fmtPctRaw(allT20?.winRate)}
-            sub={`${allT20?.sampleSize ?? 0} calls`}
+            sub="calls"
+            sampleSize={allT20?.sampleSize}
+            ci={fmtPropCI(allT20?.winRate ?? null, t20WinCI)}
           />
           <StatsCard
             label="T+20 BRIER"
@@ -311,6 +338,8 @@ export default async function PerformancePage() {
                       : "Poor"
                 : undefined
             }
+            sampleSize={allT20?.sampleSize}
+            ci={fmtMeanCI(allT20?.brierScore ?? null, t20BrierCI)}
           />
           <StatsCard
             label="T+5 VALIDATED"
@@ -324,22 +353,54 @@ export default async function PerformancePage() {
           const eurT5 = statsT5.find((s) => s.pair === "EURUSD");
           const acc = eurT5?.rolling90dAccuracy ?? null;
           if (acc == null) return null;
-          const history = Array.from({ length: 30 }, (_, i) => ({
-            date: new Date(Date.now() - (29 - i) * 86400000).toISOString().slice(0, 10),
-            accuracy: acc + (Math.random() - 0.5) * 0.08,
-          }));
+
+          // Build real rolling accuracy history from validation records
+          const eurRecords = validation
+            .filter(
+              (r) =>
+                r.pair === "EUR/USD" &&
+                (r.t5Outcome === "CORRECT" || r.t5Outcome === "WRONG"),
+            )
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+          const windowSize = 10;
+          const history = [] as { date: string; accuracy: number }[];
+          for (let i = 0; i < eurRecords.length; i++) {
+            const window = eurRecords.slice(
+              Math.max(0, i - windowSize + 1),
+              i + 1,
+            );
+            const correct = window.filter(
+              (r) => r.t5Outcome === "CORRECT",
+            ).length;
+            history.push({
+              date: eurRecords[i].date,
+              accuracy: correct / window.length,
+            });
+          }
+
+          // Take last 30 points
+          const recent = history.slice(-30);
+          if (recent.length === 0) return null;
+
           return (
             <div className="mb-10">
               <AccuracyMilestoneTracker
                 currentAccuracy={acc}
-                history={history}
-                daysAboveGate={history.filter((h) => h.accuracy >= 0.55).length}
+                history={recent}
+                daysAboveGate={recent.filter((h) => h.accuracy >= 0.55).length}
                 currentStreak={
-                  history[history.length - 1].accuracy >= 0.55
-                    ? history.slice().reverse().findIndex((h) => h.accuracy < 0.55)
-                    : -history.slice().reverse().findIndex((h) => h.accuracy >= 0.55)
+                  recent[recent.length - 1].accuracy >= 0.55
+                    ? recent
+                        .slice()
+                        .reverse()
+                        .findIndex((h) => h.accuracy < 0.55)
+                    : -recent
+                        .slice()
+                        .reverse()
+                        .findIndex((h) => h.accuracy >= 0.55)
                 }
-                bestWindowAccuracy={Math.max(...history.map((h) => h.accuracy))}
+                bestWindowAccuracy={Math.max(...recent.map((h) => h.accuracy))}
               />
             </div>
           );
@@ -372,6 +433,10 @@ export default async function PerformancePage() {
           </div>
           <BrierChart data={brierSeries} />
         </div>
+
+        {/* ── Regime Breakdown ───────────────────────────────────────────── */}
+        <RegimeBreakdown rows={regimeBreakdown} horizon="t5" />
+        <RegimeBreakdown rows={regimeBreakdown} horizon="t20" />
 
         {/* ── Per-Pair Breakdown ─────────────────────────────────────────── */}
         <div className="mb-10">

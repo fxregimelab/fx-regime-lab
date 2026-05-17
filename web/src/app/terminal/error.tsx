@@ -7,18 +7,18 @@ type ErrorProps = {
 
 export default function TerminalError({ error, reset }: ErrorProps) {
   return (
-    <div className="min-h-screen bg-[#000000] text-[#e8e8e8] flex items-center justify-center px-6">
-      <div className="w-full max-w-2xl border border-[#222] bg-[#000000] p-6">
-        <p className="font-mono text-[12px] tracking-widest text-[#f59e0b]">
+    <div className="min-h-screen bg-[var(--terminal-bg)] text-[var(--terminal-fg)] flex items-center justify-center px-6">
+      <div className="w-full max-w-2xl border border-[var(--terminal-border)] bg-[var(--terminal-bg)] p-6">
+        <p className="font-mono text-[12px] tracking-widest text-[var(--terminal-warning)]">
           [ DATA OFFLINE ]
         </p>
-        <p className="font-mono text-[11px] text-[#888] mt-2 break-all">
+        <p className="font-mono text-[11px] text-[var(--terminal-fg-dim)] mt-2 break-all">
           {error.message || "Terminal route failure"}
         </p>
         <button
           type="button"
           onClick={() => reset()}
-          className="mt-4 border border-[#333] bg-[#000000] px-3 py-2 font-mono text-[10px] text-[#d4d4d4] tracking-widest hover:text-[#ffffff]"
+          className="mt-4 border border-[var(--terminal-border-bright)] bg-[var(--terminal-bg)] px-3 py-2 font-mono text-[10px] text-[var(--terminal-fg-muted)] tracking-widest hover:text-[var(--terminal-fg)]"
         >
           [ RETRY TERMINAL ]
         </button>

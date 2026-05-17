@@ -1,9 +1,15 @@
 import { RegimeCard } from "@/components/regime/RegimeCard";
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
+import {
+  FreshnessIndicator,
+  StaleDataBanner,
+} from "@/components/ui/freshness-indicator";
+import { RegimeInspectorTrigger } from "@/components/ui/regime-inspector-trigger";
+import { ReproducibilityExport } from "@/components/ui/reproducibility-export";
 import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline } from "@/components/ui/sparkline";
-import { fmt2, fmtInt, fmtConfidence } from "@/components/ui/utils";
+import { fmt2, fmtConfidence, fmtInt } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import {
   getHistoricalPrices,
@@ -196,7 +202,10 @@ function ValidationHistoryTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse font-mono text-[11px]" aria-label="Validation history">
+      <table
+        className="w-full border-collapse font-mono text-[11px]"
+        aria-label="Validation history"
+      >
         <thead>
           <tr className="border-b border-[var(--color-border)] bg-[var(--color-elevated)]">
             {[
@@ -225,9 +234,12 @@ function ValidationHistoryTable({
               key={r.date}
               className={`border-b border-[var(--color-border-subtle)] last:border-b-0 ${i % 2 === 1 ? "bg-[var(--color-elevated)]" : "bg-[var(--color-surface)]"}`}
             >
-              <td scope="row" className="px-3 py-2 text-[var(--color-text-muted)] whitespace-nowrap">
+              <th
+                scope="row"
+                className="px-3 py-2 text-[var(--color-text-muted)] whitespace-nowrap font-normal text-left"
+              >
                 {r.date}
-              </td>
+              </th>
               <td className="px-3 py-2 text-[var(--color-text-secondary)]">
                 {r.predicted}
               </td>
@@ -387,7 +399,8 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
 
   const regimeAccent =
     call &&
-    call.confidence != null && call.confidence >= 0.55 &&
+    call.confidence != null &&
+    call.confidence >= 0.55 &&
     (call.regime.includes("STRENGTH") ||
       call.regime.includes("WEAKNESS") ||
       call.regime.includes("PRESSURE") ||
@@ -441,12 +454,16 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           ] as const,
           [
             "COT asset mgr net",
-            sig?.cot_asset_mgr_net != null ? fmtInt(sig.cot_asset_mgr_net) : "—",
+            sig?.cot_asset_mgr_net != null
+              ? fmtInt(sig.cot_asset_mgr_net)
+              : "—",
             sig?.cot_asset_mgr_net ?? null,
           ] as const,
           [
             "COT lev money net",
-            sig?.cot_lev_money_net != null ? fmtInt(sig.cot_lev_money_net) : "—",
+            sig?.cot_lev_money_net != null
+              ? fmtInt(sig.cot_lev_money_net)
+              : "—",
             sig?.cot_lev_money_net ?? null,
           ] as const,
         ]
@@ -475,14 +492,43 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
       <ResearchDisclaimer />
 
       {/* Back navigation */}
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <Link
           href="/terminal"
           className="font-mono text-[10px] text-[var(--color-text-muted)] tracking-wider hover:text-[var(--color-text)] transition-colors"
         >
           ← REGIME RESEARCH TERMINAL
         </Link>
+        <div className="flex items-center gap-3">
+          <FreshnessIndicator
+            lastUpdatedAt={sig?.created_at ?? call?.created_at}
+            dot={false}
+          />
+          <ReproducibilityExport
+            payload={{
+              query:
+                "getLatestRegimeCalls + getLatestSignals + getHistoricalPrices + getHistoricalRegimeCalls + getPairValidationHistory + getPairValidationSummary",
+              parameters: {
+                pair: pairMeta.label,
+                pairSlug,
+                date:
+                  call?.date ??
+                  sig?.date ??
+                  new Date().toISOString().slice(0, 10),
+              },
+              timestamp: new Date().toISOString(),
+              dataVersion: call?.model_version ?? "v3",
+              sourceTable: "regime_calls, signals, validation_log",
+            }}
+            variant="icon"
+          />
+        </div>
       </div>
+
+      <StaleDataBanner
+        lastUpdatedAt={sig?.created_at ?? call?.created_at}
+        source={`${pairMeta.label} desk`}
+      />
 
       {/* Top strip: spot + regime + confidence + composite */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-px bg-[var(--color-border)]">
@@ -504,23 +550,49 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             </p>
           )}
         </div>
-        <div className="bg-[var(--color-elevated)] px-5 py-5">
-          <p className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.15em] mb-2">
-            REGIME
-          </p>
-          <p
-            className={`font-mono text-[13px] font-bold tracking-wider leading-snug ${
-              regimeAccent
-                ? "text-[var(--color-text)]"
-                : "text-[var(--color-text-secondary)]"
-            }`}
-          >
-            {call?.regime ?? "—"}
-          </p>
-          <p className="font-mono text-[9px] text-[var(--color-text-muted)] mt-2 truncate">
-            {call?.primary_driver?.slice(0, 50)}…
-          </p>
-        </div>
+        <RegimeInspectorTrigger
+          pairLabel={pairMeta.label}
+          pairColor={pairMeta.pairColor}
+          regime={call?.regime ?? null}
+          confidence={call?.confidence ?? null}
+          signalComposite={call?.signal_composite ?? null}
+          rateSignal={call?.rate_signal ?? null}
+          cotSignal={call?.cot_signal ?? null}
+          volSignal={call?.vol_signal ?? null}
+          rrSignal={call?.rr_signal ?? null}
+          oiSignal={call?.oi_signal ?? null}
+          primaryDriver={call?.primary_driver ?? null}
+          spot={sig?.spot ?? null}
+          rateDiff2y={sig?.rate_diff_2y ?? null}
+          rateDiff10y={sig?.rate_diff_10y_real ?? null}
+          rateZTactical={sig?.rate_z_tactical ?? null}
+          rateZStructural={sig?.rate_z_structural ?? null}
+          realizedVol20d={sig?.realized_vol_20d ?? null}
+          realizedVol5d={sig?.realized_vol_5d ?? null}
+          impliedVol30d={sig?.implied_vol_30d ?? null}
+          dayChangePct={sig?.day_change_pct ?? null}
+          crossAssetUs10y={sig?.cross_asset_us10y ?? null}
+          skewAlignment={sig?.skew_alignment ?? null}
+          breakevenInflation10y={sig?.breakeven_inflation_10y ?? null}
+        >
+          <div className="bg-[var(--color-elevated)] px-5 py-5 h-full">
+            <p className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.15em] mb-2">
+              REGIME
+            </p>
+            <p
+              className={`font-mono text-[13px] font-bold tracking-wider leading-snug ${
+                regimeAccent
+                  ? "text-[var(--color-text)]"
+                  : "text-[var(--color-text-secondary)]"
+              }`}
+            >
+              {call?.regime ?? "—"}
+            </p>
+            <p className="font-mono text-[9px] text-[var(--color-text-muted)] mt-2 truncate">
+              {call?.primary_driver?.slice(0, 50)}…
+            </p>
+          </div>
+        </RegimeInspectorTrigger>
         <div className="bg-[var(--color-elevated)] px-5 py-5">
           <p className="font-mono text-[9px] text-[var(--color-text-dim)] tracking-[0.15em] mb-2">
             CONFIDENCE
@@ -529,7 +601,9 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             className="font-mono text-[32px] font-medium tracking-tight leading-none"
             style={{ color: pairMeta.pairColor }}
           >
-            {call?.confidence != null ? Math.min(100, Math.max(0, Math.round(call.confidence * 100))) : "—"}
+            {call?.confidence != null
+              ? Math.min(100, Math.max(0, Math.round(call.confidence * 100)))
+              : "—"}
             <span className="text-base text-[var(--color-text-dim)] font-normal">
               {call ? "%" : ""}
             </span>
@@ -806,70 +880,76 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse font-mono" aria-label="Signal decomposition">
+            <table
+              className="w-full border-collapse font-mono"
+              aria-label="Signal decomposition"
+            >
               <thead>
                 <tr className="border-b border-[var(--color-border-subtle)] bg-[var(--color-void)]">
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
-                >
-                  SIGNAL
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
-                >
-                  VALUE
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
-                >
-                  SCORE
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
-                >
-                  TREND
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableRows.map(([label, value, raw], i) => {
-                const arrow = trendArrow(label, raw, sig);
-                const z = pseudoZScore(label, raw, sig);
-                return (
-                  <tr
-                    key={label}
-                    className="border-b border-[var(--color-border-subtle)]"
-                    style={{
-                      background:
-                        i % 2 === 0
-                          ? "var(--color-void)"
-                          : "var(--color-surface)",
-                    }}
+                  <th
+                    scope="col"
+                    className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
                   >
-                    <td scope="row" className="px-4 py-3 text-[11px] text-[var(--color-text-muted)]">
-                      {label}
-                    </td>
-                    <td className="px-4 py-3 text-[13px] text-[var(--color-text)] font-medium text-left tabular-nums">
-                      {value}
-                    </td>
-                    <td className="px-4 py-3 text-[11px] text-[var(--color-text-secondary)] tabular-nums">
-                      {z}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-[13px] font-medium"
-                      style={{ color: arrowColor(arrow) }}
+                    SIGNAL
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
+                  >
+                    VALUE
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
+                  >
+                    SCORE
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-2 text-left text-[9px] text-[var(--color-text-dim)] tracking-[0.1em] font-normal"
+                  >
+                    TREND
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {tableRows.map(([label, value, raw], i) => {
+                  const arrow = trendArrow(label, raw, sig);
+                  const z = pseudoZScore(label, raw, sig);
+                  return (
+                    <tr
+                      key={label}
+                      className="border-b border-[var(--color-border-subtle)]"
+                      style={{
+                        background:
+                          i % 2 === 0
+                            ? "var(--color-void)"
+                            : "var(--color-surface)",
+                      }}
                     >
-                      {arrow}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <th
+                        scope="row"
+                        className="px-4 py-3 text-[11px] text-[var(--color-text-muted)] font-normal text-left"
+                      >
+                        {label}
+                      </th>
+                      <td className="px-4 py-3 text-[13px] text-[var(--color-text)] font-medium text-left tabular-nums">
+                        {value}
+                      </td>
+                      <td className="px-4 py-3 text-[11px] text-[var(--color-text-secondary)] tabular-nums">
+                        {z}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-[13px] font-medium"
+                        style={{ color: arrowColor(arrow) }}
+                      >
+                        {arrow}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
           {call?.primary_driver && (
             <div className="px-4 py-3 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface)]">
