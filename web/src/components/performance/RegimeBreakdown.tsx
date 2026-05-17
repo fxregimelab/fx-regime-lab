@@ -22,7 +22,7 @@ export function RegimeBreakdown({ rows, horizon }: RegimeBreakdownProps) {
     const pairMap = byPair.get(r.pair);
     if (!pairMap) continue;
 
-    const type = classifyRegime(r.regime);
+    const type = classifyRegime(r.regime, r.pair);
     const outcome = horizon === "t5" ? r.t5Outcome : r.t20Outcome;
     if (outcome === "—" || outcome === "NEUTRAL") continue;
 

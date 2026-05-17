@@ -45,9 +45,7 @@ export function BrierChart({ data }: BrierChartProps) {
 
   const yTicks = [maxV, (minV + maxV) / 2, minV];
   const xStep = Math.max(1, Math.floor(data.length / 5));
-  const xLabels = pts.filter(
-    (_, i) => i % xStep === 0 || i === data.length - 1,
-  );
+  const xLabels = pts.filter((_, i) => i % xStep === 0);
 
   return (
     <svg
@@ -56,7 +54,7 @@ export function BrierChart({ data }: BrierChartProps) {
       className="w-full h-[180px] md:h-[220px] block"
     >
       <title>Brier Score Time Series</title>
-      <rect width={W} height={H} fill="var(--terminal-bg)" />
+      <rect width={W} height={H} fill="var(--color-void)" />
 
       {/* horizontal grid */}
       {yTicks.map((v) => {
@@ -68,7 +66,7 @@ export function BrierChart({ data }: BrierChartProps) {
             y1={y}
             x2={W - padR}
             y2={y}
-            stroke="var(--terminal-bg-sunken)"
+            stroke="var(--color-border)"
             strokeWidth={1}
           />
         );
@@ -95,7 +93,7 @@ export function BrierChart({ data }: BrierChartProps) {
             x={padL - 8}
             y={y + 3}
             textAnchor="end"
-            fill="var(--terminal-fg-dim)"
+            fill="var(--color-text-muted)"
             fontSize={10}
             fontFamily="JetBrains Mono, monospace"
             style={{ fontVariantNumeric: "tabular-nums" }}

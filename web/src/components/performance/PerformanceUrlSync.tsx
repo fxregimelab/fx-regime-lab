@@ -22,9 +22,9 @@ export function PerformanceUrlSync() {
       );
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "start" });
-        el.classList.add("ring-1", "ring-[var(--terminal-warning)]");
+        el.classList.add("ring-1", "ring-[var(--color-warn)]");
         setTimeout(
-          () => el.classList.remove("ring-1", "ring-[var(--terminal-warning)]"),
+          () => el.classList.remove("ring-1", "ring-[var(--color-warn)]"),
           3000,
         );
       }

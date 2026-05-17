@@ -127,7 +127,7 @@ export function ValidationTable({
                   {mode === "t5t20" && isT5 && (
                     <>
                       <td className={`px-4 py-2 text-[10px] ${muted}`}>
-                        {row.predicted}
+                        {(row.predicted ?? "—").replace(/_/g, " ")}
                       </td>
                       <td
                         className={`px-4 py-2 text-[11px] tabular-nums ${

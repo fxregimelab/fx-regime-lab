@@ -102,9 +102,7 @@ function EquityCurveSVG({
 
   const yTicks = [maxV, (minV + maxV) / 2, minV];
   const xStep = Math.max(1, Math.floor(data.length / 5));
-  const xLabels = pts.filter(
-    (_, i) => i % xStep === 0 || i === data.length - 1,
-  );
+  const xLabels = pts.filter((_, i) => i % xStep === 0);
 
   return (
     <svg
@@ -113,7 +111,7 @@ function EquityCurveSVG({
       className="w-full h-[240px] md:h-[320px] lg:h-[400px] block"
     >
       <title>Performance Chart</title>
-      <rect width={W} height={H} fill="#000000" />
+      <rect width={W} height={H} fill="var(--color-void)" />
 
       {yTicks.map((v, i) => {
         const y = padT + chartH - ((v - minV) / range) * chartH;
@@ -536,9 +534,8 @@ export default async function PerformancePage() {
                 currentStreak={(() => {
                   const rev = recent.slice().reverse();
                   const lastAbove = rev[0].accuracy >= 0.55;
-                  const idx = rev.findIndex(
-                    (h) =>
-                      lastAbove ? h.accuracy < 0.55 : h.accuracy >= 0.55,
+                  const idx = rev.findIndex((h) =>
+                    lastAbove ? h.accuracy < 0.55 : h.accuracy >= 0.55,
                   );
                   return lastAbove
                     ? idx === -1

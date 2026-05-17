@@ -26,7 +26,8 @@ function StatusBadge({ accuracy }: { accuracy: number }) {
         className="inline-flex items-center gap-1.5 rounded-none border px-2 py-1 font-mono text-[10px] tracking-wider"
         style={{
           borderColor: "color-mix(in srgb, var(--color-up) 30%, transparent)",
-          backgroundColor: "color-mix(in srgb, var(--color-up) 10%, transparent)",
+          backgroundColor:
+            "color-mix(in srgb, var(--color-up) 10%, transparent)",
           color: "var(--color-up)",
         }}
       >
@@ -44,7 +45,8 @@ function StatusBadge({ accuracy }: { accuracy: number }) {
         className="inline-flex items-center gap-1.5 rounded-none border px-2 py-1 font-mono text-[10px] tracking-wider"
         style={{
           borderColor: "color-mix(in srgb, var(--color-warn) 30%, transparent)",
-          backgroundColor: "color-mix(in srgb, var(--color-warn) 10%, transparent)",
+          backgroundColor:
+            "color-mix(in srgb, var(--color-warn) 10%, transparent)",
           color: "var(--color-warn)",
         }}
       >
@@ -61,7 +63,8 @@ function StatusBadge({ accuracy }: { accuracy: number }) {
       className="inline-flex items-center gap-1.5 rounded-none border px-2 py-1 font-mono text-[10px] tracking-wider"
       style={{
         borderColor: "color-mix(in srgb, var(--color-down) 30%, transparent)",
-        backgroundColor: "color-mix(in srgb, var(--color-down) 10%, transparent)",
+        backgroundColor:
+          "color-mix(in srgb, var(--color-down) 10%, transparent)",
         color: "var(--color-down)",
       }}
     >
@@ -125,7 +128,7 @@ function Sparkline({ data }: { data: HistoryPoint[] }) {
         y1={gateY}
         x2={svgWidth - padding}
         y2={gateY}
-        stroke="var(--terminal-success)"
+        stroke="var(--color-up)"
         strokeWidth="0.5"
         strokeDasharray="4 2"
         opacity={0.5}
@@ -135,7 +138,7 @@ function Sparkline({ data }: { data: HistoryPoint[] }) {
         <polyline
           points={points}
           fill="none"
-          stroke="var(--terminal-success)"
+          stroke="var(--color-up)"
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -203,15 +206,24 @@ export function AccuracyMilestoneTracker({
           {/* Zone backgrounds */}
           <div
             className="absolute left-0 top-0 h-full w-[75%]"
-            style={{ background: "color-mix(in srgb, var(--color-down) 10%, transparent)" }}
+            style={{
+              background:
+                "color-mix(in srgb, var(--color-down) 10%, transparent)",
+            }}
           />
           <div
             className="absolute left-[75%] top-0 h-full w-[8.3%]"
-            style={{ background: "color-mix(in srgb, var(--color-warn) 10%, transparent)" }}
+            style={{
+              background:
+                "color-mix(in srgb, var(--color-warn) 10%, transparent)",
+            }}
           />
           <div
             className="absolute left-[83.3%] top-0 h-full w-[16.7%]"
-            style={{ background: "color-mix(in srgb, var(--color-up) 10%, transparent)" }}
+            style={{
+              background:
+                "color-mix(in srgb, var(--color-up) 10%, transparent)",
+            }}
           />
 
           {/* Gate marker */}
