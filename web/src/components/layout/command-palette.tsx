@@ -69,13 +69,13 @@ const ALL_ITEMS: CommandItem[] = [
     icon: <Terminal size={14} />,
     section: "Terminal",
   },
-  // {
-  //   id: "terminal-fx-regime",
-  //   label: "FX Regime Mosaic",
-  //   path: "/terminal/fx-regime",
-  //   icon: <Sparkles size={14} />,
-  //   section: "Terminal",
-  // }, // HIDDEN: desk_open_cards pipeline not ready
+  {
+    id: "terminal-fx-regime",
+    label: "FX Regime Mosaic",
+    path: "/terminal/fx-regime",
+    icon: <Sparkles size={14} />,
+    section: "Terminal",
+  },
   {
     id: "terminal-calendar",
     label: "Calendar",
@@ -149,17 +149,20 @@ function parseNaturalLanguage(
     };
   }
 
-  // Regime queries → route directly to pair desk (Mosaic grid hidden)
+  // Regime queries
   if (/regime|regimes/.test(lower)) {
-    if (pair) {
-      return {
-        path: `/terminal/fx-regime/${pair}`,
-        label: `${pair.toUpperCase()} Desk`,
-      };
-    }
+    const params = new URLSearchParams();
+    if (pair) params.set("pair", pair);
+    if (/risk-on|risk on|bullish|long/.test(lower))
+      params.set("regime", "Risk-On");
+    else if (/risk-off|risk off|bearish|short/.test(lower))
+      params.set("regime", "Risk-Off");
+    else if (/neutral|transitional/.test(lower))
+      params.set("regime", "Neutral");
+    const query = params.toString();
     return {
-      path: "/terminal",
-      label: "Terminal Overview",
+      path: `/terminal/fx-regime${query ? `?${query}` : ""}`,
+      label: pair ? `${pair.toUpperCase()} Regimes` : "FX Regime Mosaic",
     };
   }
 
