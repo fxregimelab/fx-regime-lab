@@ -159,6 +159,13 @@ export function AccuracyMilestoneTracker({
   const barPct = Math.min(acc / MAX_BAR, 1);
   const gatePct = GATE / MAX_BAR;
 
+  const barColor =
+    acc >= GATE
+      ? "var(--color-up)"
+      : acc >= 0.45
+        ? "var(--color-warn)"
+        : "var(--color-down)";
+
   return (
     <div className="border border-[var(--color-border)] bg-[var(--color-surface)] p-6 md:p-8">
       {/* Header */}
@@ -180,7 +187,7 @@ export function AccuracyMilestoneTracker({
           </span>
           <span
             className="font-mono text-[18px] font-medium tabular-nums"
-            style={{ color: "var(--color-up)" }}
+            style={{ color: barColor }}
           >
             55.0%
           </span>
@@ -212,12 +219,12 @@ export function AccuracyMilestoneTracker({
             className="absolute top-[-4px] h-[20px] w-[1px]"
             style={{
               left: `${gatePct * 100}%`,
-              background: "var(--color-up)",
+              background: barColor,
             }}
           >
             <span
               className="absolute left-1/2 top-[-16px] -translate-x-1/2 font-mono text-[8px] tracking-wider"
-              style={{ color: "var(--color-up)" }}
+              style={{ color: barColor }}
             >
               GATE
             </span>
@@ -228,7 +235,7 @@ export function AccuracyMilestoneTracker({
             className="absolute top-0 h-full transition-all duration-1000"
             style={{
               width: `${barPct * 100}%`,
-              background: "var(--color-up)",
+              background: barColor,
             }}
           />
         </div>
