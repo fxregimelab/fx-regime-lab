@@ -346,7 +346,7 @@ export async function getRegimeBreakdown(
   const { data, error } = await supabase
     .from("validation_log")
     .select(
-      "pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20, regime_calls!inner(regime)",
+      "pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20, regime_at_call",
     )
     .not("brier_score_t5", "is", null)
     .gte("date", "2026-04-01")
@@ -361,33 +361,26 @@ export async function getRegimeBreakdown(
     USDINR: "USD/INR",
   };
 
-  return (
-    data as unknown as Array<{
-      pair: string;
-      correct_t5: boolean | null;
-      actual_direction_t5: string | null;
-      correct_t20: boolean | null;
-      actual_direction_t20: string | null;
-      regime_calls: { regime: string };
-    }>
-  ).map((r) => ({
-    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    regime: r.regime_calls.regime,
-    t5Outcome: r.correct_t5
-      ? "CORRECT"
-      : r.actual_direction_t5 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t5 != null
-          ? "WRONG"
-          : "—",
-    t20Outcome: r.correct_t20
-      ? "CORRECT"
-      : r.actual_direction_t20 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t20 != null
-          ? "WRONG"
-          : "—",
-  }));
+  return (data as ValidationLogRow[])
+    .filter((r) => r.regime_at_call != null)
+    .map((r) => ({
+      pair: PAIR_DISPLAY[r.pair] ?? r.pair,
+      regime: r.regime_at_call ?? "UNKNOWN",
+      t5Outcome: r.correct_t5
+        ? "CORRECT"
+        : r.actual_direction_t5 === "NEUTRAL"
+          ? "NEUTRAL"
+          : r.actual_direction_t5 != null
+            ? "WRONG"
+            : "—",
+      t20Outcome: r.correct_t20
+        ? "CORRECT"
+        : r.actual_direction_t20 === "NEUTRAL"
+          ? "NEUTRAL"
+          : r.actual_direction_t20 != null
+            ? "WRONG"
+            : "—",
+    }));
 }
 
 export async function getValidationLogForPair(
