@@ -249,7 +249,7 @@ export default function MethodologyContent() {
               CFTC non-commercial net positions are ranked over a 156-week
               lookback. The percentile <Mono>π</Mono> feeds three metrics:
             </Body>
-            <KatexMath latex="\\phi_{\\text{upper}}(\\pi) = \\max(0, \\min(1, \\frac{\\pi - 90}{10})) \\quad \\phi_{\\text{lower}}(\\pi) = \\max(0, \\min(1, \\frac{10 - \\pi}{10}))" />
+            <KatexMath latex="\phi_{\text{upper}}(\pi) = \max(0, \min(1, \frac{\pi - 90}{10})) \quad \phi_{\text{lower}}(\pi) = \max(0, \min(1, \frac{10 - \pi}{10}))" />
             <Body>
               Crowding flag: <Mono>π ≥ 90</Mono> or <Mono>π ≤ 10</Mono>.
               Crowding veto: <Mono>π ≥ 97</Mono> or <Mono>π ≤ 3</Mono>.
@@ -283,7 +283,7 @@ export default function MethodologyContent() {
               conflict or when crowding is elevated. If positioning data is
               missing, an additional <Mono>0.88</Mono> discount applies:
             </Body>
-            <KatexMath latex="m_{\\pi} = \\max(0.52, \\min(1.08, \\; (1 - 0.48 \\cdot p_{\\text{crowd}}) \\cdot a_{\\text{align}} \\;))" />
+            <KatexMath latex="m_{\pi} = \max(0.52, \min(1.08, \; (1 - 0.48 \cdot p_{\text{crowd}}) \cdot a_{\text{align}} \;))" />
             <Body>
               where <Mono>a = 1.0</Mono> if rate and positioning agree,{" "}
               <Mono>0.72</Mono> if they conflict. The effective rate sign uses a
@@ -300,7 +300,7 @@ export default function MethodologyContent() {
               scaled by <Mono>m_π</Mono> and rounded to an integer{" "}
               <Mono>1–5</Mono>:
             </Body>
-            <KatexMath latex="C = \\text{round}\\Big( \\max(1, \\min(5, \\; (3 + \\text{clip}(S, -2, 2)) \\cdot m_{\\pi} \\;)) \\Big)" />
+            <KatexMath latex="C = \text{round}\Big( \max(1, \min(5, \; (3 + \text{clip}(S, -2, 2)) \cdot m_{\pi} \;)) \Big)" />
             <Body>
               Direction logic: if the composite is materially non-zero{" "}
               <Mono>(|S| &gt; 0.30)</Mono>, composite drives the bias; otherwise
@@ -466,7 +466,7 @@ export default function MethodologyContent() {
               composite is clipped to <Mono>[−2, 2]</Mono> upstream; typical
               range is <Mono>[−1, 1]</Mono>:
             </Body>
-            <KatexMath latex="\\text{base} = \\text{clip}\\left(\\frac{|S|}{2.0}, \\; 0.10, \\; 0.90\\right)" />
+            <KatexMath latex="\text{base} = \text{clip}\left(\frac{|S|}{2.0}, \; 0.10, \; 0.90\right)" />
 
             <Body>
               <strong className="text-[var(--color-text)]">
@@ -489,7 +489,7 @@ export default function MethodologyContent() {
               Raw confidence is clipped to <Mono>[0.30, 0.95]</Mono>, then the
               institutional haircut is applied:
             </Body>
-            <KatexMath latex="C = \\text{clip}\\left( \\text{clip}(\\text{base} + \\text{bonus} + \\text{pair}, \\; 0.30, \\; 0.95) - 0.03, \\; 0.30, \\; 0.90 \\right)" />
+            <KatexMath latex="C = \text{clip}\left( \text{clip}(\text{base} + \text{bonus} + \text{pair}, \; 0.30, \; 0.95) - 0.03, \; 0.30, \; 0.90 \right)" />
           </Subsection>
 
           {/* ── Validation Methodology ──────────────────────────────── */}
@@ -507,7 +507,7 @@ export default function MethodologyContent() {
               The log-return in basis points between call-date spot and
               horizon-date spot is:
             </Body>
-            <KatexMath latex="r_{h} = 10{,}000 \\cdot \\ln\\left(\\frac{S_{t+h}}{S_t}\\right)" />
+            <KatexMath latex="r_{h} = 10{,}000 \cdot \ln\left(\frac{S_{t+h}}{S_t}\right)" />
             <Body>
               A 5 bps dead-band filters noise: UP if <Mono>r {" > 5"}</Mono>,
               DOWN if <Mono>r {" < -5"}</Mono>, otherwise NEUTRAL.
