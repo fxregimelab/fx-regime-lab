@@ -2,7 +2,9 @@
 
 > **Kimi = Strategy + Execution.**  
 > Complex tasks are delegated to Kimi subagents (`Agent` tool) for cross-file consistency.  
-> Read `TASK.md` for current sprint state. Read `OMEGA_PROTOCOL.md` for the council workflow.
+> **Read `IDENTITY.md` first** — it is the hard constraint. No task may violate it.  
+> **Read `MASTERPLAN.md` second** — it is the single source of truth for all planning and product direction.  
+> Read `TASK.md` for current sprint state. Read `OMEGA_PROTOCOL.md` for the council workflow rules (not roadmap).
 
 ## Hard Rules
 - **3-pair lock:** EUR/USD, USD/JPY, USD/INR ONLY
@@ -51,7 +53,8 @@ cd web && npm run lint             # biome/eslint
 - `docs/SIGNAL_DEFINITIONS.md` — exact math, weights, thresholds
 - `docs/DATABASE_SCHEMA.md` — table specs, indexes
 - `docs/PIPELINE_REFERENCE.md` — step order, failure modes
-- `OMEGA_PROTOCOL.md` — The 13-persona council and 6-phase workflow
+- `MASTERPLAN.md` — Ultimate product roadmap (THIS is the plan)
+- `OMEGA_PROTOCOL.md` — The 13-persona council and workflow rules (process, not product direction)
 - `CLAUDE.md` — AI persona, locked decisions, session rules
 
 *Last updated: 2026-05-16*

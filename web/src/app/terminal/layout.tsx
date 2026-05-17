@@ -17,6 +17,7 @@ export default async function TerminalLayout({
 }) {
   let lastRunAt: string | null = null;
   let status: "HEALTHY" | "DEGRADED" | "FAILED" | "UNKNOWN" = "UNKNOWN";
+  let dqs: number | null = null;
   let errors: string[] = [];
   let signals: Record<string, LatestSignal> = {};
 
@@ -30,6 +31,7 @@ export default async function TerminalLayout({
       const latest = health[0];
       lastRunAt = latest.date;
       status = latest.status;
+      dqs = latest.dqs ?? null;
       errors = latest.errors;
     }
     signals = latestSignals;
@@ -63,7 +65,12 @@ export default async function TerminalLayout({
       <div className="max-w-[1152px] mx-auto px-6 w-full flex items-center justify-between">
         <DensityIndicator />
       </div>
-      <AuditTrailBannerServer variant="terminal" />
+      <AuditTrailBannerServer
+        variant="terminal"
+        lastRunAt={lastRunAt}
+        status={status}
+        dqs={dqs}
+      />
     </div>
   );
 }
