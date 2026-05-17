@@ -25,7 +25,10 @@ function DollarDominanceIndex({
   let neutral = 0;
 
   for (const p of PAIRS) {
-    const regime = pairRegimes?.[p.urlSlug] ?? "";
+    const regime =
+      pairRegimes?.[p.label] ??
+      pairRegimes?.[p.urlSlug] ??
+      "";
     const u = regime.toUpperCase();
     if (
       u.includes("STRENGTH") ||
