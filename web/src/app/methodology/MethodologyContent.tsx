@@ -160,7 +160,7 @@ export default function MethodologyContent() {
               observation at <Mono>t</Mono> is scored against mean and std
               computed from <Mono>[t−251, t−1]</Mono> only — no lookahead:
             </Body>
-            <KatexMath latex="z_{\\text{rate}} = \\frac{x_t - \\mu_{[t-251,\\,t-1]}}{\\sigma_{[t-251,\\,t-1]}}" />
+            <KatexMath latex="z_{\text{rate}} = \frac{x_t - \mu_{[t-251,\,t-1]}}{\sigma_{[t-251,\,t-1]}}" />
 
             <Body>
               <strong className="text-[var(--color-text)]">
