@@ -295,6 +295,7 @@ export async function getValidationLogT5T20(
     .from("validation_log")
     .select("*")
     .not("brier_score_t5", "is", null)
+    .gte("date", "2026-04-01")
     .order("date", { ascending: false })
     .limit(limit);
 
@@ -348,6 +349,7 @@ export async function getRegimeBreakdown(
       "pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20, regime_calls!inner(regime)",
     )
     .not("brier_score_t5", "is", null)
+    .gte("date", "2026-04-01")
     .order("date", { ascending: false })
     .limit(limit);
 

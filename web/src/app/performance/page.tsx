@@ -14,6 +14,7 @@ import {
   getValidationLogT5T20,
   getValidationStats,
 } from "@/lib/supabase/queries";
+import type { ValidationRowT5, ValidationStats } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 
@@ -180,18 +181,155 @@ function EquityCurveSVG({
 
 export const dynamic = "force-dynamic";
 
+/* ─── compute stats from filtered validation log ─────────────────────────── */
+
+function computeStatsFromLog(
+  rows: ValidationRowT5[],
+  pair: string | null,
+  horizon: "t5" | "t20",
+): ValidationStats {
+  const filtered = pair ? rows.filter((r) => r.pair === pair) : rows;
+
+  const outcomeKey = horizon === "t5" ? "t5Outcome" : "t20Outcome";
+  const brierKey = horizon === "t5" ? "t5Brier" : "t20Brier";
+  const returnKey = horizon === "t5" ? "t5ReturnBps" : "t20ReturnBps";
+
+  const valid = filtered.filter(
+    (r) =>
+      r[outcomeKey as keyof ValidationRowT5] === "CORRECT" ||
+      r[outcomeKey as keyof ValidationRowT5] === "WRONG",
+  );
+  const wins = valid.filter(
+    (r) => r[outcomeKey as keyof ValidationRowT5] === "CORRECT",
+  ).length;
+  const sampleSize = valid.length;
+  const winRate = sampleSize > 0 ? wins / sampleSize : null;
+
+  const brierValues = filtered
+    .map((r) => r[brierKey as keyof ValidationRowT5] as number | null)
+    .filter((v): v is number => v != null);
+  const brierScore =
+    brierValues.length > 0
+      ? brierValues.reduce((s, v) => s + v, 0) / brierValues.length
+      : null;
+
+  const returns = filtered
+    .map((r) => r[returnKey as keyof ValidationRowT5] as number | null)
+    .filter((v): v is number => v != null);
+  const avgReturnBps =
+    returns.length > 0
+      ? returns.reduce((s, v) => s + v, 0) / returns.length
+      : null;
+
+  let sharpeLike: number | null = null;
+  if (avgReturnBps != null && returns.length > 1) {
+    const mean = avgReturnBps;
+    const variance =
+      returns.reduce((s, v) => s + (v - mean) ** 2, 0) / (returns.length - 1);
+    sharpeLike = variance > 0 ? mean / Math.sqrt(variance) : null;
+  }
+
+  // Rolling 90d: production data is only ~40 days old, so this equals
+  // all-time production accuracy for now.
+  const sortedDates = [...filtered.map((r) => r.date)].sort();
+  const latestDate =
+    sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : "";
+  const cutoff90d = new Date(latestDate || Date.now());
+  cutoff90d.setDate(cutoff90d.getDate() - 90);
+  const cutoffStr = cutoff90d.toISOString().split("T")[0];
+  const recent90 = valid.filter((r) => r.date >= cutoffStr);
+  const rolling90dAccuracy =
+    recent90.length > 0
+      ? recent90.filter(
+          (r) => r[outcomeKey as keyof ValidationRowT5] === "CORRECT",
+        ).length / recent90.length
+      : null;
+
+  return {
+    pair: pair ?? "ALL",
+    horizon,
+    winRate,
+    wins,
+    brierScore,
+    sampleSize,
+    avgReturnBps,
+    sharpeLike,
+    rolling90dAccuracy,
+    asOfDate: latestDate,
+  };
+}
+
 export default async function PerformancePage() {
   const supabase = await createClient();
-  const [statsT5, statsT20, validation, regimeBreakdown] = await Promise.all([
-    getValidationStats(supabase, "t5"),
-    getValidationStats(supabase, "t20"),
-    getValidationLogT5T20(supabase, 500),
-    getRegimeBreakdown(supabase, 500),
-  ]);
+  const [statsT5Raw, statsT20Raw, validation, regimeBreakdown] =
+    await Promise.all([
+      getValidationStats(supabase, "t5"),
+      getValidationStats(supabase, "t20"),
+      getValidationLogT5T20(supabase, 500),
+      getRegimeBreakdown(supabase, 500),
+    ]);
 
-  const allT5 = statsT5.find((s) => s.pair === "ALL");
-  const allT20 = statsT20.find((s) => s.pair === "ALL");
-  const totalCalls = allT5?.sampleSize ?? validation.length;
+  // Compute ALL stats from filtered validation log (production period only)
+  const allT5 = computeStatsFromLog(validation, null, "t5");
+  const allT20 = computeStatsFromLog(validation, null, "t20");
+  const totalCalls = allT5.sampleSize ?? validation.length;
+
+  // Compute per-pair stats from filtered validation log
+  const PAIR_LABELS = ["EUR/USD", "USD/JPY", "USD/INR"] as const;
+  const computedT5 = PAIR_LABELS.map((p) =>
+    computeStatsFromLog(validation, p, "t5"),
+  );
+  const computedT20 = PAIR_LABELS.map((p) =>
+    computeStatsFromLog(validation, p, "t20"),
+  );
+
+  // Merge computed stats with raw stats: prefer computed (production-only),
+  // but keep raw per-pair rows as fallback for fields we don't compute.
+  const t5Map = new Map(
+    statsT5Raw.filter((s) => s.pair !== "ALL").map((s) => [s.pair, s]),
+  );
+  const t20Map = new Map(
+    statsT20Raw.filter((s) => s.pair !== "ALL").map((s) => [s.pair, s]),
+  );
+
+  const statsT5: ValidationStats[] = [
+    ...computedT5.map((computed) => {
+      const raw = t5Map.get(computed.pair);
+      return raw
+        ? {
+            ...raw,
+            winRate: computed.winRate,
+            wins: computed.wins,
+            brierScore: computed.brierScore,
+            sampleSize: computed.sampleSize,
+            avgReturnBps: computed.avgReturnBps,
+            sharpeLike: computed.sharpeLike,
+            rolling90dAccuracy: computed.rolling90dAccuracy,
+            asOfDate: computed.asOfDate,
+          }
+        : computed;
+    }),
+    allT5,
+  ];
+  const statsT20: ValidationStats[] = [
+    ...computedT20.map((computed) => {
+      const raw = t20Map.get(computed.pair);
+      return raw
+        ? {
+            ...raw,
+            winRate: computed.winRate,
+            wins: computed.wins,
+            brierScore: computed.brierScore,
+            sampleSize: computed.sampleSize,
+            avgReturnBps: computed.avgReturnBps,
+            sharpeLike: computed.sharpeLike,
+            rolling90dAccuracy: computed.rolling90dAccuracy,
+            asOfDate: computed.asOfDate,
+          }
+        : computed;
+    }),
+    allT20,
+  ];
 
   // equity curve from T+5 cumulative log-returns (bps)
   const sortedAsc = [...validation].sort((a, b) =>

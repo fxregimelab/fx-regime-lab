@@ -13,7 +13,7 @@ import {
   getLatestRegimeCalls,
   getLatestSignals,
   getMacroEventsToday,
-  getValidationStats,
+  getValidationLogT5T20,
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
@@ -36,8 +36,7 @@ export default async function TerminalIndexPage() {
     crossAsset,
     macroEvents,
     brief,
-    statsT5,
-    statsT20,
+    validationLog,
     ...pairHistories
   ] = await Promise.all([
     getLatestRegimeCalls(supabase),
@@ -45,14 +44,14 @@ export default async function TerminalIndexPage() {
     getCrossAssetSnapshot(supabase),
     getMacroEventsToday(supabase),
     getLatestBrief(supabase),
-    getValidationStats(supabase, "t5"),
-    getValidationStats(supabase, "t20"),
+    getValidationLogT5T20(supabase, 500),
     ...PAIRS.map((p) => getHistoricalRegimeCalls(supabase, p.label, 30)),
   ]);
 
-  // Validated calls count from ALL aggregate
-  const allStats = statsT5.find((s) => s.pair === "ALL");
-  const validatedCount = allStats?.sampleSize ?? null;
+  // Validated calls count from filtered production log
+  const validatedCount = validationLog.filter(
+    (r) => r.t5Outcome === "CORRECT" || r.t5Outcome === "WRONG",
+  ).length;
 
   // DQS and stress from latest regime call (use first available pair's latest)
   const latestCall = Object.values(calls)[0];
@@ -120,8 +119,23 @@ export default async function TerminalIndexPage() {
               .map((r) => r.signal_composite)
               .reverse();
 
-            const pairStatT5 = statsT5.find((s) => s.pair === p.label);
-            const pairStatT20 = statsT20.find((s) => s.pair === p.label);
+            const pairLog = validationLog.filter((r) => r.pair === p.display);
+            const pairValidT5 = pairLog.filter(
+              (r) => r.t5Outcome === "CORRECT" || r.t5Outcome === "WRONG",
+            );
+            const pairValidT20 = pairLog.filter(
+              (r) => r.t20Outcome === "CORRECT" || r.t20Outcome === "WRONG",
+            );
+            const rolling90dAccT5 =
+              pairValidT5.length > 0
+                ? pairValidT5.filter((r) => r.t5Outcome === "CORRECT").length /
+                  pairValidT5.length
+                : null;
+            const rolling90dAccT20 =
+              pairValidT20.length > 0
+                ? pairValidT20.filter((r) => r.t20Outcome === "CORRECT")
+                    .length / pairValidT20.length
+                : null;
 
             return (
               <SignalCard
@@ -134,8 +148,8 @@ export default async function TerminalIndexPage() {
                   date: r.date,
                   regime: r.regime,
                 }))}
-                rolling90dAccuracyT5={pairStatT5?.rolling90dAccuracy ?? null}
-                rolling90dAccuracyT20={pairStatT20?.rolling90dAccuracy ?? null}
+                rolling90dAccuracyT5={rolling90dAccT5}
+                rolling90dAccuracyT20={rolling90dAccT20}
               />
             );
           })}
