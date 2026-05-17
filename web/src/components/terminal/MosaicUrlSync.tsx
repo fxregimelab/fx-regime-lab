@@ -22,9 +22,9 @@ export function MosaicUrlSync() {
       const el = document.getElementById(`mosaic-cell-${slug}`);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.classList.add("ring-1", "ring-[var(--terminal-warning)]");
+        el.classList.add("ring-1", "ring-[var(--color-warn)]");
         setTimeout(
-          () => el.classList.remove("ring-1", "ring-[var(--terminal-warning)]"),
+          () => el.classList.remove("ring-1", "ring-[var(--color-warn)]"),
           3000,
         );
       }

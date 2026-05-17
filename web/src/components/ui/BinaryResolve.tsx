@@ -72,10 +72,10 @@ export const BinaryResolve: React.FC<BinaryResolveProps> = ({
         fontFamily: "var(--font-mono), ui-monospace, monospace",
         fontVariantNumeric: "tabular-nums",
         color: flashing
-          ? "#ffffff"
+          ? "var(--color-text)"
           : resolved
             ? undefined
-            : "var(--terminal-fg-muted, #a8a29e)",
+            : "var(--color-text-muted, #a8a29e)",
         transition: "color 150ms ease-out",
         textShadow: flashing ? "0 0 8px rgba(255,255,255,0.5)" : undefined,
       }}

@@ -73,12 +73,12 @@ export function GhostResolve({
   }, [value, active, paused]);
 
   const ghostMuted = phase === "resolved" || !active;
-  const flickerStyle = phase === "flicker" ? "text-[#555] opacity-50" : "";
+  const flickerStyle = phase === "flicker" ? "text-[var(--color-text-dim)] opacity-50" : "";
 
   return (
     <span
       className={`inline-block font-mono text-[10px] tracking-widest tabular-nums will-change-[contents,opacity,color] ${
-        ghostMuted ? "text-[#888] opacity-60" : flickerStyle
+        ghostMuted ? "text-[var(--color-text-muted)] opacity-60" : flickerStyle
       } ${className}`.trim()}
     >
       {display}

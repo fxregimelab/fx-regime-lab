@@ -67,49 +67,49 @@ export function MacroDriftEngine({ className = "" }: MacroDriftEngineProps) {
 
   return (
     <div
-      className={`flex min-h-[140px] flex-col overflow-hidden border-0 border-t-[0.5px] border-t-white/[0.08] border-l-[0.5px] border-l-white/[0.03] bg-[#050505] p-2 ${className}`.trim()}
+      className={`flex min-h-[140px] flex-col overflow-hidden border-0 border-t-[0.5px] border-t-[color-mix(in_srgb,var(--color-border)_8%,transparent)] border-l-[0.5px] border-l-[color-mix(in_srgb,var(--color-border)_3%,transparent)] bg-[var(--color-sunken)] p-2 ${className}`.trim()}
     >
-      <p className="m-0 mb-2 font-mono text-[8px] tracking-[0.2em] text-[#555]">
+      <p className="m-0 mb-2 font-mono text-[8px] tracking-[0.2em] text-[var(--color-text-dim)]">
         MACRO · DRIFT
       </p>
       {pending ? (
-        <div className="flex flex-1 animate-pulse items-center justify-center font-mono text-[9px] text-[#444]">
+        <div className="flex flex-1 animate-pulse items-center justify-center font-mono text-[9px] text-[var(--color-text-dim)]">
           SYNCING_BRIEF_LOG…
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-2">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="m-0 font-mono text-[8px] tracking-widest text-[#666]">
+              <p className="m-0 font-mono text-[8px] tracking-widest text-[var(--color-text-muted)]">
                 USD_DOMINANCE_DELTA
               </p>
-              <p className="m-0 mt-0.5 font-mono text-[11px] tabular-nums text-[#a8a8a8]">
+              <p className="m-0 mt-0.5 font-mono text-[11px] tabular-nums text-[var(--color-text-secondary)]">
                 {delta != null && Number.isFinite(delta) ? (
                   <>
                     <span
                       className={
-                        delta >= 0 ? "text-emerald-400/90" : "text-rose-400/90"
+                        delta >= 0 ? "text-[var(--color-up)]" : "text-[var(--color-down)]"
                       }
                     >
                       {delta >= 0 ? "+" : ""}
                       {delta.toFixed(1)}
                     </span>
-                    <span className="text-[#555]"> pts / 1d</span>
+                    <span className="text-[var(--color-text-dim)]"> pts / 1d</span>
                   </>
                 ) : (
-                  <span className="text-[#555]">—</span>
+                  <span className="text-[var(--color-text-dim)]">—</span>
                 )}
               </p>
               {latest != null ? (
-                <p className="m-0 mt-1 font-mono text-[9px] tabular-nums text-[#777]">
-                  NOW <span className="text-[#bbb]">{latest.toFixed(0)}</span> /
+                <p className="m-0 mt-1 font-mono text-[9px] tabular-nums text-[var(--color-text-muted)]">
+                  NOW <span className="text-[var(--color-text)]">{latest.toFixed(0)}</span> /
                   100
                 </p>
               ) : null}
             </div>
             <svg
               viewBox="0 0 100 36"
-              className="h-10 w-[44%] shrink-0 text-emerald-500/80"
+              className="h-10 w-[44%] shrink-0 text-[var(--color-up)]"
               preserveAspectRatio="none"
               aria-hidden
             >
@@ -123,13 +123,13 @@ export function MacroDriftEngine({ className = "" }: MacroDriftEngineProps) {
               />
             </svg>
           </div>
-          <div className="border-t-[0.5px] border-t-[#151515] pt-2">
-            <p className="m-0 font-mono text-[8px] tracking-widest text-[#666]">
+          <div className="border-t-[0.5px] border-t-[var(--color-border-subtle)] pt-2">
+            <p className="m-0 font-mono text-[8px] tracking-widest text-[var(--color-text-muted)]">
               G10_IDIO_OUTLIER
             </p>
             {outlier ? (
               <motion.span
-                className="mt-1 inline-block font-mono text-[10px] font-bold tracking-widest text-white"
+                className="mt-1 inline-block font-mono text-[10px] font-bold tracking-widest text-[var(--color-text)]"
                 animate={{ opacity: [1, 0.35, 1] }}
                 transition={{
                   duration: 1.4,
@@ -140,7 +140,7 @@ export function MacroDriftEngine({ className = "" }: MacroDriftEngineProps) {
                 {outlier}
               </motion.span>
             ) : (
-              <p className="m-0 mt-1 font-mono text-[9px] text-[#555]">NULL</p>
+              <p className="m-0 mt-1 font-mono text-[9px] text-[var(--color-text-dim)]">NULL</p>
             )}
           </div>
         </div>

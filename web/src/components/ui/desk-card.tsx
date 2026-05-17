@@ -11,10 +11,10 @@ import React from "react";
 import { fmt2, normalizeProp } from "./utils";
 
 const OMEGA_BEVEL =
-  "border-0 border-t-[0.5px] border-t-white/[0.08] border-l-[0.5px] border-l-white/[0.03] bg-[#080808]";
+  "border-0 border-t-[0.5px] border-t-[color-mix(in_srgb,var(--color-border)_8%,transparent)] border-l-[0.5px] border-l-[color-mix(in_srgb,var(--color-border)_3%,transparent)] bg-[var(--color-sunken)]";
 const OMEGA_BEVEL_CRISIS =
-  "border-0 border-t-[0.5px] border-t-[#f59e0b] border-l-[0.5px] border-l-white/[0.03] bg-[#080808]";
-const OMEGA_DIVIDER_Y = "border-b-[0.5px] border-b-[#111]";
+  "border-0 border-t-[0.5px] border-t-[var(--color-warn)] border-l-[0.5px] border-l-[color-mix(in_srgb,var(--color-border)_3%,transparent)] bg-[var(--color-sunken)]";
+const OMEGA_DIVIDER_Y = "border-b-[0.5px] border-b-[var(--color-border-subtle)]";
 
 /** Desk `ai_brief` JSON: new triple (bias / catalyst / squeeze) or legacy regime_state keys. */
 export function parseDeskAiBriefRows(
@@ -55,7 +55,7 @@ export function parseDeskAiBriefRows(
 function ModelInstabilityBadge({ className }: { className?: string }) {
   return (
     <span
-      className={`font-mono text-[9px] uppercase tracking-widest text-[#f59e0b] border-[0.5px] border-[#f59e0b] bg-transparent px-1.5 py-0.5 whitespace-nowrap ${className ?? ""}`}
+      className={`font-mono text-[9px] uppercase tracking-widest text-[var(--color-warn)] border-[0.5px] border-[var(--color-warn)] bg-transparent px-1.5 py-0.5 whitespace-nowrap ${className ?? ""}`}
       aria-label="Model instability"
     >
       [ MODEL INSTABILITY ]
@@ -99,17 +99,17 @@ export function DeskCardTelemetryRow({
     parameterInstability ?? Boolean(telemetryAudit?.parameter_instability);
   return (
     <div
-      className={`relative ${OMEGA_BEVEL} px-2 py-2 grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 items-baseline text-[#e8e8e8]`}
+      className={`relative ${OMEGA_BEVEL} px-2 py-2 grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 items-baseline text-[var(--color-text)]`}
     >
       {apexScoreDisplay != null ? (
-        <span className="absolute top-1.5 right-2 font-mono text-[10px] font-bold tabular-nums text-[var(--text-muted)] z-10">
+        <span className="absolute top-1.5 right-2 font-mono text-[10px] font-bold tabular-nums text-[var(--color-text-muted)] z-10">
           {apexScoreDisplay}
         </span>
       ) : null}
       <span className="font-mono text-[11px] tracking-wide shrink-0">
         {pairLabel}
       </span>
-      <span className="font-mono text-[11px] text-[#FFFFFF] tabular-nums min-w-0 text-right">
+      <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums min-w-0 text-right">
         <BinaryResolve
           value={spot != null ? fmt2(spot) : "—"}
           resolveKey={spot ?? 0}
@@ -122,7 +122,7 @@ export function DeskCardTelemetryRow({
           transformation: "Signal dispersion → confidence score (0–1)",
         }}
       >
-        <span className="font-mono text-[10px] text-[#FFFFFF] tabular-nums shrink-0">
+        <span className="font-mono text-[10px] text-[var(--color-text)] tabular-nums shrink-0">
           {pct != null ? `${pct}%` : "—"}
         </span>
       </DataLineage>
@@ -133,7 +133,7 @@ export function DeskCardTelemetryRow({
             transformation: "Weighted composite → regime classifier",
           }}
         >
-          <span className="font-mono text-[10px] text-[#b8b8b8] block truncate leading-snug">
+          <span className="font-mono text-[10px] text-[var(--color-text-secondary)] block truncate leading-snug">
             {structuralRegime.replace(/_/g, " ")}
           </span>
         </DataLineage>
@@ -223,7 +223,7 @@ export function DeskCard({
   const isOffline = telemetryStatus === "OFFLINE";
   const isCrisis = invalidationTriggered && !isOffline;
   const surfaceBevel = isCrisis ? OMEGA_BEVEL_CRISIS : OMEGA_BEVEL;
-  const muted = isOffline ? "text-[#666]" : "text-[#e8e8e8]";
+  const muted = isOffline ? "text-[var(--color-text-dim)]" : "text-[var(--color-text)]";
   const top = dominanceArray[0];
   const rest = dominanceArray.slice(1);
   const markovN = markovProbabilities?.weighted_sample_size ?? 0;
@@ -272,7 +272,7 @@ export function DeskCard({
       onMouseLeave={() => setCardHover(false)}
     >
       {apexScoreDisplay != null ? (
-        <span className="absolute top-3 right-3 font-mono text-[12px] font-bold tabular-nums text-[var(--text-muted)] z-10">
+        <span className="absolute top-3 right-3 font-mono text-[12px] font-bold tabular-nums text-[var(--color-text-muted)] z-10">
           {apexScoreDisplay}
         </span>
       ) : null}
@@ -284,7 +284,7 @@ export function DeskCard({
             ? `[ APEX DESK · ${pairDisplay ?? "—"} ]`
             : "[ DESK OPEN CARD ]"}
           {regimeAge != null && regimeAge >= 0 ? (
-            <span className="text-[#666] tabular-nums">
+            <span className="text-[var(--color-text-dim)] tabular-nums">
               {" "}
               [ AGE: {regimeAge}D ]
             </span>
@@ -307,19 +307,19 @@ export function DeskCard({
           type="button"
           onClick={() => setMathOpen((o) => !o)}
           aria-expanded={mathOpen}
-          className="shrink-0 rounded-none border-0 border-t-[0.5px] border-t-white/[0.08] border-l-[0.5px] border-l-white/[0.03] bg-[#000000] px-2 py-1 font-mono text-[11px] text-[#d4d4d4] shadow-none hover:text-[#ffffff] omega-haptic"
+          className="shrink-0 rounded-none border-0 border-t-[0.5px] border-t-[color-mix(in_srgb,var(--color-border)_8%,transparent)] border-l-[0.5px] border-l-[color-mix(in_srgb,var(--color-border)_3%,transparent)] bg-[var(--color-void)] px-2 py-1 font-mono text-[11px] text-[var(--color-text)] shadow-none hover:text-[var(--color-text)] omega-haptic"
           aria-label="Toggle math inspector"
         >
           [ ∫ ]
         </button>
       </div>
       {isOffline ? (
-        <div className="border-b-[0.5px] border-b-[#222] px-4 py-2 font-mono text-[11px] tracking-widest text-[#8a8a8a]">
+        <div className="border-b-[0.5px] border-b-[var(--color-border)] px-4 py-2 font-mono text-[11px] tracking-widest text-[var(--color-text-muted)]">
           [ TELEMETRY OFFLINE ]
         </div>
       ) : null}
       {isCrisis ? (
-        <div className="border-b-[0.5px] border-b-[#f59e0b] px-4 py-2 font-mono text-[11px] tracking-widest text-[#f59e0b]">
+        <div className="border-b-[0.5px] border-b-[var(--color-warn)] px-4 py-2 font-mono text-[11px] tracking-widest text-[var(--color-warn)]">
           [ OVERNIGHT INVALIDATION TRIGGERED ]
         </div>
       ) : null}
@@ -332,14 +332,14 @@ export function DeskCard({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-            className={`overflow-hidden ${OMEGA_DIVIDER_Y} bg-[#080808] shadow-none`}
+            className={`overflow-hidden ${OMEGA_DIVIDER_Y} bg-[var(--color-sunken)] shadow-none`}
           >
             <div className="grid grid-cols-2 gap-x-3 gap-y-2 px-4 py-3 md:grid-cols-4">
               <div className="min-w-0">
-                <p className="font-mono text-[9px] tracking-widest text-[var(--text-muted)]">
+                <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)]">
                   RATE Z (T)
                 </p>
-                <p className="font-mono text-[10px] tabular-nums text-[#e8e8e8]">
+                <p className="font-mono text-[10px] tabular-nums text-[var(--color-text)]">
                   <BinaryResolve
                     value={fmtM(zT)}
                     resolveKey={zT ?? 0}
@@ -348,10 +348,10 @@ export function DeskCard({
                 </p>
               </div>
               <div className="min-w-0">
-                <p className="font-mono text-[9px] tracking-widest text-[var(--text-muted)]">
+                <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)]">
                   RATE Z (S)
                 </p>
-                <p className="font-mono text-[10px] tabular-nums text-[#e8e8e8]">
+                <p className="font-mono text-[10px] tabular-nums text-[var(--color-text)]">
                   <BinaryResolve
                     value={fmtM(zS)}
                     resolveKey={zS ?? 0}
@@ -360,10 +360,10 @@ export function DeskCard({
                 </p>
               </div>
               <div className="min-w-0">
-                <p className="font-mono text-[9px] tracking-widest text-[var(--text-muted)]">
+                <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)]">
                   PAIN INDX
                 </p>
-                <p className="font-mono text-[10px] tabular-nums text-[#e8e8e8]">
+                <p className="font-mono text-[10px] tabular-nums text-[var(--color-text)]">
                   <BinaryResolve
                     value={
                       painIndex == null || Number.isNaN(painIndex)
@@ -376,10 +376,10 @@ export function DeskCard({
                 </p>
               </div>
               <div className="min-w-0">
-                <p className="font-mono text-[9px] tracking-widest text-[var(--text-muted)]">
+                <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)]">
                   DYN BETA
                 </p>
-                <p className="font-mono text-[10px] tabular-nums text-[#e8e8e8]">
+                <p className="font-mono text-[10px] tabular-nums text-[var(--color-text)]">
                   <BinaryResolve
                     value={fmtM(dynBeta)}
                     resolveKey={dynBeta ?? 0}
@@ -398,7 +398,7 @@ export function DeskCard({
         >
           <div className="flex flex-wrap items-center gap-2 min-w-0">
             {rankJump != null && rankJump > 0 ? (
-              <span className="font-mono text-[9px] tracking-widest text-[var(--text-muted)] shrink-0">
+              <span className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] shrink-0">
                 [ RANK JUMP: +{rankJump} ]
               </span>
             ) : null}
@@ -409,7 +409,7 @@ export function DeskCard({
                   transformation: "Signal dispersion → confidence score (0–1)",
                 }}
               >
-                <span className="font-mono text-[10px] tabular-nums text-[#FFFFFF] tracking-widest">
+                <span className="font-mono text-[10px] tabular-nums text-[var(--color-text)] tracking-widest">
                   CONF {confPct}%
                 </span>
               </DataLineage>
@@ -418,8 +418,8 @@ export function DeskCard({
           <p
             className={`font-mono font-extrabold tabular-nums tracking-tight shrink-0 ${
               isCrisis
-                ? "line-through text-[#FFFFFF] text-[22px]"
-                : "text-[#FFFFFF] text-[30px] leading-none"
+                ? "line-through text-[var(--color-text)] text-[22px]"
+                : "text-[var(--color-text)] text-[30px] leading-none"
             }`}
           >
             <BinaryResolve
@@ -433,7 +433,7 @@ export function DeskCard({
 
       <div className="px-4 py-4">
         <div className="relative pr-[168px] min-h-[14px]">
-          <p className="font-mono text-[9px] text-[#777] tracking-widest uppercase">
+          <p className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-widest uppercase">
             STRUCTURAL REGIME
           </p>
           {modelUnstable ? (
@@ -443,7 +443,7 @@ export function DeskCard({
         <p
           className={`mt-1 font-mono font-extrabold ${
             isHero ? "text-[28px] leading-tight" : "text-[20px]"
-          } ${isCrisis ? "line-through text-[#FFFFFF]" : "text-[#FFFFFF]"}`}
+          } ${isCrisis ? "line-through text-[var(--color-text)]" : "text-[var(--color-text)]"}`}
         >
           <DataLineage
             lineage={{
@@ -456,15 +456,15 @@ export function DeskCard({
         </p>
       </div>
 
-      <div className="border-t-[0.5px] border-t-[#111] grid grid-cols-1 md:grid-cols-2">
-        <div className="border-r-[0.5px] border-r-[#111] p-4">
-          <p className="font-mono text-[9px] tracking-widest text-[#777] mb-2">
+      <div className="border-t-[0.5px] border-t-[var(--color-border-subtle)] grid grid-cols-1 md:grid-cols-2">
+        <div className="border-r-[0.5px] border-r-[var(--color-border-subtle)] p-4">
+          <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] mb-2">
             DOMINANCE ARRAY
           </p>
           {top ? (
-            <div className="border-0 border-t-[0.5px] border-t-white/[0.06] bg-[#000000] p-3 mb-2">
-              <p className="font-mono text-[9px] text-[#8e8e8e]">RANK #1</p>
-              <p className="font-mono text-[13px] text-[var(--text-muted)] mt-1 tabular-nums">
+            <div className="border-0 border-t-[0.5px] border-t-[color-mix(in_srgb,var(--color-border)_6%,transparent)] bg-[var(--color-void)] p-3 mb-2">
+              <p className="font-mono text-[9px] text-[var(--color-text-secondary)]">RANK #1</p>
+              <p className="font-mono text-[13px] text-[var(--color-text-muted)] mt-1 tabular-nums">
                 {top.signal_family.toUpperCase()} (
                 {top.dominance_score.toFixed(3)})
               </p>
@@ -474,9 +474,9 @@ export function DeskCard({
             {rest.map((row) => (
               <div
                 key={`${row.rank}-${row.signal_family}`}
-                className="border-0 border-t-[0.5px] border-t-white/[0.04] bg-[#000000] p-2"
+                className="border-0 border-t-[0.5px] border-t-[color-mix(in_srgb,var(--color-border)_4%,transparent)] bg-[var(--color-void)] p-2"
               >
-                <p className="font-mono text-[10px] text-[#d0d0d0]">
+                <p className="font-mono text-[10px] text-[var(--color-text-secondary)]">
                   #{row.rank} {row.signal_family.toUpperCase()}
                 </p>
               </div>
@@ -485,15 +485,15 @@ export function DeskCard({
         </div>
 
         <div className={`p-4 ${markovLowSample ? "opacity-50" : ""}`}>
-          <p className="font-mono text-[9px] tracking-widest text-[#777] mb-2">
+          <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] mb-2">
             MARKOV PROBABILITIES
           </p>
           {markovLowSample ? (
-            <p className="font-mono text-[10px] tracking-widest text-[#f59e0b] mb-2">
+            <p className="font-mono text-[10px] tracking-widest text-[var(--color-warn)] mb-2">
               {"[ LOW CONFIDENCE SAMPLE (N < 20) ]"}
             </p>
           ) : null}
-          <p className="font-mono text-[11px] text-[#d0d0d0] tabular-nums">
+          <p className="font-mono text-[11px] text-[var(--color-text-secondary)] tabular-nums">
             CONTINUATION:{" "}
             {markovProbabilities?.continuation_probability != null
               ? `${markovProbabilities.continuation_probability.toFixed(2)}%`
@@ -504,7 +504,7 @@ export function DeskCard({
               ([regime, value]) => (
                 <p
                   key={regime}
-                  className="font-mono text-[10px] text-[#9f9f9f] tabular-nums"
+                  className="font-mono text-[10px] text-[var(--color-text-muted)] tabular-nums"
                 >
                   {regime}: {value.toFixed(2)}%
                 </p>
@@ -514,29 +514,29 @@ export function DeskCard({
         </div>
       </div>
 
-      <div className="border-t-[0.5px] border-t-[#111] px-4 py-3">
-        <p className="font-mono text-[9px] tracking-widest text-[#777] mb-2">
+      <div className="border-t-[0.5px] border-t-[var(--color-border-subtle)] px-4 py-3">
+        <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] mb-2">
           ASYMMETRY RADAR
         </p>
         {painIndex != null && painIndex > 80 ? (
-          <p className="font-mono text-[11px] text-[#f59e0b] tracking-wide">
+          <p className="font-mono text-[11px] text-[var(--color-warn)] tracking-wide">
             [ ASYMMETRIC SETUP DETECTED: Fundamental vs. Positioning Divergence
             ]
           </p>
         ) : (
-          <p className="font-mono text-[10px] text-[#8a8a8a]">
+          <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
             No extreme divergence signal.
           </p>
         )}
       </div>
 
       {!isCrisis && !isOffline ? (
-        <div className="border-t-[0.5px] border-t-[#111] px-4 py-3">
-          <p className="font-mono text-[9px] tracking-widest text-[var(--text-muted)] mb-2">
+        <div className="border-t-[0.5px] border-t-[var(--color-border-subtle)] px-4 py-3">
+          <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] mb-2">
             AI BRIEF
           </p>
           {aiRows.length === 0 ? (
-            <p className="font-mono text-[11px] text-[var(--text-muted)] m-0">
+            <p className="font-mono text-[11px] text-[var(--color-text-muted)] m-0">
               No desk brief available.
             </p>
           ) : (
@@ -546,10 +546,10 @@ export function DeskCard({
                   key={label}
                   className="grid grid-cols-[minmax(0,92px)_minmax(0,1fr)] gap-x-3 items-baseline"
                 >
-                  <span className="text-[var(--text-muted)] tracking-widest shrink-0">
+                  <span className="text-[var(--color-text-muted)] tracking-widest shrink-0">
                     [ {label} ]
                   </span>
-                  <span className="text-[var(--text-primary)] min-w-0 break-words">
+                  <span className="text-[var(--color-text)] min-w-0 break-words">
                     {value}
                   </span>
                 </div>
@@ -593,10 +593,10 @@ export function DeskCard({
                     setLiErr(e instanceof Error ? e.message : "Copy failed");
                   }
                 }}
-                className={`border-0 border-t-[0.5px] border-t-white/[0.1] border-l-[0.5px] border-l-white/[0.04] bg-[#000000] px-2 py-1.5 font-mono text-[9px] tracking-widest cursor-pointer transition-opacity disabled:cursor-not-allowed active:opacity-90 omega-haptic ${
+                className={`border-0 border-t-[0.5px] border-t-[color-mix(in_srgb,var(--color-border)_10%,transparent)] border-l-[0.5px] border-l-[color-mix(in_srgb,var(--color-border)_4%,transparent)] bg-[var(--color-void)] px-2 py-1.5 font-mono text-[9px] tracking-widest cursor-pointer transition-opacity disabled:cursor-not-allowed active:opacity-90 omega-haptic ${
                   liPhase === "success"
-                    ? "border-t-emerald-500/50 text-[#34d399]"
-                    : "text-[#c8c8c8] hover:border-t-white/20 hover:text-white"
+                    ? "border-t-[var(--color-up)]/50 text-[var(--color-up)]"
+                    : "text-[var(--color-text)] hover:border-t-[color-mix(in_srgb,var(--color-border)_20%,transparent)] hover:text-[var(--color-text)]"
                 } ${liPhase === "loading" ? "animate-pulse opacity-70" : ""}`}
               >
                 {liPhase === "loading"
@@ -606,7 +606,7 @@ export function DeskCard({
                     : "[ COPY LINKEDIN ALPHA ]"}
               </button>
               {liErr ? (
-                <p className="mt-2 font-mono text-[9px] text-[#ef4444] m-0">
+                <p className="mt-2 font-mono text-[9px] text-[var(--color-down)] m-0">
                   {liErr}
                 </p>
               ) : null}
@@ -616,8 +616,8 @@ export function DeskCard({
       ) : null}
 
       {showGhostStrip ? (
-        <div className="border-t-[0.5px] border-t-[#111] px-4 py-2.5 min-h-[48px] flex flex-col justify-center gap-1">
-          <p className="m-0 mb-0 font-mono text-[8px] tracking-widest text-[#444]">
+        <div className="border-t-[0.5px] border-t-[var(--color-border-subtle)] px-4 py-2.5 min-h-[48px] flex flex-col justify-center gap-1">
+          <p className="m-0 mb-0 font-mono text-[8px] tracking-widest text-[var(--color-text-dim)]">
             GHOST WHISPER
           </p>
           {whisper ? (
@@ -629,7 +629,7 @@ export function DeskCard({
                 paused={pausedBinaryResolve}
               />
             ) : (
-              <p className="m-0 font-mono text-[9px] tracking-widest text-[#333]">
+              <p className="m-0 font-mono text-[9px] tracking-widest text-[var(--color-text-dim)]">
                 [ HOVER_FOR_SIGNAL ]
               </p>
             )

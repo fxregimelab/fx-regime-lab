@@ -12,13 +12,13 @@ function cellStyle(c: number): CSSProperties {
   const t = Math.max(-1, Math.min(1, c));
   const a = 0.12 + 0.55 * Math.abs(t);
   if (t >= 0) {
-    return { backgroundColor: `rgba(16, 185, 129, ${a})` };
+    return { backgroundColor: `color-mix(in srgb, var(--color-up) ${Math.round(a*100)}%, transparent)` };
   }
-  return { backgroundColor: `rgba(244, 63, 94, ${a})` };
+  return { backgroundColor: `color-mix(in srgb, var(--color-down) ${Math.round(a*100)}%, transparent)` };
 }
 
 const BEVEL =
-  "border-[0.5px] border-t border-l border-t-white/[0.12] border-l-white/[0.06] border-r border-b border-r-black/40 border-b-black/50";
+  "border-[0.5px] border-t border-l border-t-[color-mix(in_srgb,var(--color-border)_12%,transparent)] border-l-[color-mix(in_srgb,var(--color-border)_6%,transparent)] border-r border-b border-r-[color-mix(in_srgb,var(--color-void)_40%,transparent)] border-b-[color-mix(in_srgb,var(--color-void)_50%,transparent)]";
 
 type CorrelationMatrixProps = {
   matrix: G10CorrelationJson | null;
@@ -35,13 +35,13 @@ export function CorrelationMatrix({
 
   return (
     <div
-      className={`flex min-h-[140px] flex-col overflow-hidden border-0 border-t-[0.5px] border-t-white/[0.08] border-l-[0.5px] border-l-white/[0.03] bg-[#050505] p-2 ${className}`.trim()}
+      className={`flex min-h-[140px] flex-col overflow-hidden border-0 border-t-[0.5px] border-t-[color-mix(in_srgb,var(--color-border)_8%,transparent)] border-l-[0.5px] border-l-[color-mix(in_srgb,var(--color-border)_3%,transparent)] bg-[var(--color-sunken)] p-2 ${className}`.trim()}
     >
-      <p className="m-0 mb-1.5 font-mono text-[8px] tracking-[0.2em] text-[#555]">
+      <p className="m-0 mb-1.5 font-mono text-[8px] tracking-[0.2em] text-[var(--color-text-dim)]">
         G10 · CORR(120D)
       </p>
       {pending ? (
-        <div className="flex flex-1 animate-pulse items-center justify-center font-mono text-[9px] text-[#444]">
+        <div className="flex flex-1 animate-pulse items-center justify-center font-mono text-[9px] text-[var(--color-text-dim)]">
           LOADING_MATRIX…
         </div>
       ) : (

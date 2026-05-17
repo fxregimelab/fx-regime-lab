@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const SECTIONS = [
   { label: "Overview", href: "/terminal" },
-  { label: "FX Regime", href: "/terminal/fx-regime" },
+  { label: "Mosaic", href: "/terminal/fx-regime" },
   { label: "Calendar", href: "/terminal/calendar" },
   { label: "Track Record", href: "/terminal/performance" },
   { label: "Memos", href: "/terminal/memos" },
