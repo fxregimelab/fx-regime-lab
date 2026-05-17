@@ -346,7 +346,7 @@ export async function getRegimeBreakdown(
   const { data, error } = await supabase
     .from("validation_log")
     .select(
-      "pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20, regime_at_call",
+      "pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20, predicted_regime",
     )
     .not("brier_score_t5", "is", null)
     .gte("date", "2026-04-01")
@@ -362,10 +362,10 @@ export async function getRegimeBreakdown(
   };
 
   return (data as ValidationLogRow[])
-    .filter((r) => r.regime_at_call != null)
+    .filter((r) => r.predicted_regime != null)
     .map((r) => ({
       pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-      regime: r.regime_at_call ?? "UNKNOWN",
+      regime: r.predicted_regime ?? "UNKNOWN",
       t5Outcome: r.correct_t5
         ? "CORRECT"
         : r.actual_direction_t5 === "NEUTRAL"

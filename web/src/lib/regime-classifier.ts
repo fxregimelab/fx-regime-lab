@@ -10,6 +10,7 @@ export function classifyRegime(regime: string): RegimeType {
   if (
     u.includes("STRENGTH") ||
     u.includes("APPRECIATION") ||
+    u.includes("RISK_ON") ||
     u === "TRENDING" ||
     u === "BREAKOUT" ||
     u === "ACCUMULATION"
@@ -21,6 +22,7 @@ export function classifyRegime(regime: string): RegimeType {
   if (
     u.includes("WEAKNESS") ||
     u.includes("DEPRECIATION") ||
+    u.includes("RISK_OFF") ||
     u === "REVERSAL" ||
     u === "DISTRIBUTION"
   ) {
