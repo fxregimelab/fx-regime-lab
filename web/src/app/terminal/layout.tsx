@@ -5,7 +5,11 @@ import { VimNavProvider } from "@/components/terminal/VimNavProvider";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import { CircuitBreaker } from "@/components/ui/circuit-breaker";
 import { DensityIndicator } from "@/components/ui/density-indicator";
-import { getLatestSignals, getPipelineHealth } from "@/lib/supabase/queries";
+import {
+  getLatestRegimeCalls,
+  getLatestSignals,
+  getPipelineHealth,
+} from "@/lib/supabase/queries";
 import type { LatestSignal } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { ReactNode } from "react";
@@ -23,9 +27,10 @@ export default async function TerminalLayout({
 
   try {
     const supabase = await createClient();
-    const [health, latestSignals] = await Promise.all([
+    const [health, latestSignals, calls] = await Promise.all([
       getPipelineHealth(supabase, 1),
       getLatestSignals(supabase),
+      getLatestRegimeCalls(supabase),
     ]);
     if (health.length > 0) {
       const latest = health[0];
@@ -33,6 +38,11 @@ export default async function TerminalLayout({
       status = latest.status;
       dqs = latest.dqs ?? null;
       errors = latest.errors;
+    }
+    // Fallback: DQS from regime_calls if health_checks doesn't have it
+    if (dqs == null) {
+      const latestCall = Object.values(calls)[0];
+      dqs = latestCall?.data_quality_score ?? null;
     }
     signals = latestSignals;
   } catch {
