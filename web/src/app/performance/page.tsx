@@ -554,7 +554,7 @@ export default async function PerformancePage() {
         <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
           <div className="px-5 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
             <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
-              Equity Curve — Cumulative T+5 Log-Return (bps)
+              Equity Curve — Cumulative T+5 Log-Return (%)
             </p>
             <div className="flex items-center gap-4">
               <span className="font-mono text-[10px] text-[var(--color-text-muted)] tabular-nums">
