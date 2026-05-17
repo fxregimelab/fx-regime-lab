@@ -36,6 +36,33 @@ function KatexMath({ latex }: { latex: string }) {
   );
 }
 
+/* ── Piecewise function rendered as semantic HTML ──────────────────────── */
+
+function Piecewise({
+  lhs,
+  cases,
+}: {
+  lhs: React.ReactNode;
+  cases: [React.ReactNode, React.ReactNode][];
+}) {
+  return (
+    <div className="my-6 flex items-start gap-3 font-mono text-[14px] text-[var(--color-text)] leading-relaxed">
+      <div className="shrink-0 pt-0.5">{lhs}</div>
+      <div className="text-[var(--color-text)] text-xl leading-none pt-0.5">
+        {"{"}
+      </div>
+      <div className="flex flex-col gap-0.5">
+        {cases.map(([value, condition]) => (
+          <div key={String(condition)} className="flex gap-4">
+            <span className="min-w-[2ch] text-right tabular-nums">{value}</span>
+            <span className="text-[var(--color-text-muted)]">{condition}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase mb-4">
@@ -170,7 +197,16 @@ export default function MethodologyContent() {
               Schmitt trigger with memory of yesterday's tier. The snap function
               is sequential — each condition is tested in order:
             </Body>
-            <KatexMath latex="\\text{snap}(c) = \\begin{cases} 4 & \\text{if } c > 1.0 \\\\ 3 & \\text{if } c > 0.4 \\\\ 2 & \\text{if } c \\geq -0.4 \\\\ 1 & \\text{if } c \\geq -1.0 \\\\ 0 & \\text{otherwise} \\end{cases}" />
+            <Piecewise
+              lhs={<>snap(c) =</>}
+              cases={[
+                ["4", "if c > 1.0"],
+                ["3", "if c > 0.4"],
+                ["2", "if c ≥ −0.4"],
+                ["1", "if c ≥ −1.0"],
+                ["0", "otherwise"],
+              ]}
+            />
             <Body>
               Tier changes of two or more steps are immediate. Single-step
               changes are deferred by tighter hold thresholds that must be
@@ -336,7 +372,14 @@ export default function MethodologyContent() {
               intraday move from the open against the directional bias over 20
               days:
             </Body>
-            <KatexMath latex="\\text{Stop} = \\begin{cases} S_t - \\text{buffer} & \\text{LONG} \\\\ S_t + \\text{buffer} & \\text{SHORT} \\\\ \\text{none} & \\text{NEUTRAL} \\end{cases}" />
+            <Piecewise
+              lhs={<>Stop =</>}
+              cases={[
+                ["Sₜ − buffer", "LONG"],
+                ["Sₜ + buffer", "SHORT"],
+                ["none", "NEUTRAL"],
+              ]}
+            />
           </Subsection>
 
           {/* ── Signal Decomposition ────────────────────────────────── */}
