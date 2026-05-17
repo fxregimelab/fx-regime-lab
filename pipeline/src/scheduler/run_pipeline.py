@@ -55,9 +55,11 @@ def _log_pipeline_health(
         snapshot = None
 
     if snapshot is not None:
+        # Do NOT inherit stale status from old DB rows (e.g. ABORTED).
+        # Recompute: FAILED if any step crashed, otherwise HEALTHY.
         payload: dict[str, Any] = {
             "date": date_str,
-            "status": "FAILED" if steps_failed else snapshot.status,
+            "status": "FAILED" if steps_failed else "HEALTHY",
             "steps_completed": steps_completed,
             "steps_failed": steps_failed,
             "dqs_score": snapshot.dqs_score,
