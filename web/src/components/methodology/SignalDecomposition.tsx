@@ -17,55 +17,42 @@ interface SignalFamily {
 const SIGNALS: SignalFamily[] = [
   {
     key: "rates",
-    label: "Rates",
-    weight: 25,
+    label: "Rate Differential",
+    weight: 40,
     color: "#3b82f6",
     description:
-      "2Y and 10Y sovereign yield differentials. The structural anchor of the composite score.",
+      "2-year sovereign yield spread (US vs counterparty). The structural anchor of the composite score.",
     computation:
-      "Rolling z-score of US vs counterparty yield spread over a 252-day causal window with 90-day minimum.",
-    source: "FRED DGS2 / DGS10, ECB data-api, MOF Japan",
+      "Rolling z-score of yield spread over a 252-day causal window with 90-day minimum. Uses population std.",
+    source: "FRED DGS2, ECB data-api, MOF Japan",
     sampleValue: -0.45,
     sampleBias: "BEARISH",
   },
   {
     key: "cot",
-    label: "COT",
-    weight: 20,
+    label: "COT Positioning",
+    weight: 25,
     color: "#22c55e",
     description:
-      "Commitment of Traders positioning percentile. Measures speculative extremity in futures markets.",
+      "Commitment of Traders non-commercial net positions as 156-week percentile ranks.",
     computation:
-      "CFTC non-commercial net positions ranked over a 156-week lookback. Percentile π feeds upper/lower phi metrics.",
+      "CFTC weekly non-commercial net positions ranked over 156 weeks. Percentile π feeds crowding metrics phi_upper and phi_lower.",
     source: "CFTC Disaggregated weekly report",
     sampleValue: 0.62,
     sampleBias: "BULLISH",
   },
   {
     key: "vol",
-    label: "Volatility",
-    weight: 15,
+    label: "Realized Volatility",
+    weight: 20,
     color: "#a855f7",
     description:
-      "Realized vs implied volatility. Gates entry when vol is elevated and sizes positions when calm.",
+      "21-day annualized realized vol scored against its 3-year empirical CDF. Gates entry at 88th percentile.",
     computation:
-      "21-day annualized realized vol scored against its empirical CDF over a trailing 3-year (756 session) window.",
-    source: "Yahoo Finance (^EVZ, ^JYVIX)",
+      "Annualized realized vol from daily spot returns vs trailing 756-session empirical distribution. Quantile q^σ_t blocks entry when > 0.88.",
+    source: "Alpha Vantage spot data",
     sampleValue: -0.12,
     sampleBias: "NEUTRAL",
-  },
-  {
-    key: "rr",
-    label: "Risk Reversal",
-    weight: 10,
-    color: "#f97316",
-    description:
-      "25-delta risk reversal skew. Captures directional bias priced into the options market.",
-    computation:
-      "Implied-vol difference (call − put) z-scored causally using only [t−252, t−1] for mean and std.",
-    source: "yfinance (FXE options proxy)",
-    sampleValue: 0.28,
-    sampleBias: "BULLISH",
   },
   {
     key: "oi",
@@ -73,7 +60,7 @@ const SIGNALS: SignalFamily[] = [
     weight: 10,
     color: "#ec4899",
     description:
-      "CME futures open-interest delta. Flags crowded positioning unwinds before they accelerate.",
+      "CME futures open-interest delta and price-alignment flag. Flags crowded positioning unwinds.",
     computation:
       "Daily OI change aligned with price direction. Crowded COT + 3-day shrinking OI triggers unwind flag.",
     source: "CME volume/OI daily CSV",
@@ -81,56 +68,17 @@ const SIGNALS: SignalFamily[] = [
     sampleBias: "NEUTRAL",
   },
   {
-    key: "cross",
-    label: "Cross-Asset",
-    weight: 10,
+    key: "special",
+    label: "Special Signal",
+    weight: 5,
     color: "#eab308",
     description:
-      "Broad USD proxy and commodity sensitivities. DXY, oil, copper, gold, and equity index correlations.",
+      "Cross-asset special factor. Varies by pair: VIX stress for JPY, oil+DXY for INR, placeholder for EUR.",
     computation:
-      "Rolling 63-day correlation of spot returns vs each asset, z-scored and combined into a composite.",
+      "Pair-specific blend of cross-asset proxies normalized to [-1, +1]. EURUSD returns 0.0 (no active special factor).",
     source: "Alpha Vantage, yfinance",
-    sampleValue: 0.15,
-    sampleBias: "BULLISH",
-  },
-  {
-    key: "carry",
-    label: "Carry",
-    weight: 5,
-    color: "#06b6d4",
-    description:
-      "Rate differential adjusted for volatility. Identifies when carry trades are richly or poorly compensated.",
-    computation:
-      "Yield spread divided by realized vol annualized. Z-scored over 252 days with 90-day minimum.",
-    source: "FRED + internal vol engine",
-    sampleValue: -0.22,
-    sampleBias: "BEARISH",
-  },
-  {
-    key: "momentum",
-    label: "Momentum",
-    weight: 5,
-    color: "#ef4444",
-    description:
-      "Multi-horizon price momentum. Captures trend persistence at 5-day, 20-day, and 60-day horizons.",
-    computation:
-      "Spot return z-scores at each horizon weighted 40% / 40% / 20%, then summed and re-z-scored.",
-    source: "Alpha Vantage spot data",
-    sampleValue: 0.09,
+    sampleValue: 0.0,
     sampleBias: "NEUTRAL",
-  },
-  {
-    key: "fpi",
-    label: "FPI Flow",
-    weight: 15,
-    color: "#14b8a6",
-    description:
-      "Foreign Portfolio Investment daily net flow into Indian equities and debt. Captures hot-money momentum for USD/INR.",
-    computation:
-      "SEBI daily FPI bulletin total net flow (INR crores) z-scored over a 20-day causal window, clipped to [-1, 1].",
-    source: "SEBI FPI Daily Bulletin",
-    sampleValue: 0.55,
-    sampleBias: "BULLISH",
   },
 ];
 
@@ -180,8 +128,9 @@ export default function SignalDecomposition() {
         Signal Decomposition
       </h2>
       <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] mb-6">
-        The composite regime score is a weighted sum of eight signal families.
-        Click any segment to inspect its computation, source, and contribution.
+        The composite regime score is a weighted sum of five signal families.
+        Weights vary by pair; shown below for EUR/USD. Click any segment to
+        inspect its computation, source, and contribution.
       </p>
 
       {/* Stacked Bar */}

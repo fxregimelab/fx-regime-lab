@@ -12,24 +12,25 @@ function KatexMath({ latex }: { latex: string }) {
   const [html, setHtml] = useState<string>("");
 
   useEffect(() => {
-    try {
-      const katex = require("katex");
-      setHtml(
-        katex.renderToString(latex, {
-          throwOnError: false,
-          displayMode: true,
-        }),
-      );
-    } catch {
-      setHtml(latex);
-    }
+    import("katex")
+      .then((mod) => {
+        setHtml(
+          mod.default.renderToString(latex, {
+            throwOnError: false,
+            displayMode: true,
+          }),
+        );
+      })
+      .catch(() => {
+        setHtml(latex);
+      });
   }, [latex]);
 
   return (
     <div
       className="my-6 katex-wrapper"
       suppressHydrationWarning
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX HTML is server-rendered and sanitized
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: KaTeX HTML is trusted
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -127,22 +128,20 @@ export default function MethodologyContent() {
               <strong className="text-[var(--color-text)]">
                 Rate differential z-score.
               </strong>{" "}
-              The 2-year sovereign yield spread (US vs counterparty) is
-              converted to a rolling z-score over a 252-day causal window with a
-              90-day minimum:
+              The carry-risk-adjusted spread is converted to a rolling z-score
+              over a 252-day causal window with a 90-day minimum. The
+              observation at <Mono>t</Mono> is scored against mean and std
+              computed from <Mono>[t−251, t−1]</Mono> only — no lookahead:
             </Body>
-            <KatexMath latex="z_{\text{rate}} = \\frac{x_t - \\mu_{[t-251,\,t-1]}}{\\sigma_{[t-251,\,t-1]}}" />
+            <KatexMath latex="z_{\\text{rate}} = \\frac{x_t - \\mu_{[t-251,\\,t-1]}}{\\sigma_{[t-251,\\,t-1]}}" />
 
             <Body>
               <strong className="text-[var(--color-text)]">
                 Momentum check.
               </strong>{" "}
-              Carry momentum{" "}
-              <Mono>
-                m = x_t − x{"{"}t−20{"}"}
-              </Mono>{" "}
-              flags fading trends. When <Mono>z ≥ 1.15</Mono> and{" "}
-              <Mono>m ≤ −0.25</Mono> simultaneously, the regime flips to{" "}
+              Carry momentum <Mono>{"m = x_t - x_{t-20}"}</Mono> flags fading
+              trends. When <Mono>z &gt;= 1.15</Mono> and{" "}
+              <Mono>m &lt;= -0.25</Mono> simultaneously, the regime flips to{" "}
               <Mono>CARRY_COLLAPSE</Mono>.
             </Body>
 
@@ -168,13 +167,34 @@ export default function MethodologyContent() {
                 Composite hysteresis.
               </strong>{" "}
               When no override fires, the composite score maps to a five-tier
-              Schmitt trigger with memory of yesterday's tier:
+              Schmitt trigger with memory of yesterday's tier. The snap function
+              is sequential — each condition is tested in order:
             </Body>
-            <KatexMath latex="\\text{snap}(c) = \\begin{cases} 4 & c > 1.0 \\ 3 & c > 0.4 \\ 2 & -0.4 \\leq c \\leq 0.4 \\ 1 & c < -0.4 \\ 0 & c < -1.0 \\end{cases}" />
+            <KatexMath latex="\\text{snap}(c) = \\begin{cases} 4 & \\text{if } c > 1.0 \\ 3 & \\text{if } c > 0.4 \\ 2 & \\text{if } c \\geq -0.4 \\ 1 & \\text{if } c \\geq -1.0 \\ 0 & \\text{otherwise} \\end{cases}" />
             <Body>
-              Tier changes of only one step are deferred unless the composite
-              crosses a tighter bound (e.g. tier 4 requires{" "}
-              <Mono>c ≥ 0.85</Mono> to hold, not just <Mono>{" > 0.4"}</Mono>).
+              Tier changes of two or more steps are immediate. Single-step
+              changes are deferred by tighter hold thresholds that must be
+              violated before the tier can flip:
+            </Body>
+            <div className="font-mono text-[11px] text-[var(--color-text-secondary)] leading-relaxed mb-6 border border-[var(--color-border)] bg-[var(--color-elevated)] p-4">
+              <div className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1">
+                <span>Tier 4 (strong bull) hold</span>
+                <span className="text-[var(--color-text)]">c ≥ 0.85</span>
+                <span>Tier 3 (bull) hold</span>
+                <span className="text-[var(--color-text)]">c ≥ 0.28</span>
+                <span>Tier 2 (neutral) hold</span>
+                <span className="text-[var(--color-text)]">|c| &lt; 0.15</span>
+                <span>Tier 1 (bear) hold</span>
+                <span className="text-[var(--color-text)]">c ≤ −0.28</span>
+                <span>Tier 0 (strong bear) hold</span>
+                <span className="text-[var(--color-text)]">c ≤ −0.85</span>
+              </div>
+            </div>
+            <Body>
+              If the gate is invalidated by stale or missing data, the system
+              falls back to neutral. A <Mono>structural_instability</Mono> flag
+              (detected upstream) triggers <Mono>CARRY_COLLAPSE</Mono> before
+              all other checks.
             </Body>
           </Subsection>
 
@@ -203,9 +223,20 @@ export default function MethodologyContent() {
               <strong className="text-[var(--color-text)]">
                 Marcus B clash veto.
               </strong>{" "}
-              If the rate z-score and positioning percentile point in opposite
-              directions (both materially non-zero), the bias is forced to
-              NEUTRAL and conviction is capped at 3.
+              If the rate sign and positioning sign point in opposite directions
+              (both materially non-zero, with a <Mono>±5 pp</Mono> deadband
+              around the 50th percentile), the bias is forced to NEUTRAL and
+              conviction is capped at 3.
+            </Body>
+
+            <Body>
+              <strong className="text-[var(--color-text)]">
+                Marcus C composite-rate clash.
+              </strong>{" "}
+              If the composite score and rate direction strongly disagree{" "}
+              <Mono>(|S| &gt; 0.30)</Mono>, the bias is forced to NEUTRAL and
+              conviction is capped at 3. This prevents the rate signal from
+              overriding a divergent composite.
             </Body>
 
             <Body>
@@ -213,12 +244,16 @@ export default function MethodologyContent() {
                 Conviction multiplier.
               </strong>{" "}
               Alignment bonus when rate and positioning agree; penalty when they
-              conflict or when crowding is elevated:
+              conflict or when crowding is elevated. If positioning data is
+              missing, an additional <Mono>0.88</Mono> discount applies:
             </Body>
             <KatexMath latex="m_{\\pi} = \\max(0.52, \\min(1.08, \\; (1 - 0.48 \\cdot p_{\\text{crowd}}) \\cdot a_{\\text{align}} \\;))" />
             <Body>
               where <Mono>a = 1.0</Mono> if rate and positioning agree,{" "}
-              <Mono>0.72</Mono> if they conflict.
+              <Mono>0.72</Mono> if they conflict. The effective rate sign uses a
+              tactical z-score when informative <Mono>{"(|z| > 0.12);"}</Mono>{" "}
+              otherwise it falls back to the futures-style BULLISH/BEARISH
+              label.
             </Body>
 
             <Body>
@@ -226,12 +261,16 @@ export default function MethodologyContent() {
                 Conviction score.
               </strong>{" "}
               Base conviction is anchored to the composite magnitude, then
-              scaled by <Mono>m_π</Mono>:
+              scaled by <Mono>m_π</Mono> and rounded to an integer{" "}
+              <Mono>1–5</Mono>:
             </Body>
-            <KatexMath latex="C = \\text{round}(\\max(1, \\min(5, \\; (3 + \\text{clip}(S, -2, 2)) \\cdot m_{\\pi} \\;)))" />
+            <KatexMath latex="C = \\text{round}\\Big( \\max(1, \\min(5, \\; (3 + \\text{clip}(S, -2, 2)) \\cdot m_{\\pi} \\;)) \\Big)" />
             <Body>
-              If the gate is invalidated, crowding is veto-level, or Marcus B
-              clashes, conviction is hard-capped at 3.
+              Direction logic: if the composite is materially non-zero{" "}
+              <Mono>(|S| &gt; 0.30)</Mono>, composite drives the bias; otherwise
+              the rate sign drives it. If Layer 1 is invalidated, crowding is
+              veto-level, or Marcus B / Marcus C clashes fire, the bias is
+              forced to NEUTRAL and conviction is hard-capped at 3.
             </Body>
           </Subsection>
 
@@ -273,8 +312,10 @@ export default function MethodologyContent() {
               </strong>{" "}
               Entry requires: bias ≠ NEUTRAL, conviction ≥ 3,{" "}
               <Mono>q^σ_t ≤ 0.88</Mono>, no skew reversal, and no strong
-              directional skew contradiction unless conviction is high enough to
-              absorb it.
+              directional skew contradiction. A strong contradiction fires when{" "}
+              skew alignment <Mono>A_t = −1</Mono>, <Mono>|z_t| &gt; 1.0</Mono>,
+              and conviction <Mono>&lt; 4</Mono> — the disagreement is too large
+              to absorb.
             </Body>
 
             <Body>
@@ -282,8 +323,10 @@ export default function MethodologyContent() {
                 Lena + Chen sizing.
               </strong>{" "}
               Full size only when: timing = ENTER, conviction ≥ 4,{" "}
-              <Mono>q^σ_t ≤ 0.70</Mono>, skew alignment ≥ 0, and crowding
-              penalty <Mono>p_crowd ≤ 0.35</Mono>. Otherwise HALF.
+              <Mono>q^σ_t ≤ 0.70</Mono>, skew alignment ≥ 0, and no Chen trim.
+              Chen trim fires when the crowding flag is active{" "}
+              <Mono>(π ≥ 90</Mono> or <Mono>π ≤ 10)</Mono> or when the crowding
+              penalty <Mono>p_crowd &gt; 0.35</Mono>. Otherwise HALF.
             </Body>
 
             <Body>
@@ -313,17 +356,14 @@ export default function MethodologyContent() {
                 EUR / USD
               </h3>
               <Body>
-                Primary driver is the US–Germany 2-year and 10-year yield spread
-                (FRED <Mono>DGS2</Mono> vs ECB data-api). Composite weights:
-                rate spread <Mono>30%</Mono>, COT leverage <Mono>20%</Mono>,
-                asset-manager positioning <Mono>10%</Mono>, vol signal{" "}
-                <Mono>10%</Mono>, correlation signal <Mono>15%</Mono>, oil
-                signal <Mono>8%</Mono>, DXY <Mono>7%</Mono>. Risk-reversal
-                modifier is active: when EURUSD 25Δ RR z-score confirms the
-                composite (|z| {" > 0.5"}), the composite is multiplied by{" "}
-                <Mono>1.15</Mono>; when it contradicts (|z| {" > 1.5"}), it is
-                multiplied by <Mono>0.60</Mono> and flagged{" "}
-                <Mono>OPTIONS_DIVERGENCE</Mono>.
+                Primary driver is the US–Germany 2-year yield spread (FRED{" "}
+                <Mono>DGS2</Mono> vs ECB data-api). Composite weights: rate{" "}
+                differential <Mono>40%</Mono>, COT positioning <Mono>25%</Mono>,
+                realized volatility <Mono>20%</Mono>, open interest{" "}
+                <Mono>10%</Mono>, special signal <Mono>5%</Mono>. The special
+                signal is currently a placeholder (returns 0.0) — EURUSD does
+                not have an active cross-asset special factor. Risk-reversal
+                skew is monitored but not used as a composite modifier.
               </Body>
             </div>
 
@@ -335,15 +375,16 @@ export default function MethodologyContent() {
               </h3>
               <Body>
                 Primary driver is the US–Japan yield spread (FRED{" "}
-                <Mono>DGS2</Mono> vs MOF JGBs). Composite weights: rate spread{" "}
-                <Mono>25%</Mono>, COT leverage <Mono>20%</Mono>, asset-manager{" "}
-                <Mono>10%</Mono>, vol <Mono>10%</Mono>, correlation{" "}
-                <Mono>15%</Mono>, oil <Mono>10%</Mono>, gold <Mono>5%</Mono>,
-                DXY <Mono>5%</Mono>. Carry-trade dynamics are explicitly
-                monitored: when carry risk-adjusted z-score is elevated (≥ 1.15)
-                but 20-day momentum is fading (≤ −0.25), the gate triggers{" "}
+                <Mono>DGS2</Mono> vs MOF JGBs). Composite weights: rate{" "}
+                differential <Mono>30%</Mono>, COT positioning <Mono>20%</Mono>,
+                realized volatility <Mono>25%</Mono>, open interest{" "}
+                <Mono>15%</Mono>, special signal <Mono>10%</Mono>. The special
+                signal is a VIX funding-stress proxy: high VIX → JPY bid → USD
+                weakness. Carry-trade dynamics are explicitly monitored — when
+                carry risk-adjusted z-score is elevated (≥ 1.15) but 20-day
+                momentum is fading (≤ −0.25), the gate triggers{" "}
                 <Mono>CARRY_COLLAPSE</Mono>. Confidence receives a +5 pp bonus
-                when the special carry signal <Mono>{" > 0.5"}</Mono>.
+                when the special signal <Mono>{" > 0.5"}</Mono>.
               </Body>
             </div>
 
@@ -354,15 +395,16 @@ export default function MethodologyContent() {
                 USD / INR
               </h3>
               <Body>
-                INR does not use COT positioning (no liquid CFTC proxy).
-                Instead, the composite is built from: oil-INR correlation{" "}
-                <Mono>25%</Mono>, DXY-INR correlation <Mono>20%</Mono>, FPI
-                20-day flow <Mono>25%</Mono>, RBI intervention score{" "}
-                <Mono>20%</Mono>, and US–India 10-year spread <Mono>10%</Mono>.
-                RBI flags map directly: ACTIVE SUPPORT <Mono>−0.30</Mono>,
-                ACTIVE CAPPING <Mono>+0.20</Mono>, otherwise <Mono>0.0</Mono>.
-                When Brent is above its 80th percentile, confidence receives a
-                −5 pp adjustment reflecting external-account vulnerability.
+                INR uses a tailored composite with no COT positioning proxy.
+                Composite weights: rate differential <Mono>25%</Mono>, COT{" "}
+                <Mono>10%</Mono> (placeholder), realized volatility{" "}
+                <Mono>20%</Mono>, open interest <Mono>10%</Mono>, special signal{" "}
+                <Mono>20%</Mono>, FPI flow <Mono>15%</Mono>. The special signal
+                blends crude oil and DXY pressure on EMFX (40% oil + 35% DXY +
+                25% EM composite). FPI is SEBI daily net flow z-scored over 20
+                days. When Brent is above its 80th percentile, confidence
+                receives a −5 pp adjustment reflecting external-account
+                vulnerability.
               </Body>
             </div>
           </Subsection>
@@ -371,33 +413,40 @@ export default function MethodologyContent() {
           <Subsection title="Confidence Derivation">
             <Body>
               Confidence is not a probability of being correct. It is an
-              internal consistency metric: distance from the nearest regime
-              boundary, modulated by signal agreement, pair-specific
-              adjustments, and an institutional −5 pp haircut.
+              internal consistency metric: signal strength modulated by
+              directional agreement, pair-specific adjustments, and an
+              institutional −3 pp haircut.
             </Body>
 
             <Body>
-              First, the distance to the nearest of the four thresholds{" "}
-              <Mono>(−1.0, −0.4, 0.4, 1.0)</Mono> is computed:
+              Base confidence is driven by the absolute composite magnitude. The
+              composite is clipped to <Mono>[−2, 2]</Mono> upstream; typical
+              range is <Mono>[−1, 1]</Mono>:
             </Body>
-            <KatexMath latex="d = \\min_{\\tau} |S - \\tau| \\quad \\text{for} \\; \\tau \\in \\{-1.0, -0.4, 0.4, 1.0\\}" />
-            <KatexMath latex="\\text{base} = \\text{clip}\\left(\\frac{d}{0.6}, \\; 0.10, \\; 0.90\\right)" />
+            <KatexMath latex="\\text{base} = \\text{clip}\\left(\\frac{|S|}{2.0}, \\; 0.10, \\; 0.90\\right)" />
 
             <Body>
-              Agreement bonus (+5 pp each): rate and positioning have the same
-              sign; both have magnitude {" > 0.3"}.
+              <strong className="text-[var(--color-text)]">
+                Agreement bonus.
+              </strong>{" "}
+              +5 pp if rate and COT point in the same direction. Additional +5
+              pp if both have magnitude {" > 0.3"}.
             </Body>
 
             <Body>
-              Pair adjustments: USDJPY carry signal {" > 0.5"} adds +5 pp;
-              USDINR Brent above P80 subtracts −5 pp.
+              <strong className="text-[var(--color-text)]">
+                Pair adjustments.
+              </strong>{" "}
+              USDJPY carry signal {" > 0.5"} adds +5 pp. USDINR Brent above 80th
+              percentile subtracts −5 pp. Other pairs have their own commodity /
+              special-signal adjustments.
             </Body>
 
             <Body>
-              Raw confidence is clipped to [0.40, 0.95], then the institutional
-              haircut is applied:
+              Raw confidence is clipped to <Mono>[0.30, 0.95]</Mono>, then the
+              institutional haircut is applied:
             </Body>
-            <KatexMath latex="C = \\text{clip}\\left( \\text{clip}(\\text{base} + \\text{bonus} + \\text{pair}, \\; 0.40, \\; 0.95) - 0.05, \\; 0.40, \\; 0.90 \\right)" />
+            <KatexMath latex="C = \\text{clip}\\left( \\text{clip}(\\text{base} + \\text{bonus} + \\text{pair}, \\; 0.30, \\; 0.95) - 0.03, \\; 0.30, \\; 0.90 \\right)" />
           </Subsection>
 
           {/* ── Validation Methodology ──────────────────────────────── */}
@@ -591,7 +640,7 @@ export default function MethodologyContent() {
 
             <div className="mt-8 pt-6 border-t border-[var(--color-border)]">
               <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
-                Regime Thresholds
+                Regime Thresholds (EUR/USD, USD/JPY)
               </p>
               <div className="flex flex-col gap-2 font-mono text-[10px]">
                 {[
@@ -616,6 +665,45 @@ export default function MethodologyContent() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
+              <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
+                Regime Thresholds (USD/INR)
+              </p>
+              <div className="flex flex-col gap-2 font-mono text-[10px]">
+                {[
+                  ["INR_DEPRECIATION_STRONG", "S > +1.0"],
+                  ["INR_DEPRECIATION_MODERATE", "+0.4 < S ≤ +1.0"],
+                  ["INR_NEUTRAL", "−0.4 ≤ S ≤ +0.4"],
+                  ["INR_APPRECIATION_MODERATE", "−1.0 ≤ S < −0.4"],
+                  ["INR_APPRECIATION_STRONG", "S < −1.0"],
+                ].map(([regime, range]) => (
+                  <div
+                    key={regime}
+                    className="flex justify-between border-b border-[var(--color-border-subtle)] last:border-b-0 pb-1.5 last:pb-0"
+                  >
+                    <span className="text-[var(--color-text)] font-medium">
+                      {regime}
+                    </span>
+                    <span className="text-[var(--color-text-secondary)]">
+                      {range}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
+              <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
+                Volatility Overlay
+              </p>
+              <p className="font-sans text-[12px] text-[var(--color-text-secondary)] leading-relaxed">
+                When realized-vol rank exceeds the 88th percentile, the regime
+                label appends <Mono>__VOL_EXPANDING</Mono> to the neutral tier.
+                This flags elevated volatility without changing the directional
+                read.
+              </p>
             </div>
           </div>
         </div>
