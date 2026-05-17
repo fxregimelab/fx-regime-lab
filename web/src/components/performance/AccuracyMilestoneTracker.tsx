@@ -152,7 +152,7 @@ export function AccuracyMilestoneTracker({
             55.0%
           </span>
           <span className="block font-mono text-[9px] text-[var(--color-text-dim)]">
-            GBP/USD expansion gate
+            EUR/USD expansion gate
           </span>
         </div>
       </div>
