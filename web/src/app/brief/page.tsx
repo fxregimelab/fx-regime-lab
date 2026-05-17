@@ -26,9 +26,24 @@ function DollarDominanceIndex({
 
   for (const p of PAIRS) {
     const regime = pairRegimes?.[p.urlSlug] ?? "";
-    if (regime.includes("STRENGTH")) usdStrength++;
-    else if (regime.includes("WEAKNESS")) usdWeakness++;
-    else neutral++;
+    const u = regime.toUpperCase();
+    if (
+      u.includes("STRENGTH") ||
+      u.includes("APPRECIATION") ||
+      u.includes("DOLLAR_ON") ||
+      u.includes("RISK_OFF")
+    ) {
+      usdStrength++;
+    } else if (
+      u.includes("WEAKNESS") ||
+      u.includes("DEPRECIATION") ||
+      u.includes("DOLLAR_OFF") ||
+      u.includes("RISK_ON")
+    ) {
+      usdWeakness++;
+    } else {
+      neutral++;
+    }
   }
 
   const total = usdStrength + usdWeakness + neutral;
@@ -247,7 +262,7 @@ export default async function BriefPage() {
                       </span>
                     </div>
                     <p className="font-mono text-[13px] font-medium text-[var(--color-text)]">
-                      {regime}
+                      {regime.replace(/_/g, " ")}
                     </p>
                   </div>
                 );
