@@ -19,6 +19,7 @@ import {
   useLatestDeskOpenCardsSnapshot,
   useLatestRegimeCalls,
   useLatestSignals,
+  useUniverse,
 } from "@/lib/queries";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -233,6 +234,7 @@ export default function FxRegimePairSelectionPage() {
   const router = useRouter();
   const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
   const [focusedSector, setFocusedSector] = useState<0 | 1 | 2>(0);
+  const universeQ = useUniverse();
   const regimeQ = useLatestRegimeCalls();
   const signalsQ = useLatestSignals();
   const deskSnapQ = useLatestDeskOpenCardsSnapshot();
@@ -241,11 +243,17 @@ export default function FxRegimePairSelectionPage() {
 
   const calls = regimeQ.data;
   const sigs = signalsQ.data;
-  const err = regimeQ.isError || signalsQ.isError || deskSnapQ.isError;
+  const err =
+    regimeQ.isError ||
+    signalsQ.isError ||
+    deskSnapQ.isError ||
+    universeQ.isError;
   const pending =
+    universeQ.isPending ||
     regimeQ.isPending ||
     signalsQ.isPending ||
-    (deskSnapQ.isPending && !deskData?.cards?.length);
+    (deskSnapQ.isPending && !deskData?.cards?.length) ||
+    (!err && (deskData?.cards ?? []).length === 0);
 
   const cards = useMemo(() => {
     const raw = deskData?.cards ?? [];
@@ -349,7 +357,13 @@ export default function FxRegimePairSelectionPage() {
         rankJump={deskData?.rankJumpByPair[rank1.pair]}
         regimeAge={rank1.regime_age}
         apexScoreDisplay={
-          rank1.apex_score != null ? Math.round(rank1.apex_score * 100) : null
+          rank1.apex_score != null
+            ? Math.round(
+                (rank1.apex_score > 1
+                  ? rank1.apex_score / 100
+                  : rank1.apex_score) * 100,
+              )
+            : null
         }
         structuralRegime={rank1.structural_regime}
         invalidationTriggered={rank1.invalidation_triggered}

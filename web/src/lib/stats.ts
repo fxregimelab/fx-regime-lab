@@ -47,7 +47,9 @@ export function fmtPropCI(
   ci: [number, number],
   digits = 1,
 ): string {
-  const p = point != null ? (point * 100).toFixed(digits) : "—";
+  // Defensive: DB may store proportions (0–1) or percentages (>1)
+  const prop = point != null && point > 1 ? point / 100 : point;
+  const p = prop != null ? (prop * 100).toFixed(digits) : "—";
   const lo = (ci[0] * 100).toFixed(digits);
   const hi = (ci[1] * 100).toFixed(digits);
   return `${p}% [${lo}%–${hi}%]`;

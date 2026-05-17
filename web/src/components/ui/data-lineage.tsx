@@ -171,7 +171,7 @@ export const LINEAGE = {
     transformation: "Signal dispersion → confidence score (0–1)",
     rawValue:
       call?.confidence != null
-        ? `${(call.confidence * 100).toFixed(1)}%`
+        ? `${(call.confidence > 1 ? call.confidence : call.confidence * 100).toFixed(1)}%`
         : undefined,
   }),
   fpi: (

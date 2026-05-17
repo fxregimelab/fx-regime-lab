@@ -1,5 +1,6 @@
 "use client";
 
+import { normalizeProp } from "@/components/ui/utils";
 import { useMemo } from "react";
 import { InspectorDrawer } from "./inspector-drawer";
 
@@ -48,7 +49,9 @@ function fmt1(n: number | null) {
 }
 
 function fmtPct(n: number | null) {
-  return n == null ? "—" : `${(n * 100).toFixed(1)}%`;
+  if (n == null) return "—";
+  const prop = normalizeProp(n) ?? 0;
+  return `${(prop * 100).toFixed(1)}%`;
 }
 
 function signalBadgeClass(v: string | null): string {
@@ -230,7 +233,8 @@ export function SignalInspector({
 
   const confPct = useMemo(() => {
     if (confidence == null) return null;
-    return Math.min(100, Math.max(0, Math.round(confidence * 100)));
+    const prop = normalizeProp(confidence) ?? 0;
+    return Math.min(100, Math.max(0, Math.round(prop * 100)));
   }, [confidence]);
 
   return (

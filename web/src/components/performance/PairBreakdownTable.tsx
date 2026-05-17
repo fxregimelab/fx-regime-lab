@@ -1,4 +1,5 @@
 import { SampleSizeBadge } from "@/components/ui/sample-size-badge";
+import { normalizeProp } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import type { ValidationStats } from "@/lib/supabase/queries";
 
@@ -9,8 +10,9 @@ interface PairBreakdownTableProps {
 
 function fmtPctDigits(n: number | null | undefined, digits = 1) {
   if (n == null) return "—";
-  const sign = n >= 0 ? "+" : "";
-  return `${sign}${(n * 100).toFixed(digits)}%`;
+  const prop = normalizeProp(n) ?? 0;
+  const sign = prop >= 0 ? "+" : "";
+  return `${sign}${(prop * 100).toFixed(digits)}%`;
 }
 
 function fmtBrier(n: number | null | undefined) {
@@ -25,7 +27,8 @@ function fmtNum(n: number | null | undefined) {
 
 function fmtAcc(n: number | null | undefined) {
   if (n == null) return "—";
-  return `${(n * 100).toFixed(1)}%`;
+  const prop = normalizeProp(n) ?? 0;
+  return `${(prop * 100).toFixed(1)}%`;
 }
 
 export function PairBreakdownTable({

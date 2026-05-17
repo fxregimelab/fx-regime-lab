@@ -1,5 +1,6 @@
 "use client";
 
+import { normalizeProp } from "@/components/ui/utils";
 import type { AccuracyAlert, PipelineDayHealth } from "@/lib/supabase/queries";
 import { useState } from "react";
 
@@ -165,17 +166,21 @@ export function PipelineHealthDashboard({
                 <span className="font-mono text-[10px] text-[var(--color-text-secondary)]">
                   {alert.pair} rolling 90D accuracy is{" "}
                   <span className="tabular-nums">
-                    {(alert.accuracy * 100).toFixed(1)}%
+                    {((normalizeProp(alert.accuracy) ?? 0) * 100).toFixed(1)}%
                   </span>
                   {alert.severity === "critical" ? (
                     <span className="text-red-400">
                       {" "}
-                      (&lt; {(alert.threshold * 100).toFixed(0)}%)
+                      (&lt;{" "}
+                      {((normalizeProp(alert.threshold) ?? 0) * 100).toFixed(0)}
+                      %)
                     </span>
                   ) : (
                     <span className="text-amber-400">
                       {" "}
-                      (&lt; {(alert.threshold * 100).toFixed(0)}%)
+                      (&lt;{" "}
+                      {((normalizeProp(alert.threshold) ?? 0) * 100).toFixed(0)}
+                      %)
                     </span>
                   )}
                 </span>
@@ -217,7 +222,10 @@ export function PipelineHealthDashboard({
                   <div className="border border-[var(--color-border)] bg-[var(--color-void)] px-2 py-1 whitespace-nowrap">
                     <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
                       {day.regimeCallsCount} calls · DQS{" "}
-                      {day.dqs != null ? (day.dqs * 100).toFixed(0) : "—"}%
+                      {day.dqs != null
+                        ? ((normalizeProp(day.dqs) ?? 0) * 100).toFixed(0)
+                        : "—"}
+                      %
                     </span>
                   </div>
                 </div>
@@ -235,7 +243,7 @@ export function PipelineHealthDashboard({
           </p>
           <span className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">
             {selectedDay?.dqs != null
-              ? `Latest: ${(selectedDay.dqs * 100).toFixed(0)}%`
+              ? `Latest: ${((normalizeProp(selectedDay.dqs) ?? 0) * 100).toFixed(0)}%`
               : "Latest: —"}
           </span>
         </div>
@@ -265,7 +273,8 @@ export function PipelineHealthDashboard({
               </span>
               {selectedDay.dqs != null && (
                 <span className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">
-                  DQS: {(selectedDay.dqs * 100).toFixed(0)}%
+                  DQS:{" "}
+                  {((normalizeProp(selectedDay.dqs) ?? 0) * 100).toFixed(0)}%
                 </span>
               )}
             </div>
@@ -361,14 +370,14 @@ export function PipelineHealthDashboard({
                     Data Quality Score
                   </span>
                   <span className="font-mono text-[10px] text-[var(--color-text-secondary)] tabular-nums">
-                    {(selectedDay.dqs * 100).toFixed(0)}%
+                    {((normalizeProp(selectedDay.dqs) ?? 0) * 100).toFixed(0)}%
                   </span>
                 </div>
                 <div className="h-1.5 w-full bg-[var(--color-sunken)] overflow-hidden">
                   <div
                     className="h-full bg-emerald-400 transition-all"
                     style={{
-                      width: `${Math.min(100, Math.max(0, selectedDay.dqs * 100))}%`,
+                      width: `${Math.min(100, Math.max(0, (normalizeProp(selectedDay.dqs) ?? 0) * 100))}%`,
                     }}
                   />
                 </div>

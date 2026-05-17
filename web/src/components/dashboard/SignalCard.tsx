@@ -9,7 +9,12 @@ import {
 } from "@/components/ui/freshness-indicator";
 import { ReproducibilityExport } from "@/components/ui/reproducibility-export";
 import { Sparkline } from "@/components/ui/sparkline";
-import { fmt2, fmtConfidence, fmtInt } from "@/components/ui/utils";
+import {
+  fmt2,
+  fmtConfidence,
+  fmtInt,
+  normalizeProp,
+} from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
 import Link from "next/link";
@@ -91,7 +96,8 @@ export function SignalCard({
             />
             {rolling90dAccuracyT5 != null && (
               <span className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">
-                90D:{(rolling90dAccuracyT5 * 100).toFixed(1)}%
+                90D:
+                {((normalizeProp(rolling90dAccuracyT5) ?? 0) * 100).toFixed(1)}%
               </span>
             )}
             {chg != null && (

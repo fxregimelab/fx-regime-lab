@@ -1,3 +1,5 @@
+import { normalizeProp } from "./utils";
+
 interface ConfidenceBarProps {
   value?: number | null;
   tone?: "dark" | "light";
@@ -9,8 +11,9 @@ export function ConfidenceBar({
   tone = "dark",
   color,
 }: ConfidenceBarProps) {
+  const prop = normalizeProp(value) ?? 0;
   const pct =
-    value == null ? 0 : Math.min(100, Math.max(0, Math.round(value * 100)));
+    value == null ? 0 : Math.min(100, Math.max(0, Math.round(prop * 100)));
   const barColor = color || "var(--terminal-warning)";
   const trackColor =
     tone === "dark" ? "var(--terminal-bg-sunken)" : "var(--shell-bg-sunken)";

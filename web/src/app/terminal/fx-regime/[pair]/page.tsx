@@ -9,7 +9,12 @@ import { ReproducibilityExport } from "@/components/ui/reproducibility-export";
 import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkline } from "@/components/ui/sparkline";
-import { fmt2, fmtConfidence, fmtInt } from "@/components/ui/utils";
+import {
+  fmt2,
+  fmtConfidence,
+  fmtInt,
+  normalizeProp,
+} from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import {
   getHistoricalPrices,
@@ -376,7 +381,8 @@ function ExecutionPanel({
 
 export default async function PairDeskPage({ params }: PairDeskPageProps) {
   const { pair: pairSlug } = await params;
-  const pairMeta = PAIRS.find((p) => p.urlSlug === pairSlug);
+  const normalizedSlug = pairSlug.toLowerCase();
+  const pairMeta = PAIRS.find((p) => p.urlSlug === normalizedSlug);
   if (!pairMeta) return notFound();
 
   const supabase = await createClient();
@@ -602,7 +608,13 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             style={{ color: pairMeta.pairColor }}
           >
             {call?.confidence != null
-              ? Math.min(100, Math.max(0, Math.round(call.confidence * 100)))
+              ? Math.min(
+                  100,
+                  Math.max(
+                    0,
+                    Math.round((normalizeProp(call.confidence) ?? 0) * 100),
+                  ),
+                )
               : "—"}
             <span className="text-base text-[var(--color-text-dim)] font-normal">
               {call ? "%" : ""}
@@ -1016,7 +1028,14 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                   className="font-mono text-[10px] font-medium"
                   style={{ color: pairMeta.pairColor }}
                 >
-                  {Math.min(100, Math.max(0, Math.round(h.confidence * 100)))}%
+                  {Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      Math.round((normalizeProp(h.confidence) ?? 0) * 100),
+                    ),
+                  )}
+                  %
                 </span>
               </div>
             ))}
@@ -1061,7 +1080,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                         background: regimeDotColor(h.regime),
                         opacity: 0.85,
                       }}
-                      title={`${h.date}: ${h.regime} (${Math.min(100, Math.max(0, Math.round(h.confidence * 100)))}%)`}
+                      title={`${h.date}: ${h.regime} (${Math.min(100, Math.max(0, Math.round((normalizeProp(h.confidence) ?? 0) * 100)))}%)`}
                     />
                     {/* Tooltip on hover */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10 whitespace-nowrap">

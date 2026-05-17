@@ -13,10 +13,18 @@ export function fmt4(v: number | null | undefined) {
   return v == null || Number.isNaN(v) ? "—" : v.toFixed(4);
 }
 
+/** Normalize a value that may be stored as proportion (0–1) or percentage (0–100). */
+export function normalizeProp(v: number | null | undefined): number | null {
+  if (v == null || Number.isNaN(v)) return null;
+  // If > 1, treat as already-multiplied percentage and divide back
+  if (v > 1) return v / 100;
+  return v;
+}
+
 export function fmtConfidence(v: number | null | undefined) {
   if (v == null || Number.isNaN(v)) return "—";
-  // Defensive: if value is already > 1 (e.g. bad DB data), clip and warn
-  const clamped = Math.min(1, Math.max(0, v));
+  const prop = normalizeProp(v) ?? 0;
+  const clamped = Math.min(1, Math.max(0, prop));
   return `${Math.round(clamped * 100)}%`;
 }
 

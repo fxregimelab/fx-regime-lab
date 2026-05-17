@@ -2,6 +2,7 @@ import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
+import { normalizeProp } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import {
   getLatestRegimeCalls,
@@ -119,7 +120,9 @@ function Hero({
               90D Accuracy
             </span>
             <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
-              {accuracy90d != null ? `${(accuracy90d * 100).toFixed(1)}%` : "—"}
+              {accuracy90d != null
+                ? `${((normalizeProp(accuracy90d) ?? 0) * 100).toFixed(1)}%`
+                : "—"}
             </span>
           </div>
         </div>
@@ -311,14 +314,18 @@ function SnapshotCard({
             Confidence
           </span>
           <span className="font-mono text-[13px] text-[var(--color-text-secondary)] font-medium">
-            {Math.min(100, Math.max(0, Math.round(confidence * 100)))}%
+            {Math.min(
+              100,
+              Math.max(0, Math.round((normalizeProp(confidence) ?? 0) * 100)),
+            )}
+            %
           </span>
         </div>
         <div className="h-[3px] bg-[var(--color-border)] overflow-hidden">
           <div
             className="h-full bg-[var(--color-accent)] transition-all duration-1000 ease-out"
             style={{
-              width: `${Math.min(100, Math.max(0, confidence * 100))}%`,
+              width: `${Math.min(100, Math.max(0, (normalizeProp(confidence) ?? 0) * 100))}%`,
             }}
           />
         </div>

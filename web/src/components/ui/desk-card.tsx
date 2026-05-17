@@ -8,7 +8,7 @@ import type { DominanceItem, MarkovPayload } from "@/lib/queries";
 import type { TelemetryAuditPayload } from "@/lib/queries";
 import { AnimatePresence, motion } from "framer-motion";
 import React from "react";
-import { fmt2 } from "./utils";
+import { fmt2, normalizeProp } from "./utils";
 
 const OMEGA_BEVEL =
   "border-0 border-t-[0.5px] border-t-white/[0.08] border-l-[0.5px] border-l-white/[0.03] bg-[#080808]";
@@ -90,7 +90,10 @@ export function DeskCardTelemetryRow({
 }: DeskCardTelemetryRowProps) {
   const pct =
     confidence != null
-      ? Math.min(100, Math.max(0, Math.round(confidence * 100)))
+      ? Math.min(
+          100,
+          Math.max(0, Math.round((normalizeProp(confidence) ?? 0) * 100)),
+        )
       : null;
   const modelUnstable =
     parameterInstability ?? Boolean(telemetryAudit?.parameter_instability);
@@ -234,7 +237,10 @@ export function DeskCard({
     (corrLockedWhisper != null && corrLockedWhisper !== "");
   const confPct =
     confidence != null
-      ? Math.min(100, Math.max(0, Math.round(confidence * 100)))
+      ? Math.min(
+          100,
+          Math.max(0, Math.round((normalizeProp(confidence) ?? 0) * 100)),
+        )
       : null;
   const aiRows = parseDeskAiBriefRows(aiBrief);
 

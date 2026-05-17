@@ -1,6 +1,7 @@
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
+import { normalizeProp } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import { getDriverTag } from "@/lib/pairProfiles";
 import { getLatestBrief } from "@/lib/supabase/queries";
@@ -37,10 +38,9 @@ function DollarDominanceIndex({
   const weaknessPct = (usdWeakness / total) * 100;
   const neutralPct = (neutral / total) * 100;
 
+  const dd = normalizeProp(brief.dollar_dominance);
   const dominanceLabel =
-    brief.dollar_dominance != null
-      ? `${(brief.dollar_dominance * 100).toFixed(0)}%`
-      : `${Math.round(strengthPct)}%`;
+    dd != null ? `${(dd * 100).toFixed(0)}%` : `${Math.round(strengthPct)}%`;
 
   return (
     <div className="border border-[var(--color-border)] bg-[var(--color-surface)] p-6">

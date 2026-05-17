@@ -27,8 +27,10 @@ export const metadata: Metadata = {
 
 function fmtPctRaw(n: number | null | undefined, digits = 1) {
   if (n == null) return "—";
-  const sign = n >= 0 ? "+" : "";
-  return `${sign}${(n * 100).toFixed(digits)}%`;
+  // Defensive: DB may store proportions (0–1) or percentages (>1)
+  const prop = n > 1 ? n / 100 : n;
+  const sign = prop >= 0 ? "+" : "";
+  return `${sign}${(prop * 100).toFixed(digits)}%`;
 }
 
 function fmtBrier(n: number | null | undefined) {
@@ -230,11 +232,15 @@ export default async function PerformancePage() {
     }
   }
 
-  // freshness
-  const lastDate = dates.length > 0 ? dates[dates.length - 1] : null;
+  // freshness — use latest validation_stats as_of_date (more current than
+  // T+5 validation_log which lags by ~5 business days).
+  const latestStatsDate = statsT5[0]?.asOfDate ?? null;
+  const lastDate =
+    latestStatsDate ?? (dates.length > 0 ? dates[dates.length - 1] : null);
+  const STALE_THRESHOLD_DAYS = 10;
   const isStale = lastDate
     ? new Date().getTime() - new Date(lastDate).getTime() >
-      5 * 24 * 60 * 60 * 1000
+      STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000
     : true;
 
   // ── 95% confidence intervals ────────────────────────────────────────────

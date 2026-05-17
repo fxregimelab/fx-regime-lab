@@ -1,3 +1,4 @@
+import { normalizeProp } from "@/components/ui/utils";
 import type { BriefLogRow } from "@/lib/supabase/queries";
 import Link from "next/link";
 
@@ -6,6 +7,7 @@ interface DailyBriefPanelProps {
 }
 
 export function DailyBriefPanel({ brief }: DailyBriefPanelProps) {
+  const dd = normalizeProp(brief?.dollar_dominance);
   return (
     <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
       <div className="px-5 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
@@ -26,13 +28,13 @@ export function DailyBriefPanel({ brief }: DailyBriefPanelProps) {
                 ? `${brief.brief_text.slice(0, 300)}...`
                 : brief.brief_text}
             </p>
-            {brief.dollar_dominance != null && (
+            {dd != null && (
               <div className="mt-3 flex items-center gap-2">
                 <span className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-wider">
                   DOLLAR DOMINANCE
                 </span>
                 <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
-                  {(brief.dollar_dominance * 100).toFixed(0)}%
+                  {(dd * 100).toFixed(0)}%
                 </span>
               </div>
             )}

@@ -31,7 +31,13 @@ export default async function Image() {
 
   const winRatePct =
     t5WinRate != null
-      ? Math.min(100, Math.max(0, Math.round(t5WinRate * 100)))
+      ? Math.min(
+          100,
+          Math.max(
+            0,
+            Math.round((t5WinRate > 1 ? t5WinRate / 100 : t5WinRate) * 100),
+          ),
+        )
       : null;
 
   return new ImageResponse(

@@ -1,5 +1,6 @@
 "use client";
 
+import { normalizeProp } from "@/components/ui/utils";
 import { useMemo } from "react";
 
 interface HistoryPoint {
@@ -121,9 +122,11 @@ export function AccuracyMilestoneTracker({
   currentStreak,
   bestWindowAccuracy,
 }: AccuracyMilestoneTrackerProps) {
-  const pct = Math.round(currentAccuracy * 1000) / 10;
-  const bestPct = Math.round(bestWindowAccuracy * 1000) / 10;
-  const barPct = Math.min(currentAccuracy / MAX_BAR, 1);
+  const acc = normalizeProp(currentAccuracy) ?? 0;
+  const best = normalizeProp(bestWindowAccuracy) ?? 0;
+  const pct = Math.round(acc * 1000) / 10;
+  const bestPct = Math.round(best * 1000) / 10;
+  const barPct = Math.min(acc / MAX_BAR, 1);
   const gatePct = GATE / MAX_BAR;
 
   return (
@@ -138,7 +141,7 @@ export function AccuracyMilestoneTracker({
             <span className="font-mono text-[clamp(36px,5vw,52px)] font-medium text-[var(--color-text)] tracking-tight tabular-nums leading-none">
               {pct.toFixed(1)}%
             </span>
-            <StatusBadge accuracy={currentAccuracy} />
+            <StatusBadge accuracy={acc} />
           </div>
         </div>
         <div className="text-right">

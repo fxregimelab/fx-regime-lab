@@ -1,5 +1,5 @@
 import { FreshnessIndicator } from "@/components/ui/freshness-indicator";
-import { timeAgo } from "@/components/ui/utils";
+import { normalizeProp, timeAgo } from "@/components/ui/utils";
 
 interface SystemStatusBarProps {
   dqs: number | null;
@@ -14,12 +14,13 @@ export function SystemStatusBar({
   lastRunAt,
   validatedCount,
 }: SystemStatusBarProps) {
+  const dqsProp = normalizeProp(dqs);
   const dqsColor =
-    dqs == null
+    dqsProp == null
       ? "var(--color-text-muted)"
-      : dqs >= 0.75
+      : dqsProp >= 0.75
         ? "var(--color-up)"
-        : dqs >= 0.5
+        : dqsProp >= 0.5
           ? "var(--color-warn)"
           : "var(--color-down)";
 
@@ -44,7 +45,7 @@ export function SystemStatusBar({
             className="font-mono text-[clamp(18px,2.5vw,24px)] font-medium tracking-tight leading-none tabular-nums"
             style={{ color: dqsColor }}
           >
-            {dqs != null ? dqs.toFixed(2) : "—"}
+            {dqsProp != null ? dqsProp.toFixed(2) : "—"}
           </p>
         </div>
         {/* Visual gauge */}
@@ -52,19 +53,19 @@ export function SystemStatusBar({
           <div
             className="h-full transition-all duration-700"
             style={{
-              width: `${(dqs ?? 0) * 100}%`,
+              width: `${(dqsProp ?? 0) * 100}%`,
               background: dqsColor,
             }}
           />
         </div>
         <p className="font-mono text-[9px] text-[var(--color-text-dim)] mt-1">
-          {dqs == null
+          {dqsProp == null
             ? "—"
-            : dqs >= 0.9
+            : dqsProp >= 0.9
               ? "EXCELLENT"
-              : dqs >= 0.8
+              : dqsProp >= 0.8
                 ? "GOOD"
-                : dqs >= 0.6
+                : dqsProp >= 0.6
                   ? "FAIR"
                   : "POOR"}
         </p>
