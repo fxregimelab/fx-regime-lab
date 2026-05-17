@@ -170,7 +170,7 @@ export default function MethodologyContent() {
               Schmitt trigger with memory of yesterday's tier. The snap function
               is sequential — each condition is tested in order:
             </Body>
-            <KatexMath latex="\\text{snap}(c) = \\begin{cases} 4 & \\text{if } c > 1.0 \\ 3 & \\text{if } c > 0.4 \\ 2 & \\text{if } c \\geq -0.4 \\ 1 & \\text{if } c \\geq -1.0 \\ 0 & \\text{otherwise} \\end{cases}" />
+            <KatexMath latex="\\text{snap}(c) = \\begin{cases} 4 & \\text{if } c > 1.0 \\\\ 3 & \\text{if } c > 0.4 \\\\ 2 & \\text{if } c \\geq -0.4 \\\\ 1 & \\text{if } c \\geq -1.0 \\\\ 0 & \\text{otherwise} \\end{cases}" />
             <Body>
               Tier changes of two or more steps are immediate. Single-step
               changes are deferred by tighter hold thresholds that must be
@@ -336,7 +336,7 @@ export default function MethodologyContent() {
               intraday move from the open against the directional bias over 20
               days:
             </Body>
-            <KatexMath latex="\\text{Stop} = \\begin{cases} S_t - \\text{buffer} & \\text{LONG} \\ S_t + \\text{buffer} & \\text{SHORT} \\ \\text{none} & \\text{NEUTRAL} \\end{cases}" />
+            <KatexMath latex="\\text{Stop} = \\begin{cases} S_t - \\text{buffer} & \\text{LONG} \\\\ S_t + \\text{buffer} & \\text{SHORT} \\\\ \\text{none} & \\text{NEUTRAL} \\end{cases}" />
           </Subsection>
 
           {/* ── Signal Decomposition ────────────────────────────────── */}
