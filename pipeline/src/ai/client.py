@@ -302,7 +302,7 @@ def _call(
     (e.g. inside a Prefect async flow) by offloading to a thread.
     """
     try:
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
     except RuntimeError:
         return asyncio.run(_call_async(messages, max_tokens, date_str, purpose))
 
