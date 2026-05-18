@@ -1428,6 +1428,7 @@ export type Database = {
           actual_direction: string | null;
           actual_direction_t20: string | null;
           actual_direction_t5: string | null;
+          call: string | null;
           actual_return_1d: number | null;
           actual_return_20d: number | null;
           actual_return_5d: number | null;
@@ -1466,6 +1467,7 @@ export type Database = {
           actual_direction?: string | null;
           actual_direction_t20?: string | null;
           actual_direction_t5?: string | null;
+          call?: string | null;
           actual_return_1d?: number | null;
           actual_return_20d?: number | null;
           actual_return_5d?: number | null;
@@ -1504,6 +1506,7 @@ export type Database = {
           actual_direction?: string | null;
           actual_direction_t20?: string | null;
           actual_direction_t5?: string | null;
+          call?: string | null;
           actual_return_1d?: number | null;
           actual_return_20d?: number | null;
           actual_return_5d?: number | null;
