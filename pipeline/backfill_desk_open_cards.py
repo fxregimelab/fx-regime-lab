@@ -6,10 +6,8 @@ by computing all required fields from the existing pipeline output tables.
 """
 from __future__ import annotations
 
-import json
 import os
 import sys
-from datetime import date, datetime, timedelta
 from typing import Any
 
 from supabase import create_client
@@ -141,7 +139,9 @@ def compute_apex_score(call: dict[str, Any]) -> float:
     return round(min(score, 1.0), 4)
 
 
-def build_desk_card(call: dict[str, Any], sig: dict[str, Any] | None, date_str: str) -> dict[str, Any]:
+def build_desk_card(
+    call: dict[str, Any], sig: dict[str, Any] | None, date_str: str
+) -> dict[str, Any]:
     pair = call["pair"]
     regime = call["regime"]
     regime_age = compute_regime_age(pair, regime, date_str)
@@ -202,7 +202,10 @@ def backfill_desk_open_cards(target_date: str | None = None) -> None:
 
     print(f"Wrote {len(cards)} desk_open_cards for {target_date}.")
     for c in cards:
-        print(f"  #{c['global_rank']} {c['pair']}: {c['structural_regime']} (apex={c['apex_score']}, age={c['regime_age']})")
+        print(
+            f"  #{c['global_rank']} {c['pair']}: {c['structural_regime']} "
+            f"(apex={c['apex_score']}, age={c['regime_age']})"
+        )
 
 
 if __name__ == "__main__":

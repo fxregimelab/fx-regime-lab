@@ -218,7 +218,7 @@ export async function getValidationLog(
     .map((r) => ({
       date: r.date,
       pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-      call: r.predicted_regime ?? "—",
+      call: r.call ?? "—",
       outcome: r.correct_t5 ? "correct" : "incorrect",
       return_pct: Number(r.log_return_t5_bps),
     }));
@@ -310,7 +310,7 @@ export async function getValidationLogT5T20(
   return (data as ValidationLogRow[]).map((r) => ({
     date: r.date,
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    predicted: r.predicted_direction ?? "—",
+    predicted: r.call ?? "—",
     t5ReturnBps: r.log_return_t5_bps,
     t5Outcome: r.correct_t5
       ? "CORRECT"
@@ -343,17 +343,33 @@ export async function getRegimeBreakdown(
   supabase: TypedSupabaseClient,
   limit = 500,
 ): Promise<RegimeBreakdownRow[]> {
-  const { data, error } = await supabase
+  // 1. Fetch validation outcomes
+  const { data: valData, error: valError } = await supabase
     .from("validation_log")
     .select(
-      "pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20, predicted_regime",
+      "date, pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20",
     )
     .not("brier_score_t5", "is", null)
     .gte("date", "2026-04-01")
     .order("date", { ascending: false })
     .limit(limit);
 
-  if (error || !data) return [];
+  if (valError || !valData) return [];
+
+  // 2. Fetch corresponding regime names from regime_calls
+  const pairs = [...new Set((valData as any[]).map((r: any) => r.pair))];
+  const { data: regimeData, error: regimeError } = await supabase
+    .from("regime_calls")
+    .select("date, pair, regime")
+    .gte("date", "2026-04-01")
+    .in("pair", pairs);
+
+  if (regimeError || !regimeData) return [];
+
+  const regimeMap = new Map<string, string>();
+  for (const r of regimeData as any[]) {
+    regimeMap.set(`${r.date}|${r.pair}`, r.regime);
+  }
 
   const PAIR_DISPLAY: Record<string, string> = {
     EURUSD: "EUR/USD",
@@ -361,26 +377,24 @@ export async function getRegimeBreakdown(
     USDINR: "USD/INR",
   };
 
-  return (data as ValidationLogRow[])
-    .filter((r) => r.predicted_regime != null)
-    .map((r) => ({
-      pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-      regime: r.predicted_regime ?? "UNKNOWN",
-      t5Outcome: r.correct_t5
-        ? "CORRECT"
-        : r.actual_direction_t5 === "NEUTRAL"
-          ? "NEUTRAL"
-          : r.actual_direction_t5 != null
-            ? "WRONG"
-            : "—",
-      t20Outcome: r.correct_t20
-        ? "CORRECT"
-        : r.actual_direction_t20 === "NEUTRAL"
-          ? "NEUTRAL"
-          : r.actual_direction_t20 != null
-            ? "WRONG"
-            : "—",
-    }));
+  return (valData as ValidationLogRow[]).map((r) => ({
+    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
+    regime: regimeMap.get(`${r.date}|${r.pair}`) ?? "UNKNOWN",
+    t5Outcome: r.correct_t5
+      ? "CORRECT"
+      : r.actual_direction_t5 === "NEUTRAL"
+        ? "NEUTRAL"
+        : r.actual_direction_t5 != null
+          ? "WRONG"
+          : "—",
+    t20Outcome: r.correct_t20
+      ? "CORRECT"
+      : r.actual_direction_t20 === "NEUTRAL"
+        ? "NEUTRAL"
+        : r.actual_direction_t20 != null
+          ? "WRONG"
+          : "—",
+  }));
 }
 
 export async function getValidationLogForPair(
@@ -414,7 +428,7 @@ export async function getValidationLogForPair(
   return (data as ValidationLogRow[]).map((r) => ({
     date: r.date,
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    predicted: r.predicted_direction ?? "—",
+    predicted: r.call ?? "—",
     t5ReturnBps: r.log_return_t5_bps,
     t5Outcome: r.correct_t5
       ? "CORRECT"
@@ -556,7 +570,7 @@ export async function getPairValidationHistory(
 
   return (data as ValidationLogRow[]).map((r) => ({
     date: r.date,
-    predicted: r.predicted_direction ?? "—",
+    predicted: r.call ?? "—",
     t5Outcome: r.correct_t5
       ? "CORRECT"
       : r.actual_direction_t5 === "NEUTRAL"
