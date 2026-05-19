@@ -9,7 +9,7 @@ import { useSearchParams } from "next/navigation";
  */
 export default function ComparePage() {
   const searchParams = useSearchParams();
-  const pairsParam = searchParams.get("pairs") ?? "";
+  const pairsParam = searchParams?.get("pairs") ?? "";
 
   return (
     <div className="pt-4">
