@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5";
   };
+  graphql_public: {
+    Tables: {
+      [_ in never]: never;
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json;
+          operationName?: string;
+          query?: string;
+          variables?: Json;
+        };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
   public: {
     Tables: {
       ai_usage_log: {
@@ -575,6 +600,87 @@ export type Database = {
         };
         Relationships: [];
       };
+      macro_releases: {
+        Row: {
+          actual_value: number | null;
+          cleveland_fed_estimate: number | null;
+          consensus_estimate: number | null;
+          created_at: string | null;
+          id: string;
+          our_model_estimate: number | null;
+          release_date: string;
+          release_name: string;
+          surprise_direction: string | null;
+          surprise_magnitude: number | null;
+        };
+        Insert: {
+          actual_value?: number | null;
+          cleveland_fed_estimate?: number | null;
+          consensus_estimate?: number | null;
+          created_at?: string | null;
+          id?: string;
+          our_model_estimate?: number | null;
+          release_date: string;
+          release_name: string;
+          surprise_direction?: string | null;
+          surprise_magnitude?: number | null;
+        };
+        Update: {
+          actual_value?: number | null;
+          cleveland_fed_estimate?: number | null;
+          consensus_estimate?: number | null;
+          created_at?: string | null;
+          id?: string;
+          our_model_estimate?: number | null;
+          release_date?: string;
+          release_name?: string;
+          surprise_direction?: string | null;
+          surprise_magnitude?: number | null;
+        };
+        Relationships: [];
+      };
+      model_predictions: {
+        Row: {
+          cleveland_fed_estimate: number | null;
+          consensus_estimate: number | null;
+          created_at: string | null;
+          features_snapshot: Json | null;
+          id: string;
+          model_type: string;
+          predicted_value: number;
+          prediction_std: number | null;
+          probability_above_consensus: number | null;
+          release_date: string;
+          release_name: string;
+        };
+        Insert: {
+          cleveland_fed_estimate?: number | null;
+          consensus_estimate?: number | null;
+          created_at?: string | null;
+          features_snapshot?: Json | null;
+          id?: string;
+          model_type: string;
+          predicted_value: number;
+          prediction_std?: number | null;
+          probability_above_consensus?: number | null;
+          release_date: string;
+          release_name: string;
+        };
+        Update: {
+          cleveland_fed_estimate?: number | null;
+          consensus_estimate?: number | null;
+          created_at?: string | null;
+          features_snapshot?: Json | null;
+          id?: string;
+          model_type?: string;
+          predicted_value?: number;
+          prediction_std?: number | null;
+          probability_above_consensus?: number | null;
+          release_date?: string;
+          release_name?: string;
+        };
+        Relationships: [];
+      };
       pair_profiles: {
         Row: {
           confidence_adjustment_rules: Json | null;
@@ -629,6 +735,182 @@ export type Database = {
           special_weight?: number;
           updated_at?: string | null;
           vol_weight?: number;
+        };
+        Relationships: [];
+      };
+      paper_bets: {
+        Row: {
+          bet_direction: string;
+          created_at: string | null;
+          edge_pct: number;
+          entry_price: number;
+          id: string;
+          kelly_fraction: number;
+          market_id: string;
+          market_implied_probability: number;
+          our_model_probability: number;
+          pnl_usdc: number | null;
+          release_name: string | null;
+          resolution: number | null;
+          resolved_at: string | null;
+          status: string | null;
+          virtual_size_usdc: number;
+        };
+        Insert: {
+          bet_direction: string;
+          created_at?: string | null;
+          edge_pct: number;
+          entry_price: number;
+          id?: string;
+          kelly_fraction: number;
+          market_id: string;
+          market_implied_probability: number;
+          our_model_probability: number;
+          pnl_usdc?: number | null;
+          release_name?: string | null;
+          resolution?: number | null;
+          resolved_at?: string | null;
+          status?: string | null;
+          virtual_size_usdc: number;
+        };
+        Update: {
+          bet_direction?: string;
+          created_at?: string | null;
+          edge_pct?: number;
+          entry_price?: number;
+          id?: string;
+          kelly_fraction?: number;
+          market_id?: string;
+          market_implied_probability?: number;
+          our_model_probability?: number;
+          pnl_usdc?: number | null;
+          release_name?: string | null;
+          resolution?: number | null;
+          resolved_at?: string | null;
+          status?: string | null;
+          virtual_size_usdc?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "paper_bets_market_id_fkey";
+            columns: ["market_id"];
+            isOneToOne: false;
+            referencedRelation: "polymarket_markets";
+            referencedColumns: ["market_id"];
+          },
+        ];
+      };
+      paper_positions: {
+        Row: {
+          closed_date: string | null;
+          conviction_level: string | null;
+          created_at: string | null;
+          direction: string;
+          entry_price: number;
+          exit_price: number | null;
+          id: number;
+          invalidation_thesis: string | null;
+          notes: string | null;
+          opened_date: string;
+          pair: string;
+          pnl_pct: number | null;
+          pnl_pips: number | null;
+          r_multiple: number | null;
+          regime_at_entry: string | null;
+          status: string | null;
+          stop_loss: number;
+          target_1: number | null;
+          target_2: number | null;
+          target_3: number | null;
+        };
+        Insert: {
+          closed_date?: string | null;
+          conviction_level?: string | null;
+          created_at?: string | null;
+          direction: string;
+          entry_price: number;
+          exit_price?: number | null;
+          id?: number;
+          invalidation_thesis?: string | null;
+          notes?: string | null;
+          opened_date: string;
+          pair: string;
+          pnl_pct?: number | null;
+          pnl_pips?: number | null;
+          r_multiple?: number | null;
+          regime_at_entry?: string | null;
+          status?: string | null;
+          stop_loss: number;
+          target_1?: number | null;
+          target_2?: number | null;
+          target_3?: number | null;
+        };
+        Update: {
+          closed_date?: string | null;
+          conviction_level?: string | null;
+          created_at?: string | null;
+          direction?: string;
+          entry_price?: number;
+          exit_price?: number | null;
+          id?: number;
+          invalidation_thesis?: string | null;
+          notes?: string | null;
+          opened_date?: string;
+          pair?: string;
+          pnl_pct?: number | null;
+          pnl_pips?: number | null;
+          r_multiple?: number | null;
+          regime_at_entry?: string | null;
+          status?: string | null;
+          stop_loss?: number;
+          target_1?: number | null;
+          target_2?: number | null;
+          target_3?: number | null;
+        };
+        Relationships: [];
+      };
+      performance_summary: {
+        Row: {
+          avg_edge: number | null;
+          calibration_error: number | null;
+          computed_date: string;
+          created_at: string | null;
+          id: string;
+          max_drawdown: number | null;
+          open_bets: number | null;
+          resolved_bets: number | null;
+          sharpe_ratio: number | null;
+          total_bets: number | null;
+          total_pnl_usdc: number | null;
+          win_rate: number | null;
+        };
+        Insert: {
+          avg_edge?: number | null;
+          calibration_error?: number | null;
+          computed_date: string;
+          created_at?: string | null;
+          id?: string;
+          max_drawdown?: number | null;
+          open_bets?: number | null;
+          resolved_bets?: number | null;
+          sharpe_ratio?: number | null;
+          total_bets?: number | null;
+          total_pnl_usdc?: number | null;
+          win_rate?: number | null;
+        };
+        Update: {
+          avg_edge?: number | null;
+          calibration_error?: number | null;
+          computed_date?: string;
+          created_at?: string | null;
+          id?: string;
+          max_drawdown?: number | null;
+          open_bets?: number | null;
+          resolved_bets?: number | null;
+          sharpe_ratio?: number | null;
+          total_bets?: number | null;
+          total_pnl_usdc?: number | null;
+          win_rate?: number | null;
         };
         Relationships: [];
       };
@@ -728,6 +1010,45 @@ export type Database = {
           pairs_skipped?: Json | null;
           sources_used?: Json | null;
           status?: string | null;
+        };
+        Relationships: [];
+      };
+      polymarket_markets: {
+        Row: {
+          category: string | null;
+          current_no_price: number | null;
+          current_yes_price: number | null;
+          end_date: string | null;
+          id: string;
+          last_updated: string | null;
+          market_id: string;
+          question: string;
+          spread: number | null;
+          volume_usdc: number | null;
+        };
+        Insert: {
+          category?: string | null;
+          current_no_price?: number | null;
+          current_yes_price?: number | null;
+          end_date?: string | null;
+          id?: string;
+          last_updated?: string | null;
+          market_id: string;
+          question: string;
+          spread?: number | null;
+          volume_usdc?: number | null;
+        };
+        Update: {
+          category?: string | null;
+          current_no_price?: number | null;
+          current_yes_price?: number | null;
+          end_date?: string | null;
+          id?: string;
+          last_updated?: string | null;
+          market_id?: string;
+          question?: string;
+          spread?: number | null;
+          volume_usdc?: number | null;
         };
         Relationships: [];
       };
@@ -913,15 +1234,15 @@ export type Database = {
           cross_asset_stoxx: number | null;
           cross_asset_us10y: number | null;
           cross_asset_vix: number | null;
-          ecb_balance_sheet: number | null;
           date: string;
           day_change: number | null;
           day_change_pct: number | null;
+          ecb_balance_sheet: number | null;
           fpi_flow: number | null;
           id: number;
+          implied_vol_30d: number | null;
           india_vix: number | null;
           inr_forward_premium: number | null;
-          implied_vol_30d: number | null;
           oi_delta: number | null;
           pair: string;
           rate_diff_10y: number | null;
@@ -937,6 +1258,7 @@ export type Database = {
           spot: number | null;
           structural_instability: boolean;
           volume_rvol: number | null;
+          z_blended: number | null;
         };
         Insert: {
           boj_policy_rate?: number | null;
@@ -954,15 +1276,15 @@ export type Database = {
           cross_asset_stoxx?: number | null;
           cross_asset_us10y?: number | null;
           cross_asset_vix?: number | null;
-          ecb_balance_sheet?: number | null;
           date: string;
           day_change?: number | null;
           day_change_pct?: number | null;
+          ecb_balance_sheet?: number | null;
           fpi_flow?: number | null;
           id?: number;
+          implied_vol_30d?: number | null;
           india_vix?: number | null;
           inr_forward_premium?: number | null;
-          implied_vol_30d?: number | null;
           oi_delta?: number | null;
           pair: string;
           rate_diff_10y?: number | null;
@@ -978,6 +1300,7 @@ export type Database = {
           spot?: number | null;
           structural_instability?: boolean;
           volume_rvol?: number | null;
+          z_blended?: number | null;
         };
         Update: {
           boj_policy_rate?: number | null;
@@ -998,9 +1321,12 @@ export type Database = {
           date?: string;
           day_change?: number | null;
           day_change_pct?: number | null;
+          ecb_balance_sheet?: number | null;
           fpi_flow?: number | null;
           id?: number;
           implied_vol_30d?: number | null;
+          india_vix?: number | null;
+          inr_forward_premium?: number | null;
           oi_delta?: number | null;
           pair?: string;
           rate_diff_10y?: number | null;
@@ -1016,6 +1342,7 @@ export type Database = {
           spot?: number | null;
           structural_instability?: boolean;
           volume_rvol?: number | null;
+          z_blended?: number | null;
         };
         Relationships: [];
       };
@@ -1114,7 +1441,6 @@ export type Database = {
           actual_direction: string | null;
           actual_direction_t20: string | null;
           actual_direction_t5: string | null;
-          call: string | null;
           actual_return_20d: number | null;
           actual_return_5d: number | null;
           brier_20d: number | null;
@@ -1140,7 +1466,6 @@ export type Database = {
           actual_direction?: string | null;
           actual_direction_t20?: string | null;
           actual_direction_t5?: string | null;
-          call?: string | null;
           actual_return_20d?: number | null;
           actual_return_5d?: number | null;
           brier_20d?: number | null;
@@ -1160,14 +1485,12 @@ export type Database = {
           is_superseded?: boolean | null;
           log_return_t20_bps?: number | null;
           log_return_t5_bps?: number | null;
-          notes?: string | null;
           pair: string;
         };
         Update: {
           actual_direction?: string | null;
           actual_direction_t20?: string | null;
           actual_direction_t5?: string | null;
-          call?: string | null;
           actual_return_20d?: number | null;
           actual_return_5d?: number | null;
           brier_20d?: number | null;
@@ -1187,7 +1510,6 @@ export type Database = {
           is_superseded?: boolean | null;
           log_return_t20_bps?: number | null;
           log_return_t5_bps?: number | null;
-          notes?: string | null;
           pair?: string;
         };
         Relationships: [
@@ -1303,7 +1625,6 @@ export type Database = {
         };
         Relationships: [];
       };
-
     };
     Views: {
       [_ in never]: never;
@@ -1482,6 +1803,9 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

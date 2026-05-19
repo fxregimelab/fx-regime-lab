@@ -51,7 +51,8 @@ cd web && npm run lint             # biome/eslint
 
 ## Deep Docs (Read When Needed)
 - `docs/SIGNAL_DEFINITIONS.md` — exact math, weights, thresholds
-- `docs/DATABASE_SCHEMA.md` — table specs, indexes
+- `docs/DB_STATUS.md` — canonical live schema reference (table specs, indexes, migration history, cleanup log)
+- `docs/DATABASE_SCHEMA.md` — (legacy, use DB_STATUS.md instead)
 - `docs/PIPELINE_REFERENCE.md` — step order, failure modes
 - `MASTERPLAN.md` — Ultimate product roadmap (THIS is the plan)
 - `OMEGA_PROTOCOL.md` — The 13-persona council and workflow rules (process, not product direction)

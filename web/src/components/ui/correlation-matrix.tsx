@@ -12,9 +12,13 @@ function cellStyle(c: number): CSSProperties {
   const t = Math.max(-1, Math.min(1, c));
   const a = 0.12 + 0.55 * Math.abs(t);
   if (t >= 0) {
-    return { backgroundColor: `color-mix(in srgb, var(--color-up) ${Math.round(a*100)}%, transparent)` };
+    return {
+      backgroundColor: `color-mix(in srgb, var(--color-up) ${Math.round(a * 100)}%, transparent)`,
+    };
   }
-  return { backgroundColor: `color-mix(in srgb, var(--color-down) ${Math.round(a*100)}%, transparent)` };
+  return {
+    backgroundColor: `color-mix(in srgb, var(--color-down) ${Math.round(a * 100)}%, transparent)`,
+  };
 }
 
 const BEVEL =

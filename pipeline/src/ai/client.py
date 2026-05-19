@@ -563,9 +563,11 @@ async def generate_desk_card_brief_async(
     sig_row = writer.get_signal_for_pair_date(pair, date_str)
     z_t = sig_row.get("rate_z_tactical") if sig_row else None
     z_s = sig_row.get("rate_z_structural") if sig_row else None
+    z_b = sig_row.get("z_blended") if sig_row else None
     z_line = (
         f"RATE_Z_TACTICAL_MAD:{z_t if z_t is not None else 'null'} "
-        f"RATE_Z_STRUCTURAL_MAD:{z_s if z_s is not None else 'null'}\n"
+        f"RATE_Z_STRUCTURAL_MAD:{z_s if z_s is not None else 'null'} "
+        f"RATE_Z_BLENDED_MAD:{z_b if z_b is not None else 'null'}\n"
     )
     founder_instructions = ""
     stale_signal_gating = ""

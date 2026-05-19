@@ -84,6 +84,7 @@ def write_signal_row(row: SignalRow) -> None:
         "rate_diff_10y_real": row.rate_diff_10y_real,
         "rate_z_tactical": row.rate_z_tactical,
         "rate_z_structural": row.rate_z_structural,
+        "z_blended": row.z_blended,
         "realized_vol_rank": row.realized_vol_rank,
         "skew_alignment": row.skew_alignment,
         "risk_reversal_25d": row.risk_reversal_25d,
@@ -91,6 +92,11 @@ def write_signal_row(row: SignalRow) -> None:
         "cot_net_pos": row.cot_net_pos,
         "cot_asset_mgr_net": row.cot_asset_mgr_net,
         "cot_lev_money_net": row.cot_lev_money_net,
+        "ecb_balance_sheet": row.ecb_balance_sheet,
+        "bund_btp_spread": row.bund_btp_spread,
+        "boj_policy_rate": row.boj_policy_rate,
+        "india_vix": row.india_vix,
+        "inr_forward_premium": row.inr_forward_premium,
     }
     _client().table("signals").upsert(payload, on_conflict="pair,date").execute()
 

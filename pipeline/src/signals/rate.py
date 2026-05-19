@@ -25,6 +25,7 @@ class RateNormZ:
 
     z_tactical: float | None
     z_structural: float | None
+    z_blended: float | None
 
 
 def _to_date(value: Any) -> date | None:
@@ -188,7 +189,7 @@ def normalize_rate_signal(
     arr = arr[np.isfinite(arr)]
     if arr.size == 0:
         logger.info("Rate normalization fallback: empty history for %s", pair)
-        return RateNormZ(z_tactical=None, z_structural=None)
+        return RateNormZ(z_tactical=None, z_structural=None, z_blended=None)
 
     z_tactical = _mad_z_from_series(
         spread, arr, TACTICAL_MAD_DAYS, "tactical", pair
@@ -217,7 +218,15 @@ def normalize_rate_signal(
             spread, arr, STRUCTURAL_MAD_DAYS, "structural", pair
         )
 
-    return RateNormZ(z_tactical=z_tactical, z_structural=z_structural)
+    z_blended = None
+    if z_tactical is not None and z_structural is not None:
+        z_blended = float(0.60 * z_tactical + 0.40 * z_structural)
+    elif z_tactical is not None:
+        z_blended = z_tactical
+    elif z_structural is not None:
+        z_blended = z_structural
+
+    return RateNormZ(z_tactical=z_tactical, z_structural=z_structural, z_blended=z_blended)
 
 
 def compute_risk_adjusted_carry(
@@ -232,3 +241,31 @@ def compute_risk_adjusted_carry(
         logger.info("Risk_Adjusted_Carry unavailable for %s: invalid realized_vol_20d", pair)
         return None
     return rate_diff_2y / realized_vol_20d
+
+
+def compute_risk_adjusted_carry_v2(
+    rate_diff_2y: float | None,
+    realized_vol_20d: float | None,
+    implied_vol_30d: float | None,
+    pair: str,
+) -> float | None:
+    """Risk-adjusted carry using implied vol when available, RV20 as fallback.
+
+    Implied vol is forward-looking and better captures event risk.
+    For EUR/USD: uses implied_vol_30d (EVZ proxy).
+    For USD/JPY: uses implied_vol_30d (JYVIX proxy).
+    For USD/INR: no liquid implied vol index → falls back to RV20.
+    """
+    if rate_diff_2y is None:
+        logger.info("Risk_Adjusted_Carry_v2 unavailable for %s: missing rate_diff_2y", pair)
+        return None
+
+    vol = (
+        implied_vol_30d
+        if implied_vol_30d is not None and implied_vol_30d > 0.0
+        else realized_vol_20d
+    )
+    if vol is None or vol <= 0.0:
+        logger.info("Risk_Adjusted_Carry_v2 unavailable for %s: invalid vol", pair)
+        return None
+    return rate_diff_2y / vol

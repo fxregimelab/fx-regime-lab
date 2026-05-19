@@ -40,12 +40,21 @@ export type LatestSignalRow = Pick<
   | "breakeven_inflation_10y"
   | "rate_z_tactical"
   | "rate_z_structural"
+  | "z_blended"
   | "skew_alignment"
   | "realized_vol_20d"
   | "realized_vol_5d"
   | "implied_vol_30d"
   | "cross_asset_us10y"
   | "day_change_pct"
+  | "india_vix"
+  | "inr_forward_premium"
+  | "oi_delta"
+  | "volume_rvol"
+  | "structural_instability"
+  | "ecb_balance_sheet"
+  | "bund_btp_spread"
+  | "boj_policy_rate"
   | "created_at"
 >;
 
@@ -399,7 +408,7 @@ export function useStrategyLedger(pair?: string) {
       let query = supabase
         .from("strategy_ledger")
         .select("*")
-        .order("entry_date", { ascending: false })
+        .order("date", { ascending: false })
         .limit(100);
       if (pair) {
         if (!isCanonicalPair(pair)) return [];

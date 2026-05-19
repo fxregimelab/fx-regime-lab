@@ -88,13 +88,18 @@ export function MacroDriftEngine({ className = "" }: MacroDriftEngineProps) {
                   <>
                     <span
                       className={
-                        delta >= 0 ? "text-[var(--color-up)]" : "text-[var(--color-down)]"
+                        delta >= 0
+                          ? "text-[var(--color-up)]"
+                          : "text-[var(--color-down)]"
                       }
                     >
                       {delta >= 0 ? "+" : ""}
                       {delta.toFixed(1)}
                     </span>
-                    <span className="text-[var(--color-text-dim)]"> pts / 1d</span>
+                    <span className="text-[var(--color-text-dim)]">
+                      {" "}
+                      pts / 1d
+                    </span>
                   </>
                 ) : (
                   <span className="text-[var(--color-text-dim)]">—</span>
@@ -102,8 +107,11 @@ export function MacroDriftEngine({ className = "" }: MacroDriftEngineProps) {
               </p>
               {latest != null ? (
                 <p className="m-0 mt-1 font-mono text-[9px] tabular-nums text-[var(--color-text-muted)]">
-                  NOW <span className="text-[var(--color-text)]">{latest.toFixed(0)}</span> /
-                  100
+                  NOW{" "}
+                  <span className="text-[var(--color-text)]">
+                    {latest.toFixed(0)}
+                  </span>{" "}
+                  / 100
                 </p>
               ) : null}
             </div>
@@ -140,7 +148,9 @@ export function MacroDriftEngine({ className = "" }: MacroDriftEngineProps) {
                 {outlier}
               </motion.span>
             ) : (
-              <p className="m-0 mt-1 font-mono text-[9px] text-[var(--color-text-dim)]">NULL</p>
+              <p className="m-0 mt-1 font-mono text-[9px] text-[var(--color-text-dim)]">
+                NULL
+              </p>
             )}
           </div>
         </div>

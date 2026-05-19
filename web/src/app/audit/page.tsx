@@ -1,7 +1,11 @@
 export const revalidate = 3600;
 
-export const metadata = {
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
   title: "Audit Log | FX Regime Lab",
+  description:
+    "Immutable audit trail of pipeline health, regime calls, and validation events.",
 };
 
 import { PipelineHealthDashboard } from "@/components/audit/PipelineHealthDashboard";
@@ -64,6 +68,14 @@ export default async function AuditPage() {
             For the complete development history, refer to the repository commit
             log on GitHub.
           </p>
+          <div className="mt-4 border-t border-[var(--terminal-border)] pt-4">
+            <a
+              href="/diagnostics"
+              className="font-mono text-[10px] tracking-widest text-[var(--terminal-fg-muted)] hover:text-[var(--terminal-fg)] uppercase transition-colors"
+            >
+              View diagnostic reports →
+            </a>
+          </div>
         </article>
       </div>
     </main>

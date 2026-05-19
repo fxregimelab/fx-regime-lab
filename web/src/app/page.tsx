@@ -11,8 +11,15 @@ import {
   getValidationStats,
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
+
+export const metadata: Metadata = {
+  title: "FX Regime Lab — Daily Regime Calls",
+  description:
+    "Daily macro regime classifications for EUR/USD, USD/JPY, and USD/INR. On the record.",
+};
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
@@ -430,13 +437,13 @@ function SignalArchitecture() {
       n: "01",
       label: "Rate Differentials",
       desc: "2Y sovereign yield spreads. Primary driver of medium-term FX regime direction.",
-      weight: "~40%",
+      weight: "~45%",
     },
     {
       n: "02",
       label: "COT Positioning",
       desc: "CFTC weekly non-commercial net positions as percentile ranks. Crowd and reversal signals.",
-      weight: "~30%",
+      weight: "~25%",
     },
     {
       n: "03",
@@ -448,13 +455,13 @@ function SignalArchitecture() {
       n: "04",
       label: "OI and Risk Reversals",
       desc: "Open interest flows and 25-delta risk reversals. INR-specific series included.",
-      weight: "~10%",
+      weight: "~5%",
     },
     {
       n: "05",
       label: "Special Factor",
       desc: "Pair-specific cross-asset signal — ECB sentiment for EUR/USD, JPY funding stress for USD/JPY, EM carry/RBI for USD/INR.",
-      weight: "0–30%",
+      weight: "~5%",
     },
   ];
 

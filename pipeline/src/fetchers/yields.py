@@ -145,6 +145,77 @@ def fetch_legacy_10y_legs(lookback_days: int = 5) -> dict[str, float | None]:
     return ten_year_legs
 
 
+def fetch_ecb_balance_sheet(fred: Fred | None = None) -> float | None:
+    """Fetch latest ECB total assets (ECBASSETSW) from FRED.
+
+    Returns the latest value in billions EUR, or None if unavailable.
+    The FRED series is in millions of EUR — divide by 1000 before returning.
+    """
+    fred_key = os.environ.get("FRED_API_KEY")
+    fred = fred or (Fred(api_key=fred_key) if fred_key else None)
+    if fred is None:
+        logger.warning("FRED_API_KEY not set — ECB balance sheet skipped")
+        return None
+    try:
+        values = fred.get_series_latest_release("ECBASSETSW")
+        if values is None or values.empty:
+            logger.warning("FRED ECB balance sheet (ECBASSETSW) returned empty series")
+            return None
+        clean = values.dropna()
+        if clean.empty:
+            logger.warning("FRED ECB balance sheet (ECBASSETSW) returned NaN-only series")
+            return None
+        return float(clean.iloc[-1]) / 1000.0
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("FRED ECB balance sheet (ECBASSETSW) fetch failed: %s", exc)
+        return None
+
+
+def fetch_bund_btp_spread(
+    fred: Fred | None = None, germany_10y: float | None = None
+) -> float | None:
+    """Compute 10Y Bund - 10Y BTP spread from FRED.
+
+    Returns spread in percentage points, or None if either leg missing.
+
+    IMPORTANT: Re-use the existing Germany 10Y value when available
+    (already fetched for yields). Pass it via ``germany_10y`` to avoid
+    duplicating the FRED call.
+    """
+    fred_key = os.environ.get("FRED_API_KEY")
+    fred = fred or (Fred(api_key=fred_key) if fred_key else None)
+
+    bund = germany_10y
+    if bund is None and fred is not None:
+        bund = _fred_leg(fred, ("IRLTLT01DEM156N",), "Germany 10Y")
+
+    btp: float | None = None
+    if fred is not None:
+        btp = _fred_leg(fred, ("IRLTLT01ITM156N",), "Italy 10Y")
+
+    if bund is None or btp is None:
+        logger.warning("Bund-BTP spread unavailable (bund=%s, btp=%s)", bund, btp)
+        return None
+    return float(bund) - float(btp)
+
+
+def fetch_boj_policy_rate(fred: Fred | None = None) -> float | None:
+    """Fetch latest BoJ policy rate proxy (IRSTCI01JPM156N) from FRED.
+
+    Returns rate in percent, or None if unavailable.
+
+    NOTE: Uses IRSTCI01JPM156N (OECD Japan call money rate) instead of
+    the stale INTDSRJPM193N. This series tracks the BoJ policy rate
+    with minimal lag and is current to present.
+    """
+    fred_key = os.environ.get("FRED_API_KEY")
+    fred = fred or (Fred(api_key=fred_key) if fred_key else None)
+    if fred is None:
+        logger.warning("FRED_API_KEY not set — BoJ policy rate skipped")
+        return None
+    return _fred_leg(fred, ("IRSTCI01JPM156N",), "BoJ policy rate")
+
+
 def fetch_yields(lookback_days: int = 5) -> dict[str, float | None]:
     """Legacy sync yield fetch; flat map with keys like ``us_2y``, ``us_10y``."""
 

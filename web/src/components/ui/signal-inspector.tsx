@@ -1,6 +1,7 @@
 "use client";
 
 import { normalizeProp } from "@/components/ui/utils";
+import { CONFIDENCE_ACCENT, PAIR_COMPOSITE_WEIGHTS } from "@/lib/config";
 import { useMemo } from "react";
 import { InspectorDrawer } from "./inspector-drawer";
 
@@ -36,6 +37,17 @@ interface SignalInspectorProps {
   crossAssetUs10y: number | null;
   skewAlignment: number | null;
   breakevenInflation10y: number | null;
+  zBlended?: number | null;
+  ecbBalanceSheet?: number | null;
+  bundBtpSpread?: number | null;
+  bojPolicyRate?: number | null;
+  indiaVix?: number | null;
+  inrForwardPremium?: number | null;
+  oiDelta?: number | null;
+  volumeRvol?: number | null;
+  structuralInstability?: boolean;
+  specialSignalValue?: number | null;
+  specialSignalLabel?: string | null;
 }
 
 /* ─── helpers ───────────────────────────────────────────────────────── */
@@ -80,7 +92,7 @@ function flipThreshold(
   if (confidence == null || composite == null) return "—";
   // Threshold to flip regime: if confidence is high, need large composite swing
   const threshold =
-    confidence > 0.55
+    confidence > CONFIDENCE_ACCENT
       ? composite > 0
         ? "Composite < 0.10"
         : "Composite > -0.10"
@@ -92,19 +104,32 @@ function flipThreshold(
 
 /* ─── weighted composite bar ────────────────────────────────────────── */
 
-const SIGNAL_ARCH = [
-  { label: "RATE", weight: 40 },
-  { label: "COT", weight: 30 },
-  { label: "VOL", weight: 20 },
-  { label: "OI", weight: 10 },
-];
-
-function CompositeBar({ pairColor }: { pairColor?: string }) {
+function CompositeBar({
+  pairColor,
+  pairLabel,
+}: {
+  pairColor?: string;
+  pairLabel: string;
+}) {
   const c = pairColor || "var(--terminal-fg-muted)";
+  const w =
+    PAIR_COMPOSITE_WEIGHTS[pairLabel as keyof typeof PAIR_COMPOSITE_WEIGHTS];
+  const arch = [
+    { label: "RATE", weight: Math.round(w.rate * 100) },
+    ...(pairLabel !== "USDINR"
+      ? [{ label: "COT", weight: Math.round(w.cot * 100) }]
+      : []),
+    { label: "VOL", weight: Math.round(w.vol * 100) },
+    { label: "OI", weight: Math.round(w.oi * 100) },
+    ...(w.special > 0
+      ? [{ label: "SPECIAL", weight: Math.round(w.special * 100) }]
+      : []),
+    ...(w.fpi > 0 ? [{ label: "FPI", weight: Math.round(w.fpi * 100) }] : []),
+  ];
   return (
     <div className="space-y-2">
       <div className="flex h-[6px] w-full overflow-hidden">
-        {SIGNAL_ARCH.map((s) => (
+        {arch.map((s) => (
           <div
             key={s.label}
             style={{
@@ -116,7 +141,7 @@ function CompositeBar({ pairColor }: { pairColor?: string }) {
         ))}
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {SIGNAL_ARCH.map((s) => (
+        {arch.map((s) => (
           <span
             key={s.label}
             className="font-mono text-[9px] text-[var(--terminal-fg-muted)]"
@@ -221,6 +246,17 @@ export function SignalInspector({
   crossAssetUs10y,
   skewAlignment,
   breakevenInflation10y,
+  zBlended,
+  ecbBalanceSheet,
+  bundBtpSpread,
+  bojPolicyRate,
+  indiaVix,
+  inrForwardPremium,
+  oiDelta,
+  volumeRvol,
+  structuralInstability,
+  specialSignalValue,
+  specialSignalLabel,
 }: SignalInspectorProps) {
   const compLabel = useMemo(
     () => scoreToLabel(signalComposite),
@@ -302,7 +338,7 @@ export function SignalInspector({
               </span>
             </p>
           </div>
-          <CompositeBar pairColor={pairColor} />
+          <CompositeBar pairColor={pairColor} pairLabel={pairLabel} />
         </div>
 
         {/* ── Signal Breakdown ────────────────────────────────── */}
@@ -312,7 +348,9 @@ export function SignalInspector({
           </p>
           <div className="border border-[var(--terminal-border-subtle)] bg-[var(--terminal-bg-sunken)]">
             <SignalRow label="Rate Signal" signal={rateSignal} />
-            <SignalRow label="COT Signal" signal={cotSignal} />
+            {pairLabel !== "USDINR" && (
+              <SignalRow label="COT Signal" signal={cotSignal} />
+            )}
             <SignalRow label="Volatility" signal={volSignal} />
             <SignalRow label="Risk Reversal" signal={rrSignal} />
             <SignalRow label="Open Interest" signal={oiSignal} />
@@ -345,6 +383,41 @@ export function SignalInspector({
               value={fmt2(breakevenInflation10y)}
               sub="%"
             />
+            {zBlended != null && (
+              <Row label="Rate Z (Blended)" value={fmt2(zBlended)} />
+            )}
+            {ecbBalanceSheet != null && (
+              <Row label="ECB Balance Sheet" value={fmt2(ecbBalanceSheet)} />
+            )}
+            {bundBtpSpread != null && (
+              <Row label="Bund-BTP Spread" value={fmt2(bundBtpSpread)} />
+            )}
+            {bojPolicyRate != null && (
+              <Row label="BoJ Policy Rate" value={fmt2(bojPolicyRate)} />
+            )}
+            {indiaVix != null && (
+              <Row label="India VIX" value={fmt2(indiaVix)} />
+            )}
+            {inrForwardPremium != null && (
+              <Row
+                label="INR Forward Premium"
+                value={fmt2(inrForwardPremium)}
+              />
+            )}
+            {oiDelta != null && <Row label="OI Delta" value={fmt2(oiDelta)} />}
+            {volumeRvol != null && (
+              <Row label="Volume RVOL" value={fmt2(volumeRvol)} />
+            )}
+            <Row
+              label="Structural Instability"
+              value={structuralInstability ? "YES" : "NO"}
+            />
+            {specialSignalValue != null && specialSignalLabel != null && (
+              <Row
+                label={specialSignalLabel}
+                value={specialSignalValue.toFixed(2)}
+              />
+            )}
           </div>
         </div>
 

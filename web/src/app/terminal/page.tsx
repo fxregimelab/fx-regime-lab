@@ -95,7 +95,7 @@ export default async function TerminalIndexPage() {
       />
 
       {/* Cross-Asset Matrix */}
-      <CrossAssetMatrix data={crossAsset} />
+      <CrossAssetMatrix data={crossAsset} signals={signals} />
 
       {/* Alert Strip */}
       <AlertStrip calls={calls} signals={signals} />

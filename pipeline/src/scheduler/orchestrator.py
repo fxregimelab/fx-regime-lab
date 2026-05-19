@@ -125,11 +125,17 @@ from src.analysis.systemic import (
 from src.db import writer
 from src.fetchers.async_engine import build_master_buffer
 from src.fetchers.buffer_keys import KEY_COT, KEY_CROSS_ASSET, KEY_FX_SPOT, KEY_YIELDS
+from src.fetchers.cross_asset import fetch_india_vix, fetch_inr_forward_premium
 from src.fetchers.fpi_india import fetch_fpi_flows
 from src.fetchers.macro_calendar import fetch_macro_events
 from src.fetchers.open_interest import compute_oi_delta_from_cot, compute_oi_from_cot
 from src.fetchers.substack import fetch_latest_substack_memo
 from src.fetchers.volatility import fetch_implied_vol, fetch_realized_vol
+from src.fetchers.yields import (
+    fetch_boj_policy_rate,
+    fetch_bund_btp_spread,
+    fetch_ecb_balance_sheet,
+)
 from src.logic.layer2_directional import run_layer2_directional
 from src.logic.layer3_execution import run_layer3_execution
 from src.monitoring.alerts import (
@@ -139,6 +145,7 @@ from src.monitoring.alerts import (
 from src.regime.classifier import VOL_EXPANDING_SUFFIX, classify_regime_layer1
 from src.regime.composite import (
     TRADING_DAYS_3Y,
+    _redundancy_penalty,
     compute_composite,
     compute_dominance_scores,
     compute_dynamic_betas,
@@ -146,13 +153,18 @@ from src.regime.composite import (
     get_primary_driver,
 )
 from src.regime.confidence import compute_confidence
-from src.signals.cot import compute_cot_percentile, normalize_cot_signal
+from src.signals.cot import (
+    compute_cot_percentile,
+    compute_cot_smart_spread_percentile,
+    normalize_cot_signal,
+)
 from src.signals.fpi import normalize_fpi_signal
+from src.signals.intervention import compute_intervention_proximity
 from src.signals.open_interest import compute_oi_signal
 from src.signals.rate import (
     build_carry_history_from_rows,
     build_real_yield_10y_spread_history_from_rows,
-    compute_risk_adjusted_carry,
+    compute_risk_adjusted_carry_v2,
     normalize_rate_signal,
     rate_direction_from_spreads,
     structural_instability_from_carry_history,
@@ -605,6 +617,11 @@ def _signal_row_from_db(row: dict[str, Any]) -> SignalRow:
         cot_net_pos=row.get("cot_net_pos"),
         cot_asset_mgr_net=row.get("cot_asset_mgr_net"),
         cot_lev_money_net=row.get("cot_lev_money_net"),
+        ecb_balance_sheet=row.get("ecb_balance_sheet"),
+        bund_btp_spread=row.get("bund_btp_spread"),
+        boj_policy_rate=row.get("boj_policy_rate"),
+        india_vix=row.get("india_vix"),
+        inr_forward_premium=row.get("inr_forward_premium"),
     )
 
 
@@ -995,6 +1012,23 @@ async def run_daily(
     events = fetch_macro_events()
     writer.write_macro_events(events)
 
+    # ── Stream A: pair-specific macro signal fetchers ─────────────────────
+    ecb_balance_sheet = fetch_ecb_balance_sheet()
+    bund_btp_spread = fetch_bund_btp_spread(
+        germany_10y=yields_dict.get("de_10y")
+    )
+    boj_policy_rate = fetch_boj_policy_rate()
+    india_vix = fetch_india_vix()
+    inr_forward_premium = fetch_inr_forward_premium()
+    logger.info(
+        "Stream A macro signals: ECB=%s BundBTP=%s BoJ=%s IndiaVIX=%s INRPrem=%s",
+        ecb_balance_sheet,
+        bund_btp_spread,
+        boj_policy_rate,
+        india_vix,
+        inr_forward_premium,
+    )
+
     pending_desk_cards: list[dict[str, Any]] = []
 
     for pair in PAIRS:
@@ -1059,8 +1093,19 @@ async def run_daily(
         )
         rate_spread_for_norm = rate_spread_2y if rate_spread_2y is not None else rate_spread_10y
 
+        # ── COT: traditional net long + smart spread (M.3.3) ────────────────
         cot_pct = compute_cot_percentile(cot_rows, pair, as_of=today_bar.date)
-        cot_norm = normalize_cot_signal(cot_pct)
+        cot_smart = compute_cot_smart_spread_percentile(
+            cot_rows, pair, as_of=today_bar.date
+        )
+        cot_pct_norm = normalize_cot_signal(cot_pct) if cot_pct is not None else None
+        cot_smart_norm = normalize_cot_signal(cot_smart) if cot_smart is not None else None
+        cot_blended: float | None = None
+        if cot_pct_norm is not None and cot_smart_norm is not None:
+            cot_blended = 0.70 * cot_pct_norm + 0.30 * cot_smart_norm
+        elif cot_pct_norm is not None:
+            cot_blended = cot_pct_norm
+        cot_norm = cot_blended
 
         # Extract latest COT breakdowns for signal row.
         pair_cot_rows = sorted(
@@ -1075,7 +1120,12 @@ async def run_daily(
         rv = vol_data.get(pair, {})
         rv5 = rv.get("realized_vol_5d")
         rv20 = rv.get("realized_vol_20d")
-        risk_adjusted_carry = compute_risk_adjusted_carry(rate_spread_2y, rv20, pair)
+
+        # ── Rate: risk-adjusted carry v2 prefers implied vol (M.3.4) ────────
+        iv = fetch_implied_vol(pair)
+        risk_adjusted_carry = compute_risk_adjusted_carry_v2(
+            rate_spread_2y, rv20, iv, pair
+        )
         if risk_adjusted_carry is not None:
             rate_spread_for_norm = risk_adjusted_carry
         rate_norm_z = None
@@ -1093,7 +1143,10 @@ async def run_daily(
                 spread_structural=struct_spread,
                 historical_structural=struct_hist,
             )
-        rate_norm = rate_norm_z.z_tactical if rate_norm_z is not None else None
+        rate_norm = rate_norm_z.z_blended if rate_norm_z is not None else None
+        rate_z_tactical_val = (
+            rate_norm_z.z_tactical if rate_norm_z is not None else None
+        )
         rate_z_structural_val = (
             rate_norm_z.z_structural if rate_norm_z is not None else None
         )
@@ -1131,7 +1184,32 @@ async def run_daily(
                 len(historical_rows),
                 TRADING_DAYS_3Y,
             )
-        special_signal = compute_special_signal(pair, cross_for_special)
+        # ── EURUSD real special signal (M.3.1): macro-driven, not post-hoc ──
+        eur_special_kwargs: dict[str, Any] = {}
+        if pair == "EURUSD":
+            eur_special_kwargs = {
+                "bund_btp_spread": bund_btp_spread,
+                "ecb_balance_sheet": ecb_balance_sheet,
+            }
+        special_signal = compute_special_signal(pair, cross_for_special, **eur_special_kwargs)
+
+        # ── Stream A: blend pair-specific macro signals into special slot ────
+        if pair == "USDJPY":
+            intervention = compute_intervention_proximity(
+                today_bar.close if today_bar.close else None
+            )
+            if intervention is not None and special_signal is not None:
+                special_signal = 0.85 * special_signal + 0.15 * intervention
+            # Supplementary US-JP rate differential context (does not replace rate_diff_2y)
+            us_2y_for_jp = yields_dict.get("us_2y")
+            if us_2y_for_jp is not None and boj_policy_rate is not None:
+                jp_rate_spread = float(us_2y_for_jp) - float(boj_policy_rate)
+                logger.info(
+                    "USDJPY supplementary rate spread (US 2Y %.3f - BoJ %.3f) = %.4f",
+                    us_2y_for_jp,
+                    boj_policy_rate,
+                    jp_rate_spread,
+                )
         special_norm = special_signal if special_signal is not None else 0.0
 
         # ── FPI flow (USDINR only) ──────────────────────────────────────────
@@ -1186,11 +1264,13 @@ async def run_daily(
             special_norm=special_norm,
             fpi_norm=fpi_norm,
         )
+        # ── Composite with beta-informed precision weighting (M.2.1) ────────
         composite = compute_composite(
             rate_norm, cot_norm, vol_norm, oi_norm,
             pair=pair,
             special_signal=special_signal,
             fpi_signal=fpi_signal,
+            betas=betas_5y,
         )
         if composite is None:
             logger.warning("Not enough data for %s — skipping", pair)
@@ -1211,6 +1291,18 @@ async def run_daily(
         elif pair == "USDINR":
             brent_above_p80 = (cross.get("oil") or 0) > 80  # crude proxy
 
+        # ── Confidence with redundancy penalty (M.2.2) ──────────────────────
+        red_penalty = _redundancy_penalty(
+            {
+                "rate": rate_norm or 0.0,
+                "cot": cot_norm or 0.0,
+                "vol": vol_norm or 0.0,
+                "oi": oi_norm or 0.0,
+                "special": special_norm,
+                "fpi": fpi_norm,
+            },
+            betas_5y,
+        )
         confidence = compute_confidence(
             composite, rate_norm, cot_norm,
             pair=pair,
@@ -1218,6 +1310,7 @@ async def run_daily(
             commodity_components_agree=commodity_components_agree,
             wti_wcs_agree=wti_wcs_agree,
             brent_above_p80=brent_above_p80,
+            redundancy_penalty=red_penalty,
         )
         if pair == "USDINR" and cot_pct is None:
             # INR does not have liquid CFTC positioning — do not penalise for missing COT.
@@ -1344,8 +1437,9 @@ async def run_daily(
             structural_instability=structural_instability,
             breakeven_inflation_10y=bei,
             rate_diff_10y_real=rate_spread_10y_real,
-            rate_z_tactical=rate_norm,
+            rate_z_tactical=rate_z_tactical_val,
             rate_z_structural=rate_z_structural_val,
+            z_blended=rate_norm,
             realized_vol_rank=layer3_out["realized_vol_rank"],
             skew_alignment=layer3_out["skew_alignment"],
             risk_reversal_25d=rr_proxy,
@@ -1353,6 +1447,11 @@ async def run_daily(
             cot_net_pos=cot_net_pos,
             cot_asset_mgr_net=cot_asset_mgr_net,
             cot_lev_money_net=cot_lev_money_net,
+            ecb_balance_sheet=ecb_balance_sheet if pair == "EURUSD" else None,
+            bund_btp_spread=bund_btp_spread if pair == "EURUSD" else None,
+            boj_policy_rate=boj_policy_rate if pair == "USDJPY" else None,
+            india_vix=india_vix if pair == "USDINR" else None,
+            inr_forward_premium=inr_forward_premium if pair == "USDINR" else None,
         )
 
         writer.write_signal_row(signal_row)
@@ -1383,9 +1482,27 @@ async def run_daily(
         )
 
         special_label = {
-            "EURUSD": "EURUSD_placeholder",
-            "USDJPY": "VIX_funding_stress",
-            "USDINR": "EM_oil_DXY",
+            "EURUSD": (
+                "frag_risk"
+                if abs(special_signal or 0.0) > 0.5
+                else "macro_special"
+            ),
+            "USDJPY": (
+                "VIX_funding_stress_INTV_PROX"
+                if (
+                    today_bar.close is not None
+                    and compute_intervention_proximity(today_bar.close) not in (None, 0.0)
+                )
+                else "VIX_funding_stress"
+            ),
+            "USDINR": (
+                "EM_oil_DXY_VIX_prem"
+                if (
+                    (india_vix is not None and india_vix > 25.0)
+                    or (inr_forward_premium is not None and inr_forward_premium < -2.0)
+                )
+                else "EM_oil_DXY"
+            ),
         }.get(pair)
 
         call = RegimeCall(

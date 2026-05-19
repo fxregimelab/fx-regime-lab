@@ -264,6 +264,64 @@ async def fetch_cross_asset_async(
     return out
 
 
+def fetch_india_vix() -> float | None:
+    """Fetch latest India VIX from NSE via yfinance.
+
+    Returns VIX level, or None if unavailable.
+    """
+    try:
+        history = _yfinance().Ticker("^INDIAVIX").history(period="5d")
+        if history is None or history.empty or "Close" not in history:
+            logger.warning("yfinance India VIX (^INDIAVIX) returned empty history")
+            return None
+        closes = history["Close"].dropna()
+        if closes.empty:
+            logger.warning("yfinance India VIX (^INDIAVIX) returned empty close series")
+            return None
+        return float(closes.iloc[-1])
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("yfinance India VIX (^INDIAVIX) fetch failed: %s", exc)
+        return None
+
+
+def fetch_inr_forward_premium() -> float | None:
+    """Fetch USD/INR 1-month forward premium.
+
+    Returns annualized premium in percent, or None if unavailable.
+
+    Formula: ((Forward - Spot) / Spot) * (12 / 1) * 100
+
+    For MVP: attempts yfinance tickers and falls back to None.
+    Documented limitation: reliable 1M forward requires NSE derivatives
+    or RBI reference rate + OTC forward points.
+    """
+    try:
+        yf = _yfinance()
+        # Spot
+        spot_hist = yf.Ticker("USDINR=X").history(period="5d")
+        if spot_hist is None or spot_hist.empty or "Close" not in spot_hist:
+            logger.warning("INR forward premium: spot unavailable")
+            return None
+        spot = float(spot_hist["Close"].dropna().iloc[-1])
+
+        # Forward proxy — try common forward/futures tickers
+        for fwd_ticker in ("USDINR=F", "INR=F"):
+            try:
+                fwd_hist = yf.Ticker(fwd_ticker).history(period="5d")
+                if fwd_hist is None or fwd_hist.empty or "Close" not in fwd_hist:
+                    continue
+                fwd = float(fwd_hist["Close"].dropna().iloc[-1])
+                premium = ((fwd - spot) / spot) * 12 * 100
+                logger.info("INR forward premium (%s): %.4f%%", fwd_ticker, premium)
+                return float(premium)
+            except Exception:
+                continue
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("INR forward premium fetch failed: %s", exc)
+    logger.warning("INR forward premium: forward data unavailable (MVP limitation)")
+    return None
+
+
 def fetch_max_history(pair: str, years_back: int = 30) -> int:
     """Fetch deep daily OHLCV history for a pair and upsert into historical_prices.
 

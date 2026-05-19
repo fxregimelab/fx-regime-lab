@@ -193,6 +193,7 @@ class SignalRow:
     rate_diff_10y_real: float | None = None
     rate_z_tactical: float | None = None
     rate_z_structural: float | None = None
+    z_blended: float | None = None
     realized_vol_rank: float | None = None
     skew_alignment: int | None = None
     risk_reversal_25d: float | None = None
@@ -200,6 +201,11 @@ class SignalRow:
     cot_net_pos: int | None = None
     cot_asset_mgr_net: int | None = None
     cot_lev_money_net: int | None = None
+    ecb_balance_sheet: float | None = None
+    bund_btp_spread: float | None = None
+    boj_policy_rate: float | None = None
+    india_vix: float | None = None
+    inr_forward_premium: float | None = None
 
     @property
     def breakeven_inflation(self) -> float | None:

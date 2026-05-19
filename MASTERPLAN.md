@@ -3,7 +3,7 @@
 > **Read `IDENTITY.md` first.** It is the hard constraint. Nothing in this plan may violate it.  
 > This document is the single source of truth for product direction.  
 > All other roadmap, plan, and spec documents are deprecated.  
-> Last updated: 2026-05-17
+> Last updated: 2026-05-18
 
 ---
 
@@ -23,6 +23,23 @@ Hard constraints from `IDENTITY.md` that govern this plan:
 - **3-pair lock.** EUR/USD, USD/JPY, USD/INR only. No expansion until EUR/USD ≥ 55% on 90-day rolling window.
 - **Pair-specific architecture.** EUR/USD logic does not apply to USD/JPY or USD/INR.
 
+### Step 0 — Identity Compliance Audit (COMPLETED 2026-05-18)
+
+Annual/phase-gate review: audit all public text, UI, APIs, and database schema against `IDENTITY.md`.
+
+| Violation | Action | Status |
+|-----------|--------|--------|
+| `connect-desk` API + `webhook_subscriptions` table | Alert subscription infrastructure. **Removed API route, dropped DB table, removed from types.** | ✅ Done |
+| `position_size` displayed on pair desk, SignalCard, data lineage | Execution advice in public output. **Removed from all UI components.** Kept in DB for internal research. | ✅ Done |
+| `stop_level` displayed on pair desk, SignalCard, data lineage | Execution advice in public output. **Removed from all UI components.** Kept in DB for internal research. | ✅ Done |
+| "educational purposes" in research disclaimer | Educational tone. **Changed to "research purposes only."** | ✅ Done |
+| "RESEARCH AND LEARNING ONLY" in brief page | Educational tone. **Changed to "RESEARCH ONLY."** | ✅ Done |
+| "publicly accessible daily signals" in about page | Signal-service framing. **Changed to "daily regime classifications."** | ✅ Done |
+| "[REGIME ALERT]" in LinkedIn hook prompt | Alert-like framing. **Changed to "[REGIME NOTE]."** | ✅ Done |
+| "COPY LINKEDIN ALPHA" button label | Signal-like language. **Changed to "SHARE REGIME NOTE."** | ✅ Done |
+
+**Permanent rule:** `position_size` and `stop_level` are internal research parameters only. They must never be rendered on any public page. Any future feature that displays trade parameters (stops, sizes, entry prices) is automatically rejected.
+
 ---
 
 ## 1. Current State (As-Of)
@@ -34,10 +51,10 @@ Hard constraints from `IDENTITY.md` that govern this plan:
 | **Data Pipeline** | ✅ Live | Prefect Cloud daily run. 5 signal families (RATE, COT, VOL, OI, SPECIAL + FPI for USDINR). 3-pair lock (EURUSD, USDJPY, USDINR). |
 | **Validation Engine** | ✅ Live | T+5/T+20 directional validation, 5bps Marcus dead-band, Brier scores, immutable ledger with timestamps. |
 | **Validation Stats** | ✅ Live | Per-pair + aggregate win rates, Sharpe-like ratios, max drawdown, calibration buckets. |
-| **Frontend** | ✅ Live | Next.js 15, 17+ pages, SSR Supabase, Swiss Monochrome design system (Inter / Fraunces / JetBrains Mono, amber #e8a045), responsive, OG images. |
+| **Frontend** | ✅ Live | Next.js 15, 17+ pages, SSR Supabase, Swiss Monochrome design system (Inter / Fraunces / JetBrains Mono, amber #e8a045), responsive, OG images. Identity-audited and clean. |
 | **Methodology Page** | ✅ Live | KaTeX formulas, 3-layer framework docs, per-pair methodology, validation math, data sources. Plain-language practitioner tone. No educational language. |
-| **Terminal** | ✅ Live | Live regime dashboard, pair desks, mosaic grid, correlation matrix, macro calendar. |
-| **Audit Trail** | ✅ Live | Pipeline health dashboard, accuracy alerts, immutable ledger UI. |
+| **Terminal** | ✅ Live | Live regime dashboard, pair desks, mosaic grid, correlation matrix, macro calendar. No execution advice displayed. |
+| **Audit Trail** | ✅ Live | Pipeline health dashboard, accuracy alerts (internal ops only), immutable ledger UI. |
 | **Tests** | ✅ 228 pass | pytest full suite. TypeScript zero errors. Biome clean. |
 | **Deployment** | ✅ Auto | Vercel (frontend) + Prefect Cloud (pipeline). Git push → auto-deploy. |
 
@@ -45,7 +62,7 @@ Hard constraints from `IDENTITY.md` that govern this plan:
 
 | Gap | Impact | Priority |
 |-----|--------|----------|
-| No pair-specific macro fetchers | EURUSD lacks ECB balance sheet; USDJPY lacks BoJ policy rate; model underfits each pair's true driver | High |
+| ~~No pair-specific macro fetchers~~ | ✅ COMPLETE — 6 signals deployed (ECB BS, Bund-BTP, BoJ rate, intervention proximity, India VIX, INR forward premium) | — |
 | No feature interactions in composite | RATE×COT, VOL×OI terms missing — easy alpha left on table | High |
 | No automated research artifacts | Weekly regime read is manual; no institutional PDF output | High |
 | No public research distribution | Substack, LinkedIn presence exists but not automated | Medium |
@@ -68,16 +85,26 @@ Every task is evaluated against two axes:
 
 **Current mode:** Credibility-building. ~100 production calls since April 2026.
 
+### Career Trajectory Alignment
+
+| Target | Timeline | What Masterplan Must Deliver |
+|--------|----------|------------------------------|
+| **NTU MFE Application** | Dec 2027 – Jan 2028 | Public track record with 200+ validated calls, SSRN paper submitted, methodology fully documented, production-grade engineering demonstrated |
+| **Boutique Internship** | Summer 2028 | Regime divergence alert system live, GBP/USD expansion architecturally planned, 6+ months continuous OOS history, published research presence |
+| **Quantamental Macro Fund** | Post-graduation 2028+ | Pair-specific pipeline architecture (Stream D), 500+ validated calls, feature interactions + conditional weights deployed and backtested, institutional credibility established |
+
+**Consequence:** Every stream is timed to produce a deliverable for the next career gate. No stream exists for its own sake.
+
 ### IDENTITY Phase Gates
 
 This plan is organized into work-streams, but no work-stream advances past an IDENTITY phase gate until the gate conditions are met.
 
-| IDENTITY Phase | Gate Condition | Status |
-|----------------|----------------|--------|
-| **Phase A** — Signal Quality Fix | EUR/USD accuracy measured OOS + logged; brief text is clean; 14 consecutive error-free pipeline days | ✅ Met |
-| **Phase B** — Product Completeness | 90+ days live OOS for all 3 pairs; regime history strip live; methodology public; EUR/USD accuracy > 50% | 🔄 In Progress |
-| **Phase C** — Regime Divergence Alert | EUR/USD rolling 90-day accuracy > 55%; SSRN paper drafted; divergence alert architecturally designed | 🔒 Locked |
-| **Phase D** — Full MFE Package | 6 months live OOS all pairs; performance page live; GBP/USD architecturally planned; SSRN paper submitted | 🔒 Locked |
+| IDENTITY Phase | Gate Condition | Status | Career Gate |
+|----------------|----------------|--------|-------------|
+| **Phase A** — Signal Quality Fix | EUR/USD accuracy measured OOS + logged; brief text is clean; 14 consecutive error-free pipeline days | ✅ Met | — |
+| **Phase B** — Product Completeness | 90+ days live OOS for all 3 pairs; regime history strip live; methodology public; EUR/USD accuracy > 50% | 🔄 In Progress | MFE portfolio |
+| **Phase C** — Regime Divergence Alert | EUR/USD rolling 90-day accuracy > 55%; SSRN paper drafted; divergence alert architecturally designed | 🔒 Locked | MFE submission |
+| **Phase D** — Full MFE Package | 6 months live OOS all pairs; performance page live; GBP/USD architecturally planned; SSRN paper submitted | 🔒 Locked | MFE application |
 
 ---
 
@@ -92,8 +119,8 @@ This is the canonical signal architecture. Any new signal must map to the correc
 | Secondary | COT Non-Commercial + Asset Manager positioning | ✅ Live |
 | Vol layer | EUR implied vol (^EVZ) regime | ✅ Live |
 | Confirmation | DXY direction | ✅ Live |
-| **Missing** | ECB balance sheet (WBSDTLEZ) | 🔄 Stream A.1 |
-| **Missing** | Bund-BTP spread (fragmentation proxy) | 🔄 Stream A.2 |
+| **Missing** | ECB balance sheet (ECBASSETSW) | ✅ Stream A.1 |
+| **Missing** | Bund-BTP spread (fragmentation proxy) | ✅ Stream A.2 |
 
 ### USD/JPY
 | Slot | Input | Status |
@@ -102,8 +129,8 @@ This is the canonical signal architecture. Any new signal must map to the correc
 | Secondary | BoJ policy rate + communication | ✅ Proxy only |
 | Positioning | Leveraged money COT | ✅ Live |
 | Confirmation | S&P 500 / Brent crude | ✅ Partial |
-| **Missing** | BoJ policy rate (INTDSRJPM193N) | 🔄 Stream A.3 |
-| **Missing** | Intervention proximity flag (spot near 160) | 🔄 Stream A.4 |
+| **Missing** | BoJ policy rate (IRSTCI01JPM156N) | ✅ Stream A.3 |
+| **Missing** | Intervention proximity flag (spot near 160) | ✅ Stream A.4 |
 
 ### USD/INR
 | Slot | Input | Status |
@@ -112,22 +139,23 @@ This is the canonical signal architecture. Any new signal must map to the correc
 | Secondary | India-US rate differential | ✅ Live |
 | Flow | FPI equity + debt flow (SEBI) | ✅ Live |
 | Commodity | Brent crude | ✅ Live |
-| **Missing** | India VIX (INDIAVIX) | 🔄 Stream A.5 |
-| **Missing** | INR 1M forward premium | 🔄 Stream A.6 |
+| **Missing** | India VIX (INDIAVIX) | ✅ Stream A.5 |
+| **Missing** | INR 1M forward premium | ✅ Stream A.6 |
 
 ---
 
 ## 4. The Work-Stream Plan
 
-### Stream A: Signal Depth (Phase II)
-**Goal:** Add pair-specific macro data to reduce underfitting. No architecture rebuild.
-**IDENTITY Gate:** May start now (Phase A met). May not expand to new model layers until Phase B met.
+### Stream A: Signal Depth
+**Goal:** Add pair-specific macro data to reduce underfitting. No architecture rebuild.  
+**IDENTITY Gate:** May start now (Phase A met). May not expand to new model layers until Phase B met.  
+**Career Gate:** MFE portfolio (demonstrates macro depth + data engineering)
 
 | Task | Tier | Identity Test | Description | Gate |
 |------|------|---------------|-------------|------|
-| A.1 | 2 | ✅ Accuracy | **EURUSD: ECB balance sheet** — Fetch `WBSDTLEZ` from FRED. Normalize as z-score vs 2-year history. Add to `special_factor`. | Phase A |
+| A.1 | 2 | ✅ Accuracy | **EURUSD: ECB balance sheet** — Fetch `ECBASSETSW` from FRED. Normalize as z-score vs 2-year history. Add to `special_factor`. | Phase A |
 | A.2 | 2 | ✅ Accuracy | **EURUSD: Bund-BTP spread** — Compute 10Y Bund - 10Y BTP. Store in `signals` table as fragmentation proxy. | Phase A |
-| A.3 | 2 | ✅ Accuracy | **USDJPY: BoJ policy rate** — Fetch `INTDSRJPM193N` from FRED. Compute rate differential vs US. | Phase A |
+| A.3 | 2 | ✅ Accuracy | **USDJPY: BoJ policy rate** — Fetch `IRSTCI01JPM156N` from FRED (OECD proxy, current). Compute rate differential vs US. | Phase A |
 | A.4 | 2 | ✅ Accuracy | **USDJPY: Intervention proximity** — Synthetic flag: when spot approaches 160, raise special factor weight. Document as heuristic, not prediction. | Phase A |
 | A.5 | 2 | ✅ Accuracy | **USDINR: India VIX** — Fetch `INDIAVIX` from NSE. Add as stress indicator. | Phase A |
 | A.6 | 2 | ✅ Accuracy | **USDINR: Forward premium** — RBI reference rate → 1M forward premium. Add to rate differential context. | Phase A |
@@ -136,9 +164,10 @@ This is the canonical signal architecture. Any new signal must map to the correc
 
 ---
 
-### Stream B: Model Sophistication (Phase III)
-**Goal:** Make the composite smarter without changing pipeline architecture.
-**IDENTITY Gate:** Phase B must be met before any Tier 3 task begins.
+### Stream B: Model Sophistication
+**Goal:** Make the composite smarter without changing pipeline architecture.  
+**IDENTITY Gate:** Phase B must be met before any Tier 3 task begins.  
+**Career Gate:** HF recruiting (demonstrates quant rigor)
 
 | Task | Tier | Identity Test | Description | Gate |
 |------|------|---------------|-------------|------|
@@ -151,28 +180,10 @@ This is the canonical signal architecture. Any new signal must map to the correc
 
 ---
 
-### Stream C: Research Presence (Phase I)
-**Goal:** Publish practitioner-grade research artifacts. Not signal distribution. Not alerts.
-**IDENTITY Gate:** Phase A met. All output must be practitioner-to-practitioner analysis, not execution advice.
-
-| Task | Tier | Identity Test | Description | Gate |
-|------|------|---------------|-------------|------|
-| C.1 | 1 | ✅ Verifiable | **Weekly Regime Read auto-generation** — Generate weekly summary from pipeline data (regime changes, macro event impacts, validation update). Markdown + charts. Practitioner tone. No trade recommendations. | Phase A |
-| C.2 | 1 | ✅ Verifiable | **LinkedIn Research Card** — Auto-generate visual card showing pair regime + confidence for research sharing. Not a "signal alert." Framed as "this week's regime classification." | Phase A |
-| C.3 | 1 | ✅ Verifiable | **Substack draft automation** — Auto-create draft of weekly regime read on Substack. Human approval before publish. No buy/sell language. | Phase A |
-| C.4 | 2 | ✅ Verifiable | **Institutional PDF report** — Monthly auto-generated PDF from validation stats: LaTeX formulas, charts, footnotes. Downloadable from /performance. Research artifact, not marketing. | Phase B |
-
-**Explicitly NOT in this stream:**
-- ❌ RSS/JSON feed of raw regime calls → signal feed for external users (violates IDENTITY)
-- ❌ REST API for external consumption → framework for others to follow signals (violates IDENTITY)
-- ❌ Webhook alert subscriptions → alert subscription service (violates IDENTITY)
-- ❌ White-label embed → framework for others to display signals (violates IDENTITY)
-
----
-
-### Stream D: Architecture Evolution (Phase IV)
-**Goal:** Rebuild for scale. Only after Streams A–C are complete and track record > 200 calls.
-**IDENTITY Gate:** Phase C met AND >200 validated calls.
+### Stream D: Architecture Evolution
+**Goal:** Rebuild for scale. Only after Streams A–C are complete and track record > 200 calls.  
+**IDENTITY Gate:** Phase C met AND >200 validated calls.  
+**Career Gate:** Boutique internship + HF recruiting (demonstrates systems engineering at institutional scale)
 
 | Task | Tier | Identity Test | Description | Gate |
 |------|------|---------------|-------------|------|
@@ -184,7 +195,18 @@ This is the canonical signal architecture. Any new signal must map to the correc
 
 ---
 
-## 5. Safety Tiers (Autonomy Rules)
+## 5. Risk & Mitigation
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| EUR/USD accuracy stalls below 55% | Medium | High — blocks Phase C, D, and pair expansion | Stream A (pair-specific signals) is prioritized to address underfitting. If still below 55% at 200 calls, review signal architecture rather than add complexity. |
+| Pipeline data degradation | Low | High — corrupts validation ledger | Immutable ledger + daily health checks + manual review before any backfill. No retroactive edits to validation_log. |
+| Research output becomes marketing | Medium | Medium — violates IDENTITY | Every research artifact passes the One-Sentence Identity Test before publish. No trade recommendations. No "buy/sell" language. |
+| Over-engineering before track record | High | Medium — wasted effort, missed deadlines | Stream A (signal depth) prioritized over B+D (complexity). No architecture rebuild until >200 calls. |
+
+---
+
+## 6. Safety Tiers (Autonomy Rules)
 
 | Tier | Description | Examples | Autonomy |
 |------|-------------|----------|----------|
@@ -202,7 +224,7 @@ cd web && npx biome check .    # must pass
 
 ---
 
-## 6. Career Alignment Checklist
+## 7. Career Alignment Checklist
 
 Every task must answer "yes" to at least one:
 
@@ -211,15 +233,15 @@ Every task must answer "yes" to at least one:
 - [ ] **Research Credibility:** Does this make the track record more trustworthy or transparent?
 - [ ] **Technical Depth:** Does this demonstrate production-grade engineering (tests, types, CI/CD)?
 
-**Current focus (Streams A + C):** MFE Admissions + Research Credibility.
+**Current focus (Streams A + C):** MFE Admissions + Research Credibility.  
 **Future focus (Streams B + D):** HF Recruiting + Technical Depth.
 
 ---
 
-## 7. Metrics & Gates
+## 8. Metrics & Gates
 
 ### Stream A Gate
-- [ ] ≥ 3 new pair-specific signals deployed and populating daily
+- [x] ≥ 3 new pair-specific signals deployed and populating daily (6 signals: ECB BS, Bund-BTP, BoJ rate, intervention proximity, India VIX, INR forward premium)
 - [ ] Each new signal documented on /methodology with formula + data source
 - [ ] No regression in validation accuracy (Brier score stable or improving)
 
@@ -229,12 +251,6 @@ Every task must answer "yes" to at least one:
 - [ ] Cohort analysis tables live on /performance
 - [ ] Confidence calibration curve published
 
-### Stream C Gate
-- [ ] Weekly regime read generates in < 30 seconds via CLI
-- [ ] LinkedIn research card API returns PNG in < 2 seconds
-- [ ] Substack draft created automatically; human approval workflow active
-- [ ] Monthly PDF report generates without errors
-
 ### Stream D Gate
 - [ ] Pair-specific pipeline classes run independently
 - [ ] Production validated calls > 200
@@ -243,7 +259,19 @@ Every task must answer "yes" to at least one:
 
 ---
 
-## 8. Deprecated Documents
+## 9. What This Plan Delivers
+
+At the end of this masterplan (all streams complete), FX Regime Lab will be:
+
+1. **A verified public track record** — 200+ out-of-sample validated regime calls with Brier scores, calibration curves, and cohort analysis
+3. **A pair-specific signal engine** — Each pair has dedicated macro data (ECB, BoJ, RBI), feature interactions, and regime-conditional weights
+4. **A documented methodology** — SSRN paper submitted, KaTeX formulas public, full transparency on signal logic
+5. **A scalable architecture** — Pair-specific pipeline classes, async fetching, ready for GBP/USD expansion
+6. **A career asset** — The entire operation demonstrates statistical rigor, macro understanding, and production engineering at the level expected by NTU MFE admissions and macro PMs
+
+---
+
+## 10. Deprecated Documents
 
 The following are **DEPRECATED** and no longer govern project direction. Retained in git history only:
 

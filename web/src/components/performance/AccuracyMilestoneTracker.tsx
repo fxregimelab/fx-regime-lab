@@ -1,6 +1,7 @@
 "use client";
 
 import { normalizeProp } from "@/components/ui/utils";
+import { DEFAULT_ACCURACY_GATE } from "@/lib/config";
 import { useMemo } from "react";
 
 interface HistoryPoint {
@@ -14,13 +15,13 @@ interface AccuracyMilestoneTrackerProps {
   daysAboveGate: number;
   currentStreak: number;
   bestWindowAccuracy: number;
+  gate?: number;
 }
 
-const GATE = 0.55;
 const MAX_BAR = 0.6;
 
-function StatusBadge({ accuracy }: { accuracy: number }) {
-  if (accuracy >= GATE) {
+function StatusBadge({ accuracy, gate }: { accuracy: number; gate: number }) {
+  if (accuracy >= gate) {
     return (
       <span
         className="inline-flex items-center gap-1.5 rounded-none border px-2 py-1 font-mono text-[10px] tracking-wider"
@@ -39,7 +40,8 @@ function StatusBadge({ accuracy }: { accuracy: number }) {
       </span>
     );
   }
-  if (accuracy >= 0.45) {
+  const warnThreshold = gate - 0.1;
+  if (accuracy >= warnThreshold) {
     return (
       <span
         className="inline-flex items-center gap-1.5 rounded-none border px-2 py-1 font-mono text-[10px] tracking-wider"
@@ -77,15 +79,15 @@ function StatusBadge({ accuracy }: { accuracy: number }) {
   );
 }
 
-function Sparkline({ data }: { data: HistoryPoint[] }) {
+function Sparkline({ data, gate }: { data: HistoryPoint[]; gate: number }) {
   const svgWidth = 300;
   const svgHeight = 60;
   const padding = 4;
 
   const points = useMemo(() => {
     if (data.length < 2) return "";
-    const minAcc = Math.min(...data.map((d) => d.accuracy), GATE - 0.05);
-    const maxAcc = Math.max(...data.map((d) => d.accuracy), GATE + 0.05);
+    const minAcc = Math.min(...data.map((d) => d.accuracy), gate - 0.05);
+    const maxAcc = Math.max(...data.map((d) => d.accuracy), gate + 0.05);
     const range = maxAcc - minAcc || 0.01;
 
     return data
@@ -98,19 +100,19 @@ function Sparkline({ data }: { data: HistoryPoint[] }) {
         return `${x},${y}`;
       })
       .join(" ");
-  }, [data]);
+  }, [data, gate]);
 
   const gateY = useMemo(() => {
     if (data.length < 2) return svgHeight / 2;
-    const minAcc = Math.min(...data.map((d) => d.accuracy), GATE - 0.05);
-    const maxAcc = Math.max(...data.map((d) => d.accuracy), GATE + 0.05);
+    const minAcc = Math.min(...data.map((d) => d.accuracy), gate - 0.05);
+    const maxAcc = Math.max(...data.map((d) => d.accuracy), gate + 0.05);
     const range = maxAcc - minAcc || 0.01;
     return (
       svgHeight -
       padding -
-      ((GATE - minAcc) / range) * (svgHeight - padding * 2)
+      ((gate - minAcc) / range) * (svgHeight - padding * 2)
     );
-  }, [data]);
+  }, [data, gate]);
 
   return (
     <svg
@@ -154,7 +156,10 @@ export function AccuracyMilestoneTracker({
   daysAboveGate,
   currentStreak,
   bestWindowAccuracy,
+  gate,
 }: AccuracyMilestoneTrackerProps) {
+  const GATE = gate ?? DEFAULT_ACCURACY_GATE;
+  const WARN_THRESHOLD = GATE - 0.1;
   const acc = normalizeProp(currentAccuracy) ?? 0;
   const best = normalizeProp(bestWindowAccuracy) ?? 0;
   const pct = Math.round(acc * 1000) / 10;
@@ -165,7 +170,7 @@ export function AccuracyMilestoneTracker({
   const barColor =
     acc >= GATE
       ? "var(--color-up)"
-      : acc >= 0.45
+      : acc >= WARN_THRESHOLD
         ? "var(--color-warn)"
         : "var(--color-down)";
 
@@ -175,13 +180,13 @@ export function AccuracyMilestoneTracker({
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <span className="block font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase mb-2">
-            EUR/USD 90-Day Accuracy
+            EUR/USD Accuracy History (30-Window)
           </span>
           <div className="flex items-baseline gap-3">
             <span className="font-mono text-[clamp(36px,5vw,52px)] font-medium text-[var(--color-text)] tracking-tight tabular-nums leading-none">
               {pct.toFixed(1)}%
             </span>
-            <StatusBadge accuracy={acc} />
+            <StatusBadge accuracy={acc} gate={GATE} />
           </div>
         </div>
         <div className="text-right">
@@ -192,7 +197,7 @@ export function AccuracyMilestoneTracker({
             className="font-mono text-[18px] font-medium tabular-nums"
             style={{ color: barColor }}
           >
-            55.0%
+            {`${(GATE * 100).toFixed(1)}%`}
           </span>
           <span className="block font-mono text-[9px] text-[var(--color-text-dim)]">
             EUR/USD expansion gate
@@ -277,19 +282,25 @@ export function AccuracyMilestoneTracker({
             30-Day History
           </span>
           <div className="border border-[var(--color-border)] bg-[var(--color-void)] p-3">
-            <Sparkline data={history} />
+            <Sparkline data={history} gate={GATE} />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-px bg-[var(--color-border)] md:grid-cols-1">
           {[
-            { label: "Days Above Gate", value: `${daysAboveGate}/90` },
+            {
+              label: "Days Above Gate",
+              value: `${daysAboveGate}/${history.length}`,
+            },
             {
               label: "Current Streak",
               value: `${currentStreak > 0 ? "+" : ""}${currentStreak}d`,
             },
             { label: "Best Window", value: `${bestPct.toFixed(1)}%` },
-            { label: "Gap to Gate", value: `${(55 - pct).toFixed(1)}pp` },
+            {
+              label: "Gap to Gate",
+              value: `${(Math.round(GATE * 1000) / 10 - pct).toFixed(1)}pp`,
+            },
           ].map((s) => (
             <div key={s.label} className="bg-[var(--color-surface)] p-3">
               <span className="block font-mono text-[8px] tracking-wider text-[var(--color-text-muted)] uppercase">

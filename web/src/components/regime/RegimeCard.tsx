@@ -1,5 +1,6 @@
 import { ConfidenceBar } from "@/components/ui/confidence-bar";
 import { fmt2, fmtConfidence, fmtInt } from "@/components/ui/utils";
+import { CONFIDENCE_ACCENT, spotDecimals } from "@/lib/config";
 import { PAIRS } from "@/lib/constants";
 import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
 
@@ -16,7 +17,7 @@ export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
   const regimeAccent =
     call &&
     call.confidence != null &&
-    call.confidence >= 0.55 &&
+    call.confidence >= CONFIDENCE_ACCENT &&
     (call.regime.includes("STRENGTH") ||
       call.regime.includes("WEAKNESS") ||
       call.regime.includes("PRESSURE") ||
@@ -50,7 +51,7 @@ export function RegimeCard({ call, signals, pairDisplay }: RegimeCardProps) {
         )}
       </div>
       <p className="font-mono text-lg font-bold text-terminal-text tracking-tight mb-2">
-        {signals?.spot?.toFixed(pairMeta?.label === "USDJPY" ? 2 : 4) ?? "—"}
+        {signals?.spot?.toFixed(spotDecimals(pairMeta?.label ?? "")) ?? "—"}
       </p>
       <p
         className={`font-mono text-[10px] font-bold tracking-wide leading-snug mb-2.5 ${

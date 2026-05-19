@@ -10,22 +10,31 @@ import logging
 import math
 from collections.abc import Sequence
 
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
 _DEFAULT_WINDOW = 20
 _MIN_WINDOW = 10
+MAD_NORMAL_SCALE = 1.4826
+MAD_NOISE_FLOOR = 0.0001
 
 
 def _mean(xs: Sequence[float]) -> float:
     return math.fsum(xs) / len(xs)
 
 
-def _std(xs: Sequence[float]) -> float:
-    if len(xs) < 2:
+def _mad_z(values: Sequence[float], value: float) -> float | None:
+    """Robust Z-score using Median Absolute Deviation."""
+    arr = np.asarray(values, dtype=np.float64)
+    if arr.size == 0:
+        return None
+    med = float(np.median(arr))
+    mad = float(np.median(np.abs(arr - med)))
+    if mad < MAD_NOISE_FLOOR:
         return 0.0
-    m = _mean(xs)
-    var = math.fsum((x - m) ** 2 for x in xs) / len(xs)
-    return float(math.sqrt(var))
+    z = (value - med) / (mad * MAD_NORMAL_SCALE)
+    return float(z)
 
 
 def normalize_fpi_signal(
@@ -67,11 +76,9 @@ def normalize_fpi_signal(
     if len(win) < _MIN_WINDOW:
         return None
 
-    mu = _mean(win)
-    sig = _std(win)
-    if sig <= 1e-12:
+    # Use MAD-based robust Z-score (causal: win already excludes latest_flow).
+    z = _mad_z(win, latest_flow)
+    if z is None:
         return 0.0
-
-    z = (latest_flow - mu) / sig
     # Clip to [-1, 1] — FPI flows can have extreme outliers on event days
     return float(max(-1.0, min(1.0, z)))

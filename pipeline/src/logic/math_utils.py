@@ -20,9 +20,10 @@ def rolling_zscore_series(
     *,
     min_periods: int | None = None,
 ) -> npt.NDArray[np.float64]:
-    """Rolling (population) Z-score for each end-of-window point; NaN where undefined.
+    """Rolling Z-score for each point against a strictly causal window.
 
-    For index ``i`` the statistic uses ``values[i - window + 1 : i + 1]`` when enough
+    NaN where undefined. For index ``i`` the statistic uses
+    ``values[i - window : i]`` (the current observation is excluded) when enough
     finite samples exist. Purely vectorized via cumulative sums on finite masks.
     """
 
@@ -48,17 +49,17 @@ def rolling_zscore_series(
 
     out = np.full(n, np.nan, dtype=np.float64)
     for i in range(n):
-        i0 = i - window + 1
+        i0 = i - window
         if i0 < 0:
             continue
-        cnt = _window_sum(csum_1, i, i0)
+        # Causal window excludes the current observation i.
+        cnt = _window_sum(csum_1, i - 1, i0)
         if cnt < float(mp):
             continue
-        sum_x = _window_sum(csum_x, i, i0)
-        sum_x2 = _window_sum(csum_x2, i, i0)
+        sum_x = _window_sum(csum_x, i - 1, i0)
+        sum_x2 = _window_sum(csum_x2, i - 1, i0)
         mean = sum_x / cnt
         var = max(sum_x2 / cnt - mean * mean, 0.0)
-        # Sample variance when window has >1 point; population uses /cnt
         std = math.sqrt(var) if cnt >= 2 else 0.0
         if std <= 1e-12 or not finite[i]:
             continue

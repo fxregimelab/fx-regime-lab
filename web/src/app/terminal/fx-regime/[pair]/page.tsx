@@ -15,6 +15,13 @@ import {
   fmtInt,
   normalizeProp,
 } from "@/components/ui/utils";
+import {
+  CONFIDENCE_ACCENT,
+  CROWD_SOFT_HI,
+  CROWD_SOFT_LO,
+  PAIR_COMPOSITE_WEIGHTS,
+  spotDecimals,
+} from "@/lib/config";
 import { PAIRS } from "@/lib/constants";
 import {
   getHistoricalPrices,
@@ -71,8 +78,27 @@ function getInvalidation(
 function getWatchlist(
   sig: LatestSignal | undefined,
   call: LatestRegimeCall | undefined,
+  pair: string,
 ): string[] {
   const items: string[] = [];
+  if (pair === "USDINR") {
+    // INR does not use COT; skip COT-based alerts
+    if (sig?.realized_vol_20d != null && sig.realized_vol_20d > 8) {
+      items.push("RVOL ELEVATED");
+    }
+    if (
+      sig?.implied_vol_30d != null &&
+      sig.realized_vol_20d != null &&
+      sig.implied_vol_30d > sig.realized_vol_20d
+    ) {
+      items.push("IV PREM");
+    }
+    if (call?.rate_signal && call.rate_signal !== "NEUTRAL") {
+      items.push("RATE DIVERGENCE");
+    }
+    if (items.length === 0) items.push("NO MAJOR ALERTS");
+    return items;
+  }
   if (sig?.realized_vol_20d != null && sig.realized_vol_20d > 8) {
     items.push("RVOL ELEVATED");
   }
@@ -85,7 +111,7 @@ function getWatchlist(
   }
   if (
     sig?.cot_percentile != null &&
-    (sig.cot_percentile > 85 || sig.cot_percentile < 15)
+    (sig.cot_percentile > CROWD_SOFT_HI || sig.cot_percentile < CROWD_SOFT_LO)
   ) {
     items.push("COT EXTREME");
   }
@@ -162,13 +188,6 @@ function arrowColor(arrow: string): string {
   if (arrow === "↓") return "var(--color-down)";
   return "var(--color-text-dim)";
 }
-
-const SIGNAL_ARCH = [
-  { label: "RATE", weight: 40 },
-  { label: "COT", weight: 30 },
-  { label: "VOL", weight: 20 },
-  { label: "OI", weight: 10 },
-];
 
 function OutcomeBadge({ outcome }: { outcome: string }) {
   if (outcome === "CORRECT")
@@ -363,6 +382,23 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
   const pairMeta = PAIRS.find((p) => p.urlSlug === normalizedSlug);
   if (!pairMeta) return notFound();
 
+  const w =
+    PAIR_COMPOSITE_WEIGHTS[
+      pairMeta.label as keyof typeof PAIR_COMPOSITE_WEIGHTS
+    ];
+  const SIGNAL_ARCH = [
+    { label: "RATE", weight: Math.round(w.rate * 100) },
+    ...(pairMeta.label !== "USDINR"
+      ? [{ label: "COT", weight: Math.round(w.cot * 100) }]
+      : []),
+    { label: "VOL", weight: Math.round(w.vol * 100) },
+    { label: "OI", weight: Math.round(w.oi * 100) },
+    ...(w.special > 0
+      ? [{ label: "SPECIAL", weight: Math.round(w.special * 100) }]
+      : []),
+    ...(w.fpi > 0 ? [{ label: "FPI", weight: Math.round(w.fpi * 100) }] : []),
+  ];
+
   const supabase = await createClient();
 
   const [calls, signals, history, prices, valStats, valHistory] =
@@ -384,7 +420,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
   const regimeAccent =
     call &&
     call.confidence != null &&
-    call.confidence >= 0.55 &&
+    call.confidence >= CONFIDENCE_ACCENT &&
     (call.regime.includes("STRENGTH") ||
       call.regime.includes("WEAKNESS") ||
       call.regime.includes("PRESSURE") ||
@@ -393,9 +429,9 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
   const cotPct = sig?.cot_percentile;
   const crowding =
     cotPct != null
-      ? cotPct > 85
+      ? cotPct > CROWD_SOFT_HI
         ? "EXTREME HIGH"
-        : cotPct < 15
+        : cotPct < CROWD_SOFT_LO
           ? "EXTREME LOW"
           : null
       : null;
@@ -403,7 +439,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
   const confidenceHistory = history.map((h) => h.confidence).reverse();
   const bias = getBias(call, composite);
   const invalidation = getInvalidation(bias, sig?.spot);
-  const watchlist = getWatchlist(sig, call);
+  const watchlist = getWatchlist(sig, call, pairMeta.label);
 
   const tableRows = [
     ["Rate differential 2Y", fmt2(sig?.rate_diff_2y), sig?.rate_diff_2y],
@@ -461,9 +497,63 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           ] as const,
         ]
       : []),
+    ...(pairMeta.label === "EURUSD" && sig?.ecb_balance_sheet != null
+      ? [
+          [
+            "ECB Balance Sheet",
+            fmt2(sig.ecb_balance_sheet),
+            sig.ecb_balance_sheet,
+          ] as const,
+        ]
+      : []),
+    ...(pairMeta.label === "EURUSD" && sig?.bund_btp_spread != null
+      ? [
+          [
+            "Bund-BTP Spread",
+            fmt2(sig.bund_btp_spread),
+            sig.bund_btp_spread,
+          ] as const,
+        ]
+      : []),
+    ...(pairMeta.label === "USDJPY" && sig?.boj_policy_rate != null
+      ? [
+          [
+            "BoJ Policy Rate",
+            fmt2(sig.boj_policy_rate),
+            sig.boj_policy_rate,
+          ] as const,
+        ]
+      : []),
+    ...(pairMeta.label === "USDINR" && sig?.india_vix != null
+      ? [["India VIX", fmt2(sig.india_vix), sig.india_vix] as const]
+      : []),
+    ...(pairMeta.label === "USDINR" && sig?.inr_forward_premium != null
+      ? [
+          [
+            "INR Forward Premium",
+            fmt2(sig.inr_forward_premium),
+            sig.inr_forward_premium,
+          ] as const,
+        ]
+      : []),
+    ...(sig?.oi_delta != null
+      ? [["OI Delta", fmt2(sig.oi_delta), sig.oi_delta] as const]
+      : []),
+    ...(sig?.volume_rvol != null
+      ? [["Volume RVOL", fmt2(sig.volume_rvol), sig.volume_rvol] as const]
+      : []),
+    ...(sig?.structural_instability != null
+      ? [
+          [
+            "Structural Instability",
+            sig.structural_instability ? "YES" : "NO",
+            sig.structural_instability ? 1 : 0,
+          ] as const,
+        ]
+      : []),
     [
       "Spot",
-      sig?.spot?.toFixed(pairMeta.label === "USDJPY" ? 2 : 4) ?? "—",
+      sig?.spot?.toFixed(spotDecimals(pairMeta.label)) ?? "—",
       sig?.spot ?? null,
     ],
   ] as const;
@@ -521,7 +611,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             SPOT PRICE
           </p>
           <p className="font-mono text-[28px] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
-            {sig?.spot?.toFixed(pairMeta.label === "USDJPY" ? 2 : 4) ?? "—"}
+            {sig?.spot?.toFixed(spotDecimals(pairMeta.label)) ?? "—"}
           </p>
           {chg != null && (
             <p
@@ -551,6 +641,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
           rateDiff10y={sig?.rate_diff_10y_real ?? null}
           rateZTactical={sig?.rate_z_tactical ?? null}
           rateZStructural={sig?.rate_z_structural ?? null}
+          zBlended={sig?.z_blended ?? null}
           realizedVol20d={sig?.realized_vol_20d ?? null}
           realizedVol5d={sig?.realized_vol_5d ?? null}
           impliedVol30d={sig?.implied_vol_30d ?? null}
@@ -951,6 +1042,18 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
               </span>
             </div>
           )}
+          {call?.special_signal_value != null &&
+            call?.special_signal_label != null && (
+              <div className="px-4 py-3 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface)]">
+                <span className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] mr-3">
+                  SPECIAL FACTOR
+                </span>
+                <span className="font-mono text-[11px] text-[var(--color-text-secondary)]">
+                  {call.special_signal_label}:{" "}
+                  {call.special_signal_value.toFixed(2)}
+                </span>
+              </div>
+            )}
 
           {/* Validation History Table */}
           <div className="border-t border-[var(--color-border)]">

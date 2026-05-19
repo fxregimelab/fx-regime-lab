@@ -61,6 +61,19 @@ export default async function MemoDatePage({ params }: MemoDatePageProps) {
           {memo.raw_content}
         </div>
 
+        {memo.ai_thesis_summary && (
+          <details className="mt-6 border border-[var(--color-border)] bg-[var(--color-void)]">
+            <summary className="cursor-pointer px-4 py-3 font-mono text-[10px] tracking-widest text-[var(--color-text-muted)] uppercase">
+              AI Thesis Summary
+            </summary>
+            <div className="px-4 py-4 font-sans text-[14px] leading-relaxed text-[var(--color-text-secondary)] whitespace-pre-wrap">
+              {typeof memo.ai_thesis_summary === "string"
+                ? memo.ai_thesis_summary
+                : JSON.stringify(memo.ai_thesis_summary, null, 2)}
+            </div>
+          </details>
+        )}
+
         {memo.link_url ? (
           <footer className="mt-8 border-t border-[var(--color-border)] pt-4">
             <a

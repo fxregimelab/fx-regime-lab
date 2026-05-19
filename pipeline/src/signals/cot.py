@@ -25,9 +25,10 @@ def compute_cot_percentile(
     as_of: date | None = None,
     min_reports: int = COT_PERCENTILE_MIN_REPORTS,
 ) -> float | None:
-    """Inclusive empirical percentile of the latest **net long** vs trailing COT history.
+    """Strictly causal empirical percentile of the latest **net long** vs trailing COT history.
 
     Uses the last ``window_reports`` distinct report dates for ``pair`` (default 156 ≈ 3Y weekly).
+    The current observation is excluded from the reference distribution (strictly causal).
     Missing publication weeks simply shorten the effective calendar span; only reports with
     ``date <= as_of`` enter the window when ``as_of`` is set (no look-ahead). If ``as_of`` is
     ``None``, all rows are eligible and the anchor row is the latest available date for the pair.
@@ -43,13 +44,68 @@ def compute_cot_percentile(
     for r in filtered:
         by_report_date[r.date] = r
     chronological = [by_report_date[d] for d in sorted(by_report_date)]
-    if len(chronological) < min_reports:
-        return None
     window_rows = chronological[-window_reports:]
+    # Need min_reports historical points AFTER excluding the current observation.
+    if len(window_rows) < min_reports + 1:
+        return None
     vals = [r.net_long for r in window_rows]
     last = vals[-1]
-    n = len(vals)
-    pct = 100.0 * sum(1 for v in vals if v <= last) / float(n)
+    hist = vals[:-1]  # Exclude current observation
+    n = len(hist)
+    if n == 0:
+        return None
+    pct = 100.0 * sum(1 for v in hist if v <= last) / float(n)
+    return float(pct)
+
+
+def compute_cot_smart_spread_percentile(
+    rows: list[CotRow],
+    pair: str,
+    *,
+    window_reports: int = COT_PERCENTILE_WINDOW_REPORTS,
+    as_of: date | None = None,
+    min_reports: int = COT_PERCENTILE_MIN_REPORTS,
+) -> float | None:
+    """Percentile of Asset Manager net minus Leveraged Money net.
+
+    This "smart spread" captures the disagreement between real money
+    (trend-following, slow) and fast money (CTAs, macro funds). When
+    real money is long and fast money is short, the spread is wide positive
+    — often a contrarian signal at turning points.
+
+    The current observation is excluded from the reference distribution
+    (strictly causal).
+    """
+
+    filtered = [r for r in rows if r.pair == pair]
+    if as_of is not None:
+        filtered = [r for r in filtered if r.date <= as_of]
+    if not filtered:
+        return None
+    by_report_date: dict[date, CotRow] = {}
+    for r in filtered:
+        by_report_date[r.date] = r
+    chronological = [by_report_date[d] for d in sorted(by_report_date)]
+    window_rows = chronological[-window_reports:]
+    if len(window_rows) < min_reports + 1:
+        return None
+
+    # Compute smart spread for each row; fall back to net_long if breakdown missing.
+    spreads: list[float] = []
+    for r in window_rows:
+        am = r.asset_mgr_net
+        lm = r.lev_money_net
+        if am is not None and lm is not None:
+            spreads.append(float(am) - float(lm))
+        else:
+            spreads.append(float(r.net_long))
+
+    last = spreads[-1]
+    hist = spreads[:-1]
+    n = len(hist)
+    if n == 0:
+        return None
+    pct = 100.0 * sum(1 for v in hist if v <= last) / float(n)
     return float(pct)
 
 

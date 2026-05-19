@@ -15,6 +15,7 @@ import {
   fmtInt,
   normalizeProp,
 } from "@/components/ui/utils";
+import { spotDecimals } from "@/lib/config";
 import { PAIRS } from "@/lib/constants";
 import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
 import Link from "next/link";
@@ -119,7 +120,7 @@ export function SignalCard({
         <div className="flex items-baseline gap-3">
           <DataLineage lineage={LINEAGE.spot(signal)}>
             <p className="font-mono text-[28px] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
-              {signal?.spot?.toFixed(pairLabel === "USDJPY" ? 2 : 4) ?? "—"}
+              {signal?.spot?.toFixed(spotDecimals(pairLabel)) ?? "—"}
             </p>
           </DataLineage>
           <DataLineage lineage={LINEAGE.regime(call)}>

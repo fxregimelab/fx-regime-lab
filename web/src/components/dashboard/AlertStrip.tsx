@@ -1,3 +1,4 @@
+import { CROWD_SOFT_HI, CROWD_SOFT_LO } from "@/lib/config";
 import { PAIRS } from "@/lib/constants";
 import type { LatestRegimeCall, LatestSignal } from "@/lib/supabase/queries";
 
@@ -51,10 +52,11 @@ export function AlertStrip({ calls, signals }: AlertStripProps) {
       });
     }
 
-    // COT extreme
+    // COT extreme (skip for USDINR — no liquid COT futures)
     if (
+      pair !== "USDINR" &&
       sig.cot_percentile != null &&
-      (sig.cot_percentile > 85 || sig.cot_percentile < 15)
+      (sig.cot_percentile > CROWD_SOFT_HI || sig.cot_percentile < CROWD_SOFT_LO)
     ) {
       alerts.push({
         pair,

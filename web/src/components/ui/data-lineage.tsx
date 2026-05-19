@@ -89,7 +89,7 @@ export const LINEAGE = {
     source: "FX Regime Lab model v3",
     updatedAt: call?.created_at?.slice(0, 10) ?? null,
     transformation:
-      "Weighted composite → regime classifier (RATE 40%, COT 30%, VOL 20%, OI 10%)",
+      "Weighted composite → regime classifier (pair-specific: RATE 30–45%, COT 10–25%, VOL 20%, OI 5%, SPECIAL 5–20%, FPI 0–15%)",
     rawValue: call?.regime ?? undefined,
   }),
   rateSignal: (
@@ -120,7 +120,7 @@ export const LINEAGE = {
     source: "FX Regime Lab model v3",
     updatedAt: call?.created_at?.slice(0, 10) ?? null,
     transformation:
-      "Weighted sum of normalized signals (RATE 40%, COT 30%, VOL 20%, OI 10%)",
+      "Weighted sum of normalized signals (pair-specific precision weights, see methodology)",
     rawValue:
       call?.signal_composite != null
         ? call.signal_composite.toFixed(3)

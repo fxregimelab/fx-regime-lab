@@ -1,10 +1,13 @@
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
+import type { Metadata } from "next";
 import MethodologyContent from "./MethodologyContent";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Methodology | FX Regime Lab",
+  description:
+    "Regime detection framework: signal inputs, composite scoring, and accuracy measurement.",
 };
 
 export default function MethodologyPage() {

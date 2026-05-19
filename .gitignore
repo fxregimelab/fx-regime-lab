@@ -46,3 +46,6 @@ lighthouse-reports/
 .claude/
 .kimi/
 
+
+# Old pipeline run artifacts
+runs/

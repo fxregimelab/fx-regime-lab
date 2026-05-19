@@ -3,6 +3,7 @@
 import { DeskCard } from "@/components/ui/desk-card";
 import { SignalCardSkeleton } from "@/components/ui/skeletons";
 import { fmtConfidence } from "@/components/ui/utils";
+import { spotDecimals } from "@/lib/config";
 import { PAIRS } from "@/lib/constants";
 import {
   useLatestDeskOpenCardsSnapshot,
@@ -42,8 +43,8 @@ export function CompareView({ pairsParam }: CompareViewProps) {
             [ NO PAIRS SELECTED ]
           </p>
           <p className="font-sans text-[14px] text-[var(--color-text-secondary)] leading-relaxed mb-4">
-            Cmd+Click (or Ctrl+Click) two pair cards on the Terminal to
-            compare them side-by-side.
+            Cmd+Click (or Ctrl+Click) two pair cards on the Terminal to compare
+            them side-by-side.
           </p>
           <Link
             href="/terminal"
@@ -99,7 +100,7 @@ export function CompareView({ pairsParam }: CompareViewProps) {
                 <p className="font-mono text-[11px] text-[var(--color-text-dim)]">
                   Spot:{" "}
                   {sig?.spot != null
-                    ? Number(sig.spot).toFixed(meta.label === "USDJPY" ? 2 : 4)
+                    ? Number(sig.spot).toFixed(spotDecimals(meta.label))
                     : "—"}{" "}
                   <span
                     className={

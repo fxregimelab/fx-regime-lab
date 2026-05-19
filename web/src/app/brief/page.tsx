@@ -4,6 +4,7 @@ import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import { normalizeProp } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import { getDriverTag } from "@/lib/pairProfiles";
+import { classifyRegime } from "@/lib/regime-classifier";
 import { getLatestBrief } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
@@ -26,20 +27,10 @@ function DollarDominanceIndex({
 
   for (const p of PAIRS) {
     const regime = pairRegimes?.[p.label] ?? pairRegimes?.[p.urlSlug] ?? "";
-    const u = regime.toUpperCase();
-    if (
-      u.includes("STRENGTH") ||
-      u.includes("APPRECIATION") ||
-      u.includes("DOLLAR_ON") ||
-      u.includes("RISK_OFF")
-    ) {
+    const classification = classifyRegime(regime, p.label);
+    if (classification === "Risk-On") {
       usdStrength++;
-    } else if (
-      u.includes("WEAKNESS") ||
-      u.includes("DEPRECIATION") ||
-      u.includes("DOLLAR_OFF") ||
-      u.includes("RISK_ON")
-    ) {
+    } else if (classification === "Risk-Off") {
       usdWeakness++;
     } else {
       neutral++;

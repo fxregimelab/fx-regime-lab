@@ -73,7 +73,8 @@ export function GhostResolve({
   }, [value, active, paused]);
 
   const ghostMuted = phase === "resolved" || !active;
-  const flickerStyle = phase === "flicker" ? "text-[var(--color-text-dim)] opacity-50" : "";
+  const flickerStyle =
+    phase === "flicker" ? "text-[var(--color-text-dim)] opacity-50" : "";
 
   return (
     <span

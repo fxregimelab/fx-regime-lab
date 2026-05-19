@@ -22,13 +22,13 @@ from src.types import PairWeightConfig, normalize_fx_pair_key
 WEIGHTS = {"rate": 0.40, "cot": 0.30, "vol": 0.20, "oi": 0.10}
 
 PAIR_COMPOSITE_WEIGHTS: dict[str, PairWeightConfig] = {
-    "EURUSD": PairWeightConfig(rate=0.40, cot=0.25, vol=0.20, oi=0.10, special=0.05, fpi=0.0),
-    "USDJPY": PairWeightConfig(rate=0.30, cot=0.20, vol=0.25, oi=0.15, special=0.10, fpi=0.0),
-    "GBPUSD": PairWeightConfig(rate=0.35, cot=0.25, vol=0.25, oi=0.10, special=0.05, fpi=0.0),
-    "AUDUSD": PairWeightConfig(rate=0.25, cot=0.20, vol=0.20, oi=0.10, special=0.25, fpi=0.0),
-    "USDCAD": PairWeightConfig(rate=0.25, cot=0.15, vol=0.20, oi=0.10, special=0.30, fpi=0.0),
-    "USDCHF": PairWeightConfig(rate=0.30, cot=0.15, vol=0.20, oi=0.10, special=0.25, fpi=0.0),
-    "USDINR": PairWeightConfig(rate=0.25, cot=0.10, vol=0.20, oi=0.10, special=0.20, fpi=0.15),
+    "EURUSD": PairWeightConfig(rate=0.45, cot=0.25, vol=0.20, oi=0.05, special=0.05, fpi=0.0),
+    "USDJPY": PairWeightConfig(rate=0.40, cot=0.20, vol=0.25, oi=0.05, special=0.10, fpi=0.0),
+    "GBPUSD": PairWeightConfig(rate=0.40, cot=0.25, vol=0.25, oi=0.05, special=0.05, fpi=0.0),
+    "AUDUSD": PairWeightConfig(rate=0.30, cot=0.20, vol=0.20, oi=0.05, special=0.25, fpi=0.0),
+    "USDCAD": PairWeightConfig(rate=0.30, cot=0.15, vol=0.20, oi=0.05, special=0.30, fpi=0.0),
+    "USDCHF": PairWeightConfig(rate=0.35, cot=0.15, vol=0.20, oi=0.05, special=0.25, fpi=0.0),
+    "USDINR": PairWeightConfig(rate=0.30, cot=0.10, vol=0.20, oi=0.05, special=0.20, fpi=0.15),
 }
 
 logger = logging.getLogger(__name__)
@@ -307,6 +307,56 @@ def _weights_for_pair(pair: str | None) -> dict[str, float]:
     return out
 
 
+def _precision_weights(
+    static_weights: dict[str, float],
+    betas: dict[str, float],
+    *,
+    floor_frac: float = 0.10,
+    beta_threshold: float = 0.05,
+) -> dict[str, float]:
+    """Adjust static weights by dynamic beta magnitude.
+
+    Signals with stronger |beta| get more weight; weak signals get floor.
+    The floor prevents any signal from being completely zeroed out.
+    If all |beta| < beta_threshold, falls back to static weights.
+    """
+    if all(abs(betas.get(k, 0.0)) < beta_threshold for k in static_weights):
+        return static_weights
+    adj: dict[str, float] = {}
+    for k, w in static_weights.items():
+        beta = abs(betas.get(k, 0.0))
+        if beta < beta_threshold:
+            adj[k] = w * floor_frac
+        else:
+            scale = max(floor_frac, beta / 0.10)
+            adj[k] = w * scale
+    total = sum(adj.values())
+    if total <= 0.0:
+        return static_weights
+    return {k: v / total for k, v in adj.items()}
+
+
+def _redundancy_penalty(
+    values: dict[str, float],
+    betas: dict[str, float],
+) -> float:
+    """Penalty 0.0–0.15 based on how many signals are saying the same thing.
+
+    If rate and COT have same sign and both |beta| > 0.05, they are redundant.
+    """
+    penalty = 0.0
+    families = list(values.keys())
+    for i in range(len(families)):
+        for j in range(i + 1, len(families)):
+            f1, f2 = families[i], families[j]
+            v1, v2 = values[f1], values[f2]
+            b1, b2 = abs(betas.get(f1, 0.0)), abs(betas.get(f2, 0.0))
+            if b1 > 0.05 and b2 > 0.05:
+                if (v1 > 0 and v2 > 0) or (v1 < 0 and v2 < 0):
+                    penalty += 0.03
+    return min(penalty, 0.15)
+
+
 def compute_composite(
     rate_norm: float | None,
     cot_norm: float | None,
@@ -316,8 +366,13 @@ def compute_composite(
     pair: str | None = None,
     special_signal: float | None = None,
     fpi_signal: float | None = None,
+    betas: dict[str, float] | None = None,
 ) -> float | None:
-    """Weighted composite; missing legs drop out and remaining weights renormalize."""
+    """Weighted composite; missing legs drop out and remaining weights renormalize.
+
+    If ``betas`` is provided and contains non-zero values, static weights are
+    replaced by beta-informed precision weights.
+    """
 
     weights = _weights_for_pair(pair)
     values: dict[str, float | None] = {
@@ -333,7 +388,12 @@ def compute_composite(
     active = [k for k, v in values.items() if v is not None]
     if not active:
         return None
-    wsum = sum(weights[k] for k in active if k in weights)
+
+    active_weights = {k: weights[k] for k in active if k in weights}
+    if betas is not None and any(betas.values()):
+        active_weights = _precision_weights(active_weights, betas)
+
+    wsum = sum(active_weights.values())
     if wsum <= 0.0:
         return None
     acc = 0.0
@@ -341,7 +401,7 @@ def compute_composite(
         v = values[k]
         if v is None:
             continue
-        w = weights.get(k)
+        w = active_weights.get(k)
         if w is None or w <= 0.0:
             continue
         acc += float(v) * (w / wsum)

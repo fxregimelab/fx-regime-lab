@@ -8,6 +8,7 @@ import { ValidationTable } from "@/components/regime/ValidationTable";
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
+import { EURUSD_ACCURACY_GATE, STALE_THRESHOLD_DAYS } from "@/lib/config";
 import { fmtMeanCI, fmtPropCI, meanCI, wilsonCI } from "@/lib/stats";
 import {
   getRegimeBreakdown,
@@ -270,7 +271,11 @@ export default async function PerformancePage() {
   // Compute ALL stats from filtered validation log (production period only)
   const allT5 = computeStatsFromLog(validation, null, "t5");
   const allT20 = computeStatsFromLog(validation, null, "t20");
-  const totalCalls = allT5.sampleSize ?? validation.length;
+  const totalCalls =
+    allT5.sampleSize ??
+    validation.filter(
+      (r) => r.t5Outcome === "CORRECT" || r.t5Outcome === "WRONG",
+    ).length;
 
   // Compute per-pair stats from filtered validation log
   const PAIR_LABELS = ["EUR/USD", "USD/JPY", "USD/INR"] as const;
@@ -281,8 +286,8 @@ export default async function PerformancePage() {
     computeStatsFromLog(validation, p, "t20"),
   );
 
-  // Merge computed stats with raw stats: prefer computed (production-only),
-  // but keep raw per-pair rows as fallback for fields we don't compute.
+  // Merge: DB validation_stats are source of truth for winRate / Brier / sampleSize.
+  // Only rolling 90d accuracy and asOfDate are computed from the raw log.
   const t5Map = new Map(
     statsT5Raw.filter((s) => s.pair !== "ALL").map((s) => [s.pair, s]),
   );
@@ -296,14 +301,9 @@ export default async function PerformancePage() {
       return raw
         ? {
             ...raw,
-            winRate: computed.winRate,
-            wins: computed.wins,
-            brierScore: computed.brierScore,
-            sampleSize: computed.sampleSize,
-            avgReturnBps: computed.avgReturnBps,
-            sharpeLike: computed.sharpeLike,
-            rolling90dAccuracy: computed.rolling90dAccuracy,
-            asOfDate: computed.asOfDate,
+            rolling90dAccuracy:
+              computed.rolling90dAccuracy ?? raw.rolling90dAccuracy,
+            asOfDate: computed.asOfDate ?? raw.asOfDate,
           }
         : computed;
     }),
@@ -315,14 +315,9 @@ export default async function PerformancePage() {
       return raw
         ? {
             ...raw,
-            winRate: computed.winRate,
-            wins: computed.wins,
-            brierScore: computed.brierScore,
-            sampleSize: computed.sampleSize,
-            avgReturnBps: computed.avgReturnBps,
-            sharpeLike: computed.sharpeLike,
-            rolling90dAccuracy: computed.rolling90dAccuracy,
-            asOfDate: computed.asOfDate,
+            rolling90dAccuracy:
+              computed.rolling90dAccuracy ?? raw.rolling90dAccuracy,
+            asOfDate: computed.asOfDate ?? raw.asOfDate,
           }
         : computed;
     }),
@@ -373,7 +368,6 @@ export default async function PerformancePage() {
   const latestStatsDate = statsT5[0]?.asOfDate ?? null;
   const lastDate =
     latestStatsDate ?? (dates.length > 0 ? dates[dates.length - 1] : null);
-  const STALE_THRESHOLD_DAYS = 10;
   const isStale = lastDate
     ? new Date().getTime() - new Date(lastDate).getTime() >
       STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000
@@ -530,12 +524,18 @@ export default async function PerformancePage() {
               <AccuracyMilestoneTracker
                 currentAccuracy={acc}
                 history={recent}
-                daysAboveGate={recent.filter((h) => h.accuracy >= 0.55).length}
+                daysAboveGate={
+                  recent.filter((h) => h.accuracy >= EURUSD_ACCURACY_GATE)
+                    .length
+                }
+                gate={EURUSD_ACCURACY_GATE}
                 currentStreak={(() => {
                   const rev = recent.slice().reverse();
-                  const lastAbove = rev[0].accuracy >= 0.55;
+                  const lastAbove = rev[0].accuracy >= EURUSD_ACCURACY_GATE;
                   const idx = rev.findIndex((h) =>
-                    lastAbove ? h.accuracy < 0.55 : h.accuracy >= 0.55,
+                    lastAbove
+                      ? h.accuracy < EURUSD_ACCURACY_GATE
+                      : h.accuracy >= EURUSD_ACCURACY_GATE,
                   );
                   return lastAbove
                     ? idx === -1

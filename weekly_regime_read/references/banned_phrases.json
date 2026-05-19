@@ -1,0 +1,33 @@
+{
+  "hedging": [
+    "could potentially", "may possibly", "might", "it seems like",
+    "it appears that", "arguably", "presumably", "ostensibly",
+    "one could argue", "there is a chance", "there is a possibility",
+    "we believe", "in our view", "we think", "we feel"
+  ],
+  "filler": [
+    "It is worth noting", "It is interesting to observe", "Interestingly",
+    "As we have seen", "As discussed", "This week saw", "In this week's edition",
+    "It is important to note", "Needless to say", "As expected",
+    "Notably", "Remarkably", "Significantly" ,
+    "Going forward", "Looking ahead", "In the coming weeks"
+  ],
+  "ai_tells": [
+    "labors in", "clings to", "what the desk flags as", "sits in",
+    "anchors to", "grapples with", "navigates", "wrestles with",
+    "the framework suggests", "the data indicates that", "signals point to",
+    "paints a picture", "tells a story", "underscores", "highlights",
+    "serves as a reminder", "comes at a time when"
+  ],
+  "marketing": [
+    "unlock your potential", "elevate your life", "next-gen",
+    "seamless control", "smarter than ever", "transform your day",
+    "revolutionary", "game-changing", "cutting-edge", "state-of-the-art"
+  ],
+  "generic_transitions": [
+    "Furthermore", "Moreover", "Additionally", "In addition",
+    "On the other hand", "Conversely", "However", "Nevertheless",
+    "Subsequently", "Consequently", "As a result", "Therefore",
+    "In conclusion", "To summarize", "In summary"
+  ]
+}

@@ -41,9 +41,7 @@ export const Sparkline: React.FC<SparklineProps> = ({
   const trendUp = last >= first;
   const resolvedColor =
     color ??
-    (trendUp
-      ? "var(--color-up, #22c55e)"
-      : "var(--color-down, #ef4444)");
+    (trendUp ? "var(--color-up, #22c55e)" : "var(--color-down, #ef4444)");
 
   return (
     <svg

@@ -2,8 +2,15 @@ import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
-import { Globe, Link2, Mail, MessageCircle } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { Link2, Mail, MessageCircle } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "About — FX Regime Lab",
+  description: "What FX Regime Lab is, what it is not, and how it works.",
+};
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -73,8 +80,8 @@ function MethodologySummary() {
       desc: "Macro, technical, and micro-structure layers are scored independently and fused into a composite regime label.",
     },
     {
-      label: "8 signal families",
-      desc: "Rates, COT, volatility, risk reversal, open interest, cross-asset, carry, and momentum — each calibrated per pair.",
+      label: "6 composite inputs",
+      desc: "Rate differential, COT positioning, realized volatility, open interest, special factor, and FPI flow — weighted per pair.",
     },
     {
       label: "Out-of-sample validation",
@@ -113,9 +120,17 @@ function MethodologySummary() {
 
 /* ─── Track Record Highlights ───────────────────────────────────────── */
 
-function TrackRecordHighlights() {
+async function TrackRecordHighlights() {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("validation_log")
+    .select("*", { count: "exact", head: true });
+
   const stats = [
-    { value: "17,000+", label: "Validated regime calls" },
+    {
+      value: count ? `${(count / 1000).toFixed(0)}k+` : "—",
+      label: "Validated regime calls",
+    },
     {
       value: "3",
       label: "Currency pairs: EUR/USD, USD/JPY, USD/INR",
@@ -161,12 +176,6 @@ function ContactConnect() {
       label: "GitHub",
       href: "https://github.com/fxregimelab",
       display: "github.com/fxregimelab",
-    },
-    {
-      icon: MessageCircle,
-      label: "X / Twitter",
-      href: "#",
-      display: "@fxregimelab",
     },
   ];
 
@@ -214,7 +223,7 @@ function Disclaimer() {
 
 /* ─── Page ──────────────────────────────────────────────────────────── */
 
-export default function AboutPage() {
+export default async function AboutPage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       <Nav />

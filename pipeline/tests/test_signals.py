@@ -11,6 +11,7 @@ from src.signals.cot import compute_cot_percentile, normalize_cot_signal
 from src.signals.rate import (
     build_real_yield_10y_spread_history_from_rows,
     compute_risk_adjusted_carry,
+    compute_risk_adjusted_carry_v2,
     normalize_rate_signal,
     rate_direction_from_spreads,
 )
@@ -100,6 +101,46 @@ def test_risk_adjusted_carry() -> None:
     assert compute_risk_adjusted_carry(1.0, 0.0, "EURUSD") is None
 
 
+def test_carry_v2_prefers_implied_vol() -> None:
+    """v2 uses implied vol when provided."""
+    result = compute_risk_adjusted_carry_v2(2.0, 8.0, 10.0, "EURUSD")
+    assert result == 2.0 / 10.0
+
+
+def test_carry_v2_fallback_to_rv20() -> None:
+    """v2 falls back to RV20 when implied vol is None."""
+    result = compute_risk_adjusted_carry_v2(2.0, 8.0, None, "USDINR")
+    assert result == 2.0 / 8.0
+
+
+def test_z_blended_60_40() -> None:
+    """z_blended = 0.6*z_tactical + 0.4*z_structural when both exist."""
+    hist = [0.01] * 252 + [0.02] * 10
+    structural_hist = [0.005] * 2520 + [0.015] * 10
+    result = normalize_rate_signal(
+        spread=0.025,
+        pair="EURUSD",
+        historical_spreads=hist,
+        spread_structural=0.020,
+        historical_structural=structural_hist,
+    )
+    assert result.z_blended is not None
+    assert result.z_tactical is not None
+    assert result.z_structural is not None
+    assert abs(result.z_blended - (0.6 * result.z_tactical + 0.4 * result.z_structural)) < 1e-10
+
+
+def test_z_blended_fallback_to_tactical() -> None:
+    """When structural is missing, z_blended = tactical."""
+    hist = [0.01] * 252 + [0.02] * 10
+    result = normalize_rate_signal(
+        spread=0.025,
+        pair="EURUSD",
+        historical_spreads=hist,
+    )
+    assert result.z_blended == result.z_tactical
+
+
 def test_cot_percentile_max() -> None:
     rows = [CotRow(make_date(i), "EURUSD", net_long=i * 100, open_interest=1000) for i in range(10)]
     assert compute_cot_percentile(rows, "EURUSD") == pytest.approx(100.0)
@@ -134,11 +175,15 @@ def test_cot_percentile_as_of_excludes_future_reports() -> None:
         CotRow(datetime.date(2024, 3, 1), "EURUSD", net_long=0, open_interest=1),
         CotRow(datetime.date(2024, 3, 8), "EURUSD", net_long=50, open_interest=1),
     ]
-    p_cut = compute_cot_percentile(rows, "EURUSD", as_of=datetime.date(2024, 2, 23))
+    # Causal percentile needs min_reports + 1 rows in the window.
+    # as_of=2024-02-23 gives 8 rows, so use min_reports=6 to allow 7 historical points.
+    p_cut = compute_cot_percentile(
+        rows, "EURUSD", as_of=datetime.date(2024, 2, 23), min_reports=6
+    )
     p_full = compute_cot_percentile(rows, "EURUSD")
     assert p_cut is not None and p_full is not None
     assert p_cut == pytest.approx(100.0)
-    assert p_full == pytest.approx(90.0)
+    assert p_full == pytest.approx(88.8889, abs=0.001)
 
 
 def test_cot_duplicate_report_date_last_wins() -> None:
@@ -167,6 +212,7 @@ def test_vol_signal_expanding() -> None:
 
 def test_vol_signal_stable() -> None:
     result = compute_vol_signal(8.0, 8.0, 12.0)
+    assert result is not None
     assert -0.1 < result < 0.1
 
 
@@ -197,10 +243,10 @@ def test_composite_with_fpi_reweights() -> None:
         special_signal=None,
         fpi_signal=0.8,
     )
-    # rate=0.25, fpi=0.15 → active weights 0.25+0.15=0.40
-    # normalized: rate=0.25/0.40=0.625, fpi=0.15/0.40=0.375
-    # composite = 0.5*0.625 + 0.8*0.375 = 0.3125 + 0.3 = 0.6125
-    assert c == pytest.approx(0.6125, abs=0.01)
+    # rate=0.30, fpi=0.15 → active weights 0.30+0.15=0.45
+    # normalized: rate=0.30/0.45=0.6667, fpi=0.15/0.45=0.3333
+    # composite = 0.5*0.6667 + 0.8*0.3333 = 0.3333 + 0.2667 = 0.60
+    assert c == pytest.approx(0.60, abs=0.01)
 
 
 def test_composite_fpi_ignored_for_eurusd() -> None:

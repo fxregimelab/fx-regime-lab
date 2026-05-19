@@ -44,9 +44,9 @@ def test_non_neutral_vol_expanding_unchanged() -> None:
 
 def test_confidence_midband() -> None:
     # composite=0.7 → base=0.35; rate/cot agree + both >0.3 → +0.10
-    # raw=0.45; haircut → 0.42
+    # raw=0.45; haircut → 0.42; Platt calibrate → 0.35 + 0.40*0.42 = 0.518
     c = compute_confidence(0.7, 0.6, 0.5)
-    assert 0.40 < c < 0.50
+    assert 0.51 < c < 0.53
 
 
 def test_confidence_minimum() -> None:

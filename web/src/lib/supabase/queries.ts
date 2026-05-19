@@ -1,3 +1,4 @@
+import { DEFAULT_ACCURACY_GATE, EURUSD_ACCURACY_GATE } from "@/lib/config";
 import type { Database } from "./database.types";
 
 type RegimeCallRow = Database["public"]["Tables"]["regime_calls"]["Row"];
@@ -51,6 +52,7 @@ export interface LatestSignal {
   realized_vol_rank: number | null;
   rate_z_tactical: number | null;
   rate_z_structural: number | null;
+  z_blended: number | null;
   rate_diff_10y_real: number | null;
   breakeven_inflation_10y: number | null;
   skew_alignment: number | null;
@@ -59,6 +61,14 @@ export interface LatestSignal {
   cot_net_pos: number | null;
   cot_asset_mgr_net: number | null;
   cot_lev_money_net: number | null;
+  india_vix: number | null;
+  inr_forward_premium: number | null;
+  oi_delta: number | null;
+  volume_rvol: number | null;
+  structural_instability: boolean;
+  ecb_balance_sheet: number | null;
+  bund_btp_spread: number | null;
+  boj_policy_rate: number | null;
   created_at: string | null;
 }
 
@@ -137,6 +147,7 @@ function toLatestSignal(row: SignalRow): LatestSignal {
     realized_vol_rank: row.realized_vol_rank,
     rate_z_tactical: row.rate_z_tactical,
     rate_z_structural: row.rate_z_structural,
+    z_blended: row.z_blended ?? null,
     rate_diff_10y_real: row.rate_diff_10y_real,
     breakeven_inflation_10y: row.breakeven_inflation_10y,
     skew_alignment: row.skew_alignment,
@@ -145,6 +156,14 @@ function toLatestSignal(row: SignalRow): LatestSignal {
     cot_net_pos: row.cot_net_pos,
     cot_asset_mgr_net: row.cot_asset_mgr_net,
     cot_lev_money_net: row.cot_lev_money_net,
+    india_vix: row.india_vix ?? null,
+    inr_forward_premium: row.inr_forward_premium ?? null,
+    oi_delta: row.oi_delta ?? null,
+    volume_rvol: row.volume_rvol ?? null,
+    structural_instability: row.structural_instability ?? false,
+    ecb_balance_sheet: row.ecb_balance_sheet ?? null,
+    bund_btp_spread: row.bund_btp_spread ?? null,
+    boj_policy_rate: row.boj_policy_rate ?? null,
     created_at: row.created_at,
   };
 }
@@ -218,7 +237,7 @@ export async function getValidationLog(
     .map((r) => ({
       date: r.date,
       pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-      call: r.call ?? "—",
+      call: "—",
       outcome: r.correct_t5 ? "correct" : "incorrect",
       return_pct: Number(r.log_return_t5_bps),
     }));
@@ -250,7 +269,7 @@ export async function getValidationStats(
 
   if (error || !data) return [];
 
-  const rows = data as ValidationStatsRow[];
+  const rows = Array.isArray(data) ? (data as ValidationStatsRow[]) : [];
   // Get latest as_of_date
   const latestDate = rows[0]?.as_of_date;
   if (!latestDate) return [];
@@ -295,7 +314,6 @@ export async function getValidationLogT5T20(
     .from("validation_log")
     .select("*")
     .not("brier_score_t5", "is", null)
-    .gte("date", "2026-04-01")
     .order("date", { ascending: false })
     .limit(limit);
 
@@ -310,7 +328,7 @@ export async function getValidationLogT5T20(
   return (data as ValidationLogRow[]).map((r) => ({
     date: r.date,
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    predicted: r.call ?? "—",
+    predicted: "—",
     t5ReturnBps: r.log_return_t5_bps,
     t5Outcome: r.correct_t5
       ? "CORRECT"
@@ -350,24 +368,31 @@ export async function getRegimeBreakdown(
       "date, pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20",
     )
     .not("brier_score_t5", "is", null)
-    .gte("date", "2026-04-01")
     .order("date", { ascending: false })
     .limit(limit);
 
   if (valError || !valData) return [];
 
+  interface ValRow {
+    pair: string;
+  }
+  interface RegimeRow {
+    date: string;
+    pair: string;
+    regime: string;
+  }
+
   // 2. Fetch corresponding regime names from regime_calls
-  const pairs = [...new Set((valData as any[]).map((r: any) => r.pair))];
+  const pairs = [...new Set((valData as ValRow[]).map((r) => r.pair))];
   const { data: regimeData, error: regimeError } = await supabase
     .from("regime_calls")
     .select("date, pair, regime")
-    .gte("date", "2026-04-01")
     .in("pair", pairs);
 
   if (regimeError || !regimeData) return [];
 
   const regimeMap = new Map<string, string>();
-  for (const r of regimeData as any[]) {
+  for (const r of regimeData as RegimeRow[]) {
     regimeMap.set(`${r.date}|${r.pair}`, r.regime);
   }
 
@@ -428,7 +453,7 @@ export async function getValidationLogForPair(
   return (data as ValidationLogRow[]).map((r) => ({
     date: r.date,
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    predicted: r.call ?? "—",
+    predicted: "—",
     t5ReturnBps: r.log_return_t5_bps,
     t5Outcome: r.correct_t5
       ? "CORRECT"
@@ -487,7 +512,9 @@ export async function getSignalHistory(
 ) {
   const { data, error } = await supabase
     .from("signals")
-    .select("date,spot,rate_diff_2y,cot_percentile,realized_vol_20d")
+    .select(
+      "date,spot,rate_diff_2y,cot_percentile,realized_vol_20d,realized_vol_5d,implied_vol_30d,day_change,day_change_pct,cross_asset_us10y,realized_vol_rank,rate_z_tactical,rate_z_structural,z_blended,rate_diff_10y_real,breakeven_inflation_10y,skew_alignment,risk_reversal_25d,fpi_flow,cot_net_pos,cot_asset_mgr_net,cot_lev_money_net,india_vix,inr_forward_premium,oi_delta,volume_rvol,structural_instability,ecb_balance_sheet,bund_btp_spread,boj_policy_rate",
+    )
     .eq("pair", pair)
     .order("date", { ascending: false })
     .limit(limit);
@@ -570,7 +597,7 @@ export async function getPairValidationHistory(
 
   return (data as ValidationLogRow[]).map((r) => ({
     date: r.date,
-    predicted: r.call ?? "—",
+    predicted: "—",
     t5Outcome: r.correct_t5
       ? "CORRECT"
       : r.actual_direction_t5 === "NEUTRAL"
@@ -987,19 +1014,14 @@ export async function getLatestAccuracyAlerts(
       row.t5_rolling_90d_accuracy ?? row.t20_rolling_90d_accuracy ?? null;
     if (acc == null) continue;
 
-    if (acc < 0.5) {
+    const gate =
+      row.pair === "EURUSD" ? EURUSD_ACCURACY_GATE : DEFAULT_ACCURACY_GATE;
+    if (acc < gate) {
       alerts.push({
         pair: row.pair,
         accuracy: acc,
-        threshold: 0.5,
-        severity: "critical",
-      });
-    } else if (row.pair === "EURUSD" && acc < 0.55) {
-      alerts.push({
-        pair: row.pair,
-        accuracy: acc,
-        threshold: 0.55,
-        severity: "warning",
+        threshold: gate,
+        severity: acc < DEFAULT_ACCURACY_GATE ? "critical" : "warning",
       });
     }
   }

@@ -20,6 +20,7 @@ interface RegimeInspectorTriggerProps {
   rateDiff10y: number | null;
   rateZTactical: number | null;
   rateZStructural: number | null;
+  zBlended?: number | null;
   realizedVol20d: number | null;
   realizedVol5d: number | null;
   impliedVol30d: number | null;
@@ -50,6 +51,7 @@ export function RegimeInspectorTrigger({
   rateDiff10y,
   rateZTactical,
   rateZStructural,
+  zBlended,
   realizedVol20d,
   realizedVol5d,
   impliedVol30d,
@@ -90,6 +92,7 @@ export function RegimeInspectorTrigger({
         rateDiff10y={rateDiff10y}
         rateZTactical={rateZTactical}
         rateZStructural={rateZStructural}
+        zBlended={zBlended}
         realizedVol20d={realizedVol20d}
         realizedVol5d={realizedVol5d}
         impliedVol30d={impliedVol30d}

@@ -18,7 +18,7 @@ const SIGNALS: SignalFamily[] = [
   {
     key: "rates",
     label: "Rate Differential",
-    weight: 40,
+    weight: 45,
     color: "#3b82f6",
     description:
       "2-year sovereign yield spread (US vs counterparty). The structural anchor of the composite score.",
@@ -57,7 +57,7 @@ const SIGNALS: SignalFamily[] = [
   {
     key: "oi",
     label: "Open Interest",
-    weight: 10,
+    weight: 5,
     color: "#ec4899",
     description:
       "CME futures open-interest delta and price-alignment flag. Flags crowded positioning unwinds.",
@@ -73,9 +73,9 @@ const SIGNALS: SignalFamily[] = [
     weight: 5,
     color: "#eab308",
     description:
-      "Cross-asset special factor. Varies by pair: VIX stress for JPY, oil+DXY for INR, placeholder for EUR.",
+      "Cross-asset special factor. Varies by pair: VIX stress for JPY, oil+DXY for INR, Bund-BTP+ECB for EUR.",
     computation:
-      "Pair-specific blend of cross-asset proxies normalized to [-1, +1]. EURUSD returns 0.0 (no active special factor).",
+      "Pair-specific blend of cross-asset proxies normalized to [-1, +1]. EURUSD blends Bund-BTP spread (Italian sovereign stress) with ECB balance sheet YoY growth rate.",
     source: "Alpha Vantage, yfinance",
     sampleValue: 0.0,
     sampleBias: "NEUTRAL",
@@ -250,7 +250,7 @@ export default function SignalDecomposition() {
       {/* Live Example */}
       <div className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
         <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
-          Live Example — EUR/USD on 2026-05-15
+          Illustrative Example (Synthetic Data) — EUR/USD
         </p>
 
         <div className="flex flex-col gap-2 mb-4">

@@ -146,21 +146,30 @@ export default function MethodologyContent() {
           <Subsection title="Layer 1 — Regime Gate">
             <Body>
               The gate determines the macro environment from rate differentials,
-              carry momentum, breakeven-inflation shocks, and spot stress. It is
-              the first filter; if the gate is invalidated (stale or missing
-              data), the system falls back to neutral.
+              carry momentum, breakeven-inflation shocks, and spot stress. First
+              filter; if invalidated (stale or missing data), the system falls
+              back to neutral.
             </Body>
 
             <Body>
               <strong className="text-[var(--color-text)]">
                 Rate differential z-score.
               </strong>{" "}
-              The carry-risk-adjusted spread is converted to a rolling z-score
-              over a 252-day causal window with a 90-day minimum. The
-              observation at <Mono>t</Mono> is scored against mean and std
+              The carry-risk-adjusted spread is converted to a rolling MAD
+              Z-score over a 252-day causal window with a 90-day minimum. The
+              observation at <Mono>t</Mono> is scored against median and MAD
               computed from <Mono>[t−251, t−1]</Mono> only — no lookahead:
             </Body>
-            <KatexMath latex="z_{\text{rate}} = \frac{x_t - \mu_{[t-251,\,t-1]}}{\sigma_{[t-251,\,t-1]}}" />
+            <KatexMath latex="z_{\text{rate}} = \frac{x_t - \text{median}_{252d}}{1.4826 \times \text{MAD}_{252d}}" />
+
+            <Body>
+              <strong className="text-[var(--color-text)]">
+                z_blended (M.3.2).
+              </strong>{" "}
+              60% tactical (252d) + 40% structural (2520d real 10Y) MAD Z-score.
+              Tactical captures near-term momentum; structural captures secular
+              valuation.
+            </Body>
 
             <Body>
               <strong className="text-[var(--color-text)]">
@@ -191,11 +200,28 @@ export default function MethodologyContent() {
 
             <Body>
               <strong className="text-[var(--color-text)]">
+                Adaptive precision weighting (M.2.1).
+              </strong>{" "}
+              Precision weights: static weights scaled by |Spearman beta| /
+              0.10, floored at 10%. Signals with stronger historical predictive
+              power receive higher effective weight.
+            </Body>
+
+            <Body>
+              <strong className="text-[var(--color-text)]">
+                Redundancy penalty (M.2.2).
+              </strong>{" "}
+              0.03 per same-sign pair, capped at 0.15. Prevents overconfidence
+              when correlated signals (rate + carry) align.
+            </Body>
+
+            <Body>
+              <strong className="text-[var(--color-text)]">
                 Composite hysteresis.
               </strong>{" "}
               When no override fires, the composite score maps to a five-tier
-              Schmitt trigger with memory of yesterday's tier. The snap function
-              is sequential — each condition is tested in order:
+              snap function with memory of yesterday's tier. Sequential
+              evaluation — each condition tested in order:
             </Body>
             <Piecewise
               lhs={<>snap(c) =</>}
@@ -209,8 +235,7 @@ export default function MethodologyContent() {
             />
             <Body>
               Tier changes of two or more steps are immediate. Single-step
-              changes are deferred by tighter hold thresholds that must be
-              violated before the tier can flip:
+              changes deferred by tighter hold thresholds:
             </Body>
             <div className="font-mono text-[11px] text-[var(--color-text-secondary)] leading-relaxed mb-6 border border-[var(--color-border)] bg-[var(--color-elevated)] p-4">
               <div className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1">
@@ -227,10 +252,9 @@ export default function MethodologyContent() {
               </div>
             </div>
             <Body>
-              If the gate is invalidated by stale or missing data, the system
-              falls back to neutral. A <Mono>structural_instability</Mono> flag
-              (detected upstream) triggers <Mono>CARRY_COLLAPSE</Mono> before
-              all other checks.
+              Invalidation by stale or missing data forces neutral fallback. A{" "}
+              <Mono>structural_instability</Mono> flag triggers{" "}
+              <Mono>CARRY_COLLAPSE</Mono> before all other checks.
             </Body>
           </Subsection>
 
@@ -250,6 +274,15 @@ export default function MethodologyContent() {
               lookback. The percentile <Mono>π</Mono> feeds three metrics:
             </Body>
             <KatexMath latex="\phi_{\text{upper}}(\pi) = \max(0, \min(1, \frac{\pi - 90}{10})) \quad \phi_{\text{lower}}(\pi) = \max(0, \min(1, \frac{10 - \pi}{10}))" />
+            <Body>
+              <strong className="text-[var(--color-text)]">
+                COT smart spread (M.3.3).
+              </strong>{" "}
+              70% traditional non-commercial net-long percentile + 30%
+              (asset-manager minus leveraged-money) spread. Reduces noise from
+              speculator repositioning.
+            </Body>
+
             <Body>
               Crowding flag: <Mono>π ≥ 90</Mono> or <Mono>π ≤ 10</Mono>.
               Crowding veto: <Mono>π ≥ 97</Mono> or <Mono>π ≤ 3</Mono>.
@@ -401,12 +434,13 @@ export default function MethodologyContent() {
               <Body>
                 Primary driver is the US–Germany 2-year yield spread (FRED{" "}
                 <Mono>DGS2</Mono> vs ECB data-api). Composite weights: rate{" "}
-                differential <Mono>40%</Mono>, COT positioning <Mono>25%</Mono>,
-                realized volatility <Mono>20%</Mono>, open interest{" "}
-                <Mono>10%</Mono>, special signal <Mono>5%</Mono>. The special
-                signal is currently a placeholder (returns 0.0) — EURUSD does
-                not have an active cross-asset special factor. Risk-reversal
-                skew is monitored but not used as a composite modifier.
+                differential <Mono>~45%</Mono>, COT positioning{" "}
+                <Mono>~25%</Mono>, realized volatility <Mono>~20%</Mono>, open
+                interest <Mono>~5%</Mono>, special signal <Mono>~5%</Mono>. The
+                special signal blends Bund-BTP spread (Italian sovereign stress
+                percentile) with ECB balance sheet YoY growth rate. Computed as
+                dual-horizon MAD Z-score. Risk-reversal skew is monitored but
+                not used as a composite modifier.
               </Body>
             </div>
 
@@ -419,12 +453,12 @@ export default function MethodologyContent() {
               <Body>
                 Primary driver is the US–Japan yield spread (FRED{" "}
                 <Mono>DGS2</Mono> vs MOF JGBs). Composite weights: rate{" "}
-                differential <Mono>30%</Mono>, COT positioning <Mono>20%</Mono>,
-                realized volatility <Mono>25%</Mono>, open interest{" "}
-                <Mono>15%</Mono>, special signal <Mono>10%</Mono>. The special
-                signal is a VIX funding-stress proxy: high VIX → JPY bid → USD
-                weakness. Carry-trade dynamics are explicitly monitored — when
-                carry risk-adjusted z-score is elevated (≥ 1.15) but 20-day
+                differential <Mono>~40%</Mono>, COT positioning{" "}
+                <Mono>~20%</Mono>, realized volatility <Mono>~25%</Mono>, open
+                interest <Mono>~5%</Mono>, special signal <Mono>~10%</Mono>. The
+                special signal is a VIX funding-stress proxy: high VIX → JPY bid
+                → USD weakness. Carry-trade dynamics are explicitly monitored —
+                when carry risk-adjusted z-score is elevated (≥ 1.15) but 20-day
                 momentum is fading (≤ −0.25), the gate triggers{" "}
                 <Mono>CARRY_COLLAPSE</Mono>. Confidence receives a +5 pp bonus
                 when the special signal <Mono>{" > 0.5"}</Mono>.
@@ -438,16 +472,17 @@ export default function MethodologyContent() {
                 USD / INR
               </h3>
               <Body>
-                INR uses a tailored composite with no COT positioning proxy.
-                Composite weights: rate differential <Mono>25%</Mono>, COT{" "}
-                <Mono>10%</Mono> (placeholder), realized volatility{" "}
-                <Mono>20%</Mono>, open interest <Mono>10%</Mono>, special signal{" "}
-                <Mono>20%</Mono>, FPI flow <Mono>15%</Mono>. The special signal
-                blends crude oil and DXY pressure on EMFX (40% oil + 35% DXY +
-                25% EM composite). FPI is SEBI daily net flow z-scored over 20
-                days. When Brent is above its 80th percentile, confidence
-                receives a −5 pp adjustment reflecting external-account
-                vulnerability.
+                INR uses a tailored composite with reduced COT weight. Composite
+                weights: rate differential <Mono>~30%</Mono>, COT{" "}
+                <Mono>~10%</Mono>, realized volatility <Mono>~20%</Mono>, open
+                interest <Mono>~5%</Mono>, special signal <Mono>~20%</Mono>, FPI
+                flow <Mono>~15%</Mono>. COT is a reduced-weight proxy
+                (managed-float positioning is less informative than G10). The
+                special signal blends crude oil and DXY pressure on EMFX (40%
+                oil + 35% DXY + 25% EM composite). FPI is SEBI daily net flow
+                z-scored over 20 days. When Brent is above its 80th percentile,
+                confidence receives a −5 pp adjustment reflecting
+                external-account vulnerability.
               </Body>
             </div>
           </Subsection>
@@ -480,16 +515,27 @@ export default function MethodologyContent() {
               <strong className="text-[var(--color-text)]">
                 Pair adjustments.
               </strong>{" "}
-              USDJPY carry signal {" > 0.5"} adds +5 pp. USDINR Brent above 80th
-              percentile subtracts −5 pp. Other pairs have their own commodity /
-              special-signal adjustments.
+              USDJPY special signal {" > 0.5"} adds +5 pp. USDINR Brent above
+              80th percentile subtracts −5 pp. Other pairs have their own
+              commodity / special-signal adjustments.
             </Body>
 
             <Body>
               Raw confidence is clipped to <Mono>[0.30, 0.95]</Mono>, then the
               institutional haircut is applied:
             </Body>
-            <KatexMath latex="C = \text{clip}\left( \text{clip}(\text{base} + \text{bonus} + \text{pair}, \; 0.30, \; 0.95) - 0.03, \; 0.30, \; 0.90 \right)" />
+            <KatexMath latex="C_{\text{raw}} = \text{clip}\left( \text{clip}(\text{base} + \text{bonus} + \text{pair}, \; 0.30, \; 0.95) - 0.03, \; 0.30, \; 0.90 \right)" />
+
+            <Body>
+              <strong className="text-[var(--color-text)]">
+                Platt calibration.
+              </strong>{" "}
+              Calibrated confidence applies Platt scaling:
+            </Body>
+            <KatexMath latex="C_{\text{calibrated}} = 0.35 + 0.40 \times C_{\text{raw}}" />
+            <Body>
+              Max calibrated confidence ≈ 0.71 even if raw reaches 0.90.
+            </Body>
           </Subsection>
 
           {/* ── Validation Methodology ──────────────────────────────── */}
@@ -608,7 +654,7 @@ export default function MethodologyContent() {
                     ["Tenor", "2Y + 10Y"],
                     ["Window", "252d z-score"],
                     ["Min periods", "90"],
-                    ["Weight", "25–30%"],
+                    ["Weight", "30–45% (pair-specific)"],
                   ],
                 },
                 {
@@ -617,7 +663,7 @@ export default function MethodologyContent() {
                   stats: [
                     ["Source", "CFTC Disaggregated"],
                     ["Lag", "3 days"],
-                    ["Weight", "20%"],
+                    ["Weight", "10–25% (pair-specific)"],
                     ["Pairs", "EUR, JPY only"],
                   ],
                 },
@@ -632,23 +678,13 @@ export default function MethodologyContent() {
                   ],
                 },
                 {
-                  label: "Risk Reversal Skew",
-                  desc: "25-delta risk reversal in implied-vol points. Causal z against 252d history.",
-                  stats: [
-                    ["RR tenor", "25-delta, 1M"],
-                    ["Z window", "252d causal"],
-                    ["Reversal thresh", "|z| > 0.35"],
-                    ["Pairs", "EURUSD active"],
-                  ],
-                },
-                {
                   label: "Open Interest",
                   desc: "CME futures OI delta and price-alignment flag.",
                   stats: [
                     ["OI source", "CME daily CSV"],
                     ["Products", "6E, 6J"],
                     ["Unwind flag", "Crowded COT + 3d shrinking OI"],
-                    ["Weight", "Implicit in flags"],
+                    ["Weight", "5% (explicit, all pairs)"],
                   ],
                 },
               ].map((fam) => (
