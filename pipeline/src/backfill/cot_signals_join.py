@@ -20,11 +20,16 @@ logger = logging.getLogger(__name__)
 
 def _pg_conn() -> Any:
     ctx = ssl._create_unverified_context()
+    import os
+    host = os.environ.get("SUPABASE_DB_HOST", "db.weaaacohvzzgkgxzpaee.supabase.co")
+    password = os.environ.get("SUPABASE_DB_PASSWORD")
+    if not password:
+        raise RuntimeError("SUPABASE_DB_PASSWORD must be set in the environment.")
     return pg8000.native.Connection(
-        host="db.weaaacohvzzgkgxzpaee.supabase.co",
+        host=host,
         database="postgres",
         user="postgres",
-        password="FXRegimelab04553",
+        password=password,
         ssl_context=ctx,
     )
 

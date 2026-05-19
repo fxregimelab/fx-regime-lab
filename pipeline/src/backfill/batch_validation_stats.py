@@ -13,19 +13,24 @@ logger = logging.getLogger(__name__)
 
 
 def _pg_conn(max_retries: int = 5):
+    import os
     import ssl
     import time
 
     import pg8000.native
     ctx = ssl._create_unverified_context()
+    host = os.environ.get("SUPABASE_DB_HOST", "db.weaaacohvzzgkgxzpaee.supabase.co")
+    password = os.environ.get("SUPABASE_DB_PASSWORD")
+    if not password:
+        raise RuntimeError("SUPABASE_DB_PASSWORD must be set in the environment.")
     last_err = None
     for attempt in range(max_retries):
         try:
             return pg8000.native.Connection(
-                host="db.weaaacohvzzgkgxzpaee.supabase.co",
+                host=host,
                 database="postgres",
                 user="postgres",
-                password="FXRegimelab04553",
+                password=password,
                 ssl_context=ctx,
                 timeout=30,
             )

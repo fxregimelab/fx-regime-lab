@@ -1097,7 +1097,7 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             {history.slice(0, 7).map((h) => (
               <div
                 key={h.date}
-                className="flex justify-between items-center py-1.5 border-b border-[var(--color-border-subtle)] last:border-b-0"
+                className="group relative flex justify-between items-center py-1.5 border-b border-[var(--color-border-subtle)] last:border-b-0"
               >
                 <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
                   {h.date}
@@ -1118,6 +1118,61 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                   )}
                   %
                 </span>
+                {/* Tooltip */}
+                <div className="absolute left-0 bottom-full mb-1 hidden group-hover:block z-50 w-[280px] border border-[var(--color-border)] bg-[var(--color-elevated)] shadow-lg p-3">
+                  <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5">
+                    <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                      DATE
+                    </span>
+                    <span className="font-mono text-[11px] text-[var(--color-text)] text-right">
+                      {h.date}
+                    </span>
+                    <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                      REGIME
+                    </span>
+                    <span className="font-mono text-[11px] text-[var(--color-text)] text-right">
+                      {h.regime.replace(/_/g, " ")}
+                    </span>
+                    <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                      CONFIDENCE
+                    </span>
+                    <span
+                      className="font-mono text-[11px] font-medium text-right"
+                      style={{ color: pairMeta.pairColor }}
+                    >
+                      {Math.min(
+                        100,
+                        Math.max(
+                          0,
+                          Math.round((normalizeProp(h.confidence) ?? 0) * 100),
+                        ),
+                      )}
+                      %
+                    </span>
+                    <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                      COMPOSITE
+                    </span>
+                    <span className="font-mono text-[11px] text-[var(--color-text)] text-right">
+                      {fmt2(h.signal_composite)}
+                    </span>
+                    <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                      DIRECTION
+                    </span>
+                    <span className="font-mono text-[11px] text-[var(--color-text)] text-right">
+                      {h.predicted_direction ?? "—"}
+                    </span>
+                    {h.primary_driver && (
+                      <>
+                        <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                          DRIVER
+                        </span>
+                        <span className="font-mono text-[11px] text-[var(--color-text-secondary)] text-right truncate max-w-[160px]">
+                          {h.primary_driver}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -1127,21 +1182,84 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
             <p className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-[0.15em] mb-3">
               CONFIDENCE TREND (14D)
             </p>
-            <Sparkline
-              data={confidenceHistory.slice(-14)}
-              width={260}
-              height={70}
-              color={pairMeta.pairColor}
-              fillOpacity={0.15}
-            />
-            <div className="flex justify-between mt-2">
-              <span className="font-mono text-[9px] text-[var(--color-text-dim)]">
-                {history.slice(-14)[0]?.date ?? ""}
-              </span>
-              <span className="font-mono text-[9px] text-[var(--color-text-dim)]">
-                {history[0]?.date ?? ""}
-              </span>
-            </div>
+            {(() => {
+              const data = confidenceHistory.slice(-14);
+              const W = 260;
+              const H = 70;
+              const pad = 2;
+              const chartW = W - pad * 2;
+              const chartH = H - pad * 2;
+              const values = data.map((v) => v ?? 0);
+              const minV = Math.min(...values);
+              const maxV = Math.max(...values);
+              const range = maxV - minV || 0.01;
+
+              const pts = values.map((v, i) => {
+                const x = pad + (i / (values.length - 1)) * chartW;
+                const y = pad + chartH - ((v - minV) / range) * chartH;
+                return `${x},${y}`;
+              });
+
+              const gateY =
+                pad + chartH - ((CONFIDENCE_ACCENT - minV) / range) * chartH;
+              const clampedGateY = Math.max(pad, Math.min(pad + chartH, gateY));
+              const offScale = gateY < pad || gateY > pad + chartH;
+
+              return (
+                <div>
+                  <svg
+                    width="100%"
+                    height={H}
+                    viewBox={`0 0 ${W} ${H}`}
+                    preserveAspectRatio="none"
+                    role="img"
+                    aria-label="Confidence trend"
+                  >
+                    <title>Confidence Trend</title>
+                    <rect width={W} height={H} fill="var(--color-void)" />
+                    {/* Area under curve */}
+                    <polygon
+                      points={`${pad},${pad + chartH} ${pts.join(" ")} ${pad + chartW},${pad + chartH}`}
+                      fill={`color-mix(in srgb, ${pairMeta.pairColor} 12%, transparent)`}
+                    />
+                    {/* Confidence line */}
+                    <polyline
+                      points={pts.join(" ")}
+                      fill="none"
+                      stroke={pairMeta.pairColor}
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    {/* Reference line at CONFIDENCE_ACCENT */}
+                    {!offScale && (
+                      <line
+                        x1={pad}
+                        y1={clampedGateY}
+                        x2={pad + chartW}
+                        y2={clampedGateY}
+                        stroke="var(--color-text-muted)"
+                        strokeWidth="0.5"
+                        strokeDasharray="4 2"
+                        opacity={0.6}
+                      />
+                    )}
+                  </svg>
+                  <div className="flex justify-between mt-2">
+                    <span className="font-mono text-[9px] text-[var(--color-text-dim)]">
+                      {history.slice(-14)[0]?.date ?? ""}
+                    </span>
+                    <span className="font-mono text-[9px] text-[var(--color-text-muted)]">
+                      THRESHOLD: {(CONFIDENCE_ACCENT * 100).toFixed(0)}%
+                      {offScale ? " (OFF-SCALE)" : ""}
+                    </span>
+                    <span className="font-mono text-[9px] text-[var(--color-text-dim)]">
+                      {history[0]?.date ?? ""}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* 30-Day Regime Timeline */}

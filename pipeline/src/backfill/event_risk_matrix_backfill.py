@@ -117,12 +117,18 @@ def _pg_conn() -> Any:
 
     ctx = ssl._create_unverified_context()
     return pg8000.native.Connection(
-        host="db.weaaacohvzzgkgxzpaee.supabase.co",
-        database="postgres",
-        user="postgres",
-        password="FXRegimelab04553",
-        ssl_context=ctx,
-    )
+        import os
+        host = os.environ.get("SUPABASE_DB_HOST", "db.weaaacohvzzgkgxzpaee.supabase.co")
+        password = os.environ.get("SUPABASE_DB_PASSWORD")
+        if not password:
+            raise RuntimeError("SUPABASE_DB_PASSWORD must be set in the environment.")
+        return pg8000.native.Connection(
+            host=host,
+            database="postgres",
+            user="postgres",
+            password=password,
+            ssl_context=ctx,
+        )
 
 
 def _load_regimes() -> dict[tuple[str, date], str]:

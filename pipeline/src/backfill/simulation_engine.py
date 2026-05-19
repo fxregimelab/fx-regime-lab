@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import logging
 import math
+import os
 from collections import defaultdict
 from datetime import date
 from typing import Any
@@ -67,14 +68,21 @@ def _pg_conn(max_retries: int = 5) -> Any:
 
     import pg8000.native
     ctx = ssl._create_unverified_context()
+    host = os.environ.get("SUPABASE_DB_HOST", "db.weaaacohvzzgkgxzpaee.supabase.co")
+    password = os.environ.get("SUPABASE_DB_PASSWORD")
+    if not password:
+        raise RuntimeError(
+            "SUPABASE_DB_PASSWORD must be set in the environment. "
+            "Get it from Supabase Dashboard → Project Settings → Database → Connection string."
+        )
     last_err: BaseException | None = None
     for attempt in range(max_retries):
         try:
             return pg8000.native.Connection(
-                host="db.weaaacohvzzgkgxzpaee.supabase.co",
+                host=host,
                 database="postgres",
                 user="postgres",
-                password="FXRegimelab04553",
+                password=password,
                 ssl_context=ctx,
                 timeout=30,
             )

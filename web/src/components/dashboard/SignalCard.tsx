@@ -14,6 +14,7 @@ import {
   fmtConfidence,
   fmtInt,
   normalizeProp,
+  timeAgo,
 } from "@/components/ui/utils";
 import { spotDecimals } from "@/lib/config";
 import { PAIRS } from "@/lib/constants";
@@ -97,6 +98,11 @@ export function SignalCard({
               lastUpdatedAt={signal?.created_at ?? call?.created_at}
               dot
             />
+            <span
+              className={`font-mono text-[9px] tabular-nums ${freshnessLevel === "aging" || freshnessLevel === "stale" ? "text-[var(--color-warn)]" : "text-[var(--color-text-muted)]"}`}
+            >
+              {timeAgo(signal?.created_at ?? call?.created_at ?? undefined)}
+            </span>
             {rolling90dAccuracyT5 != null && (
               <span className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">
                 ACC:
