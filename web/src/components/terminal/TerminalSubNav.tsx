@@ -22,7 +22,7 @@ export function TerminalSubNav() {
         {SECTIONS.map((section) => {
           const active =
             pathname === section.href ||
-            (section.href !== "/terminal" && pathname.startsWith(section.href));
+            (section.href !== "/terminal" && pathname?.startsWith(section.href));
           return (
             <Link
               key={section.href}

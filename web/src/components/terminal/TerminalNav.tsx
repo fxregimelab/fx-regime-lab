@@ -13,7 +13,7 @@ interface TerminalNavProps {
 
 export function TerminalNav({ signals }: TerminalNavProps) {
   const pathname = usePathname();
-  const activeSlug = pathname.split("/").pop();
+  const activeSlug = pathname?.split("/").pop();
   const pair = PAIRS.find((p) => activeSlug === p.urlSlug);
 
   return (
