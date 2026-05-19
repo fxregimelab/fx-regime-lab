@@ -23,6 +23,7 @@ export function useSyncUrlState<T extends Record<string, string>>({
   // Build state from URL params (or defaults)
   const getStateFromUrl = useCallback((): T => {
     const state = { ...defaults } as T;
+    if (!searchParams) return state;
     for (const key of Object.keys(defaults)) {
       const val = searchParams.get(key);
       if (val != null) {
@@ -43,7 +44,7 @@ export function useSyncUrlState<T extends Record<string, string>>({
   const setUrlState = useCallback(
     (next: Partial<T>) => {
       const newState = { ...state, ...next };
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
 
       for (const [key, val] of Object.entries(newState)) {
         if (val === defaults[key as keyof T]) {
