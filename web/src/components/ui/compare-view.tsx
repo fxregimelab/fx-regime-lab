@@ -102,16 +102,20 @@ export function CompareView({ pairsParam }: CompareViewProps) {
                   {sig?.spot != null
                     ? Number(sig.spot).toFixed(spotDecimals(meta.label))
                     : "—"}{" "}
-                  <span
-                    className={
-                      (sig?.day_change_pct as number) >= 0
-                        ? "text-[var(--color-up)]"
-                        : "text-[var(--color-down)]"
-                    }
-                  >
-                    {(sig?.day_change_pct as number) >= 0 ? "+" : ""}
-                    {(sig?.day_change_pct as number)?.toFixed(2) ?? "—"}%
-                  </span>
+                  {sig?.day_change_pct == null ? (
+                    <span className="text-[var(--color-text-muted)]">N/A</span>
+                  ) : (
+                    <span
+                      className={
+                        sig.day_change_pct >= 0
+                          ? "text-[var(--color-up)]"
+                          : "text-[var(--color-down)]"
+                      }
+                    >
+                      {sig.day_change_pct >= 0 ? "+" : ""}
+                      {sig.day_change_pct.toFixed(2)}%
+                    </span>
+                  )}
                 </p>
               </div>
 

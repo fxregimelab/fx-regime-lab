@@ -434,7 +434,8 @@ export async function getValidationLogForPair(
   };
   const code = PAIR_CODE[pair] ?? pair;
 
-  const { data, error } = await supabase
+  // Fetch validation_log rows
+  const { data: valData, error: valError } = await supabase
     .from("validation_log")
     .select("*")
     .eq("pair", code)
@@ -442,7 +443,28 @@ export async function getValidationLogForPair(
     .order("date", { ascending: false })
     .limit(limit);
 
-  if (error || !data) return [];
+  if (valError || !valData) return [];
+
+  // Fetch predicted_direction from regime_calls via call_id
+  const callIds = (valData as ValidationLogRow[])
+    .map((r) => r.call_id)
+    .filter((id): id is number => id != null);
+
+  const predictedMap = new Map<number, string>();
+  if (callIds.length > 0) {
+    const { data: regimeData } = await supabase
+      .from("regime_calls")
+      .select("id, predicted_direction")
+      .in("id", callIds);
+    for (const rc of (regimeData ?? []) as Array<{
+      id: number | null;
+      predicted_direction: string | null;
+    }>) {
+      if (rc.id != null && rc.predicted_direction) {
+        predictedMap.set(rc.id, rc.predicted_direction);
+      }
+    }
+  }
 
   const PAIR_DISPLAY: Record<string, string> = {
     EURUSD: "EUR/USD",
@@ -450,10 +472,10 @@ export async function getValidationLogForPair(
     USDINR: "USD/INR",
   };
 
-  return (data as ValidationLogRow[]).map((r) => ({
+  return (valData as ValidationLogRow[]).map((r) => ({
     date: r.date,
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    predicted: "—",
+    predicted: r.call_id != null ? (predictedMap.get(r.call_id) ?? "—") : "—",
     t5ReturnBps: r.log_return_t5_bps,
     t5Outcome: r.correct_t5
       ? "CORRECT"

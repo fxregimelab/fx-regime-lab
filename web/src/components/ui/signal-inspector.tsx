@@ -1,7 +1,11 @@
 "use client";
 
 import { normalizeProp } from "@/components/ui/utils";
-import { CONFIDENCE_ACCENT, PAIR_COMPOSITE_WEIGHTS } from "@/lib/config";
+import {
+  CONFIDENCE_ACCENT,
+  PAIR_COMPOSITE_WEIGHTS,
+  displaySpecialLabel,
+} from "@/lib/config";
 import { useMemo } from "react";
 import { InspectorDrawer } from "./inspector-drawer";
 
@@ -188,6 +192,16 @@ function Row({
   );
 }
 
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div className="px-3 py-1.5 bg-[var(--terminal-bg)] border-b border-[var(--terminal-border-subtle)]">
+      <p className="font-mono text-[8px] tracking-widest text-[var(--terminal-fg-dim)] uppercase">
+        {label}
+      </p>
+    </div>
+  );
+}
+
 function SignalRow({
   label,
   signal,
@@ -363,11 +377,23 @@ export function SignalInspector({
             Raw Inputs
           </p>
           <div className="border border-[var(--terminal-border-subtle)] bg-[var(--terminal-bg-sunken)]">
+            {/* Rate Section */}
+            <SectionHeader label="Rate" />
             <Row label="Spot" value={fmt2(spot)} highlight />
             <Row label="Rate Diff 2Y" value={fmt2(rateDiff2y)} sub="bps" />
             <Row label="Rate Diff 10Y" value={fmt2(rateDiff10y)} sub="bps" />
             <Row label="Rate Z (Tactical)" value={fmt2(rateZTactical)} />
             <Row label="Rate Z (Structural)" value={fmt2(rateZStructural)} />
+            {zBlended != null && (
+              <Row label="Rate Z (Blended)" value={fmt2(zBlended)} />
+            )}
+
+            {/* Positioning Section */}
+            <SectionHeader label="Positioning" />
+            {oiDelta != null && <Row label="OI Delta" value={fmt2(oiDelta)} />}
+
+            {/* Volatility Section */}
+            <SectionHeader label="Volatility" />
             <Row
               label="Realized Vol 20D"
               value={fmt2(realizedVol20d)}
@@ -376,6 +402,9 @@ export function SignalInspector({
             <Row label="Realized Vol 5D" value={fmt2(realizedVol5d)} sub="%" />
             <Row label="Implied Vol 30D" value={fmt2(impliedVol30d)} sub="%" />
             <Row label="Day Change" value={fmtPct(dayChangePct)} />
+
+            {/* Cross-Asset Section */}
+            <SectionHeader label="Cross-Asset" />
             <Row label="Cross-Asset US10Y" value={fmt2(crossAssetUs10y)} />
             <Row label="Skew Alignment" value={fmt2(skewAlignment)} />
             <Row
@@ -383,9 +412,9 @@ export function SignalInspector({
               value={fmt2(breakevenInflation10y)}
               sub="%"
             />
-            {zBlended != null && (
-              <Row label="Rate Z (Blended)" value={fmt2(zBlended)} />
-            )}
+
+            {/* Special Section */}
+            <SectionHeader label="Special" />
             {ecbBalanceSheet != null && (
               <Row label="ECB Balance Sheet" value={fmt2(ecbBalanceSheet)} />
             )}
@@ -404,7 +433,6 @@ export function SignalInspector({
                 value={fmt2(inrForwardPremium)}
               />
             )}
-            {oiDelta != null && <Row label="OI Delta" value={fmt2(oiDelta)} />}
             {volumeRvol != null && (
               <Row label="Volume RVOL" value={fmt2(volumeRvol)} />
             )}
@@ -414,7 +442,7 @@ export function SignalInspector({
             />
             {specialSignalValue != null && specialSignalLabel != null && (
               <Row
-                label={specialSignalLabel}
+                label={displaySpecialLabel(specialSignalLabel)}
                 value={specialSignalValue.toFixed(2)}
               />
             )}

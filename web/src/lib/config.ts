@@ -37,3 +37,27 @@ export const DEFAULT_ACCURACY_GATE = 0.5;
 export function spotDecimals(pair: string): number {
   return pair === "USDJPY" ? 2 : 4;
 }
+
+// === SPECIAL SIGNAL LABEL MAP ===
+// regime_calls is immutable — old rows keep technical labels.
+// This map translates them to human-readable display text.
+export const SPECIAL_LABEL_MAP: Record<string, string> = {
+  // EURUSD
+  EURUSD_placeholder: "Bund-BTP + ECB BS",
+  frag_risk: "Bund-BTP + ECB BS",
+  macro_special: "Bund-BTP + ECB BS",
+  "Bund-BTP + ECB BS": "Bund-BTP + ECB BS",
+  // USDJPY
+  VIX_funding_stress: "VIX + JPY Funding Stress",
+  VIX_funding_stress_INTV_PROX: "VIX + JPY Funding Stress",
+  "VIX + JPY Funding Stress": "VIX + JPY Funding Stress",
+  // USDINR
+  EM_oil_DXY: "Oil + DXY + EM Risk",
+  EM_oil_DXY_VIX_prem: "Oil + DXY + EM Risk",
+  "Oil + DXY + EM Risk": "Oil + DXY + EM Risk",
+};
+
+export function displaySpecialLabel(raw: string | null | undefined): string {
+  if (!raw) return "Special Factor";
+  return SPECIAL_LABEL_MAP[raw] ?? raw;
+}

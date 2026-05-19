@@ -387,9 +387,9 @@ def simulate_all_days(
         oi_label = "NEUTRAL"
 
         special_label = {
-            "EURUSD": "EURUSD_placeholder",
-            "USDJPY": "VIX_funding_stress",
-            "USDINR": "EM_oil_DXY",
+            "EURUSD": "Bund-BTP + ECB BS",
+            "USDJPY": "VIX + JPY Funding Stress",
+            "USDINR": "Oil + DXY + EM Risk",
         }.get(pair)
 
         call = RegimeCall(
@@ -863,13 +863,9 @@ def simulate_all_days_v2(
         )
 
         special_label = {
-            "EURUSD": (
-                "frag_risk"
-                if abs(special_signal or 0.0) > 0.5
-                else "macro_special"
-            ),
-            "USDJPY": "VIX_funding_stress",
-            "USDINR": "EM_oil_DXY",
+            "EURUSD": "Bund-BTP + ECB BS",
+            "USDJPY": "VIX + JPY Funding Stress",
+            "USDINR": "Oil + DXY + EM Risk",
         }.get(pair)
 
         driver = get_primary_driver(betas_5y)

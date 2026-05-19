@@ -21,7 +21,7 @@ export type AlphaLedgerRow = Pick<
 export function hitAuditMark(v: number | null | undefined): string {
   if (v === 1) return "[ ✓ ]";
   if (v === 0) return "[ ✕ ]";
-  return "[ = ]";
+  return "PENDING";
 }
 
 function hitAuditClass(v: number | null | undefined): string {
