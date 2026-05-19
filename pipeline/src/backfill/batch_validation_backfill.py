@@ -10,7 +10,7 @@ import argparse
 import logging
 import math
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from src.validation.calendar import add_trading_days
@@ -163,7 +163,7 @@ def _build_validation_rows(
             "confidence": confidence,
             "call_id": call["id"],
             "validation_date": as_of,
-            "created_at": datetime.now(datetime.UTC).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "is_superseded": False,
         }
 
