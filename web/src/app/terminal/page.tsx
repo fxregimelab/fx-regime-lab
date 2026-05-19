@@ -13,6 +13,7 @@ import {
   getLatestRegimeCalls,
   getLatestSignals,
   getMacroEventsToday,
+  getPipelineHealth,
   getValidationLogT5T20,
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -37,6 +38,7 @@ export default async function TerminalIndexPage() {
     macroEvents,
     brief,
     validationLog,
+    pipelineHealth,
     ...pairHistories
   ] = await Promise.all([
     getLatestRegimeCalls(supabase),
@@ -45,6 +47,7 @@ export default async function TerminalIndexPage() {
     getMacroEventsToday(supabase),
     getLatestBrief(supabase),
     getValidationLogT5T20(supabase, 500),
+    getPipelineHealth(supabase, 7),
     ...PAIRS.map((p) => getHistoricalRegimeCalls(supabase, p.label, 30)),
   ]);
 
@@ -92,6 +95,7 @@ export default async function TerminalIndexPage() {
         stressLevel={stressLevel}
         lastRunAt={lastRunAt}
         validatedCount={validatedCount}
+        pipelineHealth={pipelineHealth}
       />
 
       {/* Cross-Asset Matrix */}

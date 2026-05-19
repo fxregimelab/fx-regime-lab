@@ -316,7 +316,10 @@ export function ConvexityRadar({
                         : "—"}
                     </span>
                     {lowSample ? (
-                      <span className="border border-[#333] bg-[#eab30822] px-2 py-1 font-mono text-[10px] tracking-widest text-[#d4d4d4] tabular-nums">
+                      <span
+                        className="border border-[#333] bg-[#eab30822] px-2 py-1 font-mono text-[10px] tracking-widest text-[#d4d4d4] tabular-nums cursor-help"
+                        title="Insufficient comparable historical events (N < 5) for this macro context. Model falls back to volatility-only assessment — no directional buckets available."
+                      >
                         [ N &lt; 5 · VOL ONLY ]
                       </span>
                     ) : asymmetryHot ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import MethodologyFlowchart from "@/components/methodology/MethodologyFlowchart";
 import SignalDecomposition from "@/components/methodology/SignalDecomposition";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { PAIRS } from "@/lib/constants";
@@ -139,6 +140,9 @@ export default function MethodologyContent() {
           of business <Mono>t − 1</Mono>. No lookahead.
         </Body>
       </div>
+
+      {/* ── Pipeline Flowchart ──────────────────────────────────────── */}
+      <MethodologyFlowchart />
 
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-12">
         <div>

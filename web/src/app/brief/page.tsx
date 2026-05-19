@@ -1,11 +1,12 @@
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
+import { FreshnessIndicator } from "@/components/ui/freshness-indicator";
 import { normalizeProp } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import { getDriverTag } from "@/lib/pairProfiles";
 import { classifyRegime } from "@/lib/regime-classifier";
-import { getLatestBrief } from "@/lib/supabase/queries";
+import { getLatestBrief, getLatestRegimeCalls } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -98,9 +99,16 @@ function DollarDominanceIndex({
 
 export default async function BriefPage() {
   const supabase = await createClient();
-  const brief = await getLatestBrief(supabase);
+  const [brief, latestCalls] = await Promise.all([
+    getLatestBrief(supabase),
+    getLatestRegimeCalls(supabase),
+  ]);
 
   const date = brief?.date ?? new Date().toISOString().slice(0, 10);
+  const hasBriefText = Boolean(brief?.brief_text);
+
+  // Fallback: use pair_regimes from brief_log even if brief_text is empty
+  const fallbackRegimes = brief?.pair_regimes as Record<string, string> | null;
 
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
@@ -135,10 +143,10 @@ export default async function BriefPage() {
         </div>
 
         {/* Brief text */}
-        {brief?.brief_text ? (
+        {hasBriefText && brief ? (
           <div className="max-w-[720px]">
             <article className="prose prose-sm max-w-none">
-              {brief.brief_text.split("\n").map((para) => {
+              {(brief.brief_text as string).split("\n").map((para) => {
                 const paraKey = para.slice(0, 20) || "empty";
                 if (para.startsWith("## ")) {
                   return (
@@ -238,37 +246,64 @@ export default async function BriefPage() {
             </article>
           </div>
         ) : (
-          <div className="py-20 text-center">
-            <p className="font-mono text-sm text-[var(--color-text-muted)]">
-              No brief available for today.
-            </p>
+          /* ── Empty State: show last brief metadata + current regime snapshot ─ */
+          <div className="max-w-[720px]">
+            <div className="border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-8 text-center mb-8">
+              <p className="font-mono text-[12px] tracking-widest text-[var(--color-warn)] mb-3">
+                [ NO BRIEF FOR TODAY ]
+              </p>
+              <p className="font-sans text-[14px] text-[var(--color-text-secondary)] leading-relaxed mb-4">
+                The daily briefing has not been generated yet. Below is the
+                latest available regime snapshot from the pipeline.
+              </p>
+              {brief?.date && (
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-mono text-[9px] text-[var(--color-text-muted)] tracking-wider">
+                    LAST BRIEF:
+                  </span>
+                  <span className="font-mono text-[9px] text-[var(--color-text)] tracking-wider">
+                    {brief.date}
+                  </span>
+                  <FreshnessIndicator
+                    lastUpdatedAt={`${brief.date}T00:00:00Z`}
+                    dot
+                  />
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {/* Dollar Dominance Index */}
-        {brief && (
+        {(brief || fallbackRegimes) && (
           <div className="mt-10">
-            <DollarDominanceIndex brief={brief} />
+            <DollarDominanceIndex
+              brief={
+                brief ?? {
+                  pair_regimes: fallbackRegimes,
+                  dollar_dominance: null,
+                }
+              }
+            />
           </div>
         )}
 
         {/* Pair regimes */}
-        {brief && (
+        {(brief || latestCalls) && (
           <div className="mt-10 pt-8 border-t border-[var(--color-border)]">
             <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
               Regime Snapshot
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {PAIRS.map((p) => {
-                // Read from JSON first, fallback to hardcoded column
-                const pairRegimes = brief.pair_regimes as Record<
-                  string,
-                  string
-                > | null;
+                // Read from live calls first, then brief fallback
+                const liveCall = latestCalls?.[p.label];
+                const pairRegimes = fallbackRegimes;
                 const regime =
+                  liveCall?.regime ??
                   pairRegimes?.[p.label] ??
                   pairRegimes?.[p.urlSlug] ??
-                  (brief as unknown as Record<string, string>)[
+                  (brief as unknown as Record<string, string>)?.[
                     `${p.urlSlug}_regime`
                   ] ??
                   "—";

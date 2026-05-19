@@ -1,5 +1,6 @@
 import { AccuracyMilestoneTracker } from "@/components/performance/AccuracyMilestoneTracker";
 import { BrierChart } from "@/components/performance/BrierChart";
+import { PairAccuracyCards } from "@/components/performance/PairAccuracyCards";
 import { PairBreakdownTable } from "@/components/performance/PairBreakdownTable";
 import { PerformanceUrlSync } from "@/components/performance/PerformanceUrlSync";
 import { RegimeBreakdown } from "@/components/performance/RegimeBreakdown";
@@ -483,6 +484,9 @@ export default async function PerformancePage() {
             sub="calls with T+5 outcomes"
           />
         </div>
+
+        {/* ── Per-Pair Accuracy Cards ──────────────────────────────────── */}
+        <PairAccuracyCards statsT5={statsT5} statsT20={statsT20} />
 
         {/* ── Accuracy Milestone Tracker ─────────────────────────────────── */}
         {(() => {
