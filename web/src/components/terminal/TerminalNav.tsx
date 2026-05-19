@@ -57,7 +57,7 @@ export function TerminalNav({ signals }: TerminalNavProps) {
           >
             terminal
           </Link>
-          {pathname.includes("/fx-regime") && (
+          {pathname?.includes("/fx-regime") && (
             <>
               <span className="text-[var(--color-text-dim)]">/</span>
               <Link
@@ -80,7 +80,7 @@ export function TerminalNav({ signals }: TerminalNavProps) {
 
         <div className="flex gap-0.5 overflow-x-auto">
           {PAIRS.map((p) => {
-            const active = pathname.includes(p.urlSlug);
+            const active = pathname?.includes(p.urlSlug) ?? false;
             const sig = signals?.[p.label];
             const chgPct = sig?.day_change_pct;
             const chg = chgPct != null ? fmtChg(chgPct) : null;
