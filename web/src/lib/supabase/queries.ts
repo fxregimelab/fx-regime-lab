@@ -1050,3 +1050,245 @@ export async function getLatestAccuracyAlerts(
 
   return alerts;
 }
+
+/* ─── Backtest / Versioned Queries ─────────────────────────────────────── */
+
+export async function getBacktestVersions(
+  supabase: TypedSupabaseClient,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("regime_calls")
+    .select("model_version")
+    .not("model_version", "is", null)
+    .order("model_version", { ascending: false });
+
+  if (error || !data) return [];
+  const rows = data as Array<{ model_version: string | null }>;
+  const versions = [
+    ...new Set(
+      rows.map((r) => r.model_version).filter((v): v is string => v != null),
+    ),
+  ];
+  return versions.length > 0 ? versions : ["v3"];
+}
+
+export interface VersionedRegimeCall {
+  id: number;
+  pair: string;
+  date: string;
+  regime: string;
+  confidence: number | null;
+  signal_composite: number | null;
+  predicted_direction: string | null;
+  primary_driver: string | null;
+  model_version: string | null;
+  rate_signal: string | null;
+  cot_signal: string | null;
+  vol_signal: string | null;
+  rr_signal: string | null;
+  oi_signal: string | null;
+  entry_timing: string | null;
+  created_at: string | null;
+}
+
+export async function getRegimeCallsByVersion(
+  supabase: TypedSupabaseClient,
+  version: string,
+  pair?: string,
+  dateRange?: { from: string; to: string },
+  limit = 500,
+): Promise<VersionedRegimeCall[]> {
+  let q = supabase
+    .from("regime_calls")
+    .select(
+      "id,pair,date,regime,confidence,signal_composite,predicted_direction,primary_driver,model_version,rate_signal,cot_signal,vol_signal,rr_signal,oi_signal,entry_timing,created_at",
+    )
+    .eq("model_version", version)
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (pair) q = q.eq("pair", pair);
+  if (dateRange) {
+    q = q.gte("date", dateRange.from).lte("date", dateRange.to);
+  }
+
+  const { data, error } = await q;
+  if (error || !data) return [];
+  return data as VersionedRegimeCall[];
+}
+
+export async function getCallRationale(
+  supabase: TypedSupabaseClient,
+  callId: number,
+): Promise<VersionedRegimeCall | null> {
+  const { data, error } = await supabase
+    .from("regime_calls")
+    .select(
+      "id,pair,date,regime,confidence,signal_composite,predicted_direction,primary_driver,model_version,rate_signal,cot_signal,vol_signal,rr_signal,oi_signal,entry_timing,created_at",
+    )
+    .eq("id", callId)
+    .single();
+
+  if (error || !data) return null;
+  return data as VersionedRegimeCall;
+}
+
+export interface SimulationResult {
+  version: string;
+  pair: string;
+  sizing_method: "regime-aware" | "uniform";
+  metric: string;
+  value: number;
+}
+
+export async function getSimulationResults(
+  _supabase: TypedSupabaseClient,
+  _version: string,
+  _pair?: string,
+  _sizingMethod?: "regime-aware" | "uniform",
+): Promise<SimulationResult[]> {
+  // Placeholder: no simulation_results table in current schema.
+  // Returns empty until backend persists simulation output.
+  return [];
+}
+
+export interface VersionedValidationRow {
+  date: string;
+  pair: string;
+  predicted: string | null;
+  confidence: number | null;
+  t5Outcome: string;
+  t20Outcome: string;
+  t5ReturnBps: number | null;
+  t20ReturnBps: number | null;
+  t5Brier: number | null;
+  t20Brier: number | null;
+  model_version: string | null;
+}
+
+export async function getValidationByVersion(
+  supabase: TypedSupabaseClient,
+  version: string,
+  pair?: string,
+  horizon?: "t5" | "t20",
+  limit = 500,
+): Promise<VersionedValidationRow[]> {
+  let q = supabase
+    .from("validation_log")
+    .select(
+      "date,pair,predicted_direction,confidence,t5Outcome:correct_t5,t20Outcome:correct_t20,t5ReturnBps:log_return_t5_bps,t20ReturnBps:log_return_t20_bps,t5Brier:brier_score_t5,t20Brier:brier_score_t20,regime_calls!inner(model_version)",
+    )
+    .eq("regime_calls.model_version", version)
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (pair) q = q.eq("pair", pair);
+  if (horizon === "t5") {
+    q = q.not("correct_t5", "is", null);
+  } else if (horizon === "t20") {
+    q = q.not("correct_t20", "is", null);
+  }
+
+  const { data, error } = await q;
+  if (error || !data) {
+    // Fallback: fetch validation_log and filter in-memory if join fails
+    const { data: fallback, error: fallbackErr } = await supabase
+      .from("validation_log")
+      .select("*")
+      .order("date", { ascending: false })
+      .limit(limit);
+    if (fallbackErr || !fallback) return [];
+    let rows = fallback as ValidationLogRow[];
+    if (pair) rows = rows.filter((r) => r.pair === pair);
+    return rows.map((r) => ({
+      date: r.date,
+      pair: r.pair,
+      predicted: r.actual_direction_t5 ?? r.actual_direction ?? null,
+      confidence: r.confidence,
+      t5Outcome: r.correct_t5
+        ? "CORRECT"
+        : r.correct_t5 === false
+          ? "WRONG"
+          : "PENDING",
+      t20Outcome: r.correct_t20
+        ? "CORRECT"
+        : r.correct_t20 === false
+          ? "WRONG"
+          : "PENDING",
+      t5ReturnBps: r.log_return_t5_bps,
+      t20ReturnBps: r.log_return_t20_bps,
+      t5Brier: r.brier_score_t5,
+      t20Brier: r.brier_score_t20,
+      model_version: null,
+    }));
+  }
+
+  return (data as unknown as Array<Record<string, unknown>>).map((r) => ({
+    date: String(r.date),
+    pair: String(r.pair),
+    predicted: r.predicted_direction ? String(r.predicted_direction) : null,
+    confidence: r.confidence != null ? Number(r.confidence) : null,
+    t5Outcome: r.correct_t5
+      ? "CORRECT"
+      : r.correct_t5 === false
+        ? "WRONG"
+        : "PENDING",
+    t20Outcome: r.correct_t20
+      ? "CORRECT"
+      : r.correct_t20 === false
+        ? "WRONG"
+        : "PENDING",
+    t5ReturnBps:
+      r.log_return_t5_bps != null ? Number(r.log_return_t5_bps) : null,
+    t20ReturnBps:
+      r.log_return_t20_bps != null ? Number(r.log_return_t20_bps) : null,
+    t5Brier: r.brier_score_t5 != null ? Number(r.brier_score_t5) : null,
+    t20Brier: r.brier_score_t20 != null ? Number(r.brier_score_t20) : null,
+    model_version: version,
+  }));
+}
+
+export interface VersionedRegimeBreakdownRow {
+  pair: string;
+  regime: string;
+  count: number;
+  winRateT5: number | null;
+  winRateT20: number | null;
+}
+
+export async function getRegimeBreakdownByVersion(
+  supabase: TypedSupabaseClient,
+  version: string,
+  limit = 500,
+): Promise<VersionedRegimeBreakdownRow[]> {
+  const { data, error } = await supabase
+    .from("regime_calls")
+    .select("pair,regime")
+    .eq("model_version", version)
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  const counts = new Map<
+    string,
+    { pair: string; regime: string; count: number }
+  >();
+  for (const row of data as Array<{ pair: string; regime: string }>) {
+    const key = `${row.pair}::${row.regime}`;
+    const existing = counts.get(key);
+    if (existing) {
+      existing.count++;
+    } else {
+      counts.set(key, { pair: row.pair, regime: row.regime, count: 1 });
+    }
+  }
+
+  return Array.from(counts.values()).map((c) => ({
+    pair: c.pair,
+    regime: c.regime,
+    count: c.count,
+    winRateT5: null,
+    winRateT20: null,
+  }));
+}

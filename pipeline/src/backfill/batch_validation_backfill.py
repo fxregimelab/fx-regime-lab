@@ -10,7 +10,7 @@ import argparse
 import logging
 import math
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from src.validation.calendar import add_trading_days
@@ -97,7 +97,8 @@ def _load_prices() -> dict[str, dict[date, float]]:
 def _load_regime_calls() -> list[dict[str, Any]]:
     conn = _pg_conn()
     result = conn.run(
-        "SELECT id, date, pair, regime, predicted_direction, confidence "
+        "SELECT id, date, pair, regime, predicted_direction, confidence, "
+        "strategy_version, data_source "
         "FROM regime_calls ORDER BY date"
     )
     out: list[dict[str, Any]] = []
@@ -110,6 +111,8 @@ def _load_regime_calls() -> list[dict[str, Any]]:
             "regime": row[3],
             "predicted_direction": row[4] or "NEUTRAL",
             "confidence": float(row[5] or 0.0),
+            "strategy_version": row[6] or "v2",
+            "data_source": row[7] or "live",
         })
     conn.close()
     logger.info("Loaded %d regime_calls", len(out))
@@ -163,8 +166,10 @@ def _build_validation_rows(
             "confidence": confidence,
             "call_id": call["id"],
             "validation_date": as_of,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(datetime.UTC).isoformat(),
             "is_superseded": False,
+            "strategy_version": call.get("strategy_version", "v2"),
+            "data_source": call.get("data_source", "live"),
         }
 
         has_any = False

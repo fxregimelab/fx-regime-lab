@@ -586,6 +586,54 @@ export default function MethodologyContent() {
             </Body>
           </Subsection>
 
+          {/* ── Regime Validation via Sizing Simulation ─────────────── */}
+          <Subsection title="Regime Validation via Sizing Simulation">
+            <Body>
+              The core question is not whether the model generates positive
+              returns, but whether regime conviction improves risk-adjusted
+              returns versus a uniform benchmark. This is a validation exercise,
+              not a trading strategy.
+            </Body>
+
+            <Body>
+              <strong className="text-[var(--color-text)]">
+                Uniform benchmark.
+              </strong>{" "}
+              Every directional call receives identical exposure sizing
+              regardless of confidence. This produces a baseline return series
+              that isolates the value of directional accuracy alone.
+            </Body>
+
+            <Body>
+              <strong className="text-[var(--color-text)]">
+                Regime-aware sizing.
+              </strong>{" "}
+              Exposure scales with calibrated confidence. Higher-confidence
+              calls receive larger sizing; lower-confidence calls receive
+              smaller sizing. Neutral calls receive zero exposure. The scaling
+              function is sigmoid-clipped to prevent over-concentration in any
+              single call.
+            </Body>
+
+            <Body>
+              <strong className="text-[var(--color-text)]">
+                Why this validates regime labels.
+              </strong>{" "}
+              If regime-aware sizing produces a higher Sharpe ratio, higher
+              Sortino, and lower maximum drawdown than uniform sizing — using
+              the exact same directional calls — then the regime labels are
+              adding genuine information beyond random directional bias. If not,
+              the labels are noise and the framework requires revision.
+            </Body>
+
+            <Body>
+              The comparison is reported on the Track Record page under the
+              "Regime Validation" tab: Sharpe, Sortino, max drawdown,
+              return-to-drawdown ratio, hit rate by confidence decile, and
+              regime-conditional performance breakdown.
+            </Body>
+          </Subsection>
+
           {/* ── Data Sources ────────────────────────────────────────── */}
           <Subsection title="Data Sources & Fallback Chain">
             <Body>

@@ -161,6 +161,113 @@ async function TrackRecordHighlights() {
   );
 }
 
+/* ─── Transparency Commitments ──────────────────────────────────────── */
+
+function TransparencyCommitments() {
+  const commitments = [
+    {
+      label: "Append-only validation",
+      desc: "Every regime call is logged before the outcome is known. Validation rows are never mutated after write.",
+    },
+    {
+      label: "Public methodology",
+      desc: "Signal architecture, weighting, and regime thresholds are documented and versioned.",
+    },
+    {
+      label: "No narrative revision",
+      desc: "Post-hoc stories that fit the data are not added. The call either worked or it did not.",
+    },
+    {
+      label: "Open benchmark",
+      desc: "Regime-aware sizing is benchmarked against uniform exposure on the Track Record page.",
+    },
+  ];
+
+  return (
+    <section className="reveal mb-24">
+      <SectionLabel>Transparency</SectionLabel>
+      <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
+        Commitments
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {commitments.map((c) => (
+          <div
+            key={c.label}
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] p-6"
+          >
+            <p className="font-sans font-semibold text-[14px] text-[var(--color-text)] mb-2">
+              {c.label}
+            </p>
+            <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.6]">
+              {c.desc}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── V2 Release Notes ──────────────────────────────────────────────── */
+
+function V2ReleaseNotes() {
+  const notes = [
+    {
+      date: "May 2026",
+      items: [
+        "Regime Validation panel added to Track Record",
+        "T+20 validation live for all three pairs",
+        "MAD Z-score normalization for rate signals",
+        "Platt calibration for confidence scores",
+        "Per-pair macro tiles in Cross-Asset Matrix",
+      ],
+    },
+    {
+      date: "April 2026",
+      items: [
+        "V1 launch with EUR/USD, USD/JPY, USD/INR",
+        "T+5 directional validation",
+        "Daily brief automation",
+        "Signal inspector drawer",
+      ],
+    },
+  ];
+
+  return (
+    <section className="reveal mb-24">
+      <SectionLabel>Release Notes</SectionLabel>
+      <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
+        Version History
+      </h2>
+      <div className="flex flex-col gap-6">
+        {notes.map((n) => (
+          <div
+            key={n.date}
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] p-6"
+          >
+            <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-4">
+              {n.date}
+            </p>
+            <ul className="flex flex-col gap-2">
+              {n.items.map((item) => (
+                <li
+                  key={item}
+                  className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.6] flex items-start gap-2"
+                >
+                  <span className="text-[var(--color-text-muted)] mt-1.5">
+                    ·
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ─── Contact / Connect ─────────────────────────────────────────────── */
 
 function ContactConnect() {
@@ -236,6 +343,8 @@ export default async function AboutPage() {
         <AuthorIdentity />
         <MethodologySummary />
         <TrackRecordHighlights />
+        <TransparencyCommitments />
+        <V2ReleaseNotes />
         <ContactConnect />
         <Disclaimer />
         <ResearchDisclaimer />

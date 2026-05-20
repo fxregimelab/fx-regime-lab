@@ -75,13 +75,14 @@ function Hero({
 
         {/* H1 */}
         <h1 className="font-sans font-semibold text-[clamp(40px,5vw,68px)] text-[var(--color-text)] leading-[1.08] tracking-tight mb-8 max-w-[640px] animate-fade-up delay-100">
-          FX Regime Classification System.
+          FX Regime Classification System. V2.
         </h1>
 
         {/* Manifesto paragraph */}
         <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[480px] mb-10 animate-fade-up delay-200">
-          Published daily. Validated out-of-sample. Three pairs, five signal
-          families, one composite. The record is open.
+          Published daily. Validated out-of-sample at T+5 and T+20. Regime-aware
+          sizing benchmark against uniform exposure. Three pairs, six composite
+          inputs, one track record. The record is open.
         </p>
 
         {/* System status strip */}
@@ -101,6 +102,15 @@ function Hero({
             </span>
             <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
               {PAIRS.length}
+            </span>
+          </div>
+          <span className="text-[var(--color-border)]">·</span>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-[11px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
+              Model version
+            </span>
+            <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
+              v2
             </span>
           </div>
           <span className="text-[var(--color-border)]">·</span>
@@ -510,6 +520,60 @@ function SignalArchitecture() {
   );
 }
 
+/* ─── V2 Release Highlights ─────────────────────────────────────────── */
+
+function V2Highlights() {
+  const highlights = [
+    {
+      label: "Regime Validation",
+      desc: "Regime-aware sizing benchmarked against uniform exposure on the Track Record page.",
+    },
+    {
+      label: "T+20 Validation",
+      desc: "Directional accuracy now measured at both T+5 and T+20 horizons.",
+    },
+    {
+      label: "MAD Z-Scores",
+      desc: "Rate signal normalization switched from Gaussian to median-absolute-deviation for tail robustness.",
+    },
+    {
+      label: "Platt Calibration",
+      desc: "Confidence scores calibrated with Platt scaling to reduce overconfidence bias.",
+    },
+  ];
+
+  return (
+    <section className="py-28 bg-[var(--color-elevated)]">
+      <div className="max-w-[1152px] mx-auto px-6">
+        <div className="reveal mb-14">
+          <span className="block font-mono text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase mb-4">
+            V2 Release
+          </span>
+          <h2 className="font-sans font-semibold text-[28px] text-[var(--color-text)] tracking-tight leading-snug">
+            What changed in V2
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
+          {highlights.map((h, i) => (
+            <div
+              key={h.label}
+              className="reveal bg-[var(--color-surface)] p-8 transition-all duration-500"
+              style={{ transitionDelay: `${(i + 1) * 100}ms` }}
+            >
+              <h3 className="font-sans font-semibold text-[15px] text-[var(--color-text)] mb-2">
+                {h.label}
+              </h3>
+              <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.6]">
+                {h.desc}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Validation trust ──────────────────────────────────────────────── */
 
 function ValidationTrust({
@@ -686,7 +750,7 @@ export default async function HomePage() {
     spatialCoverage: "Global FX Markets",
     distribution: {
       "@type": "DataDownload",
-      contentUrl: "https://fxregimelab.com/performance",
+      contentUrl: "https://fxregimelab.com/track-record",
       encodingFormat: "HTML",
     },
   };
@@ -711,6 +775,7 @@ export default async function HomePage() {
         <LiveSnapshot calls={calls} signals={signals} />
         <Manifesto />
         <SignalArchitecture />
+        <V2Highlights />
         <ValidationTrust
           accuracy={accuracy}
           accuracy7d={accuracy7d}

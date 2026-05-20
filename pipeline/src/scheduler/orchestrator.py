@@ -122,6 +122,7 @@ from src.analysis.systemic import (
     resolve_idiosyncratic_outlier,
     top_three_clustered,
 )
+from src.core.regime_persist import persist_regime_call
 from src.db import writer
 from src.fetchers.async_engine import build_master_buffer
 from src.fetchers.buffer_keys import KEY_COT, KEY_CROSS_ASSET, KEY_FX_SPOT, KEY_YIELDS
@@ -1518,24 +1519,10 @@ async def run_daily(
                 pair,
             )
         else:
-            write_hash = writer.compute_write_hash({
-                "pair": call.pair,
-                "date": call.date.isoformat(),
-                "regime": call.regime,
-                "confidence": call.confidence,
-                "signal_composite": call.signal_composite,
-                "rate_signal": call.rate_signal,
-                "primary_driver": call.primary_driver,
-                "entry_timing": call.entry_timing,
-                "position_size": call.position_size,
-                "stop_level": call.stop_level,
-                "data_quality_score": call.data_quality_score,
-                "stress_level": call.stress_level,
-            })
-            writer.write_regime_call(
+            persist_regime_call(
                 call,
+                signals=signal_row,
                 correlation_id=correlation_id,
-                write_hash=write_hash,
             )
             ledger.log_initial_signal(
                 pair=pair,

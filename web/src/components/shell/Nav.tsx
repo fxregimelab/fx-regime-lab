@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 const NAV_LINKS = [
   { label: "Methodology", href: "/methodology" },
   { label: "Brief", href: "/brief" },
-  { label: "Track Record", href: "/performance" },
+  { label: "Track Record", href: "/track-record" },
   { label: "About", href: "/about" },
 ];
 

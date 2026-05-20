@@ -156,7 +156,8 @@ def _load_validation_rows() -> list[dict[str, Any]]:
     result = conn.run(
         "SELECT pair, predicted_direction, confidence, date, "
         "actual_direction_t5, log_return_t5_bps, correct_t5, brier_score_t5, "
-        "actual_direction_t20, log_return_t20_bps, correct_t20, brier_score_t20 "
+        "actual_direction_t20, log_return_t20_bps, correct_t20, brier_score_t20, "
+        "strategy_version "
         "FROM validation_log WHERE is_superseded = FALSE"
     )
     rows: list[dict[str, Any]] = []
@@ -174,6 +175,7 @@ def _load_validation_rows() -> list[dict[str, Any]]:
             "log_return_t20_bps": r[9],
             "correct_t20": r[10],
             "brier_score_t20": r[11],
+            "strategy_version": r[12] or "v2",
         })
     conn.close()
     logger.info("Loaded %d validation rows", len(rows))
@@ -181,11 +183,16 @@ def _load_validation_rows() -> list[dict[str, Any]]:
 
 
 def _stats_to_payload(
-    pair: str, as_of: date, t5: dict[str, Any], t20: dict[str, Any]
+    pair: str,
+    strategy_version: str,
+    as_of: date,
+    t5: dict[str, Any],
+    t20: dict[str, Any],
 ) -> dict[str, Any]:
     base: dict[str, Any] = {
         "as_of_date": as_of.isoformat(),
         "pair": pair,
+        "strategy_version": strategy_version,
         "computed_at": date.today().isoformat(),
     }
     for horizon, h in (("t5", t5), ("t20", t20)):
@@ -238,16 +245,17 @@ def run_batch_stats() -> None:
     rows = _load_validation_rows()
     as_of = date.today()
 
-    by_pair: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_pair_version: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for r in rows:
-        by_pair[str(r.get("pair") or "UNKNOWN")].append(r)
+        key = (str(r.get("pair") or "UNKNOWN"), str(r.get("strategy_version") or "v2"))
+        by_pair_version[key].append(r)
 
     stats_rows: list[dict[str, Any]] = []
-    for pair in sorted(by_pair.keys()):
-        prs = by_pair[pair]
+    for (pair, version) in sorted(by_pair_version.keys()):
+        prs = by_pair_version[(pair, version)]
         t5 = _compute_horizon(prs, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps")
         t20 = _compute_horizon(prs, "T+20", "brier_score_t20", "correct_t20", "log_return_t20_bps")
-        stats_rows.append(_stats_to_payload(pair, as_of, t5, t20))
+        stats_rows.append(_stats_to_payload(pair, version, as_of, t5, t20))
         logger.info(
             "%s: T+5 win_rate=%s brier=%s | T+20 win_rate=%s brier=%s",
             pair, t5["win_rate"], t5["mean_brier"], t20["win_rate"], t20["mean_brier"]
@@ -255,7 +263,7 @@ def run_batch_stats() -> None:
 
     # Overall ALL
     all_rows = []
-    for prs in by_pair.values():
+    for prs in by_pair_version.values():
         all_rows.extend(prs)
     t5_all = _compute_horizon(
         all_rows, "T+5", "brier_score_t5", "correct_t5", "log_return_t5_bps"

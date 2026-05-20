@@ -305,6 +305,8 @@ class RegimeCall:
     special_signal_label: str | None = None
     # Backfill tracking
     model_version: str | None = None
+    strategy_version: str = "v2"
+    data_source: str = "live"
 
 
 @dataclass
