@@ -1060,6 +1060,7 @@ export type Database = {
           cot_signal: string | null;
           created_at: string | null;
           data_quality_score: number | null;
+          data_source: string | null;
           date: string;
           directional_bias: string | null;
           entry_timing: string | null;
@@ -1088,6 +1089,7 @@ export type Database = {
           cot_signal?: string | null;
           created_at?: string | null;
           data_quality_score?: number | null;
+          data_source?: string | null;
           date: string;
           directional_bias?: string | null;
           entry_timing?: string | null;
@@ -1116,6 +1118,7 @@ export type Database = {
           cot_signal?: string | null;
           created_at?: string | null;
           data_quality_score?: number | null;
+          data_source?: string | null;
           date?: string;
           directional_bias?: string | null;
           entry_timing?: string | null;
@@ -1455,6 +1458,7 @@ export type Database = {
           correct_t20: boolean | null;
           correct_t5: boolean | null;
           created_at: string | null;
+          data_source: string | null;
           date: string;
           id: number;
           is_superseded: boolean | null;
@@ -1480,6 +1484,7 @@ export type Database = {
           correct_t20?: boolean | null;
           correct_t5?: boolean | null;
           created_at?: string | null;
+          data_source?: string | null;
           date: string;
           id?: number;
           is_superseded?: boolean | null;
@@ -1505,6 +1510,7 @@ export type Database = {
           correct_t20?: boolean | null;
           correct_t5?: boolean | null;
           created_at?: string | null;
+          data_source?: string | null;
           date?: string;
           id?: number;
           is_superseded?: boolean | null;
@@ -1534,6 +1540,7 @@ export type Database = {
           as_of_date: string;
           computed_at: string;
           created_at: string | null;
+          data_source: string | null;
           id: number;
           pair: string;
           t20_brier_skill: number | null;
@@ -1565,6 +1572,7 @@ export type Database = {
           as_of_date: string;
           computed_at?: string;
           created_at?: string | null;
+          data_source?: string | null;
           id?: number;
           pair: string;
           t20_brier_skill?: number | null;

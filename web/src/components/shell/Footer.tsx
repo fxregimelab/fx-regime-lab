@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, type FormEvent } from "react";
+import type React from "react";
+import { type FormEvent, useState } from "react";
 
 const NAV_LINKS = [
   { label: "Terminal", href: "/terminal" },
   { label: "Methodology", href: "/methodology" },
   { label: "Brief", href: "/brief" },
-  { label: "Track Record", href: "/performance" },
+  { label: "Track Record", href: "/track-record" },
   { label: "About", href: "/about" },
 ];
 
@@ -41,7 +42,7 @@ export function Footer() {
                 <li key={link.href}>
                   <a
                     href={link.href}
-                    className="text-[0.8125rem] text-[var(--color-text-secondary)] outline-none transition-colors hover:text-[var(--color-text)] focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
+                    className="text-[0.8125rem] text-[var(--color-text-secondary)] outline-none transition-all duration-200 hover:text-[var(--color-text)] glow-text focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
                     style={{ borderRadius: 2 }}
                   >
                     {link.label}
@@ -61,7 +62,7 @@ export function Footer() {
                 <li key={link.href}>
                   <a
                     href={link.href}
-                    className="text-[0.8125rem] text-[var(--color-text-secondary)] outline-none transition-colors hover:text-[var(--color-text)] focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
+                    className="text-[0.8125rem] text-[var(--color-text-secondary)] outline-none transition-all duration-200 hover:text-[var(--color-text)] glow-text focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
                     style={{ borderRadius: 2 }}
                   >
                     {link.label}
@@ -93,8 +94,13 @@ export function Footer() {
               />
               <button
                 type="submit"
-                className="border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-[0.8125rem] font-medium text-[var(--color-text)] outline-none transition-colors hover:bg-[var(--color-elevated)] focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
-                style={{ borderRadius: 2 }}
+                className="border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-[0.8125rem] font-medium text-[var(--color-text)] outline-none transition-all duration-200 hover:bg-[var(--color-elevated)] glow-hover focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
+                style={
+                  {
+                    "--glow-color": "rgba(231, 229, 228, 0.12)",
+                    borderRadius: 2,
+                  } as React.CSSProperties
+                }
               >
                 Join
               </button>

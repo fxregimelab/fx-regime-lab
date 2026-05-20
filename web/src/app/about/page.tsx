@@ -2,6 +2,7 @@ import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
+import { getValidationStats } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import { Link2, Mail, MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
@@ -126,17 +127,42 @@ async function TrackRecordHighlights() {
     .from("validation_log")
     .select("*", { count: "exact", head: true });
 
+  const { data: datesData } = await supabase
+    .from("validation_log")
+    .select("date")
+    .limit(1000);
+  const distinctDates = new Set(
+    (datesData as Array<{ date: string }> | null)?.map((d) => d.date) ?? [],
+  );
+  const daysCount = distinctDates.size;
+
+  const statsT5 = await getValidationStats(supabase, "t5", "live");
+  const rolling90dAcc =
+    statsT5.length > 0 && !statsT5.every((s) => s.rolling90dAccuracy == null)
+      ? statsT5.reduce((sum, s) => sum + (s.rolling90dAccuracy ?? 0), 0) /
+        statsT5.length
+      : null;
+
   const stats = [
     {
-      value: count ? `${(count / 1000).toFixed(0)}k+` : "—",
+      value: count ? count.toLocaleString() : "—",
       label: "Validated regime calls",
     },
     {
       value: "3",
       label: "Currency pairs: EUR/USD, USD/JPY, USD/INR",
     },
-    { value: "T+5 & T+20", label: "Horizon validation" },
-    { value: "Live", label: "Rolling 90-day accuracy" },
+    {
+      value: daysCount > 0 ? daysCount.toLocaleString() : "—",
+      label: "Trading days validated",
+    },
+    {
+      value:
+        rolling90dAcc != null
+          ? `${(rolling90dAcc * 100).toFixed(1)}%`
+          : "— (insufficient data)",
+      label: "Rolling 90-day accuracy",
+    },
   ];
 
   return (
@@ -147,7 +173,15 @@ async function TrackRecordHighlights() {
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
         {stats.map((s) => (
-          <div key={s.label} className="bg-[var(--color-surface)] p-6 md:p-8">
+          <div
+            key={s.label}
+            className="bg-[var(--color-surface)] p-6 md:p-8 cursor-pointer glow-hover transition-all duration-200"
+            style={
+              {
+                "--glow-color": "rgba(52, 211, 153, 0.12)",
+              } as React.CSSProperties
+            }
+          >
             <p className="font-mono text-[clamp(28px,4vw,40px)] font-medium text-emerald-400 tracking-tight leading-none mb-3 tabular-nums">
               {s.value}
             </p>
@@ -297,7 +331,7 @@ function ContactConnect() {
           <Link
             key={l.label}
             href={l.href}
-            className="group flex items-center gap-4 px-5 py-3.5 border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-300 hover:bg-[var(--color-elevated)] hover:border-[var(--color-border-bright)]"
+            className="group flex items-center gap-4 px-5 py-3.5 border border-[var(--color-border)] bg-[var(--color-surface)] cursor-pointer transition-all duration-300 hover:bg-[var(--color-elevated)] hover:border-[var(--color-border-bright)] glow-hover"
           >
             <l.icon className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-[var(--color-text)] transition-colors duration-300" />
             <div>

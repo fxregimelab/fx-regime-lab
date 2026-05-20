@@ -145,12 +145,15 @@ export default function SignalDecomposition() {
               key={signal.key}
               type="button"
               onClick={() => setSelected(isActive ? null : signal.key)}
-              className="relative h-full flex items-center justify-center transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-text)] focus-visible:ring-inset"
-              style={{
-                width: `${signal.weight}%`,
-                backgroundColor: signal.color,
-                opacity: selected === null || isActive ? 1 : 0.35,
-              }}
+              className="relative h-full flex items-center justify-center cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-text)] focus-visible:ring-inset glow-hover"
+              style={
+                {
+                  "--glow-color": `${signal.color}44`,
+                  width: `${signal.weight}%`,
+                  backgroundColor: signal.color,
+                  opacity: selected === null || isActive ? 1 : 0.35,
+                } as React.CSSProperties
+              }
               aria-pressed={isActive}
               aria-label={`${signal.label}: ${signal.weight}% weight`}
               title={`${signal.label}: ${signal.weight}%`}
@@ -172,11 +175,14 @@ export default function SignalDecomposition() {
             onClick={() =>
               setSelected(selected === signal.key ? null : signal.key)
             }
-            className={`flex items-center gap-1.5 transition-opacity duration-200 ${
+            className={`flex items-center gap-1.5 cursor-pointer transition-all duration-200 glow-text ${
               selected === null || selected === signal.key
                 ? "opacity-100"
                 : "opacity-40"
             }`}
+            style={
+              { "--glow-color": `${signal.color}66` } as React.CSSProperties
+            }
           >
             <span
               className="inline-block w-2.5 h-2.5 rounded-[1px] flex-shrink-0"
@@ -195,7 +201,12 @@ export default function SignalDecomposition() {
       {/* Detail Panel */}
       {selectedSignal && (
         <section
-          className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5 mb-6 animate-fade-in"
+          className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5 mb-6 animate-fade-in glow-active"
+          style={
+            {
+              "--glow-color": `${selectedSignal.color}33`,
+            } as React.CSSProperties
+          }
           aria-label={`${selectedSignal.label} details`}
         >
           <div className="flex items-center gap-2 mb-3">

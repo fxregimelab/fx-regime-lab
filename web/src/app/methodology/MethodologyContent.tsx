@@ -266,8 +266,8 @@ export default function MethodologyContent() {
           <Subsection title="Layer 2 — Directional Bias & Conviction">
             <Body>
               Layer 2 translates the gate's macro read into a discrete
-              directional bias (LONG / SHORT / NEUTRAL) and an integer
-              conviction score <Mono>1–5</Mono>.
+              directional bias (LONG / SHORT / NEUTRAL) and a calibrated
+              probability conviction <Mono>0.0–1.0</Mono>.
             </Body>
 
             <Body>
@@ -299,7 +299,7 @@ export default function MethodologyContent() {
               If the rate sign and positioning sign point in opposite directions
               (both materially non-zero, with a <Mono>±5 pp</Mono> deadband
               around the 50th percentile), the bias is forced to NEUTRAL and
-              conviction is capped at 3.
+              conviction is capped at 0.50.
             </Body>
 
             <Body>
@@ -308,7 +308,7 @@ export default function MethodologyContent() {
               </strong>{" "}
               If the composite score and rate direction strongly disagree{" "}
               <Mono>(|S| &gt; 0.30)</Mono>, the bias is forced to NEUTRAL and
-              conviction is capped at 3. This prevents the rate signal from
+              conviction is capped at 0.50. This prevents the rate signal from
               overriding a divergent composite.
             </Body>
 
@@ -334,8 +334,8 @@ export default function MethodologyContent() {
                 Conviction score.
               </strong>{" "}
               Base conviction is anchored to the composite magnitude, then
-              scaled by <Mono>m_π</Mono> and rounded to an integer{" "}
-              <Mono>1–5</Mono>:
+              scaled by <Mono>m_π</Mono> and mapped to a probability{" "}
+              <Mono>0.0–1.0</Mono>:
             </Body>
             <KatexMath latex="C = \text{round}\Big( \max(1, \min(5, \; (3 + \text{clip}(S, -2, 2)) \cdot m_{\pi} \;)) \Big)" />
             <Body>
@@ -343,7 +343,7 @@ export default function MethodologyContent() {
               <Mono>(|S| &gt; 0.30)</Mono>, composite drives the bias; otherwise
               the rate sign drives it. If Layer 1 is invalidated, crowding is
               veto-level, or Marcus B / Marcus C clashes fire, the bias is
-              forced to NEUTRAL and conviction is hard-capped at 3.
+              forced to NEUTRAL and conviction is hard-capped at 0.50.
             </Body>
           </Subsection>
 
@@ -383,19 +383,19 @@ export default function MethodologyContent() {
               <strong className="text-[var(--color-text)]">
                 Marcus enter rule.
               </strong>{" "}
-              Entry requires: bias ≠ NEUTRAL, conviction ≥ 3,{" "}
+              Entry requires: bias ≠ NEUTRAL, conviction ≥ 0.50,{" "}
               <Mono>q^σ_t ≤ 0.88</Mono>, no skew reversal, and no strong
               directional skew contradiction. A strong contradiction fires when{" "}
               skew alignment <Mono>A_t = −1</Mono>, <Mono>|z_t| &gt; 1.0</Mono>,
-              and conviction <Mono>&lt; 4</Mono> — the disagreement is too large
-              to absorb.
+              and conviction <Mono>&lt; 0.75</Mono> — the disagreement is too
+              large to absorb.
             </Body>
 
             <Body>
               <strong className="text-[var(--color-text)]">
                 Lena + Chen sizing.
               </strong>{" "}
-              Full size only when: timing = ENTER, conviction ≥ 4,{" "}
+              Full size only when: timing = ENTER, conviction ≥ 0.75,{" "}
               <Mono>q^σ_t ≤ 0.70</Mono>, skew alignment ≥ 0, and no Chen trim.
               Chen trim fires when the crowding flag is active{" "}
               <Mono>(π ≥ 90</Mono> or <Mono>π ≤ 10)</Mono> or when the crowding

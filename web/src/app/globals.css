@@ -552,6 +552,35 @@ body.terminal-surface {
 }
 
 /* =================================================================
+   Section 7.2 — Glow Utility Classes
+   ================================================================= */
+
+.glow-hover {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.glow-hover:hover {
+  box-shadow: 0 0 16px var(--glow-color, rgba(255, 255, 255, 0.08));
+}
+
+.glow-active {
+  box-shadow: 0 0 20px var(--glow-color, rgba(255, 255, 255, 0.12));
+}
+
+.glow-text {
+  transition: text-shadow 0.2s ease, color 0.2s ease;
+}
+.glow-text:hover {
+  text-shadow: 0 0 8px var(--glow-color, rgba(255, 255, 255, 0.25));
+}
+
+/* Global cursor affordance */
+button,
+[role="button"],
+a {
+  cursor: pointer;
+}
+
+/* =================================================================
    Prefers Reduced Motion
    ================================================================= */
 

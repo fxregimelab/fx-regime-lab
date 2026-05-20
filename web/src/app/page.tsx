@@ -5,6 +5,7 @@ import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
 import { normalizeProp } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import {
+  type ValidationRow,
   getLatestRegimeCalls,
   getLatestSignals,
   getValidationLog,
@@ -20,16 +21,6 @@ export const metadata: Metadata = {
   description:
     "Daily macro regime classifications for EUR/USD, USD/JPY, and USD/INR. On the record.",
 };
-
-/* ─── Types ─────────────────────────────────────────────────────────── */
-
-interface ValidationRow {
-  date: string;
-  pair: string;
-  call: string;
-  outcome: "correct" | "incorrect";
-  return_pct: number;
-}
 
 /* ─── Section primitives ────────────────────────────────────────────── */
 
@@ -56,11 +47,13 @@ function Hero({
   totalCalls,
   accuracy7d,
   accuracy90d,
+  last7Length,
 }: {
   latestCallDate: string | null;
   totalCalls: number;
   accuracy7d: number;
   accuracy90d: number | null;
+  last7Length: number;
 }) {
   return (
     <section className="min-h-[100dvh] flex flex-col justify-between relative">
@@ -116,7 +109,7 @@ function Hero({
           <span className="text-[var(--color-border)]">·</span>
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-[11px] tracking-[0.12em] text-[var(--color-text-muted)] uppercase">
-              Calls since April 2026
+              Calls since May 2026
             </span>
             <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
               {totalCalls > 0 ? totalCalls : "—"}
@@ -128,7 +121,7 @@ function Hero({
               7D Calibration
             </span>
             <span className="font-mono text-[11px] text-[var(--color-text)] tabular-nums">
-              {totalCalls > 0 ? `${accuracy7d.toFixed(1)}%` : "—"}
+              {last7Length > 0 ? `${accuracy7d.toFixed(1)}%` : "—"}
             </span>
           </div>
           <span className="text-[var(--color-border)]">·</span>
@@ -148,7 +141,12 @@ function Hero({
         <div className="animate-fade-up delay-400">
           <Link
             href="/terminal"
-            className="inline-block px-7 py-3.5 bg-[var(--color-text)] text-[var(--color-void)] font-sans text-[14px] font-medium tracking-[0.02em] transition-all duration-200 hover:bg-[var(--color-accent)]"
+            className="inline-block px-7 py-3.5 bg-[var(--color-text)] text-[var(--color-void)] font-sans text-[14px] font-medium tracking-[0.02em] cursor-pointer glow-hover transition-all duration-200 hover:bg-[var(--color-accent)]"
+            style={
+              {
+                "--glow-color": "rgba(231, 229, 228, 0.15)",
+              } as React.CSSProperties
+            }
           >
             Open the terminal
           </Link>
@@ -194,7 +192,12 @@ function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
       pairColor: color,
       regime: r.call,
       outcome: r.outcome,
-      outcomeLabel: r.outcome === "correct" ? "✓ CORRECT" : "✗ INCORRECT",
+      outcomeLabel:
+        r.outcome === "correct"
+          ? "✓ CORRECT"
+          : r.outcome === "neutral"
+            ? "○ NEUTRAL"
+            : "✗ INCORRECT",
       returnPct: `${sign}${r.return_pct.toFixed(2)}%`,
       returnPositive: r.return_pct >= 0,
     };
@@ -224,7 +227,9 @@ function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
           color:
             item.outcome === "correct"
               ? "var(--color-up)"
-              : "var(--color-down)",
+              : item.outcome === "neutral"
+                ? "var(--color-text-muted)"
+                : "var(--color-down)",
         }}
       >
         {item.outcomeLabel}
@@ -295,8 +300,13 @@ function SnapshotCard({
 }) {
   return (
     <div
-      className="reveal border border-[var(--color-border)] bg-[var(--color-surface)] p-8 hover-lift transition-all duration-500"
-      style={{ transitionDelay: `${delay}ms` }}
+      className="reveal border border-[var(--color-border)] bg-[var(--color-surface)] p-8 hover-lift cursor-pointer glow-hover transition-all duration-500"
+      style={
+        {
+          transitionDelay: `${delay}ms`,
+          "--glow-color": `${pairColor}22`,
+        } as React.CSSProperties
+      }
     >
       {/* Pair-colored top border */}
       <div
@@ -495,8 +505,13 @@ function SignalArchitecture() {
           {signals.map((s, i) => (
             <div
               key={s.n}
-              className="reveal bg-[var(--color-surface)] p-8 transition-all duration-500"
-              style={{ transitionDelay: `${(i + 1) * 100}ms` }}
+              className="reveal bg-[var(--color-surface)] p-8 cursor-pointer glow-hover transition-all duration-500"
+              style={
+                {
+                  transitionDelay: `${(i + 1) * 100}ms`,
+                  "--glow-color": "rgba(231, 229, 228, 0.06)",
+                } as React.CSSProperties
+              }
             >
               <div className="flex items-start justify-between mb-6">
                 <span className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)]">
@@ -557,8 +572,13 @@ function V2Highlights() {
           {highlights.map((h, i) => (
             <div
               key={h.label}
-              className="reveal bg-[var(--color-surface)] p-8 transition-all duration-500"
-              style={{ transitionDelay: `${(i + 1) * 100}ms` }}
+              className="reveal bg-[var(--color-surface)] p-8 cursor-pointer glow-hover transition-all duration-500"
+              style={
+                {
+                  transitionDelay: `${(i + 1) * 100}ms`,
+                  "--glow-color": "rgba(231, 229, 228, 0.06)",
+                } as React.CSSProperties
+              }
             >
               <h3 className="font-sans font-semibold text-[15px] text-[var(--color-text)] mb-2">
                 {h.label}
@@ -580,15 +600,17 @@ function ValidationTrust({
   accuracy,
   accuracy7d,
   totalCalls,
+  last7Length,
 }: {
   accuracy: number;
   accuracy7d: number;
   totalCalls: number;
+  last7Length: number;
 }) {
   const stats = [
     { label: "Pairs tracked", value: String(PAIRS.length) },
     {
-      label: "Calls since April 2026",
+      label: "Calls since May 2026",
       value: totalCalls > 0 ? String(totalCalls) : "—",
     },
     {
@@ -597,7 +619,7 @@ function ValidationTrust({
     },
     {
       label: "7D accuracy",
-      value: totalCalls > 0 ? `${accuracy7d.toFixed(1)}%` : "—",
+      value: last7Length > 0 ? `${accuracy7d.toFixed(1)}%` : "—",
     },
   ];
 
@@ -615,8 +637,13 @@ function ValidationTrust({
           {stats.map((s, i) => (
             <div
               key={s.label}
-              className="reveal bg-[var(--color-surface)] py-10 px-8 transition-all duration-500"
-              style={{ transitionDelay: `${(i + 1) * 100}ms` }}
+              className="reveal bg-[var(--color-surface)] py-10 px-8 cursor-pointer glow-hover transition-all duration-500"
+              style={
+                {
+                  transitionDelay: `${(i + 1) * 100}ms`,
+                  "--glow-color": "rgba(231, 229, 228, 0.06)",
+                } as React.CSSProperties
+              }
             >
               <p className="font-mono text-[clamp(36px,5vw,56px)] font-medium text-[var(--color-text)] tracking-tight leading-none mb-3 tabular-nums">
                 {s.value}
@@ -705,7 +732,7 @@ export default async function HomePage() {
   const { count } = await supabase
     .from("regime_calls")
     .select("*", { count: "exact", head: true })
-    .gte("date", "2026-04-01");
+    .gte("date", "2026-05-01");
 
   const correctCount = validation.filter((r) => r.outcome === "correct").length;
   const accuracy =
@@ -727,7 +754,7 @@ export default async function HomePage() {
       .pop() ?? null;
 
   const accuracy90d =
-    statsT5.length > 0
+    statsT5.length > 0 && !statsT5.every((s) => s.rolling90dAccuracy == null)
       ? statsT5.reduce((sum, s) => sum + (s.rolling90dAccuracy ?? 0), 0) /
         statsT5.length
       : null;
@@ -770,6 +797,7 @@ export default async function HomePage() {
           totalCalls={count ?? 0}
           accuracy7d={accuracy7d}
           accuracy90d={accuracy90d}
+          last7Length={last7.length}
         />
         <ValidationTicker rows={validation} />
         <LiveSnapshot calls={calls} signals={signals} />
@@ -780,6 +808,7 @@ export default async function HomePage() {
           accuracy={accuracy}
           accuracy7d={accuracy7d}
           totalCalls={count ?? 0}
+          last7Length={last7.length}
         />
         <AboutSnippet />
         <ResearchDisclaimer />

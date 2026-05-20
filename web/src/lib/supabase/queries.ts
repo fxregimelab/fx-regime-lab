@@ -76,7 +76,7 @@ export interface ValidationRow {
   date: string;
   pair: string;
   call: string;
-  outcome: "correct" | "incorrect";
+  outcome: "correct" | "incorrect" | "neutral";
   return_pct: number;
 }
 
@@ -233,13 +233,17 @@ export async function getValidationLog(
   };
 
   return (data as ValidationLogRow[])
-    .filter((r) => r.correct_t5 !== null && r.log_return_t5_bps != null)
+    .filter((r) => r.correct_t5 !== null)
     .map((r) => ({
       date: r.date,
       pair: PAIR_DISPLAY[r.pair] ?? r.pair,
       call: "—",
-      outcome: r.correct_t5 ? "correct" : "incorrect",
-      return_pct: Number(r.log_return_t5_bps),
+      outcome: r.correct_t5
+        ? "correct"
+        : r.actual_direction_t5 === "NEUTRAL"
+          ? "neutral"
+          : "incorrect",
+      return_pct: Number(r.log_return_t5_bps ?? 0),
     }));
 }
 
@@ -260,12 +264,15 @@ export async function getLatestBrief(
 export async function getValidationStats(
   supabase: TypedSupabaseClient,
   horizon: "t5" | "t20",
+  dataSource = "live",
 ): Promise<ValidationStats[]> {
-  const { data, error } = await supabase
+  let q = supabase
     .from("validation_stats")
     .select("*")
     .order("as_of_date", { ascending: false })
     .limit(100);
+  if (dataSource) q = q.eq("data_source", dataSource);
+  const { data, error } = await q;
 
   if (error || !data) return [];
 
@@ -309,15 +316,39 @@ export async function getValidationStats(
 export async function getValidationLogT5T20(
   supabase: TypedSupabaseClient,
   limit = 500,
+  dataSource = "live",
 ): Promise<ValidationRowT5[]> {
-  const { data, error } = await supabase
+  let q = supabase
     .from("validation_log")
     .select("*")
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
     .limit(limit);
+  if (dataSource) q = q.eq("data_source", dataSource);
+  const { data, error } = await q;
 
   if (error || !data) return [];
+
+  // Fetch predicted_direction from regime_calls via call_id
+  const callIds = (data as ValidationLogRow[])
+    .map((r) => r.call_id)
+    .filter((id): id is number => id != null);
+
+  const predictedMap = new Map<number, string>();
+  if (callIds.length > 0) {
+    const { data: regimeData } = await supabase
+      .from("regime_calls")
+      .select("id, predicted_direction")
+      .in("id", callIds);
+    for (const rc of (regimeData ?? []) as Array<{
+      id: number | null;
+      predicted_direction: string | null;
+    }>) {
+      if (rc.id != null && rc.predicted_direction) {
+        predictedMap.set(rc.id, rc.predicted_direction);
+      }
+    }
+  }
 
   const PAIR_DISPLAY: Record<string, string> = {
     EURUSD: "EUR/USD",
@@ -328,7 +359,7 @@ export async function getValidationLogT5T20(
   return (data as ValidationLogRow[]).map((r) => ({
     date: r.date,
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    predicted: "—",
+    predicted: r.call_id != null ? (predictedMap.get(r.call_id) ?? "—") : "—",
     t5ReturnBps: r.log_return_t5_bps,
     t5Outcome: r.correct_t5
       ? "CORRECT"
@@ -360,9 +391,10 @@ export interface RegimeBreakdownRow {
 export async function getRegimeBreakdown(
   supabase: TypedSupabaseClient,
   limit = 500,
+  dataSource = "live",
 ): Promise<RegimeBreakdownRow[]> {
   // 1. Fetch validation outcomes
-  const { data: valData, error: valError } = await supabase
+  let q = supabase
     .from("validation_log")
     .select(
       "date, pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20",
@@ -370,6 +402,8 @@ export async function getRegimeBreakdown(
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
     .limit(limit);
+  if (dataSource) q = q.eq("data_source", dataSource);
+  const { data: valData, error: valError } = await q;
 
   if (valError || !valData) return [];
 

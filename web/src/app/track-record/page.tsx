@@ -7,7 +7,7 @@ import { ValidationTable } from "@/components/regime/ValidationTable";
 import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
-import { EURUSD_ACCURACY_GATE, STALE_THRESHOLD_DAYS } from "@/lib/config";
+import { EURUSD_ACCURACY_GATE } from "@/lib/config";
 import { fmtMeanCI, fmtPropCI, meanCI, wilsonCI } from "@/lib/stats";
 import {
   getBacktestVersions,
@@ -339,7 +339,7 @@ function LiveTabContent({
   equityCurve,
   maxDD,
   brierSeries,
-  isStale,
+  freshnessStatus,
   lastDate,
   t5WinCI,
   t20WinCI,
@@ -356,7 +356,7 @@ function LiveTabContent({
   equityCurve: { date: string; value: number }[];
   maxDD: number;
   brierSeries: { date: string; value: number }[];
-  isStale: boolean;
+  freshnessStatus: "LIVE" | "ACTIVE" | "STALE";
   lastDate: string | null;
   t5WinCI: [number, number];
   t20WinCI: [number, number];
@@ -387,18 +387,22 @@ function LiveTabContent({
               </span>
             </>
           )}
-          {isStale && (
-            <span className="font-mono text-[9px] tracking-widest text-[var(--color-warn)] border border-[var(--color-warn)] px-1.5 py-0.5">
-              STALE
-            </span>
-          )}
+          <span
+            className={`font-mono text-[9px] tracking-widest border px-1.5 py-0.5 ${
+              freshnessStatus === "LIVE"
+                ? "text-green-600 border-green-600"
+                : freshnessStatus === "ACTIVE"
+                  ? "text-blue-400 border-blue-400"
+                  : "text-[var(--color-warn)] border-[var(--color-warn)]"
+            }`}
+          >
+            {freshnessStatus}
+          </span>
         </div>
       </div>
 
       {/* Metrics */}
-      <div
-        className={`grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-10 ${isStale ? "opacity-50" : ""}`}
-      >
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-10">
         <StatsCard
           label="T+5 WIN RATE"
           value={fmtPctRaw(allT5?.winRate)}
@@ -928,12 +932,19 @@ export default async function TrackRecordPage() {
   const supabase = await createClient();
 
   // Live data
-  const [statsT5Raw, statsT20Raw, validation, regimeBreakdown] =
+  const [statsT5Raw, statsT20Raw, validation, regimeBreakdown, latestCall] =
     await Promise.all([
-      getValidationStats(supabase, "t5"),
-      getValidationStats(supabase, "t20"),
-      getValidationLogT5T20(supabase, 500),
-      getRegimeBreakdown(supabase, 500),
+      getValidationStats(supabase, "t5", "live"),
+      getValidationStats(supabase, "t20", "live"),
+      getValidationLogT5T20(supabase, 500, "live"),
+      getRegimeBreakdown(supabase, 500, "live"),
+      supabase
+        .from("regime_calls")
+        .select("date")
+        .eq("data_source", "live")
+        .order("date", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
   // Backtest data
@@ -1043,14 +1054,21 @@ export default async function TrackRecordPage() {
     }
   }
 
-  // Freshness
-  const latestStatsDate = statsT5[0]?.asOfDate ?? null;
+  // Freshness based on latest live call date
+  const latestCallDate =
+    (latestCall?.data as { date: string } | null)?.date ?? null;
   const lastDate =
-    latestStatsDate ?? (dates.length > 0 ? dates[dates.length - 1] : null);
-  const isStale = lastDate
-    ? new Date().getTime() - new Date(lastDate).getTime() >
-      STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000
-    : true;
+    latestCallDate ?? (dates.length > 0 ? dates[dates.length - 1] : null);
+
+  let freshnessStatus: "LIVE" | "ACTIVE" | "STALE" = "STALE";
+  if (latestCallDate) {
+    const daysSinceCall =
+      (new Date().getTime() - new Date(latestCallDate).getTime()) /
+      (1000 * 60 * 60 * 24);
+    if (daysSinceCall <= 2) freshnessStatus = "LIVE";
+    else if (daysSinceCall <= 7) freshnessStatus = "ACTIVE";
+    else freshnessStatus = "STALE";
+  }
 
   // CIs
   const t5WinCI = wilsonCI(allT5?.wins ?? 0, allT5?.sampleSize ?? 0);
@@ -1098,7 +1116,7 @@ export default async function TrackRecordPage() {
               equityCurve={equityCurve}
               maxDD={maxDD}
               brierSeries={brierSeries}
-              isStale={isStale}
+              freshnessStatus={freshnessStatus}
               lastDate={lastDate}
               t5WinCI={t5WinCI}
               t20WinCI={t20WinCI}
