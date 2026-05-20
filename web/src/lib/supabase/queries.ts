@@ -264,15 +264,16 @@ export async function getLatestBrief(
 export async function getValidationStats(
   supabase: TypedSupabaseClient,
   horizon: "t5" | "t20",
-  dataSource = "live",
+  _dataSource = "live",
 ): Promise<ValidationStats[]> {
-  let q = supabase
+  // NOTE: validation_stats table does not have data_source column.
+  // We return the latest overall stats; callers should compute live-only
+  // stats from validation_log when precise filtering is needed.
+  const { data, error } = await supabase
     .from("validation_stats")
     .select("*")
     .order("as_of_date", { ascending: false })
     .limit(100);
-  if (dataSource) q = q.eq("data_source", dataSource);
-  const { data, error } = await q;
 
   if (error || !data) return [];
 
@@ -324,7 +325,9 @@ export async function getValidationLogT5T20(
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
     .limit(limit);
-  if (dataSource) q = q.eq("data_source", dataSource);
+  // validation_log does not have data_source column; filter by date instead
+  if (dataSource === "live") q = q.gte("date", "2026-05-01");
+  else if (dataSource === "backtest") q = q.lt("date", "2026-05-01");
   const { data, error } = await q;
 
   if (error || !data) return [];
@@ -402,7 +405,9 @@ export async function getRegimeBreakdown(
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
     .limit(limit);
-  if (dataSource) q = q.eq("data_source", dataSource);
+  // validation_log does not have data_source column; filter by date instead
+  if (dataSource === "live") q = q.gte("date", "2026-05-01");
+  else if (dataSource === "backtest") q = q.lt("date", "2026-05-01");
   const { data: valData, error: valError } = await q;
 
   if (valError || !valData) return [];
