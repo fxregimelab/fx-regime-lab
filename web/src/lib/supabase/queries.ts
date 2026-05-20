@@ -1173,22 +1173,61 @@ export async function getCallRationale(
 }
 
 export interface SimulationResult {
-  version: string;
   pair: string;
-  sizing_method: "regime-aware" | "uniform";
-  metric: string;
-  value: number;
+  sizingMethod: string;
+  algorithm: string;
+  sharpe: number | null;
+  sortino: number | null;
+  winRate: number | null;
+  nTrades: number | null;
+  turnover: number | null;
+  totalPnl: number | null;
+  meanBrier: number | null;
+  maxDrawdownPct: number | null;
+  params: Record<string, unknown>;
 }
 
 export async function getSimulationResults(
-  _supabase: TypedSupabaseClient,
+  supabase: TypedSupabaseClient,
   _version: string,
-  _pair?: string,
-  _sizingMethod?: "regime-aware" | "uniform",
 ): Promise<SimulationResult[]> {
-  // Placeholder: no simulation_results table in current schema.
-  // Returns empty until backend persists simulation output.
-  return [];
+  const { data, error } = await supabase
+    .from("simulation_results")
+    .select("pair, simulation_params, max_drawdown_pct")
+    .limit(100);
+
+  if (error || !data) return [];
+
+  const seen = new Set<string>();
+  const results: SimulationResult[] = [];
+
+  for (const row of data as Array<{
+    pair: string;
+    simulation_params: Record<string, unknown> | null;
+    max_drawdown_pct: number | null;
+  }>) {
+    const params = row.simulation_params ?? {};
+    const key = `${row.pair}-${params.sizing_method ?? "unknown"}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    results.push({
+      pair: row.pair,
+      sizingMethod: String(params.sizing_method ?? "—"),
+      algorithm: String(params.algorithm ?? "—"),
+      sharpe: params.sharpe != null ? Number(params.sharpe) : null,
+      sortino: params.sortino != null ? Number(params.sortino) : null,
+      winRate: params.win_rate != null ? Number(params.win_rate) : null,
+      nTrades: params.n_trades != null ? Number(params.n_trades) : null,
+      turnover: params.turnover != null ? Number(params.turnover) : null,
+      totalPnl: params.total_pnl != null ? Number(params.total_pnl) : null,
+      meanBrier: params.mean_brier != null ? Number(params.mean_brier) : null,
+      maxDrawdownPct: row.max_drawdown_pct,
+      params,
+    });
+  }
+
+  return results;
 }
 
 export interface VersionedValidationRow {

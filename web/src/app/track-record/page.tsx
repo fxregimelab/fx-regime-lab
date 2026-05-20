@@ -570,11 +570,17 @@ function BacktestedTabContent({
   versionedCalls,
   versionedBreakdown,
   simulationResults,
+  backtestT5,
+  backtestT20,
+  backtestT5ByPair,
 }: {
   versions: string[];
   versionedCalls: VersionedRegimeCall[];
   versionedBreakdown: VersionedRegimeBreakdownRow[];
   simulationResults: SimulationResult[];
+  backtestT5: ValidationStats;
+  backtestT20: ValidationStats;
+  backtestT5ByPair: ValidationStats[];
 }) {
   const hasData = versionedCalls.length > 0 || versionedBreakdown.length > 0;
 
@@ -616,7 +622,7 @@ function BacktestedTabContent({
                 T+5 WR
               </p>
               <p className="font-mono text-[clamp(16px,2vw,20px)] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
-                —
+                {fmtPctRaw(backtestT5.winRate)}
               </p>
             </div>
             <div className="bg-[var(--color-surface)] p-4">
@@ -624,7 +630,7 @@ function BacktestedTabContent({
                 T+5 BRIER
               </p>
               <p className="font-mono text-[clamp(16px,2vw,20px)] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
-                —
+                {fmtBrier(backtestT5.brierScore)}
               </p>
             </div>
             <div className="bg-[var(--color-surface)] p-4">
@@ -632,7 +638,7 @@ function BacktestedTabContent({
                 T+20 WR
               </p>
               <p className="font-mono text-[clamp(16px,2vw,20px)] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
-                —
+                {fmtPctRaw(backtestT20.winRate)}
               </p>
             </div>
             <div className="bg-[var(--color-surface)] p-4">
@@ -640,7 +646,7 @@ function BacktestedTabContent({
                 T+20 BRIER
               </p>
               <p className="font-mono text-[clamp(16px,2vw,20px)] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
-                —
+                {fmtBrier(backtestT20.brierScore)}
               </p>
             </div>
             <div className="bg-[var(--color-surface)] p-4">
@@ -655,7 +661,7 @@ function BacktestedTabContent({
 
           {/* Per-pair cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-            {["EURUSD", "USDJPY", "USDINR"].map((pair) => {
+            {["EURUSD", "USDJPY", "USDINR"].map((pair, idx) => {
               const pairCalls = versionedCalls.filter((c) => c.pair === pair);
               return (
                 <div
@@ -671,15 +677,7 @@ function BacktestedTabContent({
                         T+5 WR
                       </p>
                       <p className="font-mono text-[18px] text-[var(--color-text)] tabular-nums">
-                        —
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-mono text-[9px] text-[var(--color-text-muted)]">
-                        T+20 WR
-                      </p>
-                      <p className="font-mono text-[18px] text-[var(--color-text)] tabular-nums">
-                        —
+                        {fmtPctRaw(backtestT5ByPair[idx]?.winRate)}
                       </p>
                     </div>
                     <div>
@@ -687,15 +685,27 @@ function BacktestedTabContent({
                         BRIER
                       </p>
                       <p className="font-mono text-[18px] text-[var(--color-text)] tabular-nums">
-                        —
+                        {fmtBrier(backtestT5ByPair[idx]?.brierScore)}
                       </p>
                     </div>
                     <div>
                       <p className="font-mono text-[9px] text-[var(--color-text-muted)]">
-                        SHARPE
+                        CALLS
                       </p>
                       <p className="font-mono text-[18px] text-[var(--color-text)] tabular-nums">
-                        —
+                        {backtestT5ByPair[idx]?.sampleSize ?? 0}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-mono text-[9px] text-[var(--color-text-muted)]">
+                        AVG RET
+                      </p>
+                      <p className="font-mono text-[18px] text-[var(--color-text)] tabular-nums">
+                        {(() => {
+                          const v = backtestT5ByPair[idx]?.avgReturnBps;
+                          if (v == null) return "—";
+                          return `${v >= 0 ? "+" : ""}${v.toFixed(1)}`;
+                        })()}
                       </p>
                     </div>
                   </div>
@@ -788,30 +798,12 @@ function BacktestedTabContent({
 
 /* ─── Regime Validation tab content ─────────────────────────────────────── */
 
-function RegimeValidationTabContent() {
-  const metrics = [
-    { label: "Sharpe", regimeAware: "0.84", uniform: "0.41", delta: "+105%" },
-    { label: "Sortino", regimeAware: "1.12", uniform: "0.58", delta: "+93%" },
-    {
-      label: "Max Drawdown",
-      regimeAware: "-12.3%",
-      uniform: "-23.7%",
-      delta: "-48%",
-    },
-    {
-      label: "Return/DD",
-      regimeAware: "2.18",
-      uniform: "0.89",
-      delta: "+145%",
-    },
-    {
-      label: "Hit Rate (top)",
-      regimeAware: "58.2%",
-      uniform: "50.0%",
-      delta: "+8.2pp",
-    },
-    { label: "Turnover", regimeAware: "4.2x", uniform: "1.0x", delta: "—" },
-  ];
+function RegimeValidationTabContent({
+  simulationResults,
+}: {
+  simulationResults: SimulationResult[];
+}) {
+  const hasData = simulationResults.length > 0;
 
   return (
     <div>
@@ -828,100 +820,89 @@ function RegimeValidationTabContent() {
         </p>
       </div>
 
-      {/* Comparison table */}
-      <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10 overflow-x-auto">
-        <table className="w-full border-collapse font-mono text-[11px]">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-[var(--color-elevated)]">
-              <th className="px-4 py-3 text-left text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] font-semibold">
-                METRIC
-              </th>
-              <th className="px-4 py-3 text-right text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] font-semibold">
-                REGIME-AWARE
-              </th>
-              <th className="px-4 py-3 text-right text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] font-semibold">
-                UNIFORM
-              </th>
-              <th className="px-4 py-3 text-right text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] font-semibold">
-                DELTA
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {metrics.map((m) => (
-              <tr
-                key={m.label}
-                className="border-b border-[var(--color-border-subtle)]"
-              >
-                <td className="px-4 py-3 text-[var(--color-text)]">
-                  {m.label}
-                </td>
-                <td className="px-4 py-3 text-right text-[var(--color-text)] tabular-nums">
-                  {m.regimeAware}
-                </td>
-                <td className="px-4 py-3 text-right text-[var(--color-text-muted)] tabular-nums">
-                  {m.uniform}
-                </td>
-                <td className="px-4 py-3 text-right text-[var(--color-up)] tabular-nums">
-                  {m.delta}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {!hasData ? (
+        <EmptyState message="Regime validation simulation data is being computed. Results will appear once the regime-aware vs uniform benchmark comparison completes." />
+      ) : (
+        <>
+          {/* Simulation results table */}
+          <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10 overflow-x-auto">
+            <table className="w-full border-collapse font-mono text-[11px]">
+              <thead>
+                <tr className="border-b border-[var(--color-border)] bg-[var(--color-elevated)]">
+                  <th className="px-4 py-3 text-left text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] font-semibold">
+                    PAIR
+                  </th>
+                  <th className="px-4 py-3 text-right text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] font-semibold">
+                    METHOD
+                  </th>
+                  <th className="px-4 py-3 text-right text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] font-semibold">
+                    SHARPE
+                  </th>
+                  <th className="px-4 py-3 text-right text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] font-semibold">
+                    SORTINO
+                  </th>
+                  <th className="px-4 py-3 text-right text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] font-semibold">
+                    WIN RATE
+                  </th>
+                  <th className="px-4 py-3 text-right text-[9px] text-[var(--color-text-muted)] tracking-[0.1em] font-semibold">
+                    TRADES
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {simulationResults.map((r) => (
+                  <tr
+                    key={`${r.pair}-${r.sizingMethod}`}
+                    className="border-b border-[var(--color-border-subtle)]"
+                  >
+                    <td className="px-4 py-3 text-[var(--color-text)]">
+                      {r.pair.replace("USD", "USD/").replace("EUR", "EUR/")}
+                    </td>
+                    <td className="px-4 py-3 text-right text-[var(--color-text)] tabular-nums">
+                      {r.sizingMethod}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      <span
+                        className={
+                          (r.sharpe ?? 0) >= 0
+                            ? "text-emerald-400"
+                            : "text-[var(--color-down)]"
+                        }
+                      >
+                        {r.sharpe != null ? r.sharpe.toFixed(2) : "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-[var(--color-text-muted)] tabular-nums">
+                      {r.sortino != null ? r.sortino.toFixed(2) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right text-[var(--color-text-muted)] tabular-nums">
+                      {r.winRate != null
+                        ? `${(r.winRate * 100).toFixed(1)}%`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right text-[var(--color-text-muted)] tabular-nums">
+                      {r.nTrades ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {/* Overlay equity curve */}
-      <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
-        <div className="px-5 py-3 border-b border-[var(--color-border)]">
-          <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
-            Overlay Equity Curve — Regime-Aware vs Uniform
-          </p>
-        </div>
-        <EmptyState message="Overlay curves pending simulation data" />
-      </div>
-
-      {/* Confidence-return scatter */}
-      <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
-        <div className="px-5 py-3 border-b border-[var(--color-border)]">
-          <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
-            Confidence-Return Scatter
-          </p>
-        </div>
-        <EmptyState message="Scatter data pending" />
-      </div>
-
-      {/* Regime-conditional Sharpe bars */}
-      <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
-        <div className="px-5 py-3 border-b border-[var(--color-border)]">
-          <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
-            Regime-Conditional Sharpe — Trending vs Neutral vs Volatile
-          </p>
-        </div>
-        <EmptyState message="Regime-conditional metrics pending" />
-      </div>
-
-      {/* Confidence decile hit rate */}
-      <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
-        <div className="px-5 py-3 border-b border-[var(--color-border)]">
-          <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
-            Confidence Decile Hit Rate
-          </p>
-        </div>
-        <EmptyState message="Decile analysis pending" />
-      </div>
-
-      {/* Auto-generated interpretation */}
-      <div className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5 mb-10">
-        <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-3">
-          Interpretation
-        </p>
-        <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
-          Awaiting backend simulation pipeline. Once the regime-aware sizing
-          simulation runs against the uniform benchmark, this section will
-          auto-populate with the statistical interpretation of the comparison.
-        </p>
-      </div>
+          <div className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5 mb-10">
+            <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-3">
+              Interpretation
+            </p>
+            <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
+              These are preliminary simulation results from the regime-aware
+              sizing engine. The uniform benchmark comparison is still running.
+              Full statistical interpretation will be published once both
+              approaches have been evaluated across the complete backtest
+              period.
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -950,18 +931,32 @@ export default async function TrackRecordPage() {
   // Backtest data
   const versions = await getBacktestVersions(supabase);
   const defaultVersion = versions[0] ?? "v3";
-  const [versionedCalls, versionedBreakdown, simulationResults] =
-    await Promise.all([
-      getRegimeCallsByVersion(
-        supabase,
-        defaultVersion,
-        undefined,
-        undefined,
-        500,
-      ),
-      getRegimeBreakdownByVersion(supabase, defaultVersion, 500),
-      getSimulationResults(supabase, defaultVersion),
-    ]);
+  const [
+    versionedCalls,
+    versionedBreakdown,
+    simulationResults,
+    backtestValidation,
+  ] = await Promise.all([
+    getRegimeCallsByVersion(
+      supabase,
+      defaultVersion,
+      undefined,
+      undefined,
+      500,
+    ),
+    getRegimeBreakdownByVersion(supabase, defaultVersion, 500),
+    getSimulationResults(supabase, defaultVersion),
+    getValidationLogT5T20(supabase, 500, "backtest"),
+  ]);
+
+  const PAIR_LABELS = ["EUR/USD", "USD/JPY", "USD/INR"] as const;
+
+  // Backtest stats
+  const backtestT5 = computeStatsFromLog(backtestValidation, null, "t5");
+  const backtestT20 = computeStatsFromLog(backtestValidation, null, "t20");
+  const backtestT5ByPair = PAIR_LABELS.map((p) =>
+    computeStatsFromLog(backtestValidation, p, "t5"),
+  );
 
   // Live stats computation
   const allT5 = computeStatsFromLog(validation, null, "t5");
@@ -972,7 +967,6 @@ export default async function TrackRecordPage() {
       (r) => r.t5Outcome === "CORRECT" || r.t5Outcome === "WRONG",
     ).length;
 
-  const PAIR_LABELS = ["EUR/USD", "USD/JPY", "USD/INR"] as const;
   const computedT5 = PAIR_LABELS.map((p) =>
     computeStatsFromLog(validation, p, "t5"),
   );
@@ -1130,9 +1124,14 @@ export default async function TrackRecordPage() {
               versionedCalls={versionedCalls}
               versionedBreakdown={versionedBreakdown}
               simulationResults={simulationResults}
+              backtestT5={backtestT5}
+              backtestT20={backtestT20}
+              backtestT5ByPair={backtestT5ByPair}
             />
           }
-          validationContent={<RegimeValidationTabContent />}
+          validationContent={
+            <RegimeValidationTabContent simulationResults={simulationResults} />
+          }
         />
       </main>
       <Footer />
