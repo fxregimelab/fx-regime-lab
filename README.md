@@ -1,5 +1,9 @@
 # FX Regime Lab
 
+> **V2 — On the Record** | Public release with 19,114 backtested calls, institutional analytics, and regime validation research.
+> Live since May 2026. Walk-forward simulation from 1997.
+
+
 > **Agent-first codebase.** This README is for AI agents. Humans: see `docs/PROJECT_OVERVIEW.md`.
 
 ## Agent Quick Start

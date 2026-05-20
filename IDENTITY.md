@@ -154,6 +154,6 @@ If no, do not build it.
 
 ---
 
-*Last updated: May 2026*
+*Last updated: May 2026 (V2 Release)*
 *Owner: Shreyash Sakhare*
 *Do not modify this document without explicit instruction from the owner.*
