@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type React from "react";
 import { type FormEvent, useState } from "react";
 
@@ -40,13 +41,13 @@ export function Footer() {
             <ul className="space-y-1.5">
               {NAV_LINKS.map((link) => (
                 <li key={link.href}>
-                  <a
+                  <Link
                     href={link.href}
                     className="text-[0.8125rem] text-[var(--color-text-secondary)] outline-none transition-all duration-200 hover:text-[var(--color-text)] glow-text focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
                     style={{ borderRadius: 2 }}
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -60,13 +61,13 @@ export function Footer() {
             <ul className="space-y-1.5">
               {TRANSPARENCY_LINKS.map((link) => (
                 <li key={link.href}>
-                  <a
+                  <Link
                     href={link.href}
                     className="text-[0.8125rem] text-[var(--color-text-secondary)] outline-none transition-all duration-200 hover:text-[var(--color-text)] glow-text focus-visible:ring-2 focus-visible:ring-[var(--color-text)]"
                     style={{ borderRadius: 2 }}
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -111,8 +112,8 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-[var(--color-border)] pt-6 md:flex-row">
           <p className="text-[0.6875rem] text-[var(--color-text-dim)]">
-            © 2026 FX Regime Lab. Research and learning only. Not investment
-            advice.
+            © {new Date().getFullYear()} FX Regime Lab. Research and learning
+            only. Not investment advice.
           </p>
           <p className="text-[0.6875rem] text-[var(--color-text-dim)]">
             Built with institutional discipline. Validated out-of-sample.

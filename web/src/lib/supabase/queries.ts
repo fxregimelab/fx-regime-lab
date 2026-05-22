@@ -218,13 +218,12 @@ export async function getValidationLog(
   supabase: TypedSupabaseClient,
   limit = 500,
 ): Promise<ValidationRow[]> {
+  // Try joined query first to fetch regime call labels
   const { data, error } = await supabase
     .from("validation_log")
-    .select("*")
+    .select("*, regime_calls!fk_validation_log_call_id(regime)")
     .order("date", { ascending: false })
     .limit(limit);
-
-  if (error || !data) return [];
 
   const PAIR_DISPLAY: Record<string, string> = {
     EURUSD: "EUR/USD",
@@ -232,7 +231,32 @@ export async function getValidationLog(
     USDINR: "USD/INR",
   };
 
-  return (data as ValidationLogRow[])
+  if (!error && data) {
+    return (data as (ValidationLogRow & { regime_calls: { regime: string } })[])
+      .filter((r) => r.correct_t5 !== null)
+      .map((r) => ({
+        date: r.date,
+        pair: PAIR_DISPLAY[r.pair] ?? r.pair,
+        call: r.regime_calls?.regime?.replace(/_/g, " ") ?? "—",
+        outcome: r.correct_t5
+          ? "correct"
+          : r.actual_direction_t5 === "NEUTRAL"
+            ? "neutral"
+            : "incorrect",
+        return_pct: Number(r.log_return_t5_bps ?? 0),
+      }));
+  }
+
+  // Fallback: plain validation_log without join
+  const { data: fallback, error: fallbackErr } = await supabase
+    .from("validation_log")
+    .select("*")
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (fallbackErr || !fallback) return [];
+
+  return (fallback as ValidationLogRow[])
     .filter((r) => r.correct_t5 !== null)
     .map((r) => ({
       date: r.date,
@@ -1281,7 +1305,7 @@ export async function getValidationByVersion(
     return rows.map((r) => ({
       date: r.date,
       pair: r.pair,
-      predicted: r.actual_direction_t5 ?? r.actual_direction ?? null,
+      predicted: null,
       confidence: r.confidence,
       t5Outcome: r.correct_t5
         ? "CORRECT"

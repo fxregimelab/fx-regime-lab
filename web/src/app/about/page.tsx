@@ -137,10 +137,12 @@ async function TrackRecordHighlights() {
   const daysCount = distinctDates.size;
 
   const statsT5 = await getValidationStats(supabase, "t5", "live");
+  const allRow = statsT5.find((s) => s.pair === "ALL");
   const rolling90dAcc =
-    statsT5.length > 0 && !statsT5.every((s) => s.rolling90dAccuracy == null)
-      ? statsT5.reduce((sum, s) => sum + (s.rolling90dAccuracy ?? 0), 0) /
-        statsT5.length
+    allRow?.rolling90dAccuracy != null
+      ? allRow.rolling90dAccuracy > 1
+        ? allRow.rolling90dAccuracy / 100
+        : allRow.rolling90dAccuracy
       : null;
 
   const stats = [
@@ -158,9 +160,7 @@ async function TrackRecordHighlights() {
     },
     {
       value:
-        rolling90dAcc != null
-          ? `${(rolling90dAcc * 100).toFixed(1)}%`
-          : "— (insufficient data)",
+        rolling90dAcc != null ? `${(rolling90dAcc * 100).toFixed(1)}%` : "—",
       label: "Rolling 90-day accuracy",
     },
   ];
@@ -309,8 +309,8 @@ function ContactConnect() {
     {
       icon: Mail,
       label: "Email",
-      href: "mailto:shreyash@fxregimelab.com",
-      display: "shreyash@fxregimelab.com",
+      href: "mailto:desk@fxregimelab.com",
+      display: "desk@fxregimelab.com",
     },
     {
       icon: Link2,

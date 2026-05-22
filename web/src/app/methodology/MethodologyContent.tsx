@@ -334,10 +334,11 @@ export default function MethodologyContent() {
                 Conviction score.
               </strong>{" "}
               Base conviction is anchored to the composite magnitude, then
-              scaled by <Mono>m_π</Mono> and mapped to a probability{" "}
-              <Mono>0.0–1.0</Mono>:
+              scaled by <Mono>m_π</Mono>. The raw score is an integer{" "}
+              <Mono>1–5</Mono> which is then divided by 5 and stored as a
+              probability <Mono>0.0–1.0</Mono>:
             </Body>
-            <KatexMath latex="C = \text{round}\Big( \max(1, \min(5, \; (3 + \text{clip}(S, -2, 2)) \cdot m_{\pi} \;)) \Big)" />
+            <KatexMath latex="C = \frac{1}{5} \cdot \text{round}\Big( \max(1, \min(5, \; (3 + \text{clip}(S, -2, 2)) \cdot m_{\pi} \;)) \Big)" />
             <Body>
               Direction logic: if the composite is materially non-zero{" "}
               <Mono>(|S| &gt; 0.30)</Mono>, composite drives the bias; otherwise

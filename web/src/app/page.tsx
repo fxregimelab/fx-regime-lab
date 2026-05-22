@@ -250,7 +250,7 @@ function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
       <div className="flex animate-ticker-marquee hover:[animation-play-state:paused]">
         {items.map((item) => (
           <div
-            key={`a-${item.outcomeLabel}`}
+            key={`a-${item.date}-${item.pair}`}
             className="inline-flex items-center"
           >
             <Item item={item} />
@@ -261,7 +261,7 @@ function ValidationTicker({ rows }: { rows: ValidationRow[] }) {
         ))}
         {items.map((item) => (
           <div
-            key={`b-${item.outcomeLabel}`}
+            key={`b-${item.date}-${item.pair}`}
             className="inline-flex items-center"
           >
             <Item item={item} />
@@ -294,7 +294,7 @@ function SnapshotCard({
   pairColor: string;
   spot: string;
   regime: string;
-  confidence: number;
+  confidence: number | null;
   date?: string;
   delay: number;
 }) {
@@ -341,18 +341,25 @@ function SnapshotCard({
             Confidence
           </span>
           <span className="font-mono text-[13px] text-[var(--color-text-secondary)] font-medium">
-            {Math.min(
-              100,
-              Math.max(0, Math.round((normalizeProp(confidence) ?? 0) * 100)),
-            )}
-            %
+            {confidence != null
+              ? `${Math.min(
+                  100,
+                  Math.max(
+                    0,
+                    Math.round((normalizeProp(confidence) ?? 0) * 100),
+                  ),
+                )}%`
+              : "—"}
           </span>
         </div>
         <div className="h-[3px] bg-[var(--color-border)] overflow-hidden">
           <div
-            className="h-full bg-[var(--color-accent)] transition-all duration-1000 ease-out"
+            className={`h-full transition-all duration-1000 ease-out ${confidence != null ? "bg-[var(--color-accent)]" : "bg-[var(--color-text-dim)]"}`}
             style={{
-              width: `${Math.min(100, Math.max(0, (normalizeProp(confidence) ?? 0) * 100))}%`,
+              width:
+                confidence != null
+                  ? `${Math.min(100, Math.max(0, (normalizeProp(confidence) ?? 0) * 100))}%`
+                  : "0%",
             }}
           />
         </div>
@@ -408,7 +415,7 @@ function LiveSnapshot({
                   pairColor={pair.pairColor}
                   spot={signal?.spot?.toFixed(4) ?? "—"}
                   regime={(call?.regime ?? "—").replace(/_/g, " ")}
-                  confidence={call?.confidence ?? 0}
+                  confidence={call?.confidence ?? null}
                   date={call?.date ?? undefined}
                   delay={(i + 1) * 100}
                 />
