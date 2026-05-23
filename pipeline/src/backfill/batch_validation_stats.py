@@ -156,8 +156,7 @@ def _load_validation_rows() -> list[dict[str, Any]]:
     result = conn.run(
         "SELECT pair, predicted_direction, confidence, date, "
         "actual_direction_t5, log_return_t5_bps, correct_t5, brier_score_t5, "
-        "actual_direction_t20, log_return_t20_bps, correct_t20, brier_score_t20, "
-        "strategy_version "
+        "actual_direction_t20, log_return_t20_bps, correct_t20, brier_score_t20 "
         "FROM validation_log WHERE is_superseded = FALSE"
     )
     rows: list[dict[str, Any]] = []
@@ -175,7 +174,7 @@ def _load_validation_rows() -> list[dict[str, Any]]:
             "log_return_t20_bps": r[9],
             "correct_t20": r[10],
             "brier_score_t20": r[11],
-            "strategy_version": r[12] or "v2",
+            "strategy_version": "v2",
         })
     conn.close()
     logger.info("Loaded %d validation rows", len(rows))
@@ -192,7 +191,6 @@ def _stats_to_payload(
     base: dict[str, Any] = {
         "as_of_date": as_of.isoformat(),
         "pair": pair,
-        "strategy_version": strategy_version,
         "computed_at": date.today().isoformat(),
     }
     for horizon, h in (("t5", t5), ("t20", t20)):
@@ -271,7 +269,7 @@ def run_batch_stats() -> None:
     t20_all = _compute_horizon(
         all_rows, "T+20", "brier_score_t20", "correct_t20", "log_return_t20_bps"
     )
-    stats_rows.append(_stats_to_payload("ALL", as_of, t5_all, t20_all))
+    stats_rows.append(_stats_to_payload("ALL", "v2", as_of, t5_all, t20_all))
     logger.info(
         "ALL: T+5 win_rate=%s brier=%s | T+20 win_rate=%s brier=%s",
         t5_all["win_rate"], t5_all["mean_brier"], t20_all["win_rate"], t20_all["mean_brier"]
