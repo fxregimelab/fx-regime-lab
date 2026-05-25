@@ -420,7 +420,7 @@ export async function getValidationLogT5T20(
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
     predicted: r.call_id != null ? (predictedMap.get(r.call_id) ?? "—") : "—",
     t5ReturnBps: r.log_return_t5_bps,
-    t5ReturnNetBps: (r as any).log_return_net_bps_t5 ?? null,
+    t5ReturnNetBps: (r as ValidationLogRow & { log_return_net_bps_t5: number | null }).log_return_net_bps_t5 ?? null,
     t5Outcome: r.correct_t5
       ? "CORRECT"
       : r.actual_direction_t5 === "NEUTRAL"
@@ -428,11 +428,11 @@ export async function getValidationLogT5T20(
         : r.actual_direction_t5 != null
           ? "WRONG"
           : "—",
-    t5CorrectNet: (r as any).correct_net_t5 ?? null,
-    t5CostBps: (r as any).cost_bps_t5 ?? null,
+    t5CorrectNet: (r as ValidationLogRow & { correct_net_t5: boolean | null }).correct_net_t5 ?? null,
+    t5CostBps: (r as ValidationLogRow & { cost_bps_t5: number | null }).cost_bps_t5 ?? null,
     t5Brier: r.brier_score_t5,
     t20ReturnBps: r.log_return_t20_bps,
-    t20ReturnNetBps: (r as any).log_return_net_bps_t20 ?? null,
+    t20ReturnNetBps: (r as ValidationLogRow & { log_return_net_bps_t20: number | null }).log_return_net_bps_t20 ?? null,
     t20Outcome: r.correct_t20
       ? "CORRECT"
       : r.actual_direction_t20 === "NEUTRAL"
@@ -440,8 +440,8 @@ export async function getValidationLogT5T20(
         : r.actual_direction_t20 != null
           ? "WRONG"
           : "—",
-    t20CorrectNet: (r as any).correct_net_t20 ?? null,
-    t20CostBps: (r as any).cost_bps_t20 ?? null,
+    t20CorrectNet: (r as ValidationLogRow & { correct_net_t20: boolean | null }).correct_net_t20 ?? null,
+    t20CostBps: (r as ValidationLogRow & { cost_bps_t20: number | null }).cost_bps_t20 ?? null,
     t20Brier: r.brier_score_t20,
   }));
 }
@@ -581,7 +581,7 @@ export async function getValidationLogForPair(
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
     predicted: r.call_id != null ? (predictedMap.get(r.call_id) ?? "—") : "—",
     t5ReturnBps: r.log_return_t5_bps,
-    t5ReturnNetBps: (r as any).log_return_net_bps_t5 ?? null,
+    t5ReturnNetBps: (r as ValidationLogRow & { log_return_net_bps_t5: number | null }).log_return_net_bps_t5 ?? null,
     t5Outcome: r.correct_t5
       ? "CORRECT"
       : r.actual_direction_t5 === "NEUTRAL"
@@ -589,11 +589,11 @@ export async function getValidationLogForPair(
         : r.actual_direction_t5 != null
           ? "WRONG"
           : "—",
-    t5CorrectNet: (r as any).correct_net_t5 ?? null,
-    t5CostBps: (r as any).cost_bps_t5 ?? null,
+    t5CorrectNet: (r as ValidationLogRow & { correct_net_t5: boolean | null }).correct_net_t5 ?? null,
+    t5CostBps: (r as ValidationLogRow & { cost_bps_t5: number | null }).cost_bps_t5 ?? null,
     t5Brier: r.brier_score_t5,
     t20ReturnBps: r.log_return_t20_bps,
-    t20ReturnNetBps: (r as any).log_return_net_bps_t20 ?? null,
+    t20ReturnNetBps: (r as ValidationLogRow & { log_return_net_bps_t20: number | null }).log_return_net_bps_t20 ?? null,
     t20Outcome: r.correct_t20
       ? "CORRECT"
       : r.actual_direction_t20 === "NEUTRAL"
@@ -601,8 +601,8 @@ export async function getValidationLogForPair(
         : r.actual_direction_t20 != null
           ? "WRONG"
           : "—",
-    t20CorrectNet: (r as any).correct_net_t20 ?? null,
-    t20CostBps: (r as any).cost_bps_t20 ?? null,
+    t20CorrectNet: (r as ValidationLogRow & { correct_net_t20: boolean | null }).correct_net_t20 ?? null,
+    t20CostBps: (r as ValidationLogRow & { cost_bps_t20: number | null }).cost_bps_t20 ?? null,
     t20Brier: r.brier_score_t20,
   }));
 }
@@ -1167,19 +1167,16 @@ export async function getBacktestVersions(
   supabase: TypedSupabaseClient,
 ): Promise<string[]> {
   const { data, error } = await supabase
-    .from("regime_calls")
-    .select("model_version")
-    .not("model_version", "is", null)
-    .order("model_version", { ascending: false });
+    .from("backtest_versions" as any)
+    .select("version")
+    .eq("is_public", true)
+    .order("version", { ascending: false });
 
-  if (error || !data) return [];
-  const rows = data as Array<{ model_version: string | null }>;
-  const versions = [
-    ...new Set(
-      rows.map((r) => r.model_version).filter((v): v is string => v != null),
-    ),
-  ];
-  return versions.length > 0 ? versions : ["v3"];
+  if (error || !data) return ["v2"];
+  const versions = (data as Array<{ version: string | null }>)
+    .map((r) => r.version)
+    .filter((v): v is string => v != null);
+  return versions.length > 0 ? versions : ["v2"];
 }
 
 export interface VersionedRegimeCall {
@@ -1260,11 +1257,12 @@ export interface SimulationResult {
 
 export async function getSimulationResults(
   supabase: TypedSupabaseClient,
-  _version: string,
+  version: string,
 ): Promise<SimulationResult[]> {
   const { data, error } = await supabase
     .from("simulation_results")
     .select("pair, simulation_params, max_drawdown_pct")
+    .eq("strategy_version", version)
     .limit(100);
 
   if (error || !data) return [];

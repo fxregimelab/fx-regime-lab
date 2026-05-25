@@ -50,6 +50,7 @@ class HorizonStats:
     net_win_rate: float | None
     net_win_rate_ci_lower: float | None
     net_win_rate_ci_upper: float | None
+    cost_bps: float | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,6 +165,11 @@ def _compute_horizon(
     net_win_rate = net_wins / directional_calls if directional_calls > 0 else None
     net_ci_lower, net_ci_upper = _clopper_pearson_ci(net_wins, directional_calls)
 
+    # Average cost bps
+    cost_key = correct_key.replace("correct", "cost_bps")
+    costs = [float(r[cost_key]) for r in directional if r.get(cost_key) is not None]
+    avg_cost = _mean(costs) if costs else None
+
     briers = [
         float(r[brier_key])
         for r in directional
@@ -238,6 +244,7 @@ def _compute_horizon(
         net_win_rate=round(net_win_rate, 6) if net_win_rate is not None else None,
         net_win_rate_ci_lower=round(net_ci_lower, 6) if net_ci_lower is not None else None,
         net_win_rate_ci_upper=round(net_ci_upper, 6) if net_ci_upper is not None else None,
+        cost_bps=round(avg_cost, 6) if avg_cost is not None else None,
     )
 
 
@@ -320,6 +327,12 @@ def _stats_to_payload(stats: AggregateStats) -> dict[str, Any]:
         base[f"{prefix}max_drawdown_bps"] = h.max_drawdown_bps
         base[f"{prefix}calibration_json"] = h.calibration_json
         base[f"{prefix}rolling_90d_accuracy"] = h.rolling_90d_accuracy
+        base[f"{prefix}win_rate_ci_lower"] = h.win_rate_ci_lower
+        base[f"{prefix}win_rate_ci_upper"] = h.win_rate_ci_upper
+        base[f"{prefix}net_win_rate"] = h.net_win_rate
+        base[f"{prefix}net_win_rate_ci_lower"] = h.net_win_rate_ci_lower
+        base[f"{prefix}net_win_rate_ci_upper"] = h.net_win_rate_ci_upper
+        base[f"{prefix}cost_bps"] = h.cost_bps
     return base
 
 

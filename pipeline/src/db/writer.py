@@ -1265,7 +1265,9 @@ def get_validation_log_for_stats(
     modern_select = (
         "pair,predicted_direction,confidence,date,"
         "actual_direction_t5,log_return_t5_bps,correct_t5,brier_score_t5,"
-        "actual_direction_t20,log_return_t20_bps,correct_t20,brier_score_t20"
+        "correct_net_t5,cost_bps_t5,"
+        "actual_direction_t20,log_return_t20_bps,correct_t20,brier_score_t20,"
+        "correct_net_t20,cost_bps_t20"
     )
     legacy_select = (
         "pair,predicted_direction,confidence,date,"

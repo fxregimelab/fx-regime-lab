@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
+
 export function VersionSelector({
   versions,
   selectedVersion,
@@ -7,14 +9,17 @@ export function VersionSelector({
   versions: string[];
   selectedVersion: string;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   return (
     <select
       className="bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] text-[12px] px-3 py-1.5 rounded-md cursor-pointer"
       value={selectedVersion}
       onChange={(e) => {
-        const url = new URL(window.location.href);
-        url.searchParams.set("version", e.target.value);
-        window.location.href = url.toString();
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("version", e.target.value);
+        router.push(`/track-record?${params.toString()}`);
       }}
     >
       {versions.map((v) => (

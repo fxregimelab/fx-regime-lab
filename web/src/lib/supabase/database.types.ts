@@ -66,6 +66,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      backtest_versions: {
+        Row: {
+          version: string;
+          name: string | null;
+          description: string | null;
+          date_range_start: string | null;
+          date_range_end: string | null;
+          total_calls: number | null;
+          is_public: boolean | null;
+          methodology_summary: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          version: string;
+          name?: string | null;
+          description?: string | null;
+          date_range_start?: string | null;
+          date_range_end?: string | null;
+          total_calls?: number | null;
+          is_public?: boolean | null;
+          methodology_summary?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          version?: string;
+          name?: string | null;
+          description?: string | null;
+          date_range_start?: string | null;
+          date_range_end?: string | null;
+          total_calls?: number | null;
+          is_public?: boolean | null;
+          methodology_summary?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
       audit_log: {
         Row: {
           correlation_id: string | null;
@@ -1561,8 +1597,14 @@ export type Database = {
           log_return_t20_bps: number | null;
           log_return_t5_bps: number | null;
           log_return_net_bps: number | null;
+          log_return_net_bps_t5: number | null;
+          log_return_net_bps_t20: number | null;
           correct_net: boolean | null;
+          correct_net_t5: boolean | null;
+          correct_net_t20: boolean | null;
           cost_bps: number | null;
+          cost_bps_t5: number | null;
+          cost_bps_t20: number | null;
           pair: string;
         };
         Insert: {
@@ -1590,8 +1632,14 @@ export type Database = {
           log_return_t20_bps?: number | null;
           log_return_t5_bps?: number | null;
           log_return_net_bps?: number | null;
+          log_return_net_bps_t5?: number | null;
+          log_return_net_bps_t20?: number | null;
           correct_net?: boolean | null;
+          correct_net_t5?: boolean | null;
+          correct_net_t20?: boolean | null;
           cost_bps?: number | null;
+          cost_bps_t5?: number | null;
+          cost_bps_t20?: number | null;
           pair: string;
         };
         Update: {
@@ -1619,8 +1667,14 @@ export type Database = {
           log_return_t20_bps?: number | null;
           log_return_t5_bps?: number | null;
           log_return_net_bps?: number | null;
+          log_return_net_bps_t5?: number | null;
+          log_return_net_bps_t20?: number | null;
           correct_net?: boolean | null;
+          correct_net_t5?: boolean | null;
+          correct_net_t20?: boolean | null;
           cost_bps?: number | null;
+          cost_bps_t5?: number | null;
+          cost_bps_t20?: number | null;
           pair?: string;
         };
         Relationships: [

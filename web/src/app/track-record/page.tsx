@@ -99,6 +99,34 @@ function computeStatsFromLog(
     sharpeLike = variance > 0 ? mean / Math.sqrt(variance) : null;
   }
 
+  // Net metrics from validation log rows
+  const netOutcomeKey = horizon === "t5" ? "t5CorrectNet" : "t20CorrectNet";
+  const costKey = horizon === "t5" ? "t5CostBps" : "t20CostBps";
+  const netReturnKey = horizon === "t5" ? "t5ReturnNetBps" : "t20ReturnNetBps";
+
+  const netValid = filtered.filter(
+    (r) =>
+      r[netOutcomeKey as keyof ValidationRowT5] === true ||
+      r[netOutcomeKey as keyof ValidationRowT5] === false,
+  );
+  const netWins = netValid.filter(
+    (r) => r[netOutcomeKey as keyof ValidationRowT5] === true,
+  ).length;
+  const netWinRate = netValid.length > 0 ? netWins / netValid.length : null;
+
+  const costs = filtered
+    .map((r) => r[costKey as keyof ValidationRowT5] as number | null)
+    .filter((v): v is number => v != null);
+  const avgCostBps = costs.length > 0 ? costs.reduce((s, v) => s + v, 0) / costs.length : null;
+
+  const netReturns = filtered
+    .map((r) => r[netReturnKey as keyof ValidationRowT5] as number | null)
+    .filter((v): v is number => v != null);
+  const avgNetReturnBps =
+    netReturns.length > 0
+      ? netReturns.reduce((s, v) => s + v, 0) / netReturns.length
+      : null;
+
   const sortedDates = [...filtered.map((r) => r.date)].sort();
   const latestDate =
     sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : "";
@@ -118,13 +146,13 @@ function computeStatsFromLog(
     horizon,
     winRate,
     winRateCI: null,
-    netWinRate: null,
+    netWinRate,
     netWinRateCI: null,
-    costBps: null,
+    costBps: avgCostBps,
     wins,
     brierScore,
     sampleSize,
-    avgReturnBps,
+    avgReturnBps: avgNetReturnBps ?? avgReturnBps,
     sharpeLike,
     rolling90dAccuracy,
     asOfDate: latestDate,
@@ -893,7 +921,7 @@ function BacktestedTabContent({
         </>
       )}
 
-      {simulationResults.length > 0 && (
+      {simulationResults.length > 0 ? (
         <div className="border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden mb-8">
           <div className="px-5 py-3 border-b border-[var(--color-border)]">
             <p className="font-mono text-[10px] tracking-wider text-[var(--color-text-muted)]">
@@ -932,6 +960,15 @@ function BacktestedTabContent({
               </tbody>
             </table>
           </div>
+        </div>
+      ) : (
+        <div className="border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-12 text-center mb-8">
+          <p className="font-mono text-[11px] text-[var(--color-text-muted)] tracking-wider mb-2">
+            NO SIMULATION DATA
+          </p>
+          <p className="font-sans text-[13px] text-[var(--color-text-secondary)]">
+            Backtest simulation results for version {selectedVersion} are not yet available.
+          </p>
         </div>
       )}
     </div>
