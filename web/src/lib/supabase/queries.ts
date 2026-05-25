@@ -377,7 +377,7 @@ export async function getValidationLogT5T20(
 ): Promise<ValidationRowT5[]> {
   let q = supabase
     .from("validation_log")
-    .select("date, pair, call_id, predicted_direction, log_return_t5_bps, log_return_net_bps_t5, correct_t5, correct_net_t5, cost_bps_t5, brier_score_t5, log_return_t20_bps, log_return_net_bps_t20, correct_t20, correct_net_t20, cost_bps_t20, brier_score_t20, actual_direction_t5, actual_direction_t20")
+    .select("*")
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
     .limit(limit);
@@ -541,7 +541,7 @@ export async function getValidationLogForPair(
   // Fetch validation_log rows
   const { data: valData, error: valError } = await supabase
     .from("validation_log")
-    .select("date, pair, call_id, predicted_direction, log_return_t5_bps, log_return_net_bps, correct_t5, correct_net, cost_bps, brier_score_t5, log_return_t20_bps, log_return_net_bps_t20, correct_t20, correct_net_t20, cost_bps_t20, brier_score_t20, actual_direction_t5, actual_direction_t20")
+    .select("*")
     .eq("pair", code)
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
