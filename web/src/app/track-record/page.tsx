@@ -1054,8 +1054,9 @@ function RegimeValidationTabContent({
 export default async function TrackRecordPage({
   searchParams,
 }: {
-  searchParams: { version?: string };
+  searchParams: Promise<{ version?: string }>;
 }) {
+  const params = await searchParams;
   const supabase = await createClient();
 
   // Live data
@@ -1076,7 +1077,7 @@ export default async function TrackRecordPage({
 
   // Backtest data
   const versions = await getBacktestVersions(supabase);
-  const selectedVersion = searchParams.version ?? versions[0] ?? "v3";
+  const selectedVersion = params.version ?? versions[0] ?? "v3";
   const [
     versionedCalls,
     versionedBreakdown,
