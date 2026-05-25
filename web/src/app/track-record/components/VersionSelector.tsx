@@ -17,7 +17,7 @@ export function VersionSelector({
       className="bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] text-[12px] px-3 py-1.5 rounded-md cursor-pointer"
       value={selectedVersion}
       onChange={(e) => {
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams(searchParams?.toString() ?? "");
         params.set("version", e.target.value);
         router.push(`/track-record?${params.toString()}`);
       }}

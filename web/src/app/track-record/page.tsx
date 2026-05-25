@@ -1091,9 +1091,9 @@ function RegimeValidationTabContent({
 export default async function TrackRecordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ version?: string }> | null;
+  searchParams: Promise<{ version?: string }>;
 }) {
-  const params = await (searchParams ?? Promise.resolve({} as { version?: string }));
+  const params = await searchParams;
   const supabase = await createClient();
 
   // Live data
