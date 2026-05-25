@@ -66,7 +66,8 @@ def realized_vol21_series_annualized_pct(closes: np.ndarray) -> np.ndarray:
         seg = lr[j - 21 : j]
         if seg.size != 21:
             continue
-        out[j] = float(np.std(seg, ddof=0) * np.sqrt(252.0) * 100.0)
+        # v2.1: Use sample standard deviation (Bessel's correction)
+        out[j] = float(np.std(seg, ddof=1) * np.sqrt(252.0) * 100.0)
     return out
 
 

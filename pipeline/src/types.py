@@ -197,6 +197,8 @@ class SignalRow:
     realized_vol_rank: float | None = None
     skew_alignment: int | None = None
     risk_reversal_25d: float | None = None
+    risk_reversal_source: str = "PENDING_REAL_DATA"
+    days_since_cot: int = 0
     fpi_flow: float | None = None
     cot_net_pos: int | None = None
     cot_asset_mgr_net: int | None = None
@@ -206,6 +208,7 @@ class SignalRow:
     boj_policy_rate: float | None = None
     india_vix: float | None = None
     inr_forward_premium: float | None = None
+    data_quality_notes: list[str] | None = None
 
     @property
     def breakeven_inflation(self) -> float | None:
@@ -303,6 +306,8 @@ class RegimeCall:
     rr_signal: str | None = None
     special_signal_value: float | None = None
     special_signal_label: str | None = None
+    # Regime categorization for UI filtering
+    regime_category: str | None = None
     # Backfill tracking
     model_version: str | None = None
     strategy_version: str = "v2"

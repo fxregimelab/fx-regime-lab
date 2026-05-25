@@ -143,7 +143,11 @@ from src.monitoring.alerts import (
     alert_on_low_dqs,
     send_success_heartbeat,
 )
-from src.regime.classifier import VOL_EXPANDING_SUFFIX, classify_regime_layer1
+from src.regime.classifier import (
+    VOL_EXPANDING_SUFFIX,
+    classify_regime_layer1,
+    get_regime_category,
+)
 from src.regime.composite import (
     TRADING_DAYS_3Y,
     _redundancy_penalty,
@@ -679,6 +683,11 @@ def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
             if row.get("special_signal_label")
             else None
         ),
+        regime_category=(
+            str(row.get("regime_category"))
+            if row.get("regime_category")
+            else None
+        ),
         model_version=str(row.get("model_version")) if row.get("model_version") else None,
     )
 
@@ -1118,6 +1127,8 @@ async def run_daily(
         cot_asset_mgr_net = latest_cot.asset_mgr_net if latest_cot else None
         cot_lev_money_net = latest_cot.lev_money_net if latest_cot else None
 
+        days_since_cot = (today_bar.date - latest_cot.date).days if latest_cot else 999
+
         rv = vol_data.get(pair, {})
         rv5 = rv.get("realized_vol_5d")
         rv20 = rv.get("realized_vol_20d")
@@ -1373,10 +1384,11 @@ async def run_daily(
         day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
 
         # ── Risk reversal proxy (all pairs) ─────────────────────────────────
+        # v2.1: Synthetic RR proxy removed. Real 25Δ risk reversal data is being sourced.
+        # Layer 3 operates without RR until real data is available.
         rr_proxy = None
-        if rv20 is not None and day_change != 0:
-            rr_proxy = rv20 * 0.3 * (1.0 if day_change > 0 else -1.0)
-        rr_series = tuple(historical_rr + ([rr_proxy] if rr_proxy is not None else []))
+        rr_source = "PENDING_REAL_DATA"
+        rr_series = tuple(historical_rr)
 
         rv_rank_layer3 = compute_realized_vol_rank_from_closes(
             tuple(float(b.close) for b in spot_bars),
@@ -1444,6 +1456,8 @@ async def run_daily(
             realized_vol_rank=layer3_out["realized_vol_rank"],
             skew_alignment=layer3_out["skew_alignment"],
             risk_reversal_25d=rr_proxy,
+            risk_reversal_source=rr_source,
+            days_since_cot=days_since_cot,
             fpi_flow=fpi_raw.get("fpi_total_net_cr") if fpi_raw else None,
             cot_net_pos=cot_net_pos,
             cot_asset_mgr_net=cot_asset_mgr_net,
@@ -1510,6 +1524,7 @@ async def run_daily(
             rr_signal=rr_label,
             special_signal_value=special_signal,
             special_signal_label=special_label,
+            regime_category=get_regime_category(regime),
             model_version="2.0-live",
         )
         if stress_red:
@@ -1914,6 +1929,20 @@ async def run_daily(
                 f"Dollar dominance: {dollar_pct:.1f}%. "
                 f"Idiosyncratic outlier: {outlier_pair or 'none'}."
             )
+    # Build deterministic structured summary for UI consumption
+    structured_summary: dict[str, Any] = {
+        "key_takeaways": [
+            f"Dollar dominance: {dollar_pct:.0f}%",
+            f"Idiosyncratic outlier: {outlier_pair or 'none'}",
+            f"Active pairs: {', '.join(pair_regimes.keys())}",
+        ],
+        "risk_flags": ["RED STRESS"] if stress_red else [],
+        "dollar_dominance_score": round(dollar_pct, 1),
+        "idiosyncratic_outlier": outlier_pair,
+        "pair_regimes": pair_regimes,
+        "stress_red": stress_red,
+    }
+
     writer.write_brief_log(
         date_str,
         global_summary,
@@ -1922,6 +1951,7 @@ async def run_daily(
         idiosyncratic_outlier=outlier_pair,
         sentiment_json=sentiment_json,
         pair_regimes=pair_regimes,
+        structured_summary=structured_summary,
     )
 
     # Populate macro event briefs for the next 3 days immediately

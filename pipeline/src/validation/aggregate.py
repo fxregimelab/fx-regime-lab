@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
+from scipy.stats import beta as beta_dist
 from src.db import writer
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,11 @@ class HorizonStats:
     max_drawdown_bps: float | None
     calibration_json: str
     rolling_90d_accuracy: float | None
+    win_rate_ci_lower: float | None
+    win_rate_ci_upper: float | None
+    net_win_rate: float | None
+    net_win_rate_ci_lower: float | None
+    net_win_rate_ci_upper: float | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +127,15 @@ def _calibration_buckets(
     return {"buckets": buckets}
 
 
+def _clopper_pearson_ci(wins: int, n: int, alpha: float = 0.05) -> tuple[float | None, float | None]:
+    """Exact confidence interval for binomial proportion."""
+    if n == 0:
+        return None, None
+    lower = float(beta_dist.ppf(alpha / 2, wins, n - wins + 1)) if wins > 0 else 0.0
+    upper = float(beta_dist.ppf(1 - alpha / 2, wins + 1, n - wins)) if wins < n else 1.0
+    return (lower, upper)
+
+
 def _compute_horizon(
     rows: list[dict[str, Any]],
     horizon: str,
@@ -139,6 +154,15 @@ def _compute_horizon(
     directional_calls = len(directional)
     wins = sum(1 for r in directional if r.get(correct_key) is True)
     win_rate = wins / directional_calls if directional_calls > 0 else None
+
+    # Gross CI
+    win_rate_ci_lower, win_rate_ci_upper = _clopper_pearson_ci(wins, directional_calls)
+
+    # Net wins
+    net_correct_key = correct_key.replace("correct", "correct_net")
+    net_wins = sum(1 for r in directional if r.get(net_correct_key) is True)
+    net_win_rate = net_wins / directional_calls if directional_calls > 0 else None
+    net_ci_lower, net_ci_upper = _clopper_pearson_ci(net_wins, directional_calls)
 
     briers = [
         float(r[brier_key])
@@ -201,6 +225,8 @@ def _compute_horizon(
         directional_calls=directional_calls,
         wins=wins,
         win_rate=round(win_rate, 6) if win_rate is not None else None,
+        win_rate_ci_lower=round(win_rate_ci_lower, 6) if win_rate_ci_lower is not None else None,
+        win_rate_ci_upper=round(win_rate_ci_upper, 6) if win_rate_ci_upper is not None else None,
         mean_brier=round(mean_brier, 6) if mean_brier is not None else None,
         brier_skill=round(brier_skill, 6) if brier_skill is not None else None,
         mean_log_return_bps=round(mean_ret, 6) if mean_ret is not None else None,
@@ -209,6 +235,9 @@ def _compute_horizon(
         max_drawdown_bps=round(mdd, 6) if mdd is not None else None,
         calibration_json=json.dumps(calib),
         rolling_90d_accuracy=round(rolling_90d_acc, 6) if rolling_90d_acc is not None else None,
+        net_win_rate=round(net_win_rate, 6) if net_win_rate is not None else None,
+        net_win_rate_ci_lower=round(net_ci_lower, 6) if net_ci_lower is not None else None,
+        net_win_rate_ci_upper=round(net_ci_upper, 6) if net_ci_upper is not None else None,
     )
 
 

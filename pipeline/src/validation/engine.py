@@ -11,6 +11,17 @@ from src.validation.calendar import add_trading_days
 
 logger = logging.getLogger(__name__)
 
+# v2.1: Transaction cost assumptions for realistic performance reporting
+COST_BPS_ROUND_TRIP = {
+    "EURUSD": 0.2,   # 0.1 bps each way
+    "USDJPY": 0.3,
+    "GBPUSD": 0.3,
+    "AUDUSD": 0.4,
+    "USDCAD": 0.4,
+    "USDCHF": 0.4,
+    "USDINR": 10.0,  # EM spread
+}
+
 
 def log_return_bps(s0: float, sh: float) -> float:
     """Log-return in basis points: 10_000 * ln(sh / s0)."""
@@ -57,24 +68,35 @@ def _compute_horizon(
     sh_row: dict[str, Any] | None,
     predicted: str,
     confidence: float,
+    pair: str,
 ) -> dict[str, Any] | None:
-    """Compute validation metrics for a single horizon.
-
-    Returns a dict with log_return_bps, realized_direction, is_correct,
-    and brier_score, or None if spot data is missing.
-    """
+    """Compute validation metrics including cost-adjusted returns."""
     if sh_row is None or sh_row.get("spot") is None:
         return None
+    
     sh = float(sh_row["spot"])
-    bps = log_return_bps(s0, sh)
-    realized = realized_direction(bps)
-    correct = is_correct(predicted, realized)
-    brier = brier_score(confidence, correct)
+    bps_gross = log_return_bps(s0, sh)
+    
+    # v2.1: Cost-adjusted metrics
+    cost_bps = COST_BPS_ROUND_TRIP.get(pair, 0.5)
+    bps_net = bps_gross - cost_bps
+    
+    realized_gross = realized_direction(bps_gross)
+    realized_net = realized_direction(bps_net)
+    
+    correct_gross = is_correct(predicted, realized_gross)
+    correct_net = is_correct(predicted, realized_net)
+    
+    brier = brier_score(confidence, correct_gross)  # Brier on gross (existing)
+    
     return {
-        "log_return_bps": bps,
-        "realized_direction": realized,
-        "correct": correct,
+        "log_return_bps": bps_gross,
+        "log_return_net_bps": bps_net,
+        "realized_direction": realized_gross,
+        "correct": correct_gross,
+        "correct_net": correct_net,
         "brier_score": brier,
+        "cost_bps": cost_bps,
     }
 
 
@@ -152,7 +174,7 @@ def run_validation(as_of_date: date | None = None) -> None:
                         payload[key] = existing[key]
             else:
                 sh_row = writer.get_signal_for_pair_date(pair, t5_date.isoformat())
-                t5_stats = _compute_horizon(s0, sh_row, predicted, confidence)
+                t5_stats = _compute_horizon(s0, sh_row, predicted, confidence, pair)
                 if t5_stats is not None:
                     payload["log_return_t5_bps"] = t5_stats["log_return_bps"]
                     payload["correct_t5"] = t5_stats["correct"]
@@ -162,6 +184,9 @@ def run_validation(as_of_date: date | None = None) -> None:
                     payload["actual_return_5d"] = t5_stats["log_return_bps"] / 10_000.0
                     payload["correct_5d"] = t5_stats["correct"]
                     payload["brier_5d"] = t5_stats["brier_score"]
+                    payload["log_return_net_bps_t5"] = t5_stats["log_return_net_bps"]
+                    payload["correct_net_t5"] = t5_stats["correct_net"]
+                    payload["cost_bps_t5"] = t5_stats["cost_bps"]
                 else:
                     logger.warning(
                         "Validation skip: missing T+5 spot for %s on %s",
@@ -187,7 +212,7 @@ def run_validation(as_of_date: date | None = None) -> None:
                             payload[key] = existing[key]
                 else:
                     sh_row = writer.get_signal_for_pair_date(pair, t20_date.isoformat())
-                    t20_stats = _compute_horizon(s0, sh_row, predicted, confidence)
+                    t20_stats = _compute_horizon(s0, sh_row, predicted, confidence, pair)
                     if t20_stats is not None:
                         payload["log_return_t20_bps"] = t20_stats["log_return_bps"]
                         payload["correct_t20"] = t20_stats["correct"]
@@ -197,6 +222,9 @@ def run_validation(as_of_date: date | None = None) -> None:
                         payload["actual_return_20d"] = t20_stats["log_return_bps"] / 10_000.0
                         payload["correct_20d"] = t20_stats["correct"]
                         payload["brier_20d"] = t20_stats["brier_score"]
+                        payload["log_return_net_bps_t20"] = t20_stats["log_return_net_bps"]
+                        payload["correct_net_t20"] = t20_stats["correct_net"]
+                        payload["cost_bps_t20"] = t20_stats["cost_bps"]
                     else:
                         logger.warning(
                             "Validation skip: missing T+20 spot for %s on %s",

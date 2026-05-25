@@ -113,6 +113,9 @@ def compute_special_signal(
 
     EURUSD accepts ``bund_btp_spread`` and ``ecb_balance_sheet`` as scalar
     overrides when history is unavailable.
+
+    Real special signals available for: EURUSD, USDJPY, USDINR.
+    GBPUSD returns None (pending data source).
     """
 
     key = normalize_fx_pair_key(pair)
@@ -120,7 +123,7 @@ def compute_special_signal(
         return None
 
     if key == "GBPUSD":
-        return 0.0
+        return None  # v2.1: No special signal available for GBP yet
 
     # --- EURUSD: fragmentation risk + ECB balance sheet expansion.
     if key == "EURUSD":

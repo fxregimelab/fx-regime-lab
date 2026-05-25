@@ -12,8 +12,9 @@ const config: NextConfig = {
     ];
   },
   webpack: (config) => {
-    config.cache = false;
     config.resolve.symlinks = false;
+    // Persistent cache breaks on Windows with EISDIR errors
+    config.cache = false;
     return config;
   },
 };

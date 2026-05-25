@@ -576,7 +576,7 @@ export default function MethodologyContent() {
               <Mono>(p − y)²</Mono> where <Mono>p</Mono> is the confidence and{" "}
               <Mono>y = 1</Mono> if correct, <Mono>0</Mono> otherwise. The
               random-guess baseline for three outcomes is <Mono>0.333</Mono>.
-              Brier skill is reported as{" "}
+              Brier score (heuristic confidence) is reported as{" "}
               <Mono>(baseline − mean) / baseline</Mono>.
             </Body>
 
@@ -668,7 +668,11 @@ export default function MethodologyContent() {
                     ["COT Positioning", "CFTC weekly", "—"],
                     ["Implied Vol", "Yahoo Finance (^EVZ, ^JYVIX)", "—"],
                     ["CME OI", "CME volume/OI CSV", "—"],
-                    ["Risk Reversal", "yfinance (FXE options)", "—"],
+                    [
+                      "Risk Reversal",
+                      "Pending real OTC data (synthetic proxy removed v2.1)",
+                      "—",
+                    ],
                     ["Macro Calendar", "Investing.com", "—"],
                   ].map(([sig, pri, fb]) => (
                     <tr
@@ -837,6 +841,61 @@ export default function MethodologyContent() {
                 read.
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Known Weaknesses ─────────────────────────────────────────── */}
+      <div className="reveal mb-12 mt-16 px-6 py-6 bg-[var(--color-surface)] border border-[var(--color-brand-amber)]/30">
+        <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-brand-amber)] uppercase mb-4">
+          Known Weaknesses
+        </p>
+        <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] mb-4">
+          We believe methodology pages should be honest about limitations, not
+          just strengths. Here is what is currently imperfect:
+        </p>
+        <div className="space-y-4">
+          <div>
+            <p className="font-sans font-semibold text-[14px] text-[var(--color-text)] mb-1">
+              Risk Reversal — Pending Real Data
+            </p>
+            <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.6]">
+              We do not yet have access to real 25-delta risk reversal data. Our
+              Layer 3 execution currently operates without skew information. We
+              are sourcing OTC options data for v3.0.
+            </p>
+          </div>
+          <div>
+            <p className="font-sans font-semibold text-[14px] text-[var(--color-text)] mb-1">
+              Signal Weights — Heuristic
+            </p>
+            <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.6]">
+              Weights are heuristic round numbers (e.g., Rate 45%, COT 25%)
+              based on macro intuition. They have not been walk-forward
+              optimized. v3.0 will replace these with ICIR-based dynamic
+              weights.
+            </p>
+          </div>
+          <div>
+            <p className="font-sans font-semibold text-[14px] text-[var(--color-text)] mb-1">
+              Confidence Scores — Uncalibrated
+            </p>
+            <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.6]">
+              Confidence is a heuristic consistency metric, not a calibrated
+              probability. A 70% confidence does NOT mean a 70% chance of being
+              correct. Proper isotonic calibration is under development for
+              v3.0.
+            </p>
+          </div>
+          <div>
+            <p className="font-sans font-semibold text-[14px] text-[var(--color-text)] mb-1">
+              Layer 1 Thresholds — Ad-Hoc
+            </p>
+            <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.6]">
+              Regime gate thresholds (e.g., Z &gt; 2.0, Δπ &gt; 0.12) were set
+              by inspection, not systematic optimization. v3.0 will replace
+              these with a Hidden Markov Model.
+            </p>
           </div>
         </div>
       </div>

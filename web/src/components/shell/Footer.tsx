@@ -5,14 +5,21 @@ import type React from "react";
 import { type FormEvent, useState } from "react";
 
 const NAV_LINKS = [
-  { label: "Terminal", href: "/terminal" },
+  { label: "Desk", href: "/desk" },
   { label: "Methodology", href: "/methodology" },
   { label: "Brief", href: "/brief" },
   { label: "Track Record", href: "/track-record" },
+  { label: "Limitations", href: "/limitations" },
+  { label: "Journey", href: "/journey" },
   { label: "About", href: "/about" },
 ];
 
-const TRANSPARENCY_LINKS = [{ label: "Methodology", href: "/methodology" }];
+const TRANSPARENCY_LINKS = [
+  { label: "Methodology", href: "/methodology" },
+  { label: "Track Record", href: "/track-record" },
+  { label: "Data Sources", href: "/about#data-sources" },
+  { label: "Legal", href: "/about#legal" },
+];
 
 export function Footer() {
   const [email, setEmail] = useState("");
@@ -109,6 +116,21 @@ export function Footer() {
           </div>
         </div>
 
+        {/* Disclaimer */}
+        <div className="mb-8 border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+          <p className="text-[0.6875rem] text-[var(--color-text-secondary)] leading-[1.6]">
+            <strong>Disclaimer:</strong> FX Regime Lab is experimental research
+            infrastructure, not investment advice. Signals shown have
+            near-random accuracy and should not be used for trading decisions
+            without independent validation. All metrics are gross of transaction
+            costs unless labeled &quot;Net.&quot; See{" "}
+            <a href="/limitations" className="underline">
+              Limitations
+            </a>{" "}
+            for full details.
+          </p>
+        </div>
+
         {/* Bottom bar */}
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-[var(--color-border)] pt-6 md:flex-row">
           <p className="text-[0.6875rem] text-[var(--color-text-dim)]">
@@ -116,7 +138,11 @@ export function Footer() {
             only. Not investment advice.
           </p>
           <p className="text-[0.6875rem] text-[var(--color-text-dim)]">
-            Built with institutional discipline. Validated out-of-sample.
+            Experimental research infrastructure. Not investment advice. See{" "}
+            <a href="/limitations" className="underline">
+              Limitations
+            </a>
+            .
           </p>
         </div>
       </div>

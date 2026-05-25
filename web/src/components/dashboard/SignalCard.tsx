@@ -63,7 +63,7 @@ export function SignalCard({
 
   return (
     <Link
-      href={`/terminal/fx-regime/${pairMeta?.urlSlug ?? pairLabel.toLowerCase()}`}
+      href={`/desk/fx-regime/${pairMeta?.urlSlug ?? pairLabel.toLowerCase()}`}
       className={`block bg-[var(--color-surface)] border border-[var(--color-border)] transition-colors hover:bg-[var(--color-elevated)] ${freshnessHaloClass(freshnessLevel)}`}
     >
       {/* Header */}

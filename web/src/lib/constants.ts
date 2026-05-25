@@ -69,7 +69,7 @@ export const BRAND = {
   tagline: "Institutional-grade regime detection for global FX markets",
   canonicalPairs: PAIRS,
   contact: {
-    email: "desk@fxregimelab.com",
+    email: "shreyash@fxregimelab.com",
     twitter: "@fxregimelab",
   },
 } as const;

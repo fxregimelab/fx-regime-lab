@@ -7,7 +7,7 @@ import MethodologyContent from "./MethodologyContent";
 export const metadata: Metadata = {
   title: "Methodology | FX Regime Lab",
   description:
-    "Regime detection framework: signal inputs, composite scoring, and accuracy measurement.",
+    "Transparent regime detection framework: signal inputs, composite scoring, and honest performance measurement with published limitations.",
 };
 
 export default function MethodologyPage() {

@@ -53,7 +53,7 @@ export function BrierChart({ data }: BrierChartProps) {
       preserveAspectRatio="none"
       className="w-full h-[180px] md:h-[220px] block"
     >
-      <title>Brier Score Time Series</title>
+      <title>Brier Score — Internal Consistency Metric</title>
       <rect width={W} height={H} fill="var(--color-void)" />
 
       {/* horizontal grid */}

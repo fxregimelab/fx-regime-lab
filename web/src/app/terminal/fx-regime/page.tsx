@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function FxRegimeIndexPage() {
-  redirect("/terminal");
+export default function TerminalFxRegimeRedirectPage() {
+  redirect("/desk/fx-regime");
 }

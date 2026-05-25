@@ -248,6 +248,22 @@
   --color-pair-usdinr-light: var(--pair-usdinr-light);
   --color-pair-usdinr-muted: var(--pair-usdinr-muted);
 
+  /* NEW: Brand accent — amber/gold for conviction */
+  --color-brand-amber: #e8a045;
+  --color-brand-amber-muted: rgba(232, 160, 69, 0.15);
+  --color-brand-amber-glow: rgba(232, 160, 69, 0.25);
+
+  /* NEW: Regime semantic colors */
+  --color-regime-bullish: #22c55e;
+  --color-regime-bearish: #ef4444;
+  --color-regime-neutral: #a8a29e;
+  --color-regime-uncertain: #f59e0b;
+
+  /* NEW: Surface depth system */
+  --color-surface-depth-1: #1c1917;
+  --color-surface-depth-2: #231f1d;
+  --color-surface-depth-3: #2a2523;
+
   /* Radius */
   --radius-sm: var(--radius-1);
   --radius-md: var(--radius-2);
@@ -381,11 +397,20 @@
    Section 7.2 — Interaction Utility Classes
    ================================================================= */
 
-.reveal {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity var(--motion-slow) var(--motion-ease-out), transform
-    var(--motion-slow) var(--motion-ease-out);
+@layer components {
+  .cta-hover {
+    @apply relative overflow-hidden transition-all duration-200;
+  }
+  .cta-hover::before {
+    content: "";
+    @apply absolute inset-0 bg-[var(--color-brand-amber)] opacity-0 transition-opacity duration-200;
+  }
+  .cta-hover:hover::before {
+    @apply opacity-10;
+  }
+  .cta-hover:active {
+    @apply scale-[0.98];
+  }
 }
 
 .revealed {

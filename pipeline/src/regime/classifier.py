@@ -56,6 +56,26 @@ def classify_regime_layer1(ctx: Layer1ClassifierContext) -> Layer1GateOutput:
     return run_layer1_gate(ctx)
 
 
+def get_regime_category(regime: str) -> str:
+    """Map regime label to broad category for UI filtering and visualization.
+
+    Categories: RATE_DRIVEN, CARRY_DRIVEN, VOLATILITY_DRIVEN, POLICY_SHOCK,
+    LIQUIDITY_SHOCK, NEUTRAL.
+    """
+    base = _strip_gate_suffix(regime)
+    if "CARRY" in base or "UNWIND" in base or "COLLAPSE" in base:
+        return "CARRY_DRIVEN"
+    if "VOL" in base or "VOLATILITY" in base:
+        return "VOLATILITY_DRIVEN"
+    if "POLICY" in base or "BREAKOUT" in base:
+        return "POLICY_SHOCK"
+    if "LIQUIDITY" in base or base == "LIQUIDITY_SHOCK":
+        return "LIQUIDITY_SHOCK"
+    if "NEUTRAL" in base:
+        return "NEUTRAL"
+    return "RATE_DRIVEN"
+
+
 def classify_regime(composite: float, pair: str, vol_expanding: bool = False) -> str:
     """Map composite magnitude to hysteresis-stable Layer 1 labels (no stochastic inputs).
 

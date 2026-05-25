@@ -1,19 +1,17 @@
 "use client";
 
-import { CompareView } from "@/components/ui/compare-view";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
-/**
- * Compare mode — side-by-side pair desks.
- * URL: /terminal/compare?pairs=eurusd,usdjpy
- */
-export default function ComparePage() {
+export default function TerminalCompareRedirectPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const pairsParam = searchParams?.get("pairs") ?? "";
 
-  return (
-    <div className="pt-4">
-      <CompareView pairsParam={pairsParam} />
-    </div>
-  );
+  useEffect(() => {
+    const pairs = searchParams?.get("pairs");
+    const query = pairs ? `?pairs=${encodeURIComponent(pairs)}` : "";
+    router.replace(`/desk/compare${query}`);
+  }, [router, searchParams]);
+
+  return null;
 }

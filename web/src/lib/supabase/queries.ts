@@ -8,6 +8,10 @@ type ValidationStatsRow =
   Database["public"]["Tables"]["validation_stats"]["Row"];
 export type BriefLogRow = Database["public"]["Tables"]["brief_log"]["Row"];
 export type MacroEventRow = Database["public"]["Tables"]["macro_events"]["Row"];
+export type SiteContentRow =
+  Database["public"]["Tables"]["site_content"]["Row"];
+export type SiteSettingsRow =
+  Database["public"]["Tables"]["site_settings"]["Row"];
 type HistoricalPriceRow =
   Database["public"]["Tables"]["historical_prices"]["Row"];
 type ResearchMemoRow = Database["public"]["Tables"]["research_memos"]["Row"];
@@ -84,6 +88,10 @@ export interface ValidationStats {
   pair: string;
   horizon: "t5" | "t20";
   winRate: number | null;
+  winRateCI: [number, number] | null;
+  netWinRate: number | null;
+  netWinRateCI: [number, number] | null;
+  costBps: number | null;
   wins: number | null;
   brierScore: number | null;
   sampleSize: number | null;
@@ -98,10 +106,16 @@ export interface ValidationRowT5 {
   pair: string;
   predicted: string;
   t5ReturnBps: number | null;
+  t5ReturnNetBps: number | null;
   t5Outcome: "CORRECT" | "WRONG" | "NEUTRAL" | "—";
+  t5CorrectNet: boolean | null;
+  t5CostBps: number | null;
   t5Brier: number | null;
   t20ReturnBps: number | null;
+  t20ReturnNetBps: number | null;
   t20Outcome: "CORRECT" | "WRONG" | "NEUTRAL" | "—";
+  t20CorrectNet: boolean | null;
+  t20CostBps: number | null;
   t20Brier: number | null;
 }
 
@@ -310,12 +324,30 @@ export async function getValidationStats(
   const latest = rows.filter((r) => r.as_of_date === latestDate);
 
   const prefix = horizon === "t5" ? "t5" : "t20";
+
+  const PAIR_DISPLAY: Record<string, string> = {
+    EURUSD: "EUR/USD",
+    USDJPY: "USD/JPY",
+    USDINR: "USD/INR",
+    ALL: "ALL",
+  };
+
   const mapRow = (r: ValidationStatsRow): ValidationStats => ({
-    pair: r.pair,
+    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
     horizon,
     winRate: r[`${prefix}_win_rate` as keyof ValidationStatsRow] as
       | number
       | null,
+    winRateCI: [
+      (r[`${prefix}_win_rate_ci_lower` as keyof ValidationStatsRow] as number | null) ?? 0,
+      (r[`${prefix}_win_rate_ci_upper` as keyof ValidationStatsRow] as number | null) ?? 0,
+    ] as [number, number],
+    netWinRate: (r[`${prefix}_net_win_rate` as keyof ValidationStatsRow] as number | null) ?? null,
+    netWinRateCI: [
+      (r[`${prefix}_net_win_rate_ci_lower` as keyof ValidationStatsRow] as number | null) ?? 0,
+      (r[`${prefix}_net_win_rate_ci_upper` as keyof ValidationStatsRow] as number | null) ?? 0,
+    ] as [number, number],
+    costBps: (r[`${prefix}_cost_bps` as keyof ValidationStatsRow] as number | null) ?? null,
     wins: r[`${prefix}_wins` as keyof ValidationStatsRow] as number | null,
     brierScore: r[`${prefix}_mean_brier` as keyof ValidationStatsRow] as
       | number
@@ -345,7 +377,7 @@ export async function getValidationLogT5T20(
 ): Promise<ValidationRowT5[]> {
   let q = supabase
     .from("validation_log")
-    .select("*")
+    .select("date, pair, call_id, predicted_direction, log_return_t5_bps, log_return_net_bps_t5, correct_t5, correct_net_t5, cost_bps_t5, brier_score_t5, log_return_t20_bps, log_return_net_bps_t20, correct_t20, correct_net_t20, cost_bps_t20, brier_score_t20, actual_direction_t5, actual_direction_t20")
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
     .limit(limit);
@@ -388,6 +420,7 @@ export async function getValidationLogT5T20(
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
     predicted: r.call_id != null ? (predictedMap.get(r.call_id) ?? "—") : "—",
     t5ReturnBps: r.log_return_t5_bps,
+    t5ReturnNetBps: (r as any).log_return_net_bps_t5 ?? null,
     t5Outcome: r.correct_t5
       ? "CORRECT"
       : r.actual_direction_t5 === "NEUTRAL"
@@ -395,8 +428,11 @@ export async function getValidationLogT5T20(
         : r.actual_direction_t5 != null
           ? "WRONG"
           : "—",
+    t5CorrectNet: (r as any).correct_net_t5 ?? null,
+    t5CostBps: (r as any).cost_bps_t5 ?? null,
     t5Brier: r.brier_score_t5,
     t20ReturnBps: r.log_return_t20_bps,
+    t20ReturnNetBps: (r as any).log_return_net_bps_t20 ?? null,
     t20Outcome: r.correct_t20
       ? "CORRECT"
       : r.actual_direction_t20 === "NEUTRAL"
@@ -404,6 +440,8 @@ export async function getValidationLogT5T20(
         : r.actual_direction_t20 != null
           ? "WRONG"
           : "—",
+    t20CorrectNet: (r as any).correct_net_t20 ?? null,
+    t20CostBps: (r as any).cost_bps_t20 ?? null,
     t20Brier: r.brier_score_t20,
   }));
 }
@@ -437,6 +475,7 @@ export async function getRegimeBreakdown(
   if (valError || !valData) return [];
 
   interface ValRow {
+    date: string;
     pair: string;
   }
   interface RegimeRow {
@@ -447,10 +486,12 @@ export async function getRegimeBreakdown(
 
   // 2. Fetch corresponding regime names from regime_calls
   const pairs = [...new Set((valData as ValRow[]).map((r) => r.pair))];
+  const dates = [...new Set((valData as ValRow[]).map((r) => r.date))];
   const { data: regimeData, error: regimeError } = await supabase
     .from("regime_calls")
     .select("date, pair, regime")
-    .in("pair", pairs);
+    .in("pair", pairs)
+    .in("date", dates);
 
   if (regimeError || !regimeData) return [];
 
@@ -500,7 +541,7 @@ export async function getValidationLogForPair(
   // Fetch validation_log rows
   const { data: valData, error: valError } = await supabase
     .from("validation_log")
-    .select("*")
+    .select("date, pair, call_id, predicted_direction, log_return_t5_bps, log_return_net_bps, correct_t5, correct_net, cost_bps, brier_score_t5, log_return_t20_bps, log_return_net_bps_t20, correct_t20, correct_net_t20, cost_bps_t20, brier_score_t20, actual_direction_t5, actual_direction_t20")
     .eq("pair", code)
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
@@ -540,6 +581,7 @@ export async function getValidationLogForPair(
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
     predicted: r.call_id != null ? (predictedMap.get(r.call_id) ?? "—") : "—",
     t5ReturnBps: r.log_return_t5_bps,
+    t5ReturnNetBps: (r as any).log_return_net_bps_t5 ?? null,
     t5Outcome: r.correct_t5
       ? "CORRECT"
       : r.actual_direction_t5 === "NEUTRAL"
@@ -547,8 +589,11 @@ export async function getValidationLogForPair(
         : r.actual_direction_t5 != null
           ? "WRONG"
           : "—",
+    t5CorrectNet: (r as any).correct_net_t5 ?? null,
+    t5CostBps: (r as any).cost_bps_t5 ?? null,
     t5Brier: r.brier_score_t5,
     t20ReturnBps: r.log_return_t20_bps,
+    t20ReturnNetBps: (r as any).log_return_net_bps_t20 ?? null,
     t20Outcome: r.correct_t20
       ? "CORRECT"
       : r.actual_direction_t20 === "NEUTRAL"
@@ -556,6 +601,8 @@ export async function getValidationLogForPair(
         : r.actual_direction_t20 != null
           ? "WRONG"
           : "—",
+    t20CorrectNet: (r as any).correct_net_t20 ?? null,
+    t20CostBps: (r as any).cost_bps_t20 ?? null,
     t20Brier: r.brier_score_t20,
   }));
 }
@@ -742,7 +789,7 @@ export async function getCrossAssetSnapshot(
       "date,cross_asset_vix,cross_asset_dxy,cross_asset_oil,cross_asset_gold,cross_asset_copper,cross_asset_stoxx,cross_asset_us10y",
     )
     .order("date", { ascending: false })
-    .limit(6);
+    .limit(90);
 
   if (error || !data || data.length === 0) {
     return {
@@ -1393,4 +1440,55 @@ export async function getRegimeBreakdownByVersion(
     winRateT5: null,
     winRateT20: null,
   }));
+}
+
+/* ─── Site Content (CMS) ──────────────────────────────────────────────── */
+
+export async function getSiteContent(
+  supabase: TypedSupabaseClient,
+  section?: string,
+): Promise<Record<string, string>> {
+  const q = supabase
+    .from("site_content")
+    .select("content_key,content_text")
+    .eq("is_active", true);
+  if (section) q.eq("section", section);
+  const { data, error } = await q;
+  if (error || !data) return {};
+  return Object.fromEntries(
+    (data as SiteContentRow[]).map((r) => [
+      r.content_key,
+      r.content_text ?? "",
+    ]),
+  );
+}
+
+/* ─── Site Settings (Feature Flags) ───────────────────────────────────── */
+
+export async function getSiteSettings(
+  supabase: TypedSupabaseClient,
+): Promise<Record<string, string>> {
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("setting_key,setting_value");
+  if (error || !data) return {};
+  return Object.fromEntries(
+    (data as SiteSettingsRow[]).map((r) => [
+      r.setting_key,
+      r.setting_value ?? "",
+    ]),
+  );
+}
+
+export async function getSiteSetting(
+  supabase: TypedSupabaseClient,
+  key: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("setting_value")
+    .eq("setting_key", key)
+    .maybeSingle();
+  if (error || !data) return null;
+  return (data as SiteSettingsRow).setting_value;
 }

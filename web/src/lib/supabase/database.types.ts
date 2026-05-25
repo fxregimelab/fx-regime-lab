@@ -149,6 +149,7 @@ export type Database = {
           macro_context: string | null;
           pair_regimes: Json | null;
           sentiment_json: Json | null;
+          structured_summary: Json | null;
           usdcad_regime: string | null;
           usdchf_regime: string | null;
           usdinr_regime: string | null;
@@ -167,6 +168,7 @@ export type Database = {
           macro_context?: string | null;
           pair_regimes?: Json | null;
           sentiment_json?: Json | null;
+          structured_summary?: Json | null;
           usdcad_regime?: string | null;
           usdchf_regime?: string | null;
           usdinr_regime?: string | null;
@@ -185,6 +187,7 @@ export type Database = {
           macro_context?: string | null;
           pair_regimes?: Json | null;
           sentiment_json?: Json | null;
+          structured_summary?: Json | null;
           usdcad_regime?: string | null;
           usdchf_regime?: string | null;
           usdinr_regime?: string | null;
@@ -1073,6 +1076,7 @@ export type Database = {
           primary_driver: string | null;
           rate_signal: string | null;
           regime: string;
+          regime_category: string | null;
           rr_signal: string | null;
           signal_composite: number | null;
           special_signal_label: string | null;
@@ -1102,6 +1106,7 @@ export type Database = {
           primary_driver?: string | null;
           rate_signal?: string | null;
           regime: string;
+          regime_category?: string | null;
           rr_signal?: string | null;
           signal_composite?: number | null;
           special_signal_label?: string | null;
@@ -1131,6 +1136,7 @@ export type Database = {
           primary_driver?: string | null;
           rate_signal?: string | null;
           regime?: string;
+          regime_category?: string | null;
           rr_signal?: string | null;
           signal_composite?: number | null;
           special_signal_label?: string | null;
@@ -1262,6 +1268,9 @@ export type Database = {
           structural_instability: boolean;
           volume_rvol: number | null;
           z_blended: number | null;
+          days_since_cot: number | null;
+          risk_reversal_source: string | null;
+          data_quality_notes: string[] | null;
         };
         Insert: {
           boj_policy_rate?: number | null;
@@ -1304,6 +1313,9 @@ export type Database = {
           structural_instability?: boolean;
           volume_rvol?: number | null;
           z_blended?: number | null;
+          days_since_cot?: number | null;
+          risk_reversal_source?: string | null;
+          data_quality_notes?: string[] | null;
         };
         Update: {
           boj_policy_rate?: number | null;
@@ -1346,6 +1358,90 @@ export type Database = {
           structural_instability?: boolean;
           volume_rvol?: number | null;
           z_blended?: number | null;
+          days_since_cot?: number | null;
+          risk_reversal_source?: string | null;
+          data_quality_notes?: string[] | null;
+        };
+        Relationships: [];
+      };
+      site_content: {
+        Row: {
+          content_key: string;
+          content_text: string | null;
+          created_at: string | null;
+          id: number;
+          is_active: boolean | null;
+          section: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          content_key: string;
+          content_text?: string | null;
+          created_at?: string | null;
+          id?: number;
+          is_active?: boolean | null;
+          section?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          content_key?: string;
+          content_text?: string | null;
+          created_at?: string | null;
+          id?: number;
+          is_active?: boolean | null;
+          section?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      site_settings: {
+        Row: {
+          created_at: string | null;
+          id: number;
+          setting_key: string;
+          setting_value: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: number;
+          setting_key: string;
+          setting_value?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: number;
+          setting_key?: string;
+          setting_value?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      page_views: {
+        Row: {
+          created_at: string | null;
+          id: number;
+          page_path: string;
+          referrer: string | null;
+          session_id: string | null;
+          user_agent: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: number;
+          page_path: string;
+          referrer?: string | null;
+          session_id?: string | null;
+          user_agent?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: number;
+          page_path?: string;
+          referrer?: string | null;
+          session_id?: string | null;
+          user_agent?: string | null;
         };
         Relationships: [];
       };
@@ -1464,6 +1560,9 @@ export type Database = {
           is_superseded: boolean | null;
           log_return_t20_bps: number | null;
           log_return_t5_bps: number | null;
+          log_return_net_bps: number | null;
+          correct_net: boolean | null;
+          cost_bps: number | null;
           pair: string;
         };
         Insert: {
@@ -1490,6 +1589,9 @@ export type Database = {
           is_superseded?: boolean | null;
           log_return_t20_bps?: number | null;
           log_return_t5_bps?: number | null;
+          log_return_net_bps?: number | null;
+          correct_net?: boolean | null;
+          cost_bps?: number | null;
           pair: string;
         };
         Update: {
@@ -1516,6 +1618,9 @@ export type Database = {
           is_superseded?: boolean | null;
           log_return_t20_bps?: number | null;
           log_return_t5_bps?: number | null;
+          log_return_net_bps?: number | null;
+          correct_net?: boolean | null;
+          cost_bps?: number | null;
           pair?: string;
         };
         Relationships: [
@@ -1567,6 +1672,16 @@ export type Database = {
           t5_total_calls: number | null;
           t5_win_rate: number | null;
           t5_wins: number | null;
+          t5_win_rate_ci_lower: number | null;
+          t5_win_rate_ci_upper: number | null;
+          t5_net_win_rate: number | null;
+          t5_net_win_rate_ci_lower: number | null;
+          t5_net_win_rate_ci_upper: number | null;
+          t20_win_rate_ci_lower: number | null;
+          t20_win_rate_ci_upper: number | null;
+          t20_net_win_rate: number | null;
+          t20_net_win_rate_ci_lower: number | null;
+          t20_net_win_rate_ci_upper: number | null;
         };
         Insert: {
           as_of_date: string;
@@ -1599,6 +1714,16 @@ export type Database = {
           t5_total_calls?: number | null;
           t5_win_rate?: number | null;
           t5_wins?: number | null;
+          t5_win_rate_ci_lower?: number | null;
+          t5_win_rate_ci_upper?: number | null;
+          t5_net_win_rate?: number | null;
+          t5_net_win_rate_ci_lower?: number | null;
+          t5_net_win_rate_ci_upper?: number | null;
+          t20_win_rate_ci_lower?: number | null;
+          t20_win_rate_ci_upper?: number | null;
+          t20_net_win_rate?: number | null;
+          t20_net_win_rate_ci_lower?: number | null;
+          t20_net_win_rate_ci_upper?: number | null;
         };
         Update: {
           as_of_date?: string;
@@ -1630,6 +1755,16 @@ export type Database = {
           t5_total_calls?: number | null;
           t5_win_rate?: number | null;
           t5_wins?: number | null;
+          t5_win_rate_ci_lower?: number | null;
+          t5_win_rate_ci_upper?: number | null;
+          t5_net_win_rate?: number | null;
+          t5_net_win_rate_ci_lower?: number | null;
+          t5_net_win_rate_ci_upper?: number | null;
+          t20_win_rate_ci_lower?: number | null;
+          t20_win_rate_ci_upper?: number | null;
+          t20_net_win_rate?: number | null;
+          t20_net_win_rate_ci_lower?: number | null;
+          t20_net_win_rate_ci_upper?: number | null;
         };
         Relationships: [];
       };

@@ -2,15 +2,27 @@ import { Footer } from "@/components/shell/Footer";
 import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
-import { getValidationStats } from "@/lib/supabase/queries";
+import { PAIRS } from "@/lib/constants";
+import { getSiteContent, getValidationStats } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
-import { Link2, Mail, MessageCircle } from "lucide-react";
+import {
+  Database,
+  FileText,
+  Globe,
+  Link2,
+  Mail,
+  Scale,
+  Shield,
+} from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "About — FX Regime Lab",
-  description: "What FX Regime Lab is, what it is not, and how it works.",
+  description:
+    "Macro researcher building open-source FX regime monitoring infrastructure. Transparent signals, honest metrics, immutable ledgers.",
 };
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -31,25 +43,77 @@ function Hero() {
         About FX Regime Lab
       </h1>
       <p className="font-sans text-[17px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[560px]">
-        Systematic FX macro research, published daily.
+        Open-source research infrastructure for transparent macro regime
+        monitoring. Every signal, every call, every mistake — published in real
+        time.
       </p>
+    </section>
+  );
+}
+
+/* ─── Philosophy ────────────────────────────────────────────────────── */
+
+function Philosophy() {
+  return (
+    <section className="reveal mb-24">
+      <SectionLabel>Philosophy</SectionLabel>
+      <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-6">
+        Radical Honesty in Macro Research
+      </h2>
+      <div className="max-w-[640px] space-y-4">
+        <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7]">
+          Most macro research is narrative-driven, backtested to look good, and
+          never validated in public. We are doing the opposite: building
+          systematic tools, publishing every call before it resolves, and being
+          brutally honest about our limitations.
+        </p>
+        <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7]">
+          We currently do not have edge. Our accuracy is near random. But we are
+          building the infrastructure — immutable ledgers, transparent
+          validation, honest metrics — that will allow us to detect edge when we
+          find it. And you will see the entire process in real time.
+        </p>
+        <div className="flex gap-5 pt-2">
+          <Link
+            href="/limitations"
+            className="px-5 py-2 border border-[var(--color-border)] font-sans text-[13px] text-[var(--color-text-secondary)] transition-all duration-300 hover:bg-[var(--color-text)] hover:text-[var(--color-void)] hover:border-[var(--color-text)]"
+            style={{ borderRadius: 2 }}
+          >
+            See our limitations
+          </Link>
+          <Link
+            href="/journey"
+            className="font-sans text-[13px] text-[var(--color-text-muted)] underline decoration-[var(--color-border)] underline-offset-4 transition-colors duration-300 hover:text-[var(--color-text)] py-2"
+          >
+            Our journey →
+          </Link>
+        </div>
+      </div>
     </section>
   );
 }
 
 /* ─── Author Identity ───────────────────────────────────────────────── */
 
-function AuthorIdentity() {
+async function AuthorIdentity() {
+  const supabase = await createClient();
+  const siteContent = await getSiteContent(supabase, "about_bio");
+  const bioText =
+    siteContent.author_bio ??
+    "Macro researcher focused on systematic FX regime classification. Built FX Regime Lab to bridge the gap between systematic FX regime monitoring and publicly accessible daily regime classifications.";
+
   return (
     <section className="reveal mb-24">
       <div className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-10 items-start">
-        {/* Profile placeholder */}
         <div className="flex-shrink-0">
-          <div className="w-[120px] h-[120px] md:w-[140px] md:h-[140px] rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center">
-            <span className="font-sans font-semibold text-[32px] text-[var(--color-text-muted)]">
-              SS
-            </span>
-          </div>
+          <Image
+            src="/profile/shreyash.png"
+            alt="Shreyash Sakhare"
+            width={140}
+            height={140}
+            className="rounded-full border border-[var(--color-border)] object-cover"
+            priority
+          />
         </div>
 
         {/* Bio */}
@@ -61,10 +125,7 @@ function AuthorIdentity() {
             Founder &amp; Lead Researcher
           </p>
           <p className="font-sans text-[15px] text-[var(--color-text-secondary)] leading-[1.7] max-w-[560px]">
-            Macro researcher focused on systematic FX regime classification.
-            Built FX Regime Lab to bridge the gap between institutional-grade
-            quantitative research and publicly accessible daily regime
-            classifications.
+            {bioText}
           </p>
         </div>
       </div>
@@ -123,20 +184,21 @@ function MethodologySummary() {
 
 async function TrackRecordHighlights() {
   const supabase = await createClient();
-  const { count } = await supabase
-    .from("validation_log")
-    .select("*", { count: "exact", head: true });
+  const [{ count }, { data: datesData }, statsT5] = await Promise.all([
+    supabase
+      .from("validation_log")
+      .select("*", { count: "exact", head: true }),
+    supabase
+      .from("validation_log")
+      .select("date")
+      .limit(1000),
+    getValidationStats(supabase, "t5", "live"),
+  ]);
 
-  const { data: datesData } = await supabase
-    .from("validation_log")
-    .select("date")
-    .limit(1000);
   const distinctDates = new Set(
     (datesData as Array<{ date: string }> | null)?.map((d) => d.date) ?? [],
   );
   const daysCount = distinctDates.size;
-
-  const statsT5 = await getValidationStats(supabase, "t5", "live");
   const allRow = statsT5.find((s) => s.pair === "ALL");
   const rolling90dAcc =
     allRow?.rolling90dAccuracy != null
@@ -151,7 +213,7 @@ async function TrackRecordHighlights() {
       label: "Validated regime calls",
     },
     {
-      value: "3",
+      value: String(PAIRS.length),
       label: "Currency pairs: EUR/USD, USD/JPY, USD/INR",
     },
     {
@@ -218,7 +280,7 @@ function TransparencyCommitments() {
   ];
 
   return (
-    <section className="reveal mb-24">
+    <section id="principles" className="reveal mb-24">
       <SectionLabel>Transparency</SectionLabel>
       <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
         Commitments
@@ -242,10 +304,149 @@ function TransparencyCommitments() {
   );
 }
 
+/* ─── Data Sources ──────────────────────────────────────────────────── */
+
+function DataSources() {
+  const sources = [
+    {
+      icon: Database,
+      name: "FRED API",
+      description:
+        "Federal Reserve Economic Data — rate differentials, inflation expectations, and macroeconomic indicators.",
+      url: "https://fred.stlouisfed.org/",
+    },
+    {
+      icon: Database,
+      name: "Yahoo Finance",
+      description:
+        "Spot FX prices, realized volatility calculations, and historical price data for regime validation.",
+      url: "https://finance.yahoo.com/",
+    },
+    {
+      icon: FileText,
+      name: "CFTC COT Reports",
+      description:
+        "Commitment of Traders positioning data for institutional positioning analysis.",
+      url: "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm",
+    },
+    {
+      icon: Globe,
+      name: "Investing.com Economic Calendar",
+      description:
+        "Scheduled macro events, central bank meetings, and high-impact event tracking.",
+      url: "https://www.investing.com/economic-calendar/",
+    },
+  ];
+
+  return (
+    <section className="reveal mb-24">
+      <SectionLabel>Data Sources</SectionLabel>
+      <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
+        Where the data comes from
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {sources.map((s) => (
+          <a
+            key={s.name}
+            href={s.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex items-start gap-4 bg-[var(--color-surface)] border border-[var(--color-border)] p-5 hover:border-[var(--color-border-bright)] transition-all duration-300"
+          >
+            <div className="mt-0.5 p-2 bg-[var(--color-void)] border border-[var(--color-border)]">
+              <s.icon className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-[var(--color-text)] transition-colors" />
+            </div>
+            <div>
+              <p className="font-sans font-semibold text-[14px] text-[var(--color-text)] mb-1">
+                {s.name}
+              </p>
+              <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.6]">
+                {s.description}
+              </p>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── Legal ─────────────────────────────────────────────────────────── */
+
+function Legal() {
+  return (
+    <section className="reveal mb-24">
+      <SectionLabel>Legal</SectionLabel>
+      <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
+        Disclaimers &amp; Terms
+      </h2>
+      <div className="space-y-4">
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <Shield className="w-4 h-4 text-[var(--color-brand-amber)]" />
+            <h3 className="font-sans font-semibold text-[14px] text-[var(--color-text)]">
+              Not Investment Advice
+            </h3>
+          </div>
+          <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.7]">
+            FX Regime Lab is a research publication, not a financial advisor.
+            All content — regime classifications, signal scores, and briefs — is
+            provided for informational and educational purposes only. Nothing
+            herein constitutes investment advice, a solicitation to buy or sell
+            any security, or a recommendation of any trading strategy. Past
+            performance does not guarantee future results.
+          </p>
+        </div>
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <Scale className="w-4 h-4 text-[var(--color-brand-amber)]" />
+            <h3 className="font-sans font-semibold text-[14px] text-[var(--color-text)]">
+              Data Accuracy &amp; Limitations
+            </h3>
+          </div>
+          <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.7]">
+            We source data from public APIs (FRED, Yahoo Finance, CFTC) and make
+            every effort to ensure accuracy. However, data may be delayed,
+            incorrect, or incomplete. FX Regime Lab assumes no liability for
+            decisions made based on this data. Users should verify any data
+            point with primary sources before acting on it.
+          </p>
+        </div>
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <FileText className="w-4 h-4 text-[var(--color-brand-amber)]" />
+            <h3 className="font-sans font-semibold text-[14px] text-[var(--color-text)]">
+              Intellectual Property
+            </h3>
+          </div>
+          <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.7]">
+            All content, methodology, signal architectures, and code are the
+            intellectual property of FX Regime Lab. Unauthorized reproduction,
+            redistribution, or commercial use without written permission is
+            prohibited.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── V2 Release Notes ──────────────────────────────────────────────── */
 
 function V2ReleaseNotes() {
   const notes = [
+    {
+      date: "June 2026 — V3 Redesign",
+      items: [
+        "Complete UX/UI redesign: principle-first, Brier-first metrics",
+        "Information architecture restructure (Research, Desk, Validation, About)",
+        "Cross-Asset Matrix: data-empty tiles hidden, only real data shown",
+        "Sample size context on Track Record page",
+        "About page expansion: Data Sources, Legal, editable bio",
+        "CMS via site_content table for editable copy",
+        "Feature flag system for progressive rollout",
+      ],
+    },
     {
       date: "May 2026",
       items: [
@@ -309,8 +510,8 @@ function ContactConnect() {
     {
       icon: Mail,
       label: "Email",
-      href: "mailto:desk@fxregimelab.com",
-      display: "desk@fxregimelab.com",
+      href: "mailto:shreyash@fxregimelab.com",
+      display: "shreyash@fxregimelab.com",
     },
     {
       icon: Link2,
@@ -321,7 +522,7 @@ function ContactConnect() {
   ];
 
   return (
-    <section className="reveal mb-24">
+    <section id="contact" className="reveal mb-24">
       <SectionLabel>Contact</SectionLabel>
       <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
         Connect
@@ -374,13 +575,19 @@ export default async function AboutPage() {
         className="max-w-4xl mx-auto px-6 pt-28 pb-20 w-full"
       >
         <Hero />
-        <AuthorIdentity />
+        <Philosophy />
+        <Suspense fallback={<div className="animate-pulse h-40 bg-[var(--color-surface)] rounded mb-8" />}>
+          <AuthorIdentity />
+        </Suspense>
         <MethodologySummary />
-        <TrackRecordHighlights />
+        <Suspense fallback={<div className="animate-pulse h-40 bg-[var(--color-surface)] rounded mb-8" />}>
+          <TrackRecordHighlights />
+        </Suspense>
         <TransparencyCommitments />
+        <DataSources />
+        <Legal />
         <V2ReleaseNotes />
         <ContactConnect />
-        <Disclaimer />
         <ResearchDisclaimer />
       </main>
       <Footer />

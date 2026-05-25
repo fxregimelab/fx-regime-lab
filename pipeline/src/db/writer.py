@@ -517,6 +517,7 @@ def write_brief_log(
     idiosyncratic_outlier: str | None = None,
     sentiment_json: Mapping[str, Any] | None = None,
     pair_regimes: Mapping[str, str] | None = None,
+    structured_summary: Mapping[str, Any] | None = None,
 ) -> None:
     """Upsert unified daily summary into `brief_log` (systemic + sentiment pre-baked for UI)."""
     payload: dict[str, Any] = {
@@ -527,6 +528,8 @@ def write_brief_log(
         "idiosyncratic_outlier": idiosyncratic_outlier,
         "sentiment_json": dict(sentiment_json) if sentiment_json is not None else None,
     }
+    if structured_summary is not None:
+        payload["structured_summary"] = dict(structured_summary)
     if pair_regimes is not None:
         payload["pair_regimes"] = dict(pair_regimes)
         for pair, regime in pair_regimes.items():

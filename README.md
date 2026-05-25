@@ -1,10 +1,39 @@
 # FX Regime Lab
 
-> **V2 — On the Record** | Public release with 19,114 backtested calls, institutional analytics, and regime validation research.
-> Live since May 2026. Walk-forward simulation from 1997.
+**Open-source research infrastructure for transparent macro regime monitoring.**
 
+> ⚠️ **v2.1 Experimental**: Our signals currently have near-random accuracy.
+> We publish this openly as part of our research process. See
+> [Limitations](https://fxregimelab.com/limitations).
 
-> **Agent-first codebase.** This README is for AI agents. Humans: see `docs/PROJECT_OVERVIEW.md`.
+## What This Is
+
+FX Regime Lab is an experiment in radical transparency for macro research:
+- Every signal is computed systematically and published daily
+- Every call is logged in an immutable ledger before it resolves
+- Every limitation is documented publicly
+- All code is open-source
+
+## What This Isn't (Yet)
+
+- A profitable trading strategy
+- A market-beating prediction model
+- A source of investment advice
+
+## Current Status
+
+| Pair | T+5 Gross Accuracy | 95% CI | Net Accuracy (est.) |
+|------|-------------------|--------|---------------------|
+| EUR/USD | 49.2% | 42.1% – 56.3% | ~47% |
+| USD/JPY | 48.3% | 38.2% – 58.4% | ~46% |
+| USD/INR | 41.4% | 35.2% – 47.8% | ~36% |
+
+## Roadmap
+
+- **v2.1** (May 2026): Honest metrics, documented limitations, public launch
+- **v3.0** (July 2026): Calibrated probabilities, real RR data, Bayesian betas, HMM regimes
+- **v3.5** (Q4 2026): Expand to full G10
+- **v4.0** (2027): Open standard for transparent macro research
 
 ## Agent Quick Start
 
@@ -77,7 +106,7 @@ jq '.pipeline.fetchers[]' .agent/maps/CODEMAP.json
 | AI Calls | `pipeline/src/ai/client.py` (ON HOLD) |
 | Immutable | `regime_calls` + `validation_log` append-only |
 | CI/CD | Prefect Cloud only. No GitHub Actions. |
-| Tests | `pytest` 121 tests + `npm run build` must pass |
+| Tests | `pytest` 234 tests + `npm run build` must pass |
 
 ## Scripts
 
@@ -98,6 +127,3 @@ jq '.pipeline.fetchers[]' .agent/maps/CODEMAP.json
 | **CODEMAP** | `jq '.pipeline.fetchers' .agent/maps/CODEMAP.json` |
 | **SKILLMAP** | `jq '.skills[]' .agent/maps/SKILLMAP.json` |
 | **RULEMAP** | `jq '.rules[]' .agent/maps/RULEMAP.json` |
-| **HOTFILES** | `cat .agent/context/HOTFILES.md` |
-
-*Maps auto-regenerate on every commit (post-commit hook) and every file change (background watcher).*

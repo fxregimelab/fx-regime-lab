@@ -63,9 +63,9 @@ def _std_pop(xs: list[float]) -> float:
 
 
 def causal_rr_z_pair(rr_series_ending_today: list[float]) -> tuple[float | None, float | None]:
-    """Strictly causal z for today and yesterday;
-    ``rr_series_ending_today`` ends with today's RR."""
-
+    """v2.1: Returns None when real RR data is unavailable."""
+    if not rr_series_ending_today or all(r is None for r in rr_series_ending_today):
+        return None, None
     if len(rr_series_ending_today) < _RR_MIN_CALIB + 2:
         return None, None
 
@@ -201,26 +201,44 @@ def run_layer3_execution(
 
     vol_too_hot = realized_vol_rank is None or float(realized_vol_rank) > _VOL_RANK_ENTER_MAX
 
-    enter_ok = (
-        bias != "NEUTRAL"
-        and conviction >= _CONVICTION_ENTER_MIN
-        and not vol_too_hot
-        and not rev
-        and not strong_contra
-    )
+    # v2.1: No RR data available — skip skew-based rules
+    if z_t is None:
+        enter_ok = (
+            bias != "NEUTRAL"
+            and conviction >= _CONVICTION_ENTER_MIN
+            and not vol_too_hot
+        )
+    else:
+        enter_ok = (
+            bias != "NEUTRAL"
+            and conviction >= _CONVICTION_ENTER_MIN
+            and not vol_too_hot
+            and not rev
+            and not strong_contra
+        )
     timing: Layer3EntryTiming = "ENTER" if enter_ok else "WAIT"
 
     chen_trim = bool(layer2["crowd_flag"]) or (
         float(layer2["crowd_penalty"]) > _CHEN_CROWD_PENALTY_HALF
     )
-    full_ok = (
-        timing == "ENTER"
-        and conviction >= _CONVICTION_FULL_MIN
-        and realized_vol_rank is not None
-        and float(realized_vol_rank) <= _VOL_RANK_FULL_MAX
-        and align >= 0
-        and not chen_trim
-    )
+    # v2.1: Without RR data, skip alignment check
+    if z_t is None:
+        full_ok = (
+            timing == "ENTER"
+            and conviction >= _CONVICTION_FULL_MIN
+            and realized_vol_rank is not None
+            and float(realized_vol_rank) <= _VOL_RANK_FULL_MAX
+            and not chen_trim
+        )
+    else:
+        full_ok = (
+            timing == "ENTER"
+            and conviction >= _CONVICTION_FULL_MIN
+            and realized_vol_rank is not None
+            and float(realized_vol_rank) <= _VOL_RANK_FULL_MAX
+            and align >= 0
+            and not chen_trim
+        )
     size: Layer3PositionSize = "FULL" if full_ok else "HALF"
 
     out: Layer3ExecutionOutput = {

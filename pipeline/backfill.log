@@ -1,0 +1,1499 @@
+13:05:47.177 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a1158d-29f1-75ce-8000-2cdab9cf6861
+13:05:55.171 | INFO    | Flow run 'eminent-eagle' - Beginning flow run 'eminent-eagle' for flow 'Daily G10 FX Pipeline'
+13:05:55.188 | INFO    | Flow run 'eminent-eagle' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a1158d-29f1-75ce-8000-2cdab9cf6861
+13:05:55.201 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:06:04.068 | ERROR   | yfinance - HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: ^JG10Y"}}}
+13:06:04.074 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:06:04.085 | ERROR   | yfinance - HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: ^TGD10Y"}}}
+13:06:05.469 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:06:06.371 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:06:06.379 | ERROR   | yfinance - 
+3 Failed downloads:
+13:06:06.380 | ERROR   | yfinance - ['^IN10Y', '^JG10Y', '^TGD10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:06:25.946 | ERROR   | yfinance - $CL=F: possibly delisted; no price data found  (period=85d)
+13:06:25.947 | ERROR   | yfinance - 
+1 Failed download:
+13:06:25.947 | ERROR   | yfinance - ['CL=F']: possibly delisted; no price data found  (period=85d)
+13:06:25.951 | WARNING | src.fetchers.cross_asset - oil (CL=F) returned None on attempt 1
+13:06:37.085 | ERROR   | yfinance - $GC=F: possibly delisted; no price data found  (period=85d)
+13:06:37.089 | ERROR   | yfinance - 
+1 Failed download:
+13:06:37.090 | ERROR   | yfinance - ['GC=F']: possibly delisted; no price data found  (period=85d)
+13:06:37.098 | WARNING | src.fetchers.cross_asset - gold (GC=F) returned None on attempt 1
+13:06:48.255 | ERROR   | yfinance - $HG=F: possibly delisted; no price data found  (period=85d)
+13:06:48.263 | ERROR   | yfinance - 
+1 Failed download:
+13:06:48.264 | ERROR   | yfinance - ['HG=F']: possibly delisted; no price data found  (period=85d)
+13:06:48.267 | WARNING | src.fetchers.cross_asset - copper (HG=F) returned None on attempt 1
+13:06:59.429 | WARNING | src.fetchers.yields - FRED US 10Y (DGS10) fetch failed: [WinError 10053] An established connection was aborted by the software in your host machine
+13:06:59.552 | ERROR   | yfinance - $^STOXX50E: possibly delisted; no price data found  (period=85d)
+13:06:59.566 | ERROR   | yfinance - 
+1 Failed download:
+13:06:59.567 | ERROR   | yfinance - ['^STOXX50E']: possibly delisted; no price data found  (period=85d)
+13:06:59.586 | WARNING | src.fetchers.cross_asset - stoxx (^STOXX50E) returned None on attempt 1
+13:07:10.706 | ERROR   | yfinance - $^TNX: possibly delisted; no price data found  (period=5d)
+13:07:10.713 | WARNING | src.fetchers.yields - yfinance us_10y (^TNX) returned empty history
+13:07:10.714 | WARNING | src.fetchers.yields - US 10Y unavailable in both FRED and yfinance
+13:07:10.716 | ERROR   | yfinance - 
+1 Failed download:
+13:07:10.721 | ERROR   | yfinance - ['^TNX']: possibly delisted; no price data found  (period=5d)
+13:07:10.727 | WARNING | src.fetchers.cross_asset - oil (CL=F) returned None on attempt 2
+13:07:10.871 | ERROR   | yfinance - $CL=F: possibly delisted; no price data found  (period=85d)
+13:07:10.873 | ERROR   | yfinance - 
+1 Failed download:
+13:07:10.874 | ERROR   | yfinance - ['CL=F']: possibly delisted; no price data found  (period=85d)
+13:07:10.885 | WARNING | src.fetchers.cross_asset - gold (GC=F) returned None on attempt 2
+13:07:14.274 | INFO    | Task run 'build_master_buffer_task-06c' - Finished in state Completed()
+13:07:23.282 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:07:25.471 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:07:25.472 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:07:28.097 | WARNING | src.scheduler.orchestrator - US10Y missing for EURUSD; using latest historical value 4.5700
+13:07:28.604 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:07:31.967 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-22 on SEBI bulletin
+13:07:31.979 | WARNING | src.scheduler.orchestrator - US10Y missing for USDINR; using latest historical value 4.5700
+13:07:32.366 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:07:34.835 | WARNING | src.scheduler.orchestrator - US10Y missing for USDJPY; using latest historical value 4.5700
+13:07:35.211 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:07:42.857 | INFO    | Task run 'batch_desk_briefs_task-ab2' - Finished in state Completed()
+13:07:43.811 | INFO    | Task run 'write_desk_open_cards_bulk_task-c34' - Finished in state Completed()
+13:08:06.132 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:08:10.933 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-86' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:08:14.041 | INFO    | Task run 'upsert_pair_briefs_task-720' - Finished in state Completed()
+13:08:16.492 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,USDJPY/GDP Advance: asyncio.run() cannot be called from a running event loop
+D:\Projects\fx_regime_lab\fx-regime-lab\pipeline\src\ai\client.py:800: RuntimeWarning: coroutine '_call_preferred_model_async' was never awaited
+  logger.warning(
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+13:08:16.498 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,USDJPY/GDP Advance: asyncio.run() cannot be called from a running event loop
+13:08:16.591 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,USDJPY,USDINR/CPI: asyncio.run() cannot be called from a running event loop
+13:08:16.592 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,USDJPY,USDINR/CPI: asyncio.run() cannot be called from a running event loop
+13:08:16.673 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,USDINR,USDJPY/US CPI YoY: asyncio.run() cannot be called from a running event loop
+13:08:16.674 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,USDINR,USDJPY/US CPI YoY: asyncio.run() cannot be called from a running event loop
+13:08:16.768 | INFO    | Task run 'upsert_macro_event_briefs_task-9d5' - Finished in state Completed()
+13:08:39.468 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-108' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:08:39.984 | INFO    | Flow run 'eminent-eagle' - Finished in state Completed()
+13:08:41.415 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a11598-0eed-7b4f-8000-10720fb80130
+13:08:43.634 | INFO    | Flow run 'provocative-poodle' - Beginning flow run 'provocative-poodle' for flow 'Daily G10 FX Pipeline'
+13:08:43.635 | INFO    | Flow run 'provocative-poodle' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a11598-0eed-7b4f-8000-10720fb80130
+13:08:43.637 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:08:44.934 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:08:44.947 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:08:44.953 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:08:44.954 | ERROR   | yfinance - 
+3 Failed downloads:
+13:08:44.955 | ERROR   | yfinance - ['^TGD10Y', '^IN10Y', '^JG10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:08:55.160 | INFO    | Task run 'build_master_buffer_task-8dc' - Finished in state Completed()
+13:09:02.406 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:09:03.261 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:09:03.262 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:09:06.186 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:09:09.461 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-10 on SEBI bulletin
+13:09:09.845 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:09:12.344 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:09:14.273 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-144' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:09:17.988 | INFO    | Task run 'batch_desk_briefs_task-383' - Finished in state Completed()
+13:09:18.978 | INFO    | Task run 'write_desk_open_cards_bulk_task-df5' - Finished in state Completed()
+13:09:41.246 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:09:49.152 | INFO    | Task run 'upsert_pair_briefs_task-a86' - Finished in state Completed()
+13:09:51.598 | INFO    | Task run 'upsert_macro_event_briefs_task-715' - Finished in state Completed()
+13:10:14.607 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-208' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:10:14.613 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-209' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:10:14.620 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-210' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:10:15.133 | INFO    | Flow run 'provocative-poodle' - Finished in state Completed()
+13:10:16.644 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a1159e-0280-7b3a-8000-62f2e1f9584a
+13:10:18.800 | INFO    | Flow run 'perky-ferret' - Beginning flow run 'perky-ferret' for flow 'Daily G10 FX Pipeline'
+13:10:18.802 | INFO    | Flow run 'perky-ferret' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a1159e-0280-7b3a-8000-62f2e1f9584a
+13:10:18.808 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:10:20.600 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:10:20.647 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:10:20.740 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:10:20.755 | ERROR   | yfinance - 
+3 Failed downloads:
+13:10:20.756 | ERROR   | yfinance - ['^JG10Y', '^TGD10Y', '^IN10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:10:30.686 | INFO    | Task run 'build_master_buffer_task-453' - Finished in state Completed()
+13:10:37.513 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:10:38.986 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:10:38.987 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:10:41.753 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:10:45.262 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-22 on SEBI bulletin
+13:10:45.540 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:10:48.191 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:10:53.184 | INFO    | Task run 'batch_desk_briefs_task-156' - Finished in state Completed()
+13:10:54.211 | INFO    | Task run 'write_desk_open_cards_bulk_task-714' - Finished in state Completed()
+13:11:16.544 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:11:26.431 | INFO    | Task run 'upsert_pair_briefs_task-57b' - Finished in state Completed()
+13:11:28.901 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,EURINR/ECB Rate Decision: asyncio.run() cannot be called from a running event loop
+D:\Projects\fx_regime_lab\fx-regime-lab\pipeline\src\ai\client.py:800: RuntimeWarning: coroutine '_call_preferred_model_async' was never awaited
+  logger.warning(
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+13:11:28.902 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,EURINR/ECB Rate Decision: asyncio.run() cannot be called from a running event loop
+13:11:29.011 | INFO    | Task run 'upsert_macro_event_briefs_task-d60' - Finished in state Completed()
+13:11:53.557 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-309' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:11:53.563 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-310' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:11:53.571 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-311' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:11:54.165 | INFO    | Flow run 'perky-ferret' - Finished in state Completed()
+13:11:55.637 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115a4-321c-7970-8000-714801ce1770
+13:11:57.710 | INFO    | Flow run 'persimmon-horse' - Beginning flow run 'persimmon-horse' for flow 'Daily G10 FX Pipeline'
+13:11:57.712 | INFO    | Flow run 'persimmon-horse' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115a4-321c-7970-8000-714801ce1770
+13:11:57.722 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:11:58.346 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:11:58.350 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:11:58.426 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:11:58.444 | ERROR   | yfinance - 
+3 Failed downloads:
+13:11:58.445 | ERROR   | yfinance - ['^JG10Y', '^TGD10Y', '^IN10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:12:11.186 | INFO    | Task run 'build_master_buffer_task-ee2' - Finished in state Completed()
+13:12:12.360 | WARNING | src.fetchers.macro_calendar - ForexFactory weekly XML fetch failed: 429 Client Error: Too Many Requests for url: https://nfs.faireconomy.media/ff_calendar_thisweek.xml
+13:12:12.363 | WARNING | src.fetchers.macro_calendar - ForexFactory XML yielded no mapped events; using static fallback
+13:12:17.554 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:12:18.007 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:12:18.008 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:12:20.696 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:12:23.966 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-12 on SEBI bulletin
+13:12:24.389 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:12:27.068 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:12:32.377 | INFO    | Task run 'batch_desk_briefs_task-63b' - Finished in state Completed()
+13:12:33.321 | INFO    | Task run 'write_desk_open_cards_bulk_task-d5b' - Finished in state Completed()
+13:12:55.602 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:13:03.313 | INFO    | Task run 'upsert_pair_briefs_task-ae2' - Finished in state Completed()
+13:13:05.796 | INFO    | Task run 'upsert_macro_event_briefs_task-95f' - Finished in state Completed()
+13:13:28.753 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-410' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:13:28.760 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-411' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:13:28.765 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-412' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:13:29.307 | INFO    | Flow run 'persimmon-horse' - Finished in state Completed()
+13:13:30.851 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115aa-25a9-741b-8000-07ef07d48604
+13:13:33.043 | INFO    | Flow run 'sensible-boar' - Beginning flow run 'sensible-boar' for flow 'Daily G10 FX Pipeline'
+13:13:33.044 | INFO    | Flow run 'sensible-boar' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115aa-25a9-741b-8000-07ef07d48604
+13:13:33.048 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:13:34.717 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:13:34.729 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:13:34.731 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:13:34.737 | ERROR   | yfinance - 
+3 Failed downloads:
+13:13:34.737 | ERROR   | yfinance - ['^JG10Y', '^IN10Y', '^TGD10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:13:45.208 | INFO    | Task run 'build_master_buffer_task-a0b' - Finished in state Completed()
+13:13:46.639 | WARNING | src.fetchers.macro_calendar - ForexFactory weekly XML fetch failed: 429 Client Error: Too Many Requests for url: https://nfs.faireconomy.media/ff_calendar_thisweek.xml
+13:13:46.641 | WARNING | src.fetchers.macro_calendar - ForexFactory XML yielded no mapped events; using static fallback
+13:13:52.415 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:13:53.800 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:13:53.801 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:13:56.597 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:14:00.118 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-13 on SEBI bulletin
+13:14:00.516 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:14:03.337 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:14:08.536 | INFO    | Task run 'batch_desk_briefs_task-51f' - Finished in state Completed()
+13:14:09.459 | INFO    | Task run 'write_desk_open_cards_bulk_task-97c' - Finished in state Completed()
+13:14:31.888 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:14:40.546 | INFO    | Task run 'upsert_pair_briefs_task-ab3' - Finished in state Completed()
+13:14:43.658 | INFO    | Task run 'upsert_macro_event_briefs_task-c78' - Finished in state Completed()
+13:15:08.696 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-508' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:15:08.704 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-509' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:15:08.716 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-510' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:15:09.264 | INFO    | Flow run 'sensible-boar' - Finished in state Completed()
+13:15:11.008 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115b0-677f-7172-8000-0004a2e4026c
+13:15:13.472 | INFO    | Flow run 'meek-orca' - Beginning flow run 'meek-orca' for flow 'Daily G10 FX Pipeline'
+13:15:13.474 | INFO    | Flow run 'meek-orca' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115b0-677f-7172-8000-0004a2e4026c
+13:15:13.479 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:15:14.938 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:15:14.966 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:15:14.980 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:15:14.995 | ERROR   | yfinance - 
+3 Failed downloads:
+13:15:14.996 | ERROR   | yfinance - ['^IN10Y', '^JG10Y', '^TGD10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:15:27.511 | INFO    | Task run 'build_master_buffer_task-312' - Finished in state Completed()
+13:15:29.165 | WARNING | src.fetchers.macro_calendar - ForexFactory weekly XML fetch failed: 429 Client Error: Too Many Requests for url: https://nfs.faireconomy.media/ff_calendar_thisweek.xml
+13:15:29.167 | WARNING | src.fetchers.macro_calendar - ForexFactory XML yielded no mapped events; using static fallback
+13:15:36.496 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:15:37.759 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:15:37.760 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:15:40.603 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:15:43.971 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-14 on SEBI bulletin
+13:15:44.349 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:15:46.907 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:15:51.647 | INFO    | Task run 'batch_desk_briefs_task-643' - Finished in state Completed()
+13:15:52.516 | INFO    | Task run 'write_desk_open_cards_bulk_task-455' - Finished in state Completed()
+13:16:14.905 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:16:22.862 | INFO    | Task run 'upsert_pair_briefs_task-299' - Finished in state Completed()
+13:16:24.998 | INFO    | Task run 'upsert_macro_event_briefs_task-b08' - Finished in state Completed()
+13:16:47.342 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-609' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:16:47.346 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-610' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:16:47.351 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-611' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:16:48.019 | INFO    | Flow run 'meek-orca' - Finished in state Completed()
+13:16:49.316 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115b6-8d3a-7458-8000-8ada78cdc944
+13:16:51.223 | INFO    | Flow run 'puzzling-iguana' - Beginning flow run 'puzzling-iguana' for flow 'Daily G10 FX Pipeline'
+13:16:51.224 | INFO    | Flow run 'puzzling-iguana' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115b6-8d3a-7458-8000-8ada78cdc944
+13:16:51.226 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:16:52.438 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:16:52.441 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:16:52.644 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:16:52.645 | ERROR   | yfinance - 
+3 Failed downloads:
+13:16:52.646 | ERROR   | yfinance - ['^JG10Y', '^IN10Y', '^TGD10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:17:00.541 | INFO    | Task run 'build_master_buffer_task-a60' - Finished in state Completed()
+13:17:01.533 | WARNING | src.fetchers.macro_calendar - ForexFactory weekly XML fetch failed: 429 Client Error: Too Many Requests for url: https://nfs.faireconomy.media/ff_calendar_thisweek.xml
+13:17:01.535 | WARNING | src.fetchers.macro_calendar - ForexFactory XML yielded no mapped events; using static fallback
+13:17:05.672 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:17:06.723 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:17:06.724 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:17:08.771 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:17:11.486 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-15 on SEBI bulletin
+13:17:11.865 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:17:14.274 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:17:19.848 | INFO    | Task run 'batch_desk_briefs_task-bd3' - Finished in state Completed()
+13:17:20.436 | INFO    | Task run 'write_desk_open_cards_bulk_task-7aa' - Finished in state Completed()
+13:17:42.711 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:17:49.284 | INFO    | Task run 'upsert_pair_briefs_task-3af' - Finished in state Completed()
+13:17:50.967 | INFO    | Task run 'upsert_macro_event_briefs_task-34b' - Finished in state Completed()
+13:18:15.507 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-713' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:18:15.512 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-714' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:18:15.522 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-715' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:18:16.075 | INFO    | Flow run 'puzzling-iguana' - Finished in state Completed()
+13:18:17.576 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115bc-1124-7780-8000-0a4a6f166136
+13:18:19.676 | INFO    | Flow run 'famous-shrew' - Beginning flow run 'famous-shrew' for flow 'Daily G10 FX Pipeline'
+13:18:19.678 | INFO    | Flow run 'famous-shrew' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115bc-1124-7780-8000-0a4a6f166136
+13:18:19.683 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:18:20.940 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:18:21.090 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:18:21.138 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:18:21.144 | ERROR   | yfinance - 
+3 Failed downloads:
+13:18:21.145 | ERROR   | yfinance - ['^IN10Y', '^TGD10Y', '^JG10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:18:30.396 | INFO    | Task run 'build_master_buffer_task-439' - Finished in state Completed()
+13:18:37.371 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:18:38.567 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:18:38.568 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:18:41.053 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:18:44.183 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-22 on SEBI bulletin
+13:18:44.477 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:18:46.953 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:18:52.394 | INFO    | Task run 'batch_desk_briefs_task-b50' - Finished in state Completed()
+13:18:53.300 | INFO    | Task run 'write_desk_open_cards_bulk_task-3b0' - Finished in state Completed()
+13:19:15.698 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:19:23.057 | INFO    | Task run 'upsert_pair_briefs_task-5bd' - Finished in state Completed()
+13:19:24.986 | INFO    | Task run 'upsert_macro_event_briefs_task-49c' - Finished in state Completed()
+13:19:49.958 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-814' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:19:49.963 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-815' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:19:49.968 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-816' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:19:50.496 | INFO    | Flow run 'famous-shrew' - Finished in state Completed()
+13:19:52.130 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115c1-f6a0-7314-8000-add559aa9d66
+13:19:55.083 | INFO    | Flow run 'helpful-parrot' - Beginning flow run 'helpful-parrot' for flow 'Daily G10 FX Pipeline'
+13:19:55.084 | INFO    | Flow run 'helpful-parrot' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115c1-f6a0-7314-8000-add559aa9d66
+13:19:55.087 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:19:56.595 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:19:56.597 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:19:56.599 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:19:56.602 | ERROR   | yfinance - 
+3 Failed downloads:
+13:19:56.602 | ERROR   | yfinance - ['^IN10Y', '^TGD10Y', '^JG10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:20:06.583 | INFO    | Task run 'build_master_buffer_task-b5c' - Finished in state Completed()
+13:20:15.250 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:20:16.305 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:20:16.306 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:20:18.960 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:20:22.026 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-17 on SEBI bulletin
+13:20:22.413 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:20:25.525 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:20:30.772 | INFO    | Task run 'batch_desk_briefs_task-483' - Finished in state Completed()
+13:20:31.785 | INFO    | Task run 'write_desk_open_cards_bulk_task-8f4' - Finished in state Completed()
+13:20:55.960 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:21:04.614 | INFO    | Task run 'upsert_pair_briefs_task-afb' - Finished in state Completed()
+13:21:07.166 | INFO    | Task run 'upsert_macro_event_briefs_task-42e' - Finished in state Completed()
+13:21:30.246 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-915' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:21:30.255 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-916' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:21:30.263 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-917' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:21:30.776 | INFO    | Flow run 'helpful-parrot' - Finished in state Completed()
+13:21:32.085 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115c8-392c-74af-8000-f212ced52bd8
+13:21:34.089 | INFO    | Flow run 'azure-duck' - Beginning flow run 'azure-duck' for flow 'Daily G10 FX Pipeline'
+13:21:34.089 | INFO    | Flow run 'azure-duck' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115c8-392c-74af-8000-f212ced52bd8
+13:21:34.091 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:21:35.385 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:21:35.401 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:21:35.403 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:21:35.446 | ERROR   | yfinance - 
+3 Failed downloads:
+13:21:35.462 | ERROR   | yfinance - ['^IN10Y', '^TGD10Y', '^JG10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:21:42.277 | INFO    | Task run 'build_master_buffer_task-288' - Finished in state Completed()
+13:21:49.758 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:21:50.641 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:21:50.642 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:21:53.374 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:21:56.225 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-18 on SEBI bulletin
+13:21:56.620 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:21:59.476 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:22:04.985 | INFO    | Task run 'batch_desk_briefs_task-96b' - Finished in state Completed()
+13:22:06.298 | INFO    | Task run 'write_desk_open_cards_bulk_task-df8' - Finished in state Completed()
+13:22:28.803 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:22:38.333 | INFO    | Task run 'upsert_pair_briefs_task-cd4' - Finished in state Completed()
+13:22:40.885 | INFO    | Task run 'upsert_macro_event_briefs_task-8eb' - Finished in state Completed()
+13:23:10.025 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-1016' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:23:10.042 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-1017' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:23:10.051 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-1018' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:23:10.675 | INFO    | Flow run 'azure-duck' - Finished in state Completed()
+13:23:13.156 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115ce-8a46-7838-8000-a6a3970df6fa
+13:23:15.452 | INFO    | Flow run 'elastic-antelope' - Beginning flow run 'elastic-antelope' for flow 'Daily G10 FX Pipeline'
+13:23:15.454 | INFO    | Flow run 'elastic-antelope' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115ce-8a46-7838-8000-a6a3970df6fa
+13:23:15.466 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:23:17.217 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:23:17.233 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:23:17.358 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:23:17.373 | ERROR   | yfinance - 
+3 Failed downloads:
+13:23:17.374 | ERROR   | yfinance - ['^TGD10Y', '^JG10Y', '^IN10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:23:25.440 | INFO    | Task run 'build_master_buffer_task-fbd' - Finished in state Completed()
+13:23:27.522 | WARNING | src.fetchers.macro_calendar - ForexFactory weekly XML fetch failed: 429 Client Error: Too Many Requests for url: https://nfs.faireconomy.media/ff_calendar_thisweek.xml
+13:23:27.524 | WARNING | src.fetchers.macro_calendar - ForexFactory XML yielded no mapped events; using static fallback
+13:23:36.088 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:23:37.440 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:23:37.441 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:24:51.295 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:24:57.269 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-22 on SEBI bulletin
+13:24:57.702 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:25:02.224 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:25:07.829 | INFO    | Task run 'batch_desk_briefs_task-08b' - Finished in state Completed()
+13:25:08.612 | INFO    | Task run 'write_desk_open_cards_bulk_task-92b' - Finished in state Completed()
+13:25:30.935 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:25:39.410 | INFO    | Task run 'upsert_pair_briefs_task-c87' - Finished in state Completed()
+13:25:42.074 | INFO    | Task run 'upsert_macro_event_briefs_task-215' - Finished in state Completed()
+13:26:19.983 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-1117' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:26:19.990 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-1118' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:26:19.996 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-1119' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:26:20.770 | INFO    | Flow run 'elastic-antelope' - Finished in state Completed()
+13:26:21.992 | INFO    | prefect.engine - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115da-57e9-7f51-8000-aa7b1b38ce39
+13:26:24.008 | INFO    | Flow run 'just-tuna' - Beginning flow run 'just-tuna' for flow 'Daily G10 FX Pipeline'
+13:26:24.010 | INFO    | Flow run 'just-tuna' - View at https://app.prefect.cloud/account/ebb114a1-5507-435d-9854-e4f6cec38bd8/workspace/3f574407-2a40-4cf9-8df9-02cdf86a7af3/runs/flow-run/06a115da-57e9-7f51-8000-aa7b1b38ce39
+13:26:24.012 | WARNING | src.scheduler.orchestrator - Missing optional environment variables:
+  - SLACK_WEBHOOK_URL: Slack webhook for failure alerts (optional but recommended).
+  - RESEND_API_KEY: Resend API key for email alerts (optional but recommended).
+13:26:24.676 | ERROR   | yfinance - $^JG10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:26:24.678 | ERROR   | yfinance - $^TGD10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:26:24.700 | ERROR   | yfinance - $^IN10Y: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:26:24.702 | ERROR   | yfinance - 
+3 Failed downloads:
+13:26:24.702 | ERROR   | yfinance - ['^JG10Y', '^TGD10Y', '^IN10Y']: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:26:39.722 | INFO    | Task run 'build_master_buffer_task-4d6' - Finished in state Completed()
+13:26:42.208 | WARNING | src.fetchers.macro_calendar - ForexFactory weekly XML fetch failed: 429 Client Error: Too Many Requests for url: https://nfs.faireconomy.media/ff_calendar_thisweek.xml
+13:26:42.210 | WARNING | src.fetchers.macro_calendar - ForexFactory XML yielded no mapped events; using static fallback
+13:26:52.718 | ERROR   | yfinance - $USDINR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:26:53.905 | ERROR   | yfinance - $INR=F: possibly delisted; no price data found  (period=5d) (Yahoo error = "No data found, symbol may be delisted")
+13:26:53.906 | WARNING | src.fetchers.cross_asset - INR forward premium: forward data unavailable (MVP limitation)
+13:26:57.487 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:27:02.948 | WARNING | src.fetchers.fpi_india - No FPI data found for 2026-05-22 on SEBI bulletin
+13:27:03.504 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:27:08.021 | WARNING | src.core.regime_persist - call_rationale write skipped (table may not exist): {'message': 'there is no unique or exclusion constraint matching the ON CONFLICT specification', 'code': '42P10', 'hint': None, 'details': None}
+13:27:15.337 | INFO    | Task run 'batch_desk_briefs_task-dcf' - Finished in state Completed()
+13:27:16.794 | INFO    | Task run 'write_desk_open_cards_bulk_task-441' - Finished in state Completed()
+13:27:40.008 | WARNING | src.fetchers.polymarket - Polymarket Gamma request failed: Cannot connect to host gamma-api.polymarket.com:443 ssl:default [The semaphore timeout period has expired]
+13:27:49.619 | INFO    | Task run 'upsert_pair_briefs_task-96e' - Finished in state Completed()
+13:27:52.336 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,USDINR,USDJPY/US GDP Advance: asyncio.run() cannot be called from a running event loop
+D:\Projects\fx_regime_lab\fx-regime-lab\pipeline\src\ai\client.py:800: RuntimeWarning: coroutine '_call_preferred_model_async' was never awaited
+  logger.warning(
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+13:27:52.337 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,USDINR,USDJPY/US GDP Advance: asyncio.run() cannot be called from a running event loop
+13:27:52.495 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,USDINR,USDJPY/US CPI YoY: asyncio.run() cannot be called from a running event loop
+13:27:52.495 | WARNING | src.ai.client - Event brief JSON parse/call failure for EURUSD,USDINR,USDJPY/US CPI YoY: asyncio.run() cannot be called from a running event loop
+13:27:52.628 | INFO    | Task run 'upsert_macro_event_briefs_task-e17' - Finished in state Completed()
+13:27:54.583 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-1224' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:27:54.585 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-1225' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:27:54.587 | ERROR   | asyncio - Task exception was never retrieved
+future: <Task finished name='Task-1226' coro=<AsyncClient.aclose() done, defined at C:\Python314\Lib\site-packages\httpx\_client.py:1978> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\httpx\_client.py", line 1985, in aclose
+    await self._transport.aclose()
+  File "C:\Python314\Lib\site-packages\httpx\_transports\default.py", line 406, in aclose
+    await self._pool.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 353, in aclose
+    await self._close_connections(closing_connections)
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection_pool.py", line 345, in _close_connections
+    await connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\connection.py", line 173, in aclose
+    await self._connection.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_async\http11.py", line 258, in aclose
+    await self._network_stream.aclose()
+  File "C:\Python314\Lib\site-packages\httpcore\_backends\anyio.py", line 53, in aclose
+    await self._stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\streams\tls.py", line 236, in aclose
+    await self.transport_stream.aclose()
+  File "C:\Python314\Lib\site-packages\anyio\_backends\_asyncio.py", line 1344, in aclose
+    self._transport.close()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\proactor_events.py", line 109, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 827, in call_soon
+    self._check_closed()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 550, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+13:28:33.356 | INFO    | Flow run 'just-tuna' - Finished in state Completed()

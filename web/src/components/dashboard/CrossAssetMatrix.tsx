@@ -22,10 +22,13 @@ const TILES: {
 export function CrossAssetMatrix({ data, signals }: CrossAssetMatrixProps) {
   return (
     <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
-      <div className="px-5 py-3 border-b border-[var(--color-border)]">
-        <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
+      <div className="px-5 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
+        <p className="font-sans text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
           Cross-Asset Context
         </p>
+        <span className="font-sans text-[9px] text-[var(--color-text-dim)]">
+          Live market proxies
+        </span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-px bg-[var(--color-border)]">
         {TILES.map((t) => {
@@ -48,9 +51,17 @@ export function CrossAssetMatrix({ data, signals }: CrossAssetMatrixProps) {
               <p className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-2">
                 {t.label}
               </p>
-              <p className="font-mono text-[clamp(18px,2vw,22px)] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
-                {value != null ? fmt2(value) : "—"}
-              </p>
+              {value != null ? (
+                <p className="font-mono text-[clamp(18px,2vw,22px)] font-medium text-[var(--color-text)] tracking-tight leading-none tabular-nums">
+                  {fmt2(value)}
+                </p>
+              ) : (
+                <div className="py-1">
+                  <span className="font-sans text-[10px] text-[var(--color-text-dim)]">
+                    Awaiting data
+                  </span>
+                </div>
+              )}
               {change != null && (
                 <p
                   className="font-mono text-[10px] mt-1 tabular-nums"

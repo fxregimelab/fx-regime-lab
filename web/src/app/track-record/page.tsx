@@ -30,6 +30,7 @@ import type {
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import { TrackRecordTabs } from "./components/TrackRecordTabs";
+import { VersionSelector } from "./components/VersionSelector";
 
 export const metadata: Metadata = {
   title: "Track Record | FX Regime Lab",
@@ -116,6 +117,10 @@ function computeStatsFromLog(
     pair: pair ?? "ALL",
     horizon,
     winRate,
+    winRateCI: null,
+    netWinRate: null,
+    netWinRateCI: null,
+    costBps: null,
     wins,
     brierScore,
     sampleSize,
@@ -401,57 +406,127 @@ function LiveTabContent({
         </div>
       </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-10">
+      {/* Cost disclaimer banner */}
+      <div className="mb-8 px-5 py-4 border border-[var(--color-brand-amber)]/30 bg-[var(--color-brand-amber)]/5">
+        <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
+          <strong className="text-[var(--color-brand-amber)]">
+            Important:
+          </strong>{" "}
+          These metrics show gross returns before transaction costs. Typical FX
+          spot bid-ask spreads are 0.1–1.0 bps for G10 and 5–20 bps for EM. Net
+          returns may be substantially lower. Our accuracy is currently near
+          random — we publish this openly as part of our research process.{" "}
+          <a
+            href="/limitations"
+            className="underline text-[var(--color-brand-amber)]"
+          >
+            Full limitations →
+          </a>
+        </p>
+      </div>
+
+      {/* Primary metrics — Net / Gross win rates */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-8">
         <StatsCard
-          label="T+5 WIN RATE"
-          value={fmtPctRaw(allT5?.winRate)}
-          sub="calls"
+          label="T+5 NET WIN RATE"
+          value={fmtPctRaw(allT5?.netWinRate)}
+          sub={allT5?.costBps != null ? `after ${allT5.costBps} bps costs` : "after costs"}
           sampleSize={allT5?.sampleSize}
-          ci={fmtPropCI(allT5?.winRate ?? null, t5WinCI)}
+          ci={allT5?.netWinRateCI ? fmtPropCI(allT5.netWinRate, allT5.netWinRateCI) : undefined}
         />
         <StatsCard
-          label="T+20 WIN RATE"
-          value={fmtPctRaw(allT20?.winRate)}
-          sub="calls"
+          label="T+5 GROSS WIN RATE"
+          value={fmtPctRaw(allT5?.winRate)}
+          sub="before costs"
+          sampleSize={allT5?.sampleSize}
+          ci={allT5?.winRateCI ? fmtPropCI(allT5.winRate, allT5.winRateCI) : undefined}
+        />
+        <StatsCard
+          label="T+20 NET WIN RATE"
+          value={fmtPctRaw(allT20?.netWinRate)}
+          sub={allT20?.costBps != null ? `after ${allT20.costBps} bps costs` : "after costs"}
           sampleSize={allT20?.sampleSize}
-          ci={fmtPropCI(allT20?.winRate ?? null, t20WinCI)}
+          ci={allT20?.netWinRateCI ? fmtPropCI(allT20.netWinRate, allT20.netWinRateCI) : undefined}
         />
         <StatsCard
-          label="T+5 BRIER"
+          label="T+20 GROSS WIN RATE"
+          value={fmtPctRaw(allT20?.winRate)}
+          sub="before costs"
+          sampleSize={allT20?.sampleSize}
+          ci={allT20?.winRateCI ? fmtPropCI(allT20.winRate, allT20.winRateCI) : undefined}
+        />
+      </div>
+
+      {/* Secondary metrics — Brier scores */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-8">
+        <StatsCard
+          label="T+5 BRIER (HEURISTIC)"
           value={fmtBrier(allT5?.brierScore)}
           sub={
             allT5?.brierScore != null
               ? allT5.brierScore < 0.1
-                ? "Excellent"
+                ? "High internal consistency"
                 : allT5.brierScore < 0.2
-                  ? "Good"
+                  ? "Moderate consistency"
                   : allT5.brierScore < 0.3
-                    ? "Fair"
-                    : "Poor"
+                    ? "Low consistency"
+                    : "Very low consistency"
               : undefined
           }
           sampleSize={allT5?.sampleSize}
           ci={fmtMeanCI(allT5?.brierScore ?? null, t5BrierCI)}
         />
         <StatsCard
-          label="T+20 BRIER"
+          label="T+20 BRIER (HEURISTIC)"
           value={fmtBrier(allT20?.brierScore)}
           sub={
             allT20?.brierScore != null
               ? allT20.brierScore < 0.1
-                ? "Excellent"
+                ? "High internal consistency"
                 : allT20.brierScore < 0.2
-                  ? "Good"
+                  ? "Moderate consistency"
                   : allT20.brierScore < 0.3
-                    ? "Fair"
-                    : "Poor"
-              : undefined
+                    ? "Low consistency"
+                    : "Very low consistency"
+              : allT20?.sampleSize === 0 || allT20?.sampleSize == null
+                ? "Awaiting T+20 validation"
+                : undefined
           }
           sampleSize={allT20?.sampleSize}
           ci={fmtMeanCI(allT20?.brierScore ?? null, t20BrierCI)}
         />
+        <StatsCard
+          label="T+5 AVG RETURN"
+          value={fmtPctRaw(allT5?.avgReturnBps)}
+          sub="bps log-return"
+          sampleSize={allT5?.sampleSize}
+        />
+        <StatsCard
+          label="T+20 AVG RETURN"
+          value={fmtPctRaw(allT20?.avgReturnBps)}
+          sub="bps log-return"
+          sampleSize={allT20?.sampleSize}
+        />
       </div>
+
+      {/* Sample size context */}
+      {(allT5?.sampleSize ?? 0) < 200 && (
+        <div className="mb-8 px-5 py-4 border border-[var(--color-brand-amber-muted)] bg-[var(--color-brand-amber-muted)]/10">
+          <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
+            <strong className="text-[var(--color-text)]">
+              Sample size note:
+            </strong>{" "}
+            {allT5?.sampleSize ?? 0} published calls since May 2026. Statistical
+            significance for win rate estimates typically requires ~200 calls.
+            The Brier score measures heuristic consistency — our
+            confidence scores are not proper probabilities.{" "}
+            <a href="/limitations" className="underline">
+              See limitations
+            </a>
+            .
+          </p>
+        </div>
+      )}
 
       {/* Mini equity curve */}
       <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
@@ -498,6 +573,18 @@ function LiveTabContent({
         }
         const recent = history.slice(-30);
         if (recent.length === 0) return null;
+        if (recent.length < 10) {
+          return (
+            <div className="border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-8 text-center mb-10">
+              <p className="font-mono text-[11px] text-[var(--color-text-muted)] tracking-wider mb-2">
+                INSUFFICIENT DATA
+              </p>
+              <p className="font-sans text-[13px] text-[var(--color-text-secondary)]">
+                Only {recent.length} trading days available. Accuracy gate tracking requires at least 10 days.
+              </p>
+            </div>
+          );
+        }
         return (
           <div className="mb-10">
             <AccuracyMilestoneTracker
@@ -531,7 +618,7 @@ function LiveTabContent({
       <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
         <div className="px-5 py-3 border-b border-[var(--color-border)]">
           <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
-            Rolling 10-Call Brier Score
+            Rolling 10-Call Brier Score (Heuristic)
           </p>
         </div>
         <BrierChart data={brierSeries} />
@@ -567,6 +654,7 @@ function LiveTabContent({
 
 function BacktestedTabContent({
   versions,
+  selectedVersion,
   versionedCalls,
   versionedBreakdown,
   simulationResults,
@@ -575,6 +663,7 @@ function BacktestedTabContent({
   backtestT5ByPair,
 }: {
   versions: string[];
+  selectedVersion: string;
   versionedCalls: VersionedRegimeCall[];
   versionedBreakdown: VersionedRegimeBreakdownRow[];
   simulationResults: SimulationResult[];
@@ -595,20 +684,7 @@ function BacktestedTabContent({
         <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
           MODEL VERSION
         </span>
-        <div className="flex gap-2">
-          {versions.map((v) => (
-            <span
-              key={v}
-              className={`font-mono text-[10px] px-2 py-1 border ${
-                v === versions[0]
-                  ? "border-[var(--color-text)] text-[var(--color-text)]"
-                  : "border-[var(--color-border)] text-[var(--color-text-muted)]"
-              }`}
-            >
-              {v}
-            </span>
-          ))}
-        </div>
+        <VersionSelector versions={versions} selectedVersion={selectedVersion} />
       </div>
 
       {!hasData ? (
@@ -760,16 +836,6 @@ function BacktestedTabContent({
             </div>
           </div>
 
-          {/* Calibration chart placeholder */}
-          <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
-            <div className="px-5 py-3 border-b border-[var(--color-border)]">
-              <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
-                Calibration — Confidence Buckets vs Actual Win Rate
-              </p>
-            </div>
-            <EmptyState message="Calibration data pending" />
-          </div>
-
           {/* Rolling 90-day metrics */}
           <div className="border border-[var(--color-border)] bg-[var(--color-surface)] mb-10">
             <div className="px-5 py-3 border-b border-[var(--color-border)]">
@@ -777,19 +843,95 @@ function BacktestedTabContent({
                 Rolling 90-Day Metrics
               </p>
             </div>
-            <EmptyState message="Rolling metrics pending" />
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse font-mono text-[11px]">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)] bg-[var(--color-elevated)]">
+                    <th className="px-4 py-2.5 text-left text-[9px] text-[var(--color-text-muted)] tracking-[0.15em] font-semibold uppercase">
+                      Pair
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-[9px] text-[var(--color-text-muted)] tracking-[0.15em] font-semibold uppercase">
+                      90D Win Rate
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-[9px] text-[var(--color-text-muted)] tracking-[0.15em] font-semibold uppercase">
+                      T+5 Brier
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-[9px] text-[var(--color-text-muted)] tracking-[0.15em] font-semibold uppercase">
+                      Sample
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {backtestT5ByPair.map((s, i) => (
+                    <tr
+                      key={s.pair}
+                      className={`border-b border-[var(--color-border-subtle)] last:border-b-0 ${i % 2 === 1 ? "bg-[var(--color-elevated)]" : "bg-[var(--color-surface)]"}`}
+                    >
+                      <th
+                        scope="row"
+                        className="px-4 py-2.5 text-[var(--color-text-secondary)] whitespace-nowrap font-medium text-left"
+                      >
+                        {s.pair}
+                      </th>
+                      <td className="px-4 py-2.5 text-[var(--color-text)] tabular-nums">
+                        {s.rolling90dAccuracy != null
+                          ? `${(s.rolling90dAccuracy * 100).toFixed(1)}%`
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-[var(--color-text)] tabular-nums">
+                        {s.brierScore != null ? s.brierScore.toFixed(3) : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-[var(--color-text-muted)] tabular-nums">
+                        n={s.sampleSize ?? 0}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}
 
       {simulationResults.length > 0 && (
-        <div className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-          <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-3">
-            Simulation Output
-          </p>
-          <pre className="font-mono text-[10px] text-[var(--color-text-secondary)] overflow-auto">
-            {JSON.stringify(simulationResults, null, 2)}
-          </pre>
+        <div className="border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden mb-8">
+          <div className="px-5 py-3 border-b border-[var(--color-border)]">
+            <p className="font-mono text-[10px] tracking-wider text-[var(--color-text-muted)]">
+              SIMULATION OUTPUT
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse font-mono text-[11px]">
+              <thead>
+                <tr className="border-b border-[var(--color-border)]">
+                  <th className="px-4 py-2 text-left text-[var(--color-text-muted)]">PAIR</th>
+                  <th className="px-4 py-2 text-left text-[var(--color-text-muted)]">METHOD</th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">SHARPE</th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">SORTINO</th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">WIN RATE</th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">TRADES</th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">TOTAL P&L</th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">MEAN BRIER</th>
+                </tr>
+              </thead>
+              <tbody>
+                {simulationResults.map((r) => (
+                  <tr key={`${r.pair}-${r.sizingMethod}`} className="border-b border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]">
+                    <td className="px-4 py-2 text-[var(--color-text)]">{r.pair.replace("USD", "USD/").replace("EUR", "EUR/")}</td>
+                    <td className="px-4 py-2 text-[var(--color-text)]">{r.sizingMethod}</td>
+                    <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.sharpe != null ? r.sharpe.toFixed(2) : "—"}</td>
+                    <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.sortino != null ? r.sortino.toFixed(2) : "—"}</td>
+                    <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.winRate != null ? `${(r.winRate * 100).toFixed(1)}%` : "—"}</td>
+                    <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.nTrades ?? "—"}</td>
+                    <td className={`px-4 py-2 text-right ${(r.totalPnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {r.totalPnl != null ? `${r.totalPnl >= 0 ? "+" : ""}${r.totalPnl.toFixed(2)}` : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.meanBrier != null ? r.meanBrier.toFixed(3) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -909,7 +1051,11 @@ function RegimeValidationTabContent({
 
 /* ─── Main page ─────────────────────────────────────────────────────────── */
 
-export default async function TrackRecordPage() {
+export default async function TrackRecordPage({
+  searchParams,
+}: {
+  searchParams: { version?: string };
+}) {
   const supabase = await createClient();
 
   // Live data
@@ -930,7 +1076,7 @@ export default async function TrackRecordPage() {
 
   // Backtest data
   const versions = await getBacktestVersions(supabase);
-  const defaultVersion = versions[0] ?? "v3";
+  const selectedVersion = searchParams.version ?? versions[0] ?? "v3";
   const [
     versionedCalls,
     versionedBreakdown,
@@ -939,13 +1085,13 @@ export default async function TrackRecordPage() {
   ] = await Promise.all([
     getRegimeCallsByVersion(
       supabase,
-      defaultVersion,
+      selectedVersion,
       undefined,
       undefined,
       500,
     ),
-    getRegimeBreakdownByVersion(supabase, defaultVersion, 500),
-    getSimulationResults(supabase, defaultVersion),
+    getRegimeBreakdownByVersion(supabase, selectedVersion, 500),
+    getSimulationResults(supabase, selectedVersion),
     getValidationLogT5T20(supabase, 500, "backtest"),
   ]);
 
@@ -1121,6 +1267,7 @@ export default async function TrackRecordPage() {
           backtestedContent={
             <BacktestedTabContent
               versions={versions}
+              selectedVersion={selectedVersion}
               versionedCalls={versionedCalls}
               versionedBreakdown={versionedBreakdown}
               simulationResults={simulationResults}
