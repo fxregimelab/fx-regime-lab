@@ -73,10 +73,11 @@ export default function LimitationsPage() {
               ⚠️ Accuracy is Near Random
             </h2>
             <p className="font-sans text-[14px] text-[var(--color-text-secondary)] leading-[1.7] mb-3">
-              Our T+5 directional accuracy is ~49% (95% CI: 42%–56%). This is
-              statistically indistinguishable from a coin flip. We publish this
-              openly because the goal is transparent regime monitoring, not
-              signals.
+              Our T+5 directional accuracy is ~49% over the full backtested
+              history (1997–2026). Live out-of-sample performance since May 2026
+              is significantly lower (~15%) due to small sample size and recent
+              market conditions. We publish both figures transparently because
+              the goal is honest regime monitoring, not signals.
             </p>
           </section>
 

@@ -7,6 +7,7 @@ import math
 
 from src.validation.calendar import add_trading_days
 from src.validation.engine import (
+    _compute_horizon,
     brier_score,
     is_correct,
     log_return_bps,
@@ -79,3 +80,21 @@ def test_add_trading_days_skips_weekend() -> None:
 def test_add_trading_days_t5_over_weekend() -> None:
     fri = datetime.date(2026, 5, 1)
     assert add_trading_days(fri, 5) == datetime.date(2026, 5, 8)
+
+
+def test_correct_net_equals_correct_gross() -> None:
+    """Costs must not affect directional accuracy (v2.1 fix)."""
+    # NEUTRAL prediction with borderline gross return that falls into deadband after cost
+    s0 = 1.0000
+    sh = 1.00051  # 5.1 bps gross → realized UP
+    result = _compute_horizon(s0, {"spot": sh}, "NEUTRAL", 0.5, "EURUSD")
+    assert result is not None
+    assert result["correct"] == result["correct_net"], (
+        f"correct_net ({result['correct_net']}) must equal correct ({result['correct']})"
+    )
+    # BEARISH prediction with strong down move
+    sh2 = 0.9980  # -20 bps
+    result2 = _compute_horizon(s0, {"spot": sh2}, "BEARISH", 0.5, "USDJPY")
+    assert result2 is not None
+    assert result2["correct"] == result2["correct_net"]
+    assert result2["correct"] is True

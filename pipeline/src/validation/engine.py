@@ -82,10 +82,10 @@ def _compute_horizon(
     bps_net = bps_gross - cost_bps
     
     realized_gross = realized_direction(bps_gross)
-    realized_net = realized_direction(bps_net)
-    
+    # v2.1 fix: Net correctness uses SAME realized direction as gross.
+    # Costs affect P&L and returns, not directional accuracy.
     correct_gross = is_correct(predicted, realized_gross)
-    correct_net = is_correct(predicted, realized_net)
+    correct_net = correct_gross
     
     brier = brier_score(confidence, correct_gross)  # Brier on gross (existing)
     

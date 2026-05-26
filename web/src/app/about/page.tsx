@@ -210,7 +210,7 @@ async function TrackRecordHighlights() {
   const stats = [
     {
       value: count ? count.toLocaleString() : "—",
-      label: "Validated regime calls",
+      label: "Validated regime calls (incl. backtests)",
     },
     {
       value: String(PAIRS.length),
@@ -218,7 +218,7 @@ async function TrackRecordHighlights() {
     },
     {
       value: daysCount > 0 ? daysCount.toLocaleString() : "—",
-      label: "Trading days validated",
+      label: "Trading days validated (incl. backtests)",
     },
     {
       value:

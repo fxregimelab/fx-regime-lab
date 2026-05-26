@@ -439,6 +439,17 @@ function LiveTabContent({
         </div>
       </div>
 
+      {/* Live vs backtest distinction */}
+      <div className="mb-8 px-5 py-4 border border-[var(--color-brand-amber)]/30 bg-[var(--color-brand-amber)]/5">
+        <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
+          <strong className="text-[var(--color-brand-amber)]">Live out-of-sample:</strong>{" "}
+          {allT5?.sampleSize ?? 0} directional calls since May 2026.
+          Gross accuracy: {fmtPctRaw(allT5?.winRate)}.
+          Backtested history (1997–2026) accuracy: ~49%.
+          {" "}<a href="/limitations" className="underline text-[var(--color-brand-amber)]">See limitations</a>.
+        </p>
+      </div>
+
       {/* Cost disclaimer banner */}
       <div className="mb-8 px-5 py-4 border border-[var(--color-brand-amber)]/30 bg-[var(--color-brand-amber)]/5">
         <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
@@ -778,7 +789,7 @@ function BacktestedTabContent({
                   className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
                 >
                   <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-3">
-                    {pair.replace("USD", "USD/").replace("EUR", "EUR/")}
+                    {pair.replace("EURUSD", "EUR/USD").replace("USDJPY", "USD/JPY").replace("USDINR", "USD/INR")}
                   </p>
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
@@ -950,7 +961,7 @@ function BacktestedTabContent({
               <tbody>
                 {simulationResults.map((r) => (
                   <tr key={`${r.pair}-${r.sizingMethod}`} className="border-b border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]">
-                    <td className="px-4 py-2 text-[var(--color-text)]">{r.pair.replace("USD", "USD/").replace("EUR", "EUR/")}</td>
+                    <td className="px-4 py-2 text-[var(--color-text)]">{r.pair.replace("EURUSD", "EUR/USD").replace("USDJPY", "USD/JPY").replace("USDINR", "USD/INR")}</td>
                     <td className="px-4 py-2 text-[var(--color-text)]">{r.sizingMethod}</td>
                     <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.sharpe != null ? r.sharpe.toFixed(2) : "—"}</td>
                     <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.sortino != null ? r.sortino.toFixed(2) : "—"}</td>
@@ -1040,7 +1051,7 @@ function RegimeValidationTabContent({
                     className="border-b border-[var(--color-border-subtle)]"
                   >
                     <td className="px-4 py-3 text-[var(--color-text)]">
-                      {r.pair.replace("USD", "USD/").replace("EUR", "EUR/")}
+                      {r.pair.replace("EURUSD", "EUR/USD").replace("USDJPY", "USD/JPY").replace("USDINR", "USD/INR")}
                     </td>
                     <td className="px-4 py-3 text-right text-[var(--color-text)] tabular-nums">
                       {r.sizingMethod}

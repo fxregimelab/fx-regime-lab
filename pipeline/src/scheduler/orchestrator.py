@@ -1469,6 +1469,8 @@ async def run_daily(
             inr_forward_premium=inr_forward_premium if pair == "USDINR" else None,
         )
 
+        if pair == "TESTPAIR":
+            continue
         writer.write_signal_row(signal_row)
 
         # Map Layer2 bias to validation-compatible predicted_direction.
