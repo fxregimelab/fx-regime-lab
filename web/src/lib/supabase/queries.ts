@@ -95,6 +95,7 @@ export interface ValidationStats {
   wins: number | null;
   brierScore: number | null;
   sampleSize: number | null;
+  netSampleSize?: number | null;
   avgReturnBps: number | null;
   sharpeLike: number | null;
   rolling90dAccuracy: number | null;

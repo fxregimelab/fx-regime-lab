@@ -114,10 +114,14 @@ function computeStatsFromLog(
   ).length;
   const netWinRate = netValid.length > 0 ? netWins / netValid.length : null;
 
-  const costs = filtered
+  // Only compute cost from rows with known net outcomes; round to 2 decimals
+  const costs = netValid
     .map((r) => r[costKey as keyof ValidationRowT5] as number | null)
     .filter((v): v is number => v != null);
-  const avgCostBps = costs.length > 0 ? costs.reduce((s, v) => s + v, 0) / costs.length : null;
+  const avgCostBps =
+    netValid.length > 0 && costs.length > 0
+      ? parseFloat((costs.reduce((s, v) => s + v, 0) / costs.length).toFixed(2))
+      : null;
 
   const netReturns = filtered
     .map((r) => r[netReturnKey as keyof ValidationRowT5] as number | null)
@@ -152,6 +156,7 @@ function computeStatsFromLog(
     wins,
     brierScore,
     sampleSize,
+    netSampleSize: netValid.length > 0 ? netValid.length : null,
     avgReturnBps: avgNetReturnBps ?? avgReturnBps,
     sharpeLike,
     rolling90dAccuracy,
@@ -458,8 +463,8 @@ function LiveTabContent({
         <StatsCard
           label="T+5 NET WIN RATE"
           value={fmtPctRaw(allT5?.netWinRate)}
-          sub={allT5?.costBps != null ? `after ${allT5.costBps} bps costs` : "after costs"}
-          sampleSize={allT5?.sampleSize}
+          sub={allT5?.costBps != null ? `after ${allT5.costBps} bps costs` : allT5?.netSampleSize != null ? "after costs" : undefined}
+          sampleSize={allT5?.netSampleSize ?? allT5?.sampleSize}
           ci={allT5?.netWinRateCI ? fmtPropCI(allT5.netWinRate, allT5.netWinRateCI) : undefined}
         />
         <StatsCard
@@ -472,8 +477,8 @@ function LiveTabContent({
         <StatsCard
           label="T+20 NET WIN RATE"
           value={fmtPctRaw(allT20?.netWinRate)}
-          sub={allT20?.costBps != null ? `after ${allT20.costBps} bps costs` : "after costs"}
-          sampleSize={allT20?.sampleSize}
+          sub={allT20?.costBps != null ? `after ${allT20.costBps} bps costs` : allT20?.netSampleSize != null ? "after costs" : undefined}
+          sampleSize={allT20?.netSampleSize ?? allT20?.sampleSize}
           ci={allT20?.netWinRateCI ? fmtPropCI(allT20.netWinRate, allT20.netWinRateCI) : undefined}
         />
         <StatsCard
