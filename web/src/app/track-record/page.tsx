@@ -104,7 +104,8 @@ function computeStatsFromLog(
   const costKey = horizon === "t5" ? "t5CostBps" : "t20CostBps";
   const netReturnKey = horizon === "t5" ? "t5ReturnNetBps" : "t20ReturnNetBps";
 
-  const netValid = filtered.filter(
+  // Net validity uses the same base as gross (valid rows) so denominators match
+  const netValid = valid.filter(
     (r) =>
       r[netOutcomeKey as keyof ValidationRowT5] === true ||
       r[netOutcomeKey as keyof ValidationRowT5] === false,
