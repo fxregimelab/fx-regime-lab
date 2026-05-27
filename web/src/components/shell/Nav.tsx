@@ -2,7 +2,6 @@
 
 import { LogoMark } from "@/components/ui/logo-mark";
 import { Menu, X } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
@@ -124,14 +123,6 @@ export function Nav() {
           style={{ borderRadius: 2 }}
         >
           <LogoMark size={28} />
-          <Image
-            src="/logos/wordmark-without-bg.png"
-            alt="FX Regime Lab"
-            width={140}
-            height={28}
-            className="object-contain h-[22px] w-auto"
-            priority
-          />
         </Link>
 
         {/* Desktop nav */}
