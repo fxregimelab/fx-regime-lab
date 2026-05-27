@@ -47,7 +47,7 @@ const timeline = [
     date: "April 2026",
     title: "Three-Layer Engine",
     description:
-      "Introduced Layer 1 (structural gate), Layer 2 (directional conviction), and Layer 3 (execution HUD). Added hysteresis, Marcus clash logic, and confidence scoring. First SSRN paper draft.",
+      "Introduced Layer 1 (structural gate), Layer 2 (directional conviction), and Layer 3 (execution HUD). Added hysteresis, Marcus clash logic, and confidence scoring. First comprehensive methodology document drafted.",
     status: "done",
   },
   {

@@ -1,7 +1,7 @@
 """Round 4 Phase 3 — Research artifact generation.
 
 Produces institutional-grade markdown reports from ``validation_stats``
-for SSRN pre-prints, Substack posts, and internal research memos.
+for Substack posts, LinkedIn content, and internal research memos.
 """
 
 from __future__ import annotations
