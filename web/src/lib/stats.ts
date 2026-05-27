@@ -29,9 +29,12 @@ export function wilsonCI(
 /** Normal-approximation confidence interval for a sample mean.
  *  Uses sample standard deviation with Bessel's correction.
  */
-export function meanCI(values: number[], confidence = 0.95): [number, number] {
+export function meanCI(
+  values: number[],
+  confidence = 0.95,
+): [number, number] | null {
   const n = values.length;
-  if (n === 0) return [0, 0];
+  if (n === 0) return null;
   const mean = values.reduce((a, b) => a + b, 0) / n;
   if (n === 1) return [mean, mean];
   const variance =
@@ -58,9 +61,10 @@ export function fmtPropCI(
 /** Format a mean CI as "X.XXX [X.XXX–X.XXX]". */
 export function fmtMeanCI(
   point: number | null,
-  ci: [number, number],
+  ci: [number, number] | null,
   digits = 3,
 ): string {
+  if (ci == null) return "Awaiting data";
   const p = point != null ? point.toFixed(digits) : "—";
   const lo = ci[0].toFixed(digits);
   const hi = ci[1].toFixed(digits);

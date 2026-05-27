@@ -37,7 +37,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function Hero() {
   return (
-    <section className="reveal mb-20 pb-16 border-b border-[var(--color-border)]">
+    <section className="mb-20 pb-16 border-b border-[var(--color-border)]">
       <SectionLabel>About</SectionLabel>
       <h1 className="font-sans font-semibold text-[clamp(32px,4vw,52px)] text-[var(--color-text)] tracking-tight leading-[1.1] mb-6">
         About FX Regime Lab
@@ -55,7 +55,7 @@ function Hero() {
 
 function Philosophy() {
   return (
-    <section className="reveal mb-24">
+    <section className="mb-24">
       <SectionLabel>Philosophy</SectionLabel>
       <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-6">
         Radical Honesty in Macro Research
@@ -103,7 +103,7 @@ async function AuthorIdentity() {
     "Macro researcher focused on systematic FX regime classification. Built FX Regime Lab to bridge the gap between systematic FX regime monitoring and publicly accessible daily regime classifications.";
 
   return (
-    <section className="reveal mb-24">
+    <section className="mb-24">
       <div className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-10 items-start">
         <div className="flex-shrink-0">
           <Image
@@ -156,7 +156,7 @@ function MethodologySummary() {
   ];
 
   return (
-    <section className="reveal mb-24">
+    <section className="mb-24">
       <SectionLabel>Methodology</SectionLabel>
       <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
         How we classify regimes
@@ -185,13 +185,8 @@ function MethodologySummary() {
 async function TrackRecordHighlights() {
   const supabase = await createClient();
   const [{ count }, { data: datesData }, statsT5] = await Promise.all([
-    supabase
-      .from("validation_log")
-      .select("*", { count: "exact", head: true }),
-    supabase
-      .from("validation_log")
-      .select("date")
-      .limit(1000),
+    supabase.from("validation_log").select("*", { count: "exact", head: true }),
+    supabase.from("validation_log").select("date"),
     getValidationStats(supabase, "t5", "live"),
   ]);
 
@@ -228,7 +223,7 @@ async function TrackRecordHighlights() {
   ];
 
   return (
-    <section className="reveal mb-24">
+    <section className="mb-24">
       <SectionLabel>Track Record</SectionLabel>
       <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
         Highlights
@@ -280,7 +275,7 @@ function TransparencyCommitments() {
   ];
 
   return (
-    <section id="principles" className="reveal mb-24">
+    <section id="principles" className="mb-24">
       <SectionLabel>Transparency</SectionLabel>
       <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
         Commitments
@@ -339,7 +334,7 @@ function DataSources() {
   ];
 
   return (
-    <section className="reveal mb-24">
+    <section className="mb-24">
       <SectionLabel>Data Sources</SectionLabel>
       <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
         Where the data comes from
@@ -375,7 +370,7 @@ function DataSources() {
 
 function Legal() {
   return (
-    <section className="reveal mb-24">
+    <section className="mb-24">
       <SectionLabel>Legal</SectionLabel>
       <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
         Disclaimers &amp; Terms
@@ -469,7 +464,7 @@ function V2ReleaseNotes() {
   ];
 
   return (
-    <section className="reveal mb-24">
+    <section className="mb-24">
       <SectionLabel>Release Notes</SectionLabel>
       <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
         Version History
@@ -522,7 +517,7 @@ function ContactConnect() {
   ];
 
   return (
-    <section id="contact" className="reveal mb-24">
+    <section id="contact" className="mb-24">
       <SectionLabel>Contact</SectionLabel>
       <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
         Connect
@@ -554,7 +549,7 @@ function ContactConnect() {
 
 function Disclaimer() {
   return (
-    <section className="reveal mb-10">
+    <section className="mb-10">
       <p className="font-mono text-[10px] text-[var(--color-text-muted)] leading-relaxed max-w-[640px]">
         FX Regime Lab is a research publication, not investment advice. Past
         performance does not guarantee future results.
@@ -576,11 +571,19 @@ export default async function AboutPage() {
       >
         <Hero />
         <Philosophy />
-        <Suspense fallback={<div className="animate-pulse h-40 bg-[var(--color-surface)] rounded mb-8" />}>
+        <Suspense
+          fallback={
+            <div className="animate-pulse h-40 bg-[var(--color-surface)] rounded mb-8" />
+          }
+        >
           <AuthorIdentity />
         </Suspense>
         <MethodologySummary />
-        <Suspense fallback={<div className="animate-pulse h-40 bg-[var(--color-surface)] rounded mb-8" />}>
+        <Suspense
+          fallback={
+            <div className="animate-pulse h-40 bg-[var(--color-surface)] rounded mb-8" />
+          }
+        >
           <TrackRecordHighlights />
         </Suspense>
         <TransparencyCommitments />

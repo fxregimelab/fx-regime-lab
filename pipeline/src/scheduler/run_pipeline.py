@@ -139,11 +139,12 @@ def run_pipeline(date_str: str | None = None) -> None:
         )
         raise
 
-    # DQS and regime-call count are not directly exposed by run_daily,
-    # so we infer success from the absence of an exception.  If future
-    # refactorings expose these values, the alerting logic can be
-    # enriched without changing the external contract.
-    dqs_score = None  # Will be set if we can read it from a future API
+    # Compute DQS from regime_calls written by the orchestrator
+    try:
+        dqs_scores = writer.get_regime_calls_dqs_for_date(date_str)
+        dqs_score = round(sum(dqs_scores) / len(dqs_scores), 4) if dqs_scores else 1.0
+    except Exception:
+        dqs_score = 1.0
 
     # ── Step 2: Overnight check ─────────────────────────────────────
     try:

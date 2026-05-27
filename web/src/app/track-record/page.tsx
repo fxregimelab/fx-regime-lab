@@ -121,7 +121,9 @@ function computeStatsFromLog(
     .filter((v): v is number => v != null);
   const avgCostBps =
     netValid.length > 0 && costs.length > 0
-      ? parseFloat((costs.reduce((s, v) => s + v, 0) / costs.length).toFixed(2))
+      ? Number.parseFloat(
+          (costs.reduce((s, v) => s + v, 0) / costs.length).toFixed(2),
+        )
       : null;
 
   const netReturns = filtered
@@ -399,8 +401,8 @@ function LiveTabContent({
   lastDate: string | null;
   t5WinCI: [number, number];
   t20WinCI: [number, number];
-  t5BrierCI: [number, number];
-  t20BrierCI: [number, number];
+  t5BrierCI: [number, number] | null;
+  t20BrierCI: [number, number] | null;
 }) {
   return (
     <div>
@@ -443,11 +445,19 @@ function LiveTabContent({
       {/* Live vs backtest distinction */}
       <div className="mb-8 px-5 py-4 border border-[var(--color-brand-amber)]/30 bg-[var(--color-brand-amber)]/5">
         <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
-          <strong className="text-[var(--color-brand-amber)]">Live out-of-sample:</strong>{" "}
-          {allT5?.sampleSize ?? 0} directional calls since May 2026.
-          Gross accuracy: {fmtPctRaw(allT5?.winRate)}.
-          Backtested history (1997–2026) accuracy: ~49%.
-          {" "}<a href="/limitations" className="underline text-[var(--color-brand-amber)]">See limitations</a>.
+          <strong className="text-[var(--color-brand-amber)]">
+            Live out-of-sample:
+          </strong>{" "}
+          {allT5?.sampleSize ?? 0} directional calls since May 2026. Gross
+          accuracy: {fmtPctRaw(allT5?.winRate)}. Backtested history (1997–2026)
+          accuracy: ~49%.{" "}
+          <a
+            href="/limitations"
+            className="underline text-[var(--color-brand-amber)]"
+          >
+            See limitations
+          </a>
+          .
         </p>
       </div>
 
@@ -475,30 +485,58 @@ function LiveTabContent({
         <StatsCard
           label="T+5 NET WIN RATE"
           value={fmtPctRaw(allT5?.netWinRate)}
-          sub={allT5?.costBps != null ? `after ${allT5.costBps} bps costs` : allT5?.netSampleSize != null ? "after costs" : undefined}
+          sub={
+            allT5?.costBps != null
+              ? `after ${allT5.costBps} bps costs`
+              : allT5?.netSampleSize != null
+                ? "after costs"
+                : undefined
+          }
           sampleSize={allT5?.netSampleSize ?? allT5?.sampleSize}
-          ci={allT5?.netWinRateCI ? fmtPropCI(allT5.netWinRate, allT5.netWinRateCI) : undefined}
+          ci={
+            allT5?.netWinRateCI
+              ? fmtPropCI(allT5.netWinRate, allT5.netWinRateCI)
+              : undefined
+          }
         />
         <StatsCard
           label="T+5 GROSS WIN RATE"
           value={fmtPctRaw(allT5?.winRate)}
           sub="before costs"
           sampleSize={allT5?.sampleSize}
-          ci={allT5?.winRateCI ? fmtPropCI(allT5.winRate, allT5.winRateCI) : undefined}
+          ci={
+            allT5?.winRateCI
+              ? fmtPropCI(allT5.winRate, allT5.winRateCI)
+              : undefined
+          }
         />
         <StatsCard
           label="T+20 NET WIN RATE"
           value={fmtPctRaw(allT20?.netWinRate)}
-          sub={allT20?.costBps != null ? `after ${allT20.costBps} bps costs` : allT20?.netSampleSize != null ? "after costs" : undefined}
+          sub={
+            allT20?.costBps != null
+              ? `after ${allT20.costBps} bps costs`
+              : allT20?.netSampleSize != null
+                ? "after costs"
+                : undefined
+          }
           sampleSize={allT20?.netSampleSize ?? allT20?.sampleSize}
-          ci={allT20?.netWinRateCI ? fmtPropCI(allT20.netWinRate, allT20.netWinRateCI) : undefined}
+          ci={
+            allT20?.netWinRateCI
+              ? fmtPropCI(allT20.netWinRate, allT20.netWinRateCI)
+              : undefined
+          }
         />
         <StatsCard
           label="T+20 GROSS WIN RATE"
           value={fmtPctRaw(allT20?.winRate)}
           sub="before costs"
           sampleSize={allT20?.sampleSize}
-          ci={allT20?.winRateCI ? fmtPropCI(allT20.winRate, allT20.winRateCI) : undefined}
+          ci={
+            allT20?.winRateCI
+              ? fmtPropCI(allT20.winRate, allT20.winRateCI)
+              : undefined
+          }
         />
       </div>
 
@@ -563,8 +601,8 @@ function LiveTabContent({
             </strong>{" "}
             {allT5?.sampleSize ?? 0} published calls since May 2026. Statistical
             significance for win rate estimates typically requires ~200 calls.
-            The Brier score measures heuristic consistency — our
-            confidence scores are not proper probabilities.{" "}
+            The Brier score measures heuristic consistency — our confidence
+            scores are not proper probabilities.{" "}
             <a href="/limitations" className="underline">
               See limitations
             </a>
@@ -625,7 +663,8 @@ function LiveTabContent({
                 INSUFFICIENT DATA
               </p>
               <p className="font-sans text-[13px] text-[var(--color-text-secondary)]">
-                Only {recent.length} trading days available. Accuracy gate tracking requires at least 10 days.
+                Only {recent.length} trading days available. Accuracy gate
+                tracking requires at least 10 days.
               </p>
             </div>
           );
@@ -729,7 +768,10 @@ function BacktestedTabContent({
         <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
           MODEL VERSION
         </span>
-        <VersionSelector versions={versions} selectedVersion={selectedVersion} />
+        <VersionSelector
+          versions={versions}
+          selectedVersion={selectedVersion}
+        />
       </div>
 
       {!hasData ? (
@@ -790,7 +832,10 @@ function BacktestedTabContent({
                   className="border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
                 >
                   <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-3">
-                    {pair.replace("EURUSD", "EUR/USD").replace("USDJPY", "USD/JPY").replace("USDINR", "USD/INR")}
+                    {pair
+                      .replace("EURUSD", "EUR/USD")
+                      .replace("USDJPY", "USD/JPY")
+                      .replace("USDINR", "USD/INR")}
                   </p>
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
@@ -949,29 +994,71 @@ function BacktestedTabContent({
             <table className="w-full border-collapse font-mono text-[11px]">
               <thead>
                 <tr className="border-b border-[var(--color-border)]">
-                  <th className="px-4 py-2 text-left text-[var(--color-text-muted)]">PAIR</th>
-                  <th className="px-4 py-2 text-left text-[var(--color-text-muted)]">METHOD</th>
-                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">SHARPE</th>
-                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">SORTINO</th>
-                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">WIN RATE</th>
-                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">TRADES</th>
-                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">TOTAL P&L</th>
-                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">MEAN BRIER</th>
+                  <th className="px-4 py-2 text-left text-[var(--color-text-muted)]">
+                    PAIR
+                  </th>
+                  <th className="px-4 py-2 text-left text-[var(--color-text-muted)]">
+                    METHOD
+                  </th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">
+                    SHARPE
+                  </th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">
+                    SORTINO
+                  </th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">
+                    WIN RATE
+                  </th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">
+                    TRADES
+                  </th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">
+                    TOTAL P&L
+                  </th>
+                  <th className="px-4 py-2 text-right text-[var(--color-text-muted)]">
+                    MEAN BRIER
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {simulationResults.map((r) => (
-                  <tr key={`${r.pair}-${r.sizingMethod}`} className="border-b border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]">
-                    <td className="px-4 py-2 text-[var(--color-text)]">{r.pair.replace("EURUSD", "EUR/USD").replace("USDJPY", "USD/JPY").replace("USDINR", "USD/INR")}</td>
-                    <td className="px-4 py-2 text-[var(--color-text)]">{r.sizingMethod}</td>
-                    <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.sharpe != null ? r.sharpe.toFixed(2) : "—"}</td>
-                    <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.sortino != null ? r.sortino.toFixed(2) : "—"}</td>
-                    <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.winRate != null ? `${(r.winRate * 100).toFixed(1)}%` : "—"}</td>
-                    <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.nTrades ?? "—"}</td>
-                    <td className={`px-4 py-2 text-right ${(r.totalPnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {r.totalPnl != null ? `${r.totalPnl >= 0 ? "+" : ""}${r.totalPnl.toFixed(2)}` : "—"}
+                  <tr
+                    key={`${r.pair}-${r.sizingMethod}`}
+                    className="border-b border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]"
+                  >
+                    <td className="px-4 py-2 text-[var(--color-text)]">
+                      {r.pair
+                        .replace("EURUSD", "EUR/USD")
+                        .replace("USDJPY", "USD/JPY")
+                        .replace("USDINR", "USD/INR")}
                     </td>
-                    <td className="px-4 py-2 text-right text-[var(--color-text)]">{r.meanBrier != null ? r.meanBrier.toFixed(3) : "—"}</td>
+                    <td className="px-4 py-2 text-[var(--color-text)]">
+                      {r.sizingMethod}
+                    </td>
+                    <td className="px-4 py-2 text-right text-[var(--color-text)]">
+                      {r.sharpe != null ? r.sharpe.toFixed(2) : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right text-[var(--color-text)]">
+                      {r.sortino != null ? r.sortino.toFixed(2) : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right text-[var(--color-text)]">
+                      {r.winRate != null
+                        ? `${(r.winRate * 100).toFixed(1)}%`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right text-[var(--color-text)]">
+                      {r.nTrades ?? "—"}
+                    </td>
+                    <td
+                      className={`px-4 py-2 text-right ${(r.totalPnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                    >
+                      {r.totalPnl != null
+                        ? `${r.totalPnl >= 0 ? "+" : ""}${r.totalPnl.toFixed(2)}`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right text-[var(--color-text)]">
+                      {r.meanBrier != null ? r.meanBrier.toFixed(3) : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -984,7 +1071,8 @@ function BacktestedTabContent({
             NO SIMULATION DATA
           </p>
           <p className="font-sans text-[13px] text-[var(--color-text-secondary)]">
-            Backtest simulation results for version {selectedVersion} are not yet available.
+            Backtest simulation results for version {selectedVersion} are not
+            yet available.
           </p>
         </div>
       )}
@@ -1052,7 +1140,10 @@ function RegimeValidationTabContent({
                     className="border-b border-[var(--color-border-subtle)]"
                   >
                     <td className="px-4 py-3 text-[var(--color-text)]">
-                      {r.pair.replace("EURUSD", "EUR/USD").replace("USDJPY", "USD/JPY").replace("USDINR", "USD/INR")}
+                      {r.pair
+                        .replace("EURUSD", "EUR/USD")
+                        .replace("USDJPY", "USD/JPY")
+                        .replace("USDINR", "USD/INR")}
                     </td>
                     <td className="px-4 py-3 text-right text-[var(--color-text)] tabular-nums">
                       {r.sizingMethod}
