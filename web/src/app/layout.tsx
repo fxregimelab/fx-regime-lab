@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
 import { Cormorant, Inter, JetBrains_Mono } from "next/font/google";
-import dynamic from "next/dynamic";
 import "./globals.css";
+import { CommandPaletteDynamic } from "@/components/layout/CommandPaletteDynamic";
 import { ToastProvider } from "@/components/ui/toast-context";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "./providers";
-
-const CommandPalette = dynamic(
-  () => import("@/components/layout/command-palette").then((m) => m.CommandPalette),
-  { ssr: false },
-);
 
 const inter = Inter({
   variable: "--font-inter",
@@ -56,7 +51,7 @@ export default function RootLayout({
         <Providers>
           <ToastProvider>
             {children}
-            <CommandPalette />
+            <CommandPaletteDynamic />
             <Toaster />
           </ToastProvider>
         </Providers>
