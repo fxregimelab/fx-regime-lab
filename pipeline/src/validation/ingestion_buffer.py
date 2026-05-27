@@ -10,6 +10,8 @@ from datetime import date
 from typing import Any, Literal, NamedTuple
 
 import numpy as np
+import pandas as pd
+from pandas.tseries.holiday import USFederalHolidayCalendar
 
 from src.fetchers.buffer_keys import KEY_COT, KEY_CROSS_ASSET, KEY_FX_SPOT, KEY_YIELDS
 from src.types import CotRow, SpotBar
@@ -66,12 +68,34 @@ def freshness_score_from_age_hours(age_hours: float, max_age_hours: float) -> fl
     return 0.1
 
 
+def _us_federal_holidays(start_year: int, end_year: int) -> list[str]:
+    """Return US federal holidays as ISO date strings for ``np.busday_count``."""
+    cal = USFederalHolidayCalendar()
+    holidays = cal.holidays(start=f"{start_year}-01-01", end=f"{end_year}-12-31")
+    return [h.strftime("%Y-%m-%d") for h in holidays]
+
+
+_US_HOLIDAYS_CACHE: list[str] | None = None
+
+
 def _calendar_age_hours(as_of: date, observed: date | None) -> float | None:
     if observed is None:
         return None
     if observed > as_of:
         return 0.0
-    trading_days = int(np.busday_count(observed.isoformat(), as_of.isoformat()))
+    global _US_HOLIDAYS_CACHE
+    if _US_HOLIDAYS_CACHE is None:
+        # Cache a ±5-year window around the observed date to avoid
+        # repeated DataFrame construction.
+        year = observed.year
+        _US_HOLIDAYS_CACHE = _us_federal_holidays(year - 5, year + 5)
+    trading_days = int(
+        np.busday_count(
+            observed.isoformat(),
+            as_of.isoformat(),
+            holidays=_US_HOLIDAYS_CACHE,
+        )
+    )
     return float(trading_days * 24)
 
 
