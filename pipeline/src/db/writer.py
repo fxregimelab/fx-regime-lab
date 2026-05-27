@@ -1364,9 +1364,10 @@ def get_latest_validation_stats_per_pair() -> list[dict[str, Any]]:
 def write_pipeline_run(row: Mapping[str, Any]) -> None:
     """Upsert a pipeline health snapshot into ``pipeline_runs`` on date."""
     payload = cast(dict[str, Any], dict(row))
-    _client().table("pipeline_runs").upsert(
-        payload, on_conflict="date"
-    ).execute()
+    date_str = str(payload.get("date") or "")[:10]
+    if date_str:
+        _client().table("pipeline_runs").delete().eq("date", date_str).execute()
+    _client().table("pipeline_runs").insert(payload).execute()
 
 
 def get_pipeline_runs_for_dates(start_iso: str, end_iso: str) -> list[dict[str, Any]]:
