@@ -65,18 +65,36 @@ export default async function DeskLayout({
     >
       {/* Navigation header */}
       <header className="max-w-[1152px] mx-auto px-6 py-4 flex items-center justify-between border-b border-[var(--color-border)]">
-        <Link href="/" className="font-serif text-[18px] text-[var(--color-text)] hover:text-[var(--color-brand-amber)] transition-colors">
+        <Link
+          href="/"
+          className="font-serif text-[18px] text-[var(--color-text)] hover:text-[var(--color-brand-amber)] transition-colors"
+        >
           ← FX Regime Lab
         </Link>
-        <nav className="flex items-center gap-4">
-          <Link href="/terminal" className="text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors">
+        <nav className="flex items-center gap-6">
+          <Link
+            href="/methodology"
+            className="text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
+          >
+            Framework
+          </Link>
+          <Link
+            href="/desk"
+            className="text-[12px] text-[var(--color-text)] font-medium"
+          >
             Terminal
           </Link>
-          <Link href="/track-record" className="text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors">
+          <Link
+            href="/track-record"
+            className="text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
+          >
             Track Record
           </Link>
-          <Link href="/methodology" className="text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors">
-            Methodology
+          <Link
+            href="/about"
+            className="text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
+          >
+            About
           </Link>
         </nav>
       </header>

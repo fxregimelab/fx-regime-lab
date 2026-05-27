@@ -21,33 +21,34 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Research",
+    label: "Framework",
     items: [
-      { label: "Brief", href: "/brief" },
       { label: "Methodology", href: "/methodology" },
+      { label: "How It Works", href: "/methodology#overview" },
+      { label: "Data Sources", href: "/methodology#data-sources" },
     ],
   },
   {
-    label: "Desk",
+    label: "Terminal",
     items: [
       { label: "Overview", href: "/desk" },
       { label: "EUR / USD", href: "/desk/fx-regime/eurusd" },
       { label: "USD / JPY", href: "/desk/fx-regime/usdjpy" },
       { label: "USD / INR", href: "/desk/fx-regime/usdinr" },
-      { label: "Calendar", href: "/desk/calendar" },
-      { label: "Memos", href: "/desk/memos" },
     ],
   },
   {
     label: "Validation",
-    items: [{ label: "Track Record", href: "/track-record" }],
+    items: [
+      { label: "Track Record", href: "/track-record" },
+      { label: "Limitations", href: "/limitations" },
+    ],
   },
   {
     label: "About",
     items: [
       { label: "Team", href: "/about" },
       { label: "Our Journey", href: "/journey" },
-      { label: "Limitations", href: "/limitations" },
       { label: "Principles", href: "/about#principles" },
       { label: "Contact", href: "/about#contact" },
     ],

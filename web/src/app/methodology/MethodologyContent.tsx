@@ -74,18 +74,20 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function Subsection({
   title,
+  id,
   children,
 }: {
   title: string;
+  id?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="reveal mb-10">
+    <section id={id} className="mb-16 scroll-mt-28">
       <h2 className="font-sans font-semibold text-xl text-[var(--color-text)] tracking-tight mb-4">
         {title}
       </h2>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -128,7 +130,10 @@ export default function MethodologyContent() {
       {/* KaTeX bright-colour override lives in globals.css */}
 
       {/* Header */}
-      <div className="reveal mb-10 pb-6 border-b border-[var(--color-border)]">
+      <section
+        id="overview"
+        className="mb-10 pb-6 border-b border-[var(--color-border)] scroll-mt-28"
+      >
         <SectionLabel>Methodology</SectionLabel>
         <h1 className="font-sans font-semibold text-[32px] text-[var(--color-text)] tracking-tight">
           Signal Architecture
@@ -139,15 +144,17 @@ export default function MethodologyContent() {
           observation is scored only against history that was available at close
           of business <Mono>t − 1</Mono>. No lookahead.
         </Body>
-      </div>
+      </section>
 
       {/* ── Pipeline Flowchart ──────────────────────────────────────── */}
-      <MethodologyFlowchart />
+      <section id="architecture" className="scroll-mt-28">
+        <MethodologyFlowchart />
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-12">
         <div>
           {/* ── Layer 1 ─────────────────────────────────────────────── */}
-          <Subsection title="Layer 1 — Regime Gate">
+          <Subsection title="Layer 1 — Regime Gate" id="layer1">
             <Body>
               The gate determines the macro environment from rate differentials,
               carry momentum, breakeven-inflation shocks, and spot stress. First
@@ -263,7 +270,10 @@ export default function MethodologyContent() {
           </Subsection>
 
           {/* ── Layer 2 ─────────────────────────────────────────────── */}
-          <Subsection title="Layer 2 — Directional Bias & Conviction">
+          <Subsection
+            title="Layer 2 — Directional Bias & Conviction"
+            id="layer2"
+          >
             <Body>
               Layer 2 translates the gate's macro read into a discrete
               directional bias (LONG / SHORT / NEUTRAL) and a calibrated
@@ -349,7 +359,7 @@ export default function MethodologyContent() {
           </Subsection>
 
           {/* ── Layer 3 ─────────────────────────────────────────────── */}
-          <Subsection title="Layer 3 — Execution & Timing">
+          <Subsection title="Layer 3 — Execution & Timing" id="layer3">
             <Body>
               Layer 3 produces entry timing (ENTER / WAIT), position sizing
               (FULL / HALF), and stop levels from realized volatility, risk
@@ -424,7 +434,7 @@ export default function MethodologyContent() {
           <SignalDecomposition />
 
           {/* ── Per-Pair Differences ────────────────────────────────── */}
-          <Subsection title="Per-Pair Methodology">
+          <Subsection title="Per-Pair Methodology" id="per-pair">
             <Body>
               The three pairs share the same three-layer architecture but differ
               in weighting, data sources, and special-signal handling.
@@ -493,7 +503,7 @@ export default function MethodologyContent() {
           </Subsection>
 
           {/* ── Confidence ──────────────────────────────────────────── */}
-          <Subsection title="Confidence Derivation">
+          <Subsection title="Confidence Derivation" id="confidence">
             <Body>
               Confidence is not a probability of being correct. It is an
               internal consistency metric: signal strength modulated by
@@ -544,7 +554,7 @@ export default function MethodologyContent() {
           </Subsection>
 
           {/* ── Validation Methodology ──────────────────────────────── */}
-          <Subsection title="Validation Methodology">
+          <Subsection title="Validation Methodology" id="validation">
             <Body>
               Every regime call is validated out-of-sample at two horizons: T+5
               (one trading week) and T+20 (one trading month). Validation is
@@ -588,7 +598,10 @@ export default function MethodologyContent() {
           </Subsection>
 
           {/* ── Regime Validation via Sizing Simulation ─────────────── */}
-          <Subsection title="Regime Validation via Sizing Simulation">
+          <Subsection
+            title="Regime Validation via Sizing Simulation"
+            id="simulation"
+          >
             <Body>
               The core question is not whether the model generates positive
               returns, but whether regime conviction improves risk-adjusted
@@ -636,7 +649,7 @@ export default function MethodologyContent() {
           </Subsection>
 
           {/* ── Data Sources ────────────────────────────────────────── */}
-          <Subsection title="Data Sources & Fallback Chain">
+          <Subsection title="Data Sources & Fallback Chain" id="data-sources">
             <Body>
               All data is fetched daily via an async ingestion engine with
               explicit backoff and retry. Missing primary sources trigger a

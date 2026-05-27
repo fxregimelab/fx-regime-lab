@@ -74,18 +74,18 @@ function HeroSection({
         {/* CTAs */}
         <div className="flex flex-wrap gap-4 mb-12 animate-fade-up delay-200">
           <Link
-            href="/brief"
+            href="/methodology"
             className="inline-block px-7 py-3.5 bg-[var(--color-brand-amber)] text-[var(--color-void)] font-sans text-[14px] font-medium tracking-[0.02em] transition-all duration-200 hover:brightness-110"
             style={{ borderRadius: 2 }}
           >
-            {ctaPrimary}
+            Explore the Framework
           </Link>
           <Link
-            href="/methodology"
+            href="/desk"
             className="inline-block px-7 py-3.5 border border-[var(--color-border)] font-sans text-[14px] text-[var(--color-text)] transition-all duration-200 hover:bg-[var(--color-surface)]"
             style={{ borderRadius: 2 }}
           >
-            {ctaSecondary}
+            Open Terminal
           </Link>
         </div>
 

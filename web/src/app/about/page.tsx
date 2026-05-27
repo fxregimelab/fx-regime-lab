@@ -184,16 +184,42 @@ function MethodologySummary() {
 
 async function TrackRecordHighlights() {
   const supabase = await createClient();
-  const [{ count }, { data: datesData }, statsT5] = await Promise.all([
+  const [
+    { count: totalCount },
+    { count: liveCount },
+    { data: dateRange },
+    { data: dateRangeStart },
+    statsT5,
+  ] = await Promise.all([
     supabase.from("validation_log").select("*", { count: "exact", head: true }),
-    supabase.from("validation_log").select("date"),
+    supabase
+      .from("validation_log")
+      .select("*", { count: "exact", head: true })
+      .gte("date", "2026-05-01"),
+    supabase
+      .from("validation_log")
+      .select("date")
+      .order("date", { ascending: false })
+      .limit(1),
+    supabase
+      .from("validation_log")
+      .select("date")
+      .order("date", { ascending: true })
+      .limit(1),
     getValidationStats(supabase, "t5", "live"),
   ]);
 
-  const distinctDates = new Set(
-    (datesData as Array<{ date: string }> | null)?.map((d) => d.date) ?? [],
-  );
-  const daysCount = distinctDates.size;
+  const firstDate = (dateRangeStart as Array<{ date: string }> | null)?.[0]
+    ?.date;
+  const lastDate = (dateRange as Array<{ date: string }> | null)?.[0]?.date;
+  const yearsSpan =
+    firstDate && lastDate
+      ? Math.ceil(
+          (new Date(lastDate).getTime() - new Date(firstDate).getTime()) /
+            (365.25 * 24 * 60 * 60 * 1000),
+        )
+      : null;
+
   const allRow = statsT5.find((s) => s.pair === "ALL");
   const rolling90dAcc =
     allRow?.rolling90dAccuracy != null
@@ -204,21 +230,25 @@ async function TrackRecordHighlights() {
 
   const stats = [
     {
-      value: count ? count.toLocaleString() : "—",
-      label: "Validated regime calls (incl. backtests)",
+      value: liveCount ? liveCount.toLocaleString() : "—",
+      label: "Live validated calls (May 2026–present)",
+    },
+    {
+      value: totalCount ? totalCount.toLocaleString() : "—",
+      label: "Total validated calls (incl. 1997–2026 backtest)",
     },
     {
       value: String(PAIRS.length),
-      label: "Currency pairs: EUR/USD, USD/JPY, USD/INR",
-    },
-    {
-      value: daysCount > 0 ? daysCount.toLocaleString() : "—",
-      label: "Trading days validated (incl. backtests)",
+      label: "Currency pairs monitored",
     },
     {
       value:
         rolling90dAcc != null ? `${(rolling90dAcc * 100).toFixed(1)}%` : "—",
-      label: "Rolling 90-day accuracy",
+      label: "Rolling 90-day accuracy (backtest)",
+    },
+    {
+      value: yearsSpan != null ? `${yearsSpan}+ years` : "—",
+      label: `Backtest span (${firstDate ?? "—"} to ${lastDate ?? "—"})`,
     },
   ];
 
@@ -228,7 +258,7 @@ async function TrackRecordHighlights() {
       <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
         Highlights
       </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
         {stats.map((s) => (
           <div
             key={s.label}

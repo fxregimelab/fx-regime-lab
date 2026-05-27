@@ -3,6 +3,7 @@ import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import type { Metadata } from "next";
 import MethodologyContent from "./MethodologyContent";
+import { MethodologyTOC } from "./components/MethodologyTOC";
 
 export const metadata: Metadata = {
   title: "Methodology | FX Regime Lab",
@@ -19,7 +20,12 @@ export default function MethodologyPage() {
         id="main-content"
         className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full"
       >
-        <MethodologyContent />
+        <div className="flex gap-12">
+          <div className="flex-1 min-w-0">
+            <MethodologyContent />
+          </div>
+          <MethodologyTOC />
+        </div>
       </main>
       <Footer />
     </div>
