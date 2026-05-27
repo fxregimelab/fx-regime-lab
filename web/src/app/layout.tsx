@@ -4,6 +4,7 @@ import "./globals.css";
 import { CommandPaletteDynamic } from "@/components/layout/CommandPaletteDynamic";
 import { ToastProvider } from "@/components/ui/toast-context";
 import { Toaster } from "@/components/ui/toaster";
+import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "./providers";
 
 const inter = Inter({
@@ -55,6 +56,7 @@ export default function RootLayout({
             <Toaster />
           </ToastProvider>
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
