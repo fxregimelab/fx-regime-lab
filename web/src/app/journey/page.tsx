@@ -1,3 +1,6 @@
+import { Footer } from "@/components/shell/Footer";
+import { Nav } from "@/components/shell/Nav";
+import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -9,7 +12,7 @@ export const metadata: Metadata = {
 const timeline = [
   {
     version: "v0.1",
-    date: "January 2024",
+    date: "February 2026",
     title: "The Spark",
     description:
       "Built the first Python script to scrape CFTC COT data and compute net positioning percentiles. A single Jupyter notebook. No frontend. No database.",
@@ -17,7 +20,7 @@ const timeline = [
   },
   {
     version: "v0.5",
-    date: "March 2024",
+    date: "February 2026",
     title: "First Composite",
     description:
       "Combined rate differentials and COT into a weighted composite score. Manual Excel tracking. First realization that static weights felt arbitrary.",
@@ -25,7 +28,7 @@ const timeline = [
   },
   {
     version: "v1.0",
-    date: "August 2024",
+    date: "March 2026",
     title: "The Pipeline",
     description:
       "Built the first automated pipeline with Prefect. Added vol, OI, and cross-asset signals. Supabase backend. Still no public frontend.",
@@ -33,7 +36,7 @@ const timeline = [
   },
   {
     version: "v1.5",
-    date: "December 2024",
+    date: "March 2026",
     title: "Web Terminal",
     description:
       "Launched the first web interface. Added track record visualization, daily briefs, and desk open cards. Still learning that our accuracy was near-random.",
@@ -41,7 +44,7 @@ const timeline = [
   },
   {
     version: "v2.0",
-    date: "April 2025",
+    date: "April 2026",
     title: "Three-Layer Engine",
     description:
       "Introduced Layer 1 (structural gate), Layer 2 (directional conviction), and Layer 3 (execution HUD). Added hysteresis, Marcus clash logic, and confidence scoring. First SSRN paper draft.",
@@ -65,7 +68,7 @@ const timeline = [
   },
   {
     version: "v3.5",
-    date: "Q4 2026 (Planned)",
+    date: "August 2026 (Planned)",
     title: "Expand the Universe",
     description:
       "Add GBP/USD, AUD/USD, USD/CAD, USD/CHF as active pairs. Each pair will require its own calibrated model and weight optimization.",
@@ -84,8 +87,13 @@ const timeline = [
 export default function JourneyPage() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
-      <main id="main-content" className="pt-24 pb-24">
-        <div className="max-w-[800px] mx-auto px-6">
+      <Nav />
+      <AuditTrailBannerServer variant="shell" />
+      <main
+        id="main-content"
+        className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full"
+      >
+        <div className="max-w-[800px] mx-auto">
           <span className="block font-sans text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase mb-6">
             FX Regime Lab
           </span>
@@ -131,6 +139,7 @@ export default function JourneyPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

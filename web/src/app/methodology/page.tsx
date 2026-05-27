@@ -20,7 +20,7 @@ export default function MethodologyPage() {
         id="main-content"
         className="max-w-[1152px] mx-auto px-6 pt-28 pb-20 w-full"
       >
-        <div className="flex gap-12">
+        <div className="flex gap-20">
           <div className="flex-1 min-w-0">
             <MethodologyContent />
           </div>

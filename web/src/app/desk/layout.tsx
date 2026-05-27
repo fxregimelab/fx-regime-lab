@@ -1,3 +1,4 @@
+import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import { CircuitBreaker } from "@/components/ui/circuit-breaker";
 import { DensityIndicator } from "@/components/ui/density-indicator";
@@ -9,7 +10,6 @@ import {
 import type { LatestSignal } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 export const revalidate = 3600;
@@ -65,41 +65,7 @@ export default async function DeskLayout({
       data-surface="terminal"
       className="min-h-screen bg-[var(--color-void)] text-[var(--color-text)] overflow-hidden flex flex-col"
     >
-      {/* Navigation header */}
-      <header className="max-w-[1152px] mx-auto px-6 py-4 flex items-center justify-between border-b border-[var(--color-border)]">
-        <Link
-          href="/"
-          className="font-serif text-[18px] text-[var(--color-text)] hover:text-[var(--color-brand-amber)] transition-colors"
-        >
-          ← FX Regime Lab
-        </Link>
-        <nav className="flex items-center gap-6">
-          <Link
-            href="/methodology"
-            className="text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
-          >
-            Framework
-          </Link>
-          <Link
-            href="/desk"
-            className="text-[12px] text-[var(--color-text)] font-medium"
-          >
-            Terminal
-          </Link>
-          <Link
-            href="/track-record"
-            className="text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
-          >
-            Track Record
-          </Link>
-          <Link
-            href="/about"
-            className="text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
-          >
-            About
-          </Link>
-        </nav>
-      </header>
+      <Nav />
 
       {/* Circuit breaker banner — appears when pipeline is interrupted */}
       <div className="max-w-[1152px] mx-auto px-6 w-full">
