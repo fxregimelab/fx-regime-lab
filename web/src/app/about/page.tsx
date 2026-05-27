@@ -3,7 +3,7 @@ import { Nav } from "@/components/shell/Nav";
 import { AuditTrailBannerServer } from "@/components/ui/audit-trail-banner";
 import { ResearchDisclaimer } from "@/components/ui/research-disclaimer";
 import { PAIRS } from "@/lib/constants";
-import { getSiteContent, getValidationStats } from "@/lib/supabase/queries";
+import { getSiteContent } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import {
   Database,
@@ -174,108 +174,6 @@ function MethodologySummary() {
             </p>
             <p className="font-sans text-[13px] text-[var(--color-text-secondary)] leading-[1.6]">
               {b.desc}
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ─── Track Record Highlights ───────────────────────────────────────── */
-
-async function TrackRecordHighlights() {
-  const supabase = await createClient();
-  const [
-    { count: totalCount },
-    { count: liveCount },
-    { data: dateRange },
-    { data: dateRangeStart },
-    statsT5,
-  ] = await Promise.all([
-    supabase.from("validation_log").select("*", { count: "exact", head: true }),
-    supabase
-      .from("validation_log")
-      .select("*", { count: "exact", head: true })
-      .gte("date", "2026-05-01"),
-    supabase
-      .from("validation_log")
-      .select("date")
-      .order("date", { ascending: false })
-      .limit(1),
-    supabase
-      .from("validation_log")
-      .select("date")
-      .order("date", { ascending: true })
-      .limit(1),
-    getValidationStats(supabase, "t5", "live"),
-  ]);
-
-  const firstDate = (dateRangeStart as Array<{ date: string }> | null)?.[0]
-    ?.date;
-  const lastDate = (dateRange as Array<{ date: string }> | null)?.[0]?.date;
-  const yearsSpan =
-    firstDate && lastDate
-      ? Math.ceil(
-          (new Date(lastDate).getTime() - new Date(firstDate).getTime()) /
-            (365.25 * 24 * 60 * 60 * 1000),
-        )
-      : null;
-
-  const allRow = statsT5.find((s) => s.pair === "ALL");
-  const rolling90dAcc =
-    allRow?.rolling90dAccuracy != null
-      ? allRow.rolling90dAccuracy > 1
-        ? allRow.rolling90dAccuracy / 100
-        : allRow.rolling90dAccuracy
-      : null;
-
-  const stats = [
-    {
-      value: liveCount ? liveCount.toLocaleString() : "—",
-      label: "Live validated calls (May 2026–present)",
-    },
-    {
-      value: totalCount ? totalCount.toLocaleString() : "—",
-      label: "Total validated calls (incl. 1997–2026 backtest)",
-    },
-    {
-      value: String(PAIRS.length),
-      label: "Currency pairs monitored",
-    },
-    {
-      value:
-        rolling90dAcc != null ? `${(rolling90dAcc * 100).toFixed(1)}%` : "—",
-      label: "Rolling 90-day accuracy (backtest)",
-    },
-    {
-      value: yearsSpan != null ? `${yearsSpan}+ years` : "—",
-      label: `Backtest span (${firstDate ?? "—"} to ${lastDate ?? "—"})`,
-    },
-  ];
-
-  return (
-    <section className="mb-24">
-      <SectionLabel>Track Record</SectionLabel>
-      <h2 className="font-sans font-semibold text-[24px] text-[var(--color-text)] tracking-tight leading-snug mb-8">
-        Highlights
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-px bg-[var(--color-border)] border border-[var(--color-border)]">
-        {stats.map((s) => (
-          <div
-            key={s.label}
-            className="bg-[var(--color-surface)] p-6 md:p-8 cursor-pointer glow-hover transition-all duration-200"
-            style={
-              {
-                "--glow-color": "rgba(52, 211, 153, 0.12)",
-              } as React.CSSProperties
-            }
-          >
-            <p className="font-mono text-[clamp(28px,4vw,40px)] font-medium text-emerald-400 tracking-tight leading-none mb-3 tabular-nums">
-              {s.value}
-            </p>
-            <p className="font-mono text-[9px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase leading-relaxed">
-              {s.label}
             </p>
           </div>
         ))}
@@ -615,9 +513,7 @@ export default async function AboutPage() {
           fallback={
             <div className="animate-pulse h-40 bg-[var(--color-surface)] rounded mb-8" />
           }
-        >
-          <TrackRecordHighlights />
-        </Suspense>
+        />
         <TransparencyCommitments />
         <DataSources />
         <Legal />

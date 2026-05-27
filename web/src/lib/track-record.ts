@@ -12,6 +12,12 @@ export function fmtBrier(n: number | null | undefined) {
   return n.toFixed(3);
 }
 
+export function fmtBps(n: number | null | undefined, digits = 1) {
+  if (n == null) return "—";
+  const sign = n >= 0 ? "+" : "";
+  return `${sign}${n.toFixed(digits)} bps`;
+}
+
 export function computeStatsFromLog(
   rows: ValidationRowT5[],
   pair: string | null,

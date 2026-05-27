@@ -119,7 +119,7 @@ export function ValidationTable({
                         }`}
                       >
                         {row.return_pct >= 0 ? "+" : ""}
-                        {row.return_pct.toFixed(2)}%
+                        {row.return_pct.toFixed(2)} bps
                       </td>
                     </>
                   )}

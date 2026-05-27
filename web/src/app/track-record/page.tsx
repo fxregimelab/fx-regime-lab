@@ -23,6 +23,7 @@ import type {
   ValidationStats,
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
+import { fmtBps } from "@/lib/track-record";
 import type { Metadata } from "next";
 import { BacktestTabClient } from "./components/BacktestTabClient";
 import { TrackRecordTabs } from "./components/TrackRecordTabs";
@@ -575,14 +576,14 @@ function LiveTabContent({
         />
         <StatsCard
           label="T+5 AVG RETURN"
-          value={fmtPctRaw(allT5?.avgReturnBps)}
-          sub="bps log-return"
+          value={fmtBps(allT5?.avgReturnBps)}
+          sub="avg log-return per call"
           sampleSize={allT5?.sampleSize}
         />
         <StatsCard
           label="T+20 AVG RETURN"
-          value={fmtPctRaw(allT20?.avgReturnBps)}
-          sub="bps log-return"
+          value={fmtBps(allT20?.avgReturnBps)}
+          sub="avg log-return per call"
           sampleSize={allT20?.sampleSize}
         />
       </div>
@@ -872,7 +873,10 @@ export default async function TrackRecordPage({
   // Versions for backtest tab + simulation results for validation tab
   const versions = await getBacktestVersions(supabase);
   const selectedVersion = params.version ?? versions[0] ?? "v3";
-  const simulationResults = await getSimulationResults(supabase, selectedVersion);
+  const simulationResults = await getSimulationResults(
+    supabase,
+    selectedVersion,
+  );
 
   const PAIR_LABELS = ["EUR/USD", "USD/JPY", "USD/INR"] as const;
 

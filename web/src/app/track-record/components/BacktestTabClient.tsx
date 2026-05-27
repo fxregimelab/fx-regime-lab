@@ -225,7 +225,7 @@ export function BacktestTabClient({
                         {(() => {
                           const v = backtestT5ByPair[idx]?.avgReturnBps;
                           if (v == null) return "—";
-                          return `${v >= 0 ? "+" : ""}${v.toFixed(1)}`;
+                          return `${v >= 0 ? "+" : ""}${v.toFixed(1)} bps`;
                         })()}
                       </p>
                     </div>
