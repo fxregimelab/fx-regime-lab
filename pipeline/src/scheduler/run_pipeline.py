@@ -46,6 +46,8 @@ def _log_pipeline_health(
     steps_completed: list[str],
     steps_failed: list[str],
     duration_seconds: float | None = None,
+    dqs_score: float | None = None,
+    pairs_processed: int | None = None,
 ) -> None:
     """Write a health snapshot to ``pipeline_runs`` (best-effort)."""
     try:
@@ -62,8 +64,8 @@ def _log_pipeline_health(
             "status": "FAILED" if steps_failed else "HEALTHY",
             "steps_completed": steps_completed,
             "steps_failed": steps_failed,
-            "dqs_score": snapshot.dqs_score,
-            "regime_calls_count": snapshot.regime_calls_count,
+            "dqs_score": dqs_score if dqs_score is not None else snapshot.dqs_score,
+            "regime_calls_count": pairs_processed if pairs_processed is not None else snapshot.regime_calls_count,
             "validation_stats_computed": snapshot.validation_stats_computed,
             "ai_briefs_generated": snapshot.ai_briefs_generated,
             "macro_event_briefs_generated": snapshot.macro_event_briefs_generated,
@@ -76,6 +78,8 @@ def _log_pipeline_health(
             "status": "FAILED" if steps_failed else "UNKNOWN",
             "steps_completed": steps_completed,
             "steps_failed": steps_failed,
+            "dqs_score": dqs_score,
+            "regime_calls_count": pairs_processed,
             "errors": [],
             "duration_seconds": duration_seconds,
         }
@@ -136,15 +140,21 @@ def run_pipeline(date_str: str | None = None) -> None:
             steps_completed=steps_completed,
             steps_failed=steps_failed,
             duration_seconds=round(time.monotonic() - start_time, 2),
+            dqs_score=dqs_score,
+            pairs_processed=regime_calls_count,
         )
         raise
 
-    # Compute DQS from regime_calls written by the orchestrator
+    # Compute DQS and pair count from regime_calls written by the orchestrator
     try:
         dqs_scores = writer.get_regime_calls_dqs_for_date(date_str)
         dqs_score = round(sum(dqs_scores) / len(dqs_scores), 4) if dqs_scores else 1.0
     except Exception:
         dqs_score = 1.0
+    try:
+        regime_calls_count = writer.count_regime_calls_for_date(date_str)
+    except Exception:
+        regime_calls_count = 0
 
     # ── Step 2: Overnight check ─────────────────────────────────────
     try:
@@ -169,6 +179,8 @@ def run_pipeline(date_str: str | None = None) -> None:
             steps_completed=steps_completed,
             steps_failed=steps_failed,
             duration_seconds=round(time.monotonic() - start_time, 2),
+            dqs_score=dqs_score,
+            pairs_processed=regime_calls_count,
         )
         raise
 
@@ -195,6 +207,8 @@ def run_pipeline(date_str: str | None = None) -> None:
             steps_completed=steps_completed,
             steps_failed=steps_failed,
             duration_seconds=round(time.monotonic() - start_time, 2),
+            dqs_score=dqs_score,
+            pairs_processed=regime_calls_count,
         )
         raise
 
@@ -212,6 +226,8 @@ def run_pipeline(date_str: str | None = None) -> None:
         steps_completed=steps_completed,
         steps_failed=steps_failed,
         duration_seconds=round(time.monotonic() - start_time, 2),
+        dqs_score=dqs_score,
+        pairs_processed=regime_calls_count,
     )
 
     # ── Success alerting ────────────────────────────────────────────

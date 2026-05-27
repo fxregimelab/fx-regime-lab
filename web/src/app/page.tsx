@@ -41,7 +41,7 @@ function HeroSection({
   const subheadline =
     siteContent["hero.subheadline"] ??
     "Daily macro regime calls for EUR/USD, USD/JPY, and USD/INR.";
-  const ctaPrimary = siteContent["hero.cta_primary"] ?? "Read Today's Brief";
+  const ctaPrimary = siteContent["hero.cta_primary"] ?? "Explore the Framework";
   const ctaSecondary =
     siteContent["hero.cta_secondary"] ?? "Explore the Framework";
   const principleQuote =
