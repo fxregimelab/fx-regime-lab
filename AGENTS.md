@@ -12,7 +12,8 @@
 - **All AI calls** → `pipeline/src/ai/client.py`
 - **Immutable ledger:** `regime_calls` + `validation_log` append-only
 - **No GitHub Actions** — Prefect Cloud only
-- **Tests:** `pytest` 219 tests + `npm run build` + `biome check` must pass
+- **Tests:** `pytest` 235 tests + `biome check` must pass
+- **Build:** `npm run build` must pass (Vercel Linux deployment is the canonical build; local Windows builds may fail due to a known Next.js 15.3.9 + Windows `readlink` EISDIR bug — see Known Issues below)
 - **Primary success metric:** EUR/USD rolling 90-day directional accuracy (target ≥ 55%)
 - **No new pairs until EUR/USD ≥ 55% on 90-day window** (3-pair lock)
 
@@ -77,3 +78,11 @@ cd web && npm run lint             # biome/eslint
 | SSRN paper draft | ✅ docs/SSRN_PAPER_DRAFT.md |
 | NSDL FPI research | ✅ docs/V2_NSDL_FPI_RESEARCH.md |
 | OTC Risk Reversal research | ✅ docs/V2_RISK_REVERSAL_RESEARCH.md |
+
+## Known Issues
+
+### Local Windows Build: `EISDIR: illegal operation on a directory, readlink`
+- **Symptom:** `npm run build` fails on Windows with `readlink` errors for app-directory files (`sitemap.ts`, `robots.ts`, `opengraph-image.tsx`, dynamic routes like `[date]/page.tsx`).
+- **Root cause:** Known Next.js 15.3.9 + Windows filesystem interaction bug (not project code).
+- **Workaround:** Vercel deployment (Linux) builds successfully. Local frontend validation can use `npx tsc --noEmit` instead.
+- **Status:** Monitoring Next.js releases for a fix. Upgrading to 15.4.x/15.5.x did not resolve.
