@@ -12,6 +12,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "Desk | FX Regime Lab",
   description:

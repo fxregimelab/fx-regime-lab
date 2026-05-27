@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
+
 const config: NextConfig = {
   reactStrictMode: true,
   eslint: { ignoreDuringBuilds: true },
+  poweredByHeader: false,
+  generateEtags: true,
+  images: {
+    formats: ["image/webp", "image/avif"],
+    minimumCacheTTL: 86400,
+  },
   async redirects() {
     return [
       {
@@ -18,4 +25,5 @@ const config: NextConfig = {
     return config;
   },
 };
+
 export default config;

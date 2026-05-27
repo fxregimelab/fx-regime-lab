@@ -61,15 +61,8 @@ const FLAT_LINKS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 export function Nav() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const mobileRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -106,11 +99,7 @@ export function Nav() {
   return (
     <header
       className="sticky top-0 z-[var(--z-sticky)] border-b border-[var(--color-border)] bg-[var(--color-void)]/95 backdrop-blur-sm"
-      style={{
-        height: 64,
-        transition: "box-shadow 150ms ease-out",
-        boxShadow: scrolled ? "0 1px 3px rgba(0,0,0,0.4)" : "none",
-      }}
+      style={{ height: 64 }}
     >
       <nav
         className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-4"

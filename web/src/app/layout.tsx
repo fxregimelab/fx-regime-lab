@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import { Cormorant, Inter, JetBrains_Mono } from "next/font/google";
+import dynamic from "next/dynamic";
 import "./globals.css";
-import { CommandPalette } from "@/components/layout/command-palette";
 import { ToastProvider } from "@/components/ui/toast-context";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "./providers";
+
+const CommandPalette = dynamic(
+  () => import("@/components/layout/command-palette").then((m) => m.CommandPalette),
+  { ssr: false },
+);
 
 const inter = Inter({
   variable: "--font-inter",

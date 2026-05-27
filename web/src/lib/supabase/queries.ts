@@ -231,7 +231,7 @@ export async function getLatestSignals(
 
 export async function getValidationLog(
   supabase: TypedSupabaseClient,
-  limit = 500,
+  limit = 100,
 ): Promise<ValidationRow[]> {
   // Try joined query first to fetch regime call labels
   const { data, error } = await supabase
@@ -373,7 +373,7 @@ export async function getValidationStats(
 
 export async function getValidationLogT5T20(
   supabase: TypedSupabaseClient,
-  limit = 500,
+  limit = 100,
   dataSource = "live",
 ): Promise<ValidationRowT5[]> {
   let q = supabase
@@ -456,7 +456,7 @@ export interface RegimeBreakdownRow {
 
 export async function getRegimeBreakdown(
   supabase: TypedSupabaseClient,
-  limit = 500,
+  limit = 100,
   dataSource = "live",
 ): Promise<RegimeBreakdownRow[]> {
   // 1. Fetch validation outcomes
@@ -1204,7 +1204,7 @@ export async function getRegimeCallsByVersion(
   version: string,
   pair?: string,
   dateRange?: { from: string; to: string },
-  limit = 500,
+  limit = 100,
 ): Promise<VersionedRegimeCall[]> {
   let q = supabase
     .from("regime_calls")
@@ -1319,7 +1319,7 @@ export async function getValidationByVersion(
   version: string,
   pair?: string,
   horizon?: "t5" | "t20",
-  limit = 500,
+  limit = 100,
 ): Promise<VersionedValidationRow[]> {
   let q = supabase
     .from("validation_log")
@@ -1407,7 +1407,7 @@ export interface VersionedRegimeBreakdownRow {
 export async function getRegimeBreakdownByVersion(
   supabase: TypedSupabaseClient,
   version: string,
-  limit = 500,
+  limit = 100,
 ): Promise<VersionedRegimeBreakdownRow[]> {
   const { data, error } = await supabase
     .from("regime_calls")

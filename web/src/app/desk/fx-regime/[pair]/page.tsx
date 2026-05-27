@@ -41,6 +41,8 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+export const revalidate = 3600;
+
 interface PairDeskPageProps {
   params: Promise<{ pair: string }>;
 }

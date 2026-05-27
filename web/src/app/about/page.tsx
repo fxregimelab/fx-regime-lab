@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
+
+export const revalidate = 3600;
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -107,7 +109,7 @@ async function AuthorIdentity() {
       <div className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-10 items-start">
         <div className="flex-shrink-0">
           <Image
-            src="/profile/shreyash.png"
+            src="/profile/shreyash.webp"
             alt="Shreyash Sakhare"
             width={140}
             height={140}

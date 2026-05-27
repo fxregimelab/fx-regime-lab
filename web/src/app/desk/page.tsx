@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     "Live FX regime monitoring desk. Real-time signals, cross-asset matrix, and daily briefs. Experimental research infrastructure — not investment advice.",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function TerminalIndexPage() {
   const supabase = await createClient();
@@ -46,7 +46,7 @@ export default async function TerminalIndexPage() {
     getCrossAssetSnapshot(supabase),
     getMacroEventsToday(supabase),
     getLatestBrief(supabase),
-    getValidationLogT5T20(supabase, 500),
+    getValidationLogT5T20(supabase, 100),
     getPipelineHealth(supabase, 7),
     ...PAIRS.map((p) => getHistoricalRegimeCalls(supabase, p.label, 30)),
   ]);

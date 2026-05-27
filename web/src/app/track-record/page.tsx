@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     "Live and backtested track record. T+5 and T+20 directional validation. Regime-aware vs uniform benchmark comparison.",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 /* ─── helpers ───────────────────────────────────────────────────────────── */
 
@@ -1209,8 +1209,8 @@ export default async function TrackRecordPage({
     await Promise.all([
       getValidationStats(supabase, "t5", "live"),
       getValidationStats(supabase, "t20", "live"),
-      getValidationLogT5T20(supabase, 500, "live"),
-      getRegimeBreakdown(supabase, 500, "live"),
+      getValidationLogT5T20(supabase, 200, "live"),
+      getRegimeBreakdown(supabase, 200, "live"),
       supabase
         .from("regime_calls")
         .select("date")

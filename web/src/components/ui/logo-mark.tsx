@@ -11,7 +11,7 @@ interface LogoMarkProps {
 export const LogoMark: React.FC<LogoMarkProps> = ({ size = 28 }) => {
   return (
     <Image
-      src="/logos/logo-without-bg.png"
+      src="/logos/logo-without-bg.webp"
       alt="FX Regime Lab"
       width={size}
       height={size}
