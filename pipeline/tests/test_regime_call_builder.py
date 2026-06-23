@@ -1016,3 +1016,53 @@ def test_builder_matches_inline_construction_for_pair(
 
     assert builder_signal_row == inline_signal_row
     assert builder_call == inline_call
+
+
+
+def test_regime_call_defaults_version_and_source() -> None:
+    """Builder defaults model_version and data_source to live values."""
+
+    snapshot = _eurusd_snapshot()
+    builder = RegimeCallBuilder(snapshot)
+    signal_row = builder.build_signal_row("EURUSD")
+    call = builder.build_regime_call(
+        "EURUSD",
+        signal_row=signal_row,
+        composite=0.5,
+        confidence=0.6,
+        regime="RISK_OFF_DOLLAR_BID",
+        primary_driver="rate",
+        layer2=_layer2("LONG"),
+        layer3=_layer3(),
+        rate_direction="BULLISH",
+        apply_dqs_cap=False,
+    )
+    assert call.model_version == "2.0-live"
+    assert call.data_source == "live"
+    assert call.strategy_version == "v2"
+
+
+def test_regime_call_accepts_version_and_source_overrides() -> None:
+    """Builder allows callers to override model_version, data_source, strategy_version."""
+
+    snapshot = _eurusd_snapshot()
+    builder = RegimeCallBuilder(snapshot)
+    signal_row = builder.build_signal_row("EURUSD")
+    call = builder.build_regime_call(
+        "EURUSD",
+        signal_row=signal_row,
+        composite=0.5,
+        confidence=0.6,
+        regime="RISK_OFF_DOLLAR_BID",
+        primary_driver="rate",
+        layer2=_layer2("LONG"),
+        layer3=_layer3(),
+        rate_direction="BULLISH",
+        model_version="2.1-m3",
+        data_source="backtest",
+        strategy_version="v2-backtest",
+        apply_dqs_cap=False,
+    )
+    assert call.model_version == "2.1-m3"
+    assert call.data_source == "backtest"
+    assert call.strategy_version == "v2-backtest"

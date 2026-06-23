@@ -175,6 +175,9 @@ class RegimeCallBuilder:
         risk_reversal_25d: float | None = None,
         special_signal: float | None = None,
         apply_dqs_cap: bool = True,
+        model_version: str | None = None,
+        strategy_version: str | None = None,
+        data_source: str | None = None,
     ) -> RegimeCall:
         """Assemble the persistence-ready regime call for ``pair``."""
 
@@ -253,5 +256,7 @@ class RegimeCallBuilder:
             special_signal_value=special_signal,
             special_signal_label=special_label,
             regime_category=get_regime_category(regime),
-            model_version="2.0-live",
+            model_version=model_version if model_version is not None else "2.0-live",
+            strategy_version=strategy_version if strategy_version is not None else "v2",
+            data_source=data_source if data_source is not None else "live",
         )

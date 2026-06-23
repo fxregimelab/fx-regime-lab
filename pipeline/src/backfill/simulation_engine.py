@@ -21,6 +21,8 @@ from typing import Any
 
 import numpy as np
 
+from src.core.ingestion_snapshot import IngestionSnapshot
+from src.core.regime_call_builder import RegimeCallBuilder
 from src.logic.layer2_directional import run_layer2_directional
 from src.logic.layer3_execution import run_layer3_execution
 from src.regime.classifier import classify_regime_layer1
@@ -446,7 +448,8 @@ def _load_signals_for_pair(pair: str, start: date, end: date) -> dict[date, dict
         "fpi_flow, ecb_balance_sheet, bund_btp_spread, "
         "cot_asset_mgr_net, cot_lev_money_net, cot_net_pos, "
         "cross_asset_vix, cross_asset_dxy, cross_asset_oil, "
-        "cross_asset_gold, cross_asset_copper, cross_asset_stoxx "
+        "cross_asset_gold, cross_asset_copper, cross_asset_stoxx, "
+        "boj_policy_rate, india_vix, inr_forward_premium "
         "FROM signals WHERE pair = :pair AND date >= :start AND date <= :end ORDER BY date",
         pair=pair,
         start=start.isoformat(),
@@ -469,14 +472,17 @@ def _load_signals_for_pair(pair: str, start: date, end: date) -> dict[date, dict
             "ecb_balance_sheet": float(r[10]) if r[10] is not None else None,
             "bund_btp_spread": float(r[11]) if r[11] is not None else None,
             "cot_asset_mgr_net": int(r[12]) if r[12] is not None else None,
-            "cot_lev_money_net": int(r[12]) if r[12] is not None else None,
-            "cot_net_pos": int(r[13]) if r[13] is not None else None,
-            "cross_asset_vix": float(r[14]) if r[14] is not None else None,
-            "cross_asset_dxy": float(r[15]) if r[15] is not None else None,
-            "cross_asset_oil": float(r[16]) if r[16] is not None else None,
-            "cross_asset_gold": float(r[17]) if r[17] is not None else None,
-            "cross_asset_copper": float(r[18]) if r[18] is not None else None,
-            "cross_asset_stoxx": float(r[19]) if r[19] is not None else None,
+            "cot_lev_money_net": int(r[13]) if r[13] is not None else None,
+            "cot_net_pos": int(r[14]) if r[14] is not None else None,
+            "cross_asset_vix": float(r[15]) if r[15] is not None else None,
+            "cross_asset_dxy": float(r[16]) if r[16] is not None else None,
+            "cross_asset_oil": float(r[17]) if r[17] is not None else None,
+            "cross_asset_gold": float(r[18]) if r[18] is not None else None,
+            "cross_asset_copper": float(r[19]) if r[19] is not None else None,
+            "cross_asset_stoxx": float(r[20]) if r[20] is not None else None,
+            "boj_policy_rate": float(r[21]) if r[21] is not None else None,
+            "india_vix": float(r[22]) if r[22] is not None else None,
+            "inr_forward_premium": float(r[23]) if r[23] is not None else None,
         }
     return out
 
@@ -492,6 +498,57 @@ def _build_cross_asset_from_signal(sig: dict[str, Any] | None) -> dict[str, Any]
         "copper": sig.get("cross_asset_copper"),
         "stoxx": sig.get("cross_asset_stoxx"),
     }
+
+
+def _build_historical_snapshot(
+    pair: str,
+    as_of: date,
+    full_idx: int,
+    all_sorted_dates: list[date],
+    spot_map: dict[date, SpotBar],
+    yields_by_series: dict[str, dict[date, float]],
+    sig_row: dict[str, Any],
+) -> IngestionSnapshot:
+    """Construct an ``IngestionSnapshot`` for a historical simulation date."""
+
+    ymap = YIELD_ID_MAP.get(pair, {})
+    base_yield = _get_yield(ymap.get("base", "DGS2"), as_of, yields_by_series)
+    quote_10y = _get_yield(ymap.get("quote_10y", ""), as_of, yields_by_series)
+    us_10y = _get_yield("DGS10", as_of, yields_by_series)
+    bei = _get_yield("T10YIE", as_of, yields_by_series)
+
+    yields: dict[str, float | None] = {
+        "us_2y": base_yield,
+        "us_10y": us_10y,
+        "T10YIE": bei,
+        "quote_10y": quote_10y,
+    }
+
+    window_bars = [spot_map[d] for d in all_sorted_dates[max(0, full_idx - 2519):full_idx + 1]]
+
+    # Backfill snapshots are reconstructed from stored signals; COT rows are not
+    # needed for assembly because the builder reads cot_percentile/cot_norm directly.
+    cot_rows: list[CotRow] = []
+
+    macro: dict[str, Any] = {
+        "ecb_balance_sheet": sig_row.get("ecb_balance_sheet"),
+        "bund_btp_spread": sig_row.get("bund_btp_spread"),
+        "boj_policy_rate": sig_row.get("boj_policy_rate"),
+        "india_vix": sig_row.get("india_vix"),
+        "inr_forward_premium": sig_row.get("inr_forward_premium"),
+    }
+
+    # Fixed research-quality defaults: historical rows have no live DQS/stress computation.
+    return IngestionSnapshot(
+        date=as_of,
+        spots={pair: window_bars},
+        yields=yields,
+        cot_rows=cot_rows,
+        cross_asset=_build_cross_asset_from_signal(sig_row),
+        macro=macro,
+        dqs_score=0.85,
+        stress_level="GREEN",
+    )
 
 
 def simulate_all_days_v2(
@@ -813,95 +870,60 @@ def simulate_all_days_v2(
         conviction_cap = 0.42 + 0.10 * float(layer2_out["conviction"])
         confidence = min(float(confidence), conviction_cap)
 
-        yest_bar = spot_map[all_sorted_dates[full_idx - 1]]
-        day_change = today_bar.close - yest_bar.close
-        day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
-        volumes = [b.volume for b in window_bars if b.volume > 0]
-        rvol = compute_rvol(volumes)
-
-        signal_row = SignalRow(
+        snapshot = _build_historical_snapshot(
             pair=pair,
-            date=as_of,
-            rate_diff_2y=rate_spread_2y,
-            rate_diff_10y=rate_spread_10y,
-            cot_percentile=cot_pct,
-            realized_vol_20d=rv20,
-            realized_vol_5d=rv5,
-            implied_vol_30d=sig_row.get("implied_vol_30d"),
-            spot=today_bar.close,
-            day_change=day_change,
-            day_change_pct=day_chg_pct,
-            cross_asset_vix=sig_row.get("cross_asset_vix"),
-            cross_asset_dxy=sig_row.get("cross_asset_dxy"),
-            cross_asset_oil=sig_row.get("cross_asset_oil"),
-            cross_asset_us10y=us_10y,
-            cross_asset_gold=sig_row.get("cross_asset_gold"),
-            cross_asset_copper=sig_row.get("cross_asset_copper"),
-            cross_asset_stoxx=sig_row.get("cross_asset_stoxx"),
-            oi_delta=oi_delta,
-            volume_rvol=rvol,
-            structural_instability=structural_instability,
-            breakeven_inflation_10y=bei,
-            rate_diff_10y_real=rate_spread_10y_real,
+            as_of=as_of,
+            full_idx=full_idx,
+            all_sorted_dates=all_sorted_dates,
+            spot_map=spot_map,
+            yields_by_series=yields_by_series,
+            sig_row=sig_row,
+        )
+        builder = RegimeCallBuilder(snapshot)
+
+        signal_row = builder.build_signal_row(
+            pair=pair,
+            rate_spread_2y=rate_spread_2y,
+            rate_spread_10y=rate_spread_10y,
+            rate_spread_10y_real=rate_spread_10y_real,
             rate_z_tactical=rate_norm_z.z_tactical if rate_norm_z is not None else None,
             rate_z_structural=rate_norm_z.z_structural if rate_norm_z is not None else None,
             z_blended=rate_norm_z.z_blended if rate_norm_z is not None else None,
+            cot_percentile=cot_pct,
+            cot_norm=cot_norm,
+            realized_vol_20d=rv20,
+            realized_vol_5d=rv5,
+            implied_vol_30d=sig_row.get("implied_vol_30d"),
+            vol_norm=vol_norm,
+            vol_expanding=vol_exp,
+            oi_delta=oi_delta,
+            oi_norm=oi_norm,
+            special_signal=special_signal,
+            fpi_signal=fpi_signal,
+            fpi_raw={"fpi_total_net_cr": fpi_signal} if fpi_signal is not None else None,
+            structural_instability=structural_instability,
+            breakeven_inflation_10y=bei,
             realized_vol_rank=layer3_out["realized_vol_rank"],
             skew_alignment=layer3_out["skew_alignment"],
-            cot_asset_mgr_net=sig_row.get("cot_asset_mgr_net"),
-            cot_lev_money_net=sig_row.get("cot_lev_money_net"),
-            ecb_balance_sheet=sig_row.get("ecb_balance_sheet"),
-            bund_btp_spread=sig_row.get("bund_btp_spread"),
         )
-
-        bias = layer2_out["directional_bias"]
-        predicted_direction = (
-            "BULLISH" if bias == "LONG" else ("BEARISH" if bias == "SHORT" else "NEUTRAL")
-        )
-        cot_label = (
-            "BULLISH" if cot_norm is not None and cot_norm > 0.15 else
-            ("BEARISH" if cot_norm is not None and cot_norm < -0.15 else "NEUTRAL")
-        )
-        vol_label = (
-            "VOL_EXPANDING" if vol_exp else
-            ("BULLISH" if vol_norm is not None and vol_norm > 0.15 else
-             ("BEARISH" if vol_norm is not None and vol_norm < -0.15 else "NEUTRAL"))
-        )
-        oi_label = (
-            "BULLISH" if oi_norm is not None and oi_norm > 0.15 else
-            ("BEARISH" if oi_norm is not None and oi_norm < -0.15 else "NEUTRAL")
-        )
-
-        special_label = {
-            "EURUSD": "Bund-BTP + ECB BS",
-            "USDJPY": "VIX + JPY Funding Stress",
-            "USDINR": "Oil + DXY + EM Risk",
-        }.get(pair)
 
         driver = get_primary_driver(betas_5y)
-
-        call = RegimeCall(
+        call = builder.build_regime_call(
             pair=pair,
-            date=as_of,
-            regime=regime,
+            signal_row=signal_row,
+            composite=composite,
             confidence=confidence,
-            signal_composite=composite,
-            rate_signal=rate_dir,
+            regime=regime,
             primary_driver=driver,
-            entry_timing=layer3_out["entry_timing"],
-            position_size=layer3_out["position_size"],
-            stop_level=layer3_out["stop_level"],
-            data_quality_score=0.85,
-            stress_level="GREEN",
-            predicted_direction=predicted_direction,
-            directional_bias=bias,
-            conviction=layer2_out["conviction"],
-            cot_signal=cot_label,
-            vol_signal=vol_label,
-            oi_signal=oi_label,
-            rr_signal="NEUTRAL",
-            special_signal_value=special_signal,
-            special_signal_label=special_label,
+            layer2=layer2_out,
+            layer3=layer3_out,
+            rate_direction=rate_dir,
+            cot_norm=cot_norm,
+            vol_norm=vol_norm,
+            vol_expanding=vol_exp,
+            oi_norm=oi_norm,
+            special_signal=special_signal,
+            apply_dqs_cap=False,
             model_version="2.1-m3",
             strategy_version="v2",
             data_source="backtest",

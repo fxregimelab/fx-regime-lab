@@ -150,3 +150,29 @@ def test_simulation_v2_higher_accuracy_on_known_regime() -> None:
 
     # With strong bullish inputs, v2 should have at least as many directional calls.
     assert v2_non_neutral >= v1_non_neutral * 0.5
+
+
+def test_simulation_v2_call_includes_regime_category() -> None:
+    """Backfill calls carry a regime_category set by the shared builder."""
+    start = date(2024, 1, 1)
+    spots = _make_spot_bars(start, 90, trend="up")
+    yields = _make_yields()
+    signals = _make_signals(start, 90)
+
+    for d in spots:
+        yields["DGS2"][d] = 4.5
+        yields["DGS10"][d] = 5.0
+        yields["IRLTLT01DEM156N"][d] = 2.0
+        yields["T10YIE"][d] = 2.0
+
+    with (
+        patch("src.backfill.simulation_engine._load_all_spot_bars", return_value=spots),
+        patch("src.backfill.simulation_engine._load_signals_for_pair", return_value=signals),
+    ):
+        v2_results = simulate_all_days_v2("EURUSD", start, start + timedelta(days=89), yields)
+
+    assert v2_results
+    for _s, call in v2_results:
+        assert call.regime_category is not None and call.regime_category != ""
+        assert call.model_version == "2.1-m3"
+        assert call.data_source == "backtest"
