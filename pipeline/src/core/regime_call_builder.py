@@ -16,6 +16,22 @@ from src.types import (
 from .ingestion_snapshot import IngestionSnapshot
 
 
+def dqs_confidence_cap(dqs: float | None) -> float | None:
+    """DQS-driven confidence upper bound; returns ``None`` when no cap applies."""
+
+    if dqs is None:
+        return None
+    if dqs >= 0.90:
+        return None
+    if dqs >= 0.75:
+        return 0.85
+    if dqs >= 0.60:
+        return 0.70
+    if dqs >= 0.50:
+        return 0.55
+    return None
+
+
 class RegimeCallBuilder:
     """Build ``SignalRow`` and ``RegimeCall`` artifacts from a validated snapshot.
 
@@ -140,21 +156,6 @@ class RegimeCallBuilder:
             data_quality_notes=None,
         )
 
-    def _dqs_confidence_cap(self, dqs: float | None) -> float | None:
-        """Mirror of orchestrator DQS cap: returns upper bound or None."""
-
-        if dqs is None:
-            return None
-        if dqs >= 0.90:
-            return None
-        if dqs >= 0.75:
-            return 0.85
-        if dqs >= 0.60:
-            return 0.70
-        if dqs >= 0.50:
-            return 0.55
-        return None
-
     def build_regime_call(
         self,
         pair: str,
@@ -179,7 +180,7 @@ class RegimeCallBuilder:
 
         final_confidence = float(confidence)
         if apply_dqs_cap:
-            cap = self._dqs_confidence_cap(self.snapshot.dqs_score)
+            cap = dqs_confidence_cap(self.snapshot.dqs_score)
             if cap is not None:
                 final_confidence = min(final_confidence, cap)
 

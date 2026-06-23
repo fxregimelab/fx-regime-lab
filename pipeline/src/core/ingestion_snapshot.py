@@ -53,7 +53,7 @@ class IngestionSnapshot:
         yields = _coerce_yields(yields_any)
 
         cot_any = buffer.get(KEY_COT)
-        cot_rows = _coerce_cot_rows(cot_any)
+        cot_rows = _coerce_cot_rows(cot_any, as_of=as_of)
 
         cross_any = buffer.get(KEY_CROSS_ASSET)
         cross = _coerce_cross_asset(cross_any)
@@ -178,8 +178,12 @@ def _coerce_yields(yields_any: Any) -> dict[str, float | None]:
     return out
 
 
-def _coerce_cot_rows(cot_any: Any) -> list[CotRow]:
-    """Normalize raw COT buffer; malformed rows are dropped."""
+def _coerce_cot_rows(cot_any: Any, *, as_of: datetime.date) -> list[CotRow]:
+    """Normalize raw COT buffer; malformed rows are dropped.
+
+    Rows missing a date field inherit ``as_of`` so partial fetcher output still
+    produces a usable snapshot rather than silently disappearing.
+    """
 
     if not isinstance(cot_any, list | tuple):
         return []
@@ -191,10 +195,7 @@ def _coerce_cot_rows(cot_any: Any) -> list[CotRow]:
         if isinstance(item, dict):
             d_raw = item.get("date")
             try:
-                if d_raw is not None:
-                    d = datetime.date.fromisoformat(str(d_raw)[:10])
-                else:
-                    d = datetime.date.today()
+                d = datetime.date.fromisoformat(str(d_raw)[:10]) if d_raw is not None else as_of
             except ValueError:
                 continue
             pair = str(item.get("pair", ""))

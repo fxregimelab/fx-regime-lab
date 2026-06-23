@@ -123,7 +123,7 @@ from src.analysis.systemic import (
     top_three_clustered,
 )
 from src.core.ingestion_snapshot import IngestionSnapshot
-from src.core.regime_call_builder import RegimeCallBuilder
+from src.core.regime_call_builder import RegimeCallBuilder, dqs_confidence_cap
 from src.core.regime_persist import persist_regime_call
 from src.db import writer
 from src.fetchers.async_engine import build_master_buffer
@@ -291,18 +291,6 @@ def assess_stress(
     if score >= 1:
         return score, "AMBER"
     return score, "GREEN"
-
-
-def _dqs_confidence_cap(dqs: float) -> float | None:
-    if dqs >= 0.90:
-        return None
-    if dqs >= 0.75:
-        return 0.85
-    if dqs >= 0.60:
-        return 0.70
-    if dqs >= 0.50:
-        return 0.55
-    return None
 
 
 def _log_dqs_band(dqs: float) -> None:
@@ -1042,12 +1030,9 @@ async def run_daily(
     )
 
     # ── IngestionSnapshot: typed domain object for the new builder seam ────
-    ingestion_snapshot = IngestionSnapshot(
-        date=as_of_day,
-        spots=spots,
-        yields=yields_dict,
-        cot_rows=cot_rows,
-        cross_asset=cross,
+    ingestion_snapshot = IngestionSnapshot.from_buffer(
+        as_of=as_of_day,
+        buffer=buffer,
         macro={
             "ecb_balance_sheet": ecb_balance_sheet,
             "bund_btp_spread": bund_btp_spread,
@@ -1055,7 +1040,7 @@ async def run_daily(
             "india_vix": india_vix,
             "inr_forward_premium": inr_forward_premium,
         },
-        dqs_score=round(float(dqs_out.score), 2),
+        dqs_score=float(dqs_out.score),
         stress_level=stress_level,
     )
 
@@ -1427,7 +1412,7 @@ async def run_daily(
         confidence = min(float(confidence), conviction_cap)
         # DQS cap is applied inside RegimeCallBuilder for EURUSD; inline for others.
         if pair != "EURUSD":
-            dqs_cap = _dqs_confidence_cap(dqs_out.score)
+            dqs_cap = dqs_confidence_cap(dqs_out.score)
             if dqs_cap is not None:
                 confidence = min(float(confidence), dqs_cap)
         if stress_level == "AMBER":
