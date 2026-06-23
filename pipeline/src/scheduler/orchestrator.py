@@ -122,6 +122,8 @@ from src.analysis.systemic import (
     resolve_idiosyncratic_outlier,
     top_three_clustered,
 )
+from src.core.ingestion_snapshot import IngestionSnapshot
+from src.core.regime_call_builder import RegimeCallBuilder
 from src.core.regime_persist import persist_regime_call
 from src.db import writer
 from src.fetchers.async_engine import build_master_buffer
@@ -1039,6 +1041,24 @@ async def run_daily(
         inr_forward_premium,
     )
 
+    # ── IngestionSnapshot: typed domain object for the new builder seam ────
+    ingestion_snapshot = IngestionSnapshot(
+        date=as_of_day,
+        spots=spots,
+        yields=yields_dict,
+        cot_rows=cot_rows,
+        cross_asset=cross,
+        macro={
+            "ecb_balance_sheet": ecb_balance_sheet,
+            "bund_btp_spread": bund_btp_spread,
+            "boj_policy_rate": boj_policy_rate,
+            "india_vix": india_vix,
+            "inr_forward_premium": inr_forward_premium,
+        },
+        dqs_score=round(float(dqs_out.score), 2),
+        stress_level=stress_level,
+    )
+
     pending_desk_cards: list[dict[str, Any]] = []
 
     for pair in PAIRS:
@@ -1405,9 +1425,11 @@ async def run_daily(
         # Conviction 1→5 maps to cap 0.50→0.90 (was 0.46→0.90).
         conviction_cap = 0.42 + 0.10 * float(layer2_out["conviction"])
         confidence = min(float(confidence), conviction_cap)
-        dqs_cap = _dqs_confidence_cap(dqs_out.score)
-        if dqs_cap is not None:
-            confidence = min(float(confidence), dqs_cap)
+        # DQS cap is applied inside RegimeCallBuilder for EURUSD; inline for others.
+        if pair != "EURUSD":
+            dqs_cap = _dqs_confidence_cap(dqs_out.score)
+            if dqs_cap is not None:
+                confidence = min(float(confidence), dqs_cap)
         if stress_level == "AMBER":
             confidence = min(float(confidence), 0.72)
 
@@ -1426,109 +1448,165 @@ async def run_daily(
         volumes = [b.volume for b in spot_bars if b.volume > 0]
         rvol = compute_rvol(volumes)
 
-        signal_row = SignalRow(
-            pair=pair,
-            date=today_bar.date,
-            rate_diff_2y=rate_spread_2y,
-            rate_diff_10y=rate_spread_10y,
-            cot_percentile=cot_pct,
-            realized_vol_20d=rv20,
-            realized_vol_5d=rv5,
-            implied_vol_30d=iv,
-            spot=today_bar.close,
-            day_change=day_change,
-            day_change_pct=day_chg_pct,
-            cross_asset_vix=cross.get("vix"),
-            cross_asset_dxy=cross.get("dxy"),
-            cross_asset_oil=cross.get("oil"),
-            cross_asset_us10y=us10y_value,
-            cross_asset_gold=cross.get("gold"),
-            cross_asset_copper=cross.get("copper"),
-            cross_asset_stoxx=cross.get("stoxx"),
-            oi_delta=oi_delta,
-            volume_rvol=rvol,
-            structural_instability=structural_instability,
-            breakeven_inflation_10y=bei,
-            rate_diff_10y_real=rate_spread_10y_real,
-            rate_z_tactical=rate_z_tactical_val,
-            rate_z_structural=rate_z_structural_val,
-            z_blended=rate_norm,
-            realized_vol_rank=layer3_out["realized_vol_rank"],
-            skew_alignment=layer3_out["skew_alignment"],
-            risk_reversal_25d=rr_proxy,
-            risk_reversal_source=rr_source,
-            days_since_cot=days_since_cot,
-            fpi_flow=fpi_raw.get("fpi_total_net_cr") if fpi_raw else None,
-            cot_net_pos=cot_net_pos,
-            cot_asset_mgr_net=cot_asset_mgr_net,
-            cot_lev_money_net=cot_lev_money_net,
-            ecb_balance_sheet=ecb_balance_sheet if pair == "EURUSD" else None,
-            bund_btp_spread=bund_btp_spread if pair == "EURUSD" else None,
-            boj_policy_rate=boj_policy_rate if pair == "USDJPY" else None,
-            india_vix=india_vix if pair == "USDINR" else None,
-            inr_forward_premium=inr_forward_premium if pair == "USDINR" else None,
-        )
+        if pair == "EURUSD":
+            builder = RegimeCallBuilder(ingestion_snapshot)
+            signal_row = builder.build_signal_row(
+                pair=pair,
+                rate_spread_2y=rate_spread_2y,
+                rate_spread_10y=rate_spread_10y,
+                rate_spread_10y_real=rate_spread_10y_real,
+                rate_z_tactical=rate_z_tactical_val,
+                rate_z_structural=rate_z_structural_val,
+                z_blended=rate_norm,
+                cot_percentile=cot_pct,
+                cot_norm=cot_norm,
+                realized_vol_20d=rv20,
+                realized_vol_5d=rv5,
+                implied_vol_30d=iv,
+                vol_norm=vol_norm,
+                vol_expanding=vol_exp,
+                oi_delta=oi_delta,
+                oi_norm=oi_norm,
+                special_signal=special_signal,
+                fpi_signal=fpi_signal,
+                fpi_raw=fpi_raw,
+                risk_adjusted_carry=risk_adjusted_carry,
+                days_since_cot=days_since_cot,
+                cot_net_pos=cot_net_pos,
+                cot_asset_mgr_net=cot_asset_mgr_net,
+                cot_lev_money_net=cot_lev_money_net,
+                structural_instability=structural_instability,
+                breakeven_inflation_10y=bei,
+                realized_vol_rank=layer3_out["realized_vol_rank"],
+                skew_alignment=layer3_out["skew_alignment"],
+                risk_reversal_25d=rr_proxy,
+                risk_reversal_source=rr_source,
+                historical_us10y=us10y_value,
+            )
+            call = builder.build_regime_call(
+                pair=pair,
+                signal_row=signal_row,
+                composite=composite,
+                confidence=confidence,
+                regime=regime,
+                primary_driver=driver,
+                layer2=layer2_out,
+                layer3=layer3_out,
+                rate_direction=rate_dir,
+                cot_norm=cot_norm,
+                vol_norm=vol_norm,
+                vol_expanding=vol_exp,
+                oi_norm=oi_norm,
+                risk_reversal_25d=rr_proxy,
+                special_signal=special_signal,
+            )
+            # Builder applies its own DQS cap; use capped confidence downstream.
+            confidence = call.confidence
+        else:
+            signal_row = SignalRow(
+                pair=pair,
+                date=today_bar.date,
+                rate_diff_2y=rate_spread_2y,
+                rate_diff_10y=rate_spread_10y,
+                cot_percentile=cot_pct,
+                realized_vol_20d=rv20,
+                realized_vol_5d=rv5,
+                implied_vol_30d=iv,
+                spot=today_bar.close,
+                day_change=day_change,
+                day_change_pct=day_chg_pct,
+                cross_asset_vix=cross.get("vix"),
+                cross_asset_dxy=cross.get("dxy"),
+                cross_asset_oil=cross.get("oil"),
+                cross_asset_us10y=us10y_value,
+                cross_asset_gold=cross.get("gold"),
+                cross_asset_copper=cross.get("copper"),
+                cross_asset_stoxx=cross.get("stoxx"),
+                oi_delta=oi_delta,
+                volume_rvol=rvol,
+                structural_instability=structural_instability,
+                breakeven_inflation_10y=bei,
+                rate_diff_10y_real=rate_spread_10y_real,
+                rate_z_tactical=rate_z_tactical_val,
+                rate_z_structural=rate_z_structural_val,
+                z_blended=rate_norm,
+                realized_vol_rank=layer3_out["realized_vol_rank"],
+                skew_alignment=layer3_out["skew_alignment"],
+                risk_reversal_25d=rr_proxy,
+                risk_reversal_source=rr_source,
+                days_since_cot=days_since_cot,
+                fpi_flow=fpi_raw.get("fpi_total_net_cr") if fpi_raw else None,
+                cot_net_pos=cot_net_pos,
+                cot_asset_mgr_net=cot_asset_mgr_net,
+                cot_lev_money_net=cot_lev_money_net,
+                ecb_balance_sheet=ecb_balance_sheet if pair == "EURUSD" else None,
+                bund_btp_spread=bund_btp_spread if pair == "EURUSD" else None,
+                boj_policy_rate=boj_policy_rate if pair == "USDJPY" else None,
+                india_vix=india_vix if pair == "USDINR" else None,
+                inr_forward_premium=inr_forward_premium if pair == "USDINR" else None,
+            )
+
+            # Map Layer2 bias to validation-compatible predicted_direction.
+            bias = layer2_out["directional_bias"]
+            predicted_direction = (
+                "BULLISH" if bias == "LONG" else ("BEARISH" if bias == "SHORT" else "NEUTRAL")
+            )
+
+            # Signal family labels for audit / explainability.
+            cot_label = (
+                "BULLISH" if cot_norm is not None and cot_norm > 0.15 else
+                ("BEARISH" if cot_norm is not None and cot_norm < -0.15 else "NEUTRAL")
+            )
+            vol_label = (
+                "VOL_EXPANDING" if vol_exp else
+                ("BULLISH" if vol_norm is not None and vol_norm > 0.15 else
+                 ("BEARISH" if vol_norm is not None and vol_norm < -0.15 else "NEUTRAL"))
+            )
+            oi_label = (
+                "BULLISH" if oi_norm is not None and oi_norm > 0.15 else
+                ("BEARISH" if oi_norm is not None and oi_norm < -0.15 else "NEUTRAL")
+            )
+            rr_label = (
+                "BULLISH" if rr_proxy is not None and rr_proxy > 0.15 else
+                ("BEARISH" if rr_proxy is not None and rr_proxy < -0.15 else "NEUTRAL")
+            )
+
+            special_label = {
+                "EURUSD": "Bund-BTP + ECB BS",
+                "USDJPY": "VIX + JPY Funding Stress",
+                "USDINR": "Oil + DXY + EM Risk",
+            }.get(pair)
+
+            call = RegimeCall(
+                pair=pair,
+                date=today_bar.date,
+                regime=regime,
+                confidence=confidence,
+                signal_composite=composite,
+                rate_signal=rate_dir,
+                primary_driver=driver,
+                entry_timing=layer3_out["entry_timing"],
+                position_size=layer3_out["position_size"],
+                stop_level=layer3_out["stop_level"],
+                data_quality_score=round(float(dqs_out.score), 2),
+                stress_level=stress_level,
+                predicted_direction=predicted_direction,
+                directional_bias=bias,
+                conviction=layer2_out["conviction"],
+                cot_signal=cot_label,
+                vol_signal=vol_label,
+                oi_signal=oi_label,
+                rr_signal=rr_label,
+                special_signal_value=special_signal,
+                special_signal_label=special_label,
+                regime_category=get_regime_category(regime),
+                model_version="2.0-live",
+            )
 
         if pair == "TESTPAIR":
             continue
         writer.write_signal_row(signal_row)
 
-        # Map Layer2 bias to validation-compatible predicted_direction.
-        bias = layer2_out["directional_bias"]
-        predicted_direction = (
-            "BULLISH" if bias == "LONG" else ("BEARISH" if bias == "SHORT" else "NEUTRAL")
-        )
-
-        # Signal family labels for audit / explainability.
-        cot_label = (
-            "BULLISH" if cot_norm is not None and cot_norm > 0.15 else
-            ("BEARISH" if cot_norm is not None and cot_norm < -0.15 else "NEUTRAL")
-        )
-        vol_label = (
-            "VOL_EXPANDING" if vol_exp else
-            ("BULLISH" if vol_norm is not None and vol_norm > 0.15 else
-             ("BEARISH" if vol_norm is not None and vol_norm < -0.15 else "NEUTRAL"))
-        )
-        oi_label = (
-            "BULLISH" if oi_norm is not None and oi_norm > 0.15 else
-            ("BEARISH" if oi_norm is not None and oi_norm < -0.15 else "NEUTRAL")
-        )
-        rr_label = (
-            "BULLISH" if rr_proxy is not None and rr_proxy > 0.15 else
-            ("BEARISH" if rr_proxy is not None and rr_proxy < -0.15 else "NEUTRAL")
-        )
-
-        special_label = {
-            "EURUSD": "Bund-BTP + ECB BS",
-            "USDJPY": "VIX + JPY Funding Stress",
-            "USDINR": "Oil + DXY + EM Risk",
-        }.get(pair)
-
-        call = RegimeCall(
-            pair=pair,
-            date=today_bar.date,
-            regime=regime,
-            confidence=confidence,
-            signal_composite=composite,
-            rate_signal=rate_dir,
-            primary_driver=driver,
-            entry_timing=layer3_out["entry_timing"],
-            position_size=layer3_out["position_size"],
-            stop_level=layer3_out["stop_level"],
-            data_quality_score=round(float(dqs_out.score), 2),
-            stress_level=stress_level,
-            predicted_direction=predicted_direction,
-            directional_bias=bias,
-            conviction=layer2_out["conviction"],
-            cot_signal=cot_label,
-            vol_signal=vol_label,
-            oi_signal=oi_label,
-            rr_signal=rr_label,
-            special_signal_value=special_signal,
-            special_signal_label=special_label,
-            regime_category=get_regime_category(regime),
-            model_version="2.0-live",
-        )
         if stress_red:
             logger.warning(
                 "RED Stress Mode — withholding regime call "

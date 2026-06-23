@@ -140,6 +140,21 @@ class RegimeCallBuilder:
             data_quality_notes=None,
         )
 
+    def _dqs_confidence_cap(self, dqs: float | None) -> float | None:
+        """Mirror of orchestrator DQS cap: returns upper bound or None."""
+
+        if dqs is None:
+            return None
+        if dqs >= 0.90:
+            return None
+        if dqs >= 0.75:
+            return 0.85
+        if dqs >= 0.60:
+            return 0.70
+        if dqs >= 0.50:
+            return 0.55
+        return None
+
     def build_regime_call(
         self,
         pair: str,
@@ -158,8 +173,15 @@ class RegimeCallBuilder:
         oi_norm: float | None = None,
         risk_reversal_25d: float | None = None,
         special_signal: float | None = None,
+        apply_dqs_cap: bool = True,
     ) -> RegimeCall:
         """Assemble the persistence-ready regime call for ``pair``."""
+
+        final_confidence = float(confidence)
+        if apply_dqs_cap:
+            cap = self._dqs_confidence_cap(self.snapshot.dqs_score)
+            if cap is not None:
+                final_confidence = min(final_confidence, cap)
 
         bias = layer2["directional_bias"]
         predicted_direction = (
@@ -201,18 +223,24 @@ class RegimeCallBuilder:
             "USDINR": "Oil + DXY + EM Risk",
         }.get(pair)
 
+        dqs_score = (
+            round(float(self.snapshot.dqs_score), 2)
+            if self.snapshot.dqs_score is not None
+            else None
+        )
+
         return RegimeCall(
             pair=pair,
             date=signal_row.date,
             regime=regime,
-            confidence=confidence,
+            confidence=final_confidence,
             signal_composite=composite,
             rate_signal=rate_direction,
             primary_driver=primary_driver,
             entry_timing=layer3["entry_timing"],
             position_size=layer3["position_size"],
             stop_level=layer3["stop_level"],
-            data_quality_score=self.snapshot.dqs_score,
+            data_quality_score=dqs_score,
             stress_level=self.snapshot.stress_level,
             predicted_direction=predicted_direction,
             directional_bias=bias,
