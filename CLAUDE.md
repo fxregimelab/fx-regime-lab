@@ -100,3 +100,17 @@ Refer to:
 - **`CONTEXT.md`** — Technical project context, macro thesis, signal framework
 - **`OMEGA_PROTOCOL.md`** — The 13-persona council and 6-phase workflow
 - **`TASK.md`** — Current sprint state
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for `fxregimelab/fx-regime-lab`; external PRs are also treated as a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
