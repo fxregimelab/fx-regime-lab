@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any, cast
 
 from dotenv import load_dotenv
 
@@ -84,7 +86,7 @@ def refresh_research_analogs() -> None:
                     "current_composite": r.get("current_composite"),
                 }
             )
-        writer.write_research_analogs(payload)
+        writer.write_research_analogs(cast(list[Mapping[str, Any]], payload))
         logger.info(
             "research_analogs upserted for %s as_of=%s (%s matches)",
             pair,

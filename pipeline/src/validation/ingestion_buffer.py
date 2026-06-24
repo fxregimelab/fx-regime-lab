@@ -10,7 +10,6 @@ from datetime import date
 from typing import Any, Literal, NamedTuple
 
 import numpy as np
-import pandas as pd
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 from src.fetchers.buffer_keys import KEY_COT, KEY_CROSS_ASSET, KEY_FX_SPOT, KEY_YIELDS

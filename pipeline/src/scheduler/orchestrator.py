@@ -10,7 +10,6 @@ FX regime classification and intelligence pipelines.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import os
 import sys
@@ -28,18 +27,18 @@ from typing import Any, Literal, cast
 import prefect.results as _pr
 from dotenv import load_dotenv
 from prefect import flow, task
+from prefect.settings import Settings
 
 if not hasattr(_pr, "_has_current_run_context"):
     def _has_current_run_context() -> bool:
         from prefect.context import FlowRunContext, TaskRunContext
         return TaskRunContext.get() is not None or FlowRunContext.get() is not None
 
-    _pr._has_current_run_context = _has_current_run_context  # type: ignore[attr-defined]
+    _pr._has_current_run_context = _has_current_run_context
 
 if not hasattr(_pr, "get_current_settings"):
-    def get_current_settings():
+    def get_current_settings() -> Settings:
         from prefect.context import SettingsContext
-        from prefect.settings import Settings
         settings_context = SettingsContext.get()
         if settings_context is not None:
             return settings_context.settings
@@ -49,9 +48,9 @@ if not hasattr(_pr, "get_current_settings"):
 
 if not hasattr(_pr, "get_default_persist_setting"):
     def get_default_persist_setting() -> bool:
-        return _pr.get_current_settings().results.persist_by_default
+        return _pr.get_current_settings().results.persist_by_default  # type: ignore[attr-defined]
 
-    _pr.get_default_persist_setting = get_default_persist_setting  # type: ignore[attr-defined]
+    _pr.get_default_persist_setting = get_default_persist_setting
 
 if not hasattr(_pr, "_read_server_default_result_storage_block_id"):
     from uuid import UUID
@@ -66,7 +65,7 @@ if not hasattr(_pr, "_read_server_default_result_storage_block_id"):
             return None
         return configuration.default_result_storage_block_id
 
-    _pr._read_server_default_result_storage_block_id = _read_server_default_result_storage_block_id  # type: ignore[attr-defined]
+    _pr._read_server_default_result_storage_block_id = _read_server_default_result_storage_block_id
 
 if not hasattr(_pr, "_aread_server_default_result_storage_block_id"):
     from uuid import UUID
@@ -81,7 +80,7 @@ if not hasattr(_pr, "_aread_server_default_result_storage_block_id"):
             return None
         return configuration.default_result_storage_block_id
 
-    _pr._aread_server_default_result_storage_block_id = (  # type: ignore[attr-defined]
+    _pr._aread_server_default_result_storage_block_id = (
         _aread_server_default_result_storage_block_id
     )
 
@@ -90,24 +89,24 @@ if not hasattr(_pr, "_get_default_persist_result"):
         persist_result = _pr.should_persist_result()
         if persist_result or _pr._has_current_run_context():
             return persist_result
-        default_block = _pr.get_current_settings().results.default_storage_block
+        default_block = _pr.get_current_settings().results.default_storage_block  # type: ignore[attr-defined]
         if default_block is not None:
             return True
         return _pr._read_server_default_result_storage_block_id() is not None
 
-    _pr._get_default_persist_result = _get_default_persist_result  # type: ignore[attr-defined]
+    _pr._get_default_persist_result = _get_default_persist_result
 
 if not hasattr(_pr, "_aget_default_persist_result"):
     async def _aget_default_persist_result() -> bool:
         persist_result = _pr.should_persist_result()
         if persist_result or _pr._has_current_run_context():
             return persist_result
-        default_block = _pr.get_current_settings().results.default_storage_block
+        default_block = _pr.get_current_settings().results.default_storage_block  # type: ignore[attr-defined]
         if default_block is not None:
             return True
         return await _pr._aread_server_default_result_storage_block_id() is not None
 
-    _pr._aget_default_persist_result = _aget_default_persist_result  # type: ignore[attr-defined]
+    _pr._aget_default_persist_result = _aget_default_persist_result
 # ──────────────────────────────────────────────────────────────────────────────
 
 from src.ai.client import desk_card_brief_fallback
@@ -373,18 +372,29 @@ async def _ingest_weekly_research_memo(iso_date: str) -> None:
 
     date_str = str(memo["date"])[:10]
     raw_content = str(memo["raw_content"])
+    ai_summary: list[str] | None = None
     try:
         from src.ai.client import summarize_weekly_memo_async
-        theses = await summarize_weekly_memo_async(raw_content, date_str=date_str)
-        ai_summary = json.dumps(theses)
+        ai_summary = await summarize_weekly_memo_async(raw_content, date_str=date_str)
     except Exception as exc:
         logger.warning("Weekly memo AI summarization failed: %s", exc)
-        ai_summary = None
+
+    validated_summary: list[str]
+    if isinstance(ai_summary, list) and all(isinstance(x, str) for x in ai_summary):
+        validated_summary = ai_summary
+    else:
+        if ai_summary is not None:
+            logger.warning(
+                "Weekly memo AI summary was not a list[str] (got %s); falling back to empty list",
+                type(ai_summary).__name__,
+            )
+        validated_summary = []
+
     writer.write_research_memo(
         date_str=date_str,
         title=str(memo["title"]),
         raw_content=raw_content,
-        ai_thesis_summary=ai_summary,
+        ai_thesis_summary=validated_summary,
         link_url=link_url,
     )
 

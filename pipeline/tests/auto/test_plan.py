@@ -5,13 +5,14 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from src.auto.plan import _find_relevant_files, create_plan
 
 
-def _make_codemap() -> dict:
+def _make_codemap() -> dict[str, Any]:
     return {
         "web": {
             "pages": [
@@ -42,7 +43,7 @@ def _make_codemap() -> dict:
 
 
 @pytest.fixture
-def temp_repo():
+def temp_repo() -> Any:
     with tempfile.TemporaryDirectory() as tmpdir:
         repo = Path(tmpdir)
         # Create CODEMAP
@@ -53,29 +54,29 @@ def temp_repo():
 
 
 class TestFindRelevantFiles:
-    def test_tier_1_ui_keywords(self, temp_repo):
+    def test_tier_1_ui_keywords(self, temp_repo: Path) -> None:
         files = _find_relevant_files(_make_codemap(), "Add a new chart page", 1)
         assert any("chart" in f for f in files)
 
-    def test_tier_2_signal_keywords(self, temp_repo):
+    def test_tier_2_signal_keywords(self, temp_repo: Path) -> None:
         files = _find_relevant_files(_make_codemap(), "Add a new volatility signal", 2)
         assert any("volatility" in f for f in files)
         # logic files are added separately in create_plan based on layer mentions
 
-    def test_empty_directive_returns_empty(self):
+    def test_empty_directive_returns_empty(self) -> None:
         files = _find_relevant_files(_make_codemap(), "", 1)
         assert files == []
 
 
 class TestCreatePlan:
-    def test_tier_1_generates_spec(self, temp_repo):
+    def test_tier_1_generates_spec(self, temp_repo: Path) -> None:
         result = create_plan("Add a new dashboard page", 1, temp_repo)
         assert result.tier == 1
         assert result.directive == "Add a new dashboard page"
         assert result.spec_path != ""
         assert Path(temp_repo / result.spec_path).exists()
 
-    def test_tier_2_generates_spec(self, temp_repo):
+    def test_tier_2_generates_spec(self, temp_repo: Path) -> None:
         result = create_plan("Add a new carry signal for Layer 2", 2, temp_repo)
         assert result.tier == 2
         assert result.directive == "Add a new carry signal for Layer 2"
@@ -84,22 +85,22 @@ class TestCreatePlan:
         # Should identify Layer 2 logic file
         assert any("layer2" in f for f in result.files_to_modify)
 
-    def test_tier_3_raises(self, temp_repo):
+    def test_tier_3_raises(self, temp_repo: Path) -> None:
         with pytest.raises(ValueError, match="Tier 3 not supported"):
             create_plan("Add a new migration", 3, temp_repo)
 
-    def test_spec_content_includes_directive(self, temp_repo):
+    def test_spec_content_includes_directive(self, temp_repo: Path) -> None:
         result = create_plan("Build a correlation chart", 1, temp_repo)
         spec_path = temp_repo / result.spec_path
         content = spec_path.read_text()
         assert "Build a correlation chart" in content
         assert "Acceptance Criteria" in content
 
-    def test_spec_content_has_files_to_read(self, temp_repo):
+    def test_spec_content_has_files_to_read(self, temp_repo: Path) -> None:
         result = create_plan("Add a volatility signal", 2, temp_repo)
         assert len(result.files_to_read) > 0
 
-    def test_plan_result_is_frozen(self, temp_repo):
+    def test_plan_result_is_frozen(self, temp_repo: Path) -> None:
         result = create_plan("Test", 1, temp_repo)
         with pytest.raises(AttributeError):
             result.tier = 99  # type: ignore[misc]

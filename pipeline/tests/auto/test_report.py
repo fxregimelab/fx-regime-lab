@@ -6,7 +6,7 @@ from src.auto.report import ExecutionContext, generate_report
 
 
 class TestGenerateReport:
-    def test_complete_status(self):
+    def test_complete_status(self) -> None:
         ctx = ExecutionContext(
             directive="Add chart",
             tier=1,
@@ -25,7 +25,7 @@ class TestGenerateReport:
         assert "vercel" in report.lower()
         assert "PASS" in report
 
-    def test_with_errors(self):
+    def test_with_errors(self) -> None:
         ctx = ExecutionContext(
             directive="Add signal",
             tier=2,
@@ -44,7 +44,7 @@ class TestGenerateReport:
         assert "FAIL" in report
         assert "Test failed" in report
 
-    def test_empty_context(self):
+    def test_empty_context(self) -> None:
         ctx = ExecutionContext(
             directive="Test",
             tier=1,

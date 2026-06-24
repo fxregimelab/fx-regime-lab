@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import ssl
 import uuid
+from collections.abc import MutableMapping
 from datetime import datetime
 from typing import Any
 
@@ -41,7 +42,7 @@ def _pg_conn() -> pg8000.native.Connection:
     )
 
 
-def _html_headers() -> dict[str, str]:
+def _html_headers() -> MutableMapping[str, str | bytes]:
     return {
         "User-Agent": BROWSER_UA,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",

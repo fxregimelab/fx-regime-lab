@@ -64,7 +64,7 @@ def compute_regime_age(pair: str, current_regime: str, as_of: str) -> int:
 
 def compute_dominance_array(call: dict[str, Any]) -> list[dict[str, Any]]:
     """Build dominance array from signal decomposition."""
-    signals = []
+    signals: list[dict[str, Any]] = []
     weights = {
         "rate_signal": 0.40,
         "cot_signal": 0.30,
@@ -101,7 +101,7 @@ def compute_markov_probabilities(current_regime: str) -> dict[str, float]:
     return probs
 
 
-def compute_telemetry_audit(call: dict[str, Any], sig: dict[str, Any]) -> dict[str, Any]:
+def compute_telemetry_audit(call: dict[str, Any], sig: dict[str, Any] | None) -> dict[str, Any]:
     """Build telemetry audit from available data."""
     return {
         "dqs": call.get("data_quality_score"),
@@ -116,7 +116,7 @@ def compute_telemetry_audit(call: dict[str, Any], sig: dict[str, Any]) -> dict[s
     }
 
 
-def compute_pain_index(call: dict[str, Any], sig: dict[str, Any]) -> float:
+def compute_pain_index(call: dict[str, Any], sig: dict[str, Any] | None) -> float:
     """Estimate pain index from volatility and signal divergence."""
     rvol = sig.get("realized_vol_20d") if sig else None
     if rvol is None:
@@ -136,7 +136,7 @@ def compute_apex_score(call: dict[str, Any]) -> float:
     dqs = call.get("data_quality_score", 0.5) or 0.5
     # Weighted combination
     score = (confidence * 0.4 + composite * 0.35 + dqs * 0.25)
-    return round(min(score, 1.0), 4)
+    return float(round(min(score, 1.0), 4))
 
 
 def build_desk_card(

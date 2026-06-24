@@ -16,7 +16,12 @@ import uuid
 from datetime import date
 from typing import Any
 
-from src.db.writer import write_pipeline_error, write_pipeline_run
+from src.db.writer import (
+    count_regime_calls_for_date,
+    get_regime_calls_dqs_for_date,
+    write_pipeline_error,
+    write_pipeline_run,
+)
 from src.monitoring.accuracy_alerts import check_accuracy_alerts, send_accuracy_alerts
 from src.monitoring.alerts import (
     alert_on_failure,
@@ -65,7 +70,11 @@ def _log_pipeline_health(
             "steps_completed": steps_completed,
             "steps_failed": steps_failed,
             "dqs_score": dqs_score if dqs_score is not None else snapshot.dqs_score,
-            "regime_calls_count": pairs_processed if pairs_processed is not None else snapshot.regime_calls_count,
+            "regime_calls_count": (
+                pairs_processed
+                if pairs_processed is not None
+                else snapshot.regime_calls_count
+            ),
             "validation_stats_computed": snapshot.validation_stats_computed,
             "ai_briefs_generated": snapshot.ai_briefs_generated,
             "macro_event_briefs_generated": snapshot.macro_event_briefs_generated,
@@ -147,12 +156,12 @@ def run_pipeline(date_str: str | None = None) -> None:
 
     # Compute DQS and pair count from regime_calls written by the orchestrator
     try:
-        dqs_scores = writer.get_regime_calls_dqs_for_date(date_str)
+        dqs_scores = get_regime_calls_dqs_for_date(date_str)
         dqs_score = round(sum(dqs_scores) / len(dqs_scores), 4) if dqs_scores else 1.0
     except Exception:
         dqs_score = 1.0
     try:
-        regime_calls_count = writer.count_regime_calls_for_date(date_str)
+        regime_calls_count = count_regime_calls_for_date(date_str)
     except Exception:
         regime_calls_count = 0
 

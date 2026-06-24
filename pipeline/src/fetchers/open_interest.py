@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import MutableMapping
+from typing import cast
 
 import requests
 
@@ -38,7 +40,9 @@ def cme_http_get(url: str, *, timeout: float = 60.0) -> requests.Response | None
     session = requests.Session()
     response: requests.Response | None = None
     for attempt in range(1, 6):
-        headers = CME_BROWSER_HEADERS.copy()
+        headers: MutableMapping[str, str | bytes] = cast(
+            MutableMapping[str, str | bytes], CME_BROWSER_HEADERS.copy()
+        )
         headers["User-Agent"] = random.choice(_USER_AGENTS)
         response = session.get(url, headers=headers, timeout=timeout)
         if response.status_code != 403:

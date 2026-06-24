@@ -17,6 +17,7 @@ import time
 import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -288,7 +289,7 @@ def deploy_prefect(
 def deploy(
     target: str,
     repo_root: Path | str = REPO_ROOT,
-    **kwargs,
+    **kwargs: Any,
 ) -> DeployResult:
     """Deploy to the specified target.
 

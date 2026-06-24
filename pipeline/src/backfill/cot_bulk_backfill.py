@@ -13,6 +13,7 @@ import random
 import ssl
 import time
 import zipfile
+from collections.abc import MutableMapping
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
@@ -205,7 +206,7 @@ def _rows_from_zip(content: bytes) -> list[dict[str, Any]]:
 def _download_cot_zip(year: int) -> bytes | None:
     url = f"https://www.cftc.gov/files/dea/history/fut_fin_txt_{year}.zip"
     for attempt in range(1, 4):
-        headers = {
+        headers: MutableMapping[str, str | bytes] = {
             "User-Agent": random.choice(_USER_AGENTS),
             "Accept": "*/*",
             "Accept-Language": "en-US,en;q=0.9",

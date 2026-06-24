@@ -17,6 +17,7 @@ import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 MAX_ATTEMPTS = 3
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -35,7 +36,7 @@ class FixAttempt:
 class FixResult:
     directive: str
     max_attempts: int
-    attempts: list[dict]
+    attempts: list[dict[str, Any]]
     final_status: str  # "fixed" | "partial" | "failed"
     summary: str
     total_duration_seconds: float
@@ -242,6 +243,8 @@ def auto_fix(
         if tier == 1:  # Frontend
             build_ok, build_errors = _run_npm_build(repo_root)
             lint_ok, lint_errors = _run_npm_lint(repo_root)
+            test_ok: bool
+            test_errors: list[str]
             test_ok, test_errors = True, []  # Frontend tests not in scope yet
 
             if not build_ok:

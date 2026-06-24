@@ -10,7 +10,7 @@ import argparse
 import logging
 import math
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from src.validation.calendar import add_trading_days
@@ -18,7 +18,7 @@ from src.validation.calendar import add_trading_days
 logger = logging.getLogger(__name__)
 
 
-def _pg_conn():
+def _pg_conn() -> Any:
     import ssl
 
     import pg8000.native
@@ -166,7 +166,7 @@ def _build_validation_rows(
             "confidence": confidence,
             "call_id": call["id"],
             "validation_date": as_of,
-            "created_at": datetime.now(datetime.UTC).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "is_superseded": False,
             "strategy_version": call.get("strategy_version", "v2"),
             "data_source": call.get("data_source", "live"),

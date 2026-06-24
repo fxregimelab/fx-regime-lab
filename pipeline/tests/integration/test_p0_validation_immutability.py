@@ -17,14 +17,14 @@ from src.validation.engine import run_validation
 
 
 @pytest.fixture
-def _writer_mock():
+def _writer_mock() -> Any:
     """Return a callable that patches all writer functions used by run_validation."""
 
     def _make(
         regime_calls: list[dict[str, Any]] | None = None,
         spots: dict[str, float] | None = None,
         existing_validation: dict[str, Any] | None = None,
-    ):
+    ) -> tuple[list[Any], list[dict[str, Any]]]:
         regime_calls = regime_calls or []
         spots = spots or {}
         captured: list[dict[str, Any]] = []
@@ -82,7 +82,7 @@ def _writer_mock():
     return _make
 
 
-def test_validation_engine_computes_t5_and_t20_separately(_writer_mock):
+def test_validation_engine_computes_t5_and_t20_separately(_writer_mock: Any) -> None:
     """T+5 and T+20 metrics must coexist in the same row without overwriting."""
     call_date = date(2026, 5, 1)
     as_of = date(2026, 5, 30)
@@ -149,7 +149,7 @@ def test_validation_engine_computes_t5_and_t20_separately(_writer_mock):
     assert row.get("call_id") == 42
 
 
-def test_validation_engine_skips_t20_when_not_ready(_writer_mock):
+def test_validation_engine_skips_t20_when_not_ready(_writer_mock: Any) -> None:
     """If as_of_date is before T+20, only T+5 should be populated."""
     call_date = date(2026, 5, 1)
     as_of = date(2026, 5, 8)  # Exactly T+5, not T+20
@@ -190,7 +190,7 @@ def test_validation_engine_skips_t20_when_not_ready(_writer_mock):
     assert row.get("brier_score_t20") is None
 
 
-def test_validation_engine_does_not_overwrite_existing_t5(_writer_mock):
+def test_validation_engine_does_not_overwrite_existing_t5(_writer_mock: Any) -> None:
     """If T+5 data already exists in the row, re-run must not overwrite it."""
     call_date = date(2026, 5, 1)
     as_of = date(2026, 5, 30)

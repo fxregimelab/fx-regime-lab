@@ -201,7 +201,7 @@ def _snapshot_for_pair(
     *,
     close: float,
     dqs_score: float = 0.95,
-    macro: dict[str, object] | None = None,
+    macro: dict[str, float | None] | None = None,
 ) -> IngestionSnapshot:
     as_of = datetime.date(2026, 1, 15)
     prev, today = _spot_bars(pair=pair, close=close)
@@ -220,7 +220,7 @@ def _snapshot_for_pair(
 def _eurusd_snapshot(
     *,
     dqs_score: float = 0.95,
-    macro: dict[str, object] | None = None,
+    macro: dict[str, float | None] | None = None,
     pair: str = "EURUSD",
 ) -> IngestionSnapshot:
     return _snapshot_for_pair(pair, close=1.1, dqs_score=dqs_score, macro=macro)
@@ -762,7 +762,7 @@ def test_all_pairs_use_same_dqs_cap_logic() -> None:
 def test_builder_matches_inline_construction_for_pair(
     pair: str,
     close: float,
-    macro: dict[str, object],
+    macro: dict[str, float | None],
     special_label: str,
 ) -> None:
     """Builder output for each pair equals a pre-refactor inline construction."""

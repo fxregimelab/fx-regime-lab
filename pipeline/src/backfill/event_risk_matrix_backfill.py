@@ -111,24 +111,24 @@ def generate_cpi_dates(start_year: int, end_year: int) -> list[date]:
 
 
 def _pg_conn() -> Any:
+    import os
     import ssl
 
     import pg8000.native
 
     ctx = ssl._create_unverified_context()
+    password = os.environ.get("SUPABASE_DB_PASSWORD")
+    if not password:
+        raise RuntimeError("SUPABASE_DB_PASSWORD must be set in the environment.")
     return pg8000.native.Connection(
-        import os
-        host = os.environ.get("SUPABASE_DB_HOST", "db.weaaacohvzzgkgxzpaee.supabase.co")
-        password = os.environ.get("SUPABASE_DB_PASSWORD")
-        if not password:
-            raise RuntimeError("SUPABASE_DB_PASSWORD must be set in the environment.")
-        return pg8000.native.Connection(
-            host=host,
-            database="postgres",
-            user="postgres",
-            password=password,
-            ssl_context=ctx,
-        )
+        host=os.environ.get(
+            "SUPABASE_DB_HOST", "db.weaaacohvzzgkgxzpaee.supabase.co"
+        ),
+        database="postgres",
+        user="postgres",
+        password=password,
+        ssl_context=ctx,
+    )
 
 
 def _load_regimes() -> dict[tuple[str, date], str]:
@@ -519,26 +519,27 @@ def backfill_event_risk_matrices(*, dry_run: bool = False) -> dict[str, int]:
 
         for i in range(0, len(matrices), batch_size):
             batch = matrices[i : i + batch_size]
-            placeholders: list[str] = []
-            params: dict[str, Any] = {}
+            matrix_placeholders: list[str] = []
+            matrix_params: dict[str, Any] = {}
             for bidx, row in enumerate(batch):
                 prefix = f"p{i}_{bidx}_"
-                row_placeholders: list[str] = []
+                matrix_row_placeholders: list[str] = []
                 for cidx, col in enumerate(columns):
                     param_key = f"{prefix}c{cidx}"
-                    row_placeholders.append(f":{param_key}")
+                    matrix_row_placeholders.append(f":{param_key}")
                     val = row.get(col)
                     if isinstance(val, bool):
                         val = str(val).lower()
-                    params[param_key] = val
-                placeholders.append(f"({', '.join(row_placeholders)})")
+                    matrix_params[param_key] = val
+                matrix_placeholders.append(f"({', '.join(matrix_row_placeholders)})")
 
             sql = (
-                f"INSERT INTO event_risk_matrices ({col_str}) VALUES {', '.join(placeholders)} "
+                f"INSERT INTO event_risk_matrices ({col_str}) "
+                f"VALUES {', '.join(matrix_placeholders)} "
                 "ON CONFLICT (date, pair, event_name) DO NOTHING"
             )
             try:
-                conn.run(sql, **params)
+                conn.run(sql, **matrix_params)
                 matrices_written += len(batch)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Batch insert failed batch %d-%d: %s", i, i + len(batch) - 1, exc)

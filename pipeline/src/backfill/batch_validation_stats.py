@@ -12,7 +12,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def _pg_conn(max_retries: int = 5):
+def _pg_conn(max_retries: int = 5) -> Any:
     import os
     import ssl
     import time
@@ -23,7 +23,7 @@ def _pg_conn(max_retries: int = 5):
     password = os.environ.get("SUPABASE_DB_PASSWORD")
     if not password:
         raise RuntimeError("SUPABASE_DB_PASSWORD must be set in the environment.")
-    last_err = None
+    last_err: BaseException | None = None
     for attempt in range(max_retries):
         try:
             return pg8000.native.Connection(
@@ -38,6 +38,8 @@ def _pg_conn(max_retries: int = 5):
             last_err = e
             logger.warning("DB connection attempt %d/%d failed: %s", attempt + 1, max_retries, e)
             time.sleep(min(2 ** attempt, 30))
+    if last_err is None:
+        raise RuntimeError("Failed to connect after retries")
     raise last_err
 
 

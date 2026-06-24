@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from src.db import writer
 from src.monitoring.alerts import send_slack_alert
@@ -38,7 +38,7 @@ def check_accuracy_alerts() -> list[AccuracyAlert]:
       * EUR/USD T+5 rolling 90d accuracy < 0.55 (expansion gate)
     """
     alerts: list[AccuracyAlert] = []
-    triggered_at = datetime.now(datetime.UTC).isoformat()
+    triggered_at = datetime.now(UTC).isoformat()
 
     try:
         rows = writer.get_latest_validation_stats_per_pair()

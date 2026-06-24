@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 import time
 from datetime import date
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
@@ -281,16 +281,18 @@ def run_backfill() -> dict[str, Any]:
     )
     conn.close()
 
-    verification = {}
+    verification: dict[str, Any] = {}
     for row in verify:
-        verification[row[0]] = {
-            "total": row[1],
-            "vix": row[2],
-            "dxy": row[3],
-            "oil": row[4],
-            "gold": row[5],
-            "copper": row[6],
-            "stoxx": row[7],
+        row_tuple = cast(tuple[Any, ...], row)
+        pair = str(row_tuple[0])
+        verification[pair] = {
+            "total": int(row_tuple[1]),
+            "vix": int(row_tuple[2]),
+            "dxy": int(row_tuple[3]),
+            "oil": int(row_tuple[4]),
+            "gold": int(row_tuple[5]),
+            "copper": int(row_tuple[6]),
+            "stoxx": int(row_tuple[7]),
         }
 
     return {

@@ -94,7 +94,7 @@ class IngestionSnapshot:
             return None
         for idx, bar in enumerate(bars):
             if bar is today or bar.date == today.date:
-                return bars[idx - 1] if idx >= 1 else today
+                return bars[idx - 1] if idx >= 1 else None
         return None
 
     def macro_value(self, key: str) -> Any | None:

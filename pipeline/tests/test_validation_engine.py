@@ -60,11 +60,15 @@ def test_is_correct_neutral_outside() -> None:
 
 
 def test_brier_score_correct() -> None:
-    assert abs(brier_score(0.8, True) - 0.04) < 1e-9
+    score = brier_score(0.8, True)
+    assert score is not None
+    assert abs(score - 0.04) < 1e-9
 
 
 def test_brier_score_incorrect() -> None:
-    assert abs(brier_score(0.8, False) - 0.64) < 1e-9
+    score = brier_score(0.8, False)
+    assert score is not None
+    assert abs(score - 0.64) < 1e-9
 
 
 def test_brier_score_neutral() -> None:

@@ -9,11 +9,12 @@ versions, then re-enables the trigger.
 Run this in your DB session (the one that can connect to Supabase).
 """
 
-import os
 import sys
+from typing import Any
+
 
 # Use the same connection mechanism as the backfill
-def _pg_conn():
+def _pg_conn() -> Any:
     from pipeline.src.db.connection import get_db_connection
     return get_db_connection()
 

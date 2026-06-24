@@ -17,6 +17,7 @@ import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 from src.auto.fix import auto_fix
 from src.auto.monitor import monitor_prefect, monitor_vercel
@@ -39,7 +40,7 @@ class HealResult:
     directive: str
     tier: int
     max_attempts: int
-    attempts: list[dict]
+    attempts: list[dict[str, Any]]
     final_monitor_status: str
     final_status: str  # "healthy" | "recovered" | "failed"
     summary: str

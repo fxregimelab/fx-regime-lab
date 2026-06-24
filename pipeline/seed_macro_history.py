@@ -13,8 +13,10 @@ import csv
 import io
 import logging
 import sys
+from collections.abc import Mapping
 from datetime import date
 from pathlib import Path
+from typing import Any, cast
 
 from dotenv import load_dotenv
 
@@ -82,7 +84,7 @@ def main() -> int:
     if not rows:
         logger.error("no rows parsed")
         return 1
-    writer.write_historical_macro_surprises(rows)
+    writer.write_historical_macro_surprises(cast(list[Mapping[str, Any]], rows))
     logger.info("upserted %s rows to historical_macro_surprises", len(rows))
     return 0
 

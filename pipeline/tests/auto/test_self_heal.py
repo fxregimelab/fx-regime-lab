@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import patch
 
 from src.auto.self_heal import self_heal
@@ -9,7 +10,7 @@ from src.auto.self_heal import self_heal
 
 class TestSelfHeal:
     @patch("src.auto.self_heal._run_monitor")
-    def test_healthy_on_first_check(self, mock_monitor):
+    def test_healthy_on_first_check(self, mock_monitor: Any) -> None:
         mock_monitor.return_value = ("healthy", [])
 
         result = self_heal("Add chart", 1, "vercel", "https://example.com")
@@ -21,7 +22,7 @@ class TestSelfHeal:
 
     @patch("src.auto.self_heal._run_monitor")
     @patch("src.auto.self_heal.auto_fix")
-    def test_recovers_after_fix(self, mock_fix, mock_monitor):
+    def test_recovers_after_fix(self, mock_fix: Any, mock_monitor: Any) -> None:
         mock_monitor.side_effect = [
             ("unhealthy", ["main_url: 500 error"]),
             ("healthy", []),
@@ -41,7 +42,7 @@ class TestSelfHeal:
 
     @patch("src.auto.self_heal._run_monitor")
     @patch("src.auto.self_heal.auto_fix")
-    def test_fails_after_max_attempts(self, mock_fix, mock_monitor):
+    def test_fails_after_max_attempts(self, mock_fix: Any, mock_monitor: Any) -> None:
         mock_monitor.return_value = ("unhealthy", ["main_url: 500 error"])
         mock_fix.return_value = type(
             "R",
@@ -55,7 +56,7 @@ class TestSelfHeal:
         assert len(result.attempts) == 2
 
     @patch("src.auto.self_heal._run_monitor")
-    def test_prefect_target(self, mock_monitor):
+    def test_prefect_target(self, mock_monitor: Any) -> None:
         mock_monitor.return_value = ("healthy", [])
 
         result = self_heal("Add signal", 2, "prefect", None)
@@ -64,13 +65,13 @@ class TestSelfHeal:
         assert result.tier == 2
 
     @patch("src.auto.self_heal._run_monitor")
-    def test_directive_preserved(self, mock_monitor):
+    def test_directive_preserved(self, mock_monitor: Any) -> None:
         mock_monitor.return_value = ("healthy", [])
 
         result = self_heal("My custom directive", 1, "vercel", "https://example.com")
         assert result.directive == "My custom directive"
 
-    def test_max_attempts_respected(self):
+    def test_max_attempts_respected(self) -> None:
         with patch("src.auto.self_heal._run_monitor", return_value=("healthy", [])):
             result = self_heal("Test", 1, "vercel", "https://example.com", max_attempts=1)
             assert result.max_attempts == 1

@@ -34,8 +34,8 @@ async def _aget_default_persist_result() -> bool:
     return await _aread_server_default_result_storage_block_id() is not None
 """
 
-    with open(results_path, "a") as f:
-        f.write(patch_code)
+    with open(results_path, "a") as fh:
+        fh.write(patch_code)
 
     print("Patch applied successfully")
 
@@ -48,9 +48,9 @@ async def _aget_default_persist_result() -> bool:
 
     # Also remove any .pyc files in the prefect package
     for root, dirs, files in os.walk(prefect_pkg_dir):
-        for f in files:
-            if f.endswith(".pyc"):
-                os.remove(os.path.join(root, f))
+        for filename in files:
+            if filename.endswith(".pyc"):
+                os.remove(os.path.join(root, filename))
         # Don't recurse into sub-packages
         break
 

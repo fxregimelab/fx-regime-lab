@@ -118,7 +118,7 @@ Single-context layout: one `CONTEXT.md` and `docs/adr/` at the repo root. See `d
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **fx-regime-lab** (13752 symbols, 19366 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **fx-regime-lab** (13762 symbols, 19376 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

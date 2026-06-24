@@ -136,3 +136,48 @@ def test_today_bar_falls_back_to_latest() -> None:
         cross_asset={},
     )
     assert snapshot.today_bar_for("EURUSD") is bar1
+
+
+def test_yesterday_bar_returns_earlier_bar() -> None:
+    """yesterday_bar_for returns the bar immediately preceding today."""
+
+    d1 = datetime.date(2026, 1, 14)
+    d2 = datetime.date(2026, 1, 15)
+    bar1 = SpotBar(date=d1, pair="EURUSD", open=1.0, high=1.0, low=1.0, close=1.0)
+    bar2 = SpotBar(date=d2, pair="EURUSD", open=1.1, high=1.1, low=1.1, close=1.1)
+    snapshot = IngestionSnapshot(
+        date=d2,
+        spots={"EURUSD": (bar1, bar2)},
+        yields={},
+        cot_rows=[],
+        cross_asset={},
+    )
+    assert snapshot.yesterday_bar_for("EURUSD") is bar1
+
+
+def test_yesterday_bar_single_bar_returns_none() -> None:
+    """yesterday_bar_for returns None when there is no preceding bar."""
+
+    d1 = datetime.date(2026, 1, 14)
+    bar1 = SpotBar(date=d1, pair="EURUSD", open=1.0, high=1.0, low=1.0, close=1.0)
+    snapshot = IngestionSnapshot(
+        date=d1,
+        spots={"EURUSD": (bar1,)},
+        yields={},
+        cot_rows=[],
+        cross_asset={},
+    )
+    assert snapshot.yesterday_bar_for("EURUSD") is None
+
+
+def test_yesterday_bar_missing_pair_returns_none() -> None:
+    """yesterday_bar_for returns None when the pair has no bars."""
+
+    snapshot = IngestionSnapshot(
+        date=datetime.date(2026, 1, 15),
+        spots={},
+        yields={},
+        cot_rows=[],
+        cross_asset={},
+    )
+    assert snapshot.yesterday_bar_for("EURUSD") is None

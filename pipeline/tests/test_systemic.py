@@ -38,7 +38,7 @@ def test_build_yesterday_rank_maps_incumbent() -> None:
 def test_hysteresis_keeps_incumbent() -> None:
     pairs = ["EURUSD", "USDJPY"]
     conf = {"EURUSD": 0.9, "USDJPY": 0.5}
-    pain = {"EURUSD": 50.0, "USDJPY": 50.0}
+    pain: dict[str, float | None] = {"EURUSD": 50.0, "USDJPY": 50.0}
     y_rank = {"EURUSD": 2, "USDJPY": 1}
     out = assign_apex_ranking(
         pairs=pairs,

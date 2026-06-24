@@ -23,6 +23,7 @@ import numpy as np
 
 from src.core.ingestion_snapshot import IngestionSnapshot
 from src.core.regime_call_builder import RegimeCallBuilder
+from src.db import writer
 from src.logic.layer2_directional import run_layer2_directional
 from src.logic.layer3_execution import run_layer3_execution
 from src.regime.classifier import classify_regime_layer1
@@ -41,7 +42,6 @@ from src.signals.rate import (
 from src.signals.special import compute_special_signal
 from src.signals.volatility import (
     TRADING_DAYS_3Y_VOL_RANK,
-    compute_rvol,
     compute_vol_signal,
     empirical_cdf_rank,
     is_vol_expanding,
@@ -233,7 +233,6 @@ def simulate_all_days(
             continue
 
         today_bar = spot_map[as_of]
-        yest_bar = spot_map[all_sorted_dates[full_idx - 1]]
         window_bars = [spot_map[d] for d in all_sorted_dates[max(0, full_idx - 2519):full_idx + 1]]
         spot_closes = [b.close for b in window_bars]
 
@@ -348,86 +347,60 @@ def simulate_all_days(
         conviction_cap = 0.42 + 0.10 * float(layer2_out["conviction"])
         confidence = min(float(confidence), conviction_cap)
 
-        day_change = today_bar.close - yest_bar.close
-        day_chg_pct = (day_change / yest_bar.close * 100) if yest_bar.close else 0.0
-        volumes = [b.volume for b in window_bars if b.volume > 0]
-        rvol = compute_rvol(volumes)
-
-        signal_row = SignalRow(
+        snapshot = _build_historical_snapshot(
             pair=pair,
-            date=as_of,
-            rate_diff_2y=rate_spread_2y,
-            rate_diff_10y=rate_spread_10y,
-            cot_percentile=None,
-            realized_vol_20d=rv20,
-            realized_vol_5d=rv5,
-            implied_vol_30d=None,
-            spot=today_bar.close,
-            day_change=day_change,
-            day_change_pct=day_chg_pct,
-            cross_asset_vix=None,
-            cross_asset_dxy=None,
-            cross_asset_oil=None,
-            cross_asset_us10y=us_10y,
-            cross_asset_gold=None,
-            cross_asset_copper=None,
-            cross_asset_stoxx=None,
-            oi_delta=None,
-            volume_rvol=rvol,
-            structural_instability=structural_instability,
-            breakeven_inflation_10y=bei,
-            rate_diff_10y_real=rate_spread_10y_real,
+            as_of=as_of,
+            full_idx=full_idx,
+            all_sorted_dates=all_sorted_dates,
+            spot_map=spot_map,
+            yields_by_series=yields_by_series,
+            sig_row={},
+        )
+        builder = RegimeCallBuilder(snapshot)
+
+        signal_row = builder.build_signal_row(
+            pair=pair,
+            rate_spread_2y=rate_spread_2y,
+            rate_spread_10y=rate_spread_10y,
+            rate_spread_10y_real=rate_spread_10y_real,
             rate_z_tactical=rate_norm,
             rate_z_structural=rate_z_structural_val,
             z_blended=rate_norm,
+            realized_vol_20d=rv20,
+            realized_vol_5d=rv5,
+            implied_vol_30d=None,
+            vol_norm=vol_norm,
+            vol_expanding=vol_exp,
+            oi_delta=None,
+            oi_norm=None,
+            special_signal=special_signal,
+            structural_instability=structural_instability,
+            breakeven_inflation_10y=bei,
             realized_vol_rank=layer3_out["realized_vol_rank"],
             skew_alignment=layer3_out["skew_alignment"],
         )
 
-        bias = layer2_out["directional_bias"]
-        predicted_direction = (
-            "BULLISH" if bias == "LONG" else ("BEARISH" if bias == "SHORT" else "NEUTRAL")
-        )
-        cot_label = "NEUTRAL"
-        vol_label = (
-            "VOL_EXPANDING" if vol_exp else
-            ("BULLISH" if vol_norm is not None and vol_norm > 0.15 else
-             ("BEARISH" if vol_norm is not None and vol_norm < -0.15 else "NEUTRAL"))
-        )
-        oi_label = "NEUTRAL"
-
-        special_label = {
-            "EURUSD": "Bund-BTP + ECB BS",
-            "USDJPY": "VIX + JPY Funding Stress",
-            "USDINR": "Oil + DXY + EM Risk",
-        }.get(pair)
-
-        call = RegimeCall(
+        call = builder.build_regime_call(
             pair=pair,
-            date=as_of,
-            regime=regime,
+            signal_row=signal_row,
+            composite=composite,
             confidence=confidence,
-            signal_composite=composite,
-            rate_signal=rate_dir,
+            regime=regime,
             primary_driver=driver,
-            entry_timing=layer3_out["entry_timing"],
-            position_size=layer3_out["position_size"],
-            stop_level=layer3_out["stop_level"],
-            data_quality_score=0.85,
-            stress_level="GREEN",
-            predicted_direction=predicted_direction,
-            directional_bias=bias,
-            conviction=layer2_out["conviction"],
-            cot_signal=cot_label,
-            vol_signal=vol_label,
-            oi_signal=oi_label,
-            rr_signal="NEUTRAL",
-            special_signal_value=special_signal,
-            special_signal_label=special_label,
+            layer2=layer2_out,
+            layer3=layer3_out,
+            rate_direction=rate_dir,
+            cot_norm=None,
+            vol_norm=vol_norm,
+            vol_expanding=vol_exp,
+            oi_norm=None,
+            special_signal=special_signal,
+            apply_dqs_cap=False,
             model_version="2.0-historical",
             strategy_version="v2",
             data_source="backtest",
         )
+        call.regime_category = None
 
         results.append((signal_row, call))
         prior_regime = call.regime
@@ -953,162 +926,7 @@ def run_pair_simulation_v2(
 
 
 def _batch_write(pair: str, results: list[tuple[SignalRow, RegimeCall]]) -> None:
-    if not results:
-        return
-
-    conn = _pg_conn()
-    conn.run("ALTER TABLE regime_calls DISABLE TRIGGER trg_protect_immutable_calls")
-    conn.run("ALTER TABLE regime_calls DISABLE TRIGGER trg_log_regime_call_audit")
-    conn.run("ALTER TABLE validation_log DISABLE TRIGGER trg_protect_immutable_validation")
-
-    conn.run("DELETE FROM validation_log WHERE pair = :pair", pair=pair)
-    conn.run("DELETE FROM signals WHERE pair = :pair", pair=pair)
-    conn.run("DELETE FROM regime_calls WHERE pair = :pair", pair=pair)
-
-    signal_rows: list[tuple[Any, ...]] = []
-    regime_rows: list[tuple[Any, ...]] = []
-    for signal_row, call in results:
-        signal_rows.append((
-            signal_row.pair, signal_row.date.isoformat(), signal_row.rate_diff_2y,
-            signal_row.rate_diff_10y, signal_row.cot_percentile, signal_row.realized_vol_20d,
-            signal_row.realized_vol_5d, signal_row.implied_vol_30d, signal_row.spot,
-            signal_row.day_change, signal_row.day_change_pct, signal_row.cross_asset_vix,
-            signal_row.cross_asset_dxy, signal_row.cross_asset_oil, signal_row.cross_asset_us10y,
-            signal_row.cross_asset_gold, signal_row.cross_asset_copper,
-            signal_row.cross_asset_stoxx,
-            signal_row.oi_delta, signal_row.volume_rvol, signal_row.structural_instability,
-            signal_row.breakeven_inflation_10y, signal_row.rate_diff_10y_real,
-            signal_row.rate_z_tactical, signal_row.rate_z_structural,
-            signal_row.realized_vol_rank, signal_row.skew_alignment,
-        ))
-        regime_rows.append((
-            call.pair, call.date.isoformat(), call.regime, call.confidence,
-            call.signal_composite, call.rate_signal, call.primary_driver,
-            call.entry_timing, call.position_size, call.stop_level,
-            call.data_quality_score, call.stress_level, call.predicted_direction,
-            call.directional_bias, call.conviction, call.cot_signal,
-            call.vol_signal, call.oi_signal, call.rr_signal,
-            call.special_signal_value, call.special_signal_label, call.model_version,
-            call.strategy_version, call.data_source,
-        ))
-
-    # Batch insert signals using multi-row INSERT with per-batch commit
-    batch_size = 500
-    for i in range(0, len(signal_rows), batch_size):
-        batch = signal_rows[i:i + batch_size]
-        values_sql = []
-        params: dict[str, Any] = {}
-        for j, row in enumerate(batch):
-            prefix = f"r{j}_"
-            values_sql.append(
-                f"(:{prefix}pair, :{prefix}date, :{prefix}r2y, :{prefix}r10y, :{prefix}cot, "
-                f":{prefix}rv20, :{prefix}rv5, :{prefix}iv, :{prefix}spot, "
-                f":{prefix}dc, :{prefix}dcp, "
-                f":{prefix}vix, :{prefix}dxy, :{prefix}oil, "
-                f":{prefix}us10y, :{prefix}gold, "
-                f":{prefix}copper, :{prefix}stoxx, :{prefix}oi, :{prefix}rvol, :{prefix}si, "
-                f":{prefix}bei, :{prefix}r10r, :{prefix}rzt, :{prefix}rzs, "
-                f":{prefix}rvr, :{prefix}sa)"
-            )
-            params[f"{prefix}pair"] = row[0]
-            params[f"{prefix}date"] = row[1]
-            params[f"{prefix}r2y"] = row[2]
-            params[f"{prefix}r10y"] = row[3]
-            params[f"{prefix}cot"] = row[4]
-            params[f"{prefix}rv20"] = row[5]
-            params[f"{prefix}rv5"] = row[6]
-            params[f"{prefix}iv"] = row[7]
-            params[f"{prefix}spot"] = row[8]
-            params[f"{prefix}dc"] = row[9]
-            params[f"{prefix}dcp"] = row[10]
-            params[f"{prefix}vix"] = row[11]
-            params[f"{prefix}dxy"] = row[12]
-            params[f"{prefix}oil"] = row[13]
-            params[f"{prefix}us10y"] = row[14]
-            params[f"{prefix}gold"] = row[15]
-            params[f"{prefix}copper"] = row[16]
-            params[f"{prefix}stoxx"] = row[17]
-            params[f"{prefix}oi"] = row[18]
-            params[f"{prefix}rvol"] = row[19]
-            params[f"{prefix}si"] = row[20]
-            params[f"{prefix}bei"] = row[21]
-            params[f"{prefix}r10r"] = row[22]
-            params[f"{prefix}rzt"] = row[23]
-            params[f"{prefix}rzs"] = row[24]
-            params[f"{prefix}rvr"] = row[25]
-            params[f"{prefix}sa"] = row[26]
-        sql = (
-            "INSERT INTO signals (pair, date, rate_diff_2y, rate_diff_10y, cot_percentile, "
-            "realized_vol_20d, realized_vol_5d, implied_vol_30d, spot, day_change, day_change_pct, "
-            "cross_asset_vix, cross_asset_dxy, cross_asset_oil, "
-            "cross_asset_us10y, cross_asset_gold, "
-            "cross_asset_copper, cross_asset_stoxx, oi_delta, volume_rvol, structural_instability, "
-            "breakeven_inflation_10y, rate_diff_10y_real, rate_z_tactical, rate_z_structural, "
-            "realized_vol_rank, skew_alignment) VALUES " + ",".join(values_sql)
-        )
-        conn.run(sql, **params)
-        logger.info("Signals batch %d-%d inserted", i, i + len(batch) - 1)
-
-    for i in range(0, len(regime_rows), batch_size):
-        batch = regime_rows[i:i + batch_size]
-        values_sql = []
-        regime_params: dict[str, Any] = {}
-        for j, row in enumerate(batch):
-            prefix = f"r{j}_"
-            values_sql.append(
-                f"(:{prefix}pair, :{prefix}date, :{prefix}regime, :{prefix}conf, :{prefix}comp, "
-                f":{prefix}rate, :{prefix}driver, :{prefix}et, :{prefix}ps, :{prefix}sl, "
-                f":{prefix}dqs, :{prefix}stress, :{prefix}pred, :{prefix}bias, :{prefix}conv, "
-                f":{prefix}cot, :{prefix}vol, :{prefix}oi, :{prefix}rr, "
-                f":{prefix}ssv, :{prefix}ssl, :{prefix}mv, "
-                f":{prefix}sv, :{prefix}ds)"
-            )
-            regime_params[f"{prefix}pair"] = row[0]
-            regime_params[f"{prefix}date"] = row[1]
-            regime_params[f"{prefix}regime"] = row[2]
-            regime_params[f"{prefix}conf"] = row[3]
-            regime_params[f"{prefix}comp"] = row[4]
-            regime_params[f"{prefix}rate"] = row[5]
-            regime_params[f"{prefix}driver"] = row[6]
-            regime_params[f"{prefix}et"] = row[7]
-            regime_params[f"{prefix}ps"] = row[8]
-            regime_params[f"{prefix}sl"] = row[9]
-            regime_params[f"{prefix}dqs"] = row[10]
-            regime_params[f"{prefix}stress"] = row[11]
-            regime_params[f"{prefix}pred"] = row[12]
-            regime_params[f"{prefix}bias"] = row[13]
-            regime_params[f"{prefix}conv"] = row[14]
-            regime_params[f"{prefix}cot"] = row[15]
-            regime_params[f"{prefix}vol"] = row[16]
-            regime_params[f"{prefix}oi"] = row[17]
-            regime_params[f"{prefix}rr"] = row[18]
-            regime_params[f"{prefix}ssv"] = row[19]
-            regime_params[f"{prefix}ssl"] = row[20]
-            regime_params[f"{prefix}mv"] = row[21]
-            regime_params[f"{prefix}sv"] = row[22]
-            regime_params[f"{prefix}ds"] = row[23]
-        sql = (
-            "INSERT INTO regime_calls (pair, date, regime, confidence, signal_composite, "
-            "rate_signal, primary_driver, entry_timing, position_size, stop_level, "
-            "data_quality_score, stress_level, predicted_direction, directional_bias, "
-            "conviction, cot_signal, vol_signal, oi_signal, rr_signal, special_signal_value, "
-            "special_signal_label, model_version, strategy_version, data_source) VALUES "
-            + ",".join(values_sql)
-        )
-        conn.run(sql, **regime_params)
-        logger.info("Regime batch %d-%d inserted", i, i + len(batch) - 1)
-
-    conn.run("ALTER TABLE regime_calls ENABLE TRIGGER trg_protect_immutable_calls")
-    conn.run("ALTER TABLE regime_calls ENABLE TRIGGER trg_log_regime_call_audit")
-    conn.run("ALTER TABLE validation_log ENABLE TRIGGER trg_protect_immutable_validation")
-
-    conn.close()
-    logger.info(
-        "Batch wrote %d signals and %d regime_calls for %s",
-        len(signal_rows),
-        len(regime_rows),
-        pair,
-    )
+    writer.bulk_write_backfill_results(pair, results)
 
 
 def run_pair_simulation(

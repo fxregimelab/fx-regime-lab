@@ -16,6 +16,7 @@ import sys
 import uuid
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any, cast
 
 
 @dataclass(frozen=True)
@@ -30,15 +31,15 @@ class PlanResult:
     reasoning: str
 
 
-def _load_codemap(repo_root: Path) -> dict:
+def _load_codemap(repo_root: Path) -> dict[str, Any]:
     """Load CODEMAP.json for file discovery."""
     codemap_path = repo_root / ".agent" / "maps" / "CODEMAP.json"
     if codemap_path.exists():
-        return json.loads(codemap_path.read_text())
+        return cast(dict[str, Any], json.loads(codemap_path.read_text()))
     return {}
 
 
-def _find_relevant_files(codemap: dict, directive: str, tier: int) -> list[str]:
+def _find_relevant_files(codemap: dict[str, Any], directive: str, tier: int) -> list[str]:
     """Find files relevant to the directive using keyword matching."""
     directive_lower = directive.lower()
     keywords = set(directive_lower.split())

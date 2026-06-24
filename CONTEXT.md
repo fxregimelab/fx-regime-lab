@@ -184,6 +184,18 @@ Every data point must be verifiable; every formula must be transparent.
 
 ---
 
+## Language
+
+**IngestionSnapshot**:
+The typed domain object that captures all fetched market and macro inputs for a single pipeline date, isolating fetcher outputs from signal logic.
+_Avoid_: raw buffer, fetcher dict.
+
+**RegimeCallBuilder**:
+The module that assembles a `SignalRow` and a `RegimeCall` from an `IngestionSnapshot` and the outputs of the three signal layers.
+_Avoid_: orchestrator assembly, inline construction.
+
+---
+
 **Cross-references:**
 - `HANDOVER.md` — Operator identity, career strategy, locked decisions, session rules
 - `OMEGA_PROTOCOL.md` — The 13-persona council and 6-phase workflow

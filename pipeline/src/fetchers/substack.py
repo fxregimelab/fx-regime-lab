@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import MutableMapping
 from datetime import date, datetime
 from typing import Any
 from xml.etree import ElementTree
@@ -20,14 +21,14 @@ BROWSER_UA = (
 )
 
 
-def _rss_headers() -> dict[str, str]:
+def _rss_headers() -> MutableMapping[str, str | bytes]:
     return {
         "User-Agent": BROWSER_UA,
         "Accept": "application/rss+xml, application/xml, text/xml, */*",
     }
 
 
-def _html_headers() -> dict[str, str]:
+def _html_headers() -> MutableMapping[str, str | bytes]:
     return {
         "User-Agent": BROWSER_UA,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",

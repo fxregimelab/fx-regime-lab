@@ -21,6 +21,7 @@ from datetime import date
 from typing import Any
 
 from scipy.stats import beta as beta_dist
+
 from src.db import writer
 
 logger = logging.getLogger(__name__)
@@ -128,7 +129,9 @@ def _calibration_buckets(
     return {"buckets": buckets}
 
 
-def _clopper_pearson_ci(wins: int, n: int, alpha: float = 0.05) -> tuple[float | None, float | None]:
+def _clopper_pearson_ci(
+    wins: int, n: int, alpha: float = 0.05
+) -> tuple[float | None, float | None]:
     """Exact confidence interval for binomial proportion."""
     if n == 0:
         return None, None

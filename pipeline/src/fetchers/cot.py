@@ -11,6 +11,7 @@ import random
 import time
 import zipfile
 from collections import defaultdict
+from collections.abc import MutableMapping
 from datetime import date
 from typing import Any
 
@@ -155,7 +156,7 @@ def _rows_from_download(content: bytes, *, from_zip: bool) -> list[dict[str, Any
 def _download_cot_bytes(url: str) -> bytes:
     last_exc: Exception | None = None
     for attempt in range(1, 4):
-        headers = {
+        headers: MutableMapping[str, str | bytes] = {
             "User-Agent": random.choice(_USER_AGENTS),
             "Accept": "*/*",
             "Accept-Language": "en-US,en;q=0.9",
