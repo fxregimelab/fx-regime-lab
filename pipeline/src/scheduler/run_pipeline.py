@@ -16,8 +16,11 @@ import uuid
 from datetime import date
 from typing import Any
 
+from src import config
 from src.db.writer import (
     count_regime_calls_for_date,
+    get_brief_for_date,
+    get_historical_regime_calls,
     get_regime_calls_dqs_for_date,
     write_pipeline_error,
     write_pipeline_run,
@@ -28,8 +31,15 @@ from src.monitoring.alerts import (
     send_success_heartbeat,
 )
 from src.monitoring.health_dashboard import get_health_for_date
-from src.scheduler.orchestrator import run_daily
+from src.scheduler.orchestrator import _regime_call_from_db, run_daily
 from src.scheduler.overnight_check import run_overnight_check
+from src.staged.adapters.alert import ProductionAlertPort
+from src.staged.adapters.fetcher import ProductionFetcherPort
+from src.staged.adapters.writer import ProductionWriterPort
+from src.staged.contracts import MultiPairRunOutput
+from src.staged.orchestrator import run_multi_pair_flow
+from src.staged.shadow_runner import run_shadow_comparison
+from src.types import PAIRS, RegimeCall
 from src.validation.aggregate import run_aggregate_stats
 
 logger = logging.getLogger(__name__)
@@ -99,6 +109,53 @@ def _log_pipeline_health(
         logger.warning("Failed to write pipeline_run for %s: %s", date_str, exc)
 
 
+def _get_v1_outputs_for_date(
+    date_str: str,
+) -> tuple[dict[str, RegimeCall], dict[str, str | None]]:
+    """Read v1 regime calls and briefs from the DB for shadow comparison."""
+
+    v1_calls: dict[str, RegimeCall] = {}
+    v1_briefs: dict[str, str | None] = {}
+    for pair in PAIRS:
+        brief = get_brief_for_date(pair, date_str)
+        v1_briefs[pair] = brief
+        rows = get_historical_regime_calls(pair)
+        for row in rows:
+            if str(row.get("date") or "")[:10] == date_str:
+                v1_calls[pair] = _regime_call_from_db(row)
+                break
+    return v1_calls, v1_briefs
+
+
+async def _run_v2_live_pipeline(
+    date_str: str,
+    correlation_id: str,
+) -> MultiPairRunOutput:
+    """Run the staged v2 pipeline with production ports."""
+
+    as_of = date.fromisoformat(date_str[:10])
+    return await run_multi_pair_flow(
+        as_of,
+        fetcher=ProductionFetcherPort(),
+        writer=ProductionWriterPort(),
+        alert=ProductionAlertPort(),
+        correlation_id=correlation_id,
+    )
+
+
+def _dqs_from_v2_output(output: MultiPairRunOutput) -> float:
+    """Average data_quality_score across v2 regime calls."""
+
+    scores = [
+        call.data_quality_score
+        for call in (out.regime_call for out in output.outputs.values())
+        if call.data_quality_score is not None
+    ]
+    if not scores:
+        return 1.0
+    return round(sum(scores) / len(scores), 4)
+
+
 def run_pipeline(date_str: str | None = None) -> None:
     """Execute the full daily pipeline with alerting.
 
@@ -107,6 +164,10 @@ def run_pipeline(date_str: str | None = None) -> None:
       2. Overnight check (invalidation, persistence)
       3. Validation engine (T+5/T+20 Brier scores)
       4. Validation aggregate (track-record stats)
+
+    Feature flags (see ``src.config``):
+      * ``USE_V2_PIPELINE=true``  → run staged v2 as the live orchestrator
+      * ``SHADOW_V2=true``        → run v2 alongside v1 and compare outputs
 
     Alerting behavior:
       * Orchestrator crash      → Slack failure alert
@@ -127,13 +188,19 @@ def run_pipeline(date_str: str | None = None) -> None:
 
     # ── Step 1: Daily orchestrator ──────────────────────────────────
     try:
-        _run_sync(run_daily(date_str, correlation_id=correlation_id))
-        steps_completed.append("orchestrator")
+        if config.USE_V2_PIPELINE:
+            v2_output = _run_sync(_run_v2_live_pipeline(date_str, correlation_id))
+            dqs_score = _dqs_from_v2_output(v2_output)
+            regime_calls_count = v2_output.regime_calls_count
+            steps_completed.append("orchestrator_v2")
+        else:
+            _run_sync(run_daily(date_str, correlation_id=correlation_id))
+            steps_completed.append("orchestrator")
     except Exception as exc:
-        failed_step = "orchestrator"
-        steps_failed.append("orchestrator")
+        failed_step = "orchestrator_v2" if config.USE_V2_PIPELINE else "orchestrator"
+        steps_failed.append(failed_step)
         write_pipeline_error(
-            step="orchestrator",
+            step=failed_step,
             error_type=type(exc).__name__,
             message=str(exc),
             correlation_id=correlation_id,
@@ -155,15 +222,49 @@ def run_pipeline(date_str: str | None = None) -> None:
         raise
 
     # Compute DQS and pair count from regime_calls written by the orchestrator
-    try:
-        dqs_scores = get_regime_calls_dqs_for_date(date_str)
-        dqs_score = round(sum(dqs_scores) / len(dqs_scores), 4) if dqs_scores else 1.0
-    except Exception:
-        dqs_score = 1.0
-    try:
-        regime_calls_count = count_regime_calls_for_date(date_str)
-    except Exception:
-        regime_calls_count = 0
+    # when running the legacy v1 path.
+    if not config.USE_V2_PIPELINE:
+        try:
+            dqs_scores = get_regime_calls_dqs_for_date(date_str)
+            dqs_score = round(sum(dqs_scores) / len(dqs_scores), 4) if dqs_scores else 1.0
+        except Exception:
+            dqs_score = 1.0
+        try:
+            regime_calls_count = count_regime_calls_for_date(date_str)
+        except Exception:
+            regime_calls_count = 0
+
+    # ── Step 1b: Shadow-run v2 comparison (only when v1 is live) ────
+    if config.SHADOW_V2 and not config.USE_V2_PIPELINE:
+        try:
+            v1_calls, v1_briefs = _get_v1_outputs_for_date(date_str)
+            shadow_result = _run_sync(
+                run_shadow_comparison(
+                    date.fromisoformat(date_str[:10]),
+                    v1_calls=v1_calls,
+                    v1_briefs=v1_briefs,
+                    fetcher=ProductionFetcherPort(),
+                    correlation_id=correlation_id,
+                )
+            )
+            logger.info(
+                "Shadow v2 comparison for %s: equivalent=%s pairs=%s",
+                date_str,
+                shadow_result.equivalent,
+                {p: c.equivalent for p, c in shadow_result.comparisons.items()},
+            )
+            steps_completed.append("shadow_v2")
+        except Exception as exc:
+            failed_step = "shadow_v2"
+            steps_failed.append(failed_step)
+            write_pipeline_error(
+                step=failed_step,
+                error_type=type(exc).__name__,
+                message=str(exc),
+                correlation_id=correlation_id,
+            )
+            # Shadow failures are non-fatal: v1 already published the live ledger.
+            logger.warning("Shadow v2 comparison failed for %s: %s", date_str, exc)
 
     # ── Step 2: Overnight check ─────────────────────────────────────
     try:
