@@ -11,7 +11,7 @@
 - [x] **Macro event AI briefs re-enabled** — orchestrator no longer skips
 - [x] **SEO foundation** — sitemap.xml, Schema.org Dataset structured data
 - [x] **Apply DB duplicate-fix migration** — done via Management API
-- [ ] **Re-deploy Prefect** — `python -m src.auto.deploy` to inject env vars
+- [ ] **Re-deploy Prefect** — `cd pipeline && python -m prefect deploy --prefect-file prefect.yaml` to inject env vars
 - [ ] **Verify next scheduled run** — 09:00 UTC daily, monitor for errors
 
 ## Data Quality Gates
