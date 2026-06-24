@@ -74,6 +74,38 @@ class SignalPipelineResult:
     layer2: Layer2DirectionalOutput
     layer3: Layer3ExecutionOutput
     health: StageHealth = field(default_factory=lambda: StageHealth("SignalStage", "OK"))
+    # Original ingestion snapshot so downstream builders can access macro/yields/etc.
+    snapshot: IngestionSnapshot | None = None
+    # Intermediate signal norms needed by RegimeCallBuilder (optional for tests)
+    rate_spread_2y: float | None = None
+    rate_spread_10y: float | None = None
+    rate_spread_10y_real: float | None = None
+    rate_z_tactical: float | None = None
+    rate_z_structural: float | None = None
+    z_blended: float | None = None
+    cot_percentile: float | None = None
+    cot_norm: float | None = None
+    realized_vol_20d: float | None = None
+    realized_vol_5d: float | None = None
+    implied_vol_30d: float | None = None
+    vol_norm: float | None = None
+    vol_expanding: bool = False
+    oi_delta: int | None = None
+    oi_norm: float | None = None
+    special_signal: float | None = None
+    risk_adjusted_carry: float | None = None
+    days_since_cot: int = 0
+    cot_net_pos: int | None = None
+    cot_asset_mgr_net: int | None = None
+    cot_lev_money_net: int | None = None
+    structural_instability: bool = False
+    breakeven_inflation_10y: float | None = None
+    risk_reversal_25d: float | None = None
+    risk_reversal_source: str = "PENDING_REAL_DATA"
+    composite: float = 0.0
+    confidence: float = 0.0
+    primary_driver: str = "Mixed signals — no single dominant factor"
+    rate_direction: str = "NEUTRAL"
 
 
 @dataclass(frozen=True)
