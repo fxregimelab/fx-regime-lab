@@ -123,3 +123,15 @@ class PublishOutput:
     desk_card: dict[str, Any] | None
     alerts_sent: list[str]
     health: StageHealth = field(default_factory=lambda: StageHealth("PublishStage", "OK"))
+
+
+@dataclass(frozen=True)
+class MultiPairRunOutput:
+    """Aggregated result of running the multi-pair staged pipeline for one date."""
+
+    date: date
+    outputs: dict[str, PublishOutput]
+    validation_rows: list[dict[str, Any]]
+    health: StageHealth
+    pairs_processed: int
+    regime_calls_count: int

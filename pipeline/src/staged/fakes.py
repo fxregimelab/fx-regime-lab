@@ -39,11 +39,21 @@ class FakeFetcherPort(FetcherPort):
 
 
 class FakeWriterPort(WriterPort):
-    """In-memory writer that records regime calls and validation rows."""
+    """In-memory writer that records regime calls and validation rows.
+
+    Regime-call writes are idempotent by ``(date, pair)`` to mirror the
+    production writer and keep retry tests deterministic.
+    """
 
     def __init__(self) -> None:
         self.regime_calls: list[tuple[RegimeCall, dict[str, Any]]] = []
         self.validation_rows: list[Mapping[str, Any]] = []
+
+    def _existing_index(self, call: RegimeCall) -> int | None:
+        for idx, (existing, _meta) in enumerate(self.regime_calls):
+            if existing.pair == call.pair and existing.date == call.date:
+                return idx
+        return None
 
     def write_regime_call(
         self,
@@ -54,6 +64,9 @@ class FakeWriterPort(WriterPort):
     ) -> int | str | None:
         """Record the call and return a synthetic integer id."""
 
+        existing = self._existing_index(call)
+        if existing is not None:
+            return existing + 1
         self.regime_calls.append(
             (call, {"correlation_id": correlation_id, "write_hash": write_hash})
         )
