@@ -23,7 +23,7 @@ class FakeFetcherPort(FetcherPort):
         self.snapshot = snapshot
         self.calls: list[date] = []
 
-    def fetch(self, as_of: date) -> IngestionSnapshot:
+    async def fetch(self, as_of: date) -> IngestionSnapshot:
         """Return the configured snapshot, or an empty OK snapshot."""
 
         self.calls.append(as_of)
@@ -50,10 +50,13 @@ class FakeWriterPort(WriterPort):
         call: RegimeCall,
         *,
         correlation_id: str | None = None,
+        write_hash: str | None = None,
     ) -> int | str | None:
         """Record the call and return a synthetic integer id."""
 
-        self.regime_calls.append((call, {"correlation_id": correlation_id}))
+        self.regime_calls.append(
+            (call, {"correlation_id": correlation_id, "write_hash": write_hash})
+        )
         return len(self.regime_calls)
 
     def write_validation_rows(

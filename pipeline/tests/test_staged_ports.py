@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import Any
@@ -14,10 +15,10 @@ from src.types import RegimeCall
 
 
 def test_fetcher_port_can_be_subclassed() -> None:
-    """FetcherPort defines a narrow fetch method that can be implemented."""
+    """FetcherPort defines a narrow async fetch method that can be implemented."""
 
     class FakeFetcher(FetcherPort):
-        def fetch(self, as_of: date) -> IngestionSnapshot:
+        async def fetch(self, as_of: date) -> IngestionSnapshot:
             return IngestionSnapshot(
                 date=as_of,
                 spots={},
@@ -28,7 +29,7 @@ def test_fetcher_port_can_be_subclassed() -> None:
             )
 
     fetcher: FetcherPort = FakeFetcher()
-    snapshot = fetcher.fetch(date(2026, 5, 20))
+    snapshot = asyncio.run(fetcher.fetch(date(2026, 5, 20)))
 
     assert snapshot.date == date(2026, 5, 20)
 
@@ -53,6 +54,7 @@ def test_writer_port_can_be_subclassed() -> None:
             call: RegimeCall,
             *,
             correlation_id: str | None = None,
+            write_hash: str | None = None,
         ) -> int | str | None:
             self.calls.append(call)
             return len(self.calls)

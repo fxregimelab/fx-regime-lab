@@ -17,7 +17,7 @@ class IngestionStage:
     async def run(self, as_of: date) -> IngestionSnapshot:
         """Return the fetched snapshot, preserving any health report from the fetcher."""
 
-        snapshot = self.fetcher.fetch(as_of)
+        snapshot = await self.fetcher.fetch(as_of)
         if snapshot.health.stage_name != "IngestionStage":
             snapshot = IngestionSnapshot(
                 date=snapshot.date,

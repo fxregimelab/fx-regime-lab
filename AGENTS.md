@@ -55,11 +55,13 @@ cd web && npm run lint             # biome/eslint
 - `docs/DB_STATUS.md` — canonical live schema reference (table specs, indexes, migration history, cleanup log)
 - `docs/DATABASE_SCHEMA.md` — (legacy, use DB_STATUS.md instead)
 - `docs/PIPELINE_REFERENCE.md` — step order, failure modes
-- `MASTERPLAN.md` — Ultimate product roadmap (THIS is the plan)
+- `docs/specs/PRD_STAGED_PIPELINE.md` — staged pipeline v2 PRD
+- `docs/specs/STAGED_PIPELINE_DESIGN.md` — staged pipeline v2 design
+- `MASTERPLAN.md` — Ultimate product roadmap (THIS is the plan
 - `OMEGA_PROTOCOL.md` — The 13-persona council and workflow rules (process, not product direction)
 - `CLAUDE.md` — AI persona, locked decisions, session rules
 
-*Last updated: 2026-05-16*
+*Last updated: 2026-06-24*
 
 ## Current Status (v1.0 Launch Complete)
 
@@ -76,6 +78,7 @@ cd web && npm run lint             # biome/eslint
 | Methodology interactive signals | ✅ 8-signal decomposition component |
 | Accuracy milestone tracker | ✅ Performance page integration |
 | SSRN paper draft | ✅ docs/SSRN_PAPER_DRAFT.md |
+| Staged pipeline v2 adapters + orchestrator | ✅ `src/staged/adapters/`, `src/staged/orchestrator.py` |
 | NSDL FPI research | ✅ docs/V2_NSDL_FPI_RESEARCH.md |
 | OTC Risk Reversal research | ✅ docs/V2_RISK_REVERSAL_RESEARCH.md |
 

@@ -20,7 +20,7 @@ class FetcherPort(ABC):
     """Port for fetching all market and macro inputs for a single date."""
 
     @abstractmethod
-    def fetch(self, as_of: date) -> IngestionSnapshot:
+    async def fetch(self, as_of: date) -> IngestionSnapshot:
         """Return an immutable snapshot of all fetched inputs for ``as_of``."""
         ...
 
@@ -34,6 +34,7 @@ class WriterPort(ABC):
         call: RegimeCall,
         *,
         correlation_id: str | None = None,
+        write_hash: str | None = None,
     ) -> int | str | None:
         """Persist a regime call. Returns the persisted row id, if available."""
         ...

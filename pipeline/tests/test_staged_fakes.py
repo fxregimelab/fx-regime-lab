@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import date
 
 from src.staged.contracts import IngestionSnapshot, StageHealth
@@ -22,7 +23,7 @@ def test_fake_fetcher_returns_configured_snapshot() -> None:
     )
     fetcher = FakeFetcherPort(snapshot)
 
-    result = fetcher.fetch(date(2026, 5, 20))
+    result = asyncio.run(fetcher.fetch(date(2026, 5, 20)))
 
     assert result is snapshot
     assert fetcher.calls == [date(2026, 5, 20)]
@@ -33,7 +34,7 @@ def test_fake_fetcher_returns_empty_snapshot_by_default() -> None:
 
     fetcher = FakeFetcherPort()
 
-    result = fetcher.fetch(date(2026, 5, 20))
+    result = asyncio.run(fetcher.fetch(date(2026, 5, 20)))
 
     assert result.date == date(2026, 5, 20)
     assert result.spots == {}
@@ -57,7 +58,7 @@ def test_fake_writer_records_regime_call_and_validation_rows() -> None:
     writer.write_validation_rows([{"pair": "EURUSD", "date": "2026-05-20"}])
 
     assert call_id == 1
-    assert writer.regime_calls == [(call, {"correlation_id": "abc"})]
+    assert writer.regime_calls == [(call, {"correlation_id": "abc", "write_hash": None})]
     assert writer.validation_rows == [{"pair": "EURUSD", "date": "2026-05-20"}]
 
 

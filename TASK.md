@@ -45,6 +45,13 @@
 
 ## Current Phase: M.4 Prep + Live Monitoring
 
+**Staged Pipeline v2 — Slice #16 COMPLETED (2026-06-24)**
+- Production adapters: `ProductionFetcherPort`, `ProductionWriterPort`, `ProductionAlertPort`
+- Single-pair Prefect `@flow`: `src/staged.orchestrator.run_single_pair_flow`
+- Recorded EUR/USD fixture: `pipeline/tests/fixtures/eurusd_snapshot.py`
+- Adapter unit tests + orchestrator integration tests
+- 292 pytest passing, ruff clean, mypy strict clean
+
 **DB Audit & Cleanup — FULLY COMPLETED (2026-05-21)**
 - Audit report in `docs/DB_AUDIT_STRATEGY.md`
 - Live schema reference in `docs/DB_STATUS.md`
