@@ -194,6 +194,38 @@ _Avoid_: raw buffer, fetcher dict.
 The module that assembles a `SignalRow` and a `RegimeCall` from an `IngestionSnapshot` and the outputs of the three signal layers.
 _Avoid_: orchestrator assembly, inline construction.
 
+**SignalPipelineResult**:
+The typed domain object that captures a `SignalRow` plus the deterministic outputs of Layer 1, Layer 2, and Layer 3 for a single pair.
+_Avoid_: raw layer dicts, untyped tuples.
+
+**PublishOutput**:
+The typed domain object that captures a persisted `RegimeCall` plus the artifacts produced for that call (brief fragment, desk card, Slack alert payload).
+_Avoid_: side-effect-only publish, unrecorded brief text.
+
+**StageHealth**:
+The report carried by every pipeline stage indicating which inputs were missing, which fields were derived or degraded, and whether the stage completed fully or partially.
+_Avoid_: silent fallback, swallowed fetcher failures.
+
+**IngestionStage**:
+The date-scoped Prefect task that orchestrates all fetchers and returns a single immutable `IngestionSnapshot` for the pipeline date.
+_Avoid_: per-pair fetching, fetcher logic inside signal math.
+
+**SignalStage**:
+The pair-scoped Prefect task that slices a pair-specific view from an `IngestionSnapshot` and computes a `SignalPipelineResult` through the three-layer signal math.
+_Avoid_: date-scoped signal computation, direct fetching.
+
+**RegimeStage**:
+The pair-scoped Prefect task that turns a `SignalPipelineResult` into a `RegimeCall`.
+_Avoid_: signal math, persistence, or alerting inside regime classification.
+
+**PublishStage**:
+The pair-scoped Prefect task that persists a `RegimeCall`, generates brief/desk-card artifacts, and emits Slack alerts.
+_Avoid_: signal computation, validation writes.
+
+**ValidateStage**:
+The pair-scoped Prefect task that evaluates prior `RegimeCall`s at T+5 and T+20 trading-day horizons and appends results to `validation_log`.
+_Avoid_: editing `regime_calls`, retroactive score changes.
+
 ---
 
 **Cross-references:**
