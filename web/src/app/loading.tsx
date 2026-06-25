@@ -4,7 +4,10 @@ export default function RootLoading() {
   return (
     <div className="min-h-screen bg-[var(--color-void)]">
       {/* Nav skeleton */}
-      <div className="border-b border-[var(--color-border)]" style={{ height: 64 }}>
+      <div
+        className="border-b border-[var(--color-border)]"
+        style={{ height: 64 }}
+      >
         <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-4">
           <Skeleton className="h-7 w-7" />
           <div className="hidden md:flex items-center gap-4">

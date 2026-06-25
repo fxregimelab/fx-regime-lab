@@ -340,15 +340,28 @@ export async function getValidationStats(
       | number
       | null,
     winRateCI: [
-      (r[`${prefix}_win_rate_ci_lower` as keyof ValidationStatsRow] as number | null) ?? 0,
-      (r[`${prefix}_win_rate_ci_upper` as keyof ValidationStatsRow] as number | null) ?? 0,
+      (r[`${prefix}_win_rate_ci_lower` as keyof ValidationStatsRow] as
+        | number
+        | null) ?? 0,
+      (r[`${prefix}_win_rate_ci_upper` as keyof ValidationStatsRow] as
+        | number
+        | null) ?? 0,
     ] as [number, number],
-    netWinRate: (r[`${prefix}_net_win_rate` as keyof ValidationStatsRow] as number | null) ?? null,
+    netWinRate:
+      (r[`${prefix}_net_win_rate` as keyof ValidationStatsRow] as
+        | number
+        | null) ?? null,
     netWinRateCI: [
-      (r[`${prefix}_net_win_rate_ci_lower` as keyof ValidationStatsRow] as number | null) ?? 0,
-      (r[`${prefix}_net_win_rate_ci_upper` as keyof ValidationStatsRow] as number | null) ?? 0,
+      (r[`${prefix}_net_win_rate_ci_lower` as keyof ValidationStatsRow] as
+        | number
+        | null) ?? 0,
+      (r[`${prefix}_net_win_rate_ci_upper` as keyof ValidationStatsRow] as
+        | number
+        | null) ?? 0,
     ] as [number, number],
-    costBps: (r[`${prefix}_cost_bps` as keyof ValidationStatsRow] as number | null) ?? null,
+    costBps:
+      (r[`${prefix}_cost_bps` as keyof ValidationStatsRow] as number | null) ??
+      null,
     wins: r[`${prefix}_wins` as keyof ValidationStatsRow] as number | null,
     brierScore: r[`${prefix}_mean_brier` as keyof ValidationStatsRow] as
       | number
@@ -421,7 +434,9 @@ export async function getValidationLogT5T20(
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
     predicted: r.call_id != null ? (predictedMap.get(r.call_id) ?? "—") : "—",
     t5ReturnBps: r.log_return_t5_bps,
-    t5ReturnNetBps: (r as ValidationLogRow & { log_return_net_bps_t5: number | null }).log_return_net_bps_t5 ?? null,
+    t5ReturnNetBps:
+      (r as ValidationLogRow & { log_return_net_bps_t5: number | null })
+        .log_return_net_bps_t5 ?? null,
     t5Outcome: r.correct_t5
       ? "CORRECT"
       : r.actual_direction_t5 === "NEUTRAL"
@@ -429,11 +444,17 @@ export async function getValidationLogT5T20(
         : r.actual_direction_t5 != null
           ? "WRONG"
           : "—",
-    t5CorrectNet: (r as ValidationLogRow & { correct_net_t5: boolean | null }).correct_net_t5 ?? null,
-    t5CostBps: (r as ValidationLogRow & { cost_bps_t5: number | null }).cost_bps_t5 ?? null,
+    t5CorrectNet:
+      (r as ValidationLogRow & { correct_net_t5: boolean | null })
+        .correct_net_t5 ?? null,
+    t5CostBps:
+      (r as ValidationLogRow & { cost_bps_t5: number | null }).cost_bps_t5 ??
+      null,
     t5Brier: r.brier_score_t5,
     t20ReturnBps: r.log_return_t20_bps,
-    t20ReturnNetBps: (r as ValidationLogRow & { log_return_net_bps_t20: number | null }).log_return_net_bps_t20 ?? null,
+    t20ReturnNetBps:
+      (r as ValidationLogRow & { log_return_net_bps_t20: number | null })
+        .log_return_net_bps_t20 ?? null,
     t20Outcome: r.correct_t20
       ? "CORRECT"
       : r.actual_direction_t20 === "NEUTRAL"
@@ -441,8 +462,12 @@ export async function getValidationLogT5T20(
         : r.actual_direction_t20 != null
           ? "WRONG"
           : "—",
-    t20CorrectNet: (r as ValidationLogRow & { correct_net_t20: boolean | null }).correct_net_t20 ?? null,
-    t20CostBps: (r as ValidationLogRow & { cost_bps_t20: number | null }).cost_bps_t20 ?? null,
+    t20CorrectNet:
+      (r as ValidationLogRow & { correct_net_t20: boolean | null })
+        .correct_net_t20 ?? null,
+    t20CostBps:
+      (r as ValidationLogRow & { cost_bps_t20: number | null }).cost_bps_t20 ??
+      null,
     t20Brier: r.brier_score_t20,
   }));
 }
@@ -582,7 +607,9 @@ export async function getValidationLogForPair(
     pair: PAIR_DISPLAY[r.pair] ?? r.pair,
     predicted: r.call_id != null ? (predictedMap.get(r.call_id) ?? "—") : "—",
     t5ReturnBps: r.log_return_t5_bps,
-    t5ReturnNetBps: (r as ValidationLogRow & { log_return_net_bps_t5: number | null }).log_return_net_bps_t5 ?? null,
+    t5ReturnNetBps:
+      (r as ValidationLogRow & { log_return_net_bps_t5: number | null })
+        .log_return_net_bps_t5 ?? null,
     t5Outcome: r.correct_t5
       ? "CORRECT"
       : r.actual_direction_t5 === "NEUTRAL"
@@ -590,11 +617,17 @@ export async function getValidationLogForPair(
         : r.actual_direction_t5 != null
           ? "WRONG"
           : "—",
-    t5CorrectNet: (r as ValidationLogRow & { correct_net_t5: boolean | null }).correct_net_t5 ?? null,
-    t5CostBps: (r as ValidationLogRow & { cost_bps_t5: number | null }).cost_bps_t5 ?? null,
+    t5CorrectNet:
+      (r as ValidationLogRow & { correct_net_t5: boolean | null })
+        .correct_net_t5 ?? null,
+    t5CostBps:
+      (r as ValidationLogRow & { cost_bps_t5: number | null }).cost_bps_t5 ??
+      null,
     t5Brier: r.brier_score_t5,
     t20ReturnBps: r.log_return_t20_bps,
-    t20ReturnNetBps: (r as ValidationLogRow & { log_return_net_bps_t20: number | null }).log_return_net_bps_t20 ?? null,
+    t20ReturnNetBps:
+      (r as ValidationLogRow & { log_return_net_bps_t20: number | null })
+        .log_return_net_bps_t20 ?? null,
     t20Outcome: r.correct_t20
       ? "CORRECT"
       : r.actual_direction_t20 === "NEUTRAL"
@@ -602,8 +635,12 @@ export async function getValidationLogForPair(
         : r.actual_direction_t20 != null
           ? "WRONG"
           : "—",
-    t20CorrectNet: (r as ValidationLogRow & { correct_net_t20: boolean | null }).correct_net_t20 ?? null,
-    t20CostBps: (r as ValidationLogRow & { cost_bps_t20: number | null }).cost_bps_t20 ?? null,
+    t20CorrectNet:
+      (r as ValidationLogRow & { correct_net_t20: boolean | null })
+        .correct_net_t20 ?? null,
+    t20CostBps:
+      (r as ValidationLogRow & { cost_bps_t20: number | null }).cost_bps_t20 ??
+      null,
     t20Brier: r.brier_score_t20,
   }));
 }
@@ -1168,6 +1205,7 @@ export async function getBacktestVersions(
   supabase: TypedSupabaseClient,
 ): Promise<string[]> {
   const { data, error } = await supabase
+    // biome-ignore lint/suspicious/noExplicitAny: table not present in generated Supabase types yet
     .from("backtest_versions" as any)
     .select("version")
     .eq("is_public", true)

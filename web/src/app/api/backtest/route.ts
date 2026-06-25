@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { computeStatsFromLog } from "@/lib/track-record";
 import {
-  getRegimeCallsByVersion,
   getRegimeBreakdownByVersion,
+  getRegimeCallsByVersion,
   getSimulationResults,
   getValidationLogT5T20,
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
+import { computeStatsFromLog } from "@/lib/track-record";
+import { type NextRequest, NextResponse } from "next/server";
 
 export const revalidate = 3600;
 
@@ -17,13 +17,17 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    const [versionedCalls, versionedBreakdown, simulationResults, backtestValidation] =
-      await Promise.all([
-        getRegimeCallsByVersion(supabase, version, undefined, undefined, 100),
-        getRegimeBreakdownByVersion(supabase, version, 100),
-        getSimulationResults(supabase, version),
-        getValidationLogT5T20(supabase, 100, "backtest"),
-      ]);
+    const [
+      versionedCalls,
+      versionedBreakdown,
+      simulationResults,
+      backtestValidation,
+    ] = await Promise.all([
+      getRegimeCallsByVersion(supabase, version, undefined, undefined, 100),
+      getRegimeBreakdownByVersion(supabase, version, 100),
+      getSimulationResults(supabase, version),
+      getValidationLogT5T20(supabase, 100, "backtest"),
+    ]);
 
     const PAIR_LABELS = ["EUR/USD", "USD/JPY", "USD/INR"] as const;
 

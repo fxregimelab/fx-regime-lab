@@ -116,6 +116,30 @@ def _make_multi_pair_snapshot() -> IngestionSnapshot:
     )
 
 
+@pytest.fixture(autouse=True)
+def _patch_staged_retry_delay_for_speed(
+    request: pytest.FixtureRequest,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Zero out Prefect retry delays in functional tests to keep the suite fast.
+
+    The policy test below asserts the production retry delay value, so it is
+    intentionally skipped by this fixture. Production behavior is unchanged.
+    """
+
+    if request.node.name == "test_stage_boundary_tasks_have_retry_policy":
+        return
+
+    for task in (
+        _ingestion_task,
+        _signal_task,
+        _regime_task,
+        _publish_task,
+        _validate_task,
+    ):
+        monkeypatch.setattr(task, "retry_delay_seconds", 0, raising=False)
+
+
 def test_stage_boundary_tasks_have_retry_policy() -> None:
     """Each stage boundary in the multi-pair flow is a Prefect task with retries."""
 
