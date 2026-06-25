@@ -17,8 +17,15 @@ from __future__ import annotations
 import argparse
 import logging
 import math
+import sys
 from datetime import date
+from pathlib import Path
 from typing import Any, cast
+
+# Archived script: allow imports from the current pipeline src tree.
+_pipeline_src = Path(__file__).resolve().parents[3] / "pipeline" / "src"
+if str(_pipeline_src) not in sys.path:
+    sys.path.insert(0, str(_pipeline_src))
 
 from src.db.writer import _client
 from src.types import RegimeCall, SignalRow

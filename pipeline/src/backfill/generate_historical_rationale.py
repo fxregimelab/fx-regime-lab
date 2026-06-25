@@ -13,7 +13,7 @@ from datetime import date
 from typing import Any, cast
 
 from src.core.regime_persist import _build_call_rationale
-from src.db.writer import _client
+from src.db import writer
 from src.types import SignalRow
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ def _load_historical_calls() -> list[dict[str, Any]]:
     offset = 0
     while True:
         res = (
-            _client()
+            writer._client()
             .table("regime_calls")
             .select("id,date,pair,signal_composite")
             .order("date")
@@ -64,7 +64,7 @@ def _load_signals_by_call(calls: list[dict[str, Any]]) -> dict[int, dict[str, An
     offset = 0
     while True:
         res = (
-            _client()
+            writer._client()
             .table("signals")
             .select(
                 "date,pair,cot_percentile,realized_vol_20d,realized_vol_5d,"
@@ -138,8 +138,6 @@ def run_backfill(*, dry_run: bool = False, batch_size: int = 500) -> tuple[int, 
     skipped = 0
     batch: list[dict[str, Any]] = []
 
-    from postgrest.exceptions import APIError
-
     for call in calls:
         call_id = call["id"]
         sig_dict = signals_by_call.get(call_id)
@@ -189,38 +187,14 @@ def run_backfill(*, dry_run: bool = False, batch_size: int = 500) -> tuple[int, 
 
         if len(batch) >= batch_size:
             if not dry_run:
-                try:
-                    _client().table("call_rationale").insert(batch).execute()
-                except APIError as exc:
-                    code = getattr(exc, "code", "")
-                    if code in ("23505", "409"):
-                        logger.warning("Batch conflict, falling back to single inserts")
-                        for payload in batch:
-                            try:
-                                _client().table("call_rationale").insert(payload).execute()
-                            except APIError:
-                                pass
-                    else:
-                        raise
+                writer.write_call_rationale(batch)
             written += len(batch)
             batch = []
             logger.info("Processed %d rationale rows", written)
 
     if batch:
         if not dry_run:
-            try:
-                _client().table("call_rationale").insert(batch).execute()
-            except APIError as exc:
-                code = getattr(exc, "code", "")
-                if code in ("23505", "409"):
-                    logger.warning("Batch conflict, falling back to single inserts")
-                    for payload in batch:
-                        try:
-                            _client().table("call_rationale").insert(payload).execute()
-                        except APIError:
-                            pass
-                else:
-                    raise
+            writer.write_call_rationale(batch)
         written += len(batch)
 
     logger.info("Backfill complete: %d written, %d skipped", written, skipped)

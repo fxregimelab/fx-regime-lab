@@ -170,6 +170,16 @@ def write_desk_open_cards_bulk(cards: Sequence[DeskOpenCardRow]) -> None:
     _client().table("desk_open_cards").upsert(rows, on_conflict="pair,date").execute()
 
 
+def write_call_rationale(rows: list[dict[str, Any]]) -> None:
+    """Bulk upsert call_rationale rows on call_id. Graceful if table missing."""
+    if not rows:
+        return
+    try:
+        _client().table("call_rationale").upsert(rows, on_conflict="call_id").execute()
+    except Exception:
+        logger.warning("call_rationale write skipped (table may not exist)")
+
+
 def get_desk_open_cards_for_date(date_str: str) -> list[dict[str, Any]]:
     res = (
         _client()
@@ -876,6 +886,15 @@ def write_historical_prices(
             raise
 
 
+def write_historical_yields(rows: list[dict[str, Any]]) -> None:
+    """Bulk upsert historical_yields rows on date,series_id."""
+    if not rows:
+        return
+    _client().table("historical_yields").upsert(
+        rows, on_conflict="date,series_id"
+    ).execute()
+
+
 def get_rpc_historical_analogs(
     pair: str,
     as_of_date: str,
@@ -1030,6 +1049,13 @@ def write_research_analogs(rows: list[Mapping[str, Any]]) -> None:
         .upsert(payload_rows, on_conflict="pair,as_of_date,rank")
         .execute()
     )
+
+
+def write_simulation_results(rows: list[dict[str, Any]]) -> None:
+    """Bulk insert simulation_results rows."""
+    if not rows:
+        return
+    _client().table("simulation_results").insert(rows).execute()
 
 
 def get_latest_research_analogs(pair: str, as_of_date: str) -> list[dict[str, Any]]:

@@ -91,14 +91,8 @@ def _build_call_rationale(
 
 def _write_call_rationale(payload: dict[str, Any]) -> None:
     """Insert into call_rationale table; graceful if table missing."""
-    try:
-        client = writer._client()
-        client.table("call_rationale").upsert(
-            payload, on_conflict="call_id"
-        ).execute()
-        logger.info("Wrote call_rationale for call_id=%s", payload.get("call_id"))
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("call_rationale write skipped (table may not exist): %s", exc)
+    writer.write_call_rationale([payload])
+    logger.info("Wrote call_rationale for call_id=%s", payload.get("call_id"))
 
 
 def compute_write_hash(inputs: dict[str, Any]) -> str:

@@ -8,9 +8,13 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Any
+from datetime import date
+from typing import Any, cast
 
 from supabase import create_client
+
+from src.db import writer
+from src.types import DeskOpenCardRow
 
 
 def _client() -> Any:
@@ -141,7 +145,7 @@ def compute_apex_score(call: dict[str, Any]) -> float:
 
 def build_desk_card(
     call: dict[str, Any], sig: dict[str, Any] | None, date_str: str
-) -> dict[str, Any]:
+) -> DeskOpenCardRow:
     pair = call["pair"]
     regime = call["regime"]
     regime_age = compute_regime_age(pair, regime, date_str)
@@ -151,21 +155,21 @@ def build_desk_card(
     telemetry = compute_telemetry_audit(call, sig)
     apex = compute_apex_score(call)
 
-    return {
-        "date": date_str,
-        "pair": pair,
-        "structural_regime": regime,
-        "dominance_array": dominance_array,
-        "pain_index": pain_index,
-        "markov_probabilities": markov,
-        "ai_brief": None,
-        "telemetry_audit": telemetry,
-        "invalidation_triggered": False,
-        "telemetry_status": "ONLINE",
-        "global_rank": None,  # Set after sorting
-        "apex_score": apex,
-        "regime_age": regime_age,
-    }
+    return DeskOpenCardRow(
+        date=date.fromisoformat(date_str),
+        pair=pair,
+        structural_regime=regime,
+        dominance_array=dominance_array,
+        pain_index=pain_index,
+        markov_probabilities=markov,
+        ai_brief=cast(str, None),
+        telemetry_audit=telemetry,
+        invalidation_triggered=False,
+        telemetry_status="ONLINE",
+        global_rank=None,  # Set after sorting
+        apex_score=apex,
+        regime_age=regime_age,
+    )
 
 
 def backfill_desk_open_cards(target_date: str | None = None) -> None:
@@ -185,26 +189,25 @@ def backfill_desk_open_cards(target_date: str | None = None) -> None:
         print(f"No regime_calls for {target_date}.")
         return
 
-    cards: list[dict[str, Any]] = []
+    cards: list[DeskOpenCardRow] = []
     for call in calls:
         sig = sig_by_pair.get(call["pair"])
         card = build_desk_card(call, sig, target_date)
         cards.append(card)
 
     # Rank by apex_score descending
-    cards.sort(key=lambda c: c["apex_score"], reverse=True)
+    cards.sort(key=lambda c: c.apex_score or 0.0, reverse=True)
     for i, card in enumerate(cards):
-        card["global_rank"] = i + 1
+        card.global_rank = i + 1
 
     # Write to DB
-    client = _client()
-    client.table("desk_open_cards").upsert(cards, on_conflict="pair,date").execute()
+    writer.write_desk_open_cards_bulk(cards)
 
     print(f"Wrote {len(cards)} desk_open_cards for {target_date}.")
     for c in cards:
         print(
-            f"  #{c['global_rank']} {c['pair']}: {c['structural_regime']} "
-            f"(apex={c['apex_score']}, age={c['regime_age']})"
+            f"  #{c.global_rank} {c.pair}: {c.structural_regime} "
+            f"(apex={c.apex_score}, age={c.regime_age})"
         )
 
 

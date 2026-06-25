@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, cast
 
-from src.db.writer import _client
+from src.db import writer
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ def _load_data(pair: str, version: str) -> list[dict[str, Any]]:
     offset = 0
     while True:
         rc_res = (
-            _client()
+            writer._client()
             .table("regime_calls")
             .select("date,pair,regime,confidence,predicted_direction")
             .eq("pair", pair)
@@ -78,7 +78,7 @@ def _load_data(pair: str, version: str) -> list[dict[str, Any]]:
     offset = 0
     while True:
         vl_res = (
-            _client()
+            writer._client()
             .table("validation_log")
             .select("date,pair,log_return_t5_bps,correct_t5,brier_score_t5")
             .eq("pair", pair)
@@ -348,12 +348,12 @@ def _write_results(
         ],
     }
     try:
-        _client().table("simulation_results").insert({
+        writer.write_simulation_results([{
             "pair": pair,
             "strategy_version": version,
             "date": _date.today().isoformat(),
             "simulation_params": simulation_params,
-        }).execute()
+        }])
         logger.info("Wrote simulation_results for %s %s %s", pair, version, algorithm)
     except Exception as exc:  # noqa: BLE001
         logger.warning("simulation_results write skipped (table may not exist): %s", exc)

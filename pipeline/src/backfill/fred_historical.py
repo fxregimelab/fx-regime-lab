@@ -90,13 +90,12 @@ def backfill_all_fred_series() -> dict[str, int]:
 
 def _bulk_upsert_historical_yields(rows: list[dict[str, Any]]) -> None:
     """Upsert rows into historical_yields using the Supabase client."""
-    client = writer._client()
     # Supabase REST upsert in batches of 1000
     batch_size = 1000
     for i in range(0, len(rows), batch_size):
         batch = rows[i:i + batch_size]
         try:
-            client.table("historical_yields").upsert(batch, on_conflict="date,series_id").execute()
+            writer.write_historical_yields(batch)
         except Exception as exc:
             logger.warning("Batch upsert failed: %s", exc)
 
