@@ -1,19 +1,19 @@
--- Dual correlation: target pair log-returns vs cross-sectional mean of other G10 FX log-returns.
+-- Dual correlation: target pair log-returns vs cross-sectional mean of other FX basket log-returns.
 
-CREATE OR REPLACE FUNCTION public.calculate_dual_correlation(p_pair text, p_lookback int)
+CREATE OR REPLACE FUNCTION public.calculate_fx_basket_correlation(p_pair text, p_lookback int)
 RETURNS double precision
 LANGUAGE sql
 STABLE
 AS $sql$
-WITH g10 AS (
+WITH fx_basket AS (
   SELECT unnest(ARRAY[
-    'EURUSD', 'USDJPY', 'USDINR', 'GBPUSD', 'AUDUSD', 'USDCAD', 'USDCHF'
+    'EURUSD', 'USDJPY', 'USDINR'
   ]::text[]) AS pair
 ),
 bounds AS (
   SELECT COALESCE(MAX(hp.date), CURRENT_DATE) AS dmax
   FROM historical_prices hp
-  INNER JOIN g10 g ON g.pair = hp.pair
+  INNER JOIN fx_basket g ON g.pair = hp.pair
 ),
 r AS (
   SELECT
@@ -27,7 +27,7 @@ r AS (
       ELSE NULL
     END AS lr
   FROM historical_prices p
-  INNER JOIN g10 g ON g.pair = p.pair
+  INNER JOIN fx_basket g ON g.pair = p.pair
   CROSS JOIN bounds b
   WHERE p.date >= (b.dmax - INTERVAL '400 days')::date
 ),
@@ -67,7 +67,7 @@ FROM trimmed
 WHERE rn <= GREATEST(p_lookback, 5);
 $sql$;
 
-GRANT EXECUTE ON FUNCTION public.calculate_dual_correlation(text, int) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.calculate_fx_basket_correlation(text, int) TO anon, authenticated, service_role;
 
 ALTER TABLE brief_log
   ADD COLUMN IF NOT EXISTS dollar_dominance double precision,
@@ -75,5 +75,5 @@ ALTER TABLE brief_log
   ADD COLUMN IF NOT EXISTS sentiment_json jsonb;
 
 COMMENT ON COLUMN brief_log.dollar_dominance IS 'Book-wide USD thematic alignment 0–100 (percent).';
-COMMENT ON COLUMN brief_log.idiosyncratic_outlier IS 'FX pair most idiosyncratic vs G10 basket (low dual correlation).';
+COMMENT ON COLUMN brief_log.idiosyncratic_outlier IS 'FX pair most idiosyncratic vs FX basket (low dual correlation).';
 COMMENT ON COLUMN brief_log.sentiment_json IS 'Pre-baked Polymarket + synthesis metadata for UI (single-query home).';

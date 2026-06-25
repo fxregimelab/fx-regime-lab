@@ -1,4 +1,4 @@
--- G10 terminal: dual rate Z, breakeven, tail risk columns (service-role writes only; RLS unchanged).
+-- FX terminal: dual rate Z, breakeven, tail risk columns (service-role writes only; RLS unchanged).
 
 ALTER TABLE public.signals
   ADD COLUMN IF NOT EXISTS breakeven_inflation_10y double precision,

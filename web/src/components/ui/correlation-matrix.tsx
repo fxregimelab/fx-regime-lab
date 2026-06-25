@@ -2,10 +2,10 @@
 
 import { GhostResolve } from "@/components/ui/GhostResolve";
 import {
-  type G10CorrelationJson,
-  G10_MATRIX_ORDER,
+  FX_MATRIX_ORDER,
+  type FxCorrelationJson,
   correlationFromJson,
-} from "@/lib/g10Correlation";
+} from "@/lib/fxCorrelation";
 import React, { useMemo, type CSSProperties } from "react";
 
 function cellStyle(c: number): CSSProperties {
@@ -25,7 +25,7 @@ const BEVEL =
   "border-[0.5px] border-t border-l border-t-[color-mix(in_srgb,var(--color-border)_12%,transparent)] border-l-[color-mix(in_srgb,var(--color-border)_6%,transparent)] border-r border-b border-r-[color-mix(in_srgb,var(--color-void)_40%,transparent)] border-b-[color-mix(in_srgb,var(--color-void)_50%,transparent)]";
 
 type CorrelationMatrixProps = {
-  matrix: G10CorrelationJson | null;
+  matrix: FxCorrelationJson | null;
   pending?: boolean;
   className?: string;
 };
@@ -35,14 +35,14 @@ export function CorrelationMatrix({
   pending,
   className = "",
 }: CorrelationMatrixProps) {
-  const labels = useMemo(() => [...G10_MATRIX_ORDER], []);
+  const labels = useMemo(() => [...FX_MATRIX_ORDER], []);
 
   return (
     <div
       className={`flex min-h-[140px] flex-col overflow-hidden border-0 border-t-[0.5px] border-t-[color-mix(in_srgb,var(--color-border)_8%,transparent)] border-l-[0.5px] border-l-[color-mix(in_srgb,var(--color-border)_3%,transparent)] bg-[var(--color-sunken)] p-2 ${className}`.trim()}
     >
       <p className="m-0 mb-1.5 font-mono text-[8px] tracking-[0.2em] text-[var(--color-text-dim)]">
-        G10 · CORR(120D)
+        FX · CORR(120D)
       </p>
       {pending ? (
         <div className="flex flex-1 animate-pulse items-center justify-center font-mono text-[9px] text-[var(--color-text-dim)]">

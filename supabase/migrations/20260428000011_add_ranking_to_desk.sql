@@ -3,8 +3,8 @@ ALTER TABLE desk_open_cards
   ADD COLUMN IF NOT EXISTS global_rank INT,
   ADD COLUMN IF NOT EXISTS apex_score DOUBLE PRECISION;
 
--- Pairwise return correlations for G10 cluster detection (JSON: { "EURUSD": { "USDJPY": 0.85, ... }, ... })
-CREATE OR REPLACE FUNCTION public.get_g10_correlation_matrix()
+-- Pairwise return correlations for FX basket cluster detection (JSON: { "EURUSD": { "USDJPY": 0.85, ... }, ... })
+CREATE OR REPLACE FUNCTION public.get_fx_correlation_matrix()
 RETURNS jsonb
 LANGUAGE sql
 STABLE
@@ -26,7 +26,7 @@ r AS (
   FROM historical_prices p
   CROSS JOIN bounds b
   WHERE p.pair IN (
-    'EURUSD', 'USDJPY', 'USDINR', 'GBPUSD', 'AUDUSD', 'USDCAD', 'USDCHF'
+    'EURUSD', 'USDJPY', 'USDINR'
   )
     AND p.date >= (b.dmax - INTERVAL '120 days')::date
 ),
@@ -49,4 +49,4 @@ agg AS (
 SELECT COALESCE(jsonb_object_agg(pa, obj), '{}'::jsonb) FROM agg;
 $sql$;
 
-GRANT EXECUTE ON FUNCTION public.get_g10_correlation_matrix() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_fx_correlation_matrix() TO anon, authenticated, service_role;

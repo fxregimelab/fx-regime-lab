@@ -137,7 +137,7 @@
 |-------|------|---------|
 | `/` | `page.tsx` | Landing: ticker marquee, latest calls, methodology teaser |
 | `/terminal` | `terminal/page.tsx` | Live cross-pair overview, system status |
-| `/terminal/fx-regime` | `terminal/fx-regime/page.tsx` | G10 mosaic: apex targets, bench pairs, outliers |
+| `/terminal/fx-regime` | `terminal/fx-regime/page.tsx` | FX basket mosaic: apex targets, bench pairs, outliers |
 | `/terminal/fx-regime/[pair]` | `terminal/fx-regime/[pair]/page.tsx` | **Pair Desk**: spot, regime, confidence, composite |
 | `/terminal/performance` | `terminal/performance/page.tsx` | Alpha ledger, Brier scores, win rates |
 | `/terminal/memos` | `terminal/memos/page.tsx` | Research memo archive |
@@ -170,7 +170,7 @@
 | `lib/supabase/database.types.ts` | **Generated types** — never edit manually |
 | `lib/queries.ts` | React Query hooks |
 | `lib/pairProfiles.ts` | Pair metadata (tickers, descriptions) |
-| `lib/g10Correlation.ts` | G10 correlation matrix |
+| `lib/fxCorrelation.ts` | FX basket correlation matrix |
 | `lib/constants.ts` | App constants |
 | `hooks/useLocalSettings.ts` | Local storage settings |
 | `hooks/useReducedMotion.ts` | Accessibility: reduced motion |

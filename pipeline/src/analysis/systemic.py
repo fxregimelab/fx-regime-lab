@@ -1,4 +1,4 @@
-"""Cross-sectional G10 apex ranking, hysteresis, and systemic cluster detection."""
+"""Cross-sectional FX basket apex ranking, hysteresis, and systemic cluster detection."""
 
 from __future__ import annotations
 
@@ -190,7 +190,7 @@ def resolve_idiosyncratic_outlier(
     corr_20: Mapping[str, float | None],
     corr_60: Mapping[str, float | None],
 ) -> str | None:
-    """Pair most detached from the G10 basket on both 20d and 60d horizons."""
+    """Pair most detached from the FX basket on both 20d and 60d horizons."""
 
     candidates: list[tuple[str, float]] = []
     for p in pairs:

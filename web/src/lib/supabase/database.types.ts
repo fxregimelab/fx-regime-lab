@@ -173,59 +173,47 @@ export type Database = {
       };
       brief_log: {
         Row: {
-          audusd_regime: string | null;
           brief_text: string | null;
           created_at: string | null;
           date: string;
           dollar_dominance: number | null;
           eurusd_regime: string | null;
-          gbpusd_regime: string | null;
           id: number;
           idiosyncratic_outlier: string | null;
           macro_context: string | null;
           pair_regimes: Json | null;
           sentiment_json: Json | null;
           structured_summary: Json | null;
-          usdcad_regime: string | null;
-          usdchf_regime: string | null;
           usdinr_regime: string | null;
           usdjpy_regime: string | null;
         };
         Insert: {
-          audusd_regime?: string | null;
           brief_text?: string | null;
           created_at?: string | null;
           date: string;
           dollar_dominance?: number | null;
           eurusd_regime?: string | null;
-          gbpusd_regime?: string | null;
           id?: number;
           idiosyncratic_outlier?: string | null;
           macro_context?: string | null;
           pair_regimes?: Json | null;
           sentiment_json?: Json | null;
           structured_summary?: Json | null;
-          usdcad_regime?: string | null;
-          usdchf_regime?: string | null;
           usdinr_regime?: string | null;
           usdjpy_regime?: string | null;
         };
         Update: {
-          audusd_regime?: string | null;
           brief_text?: string | null;
           created_at?: string | null;
           date?: string;
           dollar_dominance?: number | null;
           eurusd_regime?: string | null;
-          gbpusd_regime?: string | null;
           id?: number;
           idiosyncratic_outlier?: string | null;
           macro_context?: string | null;
           pair_regimes?: Json | null;
           sentiment_json?: Json | null;
           structured_summary?: Json | null;
-          usdcad_regime?: string | null;
-          usdchf_regime?: string | null;
           usdinr_regime?: string | null;
           usdjpy_regime?: string | null;
         };
@@ -1827,11 +1815,11 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      calculate_dual_correlation: {
+      calculate_fx_basket_correlation: {
         Args: { p_lookback: number; p_pair: string };
         Returns: number;
       };
-      get_g10_correlation_matrix: { Args: never; Returns: Json };
+      get_fx_correlation_matrix: { Args: never; Returns: Json };
       historical_prices_for_max_chart: {
         Args: { p_cutoff: string; p_pair: string };
         Returns: {

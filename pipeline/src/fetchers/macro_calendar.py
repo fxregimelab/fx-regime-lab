@@ -40,10 +40,7 @@ def _impact_meta() -> dict[str, tuple[list[str], str, str]]:
         "ECB Rate Decision": (["EURUSD", "EURINR"], "HIGH", "EU"),
         "BoJ Rate Decision": (["USDJPY"], "HIGH", "JP"),
         "RBI MPC Decision": (["USDINR"], "HIGH", "IN"),
-        "BoE Rate Decision": (["GBPUSD", "GBPINR"], "HIGH", "UK"),
-        "RBA Rate Decision": (["AUDUSD"], "HIGH", "AU"),
-        "BoC Rate Decision": (["USDCAD"], "HIGH", "CA"),
-        "SNB Rate Decision": (["USDCHF"], "HIGH", "CH"),
+
     }
 
 

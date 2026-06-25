@@ -88,7 +88,7 @@ export default function LimitationsPage() {
             </h2>
             <p className="font-sans text-[14px] text-[var(--color-text-secondary)] leading-[1.7] mb-3">
               Track record shows gross returns. Typical FX spot bid-ask is
-              0.1–1.0 bps for G10 and 5–20 bps for EM. Net returns may be
+              0.1–1.0 bps for major FX and 5–20 bps for EM. Net returns may be
               substantially lower. We now report cost-adjusted metrics alongside
               gross.
             </p>

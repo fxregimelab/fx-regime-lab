@@ -5,7 +5,7 @@
 # Managed workers do not read repo `.env`. Secrets are passed as `job_variables.env` below,
 # using deploy-time shell substitution (`{{ $VAR }}`). Before `prefect deploy`, load the same
 # keys you use locally (do not commit real values into git):
-#   cd repo-root && set -a && source .env && set +a && cd pipeline && prefect deploy --prefect-file prefect.yaml --name Daily_G10_Alpha_Engine
+#   cd repo-root && set -a && source .env && set +a && cd pipeline && prefect deploy --prefect-file prefect.yaml --name Daily_FX_Regime_Engine
 
 prefect-version: "3.0"
 name: fx-regime-lab-pipeline
@@ -27,8 +27,8 @@ pull:
       directory: "{{ clone.directory }}/pipeline"
 
 deployments:
-  - name: Daily_G10_Alpha_Engine
-    description: Automated 24h G10 FX Regime Context Generation
+  - name: Daily_FX_Regime_Engine
+    description: Automated 24h FX Regime Context Generation
     entrypoint: src/scheduler/orchestrator.py:run_daily
     schedule:
       cron: "0 9 * * *"

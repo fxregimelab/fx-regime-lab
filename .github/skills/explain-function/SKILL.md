@@ -108,11 +108,11 @@ def build_<pair>_<tab>() -> go.Figure:
 ```python
 # Adding a new pair to PAIRS_REGISTRY — the single source of truth.
 # Charts, briefs, and HTML auto-scale from this registry.
-"GBPUSD": {
-    "price_col":    "GBPUSD",
-    "yahoo_ticker": "GBPUSD=X",
-    "spread_cols":  ["US_DE_10Y_spread", "US_DE_2Y_spread"],
-    "cot_col":      "GBP_Net",
+"USDINR": {
+    "price_col":    "USDINR",
+    "yahoo_ticker": "USDINR=X",
+    "spread_cols":  ["US_IN_10Y_spread", "US_IN_2Y_spread"],
+    "cot_col":      "INR_Net",
     ...
 }
 ```

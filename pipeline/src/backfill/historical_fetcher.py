@@ -1,6 +1,6 @@
 """Round 4 Phase 1 — Historical data backfill via yfinance.
 
-Fetches multi-year FX spot OHLC series for G10 + USD/INR.  Stores raw bars
+Fetches multi-year FX spot OHLC series for the 3-pair FX basket.  Stores raw bars
 in ``historical_prices`` (upsert idempotent on ``date, pair``) so the
 historical pipeline runner can replay signal generation for any date.
 """

@@ -115,15 +115,11 @@ def compute_special_signal(
     overrides when history is unavailable.
 
     Real special signals available for: EURUSD, USDJPY, USDINR.
-    GBPUSD returns None (pending data source).
     """
 
     key = normalize_fx_pair_key(pair)
     if key is None:
         return None
-
-    if key == "GBPUSD":
-        return None  # v2.1: No special signal available for GBP yet
 
     # --- EURUSD: fragmentation risk + ECB balance sheet expansion.
     if key == "EURUSD":
@@ -155,55 +151,6 @@ def compute_special_signal(
 
     if not isinstance(cross_asset_data.get("hist"), dict):
         return None
-
-    # --- AUDUSD: commodity beta (AUD). High metals → AUD bid → USD weakness vs AUD.
-    if key == "AUDUSD":
-        iore = _tail_hist(cross_asset_data, "iron_ore")
-        cup = _tail_hist(cross_asset_data, "copper")
-        gld = _tail_hist(cross_asset_data, "gold")
-        if iore is None or cup is None or gld is None:
-            return None
-        n_io = _norm_from_hist(iore[-1], iore[:-1])
-        n_cu = _norm_from_hist(cup[-1], cup[:-1])
-        n_au = _norm_from_hist(gld[-1], gld[:-1])
-        if n_io is None or n_cu is None or n_au is None:
-            return None
-        composite = 0.40 * n_io + 0.35 * n_cu + 0.25 * n_au
-        return float(-composite)
-
-    # --- USDCAD: oil beta. Strong oil → CAD bid → USD weakness vs CAD.
-    if key == "USDCAD":
-        oil = _tail_hist(cross_asset_data, "oil")
-        if oil is None or len(oil) < _MIN_RANK_SAMPLE + 1:
-            return None
-        n_wti = _norm_from_hist(oil[-1], oil[:-1])
-        chg: list[float] = []
-        for i in range(1, len(oil)):
-            chg.append(float(oil[i]) - float(oil[i - 1]))
-        if len(chg) < _MIN_RANK_SAMPLE:
-            return None
-        n_wcs = _norm_from_hist(chg[-1], chg[:-1])
-        if n_wti is None or n_wcs is None:
-            return None
-        composite = 0.70 * n_wti + 0.30 * n_wcs
-        return float(-composite)
-
-    # --- USDCHF: EUR/CHF & SNB placeholders from USD basket geometry.
-    if key == "USDCHF":
-        dxy = _tail_hist(cross_asset_data, "dxy")
-        if dxy is None or not dxy:
-            return None
-        clean = [float(x) for x in dxy if float(x) > 0.0]
-        if len(clean) < _MIN_RANK_SAMPLE:
-            return None
-        latest = clean[-1]
-        inv_hist = [1.0 / x for x in clean]
-        inv_latest = 1.0 / latest
-        n_eurchf = _norm_from_hist(inv_latest, inv_hist[:-1])
-        n_snb = _norm_from_hist(latest, clean[:-1])
-        if n_eurchf is None or n_snb is None:
-            return None
-        return float(0.60 * n_eurchf + 0.40 * n_snb)
 
     # --- USDJPY: funding stress proxy via VIX (high vol → JPY bid → USD weakness).
     if key == "USDJPY":

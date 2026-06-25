@@ -76,14 +76,6 @@ def _pair_from_market(name: str) -> str | None:
         return "USDJPY"
     if "INDIAN RUPEE" in u:
         return "USDINR"
-    if "BRITISH POUND" in u or "STERLING" in u:
-        return "GBPUSD"
-    if "AUSTRALIAN DOLLAR" in u:
-        return "AUDUSD"
-    if "CANADIAN DOLLAR" in u:
-        return "USDCAD"
-    if "SWISS FRANC" in u:
-        return "USDCHF"
     return None
 
 def _parse_int(nr: dict[str, str], key: str) -> int | None:

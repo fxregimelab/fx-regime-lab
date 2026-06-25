@@ -121,19 +121,19 @@ export function getPairCorrelation(
 
 /* ─── Legacy exports (used by terminal/fx-regime page) ─── */
 
-/** Canonical G10 FX order (matches `get_g10_correlation_matrix` in Postgres). */
-export const G10_MATRIX_ORDER = ["EURUSD", "USDJPY", "USDINR"] as const;
+/** Canonical FX basket order (matches `get_fx_correlation_matrix` in Postgres). */
+export const FX_MATRIX_ORDER = ["EURUSD", "USDJPY", "USDINR"] as const;
 
-/** Nested JSON from `get_g10_correlation_matrix`: only `pa < pb` keys populated. */
-export type G10CorrelationJson = Record<string, Record<string, number>>;
+/** Nested JSON from `get_fx_correlation_matrix`: only `pa < pb` keys populated. */
+export type FxCorrelationJson = Record<string, Record<string, number>>;
 
-export function parseG10CorrelationJson(raw: unknown): G10CorrelationJson {
+export function parseFxCorrelationJson(raw: unknown): FxCorrelationJson {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  return raw as G10CorrelationJson;
+  return raw as FxCorrelationJson;
 }
 
 export function correlationFromJson(
-  m: G10CorrelationJson,
+  m: FxCorrelationJson,
   a: string,
   b: string,
 ): number {
@@ -148,9 +148,9 @@ export function correlationFromJson(
 
 /** Strongest co-movement vs `pair` (max |ρ|), tie-break toward higher raw ρ. */
 export function topCorrelatedPeer(
-  matrix: G10CorrelationJson,
+  matrix: FxCorrelationJson,
   pair: string,
-  universe: readonly string[] = G10_MATRIX_ORDER,
+  universe: readonly string[] = FX_MATRIX_ORDER,
 ): string | null {
   const peers = universe.filter((p) => p !== pair);
   if (peers.length === 0) return null;

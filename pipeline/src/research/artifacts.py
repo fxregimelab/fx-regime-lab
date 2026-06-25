@@ -72,7 +72,7 @@ def generate_track_record_report(
     lines: list[str] = []
     lines.append("# FX Regime Lab — Track Record Report")
     lines.append(f"\n**Report Date:** {iso}  ")
-    lines.append("**Strategy:** G10 FX Regime Classification (EUR/USD, USD/JPY, USD/INR)")
+    lines.append("**Strategy:** FX Regime Classification (EUR/USD, USD/JPY, USD/INR)")
     lines.append("**Horizons:** T+5 and T+20 trading days")
     lines.append("**Methodology:** Log-return validation with 5 bps Marcus dead-band")
     lines.append("")

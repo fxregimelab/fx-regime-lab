@@ -181,10 +181,10 @@ def get_desk_open_cards_for_date(date_str: str) -> list[dict[str, Any]]:
     return cast(list[dict[str, Any]], res.data or [])
 
 
-def get_rpc_g10_correlation_matrix() -> dict[str, dict[str, float]]:
+def get_rpc_fx_correlation_matrix() -> dict[str, dict[str, float]]:
     """Pairwise return correlations from Postgres (symmetric half-matrix JSON)."""
 
-    res = _client().rpc("get_g10_correlation_matrix", {}).execute()
+    res = _client().rpc("get_fx_correlation_matrix", {}).execute()
     raw = res.data
     if raw is None:
         return {}
@@ -540,19 +540,18 @@ def write_brief_log(
             col = f"{pair.lower()}_regime"
             if col in {
                 "eurusd_regime", "usdjpy_regime", "usdinr_regime",
-                "gbpusd_regime", "audusd_regime", "usdcad_regime", "usdchf_regime",
             }:
                 payload[col] = regime
     _client().table("brief_log").upsert(payload, on_conflict="date").execute()
 
 
 def get_rpc_calculate_dual_correlation(pair: str, lookback: int) -> float | None:
-    """Pearson corr: pair log-returns vs mean of other G10 log-returns (Gamma SQL)."""
+    """Pearson corr: pair log-returns vs mean of other FX basket log-returns."""
 
     res = (
         _client()
         .rpc(
-            "calculate_dual_correlation",
+            "calculate_fx_basket_correlation",
             {"p_pair": pair, "p_lookback": int(lookback)},
         )
         .execute()

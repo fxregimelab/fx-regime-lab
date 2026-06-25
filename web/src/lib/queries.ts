@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { G10CorrelationJson } from "./g10Correlation";
+import type { FxCorrelationJson } from "./fxCorrelation";
 import { createClient } from "./supabase/client";
 import type { Database } from "./supabase/database.types";
 
@@ -450,12 +450,12 @@ export function useUpcomingMacroEvents(days = 7) {
 }
 
 /* ──────────────────────────────────────────────
-   G10 Correlation Matrix
+   FX Correlation Matrix
    ────────────────────────────────────────────── */
 
-export function useG10CorrelationMatrix() {
-  return useQuery<G10CorrelationJson>({
-    queryKey: ["g10_correlation"],
+export function useFxCorrelationMatrix() {
+  return useQuery<FxCorrelationJson>({
+    queryKey: ["fx_correlation"],
     queryFn: async () => {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -475,7 +475,7 @@ export function useG10CorrelationMatrix() {
         byPair.set(row.pair, arr);
       }
 
-      const result: G10CorrelationJson = {};
+      const result: FxCorrelationJson = {};
       const pairs = Array.from(byPair.keys());
       for (const p of pairs) {
         const row: Record<string, number> = {};

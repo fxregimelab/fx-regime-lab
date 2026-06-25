@@ -133,7 +133,7 @@ export function MacroDriftEngine({ className = "" }: MacroDriftEngineProps) {
           </div>
           <div className="border-t-[0.5px] border-t-[var(--color-border-subtle)] pt-2">
             <p className="m-0 font-mono text-[8px] tracking-widest text-[var(--color-text-muted)]">
-              G10_IDIO_OUTLIER
+              FX_IDIO_OUTLIER
             </p>
             {outlier ? (
               <motion.span

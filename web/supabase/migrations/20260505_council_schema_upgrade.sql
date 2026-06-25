@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS pair_profiles (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Seed data for all 7 pairs
+-- Seed data for the 3-pair FX basket
 INSERT INTO pair_profiles (
     pair, display_name, rate_weight, cot_weight, vol_weight, oi_weight, 
     special_weight, special_signal_label, special_signal_source, driver_tag, 
@@ -47,26 +47,6 @@ INSERT INTO pair_profiles (
  'JPY_funding_stress', 'USD/JPY 3M cross-currency basis', 'Funding-driven', 'Tokyo',
  '{"type": "additive", "condition": "S_JPY > 0.5", "value": 0.05, 
    "rationale": "Funding stress adds conviction"}'::jsonb),
-
-('GBPUSD', 'GBP/USD', 0.35, 0.25, 0.25, 0.10, 0.05, 
- 'UK_gilt_vol', 'UK 10Y gilt implied vol', 'Risk-premium', 'London',
- '{"type": "subtractive", "condition": "S_GBP > 0.5", "value": -0.05, 
-   "rationale": "Gilt vol = uncertainty penalty"}'::jsonb),
-
-('AUDUSD', 'AUD/USD', 0.25, 0.20, 0.20, 0.10, 0.25, 
- 'Commodity_basket', 'Iron ore + copper + gold', 'Commodity-linked', 'Sydney/London',
- '{"type": "additive", "condition": "all_3_commodities_agree", "value": 0.05, 
-   "rationale": "Commodity convergence = conviction"}'::jsonb),
-
-('USDCAD', 'USD/CAD', 0.25, 0.15, 0.20, 0.10, 0.30, 
- 'WTI_energy', 'WTI front-month + WCS differential', 'Oil-beta', 'Toronto/New York',
- '{"type": "additive", "condition": "WTI_and_WCS_agree", "value": 0.05, 
-   "rationale": "Energy consensus = conviction"}'::jsonb),
-
-('USDCHF', 'USD/CHF', 0.30, 0.15, 0.20, 0.10, 0.25, 
- 'EURCHF_SNB', 'EUR/CHF spot + SNB sight deposits', 'Safe-haven', 'Zurich/London',
- '{"type": "subtractive", "condition": "SNB_active", "value": -0.10, 
-   "rationale": "Intervention risk = uncertainty"}'::jsonb),
 
 ('USDINR', 'USD/INR', 0.30, 0.10, 0.20, 0.10, 0.30, 
  'EM_carry_RBI', 'Brent + RBI forward book + EM carry index', 'Carry-sensitive', 'Mumbai',
@@ -109,14 +89,10 @@ ADD COLUMN IF NOT EXISTS vol_regime_at_call VARCHAR(20),
 ADD COLUMN IF NOT EXISTS regime_at_call VARCHAR(100);
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 4. BRIEF LOG — Expand for 7 pairs + JSON migration
+-- 4. BRIEF LOG — Expand for 3 pairs + JSON migration
 -- ─────────────────────────────────────────────────────────────────────────────
 
 ALTER TABLE brief_log 
-ADD COLUMN IF NOT EXISTS gbpusd_regime VARCHAR(100),
-ADD COLUMN IF NOT EXISTS audusd_regime VARCHAR(100),
-ADD COLUMN IF NOT EXISTS usdcad_regime VARCHAR(100),
-ADD COLUMN IF NOT EXISTS usdchf_regime VARCHAR(100),
 ADD COLUMN IF NOT EXISTS pair_regimes JSONB;
 
 -- Migrate existing hardcoded columns to JSON
@@ -128,6 +104,13 @@ SET pair_regimes = jsonb_build_object(
 )
 WHERE pair_regimes IS NULL 
   AND (eurusd_regime IS NOT NULL OR usdjpy_regime IS NOT NULL OR usdinr_regime IS NOT NULL);
+
+-- Drop expanded-pair columns that are outside the 3-pair lock
+ALTER TABLE brief_log
+DROP COLUMN IF EXISTS gbpusd_regime,
+DROP COLUMN IF EXISTS audusd_regime,
+DROP COLUMN IF EXISTS usdcad_regime,
+DROP COLUMN IF EXISTS usdchf_regime;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. HEALTH CHECKS — Pipeline monitoring

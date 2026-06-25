@@ -13,7 +13,7 @@
 - `write_desk_open_card`
 - `write_desk_open_cards_bulk`
 - `get_desk_open_cards_for_date`
-- `get_rpc_g10_correlation_matrix`
+- `get_rpc_fx_correlation_matrix`
 - `get_latest_desk_open_card`
 - `update_desk_open_card_flags`
 - `update_desk_open_card_telemetry_audit`

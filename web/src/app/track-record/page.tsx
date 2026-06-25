@@ -464,8 +464,8 @@ function LiveTabContent({
             Important:
           </strong>{" "}
           These metrics show gross returns before transaction costs. Typical FX
-          spot bid-ask spreads are 0.1–1.0 bps for G10 and 5–20 bps for EM. Net
-          returns may be substantially lower. Our accuracy is currently near
+          spot bid-ask spreads are 0.1–1.0 bps for major FX and 5–20 bps for EM.
+          Net returns may be substantially lower. Our accuracy is currently near
           random — we publish this openly as part of our research process.{" "}
           <a
             href="/limitations"

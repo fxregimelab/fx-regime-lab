@@ -15,10 +15,6 @@ logger = logging.getLogger(__name__)
 COST_BPS_ROUND_TRIP = {
     "EURUSD": 0.2,   # 0.1 bps each way
     "USDJPY": 0.3,
-    "GBPUSD": 0.3,
-    "AUDUSD": 0.4,
-    "USDCAD": 0.4,
-    "USDCHF": 0.4,
     "USDINR": 10.0,  # EM spread
 }
 

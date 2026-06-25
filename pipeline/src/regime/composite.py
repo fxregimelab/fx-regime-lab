@@ -24,10 +24,6 @@ WEIGHTS = {"rate": 0.40, "cot": 0.30, "vol": 0.20, "oi": 0.10}
 PAIR_COMPOSITE_WEIGHTS: dict[str, PairWeightConfig] = {
     "EURUSD": PairWeightConfig(rate=0.45, cot=0.25, vol=0.20, oi=0.05, special=0.05, fpi=0.0),
     "USDJPY": PairWeightConfig(rate=0.40, cot=0.20, vol=0.25, oi=0.05, special=0.10, fpi=0.0),
-    "GBPUSD": PairWeightConfig(rate=0.40, cot=0.25, vol=0.25, oi=0.05, special=0.05, fpi=0.0),
-    "AUDUSD": PairWeightConfig(rate=0.30, cot=0.20, vol=0.20, oi=0.05, special=0.25, fpi=0.0),
-    "USDCAD": PairWeightConfig(rate=0.30, cot=0.15, vol=0.20, oi=0.05, special=0.30, fpi=0.0),
-    "USDCHF": PairWeightConfig(rate=0.35, cot=0.15, vol=0.20, oi=0.05, special=0.25, fpi=0.0),
     "USDINR": PairWeightConfig(rate=0.30, cot=0.10, vol=0.20, oi=0.05, special=0.20, fpi=0.15),
 }
 

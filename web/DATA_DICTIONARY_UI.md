@@ -56,7 +56,7 @@ The FX Regime Lab UI is a Next.js 15+ (App Router) application using **TanStack 
 |--------|------|----------|------------------|
 | `id` | `number` (auto-inc) | No | Surrogate PK |
 | `date` | `string` (ISO date) | No | Observation date (NY close) |
-| `pair` | `string` | No | `EURUSD`, `USDJPY`, `USDINR`, `GBPUSD`, `AUDUSD`, `USDCAD`, `USDCHF` |
+| `pair` | `string` | No | `EURUSD`, `USDJPY`, `USDINR` |
 | `spot` | `number` | Yes | FX spot close |
 | `day_change` | `number` | Yes | Absolute day change |
 | `day_change_pct` | `number` | Yes | Percent day change |
@@ -227,14 +227,10 @@ Pick<RegimeCallRow,
 | `eurusd_regime` | `string` | Yes | Cached regime label |
 | `usdjpy_regime` | `string` | Yes | Cached regime label |
 | `usdinr_regime` | `string` | Yes | Cached regime label |
-| `gbpusd_regime` | `string` | Yes | Cached regime label |
-| `audusd_regime` | `string` | Yes | Cached regime label |
-| `usdcad_regime` | `string` | Yes | Cached regime label |
-| `usdchf_regime` | `string` | Yes | Cached regime label |
 | `pair_regimes` | `Json` | Yes | Structured pair→regime map |
 | `macro_context` | `string` | Yes | Macro narrative summary |
 | `dollar_dominance` | `number` | Yes | 0–100 USD thematic alignment |
-| `idiosyncratic_outlier` | `string` | Yes | Pair most idiosyncratic vs G10 basket |
+| `idiosyncratic_outlier` | `string` | Yes | Pair most idiosyncratic vs FX basket |
 | `sentiment_json` | `Json` | Yes | `{ polymarket_top3, dual_correlation: {20d, 60d} }` |
 | `created_at` | `string` | No | Write timestamp |
 
@@ -599,9 +595,9 @@ export function useStrategyLedger(pair: string)
 ### 6.9 Correlation & Analogs
 
 ```ts
-export function useG10CorrelationMatrix()
-// Returns: G10CorrelationJson
-// Query: RPC get_g10_correlation_matrix()
+export function useFxCorrelationMatrix()
+// Returns: FxCorrelationJson
+// Query: RPC get_fx_correlation_matrix()
 // Stale time: 5 min
 
 export function useLatestResearchAnalogs(pair: string)
@@ -683,7 +679,7 @@ Client-side paginated aggregation over `strategy_ledger`:
 
 | Function | Args | Returns | Grants |
 |----------|------|---------|--------|
-| `get_g10_correlation_matrix` | `Record<string, never>` | `Json` (half-matrix) | `anon` |
+| `get_fx_correlation_matrix` | `Record<string, never>` | `Json` (half-matrix) | `anon` |
 | `historical_prices_for_max_chart` | `p_pair: string, p_cutoff: string` | `historical_prices` rows | `anon` |
 | `match_historical_analogs` | `target_pair, as_of_date, current_trend, current_comp, limit_rows` | analog rows | `anon` |
 | `calculate_dual_correlation` | `p_pair: string, p_lookback: int` | `float` | `anon` |
@@ -716,11 +712,11 @@ Client-side paginated aggregation over `strategy_ledger`:
 
 | Component / Page | Primary Hooks | Tables |
 |------------------|---------------|--------|
-| `FxRegimePairSelectionPage` (Mosaic) | `useLatestRegimeCalls`, `useLatestSignals`, `useLatestDeskOpenCardsSnapshot`, `useG10CorrelationMatrix` | `regime_calls`, `signals`, `desk_open_cards` |
+| `FxRegimePairSelectionPage` (Mosaic) | `useLatestRegimeCalls`, `useLatestSignals`, `useLatestDeskOpenCardsSnapshot`, `useFxCorrelationMatrix` | `regime_calls`, `signals`, `desk_open_cards` |
 | `DeskCard` | `useDeskOpenCard` | `desk_open_cards` |
 | `AlphaLedger` | `useStrategyLedger` | `strategy_ledger` |
 | `MacroDriftEngine` | `useLatestBrief`, `useBriefLogDominanceSeries` | `brief_log` |
-| `CorrelationMatrix` | `useG10CorrelationMatrix` | RPC |
+| `CorrelationMatrix` | `useFxCorrelationMatrix` | RPC |
 | `PerformanceLedgerPage` | `useValidationLog`, `useEquityCurve`, `useVerified90dEdge` | `validation_log`, `strategy_ledger` |
 | `ConvexityRadarPage` | `useEventRiskMatrices`, `useUpcomingMacroEvents` | `event_risk_matrices`, `macro_events` |
 | `MemoSidebar` | `useResearchMemosList`, `useResearchMemoReader` | `research_memos` |

@@ -1,6 +1,6 @@
 # FX Regime Lab — project overview
 
-FX Regime Lab is a **personal, public research system** for daily G10 FX regime work: it ingests macro and positioning data, scores EUR/USD, USD/JPY, and USD/INR on a consistent composite, persists calls and signals to Supabase, generates a daily brief, and surfaces the same truth on a website so every call sits on the record.
+FX Regime Lab is a **personal, public research system** for daily FX regime work: it ingests macro and positioning data, scores EUR/USD, USD/JPY, and USD/INR on a consistent composite, persists calls and signals to Supabase, generates a daily brief, and surfaces the same truth on a website so every call sits on the record.
 
 ## Two layers (conceptual)
 

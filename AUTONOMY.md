@@ -212,7 +212,7 @@ git add -A && git commit -m "feat: add yen carry trade signal"
 ### Phase 7: Deploy (You: 2 min, System: 1 min)
 **You decide:** Is now a good time to deploy?
 ```bash
-cd pipeline && prefect deploy --prefect-file prefect.yaml --name Daily_G10_Alpha_Engine
+cd pipeline && prefect deploy --prefect-file prefect.yaml --name Daily_FX_Regime_Engine
 cd web && npx vercel --prod
 ```
 

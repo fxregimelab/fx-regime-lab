@@ -23,11 +23,7 @@ INSERT INTO public.universe (pair, class, spot_ticker, yield_base, yield_quote, 
 VALUES
   ('EURUSD', 'FX', 'EURUSD=X', 'DGS2', 'ECB_RATE', '099741'),
   ('USDJPY', 'FX', 'JPY=X', 'DGS2', 'IRLTLT01JPM156N', '097741'),
-  ('USDINR', 'FX', 'INR=X', 'DGS2', 'IN2YT=RR', NULL),
-  ('GBPUSD', 'FX', 'GBPUSD=X', 'DGS2', 'GB2YT=RR', '096742'),
-  ('AUDUSD', 'FX', 'AUDUSD=X', 'DGS2', 'AU2YT=RR', '232741'),
-  ('USDCAD', 'FX', 'CAD=X', 'DGS2', 'CA2YT=RR', '090741'),
-  ('USDCHF', 'FX', 'CHF=X', 'DGS2', 'CH2YT=RR', '092741')
+  ('USDINR', 'FX', 'INR=X', 'DGS2', 'IN2YT=RR', NULL)
 ON CONFLICT (pair) DO UPDATE SET
   class = EXCLUDED.class,
   spot_ticker = EXCLUDED.spot_ticker,

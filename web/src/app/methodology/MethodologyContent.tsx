@@ -492,12 +492,12 @@ export default function MethodologyContent() {
                 <Mono>~10%</Mono>, realized volatility <Mono>~20%</Mono>, open
                 interest <Mono>~5%</Mono>, special signal <Mono>~20%</Mono>, FPI
                 flow <Mono>~15%</Mono>. COT is a reduced-weight proxy
-                (managed-float positioning is less informative than G10). The
-                special signal blends crude oil and DXY pressure on EMFX (40%
-                oil + 35% DXY + 25% EM composite). FPI is SEBI daily net flow
-                z-scored over 20 days. When Brent is above its 80th percentile,
-                confidence receives a −5 pp adjustment reflecting
-                external-account vulnerability.
+                (managed-float positioning is less informative than major
+                floating-rate FX). The special signal blends crude oil and DXY
+                pressure on EMFX (40% oil + 35% DXY + 25% EM composite). FPI is
+                SEBI daily net flow z-scored over 20 days. When Brent is above
+                its 80th percentile, confidence receives a −5 pp adjustment
+                reflecting external-account vulnerability.
               </Body>
             </div>
           </Subsection>

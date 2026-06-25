@@ -46,7 +46,7 @@ Key server queries live in `src/lib/supabase/queries.ts` and use the typed Supab
 Interactive surfaces (terminal dashboards, comparison views, memo sidebars) are **Client Components** (marked `"use client"`) that use React Query for caching and real-time feels:
 
 - `src/lib/queries.ts` — React Query hooks wrapping client-side Supabase calls
-- `src/lib/queries.ts` also contains `useG10CorrelationMatrix`, `useLatestRegimeCalls`, etc.
+- `src/lib/queries.ts` also contains `useFxCorrelationMatrix`, `useLatestRegimeCalls`, etc.
 
 ### Caching Strategy
 - `export const dynamic = "force-dynamic"` on terminal pages (always fresh)
@@ -101,6 +101,6 @@ The Supabase schema types are in `src/lib/supabase/database.types.ts`. They are 
 | `src/lib/supabase/queries.ts` | All data reads (server + client) |
 | `src/lib/supabase/database.types.ts` | Generated Supabase TypeScript types |
 | `src/lib/constants.ts` | PAIRS array, regime labels, thresholds |
-| `src/lib/g10Correlation.ts` | G10 correlation matrix logic |
+| `src/lib/fxCorrelation.ts` | FX basket correlation matrix logic |
 | `src/app/globals.css` | Design tokens (CSS custom properties) |
 | `next.config.ts` | Next.js config (webpack, eslint ignore during builds) |

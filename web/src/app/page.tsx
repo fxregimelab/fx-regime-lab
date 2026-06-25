@@ -26,7 +26,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "FX Regime Lab — Daily Regime Calls",
   description:
-    "Open-source research infrastructure for transparent macro regime monitoring across G10 and EM FX. Every signal, every call, every mistake — published in real time.",
+    "Open-source research infrastructure for transparent macro regime monitoring across major and EM FX. Every signal, every call, every mistake — published in real time.",
 };
 
 /* ─── Hero ──────────────────────────────────────────────────────────── */

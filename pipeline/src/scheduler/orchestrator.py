@@ -915,7 +915,7 @@ def upsert_macro_event_briefs_task(
     )
 
 
-@flow(name="Daily G10 FX Pipeline", log_prints=True, timeout_seconds=1800)
+@flow(name="Daily FX Regime Pipeline", log_prints=True, timeout_seconds=1800)
 async def run_daily(
     date_str: str | None = None,
     *,
@@ -1305,15 +1305,7 @@ async def run_daily(
         commodity_components_agree = None
         wti_wcs_agree = None
         brent_above_p80 = None
-        if pair == "AUDUSD":
-            # Commodity convergence: all 3 components same sign and non-neutral
-            hist = cross_for_special.get("hist", {})
-            if hist:
-                # Simplified: if special_signal is strong, components likely agree
-                commodity_components_agree = abs(special_signal or 0.0) > 0.5
-        elif pair == "USDCAD":
-            wti_wcs_agree = abs(special_signal or 0.0) > 0.5
-        elif pair == "USDINR":
+        if pair == "USDINR":
             brent_above_p80 = (cross.get("oil") or 0) > 80  # crude proxy
 
         # ── Confidence with redundancy penalty (M.2.2) ──────────────────────
@@ -1713,9 +1705,9 @@ async def run_daily(
 
         matrix: dict[str, dict[str, float]] = {}
         try:
-            matrix = writer.get_rpc_g10_correlation_matrix()
+            matrix = writer.get_rpc_fx_correlation_matrix()
         except Exception as exc:  # noqa: BLE001
-            logger.warning("G10 correlation matrix RPC failed: %s", exc)
+            logger.warning("FX correlation matrix RPC failed: %s", exc)
 
         systemic_cluster = False
         if len(ranking_results) >= 3:

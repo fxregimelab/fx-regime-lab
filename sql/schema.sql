@@ -710,8 +710,8 @@ ALTER TABLE desk_open_cards
   ADD COLUMN IF NOT EXISTS global_rank INT,
   ADD COLUMN IF NOT EXISTS apex_score DOUBLE PRECISION;
 
--- Pairwise return correlations for G10 cluster detection (JSON: { "EURUSD": { "USDJPY": 0.85, ... }, ... })
-CREATE OR REPLACE FUNCTION public.get_g10_correlation_matrix()
+-- Pairwise return correlations for FX basket cluster detection (JSON: { "EURUSD": { "USDJPY": 0.85, ... }, ... })
+CREATE OR REPLACE FUNCTION public.get_fx_correlation_matrix()
 RETURNS jsonb
 LANGUAGE sql
 STABLE
@@ -733,7 +733,7 @@ r AS (
   FROM historical_prices p
   CROSS JOIN bounds b
   WHERE p.pair IN (
-    'EURUSD', 'USDJPY', 'USDINR', 'GBPUSD', 'AUDUSD', 'USDCAD', 'USDCHF'
+    'EURUSD', 'USDJPY', 'USDINR'
   )
     AND p.date >= (b.dmax - INTERVAL '120 days')::date
 ),
@@ -756,7 +756,7 @@ agg AS (
 SELECT COALESCE(jsonb_object_agg(pa, obj), '{}'::jsonb) FROM agg;
 $sql$;
 
-GRANT EXECUTE ON FUNCTION public.get_g10_correlation_matrix() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_fx_correlation_matrix() TO anon, authenticated, service_role;
 
 -- === supabase/migrations/20260428000012_universe_table.sql ===
 -- Single source of truth for pipeline + web pair registry (replaces static JSON in production).
@@ -784,11 +784,7 @@ INSERT INTO public.universe (pair, class, spot_ticker, yield_base, yield_quote, 
 VALUES
   ('EURUSD', 'FX', 'EURUSD=X', 'DGS2', 'ECB_RATE', '099741'),
   ('USDJPY', 'FX', 'JPY=X', 'DGS2', 'IRLTLT01JPM156N', '097741'),
-  ('USDINR', 'FX', 'INR=X', 'DGS2', 'IN2YT=RR', NULL),
-  ('GBPUSD', 'FX', 'GBPUSD=X', 'DGS2', 'GB2YT=RR', '096742'),
-  ('AUDUSD', 'FX', 'AUDUSD=X', 'DGS2', 'AU2YT=RR', '232741'),
-  ('USDCAD', 'FX', 'CAD=X', 'DGS2', 'CA2YT=RR', '090741'),
-  ('USDCHF', 'FX', 'CHF=X', 'DGS2', 'CH2YT=RR', '092741')
+  ('USDINR', 'FX', 'INR=X', 'DGS2', 'IN2YT=RR', NULL)
 ON CONFLICT (pair) DO UPDATE SET
   class = EXCLUDED.class,
   spot_ticker = EXCLUDED.spot_ticker,
@@ -906,22 +902,22 @@ COMMENT ON COLUMN public.event_risk_matrices.t1_exhaustion_p84 IS
   '84th percentile of T+1 returns (%) — inner exhaustion band.';
 
 -- === supabase/migrations/20260428000016_systemic_synthesis.sql ===
--- Dual correlation: target pair log-returns vs cross-sectional mean of other G10 FX log-returns.
+-- Dual correlation: target pair log-returns vs cross-sectional mean of other FX basket log-returns.
 
-CREATE OR REPLACE FUNCTION public.calculate_dual_correlation(p_pair text, p_lookback int)
+CREATE OR REPLACE FUNCTION public.calculate_fx_basket_correlation(p_pair text, p_lookback int)
 RETURNS double precision
 LANGUAGE sql
 STABLE
 AS $sql$
-WITH g10 AS (
+WITH fx_basket AS (
   SELECT unnest(ARRAY[
-    'EURUSD', 'USDJPY', 'USDINR', 'GBPUSD', 'AUDUSD', 'USDCAD', 'USDCHF'
+    'EURUSD', 'USDJPY', 'USDINR'
   ]::text[]) AS pair
 ),
 bounds AS (
   SELECT COALESCE(MAX(hp.date), CURRENT_DATE) AS dmax
   FROM historical_prices hp
-  INNER JOIN g10 g ON g.pair = hp.pair
+  INNER JOIN fx_basket g ON g.pair = hp.pair
 ),
 r AS (
   SELECT
@@ -935,7 +931,7 @@ r AS (
       ELSE NULL
     END AS lr
   FROM historical_prices p
-  INNER JOIN g10 g ON g.pair = p.pair
+  INNER JOIN fx_basket g ON g.pair = p.pair
   CROSS JOIN bounds b
   WHERE p.date >= (b.dmax - INTERVAL '400 days')::date
 ),
@@ -975,19 +971,26 @@ FROM trimmed
 WHERE rn <= GREATEST(p_lookback, 5);
 $sql$;
 
-GRANT EXECUTE ON FUNCTION public.calculate_dual_correlation(text, int) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.calculate_fx_basket_correlation(text, int) TO anon, authenticated, service_role;
 
 ALTER TABLE brief_log
   ADD COLUMN IF NOT EXISTS dollar_dominance double precision,
   ADD COLUMN IF NOT EXISTS idiosyncratic_outlier text,
   ADD COLUMN IF NOT EXISTS sentiment_json jsonb;
 
+-- Drop expanded-pair regime columns outside the 3-pair lock
+ALTER TABLE brief_log
+  DROP COLUMN IF EXISTS gbpusd_regime,
+  DROP COLUMN IF EXISTS audusd_regime,
+  DROP COLUMN IF EXISTS usdcad_regime,
+  DROP COLUMN IF EXISTS usdchf_regime;
+
 COMMENT ON COLUMN brief_log.dollar_dominance IS 'Book-wide USD thematic alignment 0–100 (percent).';
-COMMENT ON COLUMN brief_log.idiosyncratic_outlier IS 'FX pair most idiosyncratic vs G10 basket (low dual correlation).';
+COMMENT ON COLUMN brief_log.idiosyncratic_outlier IS 'FX pair most idiosyncratic vs FX basket (low dual correlation).';
 COMMENT ON COLUMN brief_log.sentiment_json IS 'Pre-baked Polymarket + synthesis metadata for UI (single-query home).';
 
 -- === supabase/migrations/20260428000017_terminal_launch_blockers.sql ===
--- G10 terminal: dual rate Z, breakeven, tail risk columns (service-role writes only; RLS unchanged).
+-- FX terminal: dual rate Z, breakeven, tail risk columns (service-role writes only; RLS unchanged).
 
 ALTER TABLE public.signals
   ADD COLUMN IF NOT EXISTS breakeven_inflation_10y double precision,
@@ -1106,18 +1109,14 @@ ALTER TABLE strategy_ledger
 SELECT 1;
 
 -- === supabase/migrations/20260504000000_pillar2_volume_rvol.sql ===
--- Pillar 2: RVOL Gate infrastructure (G10 Futures Proxies)
+-- Pillar 2: RVOL Gate infrastructure (FX Futures Proxies)
 
 -- 1. Add volume_ticker to universe for institutional liquidity proxies
 ALTER TABLE public.universe ADD COLUMN IF NOT EXISTS volume_ticker TEXT;
 
--- Seed G10 volume tickers (CME Futures)
+-- Seed FX volume tickers (CME Futures)
 UPDATE public.universe SET volume_ticker = '6E=F' WHERE pair = 'EURUSD';
 UPDATE public.universe SET volume_ticker = '6J=F' WHERE pair = 'USDJPY';
-UPDATE public.universe SET volume_ticker = '6B=F' WHERE pair = 'GBPUSD';
-UPDATE public.universe SET volume_ticker = '6A=F' WHERE pair = 'AUDUSD';
-UPDATE public.universe SET volume_ticker = '6C=F' WHERE pair = 'USDCAD';
-UPDATE public.universe SET volume_ticker = '6S=F' WHERE pair = 'USDCHF';
 
 -- 2. Add volume_rvol to signals table for Pillar 2 gating
 ALTER TABLE public.signals ADD COLUMN IF NOT EXISTS volume_rvol DOUBLE PRECISION;

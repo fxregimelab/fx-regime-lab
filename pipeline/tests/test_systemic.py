@@ -62,16 +62,16 @@ def test_cluster_detection_mutual_high_corr() -> None:
 
 
 def test_resolve_idiosyncratic_outlier_requires_both_horizons_low() -> None:
-    pairs = ("EURUSD", "GBPUSD")
-    c20 = {"EURUSD": 0.2, "GBPUSD": 0.5}
-    c60 = {"EURUSD": 0.25, "GBPUSD": 0.2}
+    pairs = ("EURUSD", "USDJPY")
+    c20 = {"EURUSD": 0.2, "USDJPY": 0.5}
+    c60 = {"EURUSD": 0.25, "USDJPY": 0.2}
     assert resolve_idiosyncratic_outlier(pairs, c20, c60) == "EURUSD"
 
 
 def test_resolve_idiosyncratic_outlier_none_when_aligned() -> None:
-    pairs = ("EURUSD", "GBPUSD")
-    c20 = {"EURUSD": 0.8, "GBPUSD": 0.7}
-    c60 = {"EURUSD": 0.75, "GBPUSD": 0.72}
+    pairs = ("EURUSD", "USDJPY")
+    c20 = {"EURUSD": 0.8, "USDJPY": 0.7}
+    c60 = {"EURUSD": 0.75, "USDJPY": 0.72}
     assert resolve_idiosyncratic_outlier(pairs, c20, c60) is None
 
 
