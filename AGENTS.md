@@ -12,7 +12,7 @@
 - **All AI calls** → `pipeline/src/ai/client.py`
 - **Immutable ledger:** `regime_calls` + `validation_log` append-only
 - **No GitHub Actions** — Prefect Cloud only
-- **Tests:** `pytest` 235 tests + `biome check` must pass
+- **Tests:** `pytest` 319 tests + `biome check` must pass
 - **Build:** `npm run build` must pass (Vercel Linux deployment is the canonical build; local Windows builds may fail due to a known Next.js 15.3.9 + Windows `readlink` EISDIR bug — see Known Issues below)
 - **Primary success metric:** EUR/USD rolling 90-day directional accuracy (target ≥ 55%)
 - **No new pairs until EUR/USD ≥ 55% on 90-day window** (3-pair lock)
