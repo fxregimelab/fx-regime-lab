@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, cast
 
+from postgrest.exceptions import APIError
+
 from src.db import writer
 
 logger = logging.getLogger(__name__)
@@ -77,16 +79,33 @@ def _load_data(pair: str, version: str) -> list[dict[str, Any]]:
     vl_rows: list[dict[str, Any]] = []
     offset = 0
     while True:
-        vl_res = (
-            writer._client()
-            .table("validation_log")
-            .select("date,pair,log_return_t5_bps,correct_t5,brier_score_t5")
-            .eq("pair", pair)
-            .gte("date", min_date)
-            .lte("date", max_date)
-            .range(offset, offset + page_size - 1)
-            .execute()
-        )
+        try:
+            vl_res = (
+                writer._client()
+                .table("validation_log")
+                .select("date,pair,log_return_t5_bps,correct_t5,brier_score_t5")
+                .eq("pair", pair)
+                .eq("is_superseded", False)
+                .gte("date", min_date)
+                .lte("date", max_date)
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+        except APIError as exc:
+            msg = str(getattr(exc, "message", "")) or str(exc)
+            if "column validation_log.is_superseded does not exist" in msg:
+                vl_res = (
+                    writer._client()
+                    .table("validation_log")
+                    .select("date,pair,log_return_t5_bps,correct_t5,brier_score_t5")
+                    .eq("pair", pair)
+                    .gte("date", min_date)
+                    .lte("date", max_date)
+                    .range(offset, offset + page_size - 1)
+                    .execute()
+                )
+            else:
+                raise
         batch = cast(list[dict[str, Any]], vl_res.data or [])
         if not batch:
             break

@@ -381,6 +381,7 @@ export function useValidationLog(pair?: string) {
       let query = supabase
         .from("validation_log")
         .select("*")
+        .eq("is_superseded", false)
         .order("created_at", { ascending: false })
         .limit(50);
       if (pair) {

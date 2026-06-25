@@ -216,9 +216,6 @@ def _batch_insert(rows: list[dict[str, Any]], batch_size: int = 1000) -> None:
 
     conn = _pg_conn()
 
-    # Disable immutable triggers temporarily
-    conn.run("ALTER TABLE validation_log DISABLE TRIGGER trg_protect_immutable_validation")
-
     # Get column list from first row (all rows have same keys)
     columns = list(rows[0].keys())
     col_str = ", ".join(columns)
@@ -244,7 +241,6 @@ def _batch_insert(rows: list[dict[str, Any]], batch_size: int = 1000) -> None:
         conn.run(sql, **params)
         logger.info("Inserted batch %d-%d", i, i + len(batch) - 1)
 
-    conn.run("ALTER TABLE validation_log ENABLE TRIGGER trg_protect_immutable_validation")
     conn.close()
 
 

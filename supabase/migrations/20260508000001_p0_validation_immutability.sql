@@ -34,19 +34,23 @@ ALTER TABLE public.validation_log
 ALTER TABLE public.validation_log
     ADD COLUMN IF NOT EXISTS brier_5d FLOAT;
 
--- Drop old unique index that conflicts with new semantics
+-- Drop old unique indexes that may have non-partial definitions from earlier
+-- migrations; recreate them as partial unique indexes for the versioning model.
 DROP INDEX IF EXISTS idx_validation_unique;
+DROP INDEX IF EXISTS idx_validation_call_id;
+DROP INDEX IF EXISTS idx_validation_call_pair;
 
--- Unique index on call_id for upsert idempotency
+-- Unique index on call_id for current versions only
+-- (Superseded historical versions are allowed to coexist.)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_validation_call_id
     ON public.validation_log (call_id)
-    WHERE call_id IS NOT NULL;
+    WHERE call_id IS NOT NULL AND is_superseded = false;
 
--- Unique index on (call_date, pair) for new rows
+-- Unique index on (call_date, pair) for current versions only
 -- (Legacy rows have call_date = NULL; Postgres NULLs do not conflict.)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_validation_call_pair
     ON public.validation_log (call_date, pair)
-    WHERE call_date IS NOT NULL;
+    WHERE call_date IS NOT NULL AND is_superseded = false;
 
 -- Non-unique index on (date, pair) for legacy queries
 CREATE INDEX IF NOT EXISTS idx_validation_date_pair
@@ -146,36 +150,60 @@ CREATE TRIGGER trg_protect_immutable_calls
 -- ───────────────────────────────────────────────────────────────────────────
 -- 5. Immutable trigger on validation_log (P0-T2)
 -- ───────────────────────────────────────────────────────────────────────────
--- Blocks UPDATE/DELETE on rows that already have T+5 validation data.
--- Rows with NULL brier_score_t5 may still be updated (T+20 backfill).
+-- Blocks all UPDATE and DELETE on validation_log. The only permitted
+-- mutation is setting is_superseded = true, which is required for the
+-- append-only versioning model. All other changes must create a new row.
 
 CREATE OR REPLACE FUNCTION public.protect_immutable_validation()
 RETURNS trigger AS $$
 BEGIN
     IF TG_OP = 'UPDATE' THEN
-        -- Allow updates that only fill in T+20 data on a row that already
-        -- has T+5 data, but block changes to T+5 columns once set.
-        IF OLD.brier_score_t5 IS NOT NULL THEN
-            -- Whitelist: only allow updates to T+20 fields and is_superseded
-            IF OLD.log_return_t5_bps IS DISTINCT FROM NEW.log_return_t5_bps
-               OR OLD.correct_t5 IS DISTINCT FROM NEW.correct_t5
-               OR OLD.brier_score_t5 IS DISTINCT FROM NEW.brier_score_t5
-               OR OLD.actual_direction_t5 IS DISTINCT FROM NEW.actual_direction_t5
-               OR OLD.call_date IS DISTINCT FROM NEW.call_date
-               OR OLD.pair IS DISTINCT FROM NEW.pair
-               OR OLD.call_id IS DISTINCT FROM NEW.call_id
-            THEN
-                RAISE EXCEPTION 'Validation_log T+5 data is immutable. Attempted update on row id=% (pair=%, date=%).',
-                    OLD.id, OLD.pair, OLD.date;
-            END IF;
+        -- Allow the single versioning operation: marking an old row superseded.
+        -- All other columns must remain unchanged.
+        IF NEW.is_superseded = true
+           AND OLD.is_superseded IS DISTINCT FROM NEW.is_superseded
+           AND OLD.id IS NOT DISTINCT FROM NEW.id
+           AND OLD.date IS NOT DISTINCT FROM NEW.date
+           AND OLD.pair IS NOT DISTINCT FROM NEW.pair
+           AND OLD.call IS NOT DISTINCT FROM NEW.call
+           AND OLD.outcome IS NOT DISTINCT FROM NEW.outcome
+           AND OLD.return_pct IS NOT DISTINCT FROM NEW.return_pct
+           AND OLD.created_at IS NOT DISTINCT FROM NEW.created_at
+           AND OLD.call_id IS NOT DISTINCT FROM NEW.call_id
+           AND OLD.validation_date IS NOT DISTINCT FROM NEW.validation_date
+           AND OLD.is_correct IS NOT DISTINCT FROM NEW.is_correct
+           AND OLD.pnl_bps IS NOT DISTINCT FROM NEW.pnl_bps
+           AND OLD.actual_direction_t5 IS NOT DISTINCT FROM NEW.actual_direction_t5
+           AND OLD.actual_direction_t20 IS NOT DISTINCT FROM NEW.actual_direction_t20
+           AND OLD.log_return_t5_bps IS NOT DISTINCT FROM NEW.log_return_t5_bps
+           AND OLD.log_return_t20_bps IS NOT DISTINCT FROM NEW.log_return_t20_bps
+           AND OLD.correct_t5 IS NOT DISTINCT FROM NEW.correct_t5
+           AND OLD.correct_t20 IS NOT DISTINCT FROM NEW.correct_t20
+           AND OLD.brier_score_t5 IS NOT DISTINCT FROM NEW.brier_score_t5
+           AND OLD.brier_score_t20 IS NOT DISTINCT FROM NEW.brier_score_t20
+           AND OLD.actual_return_5d IS NOT DISTINCT FROM NEW.actual_return_5d
+           AND OLD.actual_return_20d IS NOT DISTINCT FROM NEW.actual_return_20d
+           AND OLD.correct_5d IS NOT DISTINCT FROM NEW.correct_5d
+           AND OLD.correct_20d IS NOT DISTINCT FROM NEW.correct_20d
+           AND OLD.brier_5d IS NOT DISTINCT FROM NEW.brier_5d
+           AND OLD.brier_20d IS NOT DISTINCT FROM NEW.brier_20d
+           AND OLD.predicted_direction IS NOT DISTINCT FROM NEW.predicted_direction
+           AND OLD.predicted_regime IS NOT DISTINCT FROM NEW.predicted_regime
+           AND OLD.confidence IS NOT DISTINCT FROM NEW.confidence
+           AND OLD.call_date IS NOT DISTINCT FROM NEW.call_date
+           AND OLD.strategy_version IS NOT DISTINCT FROM NEW.strategy_version
+           AND OLD.data_source IS NOT DISTINCT FROM NEW.data_source
+        THEN
+            RETURN NEW;
         END IF;
+
+        RAISE EXCEPTION 'Validation_log is immutable. Update attempted on row id=% (pair=%, date=%).',
+            OLD.id, OLD.pair, OLD.date;
     END IF;
 
     IF TG_OP = 'DELETE' THEN
-        IF OLD.brier_score_t5 IS NOT NULL THEN
-            RAISE EXCEPTION 'Validation_log rows with T+5 data are immutable. Delete attempted on row id=% (pair=%, date=%).',
-                OLD.id, OLD.pair, OLD.date;
-        END IF;
+        RAISE EXCEPTION 'Validation_log is immutable. Delete attempted on row id=% (pair=%, date=%).',
+            OLD.id, OLD.pair, OLD.date;
     END IF;
 
     RETURN NEW;

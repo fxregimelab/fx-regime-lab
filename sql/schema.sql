@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS validation_log (
   outcome    TEXT  NOT NULL CHECK (outcome IN ('correct', 'incorrect')),
   return_pct FLOAT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  is_superseded BOOLEAN DEFAULT false,
   UNIQUE (pair, date)
 );
 
@@ -1282,12 +1283,25 @@ ALTER TABLE validation_log
 -- 2. Drop old unique index (it conflicts with new semantics where date = call_date)
 DROP INDEX IF EXISTS idx_validation_unique;
 
--- 3. Create new unique index on (call_date, pair) for new rows
+-- 3. Create partial unique index on (call_date, pair) for current versions only
 -- Legacy rows have call_date = NULL; Postgres NULLs do not conflict in unique indexes.
-CREATE UNIQUE INDEX IF NOT EXISTS idx_validation_call_pair ON validation_log (call_date, pair);
+-- Superseded historical versions are allowed to coexist.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_validation_call_pair
+    ON validation_log (call_date, pair)
+    WHERE call_date IS NOT NULL AND is_superseded = false;
 
--- 4. Keep non-unique index on (date, pair) for legacy queries
+-- 4. Partial unique index on call_id for current versions only
+CREATE UNIQUE INDEX IF NOT EXISTS idx_validation_call_id
+    ON validation_log (call_id)
+    WHERE call_id IS NOT NULL AND is_superseded = false;
+
+-- 5. Keep non-unique index on (date, pair) for legacy queries
 CREATE INDEX IF NOT EXISTS idx_validation_date_pair ON validation_log (date, pair);
+
+-- 6. Index for superseded lookups
+CREATE INDEX IF NOT EXISTS idx_validation_superseded
+    ON validation_log (is_superseded)
+    WHERE is_superseded = true;
 
 -- === supabase/migrations/20260505000002_validation_stats.sql ===
 -- Round 3 Phase 2 — Aggregate validation statistics table
@@ -1383,3 +1397,69 @@ BEGIN
       CHECK (position_size IS NULL OR position_size IN ('FULL', 'HALF'));
   END IF;
 END $$;
+
+-- === supabase/migrations/20260508000001_p0_validation_immutability.sql ===
+-- P0-T1 + P0-T2: Validation Engine schema alignment + Immutable Ledger Enforcement
+
+-- Immutable trigger on validation_log.
+-- Blocks all UPDATE and DELETE; the only permitted mutation is setting
+-- is_superseded = true for append-only versioning.
+CREATE OR REPLACE FUNCTION public.protect_immutable_validation()
+RETURNS trigger AS $$
+BEGIN
+    IF TG_OP = 'UPDATE' THEN
+        IF NEW.is_superseded = true
+           AND OLD.is_superseded IS DISTINCT FROM NEW.is_superseded
+           AND OLD.id IS NOT DISTINCT FROM NEW.id
+           AND OLD.date IS NOT DISTINCT FROM NEW.date
+           AND OLD.pair IS NOT DISTINCT FROM NEW.pair
+           AND OLD.call IS NOT DISTINCT FROM NEW.call
+           AND OLD.outcome IS NOT DISTINCT FROM NEW.outcome
+           AND OLD.return_pct IS NOT DISTINCT FROM NEW.return_pct
+           AND OLD.created_at IS NOT DISTINCT FROM NEW.created_at
+           AND OLD.call_id IS NOT DISTINCT FROM NEW.call_id
+           AND OLD.validation_date IS NOT DISTINCT FROM NEW.validation_date
+           AND OLD.is_correct IS NOT DISTINCT FROM NEW.is_correct
+           AND OLD.pnl_bps IS NOT DISTINCT FROM NEW.pnl_bps
+           AND OLD.actual_direction_t5 IS NOT DISTINCT FROM NEW.actual_direction_t5
+           AND OLD.actual_direction_t20 IS NOT DISTINCT FROM NEW.actual_direction_t20
+           AND OLD.log_return_t5_bps IS NOT DISTINCT FROM NEW.log_return_t5_bps
+           AND OLD.log_return_t20_bps IS NOT DISTINCT FROM NEW.log_return_t20_bps
+           AND OLD.correct_t5 IS NOT DISTINCT FROM NEW.correct_t5
+           AND OLD.correct_t20 IS NOT DISTINCT FROM NEW.correct_t20
+           AND OLD.brier_score_t5 IS NOT DISTINCT FROM NEW.brier_score_t5
+           AND OLD.brier_score_t20 IS NOT DISTINCT FROM NEW.brier_score_t20
+           AND OLD.actual_return_5d IS NOT DISTINCT FROM NEW.actual_return_5d
+           AND OLD.actual_return_20d IS NOT DISTINCT FROM NEW.actual_return_20d
+           AND OLD.correct_5d IS NOT DISTINCT FROM NEW.correct_5d
+           AND OLD.correct_20d IS NOT DISTINCT FROM NEW.correct_20d
+           AND OLD.brier_5d IS NOT DISTINCT FROM NEW.brier_5d
+           AND OLD.brier_20d IS NOT DISTINCT FROM NEW.brier_20d
+           AND OLD.predicted_direction IS NOT DISTINCT FROM NEW.predicted_direction
+           AND OLD.predicted_regime IS NOT DISTINCT FROM NEW.predicted_regime
+           AND OLD.confidence IS NOT DISTINCT FROM NEW.confidence
+           AND OLD.call_date IS NOT DISTINCT FROM NEW.call_date
+           AND OLD.strategy_version IS NOT DISTINCT FROM NEW.strategy_version
+           AND OLD.data_source IS NOT DISTINCT FROM NEW.data_source
+        THEN
+            RETURN NEW;
+        END IF;
+
+        RAISE EXCEPTION 'Validation_log is immutable. Update attempted on row id=% (pair=%, date=%).',
+            OLD.id, OLD.pair, OLD.date;
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'Validation_log is immutable. Delete attempted on row id=% (pair=%, date=%).',
+            OLD.id, OLD.pair, OLD.date;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_protect_immutable_validation ON public.validation_log;
+CREATE TRIGGER trg_protect_immutable_validation
+    BEFORE UPDATE OR DELETE ON public.validation_log
+    FOR EACH ROW
+    EXECUTE FUNCTION public.protect_immutable_validation();

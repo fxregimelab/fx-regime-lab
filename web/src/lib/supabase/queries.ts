@@ -233,18 +233,19 @@ export async function getValidationLog(
   supabase: TypedSupabaseClient,
   limit = 100,
 ): Promise<ValidationRow[]> {
-  // Try joined query first to fetch regime call labels
-  const { data, error } = await supabase
-    .from("validation_log")
-    .select("*, regime_calls!fk_validation_log_call_id(regime)")
-    .order("date", { ascending: false })
-    .limit(limit);
-
   const PAIR_DISPLAY: Record<string, string> = {
     EURUSD: "EUR/USD",
     USDJPY: "USD/JPY",
     USDINR: "USD/INR",
   };
+
+  // Try joined query first to fetch regime call labels
+  const { data, error } = await supabase
+    .from("validation_log")
+    .select("*, regime_calls!fk_validation_log_call_id(regime)")
+    .eq("is_superseded", false)
+    .order("date", { ascending: false })
+    .limit(limit);
 
   if (!error && data) {
     return (data as (ValidationLogRow & { regime_calls: { regime: string } })[])
@@ -266,6 +267,7 @@ export async function getValidationLog(
   const { data: fallback, error: fallbackErr } = await supabase
     .from("validation_log")
     .select("*")
+    .eq("is_superseded", false)
     .order("date", { ascending: false })
     .limit(limit);
 
@@ -392,6 +394,7 @@ export async function getValidationLogT5T20(
   let q = supabase
     .from("validation_log")
     .select("*")
+    .eq("is_superseded", false)
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
     .limit(limit);
@@ -484,12 +487,13 @@ export async function getRegimeBreakdown(
   limit = 100,
   dataSource = "live",
 ): Promise<RegimeBreakdownRow[]> {
-  // 1. Fetch validation outcomes
+  // 1. Fetch validation outcomes (current versions only)
   let q = supabase
     .from("validation_log")
     .select(
       "date, pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20",
     )
+    .eq("is_superseded", false)
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
     .limit(limit);
@@ -564,11 +568,12 @@ export async function getValidationLogForPair(
   };
   const code = PAIR_CODE[pair] ?? pair;
 
-  // Fetch validation_log rows
+  // Fetch validation_log rows (current versions only)
   const { data: valData, error: valError } = await supabase
     .from("validation_log")
     .select("*")
     .eq("pair", code)
+    .eq("is_superseded", false)
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
     .limit(limit);
@@ -759,6 +764,7 @@ export async function getPairValidationHistory(
     .from("validation_log")
     .select("*")
     .eq("pair", pair)
+    .eq("is_superseded", false)
     .not("brier_score_t5", "is", null)
     .order("date", { ascending: false })
     .limit(limit);
@@ -1364,6 +1370,7 @@ export async function getValidationByVersion(
     .select(
       "date,pair,predicted_direction,confidence,t5Outcome:correct_t5,t20Outcome:correct_t20,t5ReturnBps:log_return_t5_bps,t20ReturnBps:log_return_t20_bps,t5Brier:brier_score_t5,t20Brier:brier_score_t20,regime_calls!inner(model_version)",
     )
+    .eq("is_superseded", false)
     .eq("regime_calls.model_version", version)
     .order("date", { ascending: false })
     .limit(limit);
@@ -1381,6 +1388,7 @@ export async function getValidationByVersion(
     const { data: fallback, error: fallbackErr } = await supabase
       .from("validation_log")
       .select("*")
+      .eq("is_superseded", false)
       .order("date", { ascending: false })
       .limit(limit);
     if (fallbackErr || !fallback) return [];

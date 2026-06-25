@@ -295,8 +295,40 @@ def update_desk_open_card_telemetry_audit(
 _has_call_date: bool | None = None
 
 
+_VALIDATION_IGNORED_DIFF_KEYS = {"id", "created_at", "is_superseded"}
+
+
+def _validation_payload_matches_existing(
+    payload: dict[str, Any], existing: dict[str, Any]
+) -> bool:
+    """Return True when every substantive field in *payload* matches *existing*."""
+    for key, value in payload.items():
+        if key in _VALIDATION_IGNORED_DIFF_KEYS:
+            continue
+        if existing.get(key) != value:
+            return False
+    return True
+
+
+def _insert_validation_log(payload: dict[str, Any]) -> None:
+    """Insert a validation_log row, stripping unknown columns on legacy schemas."""
+    client = _client()
+    insert_payload = {k: v for k, v in payload.items() if k != "id"}
+    for _attempt in range(10):
+        try:
+            client.table("validation_log").insert(insert_payload).execute()
+            return
+        except APIError as exc:
+            msg = str(getattr(exc, "message", "")) or str(exc)
+            if "Could not find the '" in msg and "' column of 'validation_log'" in msg:
+                col_match = msg.split("Could not find the '")[1].split("'")[0]
+                insert_payload.pop(col_match, None)
+                continue
+            raise
+
+
 def get_validation_log_entry(call_date: date | str, pair: str) -> dict[str, Any] | None:
-    """Fetch existing validation_log row for a given call_date + pair.
+    """Fetch the current (non-superseded) validation_log row for a call + pair.
 
     Falls back to ``date`` when ``call_date`` column is not yet migrated.
     Probes the schema once and caches the result to avoid repeated failed
@@ -313,6 +345,9 @@ def get_validation_log_entry(call_date: date | str, pair: str) -> dict[str, Any]
                 .select("*")
                 .eq("call_date", iso)
                 .eq("pair", pair)
+                .eq("is_superseded", False)
+                .order("created_at", desc=True)
+                .limit(1)
                 .maybe_single()
                 .execute()
             )
@@ -325,177 +360,147 @@ def get_validation_log_entry(call_date: date | str, pair: str) -> dict[str, Any]
             msg = str(getattr(exc, "message", "")) or str(exc)
             if "column validation_log.call_date does not exist" in msg:
                 _has_call_date = False
+            elif "column validation_log.is_superseded does not exist" in msg:
+                # Schema has call_date but not yet is_superseded
+                try:
+                    res = (
+                        client.table("validation_log")
+                        .select("*")
+                        .eq("call_date", iso)
+                        .eq("pair", pair)
+                        .maybe_single()
+                        .execute()
+                    )
+                    if res is not None:
+                        raw = res.data
+                        if isinstance(raw, dict):
+                            _has_call_date = True
+                            return cast(dict[str, Any], raw)
+                except APIError:
+                    pass
             else:
                 raise
 
     # Legacy schema fallback
-    res = (
-        client.table("validation_log")
-        .select("*")
-        .eq("date", iso)
-        .eq("pair", pair)
-        .maybe_single()
-        .execute()
-    )
-    if res is not None:
-        raw = res.data
-        if isinstance(raw, dict):
-            return cast(dict[str, Any], raw)
+    if _has_call_date is not True:
+        try:
+            res = (
+                client.table("validation_log")
+                .select("*")
+                .eq("date", iso)
+                .eq("pair", pair)
+                .eq("is_superseded", False)
+                .order("created_at", desc=True)
+                .limit(1)
+                .maybe_single()
+                .execute()
+            )
+            if res is not None:
+                raw = res.data
+                if isinstance(raw, dict):
+                    return cast(dict[str, Any], raw)
+        except APIError as exc:
+            msg = str(getattr(exc, "message", "")) or str(exc)
+            if "column validation_log.is_superseded does not exist" in msg:
+                res = (
+                    client.table("validation_log")
+                    .select("*")
+                    .eq("date", iso)
+                    .eq("pair", pair)
+                    .maybe_single()
+                    .execute()
+                )
+                if res is not None:
+                    raw = res.data
+                    if isinstance(raw, dict):
+                        return cast(dict[str, Any], raw)
+            else:
+                raise
     return None
 
 
 def write_validation_row(row: Mapping[str, Any]) -> None:
-    """Insert or update validation_log row.
+    """Insert a validation_log row, versioning if materially different.
 
-    Uses ``call_id`` as the conflict key when available (preferred for
-    idempotency).  Falls back to ``call_date, pair`` or ``date, pair``
-    depending on schema maturity.
-
-    Guard: if the existing row already has T+5 data (non-null
-    ``log_return_t5_bps``), the T+5 fields in *payload* are stripped so
-    the immutable validation trigger is not violated.
-
-    If no unique constraint exists for upsert, falls back to manual
-    select-then-insert/update to avoid silent failures.
+    The validation_log is an append-only ledger. If a current
+    (non-superseded) row already exists for the same call and the new
+    payload is materially different, the existing row is marked
+    ``is_superseded = true`` and the new row is inserted. If the payload
+    is identical, the write is skipped.
     """
     payload = cast(dict[str, Any], dict(row))
     client = _client()
 
     call_id = payload.get("call_id")
-    call_date = payload.get("call_date")
     pair = payload.get("pair")
-    date_val = call_date or payload.get("date")
+    date_val = payload.get("call_date") or payload.get("date")
 
-    # ── Guard against overwriting validated T+5 data ────────────────
-    existing_id: int | None = None
+    # Ensure new rows start as current versions.
+    payload["is_superseded"] = False
+
+    # ── Find current (non-superseded) row ─────────────────────────────
+    existing: dict[str, Any] | None = None
     if call_id is not None:
-        try:
-            existing = (
-                client.table("validation_log")
-                .select("id,log_return_t5_bps")
-                .eq("call_id", call_id)
-                .maybe_single()
-                .execute()
-            )
-            if existing is not None and existing.data is not None:
-                raw = existing.data
-                if isinstance(raw, dict):
-                    if raw.get("log_return_t5_bps") is not None:
-                        for key in (
-                            "log_return_t5_bps",
-                            "correct_t5",
-                            "brier_score_t5",
-                            "actual_direction_t5",
-                            "actual_return_5d",
-                            "correct_5d",
-                            "brier_5d",
-                        ):
-                            payload.pop(key, None)
-                    existing_id = raw.get("id")
-        except APIError:
-            pass  # Schema may not have call_id yet
-
-    # If no existing row by call_id, try by date+pair
-    if existing_id is None and pair is not None and date_val is not None:
         try:
             res = (
                 client.table("validation_log")
-                .select("id,log_return_t5_bps")
-                .eq("pair", pair)
-                .eq("date", date_val)
+                .select("*")
+                .eq("call_id", call_id)
+                .eq("is_superseded", False)
+                .order("created_at", desc=True)
+                .limit(1)
                 .maybe_single()
                 .execute()
             )
             if res is not None and res.data is not None:
                 raw = res.data
                 if isinstance(raw, dict):
-                    if raw.get("log_return_t5_bps") is not None:
-                        for key in (
-                            "log_return_t5_bps",
-                            "correct_t5",
-                            "brier_score_t5",
-                            "actual_direction_t5",
-                            "actual_return_5d",
-                            "correct_5d",
-                            "brier_5d",
-                        ):
-                            payload.pop(key, None)
-                    existing_id = raw.get("id")
-        except APIError:
-            pass
-
-    # ── Write: upsert preferred, manual update/insert fallback ──────
-    _upsert_validation_log(payload, existing_id)
-
-
-def _upsert_validation_log(payload: dict[str, Any], existing_id: int | None) -> None:
-    """Attempt upsert; if unique constraint missing, fall back to update/insert."""
-    client = _client()
-
-    # Prefer update when we know the row id
-    if existing_id is not None:
-        try:
-            update_payload = {k: v for k, v in payload.items() if k != "id"}
-            client.table("validation_log").update(update_payload).eq("id", existing_id).execute()
-            return
+                    existing = cast(dict[str, Any], raw)
         except APIError as exc:
             msg = str(getattr(exc, "message", "")) or str(exc)
-            if "Could not find the '" in msg and "' column of 'validation_log'" in msg:
-                col_match = msg.split("Could not find the '")[1].split("'")[0]
-                update_payload.pop(col_match, None)
-                (
+            if "column validation_log.is_superseded does not exist" in msg:
+                res = (
                     client.table("validation_log")
-                    .update(update_payload)
-                    .eq("id", existing_id)
+                    .select("*")
+                    .eq("call_id", call_id)
+                    .maybe_single()
                     .execute()
                 )
+                if res is not None and res.data is not None:
+                    raw = res.data
+                    if isinstance(raw, dict):
+                        existing = cast(dict[str, Any], raw)
+            elif "column validation_log.call_id does not exist" not in msg:
+                raise
+
+    if existing is None and pair is not None and date_val is not None:
+        existing = get_validation_log_entry(date_val, pair)
+
+    if existing is not None:
+        # If the existing row already has T+5 data and the payload would not
+        # add T+20 data, skip the write. This avoids creating a duplicate
+        # partial version when only metadata/non-result fields differ.
+        if existing.get("log_return_t5_bps") is not None:
+            existing_has_t20 = existing.get("log_return_t20_bps") is not None
+            payload_has_t20 = payload.get("log_return_t20_bps") is not None
+            if existing_has_t20 or not payload_has_t20:
                 return
-            raise
 
-    # Try upsert first
-    conflict_key = "pair,date"
-    if payload.get("call_id") is not None:
-        conflict_key = "call_id"
-    elif payload.get("call_date") is not None:
-        conflict_key = "pair,call_date"
-
-    for _attempt in range(10):
-        try:
-            client.table("validation_log").upsert(payload, on_conflict=conflict_key).execute()
+        # Idempotency: if every substantive payload field already matches,
+        # do not insert another identical row.
+        if _validation_payload_matches_existing(payload, existing):
             return
-        except APIError as exc:
-            msg = str(getattr(exc, "message", "")) or str(exc)
 
-            if "Could not find the '" in msg and "' column of 'validation_log'" in msg:
-                col_match = msg.split("Could not find the '")[1].split("'")[0]
-                payload.pop(col_match, None)
-                continue
+        # Materially different: mark the existing row superseded, then insert
+        # the new current version. The trigger allows updates that only touch
+        # is_superseded.
+        existing_id = existing.get("id")
+        if existing_id is not None:
+            client.table("validation_log").update({"is_superseded": True}).eq(
+                "id", existing_id
+            ).execute()
 
-            if "no unique or exclusion constraint matching the ON CONFLICT" in msg:
-                # No upsert possible — fall back to plain insert
-                # (duplicates are unlikely because we checked for existing rows above)
-                try:
-                    client.table("validation_log").insert(payload).execute()
-                    return
-                except APIError as exc2:
-                    msg2 = str(getattr(exc2, "message", "")) or str(exc2)
-                    if "Could not find the '" in msg2 and "' column of 'validation_log'" in msg2:
-                        col_match2 = msg2.split("Could not find the '")[1].split("'")[0]
-                        payload.pop(col_match2, None)
-                        continue
-                    if "duplicate key value violates unique constraint" in msg2:
-                        return  # Row already exists
-                    raise
-
-            if (
-                "column validation_log.call_date does not exist" in msg
-                and "pair,date" not in conflict_key
-            ):
-                payload.pop("call_date", None)
-                conflict_key = "pair,date"
-                continue
-
-            raise
+    _insert_validation_log(payload)
 
 
 def write_brief(
@@ -958,10 +963,80 @@ def get_historical_price_for_date(pair: str, date_str: str) -> dict[str, Any] | 
     return None
 
 
+def _validation_log_has_t5_for_call(
+    call_id: Any, call_date: str, pair: str
+) -> bool:
+    """Return True when a current (non-superseded) validation_log row exists."""
+    client = _client()
+
+    def _by_call_id(include_superseded_filter: bool) -> Any:
+        q = (
+            client.table("validation_log")
+            .select("brier_score_t5")
+            .eq("call_id", call_id)
+            .not_.is_("brier_score_t5", "null")
+        )
+        if include_superseded_filter:
+            q = q.eq("is_superseded", False)
+        return q.maybe_single().execute()
+
+    def _by_date_pair(include_superseded_filter: bool) -> Any:
+        q = (
+            client.table("validation_log")
+            .select("brier_score_t5")
+            .eq("date", call_date)
+            .eq("pair", pair)
+            .not_.is_("brier_score_t5", "null")
+        )
+        if include_superseded_filter:
+            q = q.eq("is_superseded", False)
+        return q.maybe_single().execute()
+
+    if call_id is not None:
+        try:
+            vres = _by_call_id(include_superseded_filter=True)
+            if vres is not None and vres.data is not None:
+                return True
+        except APIError as exc:
+            msg = str(getattr(exc, "message", "")) or str(exc)
+            if "column validation_log.is_superseded does not exist" in msg:
+                try:
+                    vres = _by_call_id(include_superseded_filter=False)
+                    if vres is not None and vres.data is not None:
+                        return True
+                except Exception:
+                    pass
+            elif "column validation_log.call_id does not exist" not in msg:
+                pass
+        except Exception:
+            pass
+
+    try:
+        vres = _by_date_pair(include_superseded_filter=True)
+        if vres is not None and vres.data is not None:
+            return True
+    except APIError as exc:
+        msg = str(getattr(exc, "message", "")) or str(exc)
+        if "column validation_log.is_superseded does not exist" in msg:
+            try:
+                vres = _by_date_pair(include_superseded_filter=False)
+                if vres is not None and vres.data is not None:
+                    return True
+            except Exception:
+                pass
+        else:
+            pass
+    except Exception:
+        pass
+
+    return False
+
+
 def get_unvalidated_regime_calls(limit: int | None = None) -> list[dict[str, Any]]:
-    """Return regime_calls rows lacking a validation_log entry with brier_score_t5.
+    """Return regime_calls rows lacking a current validation_log entry with brier_score_t5.
 
     Ordered by date ascending (oldest first) so backfill proceeds chronologically.
+    Superseded validation_log rows are ignored.
     """
     query = (
         _client()
@@ -975,50 +1050,13 @@ def get_unvalidated_regime_calls(limit: int | None = None) -> list[dict[str, Any
     res = query.execute()
     calls = cast(list[dict[str, Any]], res.data or [])
 
-    # Filter out calls that already have validation_log entries with brier_score_t5
     unvalidated: list[dict[str, Any]] = []
     for call in calls:
         call_id = call.get("id")
         call_date = str(call.get("date"))[:10]
         pair = str(call.get("pair"))
 
-        # Check validation_log by call_id when available
-        has_validation = False
-        if call_id is not None:
-            try:
-                vres = (
-                    _client()
-                    .table("validation_log")
-                    .select("brier_score_t5")
-                    .eq("call_id", call_id)
-                    .not_.is_("brier_score_t5", "null")
-                    .maybe_single()
-                    .execute()
-                )
-                if vres is not None and vres.data is not None:
-                    has_validation = True
-            except Exception:
-                pass
-
-        # Fallback: check by date + pair
-        if not has_validation:
-            try:
-                vres = (
-                    _client()
-                    .table("validation_log")
-                    .select("brier_score_t5")
-                    .eq("date", call_date)
-                    .eq("pair", pair)
-                    .not_.is_("brier_score_t5", "null")
-                    .maybe_single()
-                    .execute()
-                )
-                if vres is not None and vres.data is not None:
-                    has_validation = True
-            except Exception:
-                pass
-
-        if not has_validation:
+        if not _validation_log_has_t5_for_call(call_id, call_date, pair):
             unvalidated.append(call)
 
     return unvalidated
@@ -1250,11 +1288,15 @@ def bulk_write_backfill_results(
 ) -> None:
     """Bulk-persist backfill (signal, call) tuples for a single pair.
 
-    This is a deliberate, audited exception to the immutable-ledger triggers:
-    backfills must first purge stale reconstructed rows for the pair before
-    inserting the regenerated history. Triggers are disabled for the duration,
-    deletes/inserts are committed per batch, and triggers are re-enabled before
-    the function returns.
+    This is a deliberate, audited exception for ``signals`` and
+    ``regime_calls``: backfills must first purge stale reconstructed rows
+    for the pair before inserting the regenerated history. Triggers are
+    disabled for the duration, deletes/inserts are committed per batch, and
+    triggers are re-enabled before the function returns.
+
+    ``validation_log`` is intentionally untouched: it is an immutable
+    append-only ledger and is never deleted or updated here (the trigger
+    that blocks UPDATE/DELETE remains enabled).
     """
     if not results:
         return
@@ -1262,9 +1304,7 @@ def bulk_write_backfill_results(
     conn = _pg_conn()
     conn.run("ALTER TABLE regime_calls DISABLE TRIGGER trg_protect_immutable_calls")
     conn.run("ALTER TABLE regime_calls DISABLE TRIGGER trg_log_regime_call_audit")
-    conn.run("ALTER TABLE validation_log DISABLE TRIGGER trg_protect_immutable_validation")
 
-    conn.run("DELETE FROM validation_log WHERE pair = :pair", pair=pair)
     conn.run("DELETE FROM signals WHERE pair = :pair", pair=pair)
     conn.run("DELETE FROM regime_calls WHERE pair = :pair", pair=pair)
 
@@ -1403,7 +1443,6 @@ def bulk_write_backfill_results(
 
     conn.run("ALTER TABLE regime_calls ENABLE TRIGGER trg_protect_immutable_calls")
     conn.run("ALTER TABLE regime_calls ENABLE TRIGGER trg_log_regime_call_audit")
-    conn.run("ALTER TABLE validation_log ENABLE TRIGGER trg_protect_immutable_validation")
 
     conn.close()
     logger.info(
@@ -1678,14 +1717,29 @@ def get_regime_calls_dqs_for_date(date_str: str) -> list[float]:
 
 
 def count_validation_log_for_date(date_str: str) -> int:
-    res = (
-        _client()
-        .table("validation_log")
-        .select("id", count=CountMethod.exact)
-        .eq("date", str(date_str)[:10])
-        .execute()
-    )
-    return getattr(res, "count", 0) or 0
+    """Count current (non-superseded) validation_log rows for a date."""
+    try:
+        res = (
+            _client()
+            .table("validation_log")
+            .select("id", count=CountMethod.exact)
+            .eq("date", str(date_str)[:10])
+            .eq("is_superseded", False)
+            .execute()
+        )
+        return getattr(res, "count", 0) or 0
+    except APIError as exc:
+        msg = str(getattr(exc, "message", "")) or str(exc)
+        if "column validation_log.is_superseded does not exist" in msg:
+            res = (
+                _client()
+                .table("validation_log")
+                .select("id", count=CountMethod.exact)
+                .eq("date", str(date_str)[:10])
+                .execute()
+            )
+            return getattr(res, "count", 0) or 0
+        raise
 
 
 def brief_log_exists_for_date(date_str: str) -> bool:
