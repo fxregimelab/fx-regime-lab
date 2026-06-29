@@ -176,8 +176,12 @@ def write_call_rationale(rows: list[dict[str, Any]]) -> None:
         return
     try:
         _client().table("call_rationale").upsert(rows, on_conflict="call_id").execute()
-    except Exception:
-        logger.warning("call_rationale write skipped (table may not exist)")
+    except APIError as exc:
+        msg = str(getattr(exc, "message", "")) or str(exc)
+        if 'relation "call_rationale" does not exist' in msg:
+            logger.warning("call_rationale write skipped (table does not exist)")
+            return
+        raise
 
 
 def get_desk_open_cards_for_date(date_str: str) -> list[dict[str, Any]]:

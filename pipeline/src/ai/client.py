@@ -356,18 +356,30 @@ def _call_preferred_model(
     response_format: dict[str, str] | None = None,
     timeout_seconds: float | None = None,
 ) -> str:
-    """Sync wrapper for preferred-model path."""
-    return asyncio.run(
-        _call_preferred_model_async(
-            model=model,
-            messages=messages,
-            max_tokens=max_tokens,
-            date_str=date_str,
-            purpose=purpose,
-            response_format=response_format,
-            timeout_seconds=timeout_seconds,
-        )
+    """Sync wrapper for preferred-model path.
+
+    Handles being called from within an already-running event loop
+    (e.g. inside a Prefect async flow) by offloading to a thread.
+    """
+    coro = _call_preferred_model_async(
+        model=model,
+        messages=messages,
+        max_tokens=max_tokens,
+        date_str=date_str,
+        purpose=purpose,
+        response_format=response_format,
+        timeout_seconds=timeout_seconds,
     )
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    import concurrent.futures
+
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        future = pool.submit(asyncio.run, coro)
+        return future.result()
 
 
 # ── Timeout helper ───────────────────────────────────────────────────────────
@@ -845,7 +857,32 @@ def generate_linkedin_alpha_hook(card_data: dict[str, Any]) -> str:
     from datetime import date
 
     ds = str(card_data.get("date") or date.today().isoformat())
-    return asyncio.run(generate_linkedin_alpha_hook_async(card_data, date_str=ds))
+    payload = json.dumps(card_data, ensure_ascii=False, default=str)
+    base_url = os.environ.get("SITE_PUBLIC_URL", "https://fxregimelab.com").rstrip("/")
+    prompt = (
+        "You are an Institutional FX Strategist. Write a 1,200 character LinkedIn post "
+        "based on the provided Apex Target data.\n"
+        "STRICT CONSTRAINTS:\n"
+        "- STRICTLY NO MARKETING FLUFF.\n"
+        "- No emojis.\n"
+        "- No hashtags.\n"
+        "- Style: institutional shorthand only (e.g., \"1.5x MAD breach,\" \"COT extremes,\" "
+        "\"Asymmetric Downside\").\n"
+        "- Structure exactly four blocks separated by line breaks:\n"
+        "  [REGIME ALERT] then [THE NUMBERS] then [THE SQUEEZE RISK] then [LINK]\n"
+        "- In [LINK], give one plain URL: use pair slug from data (lowercase, e.g. eurusd) as "
+        f"{base_url}/terminal/fx-regime/<slug>\n"
+        f"APEX_TARGET_JSON:\n{payload}\n"
+        "Output: plain text only. Max ~1200 characters. No markdown."
+    )
+    messages = [{"role": "user", "content": prompt}]
+    return _call_preferred_model(
+        model=GROQ_PRIMARY_MODEL,
+        messages=messages,
+        max_tokens=520,
+        date_str=ds,
+        purpose="linkedin_alpha_hook",
+    )
 
 
 async def generate_global_macro_summary(

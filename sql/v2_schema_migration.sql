@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS call_rationale (
     primary_driver_detail TEXT,
     confidence_explanation TEXT,
     contrarian_flags TEXT[],
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT uq_call_rationale_call_id UNIQUE (call_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_call_rationale_call_id ON call_rationale(call_id);
