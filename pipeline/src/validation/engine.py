@@ -1,56 +1,40 @@
 from __future__ import annotations
 
 import logging
-import math
 from datetime import date
 from typing import Any
 
 from src.db import writer
 from src.types import load_universe
+from src.validation.calculator import (
+    COST_BPS_ROUND_TRIP,
+    DEADBAND_BPS,
+    HorizonMetrics,
+    brier_score,
+    compute_horizon_metrics,
+    horizon_metrics_to_payload,
+    is_correct,
+    is_correct_net,
+    log_return_bps,
+    realized_direction,
+)
 from src.validation.calendar import add_trading_days
 
 logger = logging.getLogger(__name__)
 
-# v2.1: Transaction cost assumptions for realistic performance reporting
-COST_BPS_ROUND_TRIP = {
-    "EURUSD": 0.2,   # 0.1 bps each way
-    "USDJPY": 0.3,
-    "USDINR": 10.0,  # EM spread
-}
-
-
-def log_return_bps(s0: float, sh: float) -> float:
-    """Log-return in basis points: 10_000 * ln(sh / s0)."""
-    return 10_000.0 * math.log(sh / s0)
-
-
-def realized_direction(bps: float, deadband: float = 5.0) -> str:
-    """Map log-return bps to realized directional label."""
-    if bps > deadband:
-        return "UP"
-    if bps < -deadband:
-        return "DOWN"
-    return "NEUTRAL"
-
-
-def is_correct(predicted: str, realized: str) -> bool:
-    """Check if predicted direction matches realized direction."""
-    p = predicted.strip().upper()
-    r = realized.strip().upper()
-    if p == "BULLISH":
-        return r == "UP"
-    if p == "BEARISH":
-        return r == "DOWN"
-    if p == "NEUTRAL":
-        return r == "NEUTRAL"
-    return False
-
-
-def brier_score(confidence: float, correct: bool) -> float | None:
-    """Brier score: (p - y)^2.  Returns None for neutral predictions."""
-    p = float(confidence)
-    y = 1.0 if correct else 0.0
-    return (p - y) ** 2
+__all__ = [
+    "COST_BPS_ROUND_TRIP",
+    "DEADBAND_BPS",
+    "HorizonMetrics",
+    "brier_score",
+    "compute_horizon_metrics",
+    "horizon_metrics_to_payload",
+    "is_correct",
+    "is_correct_net",
+    "log_return_bps",
+    "realized_direction",
+    "run_validation",
+]
 
 
 def _date_from_raw(raw: Any) -> date:
@@ -66,33 +50,28 @@ def _compute_horizon(
     confidence: float,
     pair: str,
 ) -> dict[str, Any] | None:
-    """Compute validation metrics including cost-adjusted returns."""
+    """Backward-compatible dict wrapper around compute_horizon_metrics."""
     if sh_row is None or sh_row.get("spot") is None:
         return None
-    
-    sh = float(sh_row["spot"])
-    bps_gross = log_return_bps(s0, sh)
-    
-    # v2.1: Cost-adjusted metrics
-    cost_bps = COST_BPS_ROUND_TRIP.get(pair, 0.5)
-    bps_net = bps_gross - cost_bps
-    
-    realized_gross = realized_direction(bps_gross)
-    # v2.1 fix: Net correctness uses SAME realized direction as gross.
-    # Costs affect P&L and returns, not directional accuracy.
-    correct_gross = is_correct(predicted, realized_gross)
-    correct_net = correct_gross
-    
-    brier = brier_score(confidence, correct_gross)  # Brier on gross (existing)
-    
+
+    metrics = compute_horizon_metrics(
+        s0,
+        float(sh_row["spot"]),
+        predicted,
+        confidence,
+        pair,
+    )
+    if metrics is None:
+        return None
+
     return {
-        "log_return_bps": bps_gross,
-        "log_return_net_bps": bps_net,
-        "realized_direction": realized_gross,
-        "correct": correct_gross,
-        "correct_net": correct_net,
-        "brier_score": brier,
-        "cost_bps": cost_bps,
+        "log_return_bps": metrics.log_return_bps,
+        "log_return_net_bps": metrics.log_return_net_bps,
+        "realized_direction": metrics.realized_direction,
+        "correct": metrics.correct,
+        "correct_net": metrics.correct_net,
+        "brier_score": metrics.brier_score,
+        "cost_bps": metrics.cost_bps,
     }
 
 
@@ -124,7 +103,6 @@ def run_validation(as_of_date: date | None = None) -> None:
             t5_date = add_trading_days(call_date, 5)
             t20_date = add_trading_days(call_date, 20)
 
-            # Skip if we haven't even reached T+5 yet
             if as_of_date < t5_date:
                 continue
 
@@ -153,10 +131,7 @@ def run_validation(as_of_date: date | None = None) -> None:
             if call_id is not None:
                 payload["call_id"] = call_id
 
-            # ── T+5 horizon ──────────────────────────────────────────────
-            t5_stats: dict[str, Any] | None = None
             if existing and existing.get("log_return_t5_bps") is not None:
-                # T+5 already validated — carry forward all T+5 fields
                 for key in (
                     "log_return_t5_bps",
                     "correct_t5",
@@ -165,24 +140,23 @@ def run_validation(as_of_date: date | None = None) -> None:
                     "actual_return_5d",
                     "correct_5d",
                     "brier_5d",
+                    "log_return_net_bps_t5",
+                    "correct_net_t5",
+                    "cost_bps_t5",
                 ):
                     if existing.get(key) is not None:
                         payload[key] = existing[key]
             else:
                 sh_row = writer.get_signal_for_pair_date(pair, t5_date.isoformat())
-                t5_stats = _compute_horizon(s0, sh_row, predicted, confidence, pair)
-                if t5_stats is not None:
-                    payload["log_return_t5_bps"] = t5_stats["log_return_bps"]
-                    payload["correct_t5"] = t5_stats["correct"]
-                    payload["brier_score_t5"] = t5_stats["brier_score"]
-                    payload["actual_direction_t5"] = t5_stats["realized_direction"]
-                    # Legacy columns (decimal fraction)
-                    payload["actual_return_5d"] = t5_stats["log_return_bps"] / 10_000.0
-                    payload["correct_5d"] = t5_stats["correct"]
-                    payload["brier_5d"] = t5_stats["brier_score"]
-                    payload["log_return_net_bps_t5"] = t5_stats["log_return_net_bps"]
-                    payload["correct_net_t5"] = t5_stats["correct_net"]
-                    payload["cost_bps_t5"] = t5_stats["cost_bps"]
+                t5_metrics = compute_horizon_metrics(
+                    s0,
+                    float(sh_row["spot"]) if sh_row and sh_row.get("spot") is not None else None,
+                    predicted,
+                    confidence,
+                    pair,
+                )
+                if t5_metrics is not None:
+                    payload.update(horizon_metrics_to_payload(t5_metrics, "t5"))
                 else:
                     logger.warning(
                         "Validation skip: missing T+5 spot for %s on %s",
@@ -190,11 +164,8 @@ def run_validation(as_of_date: date | None = None) -> None:
                         t5_date.isoformat(),
                     )
 
-            # ── T+20 horizon ─────────────────────────────────────────────
-            t20_stats: dict[str, Any] | None = None
             if as_of_date >= t20_date:
                 if existing and existing.get("log_return_t20_bps") is not None:
-                    # T+20 already validated — carry forward
                     for key in (
                         "log_return_t20_bps",
                         "correct_t20",
@@ -203,24 +174,28 @@ def run_validation(as_of_date: date | None = None) -> None:
                         "actual_return_20d",
                         "correct_20d",
                         "brier_20d",
+                        "log_return_net_bps_t20",
+                        "correct_net_t20",
+                        "cost_bps_t20",
                     ):
                         if existing.get(key) is not None:
                             payload[key] = existing[key]
                 else:
                     sh_row = writer.get_signal_for_pair_date(pair, t20_date.isoformat())
-                    t20_stats = _compute_horizon(s0, sh_row, predicted, confidence, pair)
-                    if t20_stats is not None:
-                        payload["log_return_t20_bps"] = t20_stats["log_return_bps"]
-                        payload["correct_t20"] = t20_stats["correct"]
-                        payload["brier_score_t20"] = t20_stats["brier_score"]
-                        payload["actual_direction_t20"] = t20_stats["realized_direction"]
-                        # Legacy-style T+20 columns
-                        payload["actual_return_20d"] = t20_stats["log_return_bps"] / 10_000.0
-                        payload["correct_20d"] = t20_stats["correct"]
-                        payload["brier_20d"] = t20_stats["brier_score"]
-                        payload["log_return_net_bps_t20"] = t20_stats["log_return_net_bps"]
-                        payload["correct_net_t20"] = t20_stats["correct_net"]
-                        payload["cost_bps_t20"] = t20_stats["cost_bps"]
+                    t20_spot = (
+                        float(sh_row["spot"])
+                        if sh_row and sh_row.get("spot") is not None
+                        else None
+                    )
+                    t20_metrics = compute_horizon_metrics(
+                        s0,
+                        t20_spot,
+                        predicted,
+                        confidence,
+                        pair,
+                    )
+                    if t20_metrics is not None:
+                        payload.update(horizon_metrics_to_payload(t20_metrics, "t20"))
                     else:
                         logger.warning(
                             "Validation skip: missing T+20 spot for %s on %s",
@@ -228,7 +203,6 @@ def run_validation(as_of_date: date | None = None) -> None:
                             t20_date.isoformat(),
                         )
 
-            # ── Write ────────────────────────────────────────────────────
             has_t5 = payload.get("log_return_t5_bps") is not None
             has_t20 = payload.get("log_return_t20_bps") is not None
             if has_t5 or has_t20:

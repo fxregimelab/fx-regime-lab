@@ -115,7 +115,9 @@ class TestWriteValidationRow:
         )
 
         mock_table.insert.assert_called_once()
-        payload = mock_table.insert.call_args[0][0]
+        inserted = mock_table.insert.call_args[0][0]
+        assert isinstance(inserted, list) and len(inserted) == 1
+        payload = inserted[0]
         assert payload["call_id"] == 42
         assert payload["is_superseded"] is False
         mock_table.update.assert_not_called()

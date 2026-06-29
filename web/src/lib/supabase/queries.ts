@@ -1,4 +1,23 @@
 import { DEFAULT_ACCURACY_GATE, EURUSD_ACCURACY_GATE } from "@/lib/config";
+import {
+  DataSource,
+  LIVE_CUTOFF_DATE,
+  applyDataSourceDateFilter,
+} from "@/lib/data/adapters/data-source";
+import { toLegacyRegimeCall } from "@/lib/data/adapters/supabase-validation-adapter";
+import type { RegimeCall } from "@/lib/data/domain/regime";
+import type {
+  ValidationStats as DomainValidationStats,
+  RegimeBreakdownEntry,
+  ValidationEntry,
+} from "@/lib/data/domain/validation";
+import {
+  formatRegimeLabel,
+  toLegacyOutcome,
+} from "@/lib/data/presentation/outcomes";
+import { formatPairCode } from "@/lib/data/presentation/pairs";
+import { RegimeCallRepository } from "@/lib/data/repositories/regime-call-repository";
+import { ValidationRepository } from "@/lib/data/repositories/validation-repository";
 import type { Database } from "./database.types";
 
 type RegimeCallRow = Database["public"]["Tables"]["regime_calls"]["Row"];
@@ -84,66 +103,12 @@ export interface ValidationRow {
   return_pct: number;
 }
 
-export interface ValidationStats {
-  pair: string;
-  horizon: "t5" | "t20";
-  winRate: number | null;
-  winRateCI: [number, number] | null;
-  netWinRate: number | null;
-  netWinRateCI: [number, number] | null;
-  costBps: number | null;
-  wins: number | null;
-  brierScore: number | null;
-  sampleSize: number | null;
-  netSampleSize?: number | null;
-  avgReturnBps: number | null;
-  sharpeLike: number | null;
-  rolling90dAccuracy: number | null;
-  asOfDate: string;
-}
+export type ValidationStats = DomainValidationStats;
 
-export interface ValidationRowT5 {
-  date: string;
-  pair: string;
-  predicted: string;
-  t5ReturnBps: number | null;
-  t5ReturnNetBps: number | null;
-  t5Outcome: "CORRECT" | "WRONG" | "NEUTRAL" | "—";
-  t5CorrectNet: boolean | null;
-  t5CostBps: number | null;
-  t5Brier: number | null;
-  t20ReturnBps: number | null;
-  t20ReturnNetBps: number | null;
-  t20Outcome: "CORRECT" | "WRONG" | "NEUTRAL" | "—";
-  t20CorrectNet: boolean | null;
-  t20CostBps: number | null;
-  t20Brier: number | null;
-}
+export type ValidationRowT5 = ValidationEntry;
 
-function toLatestRegimeCall(row: RegimeCallRow): LatestRegimeCall {
-  return {
-    pair: row.pair,
-    date: row.date,
-    regime: row.regime,
-    confidence: row.confidence,
-    signal_composite: row.signal_composite,
-    rate_signal: row.rate_signal,
-    cot_signal: row.cot_signal,
-    vol_signal: row.vol_signal,
-    rr_signal: row.rr_signal,
-    oi_signal: row.oi_signal,
-    primary_driver: row.primary_driver,
-    special_signal_value: row.special_signal_value,
-    special_signal_label: row.special_signal_label,
-    model_version: row.model_version,
-    data_quality_score: row.data_quality_score,
-    stress_level: row.stress_level,
-    created_at: row.created_at,
-    predicted_direction: row.predicted_direction,
-    entry_timing: row.entry_timing,
-    position_size: row.position_size,
-    stop_level: row.stop_level,
-  };
+function toLatestRegimeCall(call: RegimeCall): LatestRegimeCall {
+  return toLegacyRegimeCall(call);
 }
 
 function toLatestSignal(row: SignalRow): LatestSignal {
@@ -190,22 +155,12 @@ type TypedSupabaseClient = Awaited<ReturnType<typeof createClient>>;
 export async function getLatestRegimeCalls(
   supabase: TypedSupabaseClient,
 ): Promise<Record<string, LatestRegimeCall>> {
-  const { data, error } = await supabase
-    .from("regime_calls")
-    .select("*")
-    .order("date", { ascending: false })
-    .limit(100);
-
-  if (error || !data) return {};
-
-  const latest: Record<string, LatestRegimeCall> = {};
-  for (const row of data as RegimeCallRow[]) {
-    const pair = row.pair;
-    if (!latest[pair]) {
-      latest[pair] = toLatestRegimeCall(row);
-    }
+  const latest = await RegimeCallRepository.getLatest(supabase);
+  const result: Record<string, LatestRegimeCall> = {};
+  for (const [pair, call] of Object.entries(latest)) {
+    result[pair] = toLatestRegimeCall(call);
   }
-  return latest;
+  return result;
 }
 
 export async function getLatestSignals(
@@ -232,44 +187,43 @@ export async function getLatestSignals(
 export async function getValidationLog(
   supabase: TypedSupabaseClient,
   limit = 100,
+  dataSource: DataSource = DataSource.Live,
 ): Promise<ValidationRow[]> {
-  const PAIR_DISPLAY: Record<string, string> = {
-    EURUSD: "EUR/USD",
-    USDJPY: "USD/JPY",
-    USDINR: "USD/INR",
-  };
-
   // Try joined query first to fetch regime call labels
-  const { data, error } = await supabase
+  let q = supabase
     .from("validation_log")
     .select("*, regime_calls!fk_validation_log_call_id(regime)")
     .eq("is_superseded", false)
     .order("date", { ascending: false })
     .limit(limit);
 
+  q = applyDataSourceDateFilter(q, dataSource);
+
+  const { data, error } = await q;
+
   if (!error && data) {
     return (data as (ValidationLogRow & { regime_calls: { regime: string } })[])
       .filter((r) => r.correct_t5 !== null)
       .map((r) => ({
         date: r.date,
-        pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-        call: r.regime_calls?.regime?.replace(/_/g, " ") ?? "—",
-        outcome: r.correct_t5
-          ? "correct"
-          : r.actual_direction_t5 === "NEUTRAL"
-            ? "neutral"
-            : "incorrect",
+        pair: formatPairCode(r.pair),
+        call: formatRegimeLabel(r.regime_calls?.regime),
+        outcome: toLegacyOutcome(r.correct_t5, r.actual_direction_t5),
         return_pct: Number(r.log_return_t5_bps ?? 0),
       }));
   }
 
   // Fallback: plain validation_log without join
-  const { data: fallback, error: fallbackErr } = await supabase
+  let q2 = supabase
     .from("validation_log")
     .select("*")
     .eq("is_superseded", false)
     .order("date", { ascending: false })
     .limit(limit);
+
+  q2 = applyDataSourceDateFilter(q2, dataSource);
+
+  const { data: fallback, error: fallbackErr } = await q2;
 
   if (fallbackErr || !fallback) return [];
 
@@ -277,13 +231,9 @@ export async function getValidationLog(
     .filter((r) => r.correct_t5 !== null)
     .map((r) => ({
       date: r.date,
-      pair: PAIR_DISPLAY[r.pair] ?? r.pair,
+      pair: formatPairCode(r.pair),
       call: "—",
-      outcome: r.correct_t5
-        ? "correct"
-        : r.actual_direction_t5 === "NEUTRAL"
-          ? "neutral"
-          : "incorrect",
+      outcome: toLegacyOutcome(r.correct_t5, r.actual_direction_t5),
       return_pct: Number(r.log_return_t5_bps ?? 0),
     }));
 }
@@ -305,255 +255,27 @@ export async function getLatestBrief(
 export async function getValidationStats(
   supabase: TypedSupabaseClient,
   horizon: "t5" | "t20",
-  _dataSource = "live",
+  dataSource: DataSource = DataSource.Live,
 ): Promise<ValidationStats[]> {
-  // NOTE: validation_stats table does not have data_source column.
-  // We return the latest overall stats; callers should compute live-only
-  // stats from validation_log when precise filtering is needed.
-  const { data, error } = await supabase
-    .from("validation_stats")
-    .select("*")
-    .order("as_of_date", { ascending: false })
-    .limit(100);
-
-  if (error || !data) return [];
-
-  const rows = Array.isArray(data) ? (data as ValidationStatsRow[]) : [];
-  // Get latest as_of_date
-  const latestDate = rows[0]?.as_of_date;
-  if (!latestDate) return [];
-
-  // Filter to latest date only
-  const latest = rows.filter((r) => r.as_of_date === latestDate);
-
-  const prefix = horizon === "t5" ? "t5" : "t20";
-
-  const PAIR_DISPLAY: Record<string, string> = {
-    EURUSD: "EUR/USD",
-    USDJPY: "USD/JPY",
-    USDINR: "USD/INR",
-    ALL: "ALL",
-  };
-
-  const mapRow = (r: ValidationStatsRow): ValidationStats => ({
-    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    horizon,
-    winRate: r[`${prefix}_win_rate` as keyof ValidationStatsRow] as
-      | number
-      | null,
-    winRateCI: [
-      (r[`${prefix}_win_rate_ci_lower` as keyof ValidationStatsRow] as
-        | number
-        | null) ?? 0,
-      (r[`${prefix}_win_rate_ci_upper` as keyof ValidationStatsRow] as
-        | number
-        | null) ?? 0,
-    ] as [number, number],
-    netWinRate:
-      (r[`${prefix}_net_win_rate` as keyof ValidationStatsRow] as
-        | number
-        | null) ?? null,
-    netWinRateCI: [
-      (r[`${prefix}_net_win_rate_ci_lower` as keyof ValidationStatsRow] as
-        | number
-        | null) ?? 0,
-      (r[`${prefix}_net_win_rate_ci_upper` as keyof ValidationStatsRow] as
-        | number
-        | null) ?? 0,
-    ] as [number, number],
-    costBps:
-      (r[`${prefix}_cost_bps` as keyof ValidationStatsRow] as number | null) ??
-      null,
-    wins: r[`${prefix}_wins` as keyof ValidationStatsRow] as number | null,
-    brierScore: r[`${prefix}_mean_brier` as keyof ValidationStatsRow] as
-      | number
-      | null,
-    sampleSize: r[`${prefix}_total_calls` as keyof ValidationStatsRow] as
-      | number
-      | null,
-    avgReturnBps: r[
-      `${prefix}_mean_log_return_bps` as keyof ValidationStatsRow
-    ] as number | null,
-    sharpeLike: r[`${prefix}_sharpe_like` as keyof ValidationStatsRow] as
-      | number
-      | null,
-    rolling90dAccuracy: r[
-      `${prefix}_rolling_90d_accuracy` as keyof ValidationStatsRow
-    ] as number | null,
-    asOfDate: r.as_of_date,
-  });
-
-  return latest.map(mapRow);
+  return ValidationRepository.getStats(supabase, horizon, dataSource);
 }
 
 export async function getValidationLogT5T20(
   supabase: TypedSupabaseClient,
   limit = 100,
-  dataSource = "live",
+  dataSource: DataSource = DataSource.Live,
 ): Promise<ValidationRowT5[]> {
-  let q = supabase
-    .from("validation_log")
-    .select("*")
-    .eq("is_superseded", false)
-    .not("brier_score_t5", "is", null)
-    .order("date", { ascending: false })
-    .limit(limit);
-  // validation_log does not have data_source column; filter by date instead
-  if (dataSource === "live") q = q.gte("date", "2026-05-01");
-  else if (dataSource === "backtest") q = q.lt("date", "2026-05-01");
-  const { data, error } = await q;
-
-  if (error || !data) return [];
-
-  // Fetch predicted_direction from regime_calls via call_id
-  const callIds = (data as ValidationLogRow[])
-    .map((r) => r.call_id)
-    .filter((id): id is number => id != null);
-
-  const predictedMap = new Map<number, string>();
-  if (callIds.length > 0) {
-    const { data: regimeData } = await supabase
-      .from("regime_calls")
-      .select("id, predicted_direction")
-      .in("id", callIds);
-    for (const rc of (regimeData ?? []) as Array<{
-      id: number | null;
-      predicted_direction: string | null;
-    }>) {
-      if (rc.id != null && rc.predicted_direction) {
-        predictedMap.set(rc.id, rc.predicted_direction);
-      }
-    }
-  }
-
-  const PAIR_DISPLAY: Record<string, string> = {
-    EURUSD: "EUR/USD",
-    USDJPY: "USD/JPY",
-    USDINR: "USD/INR",
-  };
-
-  return (data as ValidationLogRow[]).map((r) => ({
-    date: r.date,
-    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    predicted: r.call_id != null ? (predictedMap.get(r.call_id) ?? "—") : "—",
-    t5ReturnBps: r.log_return_t5_bps,
-    t5ReturnNetBps:
-      (r as ValidationLogRow & { log_return_net_bps_t5: number | null })
-        .log_return_net_bps_t5 ?? null,
-    t5Outcome: r.correct_t5
-      ? "CORRECT"
-      : r.actual_direction_t5 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t5 != null
-          ? "WRONG"
-          : "—",
-    t5CorrectNet:
-      (r as ValidationLogRow & { correct_net_t5: boolean | null })
-        .correct_net_t5 ?? null,
-    t5CostBps:
-      (r as ValidationLogRow & { cost_bps_t5: number | null }).cost_bps_t5 ??
-      null,
-    t5Brier: r.brier_score_t5,
-    t20ReturnBps: r.log_return_t20_bps,
-    t20ReturnNetBps:
-      (r as ValidationLogRow & { log_return_net_bps_t20: number | null })
-        .log_return_net_bps_t20 ?? null,
-    t20Outcome: r.correct_t20
-      ? "CORRECT"
-      : r.actual_direction_t20 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t20 != null
-          ? "WRONG"
-          : "—",
-    t20CorrectNet:
-      (r as ValidationLogRow & { correct_net_t20: boolean | null })
-        .correct_net_t20 ?? null,
-    t20CostBps:
-      (r as ValidationLogRow & { cost_bps_t20: number | null }).cost_bps_t20 ??
-      null,
-    t20Brier: r.brier_score_t20,
-  }));
+  return ValidationRepository.getLogT5T20(supabase, limit, dataSource);
 }
 
-export interface RegimeBreakdownRow {
-  pair: string;
-  regime: string;
-  t5Outcome: "CORRECT" | "WRONG" | "NEUTRAL" | "—";
-  t20Outcome: "CORRECT" | "WRONG" | "NEUTRAL" | "—";
-}
+export type RegimeBreakdownRow = RegimeBreakdownEntry;
 
 export async function getRegimeBreakdown(
   supabase: TypedSupabaseClient,
   limit = 100,
-  dataSource = "live",
+  dataSource: DataSource = DataSource.Live,
 ): Promise<RegimeBreakdownRow[]> {
-  // 1. Fetch validation outcomes (current versions only)
-  let q = supabase
-    .from("validation_log")
-    .select(
-      "date, pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20",
-    )
-    .eq("is_superseded", false)
-    .not("brier_score_t5", "is", null)
-    .order("date", { ascending: false })
-    .limit(limit);
-  // validation_log does not have data_source column; filter by date instead
-  if (dataSource === "live") q = q.gte("date", "2026-05-01");
-  else if (dataSource === "backtest") q = q.lt("date", "2026-05-01");
-  const { data: valData, error: valError } = await q;
-
-  if (valError || !valData) return [];
-
-  interface ValRow {
-    date: string;
-    pair: string;
-  }
-  interface RegimeRow {
-    date: string;
-    pair: string;
-    regime: string;
-  }
-
-  // 2. Fetch corresponding regime names from regime_calls
-  const pairs = [...new Set((valData as ValRow[]).map((r) => r.pair))];
-  const dates = [...new Set((valData as ValRow[]).map((r) => r.date))];
-  const { data: regimeData, error: regimeError } = await supabase
-    .from("regime_calls")
-    .select("date, pair, regime")
-    .in("pair", pairs)
-    .in("date", dates);
-
-  if (regimeError || !regimeData) return [];
-
-  const regimeMap = new Map<string, string>();
-  for (const r of regimeData as RegimeRow[]) {
-    regimeMap.set(`${r.date}|${r.pair}`, r.regime);
-  }
-
-  const PAIR_DISPLAY: Record<string, string> = {
-    EURUSD: "EUR/USD",
-    USDJPY: "USD/JPY",
-    USDINR: "USD/INR",
-  };
-
-  return (valData as ValidationLogRow[]).map((r) => ({
-    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    regime: regimeMap.get(`${r.date}|${r.pair}`) ?? "UNKNOWN",
-    t5Outcome: r.correct_t5
-      ? "CORRECT"
-      : r.actual_direction_t5 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t5 != null
-          ? "WRONG"
-          : "—",
-    t20Outcome: r.correct_t20
-      ? "CORRECT"
-      : r.actual_direction_t20 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t20 != null
-          ? "WRONG"
-          : "—",
-  }));
+  return ValidationRepository.getBreakdown(supabase, limit, dataSource);
 }
 
 export async function getValidationLogForPair(
@@ -1171,6 +893,7 @@ export async function getLatestAccuracyAlerts(
   const { data, error } = await supabase
     .from("validation_stats")
     .select("*")
+    .gte("as_of_date", LIVE_CUTOFF_DATE)
     .order("as_of_date", { ascending: false })
     .limit(20);
 
@@ -1211,8 +934,7 @@ export async function getBacktestVersions(
   supabase: TypedSupabaseClient,
 ): Promise<string[]> {
   const { data, error } = await supabase
-    // biome-ignore lint/suspicious/noExplicitAny: table not present in generated Supabase types yet
-    .from("backtest_versions" as any)
+    .from("backtest_versions")
     .select("version")
     .eq("is_public", true)
     .order("version", { ascending: false });

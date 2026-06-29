@@ -10,7 +10,7 @@ import numpy.typing as npt
 
 
 def _to_float64_array(values: npt.NDArray[np.float64] | Sequence[float]) -> npt.NDArray[np.float64]:
-    arr = np.asarray(values, dtype=np.float64)
+    arr: npt.NDArray[np.float64] = np.asarray(values, dtype=np.float64)
     return arr.reshape(-1)
 
 
@@ -38,16 +38,16 @@ def rolling_zscore_series(
     finite = np.isfinite(x)
     xf = np.where(finite, x, 0.0)
     ones = finite.astype(np.float64)
-    csum_x = np.cumsum(xf)
-    csum_x2 = np.cumsum(xf * xf)
-    csum_1 = np.cumsum(ones)
+    csum_x: npt.NDArray[np.float64] = np.cumsum(xf)
+    csum_x2: npt.NDArray[np.float64] = np.cumsum(xf * xf)
+    csum_1: npt.NDArray[np.float64] = np.cumsum(ones)
 
     def _window_sum(csum: npt.NDArray[np.float64], i1: int, i0: int) -> float:
         top = float(csum[i1])
         bot = float(csum[i0 - 1]) if i0 > 0 else 0.0
         return top - bot
 
-    out = np.full(n, np.nan, dtype=np.float64)
+    out: npt.NDArray[np.float64] = np.full(n, np.nan, dtype=np.float64)
     for i in range(n):
         i0 = i - window
         if i0 < 0:

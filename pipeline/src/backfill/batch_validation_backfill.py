@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import argparse
 import logging
-import math
 from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
+from src.validation.calculator import compute_horizon_metrics, horizon_metrics_to_payload
 from src.validation.calendar import add_trading_days
 
 logger = logging.getLogger(__name__)
@@ -35,48 +35,6 @@ def _pg_conn() -> Any:
         password=password,
         ssl_context=ctx,
     )
-
-
-def log_return_bps(s0: float, sh: float) -> float:
-    return 10_000.0 * math.log(sh / s0)
-
-
-def realized_direction(bps: float, deadband: float = 5.0) -> str:
-    if bps > deadband:
-        return "UP"
-    if bps < -deadband:
-        return "DOWN"
-    return "NEUTRAL"
-
-
-def is_correct(predicted: str, realized: str) -> bool:
-    p = predicted.strip().upper()
-    r = realized.strip().upper()
-    if p == "BULLISH":
-        return r == "UP"
-    if p == "BEARISH":
-        return r == "DOWN"
-    if p == "NEUTRAL":
-        return r == "NEUTRAL"
-    return False
-
-
-def apply_dead_band(bps: float, predicted: str) -> str:
-    realized = realized_direction(bps)
-    if realized == "NEUTRAL":
-        return "NEUTRAL"
-    return "CORRECT" if is_correct(predicted, realized) else "WRONG"
-
-
-def compute_brier_score(conviction: float, outcome: str) -> float:
-    p = float(conviction)
-    if outcome == "CORRECT":
-        y = 1.0
-    elif outcome == "WRONG":
-        y = 0.0
-    else:
-        y = 0.5
-    return (p - y) ** 2
 
 
 def _load_prices() -> dict[str, dict[date, float]]:
@@ -119,6 +77,28 @@ def _load_regime_calls() -> list[dict[str, Any]]:
     return out
 
 
+def _load_validated_call_keys() -> set[tuple[int | None, date, str]]:
+    """Load (call_id, date, pair) keys that already have a T+5 validation row."""
+    conn = _pg_conn()
+    try:
+        result = conn.run(
+            "SELECT call_id, date, pair FROM validation_log "
+            "WHERE brier_score_t5 IS NOT NULL"
+        )
+    except Exception:
+        # Legacy schema without call_id or brier_score_t5: disable idempotency.
+        conn.close()
+        return set()
+    out: set[tuple[int | None, date, str]] = set()
+    for row in result:
+        call_id = int(row[0]) if row[0] is not None else None
+        d = row[1] if isinstance(row[1], date) else date.fromisoformat(str(row[1])[:10])
+        out.add((call_id, d, str(row[2])))
+    conn.close()
+    logger.info("Loaded %d existing validation keys", len(out))
+    return out
+
+
 def _get_spot(prices: dict[date, float], target: date) -> float | None:
     """Exact match first, then forward-fill (next available), then backward-fill."""
     if target in prices:
@@ -140,11 +120,16 @@ def _build_validation_rows(
     calls: list[dict[str, Any]],
     prices: dict[str, dict[date, float]],
     as_of: date,
+    validated_keys: set[tuple[int | None, date, str]],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for call in calls:
         pair = call["pair"]
         call_date = call["date"]
+        call_id = call["id"]
+        if (call_id, call_date, pair) in validated_keys:
+            continue
+
         pair_prices = prices.get(pair, {})
 
         s0 = _get_spot(pair_prices, call_date)
@@ -176,32 +161,16 @@ def _build_validation_rows(
 
         if as_of >= t5_date:
             s5 = _get_spot(pair_prices, t5_date)
-            if s5 is not None:
-                bps5 = log_return_bps(s0, s5)
-                outcome5 = apply_dead_band(bps5, predicted)
-                brier5 = compute_brier_score(confidence, outcome5)
-                row["log_return_t5_bps"] = bps5
-                row["correct_t5"] = outcome5 == "CORRECT"
-                row["brier_score_t5"] = brier5
-                row["actual_direction_t5"] = realized_direction(bps5)
-                row["actual_return_5d"] = bps5 / 10_000.0
-                row["correct_5d"] = outcome5 == "CORRECT"
-                row["brier_5d"] = brier5
+            metrics_t5 = compute_horizon_metrics(s0, s5, predicted, confidence, pair)
+            if metrics_t5 is not None:
+                row.update(horizon_metrics_to_payload(metrics_t5, "t5"))
                 has_any = True
 
         if as_of >= t20_date:
             s20 = _get_spot(pair_prices, t20_date)
-            if s20 is not None:
-                bps20 = log_return_bps(s0, s20)
-                outcome20 = apply_dead_band(bps20, predicted)
-                brier20 = compute_brier_score(confidence, outcome20)
-                row["log_return_t20_bps"] = bps20
-                row["correct_t20"] = outcome20 == "CORRECT"
-                row["brier_score_t20"] = brier20
-                row["actual_direction_t20"] = realized_direction(bps20)
-                row["actual_return_20d"] = bps20 / 10_000.0
-                row["correct_20d"] = outcome20 == "CORRECT"
-                row["brier_20d"] = brier20
+            metrics_t20 = compute_horizon_metrics(s0, s20, predicted, confidence, pair)
+            if metrics_t20 is not None:
+                row.update(horizon_metrics_to_payload(metrics_t20, "t20"))
                 has_any = True
 
         if has_any:
@@ -252,7 +221,8 @@ def run_batch_backfill(
     as_of = as_of or date.today()
     prices = _load_prices()
     calls = _load_regime_calls()
-    rows = _build_validation_rows(calls, prices, as_of)
+    validated_keys = _load_validated_call_keys()
+    rows = _build_validation_rows(calls, prices, as_of, validated_keys)
 
     logger.info("Built %d validation rows from %d calls", len(rows), len(calls))
 

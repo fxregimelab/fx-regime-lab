@@ -80,6 +80,12 @@ class FakeWriterPort(WriterPort):
 
         self.validation_rows.extend(rows)
 
+    def get_regime_calls(self, pair: str, *, limit: int = 100) -> list[RegimeCall]:
+        """Return prior calls for ``pair`` ordered by date ascending."""
+
+        calls = [call for call, _meta in self.regime_calls if call.pair == pair]
+        return calls[-limit:]
+
 
 class FakeAlertPort(AlertPort):
     """In-memory alert port that records every alert for inspection."""

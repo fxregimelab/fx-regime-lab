@@ -9,8 +9,10 @@ based on short-term vs long-term RV ratios.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import cast
 
 import numpy as np
+import numpy.typing as npt
 
 # 3-year trading calendar (Layer 3 vol rank); matches ``TRADING_DAYS_3Y`` in composite regime math.
 TRADING_DAYS_3Y_VOL_RANK = 756
@@ -50,7 +52,9 @@ def compute_rvol(volumes: list[float], window: int = 20) -> float | None:
     return float(current / adv)
 
 
-def realized_vol21_series_annualized_pct(closes: np.ndarray) -> np.ndarray:
+def realized_vol21_series_annualized_pct(
+    closes: npt.NDArray[np.float64],
+) -> npt.NDArray[np.float64]:
     """Rolling 21-return annualized realized vol (%), aligned to each close index.
 
     For close index ``j >= 21``, uses log returns ``lr[j-21:j]`` (21 points). Earlier
@@ -58,7 +62,9 @@ def realized_vol21_series_annualized_pct(closes: np.ndarray) -> np.ndarray:
     """
 
     n = int(closes.size)
-    out = np.full(n, np.nan, dtype=np.float64)
+    out: npt.NDArray[np.float64] = cast(
+        npt.NDArray[np.float64], np.full(n, np.nan, dtype=np.float64)
+    )
     if n < 22 or np.any(closes <= 0):
         return out
     lr = np.diff(np.log(closes.astype(np.float64)))
@@ -74,7 +80,7 @@ def realized_vol21_series_annualized_pct(closes: np.ndarray) -> np.ndarray:
 def empirical_cdf_rank(x: float, sample: np.ndarray) -> float:
     """Empirical CDF ÔF(x) = (1/n) Σ 1[X_i ≤ x] on a strictly causal sample (double precision)."""
 
-    s = sample.astype(np.float64)
+    s: npt.NDArray[np.float64] = sample.astype(np.float64)
     s = s[np.isfinite(s)]
     if s.size == 0:
         return 0.0
@@ -93,7 +99,7 @@ def compute_realized_vol_rank_from_closes(
     if history is too short or closes are invalid.
     """
 
-    arr = np.asarray(list(closes), dtype=np.float64)
+    arr: npt.NDArray[np.float64] = np.asarray(list(closes), dtype=np.float64)
     if arr.size < 22 or np.any(arr <= 0):
         return None
     series = realized_vol21_series_annualized_pct(arr)

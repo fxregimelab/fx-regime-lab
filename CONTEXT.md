@@ -199,8 +199,12 @@ The typed domain object that captures a `SignalRow` plus the deterministic outpu
 _Avoid_: raw layer dicts, untyped tuples.
 
 **PublishOutput**:
-The typed domain object that captures a persisted `RegimeCall` plus the artifacts produced for that call (brief fragment, desk card, Slack alert payload).
+The typed domain object that captures a persisted `RegimeCall` plus the user-facing artifacts produced for that call (brief fragment, desk card, Slack alert payload).
 _Avoid_: side-effect-only publish, unrecorded brief text.
+
+**CallRationale**:
+The immutable, structured AI explanation attached to exactly one `RegimeCall`. Captures layer-by-layer reasoning, primary driver, confidence explanation, and contrarian flags. Persisted separately from the user-facing brief fragment.
+_Avoid_: brief fragment, rationale text, explanation blob.
 
 **StageHealth**:
 The report carried by every pipeline stage indicating which inputs were missing, which fields were derived or degraded, and whether the stage completed fully or partially.
@@ -225,6 +229,14 @@ _Avoid_: signal computation, validation writes.
 **ValidateStage**:
 The pair-scoped Prefect task that evaluates prior `RegimeCall`s at T+5 and T+20 trading-day horizons and appends results to `validation_log`.
 _Avoid_: editing `regime_calls`, retroactive score changes.
+
+**MacroEventBrief**:
+A forward-looking, event-scoped AI explanation of macro risk for a specific event and pair. Stored independently of `RegimeCall` and `PublishOutput`.
+_Avoid_: conflating with daily brief fragment, treating as a RegimeCall artifact.
+
+**AIClient**:
+The single port for all AI calls in the pipeline. Async-first; sync wrappers are only for true sync entry points (CLI/scripts), never for async flow internals.
+_Avoid_: direct provider calls outside this port, per-call client construction, unconditional `asyncio.run`.
 
 ---
 

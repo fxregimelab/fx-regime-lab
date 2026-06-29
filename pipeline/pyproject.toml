@@ -44,13 +44,23 @@ select = ["E", "F", "I", "N", "UP"]
 "seed_macro_history.py" = ["E402"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "src.legacy.*"
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "numpy.*"
+ignore_errors = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "scipy.*"
+ignore_errors = true
+follow_imports = "skip"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

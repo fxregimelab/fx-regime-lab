@@ -47,6 +47,11 @@ class WriterPort(ABC):
         """Persist one or more validation rows."""
         ...
 
+    @abstractmethod
+    def get_regime_calls(self, pair: str, *, limit: int = 100) -> list[RegimeCall]:
+        """Return prior regime calls for ``pair`` ordered by date ascending."""
+        ...
+
 
 class AlertPort(ABC):
     """Port for pipeline alerts and success heartbeats."""

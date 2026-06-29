@@ -161,9 +161,9 @@ class TestValidationBackfill:
 
         payload = mock_write.call_args[0][0]
         assert payload["actual_direction_t5"] == "NEUTRAL"
-        assert payload["correct_t5"] is False  # NEUTRAL is not CORRECT
-        # Brier: p=0.8, y=0.5 -> (0.8-0.5)^2 = 0.09
-        assert payload["brier_score_t5"] == pytest.approx(0.09, abs=1e-6)
+        assert payload["correct_t5"] is False  # BULLISH vs NEUTRAL realized → gross miss
+        # Canonical calculator Brier: p=0.8, y=0 (incorrect) -> (0.8-0)^2 = 0.64
+        assert payload["brier_score_t5"] == pytest.approx(0.64, abs=1e-6)
 
     @patch.object(writer, "get_historical_price_for_date")
     @patch.object(writer, "get_validation_log_entry")

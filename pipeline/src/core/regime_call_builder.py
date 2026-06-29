@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from src.core.policies.confidence_cap import DqsConfidenceCap, dqs_confidence_cap
+from src.core.policies.labeler import DefaultSignalLabeler, SignalLabeler
+from src.core.policies.macro_gater import DefaultPairMacroGater, PairMacroGater
 from src.regime.classifier import get_regime_category
 from src.signals.volatility import compute_rvol
 from src.types import (
@@ -15,21 +18,10 @@ from src.types import (
 
 from .ingestion_snapshot import IngestionSnapshot
 
+if TYPE_CHECKING:
+    from src.staged.signals.types import FamilyOutput
 
-def dqs_confidence_cap(dqs: float | None) -> float | None:
-    """DQS-driven confidence upper bound; returns ``None`` when no cap applies."""
-
-    if dqs is None:
-        return None
-    if dqs >= 0.90:
-        return None
-    if dqs >= 0.75:
-        return 0.85
-    if dqs >= 0.60:
-        return 0.70
-    if dqs >= 0.50:
-        return 0.55
-    return None
+__all__ = ["RegimeCallBuilder", "dqs_confidence_cap"]
 
 
 class RegimeCallBuilder:
@@ -40,13 +32,24 @@ class RegimeCallBuilder:
     keeps fetcher/ingestion details isolated from regime-call construction.
     """
 
-    def __init__(self, snapshot: IngestionSnapshot) -> None:
+    def __init__(
+        self,
+        snapshot: IngestionSnapshot,
+        *,
+        labeler: SignalLabeler | None = None,
+        macro_gater: PairMacroGater | None = None,
+        confidence_cap: DqsConfidenceCap | None = None,
+    ) -> None:
         self.snapshot = snapshot
+        self._labeler = labeler or DefaultSignalLabeler()
+        self._macro_gater = macro_gater or DefaultPairMacroGater()
+        self._confidence_cap = confidence_cap or DqsConfidenceCap()
 
     def build_signal_row(
         self,
         pair: str,
         *,
+        families: FamilyOutput | None = None,
         rate_spread_2y: float | None = None,
         rate_spread_10y: float | None = None,
         rate_spread_10y_real: float | None = None,
@@ -80,6 +83,70 @@ class RegimeCallBuilder:
     ) -> SignalRow:
         """Assemble the signal row for ``pair`` from the snapshot and layer outputs."""
 
+        if families is not None:
+            if families.rate is not None:
+                rate = families.rate
+                rate_spread_2y = rate_spread_2y if rate_spread_2y is not None else rate.spread_2y
+                rate_spread_10y = (
+                    rate_spread_10y if rate_spread_10y is not None else rate.spread_10y
+                )
+                rate_spread_10y_real = (
+                    rate_spread_10y_real
+                    if rate_spread_10y_real is not None
+                    else rate.spread_10y_real
+                )
+                rate_z_tactical = (
+                    rate_z_tactical if rate_z_tactical is not None else rate.norm_z.z_tactical
+                )
+                rate_z_structural = (
+                    rate_z_structural if rate_z_structural is not None else rate.norm_z.z_structural
+                )
+                z_blended = z_blended if z_blended is not None else rate.norm_z.z_blended
+                breakeven_inflation_10y = (
+                    breakeven_inflation_10y
+                    if breakeven_inflation_10y is not None
+                    else rate.breakeven_inflation_10y
+                )
+                risk_adjusted_carry = (
+                    risk_adjusted_carry
+                    if risk_adjusted_carry is not None
+                    else rate.risk_adjusted_carry
+                )
+            if families.cot is not None:
+                cot = families.cot
+                cot_percentile = (
+                    cot_percentile if cot_percentile is not None else cot.percentile
+                )
+                cot_norm = cot_norm if cot_norm is not None else cot.norm
+                oi_norm = oi_norm if oi_norm is not None else cot.oi_norm
+                oi_delta = oi_delta if oi_delta is not None else cot.oi_delta
+                days_since_cot = cot.days_since_cot
+                cot_net_pos = cot_net_pos if cot_net_pos is not None else cot.net_pos
+                cot_asset_mgr_net = (
+                    cot_asset_mgr_net if cot_asset_mgr_net is not None else cot.asset_mgr_net
+                )
+                cot_lev_money_net = (
+                    cot_lev_money_net if cot_lev_money_net is not None else cot.lev_money_net
+                )
+            if families.vol is not None:
+                vol = families.vol
+                realized_vol_20d = (
+                    realized_vol_20d if realized_vol_20d is not None else vol.rv20
+                )
+                realized_vol_5d = realized_vol_5d if realized_vol_5d is not None else vol.rv5
+                vol_norm = vol_norm if vol_norm is not None else vol.vol_norm
+                vol_expanding = vol.vol_expanding  # noqa: F841
+                implied_vol_30d = (
+                    implied_vol_30d if implied_vol_30d is not None else vol.implied_vol_30d
+                )
+                realized_vol_rank = (
+                    realized_vol_rank if realized_vol_rank is not None else vol.realized_vol_rank
+                )
+            if families.special is not None:
+                special_signal = (
+                    special_signal if special_signal is not None else families.special.signal
+                )
+
         today_bar = self.snapshot.today_bar_for(pair)
         if today_bar is None:
             raise ValueError(f"No spot bars available for {pair} in snapshot")
@@ -110,7 +177,7 @@ class RegimeCallBuilder:
         if fpi_raw is not None:
             fpi_flow = fpi_raw.get("fpi_total_net_cr")
 
-        macro = self.snapshot.macro or {}
+        macro_fields = self._macro_gater.gate(pair, self.snapshot.macro)
 
         return SignalRow(
             pair=pair,
@@ -148,11 +215,11 @@ class RegimeCallBuilder:
             cot_net_pos=cot_net_pos,
             cot_asset_mgr_net=cot_asset_mgr_net,
             cot_lev_money_net=cot_lev_money_net,
-            ecb_balance_sheet=macro.get("ecb_balance_sheet") if pair == "EURUSD" else None,
-            bund_btp_spread=macro.get("bund_btp_spread") if pair == "EURUSD" else None,
-            boj_policy_rate=macro.get("boj_policy_rate") if pair == "USDJPY" else None,
-            india_vix=macro.get("india_vix") if pair == "USDINR" else None,
-            inr_forward_premium=macro.get("inr_forward_premium") if pair == "USDINR" else None,
+            ecb_balance_sheet=macro_fields.ecb_balance_sheet,
+            bund_btp_spread=macro_fields.bund_btp_spread,
+            boj_policy_rate=macro_fields.boj_policy_rate,
+            india_vix=macro_fields.india_vix,
+            inr_forward_premium=macro_fields.inr_forward_premium,
             data_quality_notes=None,
         )
 
@@ -183,7 +250,7 @@ class RegimeCallBuilder:
 
         final_confidence = float(confidence)
         if apply_dqs_cap:
-            cap = dqs_confidence_cap(self.snapshot.dqs_score)
+            cap = self._confidence_cap.cap(self.snapshot.dqs_score)
             if cap is not None:
                 final_confidence = min(final_confidence, cap)
 
@@ -191,41 +258,6 @@ class RegimeCallBuilder:
         predicted_direction = (
             "BULLISH" if bias == "LONG" else ("BEARISH" if bias == "SHORT" else "NEUTRAL")
         )
-
-        cot_label = (
-            "BULLISH"
-            if cot_norm is not None and cot_norm > 0.15
-            else ("BEARISH" if cot_norm is not None and cot_norm < -0.15 else "NEUTRAL")
-        )
-        vol_label = (
-            "VOL_EXPANDING"
-            if vol_expanding
-            else (
-                "BULLISH"
-                if vol_norm is not None and vol_norm > 0.15
-                else ("BEARISH" if vol_norm is not None and vol_norm < -0.15 else "NEUTRAL")
-            )
-        )
-        oi_label = (
-            "BULLISH"
-            if oi_norm is not None and oi_norm > 0.15
-            else ("BEARISH" if oi_norm is not None and oi_norm < -0.15 else "NEUTRAL")
-        )
-        rr_label = (
-            "BULLISH"
-            if risk_reversal_25d is not None and risk_reversal_25d > 0.15
-            else (
-                "BEARISH"
-                if risk_reversal_25d is not None and risk_reversal_25d < -0.15
-                else "NEUTRAL"
-            )
-        )
-
-        special_label = {
-            "EURUSD": "Bund-BTP + ECB BS",
-            "USDJPY": "VIX + JPY Funding Stress",
-            "USDINR": "Oil + DXY + EM Risk",
-        }.get(pair)
 
         dqs_score = (
             round(float(self.snapshot.dqs_score), 2)
@@ -249,12 +281,12 @@ class RegimeCallBuilder:
             predicted_direction=predicted_direction,
             directional_bias=bias,
             conviction=layer2["conviction"],
-            cot_signal=cot_label,
-            vol_signal=vol_label,
-            oi_signal=oi_label,
-            rr_signal=rr_label,
+            cot_signal=self._labeler.label_cot(cot_norm),
+            vol_signal=self._labeler.label_vol(vol_norm, vol_expanding=vol_expanding),
+            oi_signal=self._labeler.label_oi(oi_norm),
+            rr_signal=self._labeler.label_rr(risk_reversal_25d),
             special_signal_value=special_signal,
-            special_signal_label=special_label,
+            special_signal_label=self._labeler.label_special(pair),
             regime_category=get_regime_category(regime),
             model_version=model_version if model_version is not None else "2.0-live",
             strategy_version=strategy_version if strategy_version is not None else "v2",

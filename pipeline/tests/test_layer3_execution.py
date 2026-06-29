@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from src.logic.layer3_execution import (
@@ -58,7 +59,7 @@ def test_realized_vol_rank_increases_after_late_spike() -> None:
     n = TRADING_DAYS_3Y_VOL_RANK + 50
     noise = rng.normal(0.0, 0.002, size=n - 40)
     base = 1.0
-    drift = np.cumsum(noise)
+    drift: npt.NDArray[np.float64] = np.cumsum(noise)
     calm = base + drift
     # Fat-tailed daily shocks (not a smooth exp ramp — near-constant returns suppress σ).
     shock_ret = rng.normal(0.0, 0.03, size=40)
