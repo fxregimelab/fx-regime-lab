@@ -89,6 +89,19 @@ by Supabase default limit; `ledger_snapshot.py` now paginates + exact counts):
 Next: single re-run after Friday bars publish (~22:00 UTC) for the green
 branch E2E + latest-calls refresh, then AFTER-proof and draft PR.
 
+## Packet 4 — Vercel branch preview builds green (2026-10-16 ~20:45 UTC)
+
+- `fx-live-personal @ 59d4dae` (Packet 3 receipts): **READY**
+  `fx-regime-b6xojnnrg-…` + second project building at check time.
+- `fx-live-personal @ 5e463ef` (reader/eval + docs): **READY ×2**.
+- `main @ bb089f3` archive: **READY** (untouched). Tag commit `b0d33cd`: READY.
+- "Site builds from branch preview" receipt: **PASS** (Vercel Linux builds).
+- Preview URLs sit behind Vercel SSO login → page-content check (DEGRADED
+  footer, fresh calls) is operator-side after login.
+- Immediate pipeline retry deferred on evidence: spot re-check 20:40 UTC
+  shows Friday bars still missing (last=2026-10-15 all pairs); retry now
+  would abort identically. Single delayed run armed for 22:05 UTC.
+
 ## Open gates (6 root gates still open until evidence closes each)
 
 1. Deploy blocker: Vercel branch preview from fx-live-personal (Root Directory
