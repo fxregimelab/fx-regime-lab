@@ -58,6 +58,37 @@ fallback; no secrets in logs; no prod writes from tests.
   DELETE on `regime_calls`/`validation_log` anywhere in new code — grep-verified).
 - Footer: **DEGRADED kept** (honest: live calls + branch preview not yet verified).
 
+## Packet 3 — Live run attempt: DQS abort is correct behavior (2026-10-16 ~20:31+ UTC)
+
+Two E2E runs of the production path (`python scripts/run_live_personal.py` →
+`src/scheduler/run_pipeline.py:run_pipeline` → `run_daily`) aborted at the
+DQS gate: **DQS 0.2000 < 0.50 CRITICAL — refusing to publish**
+(`pipeline/src/scheduler/orchestrator.py:959-964`). No calls published.
+
+Root cause (proven with read-only replica of buffer+DQS, temp script outside repo):
+- Run wall-time ~20:31/20:34 UTC Friday, pre-US-close: Friday bars not yet
+  published anywhere → spot_obs stuck at Thu 2026-10-15 for all 3 pairs.
+- `date.today()` uses local IST = Sat 2026-10-17 → business-day age
+  Thu→Sat = 48h (`_calendar_age_hours`, `ingestion_buffer.py:80-98`).
+- Buckets: rates 0.667, **spots 0.0**, cot 1.0, comm 0.667, x-assset 0.0 →
+  raw 0.4444 × critical penalty 0.45 = **0.2000 exactly**. Gate worked as designed.
+- Yahoo `^JG10Y/^IN10Y/^TGD10Y` 404s are noise: `fetch_legacy_10y_legs`
+  (`yields.py:139-144`) already falls back to FRED series. No fix needed.
+- All 4 universe yield legs verified live via FRED: DGS2 4.77, ECBDFR 2.5,
+  INDIRLTLT01STM 7.06, IRLTLT01JPM156N 3.05.
+
+Ledger proof (full paginated snapshots — earlier 1000-row views were truncated
+by Supabase default limit; `ledger_snapshot.py` now paginates + exact counts):
+- `reports/ledger_snapshot_full.json`: regime_calls **19,503**, validation_log
+  (non-superseded) **19,485** — all 3 pairs live through 2026-10-15.
+- After abort1: counts + SHA-256 identical. After abort2: identical again.
+  **History delta zero, new rows zero — abort path writes nothing.**
+- Prod 9 UTC daily run unaffected (runs 14:30 IST with complete bars).
+- Slack/Resend keys absent locally → no alert noise from background runs.
+
+Next: single re-run after Friday bars publish (~22:00 UTC) for the green
+branch E2E + latest-calls refresh, then AFTER-proof and draft PR.
+
 ## Open gates (6 root gates still open until evidence closes each)
 
 1. Deploy blocker: Vercel branch preview from fx-live-personal (Root Directory

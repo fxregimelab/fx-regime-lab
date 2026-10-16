@@ -1,0 +1,16 @@
+{
+  "latest_call_date_per_pair": {
+    "EURUSD": "2026-10-15",
+    "USDINR": "2026-10-15",
+    "USDJPY": "2026-10-15"
+  },
+  "regime_calls": {
+    "count": 19503,
+    "hashed_rows": 19503,
+    "sha256": "eec0749ce91b7cd8cfe49fe9040aae80056f71cb8f271d9b5f20d6c2a664b5e9"
+  },
+  "validation_log": {
+    "count": 19485,
+    "sha256": "9a8fb2b725bfdd37a0d5b1a34a939f41f90c30ed8601acf2975f940b02a486de"
+  }
+}
