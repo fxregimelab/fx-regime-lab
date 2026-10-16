@@ -11,7 +11,7 @@
 The Supabase schema has been cleaned of all stale columns and tables that were never written by the current 3-pair pipeline. All 37 `signals` columns written by `pipeline/src/db/writer.py` are present and accounted for. The TypeScript types in `web/src/lib/supabase/database.types.ts` are synced with the live schema.
 
 **Total tables:** 30 active tables  
-**Total migrations applied:** 49 (all local ↔ remote synced)  
+**Total migrations applied:** 58 on disk (59 files incl. zero-byte `.tmp_schema_check.sql`; remote effects probed 2026-10-16 — all present)  
 **Known issues:**
 - `pair_profiles` exists in `database.types.ts` but is never referenced in any code (ghost type; table may not exist in remote)
 - `historical_yields` has no migration; table is auto-created by Supabase on first upsert from `fred_historical.py`
@@ -20,7 +20,7 @@ The Supabase schema has been cleaned of all stale columns and tables that were n
 
 ## 2. Migration History (Current State)
 
-All migrations are synced between local (`supabase/migrations/`) and remote (`supabase_migrations.schema_migrations`).
+All migrations are synced between local (`supabase/migrations/`) and remote. Remote effects re-verified 2026-10-16 on branch `fx-live-personal` (SELECT probes; `page_views` table present, 0 rows).
 
 | # | Timestamp | Name | Status | Notes |
 |---|-----------|------|--------|-------|
@@ -73,15 +73,15 @@ All migrations are synced between local (`supabase/migrations/`) and remote (`su
 | 47 | 20260520000001 | cleanup_stale_columns | ✅ | Drops 18 stale columns (6 from signals, 12 from validation_log) |
 | 48 | 20260520000002 | pipeline_runs | ✅ | pipeline_runs table |
 | 49 | 20260521000001 | drop_validation_log_notes | ✅ | Drops validation_log.notes |
-| 41 | 20260515000001 | v2_fpi_flow | ✅ | signals.fpi_flow |
-| 42 | 20260515000002 | cleanup_bad_may15_data | ✅ | Data cleanup |
-| 43 | 20260516000001 | cleanup_bad_may12_data | ✅ | Data cleanup + unique constraints |
-| 44 | 20260518000001 | drop_webhook_subscriptions | ✅ | **Fixed:** Drops webhook_subscriptions table |
-| 45 | 20260518000002 | desk_open_cards_anon_read | ✅ | RLS policy fix |
-| 46 | 20260518000003 | stream_a_signal_depth | ✅ | **Adds ecb_balance_sheet, bund_btp_spread, boj_policy_rate, india_vix, inr_forward_premium** |
-| 47 | 20260520000001 | cleanup_stale_columns | ✅ | **Drops 18 stale columns (6 from signals, 12 from validation_log)** |
-| 48 | 20260520000002 | pipeline_runs | ✅ | pipeline_runs table (renamed from duplicate timestamp) |
-| 49 | 20260521000001 | drop_validation_log_notes | ✅ | **Drops validation_log.notes** |
+| 50 | 20260519121954 | add_z_blended | ✅ | signals.z_blended (non-standard timestamp, pre-dates 24000001) |
+| 51 | 20260524000001 | site_content | ✅ | site_content table + seed rows |
+| 52 | 20260524000002 | page_views | ✅ | page_views table (page_path, created_at); 0 rows remote |
+| 53 | 20260524000003 | regime_category | ✅ | regime_calls.regime_category + index (trigger disabled/re-enabled around ALTER) |
+| 54 | 20260524000004 | structured_summary | ✅ | brief_log.structured_summary |
+| 55 | 20260524000005 | site_settings | ✅ | site_settings table + seed rows |
+| 56 | 20260525000000 | v2_schema | ✅ | regime_calls.strategy_version/data_source; call_rationale table + index |
+| 57 | 20260526000000 | v2_1_honest_metrics | ✅ | Net (post-cost) columns on validation_log/validation_stats; signals.days_since_cot, risk_reversal_source |
+| 58 | 20260629000000 | call_rationale_unique_constraint | ✅ | call_rationale unique constraint + index (newest file) |
 
 ---
 

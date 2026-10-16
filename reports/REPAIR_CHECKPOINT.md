@@ -102,6 +102,26 @@ branch E2E + latest-calls refresh, then AFTER-proof and draft PR.
   shows Friday bars still missing (last=2026-10-15 all pairs); retry now
   would abort identically. Single delayed run armed for 22:05 UTC.
 
+## Packet 5 — DB_STATUS refresh + live-LLM eval attempt (2026-10-16 ~20:47 UTC)
+
+- `docs/DB_STATUS.md`: removed duplicated rows 41–49, appended rows 50–58
+  (z_blended, site_content, page_views, regime_category, structured_summary,
+  site_settings, v2_schema, v2_1_honest_metrics, call_rationale constraint).
+  Remote effects probed read-only: 11/11 present (`page_views` table present,
+  0 rows). Total corrected 49 → 58 (+ zero-byte tmp file noted).
+- Live-LLM eval on real frozen 2026-10-15 calls (3 pairs + briefs):
+  **all providers unreachable on free tier** — Groq primary + fallbacks
+  404/decommissioned, Gemini 429 (quota, retry ~3h), NIM 410 (EOL Aug 2026),
+  OpenRouter `:free` slugs 404 (paid only). Per "no paid evals" guard: no paid
+  calls made; reader used deterministic fallback (by design).
+  `reports/llm_reader_eval_v2_live.*`: faithfulness 1.000, number accuracy
+  1.000 (fallback notes), Brier n=0 (10-15 outcomes not yet matured).
+- Known issue (deferred, needs human model-pinning decision):
+  `pipeline/src/ai/providers/groq.py` model IDs stale; chain teardown logs
+  `Event loop is closed` noise (pre-existing, also in `backfill.log`).
+  No code changed — blast radius zero.
+- Delayed branch E2E re-run still armed for 22:05 UTC (Friday bars).
+
 ## Open gates (6 root gates still open until evidence closes each)
 
 1. Deploy blocker: Vercel branch preview from fx-live-personal (Root Directory
