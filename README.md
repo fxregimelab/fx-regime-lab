@@ -1,5 +1,7 @@
 # FX Regime Lab
 
+> Archived at v2.1-archive on 2026-10-17. Site stays up as proof. Signals near random. Research only, not investment advice. 6 root gates remain open and parked.
+
 **Open-source research infrastructure for transparent macro regime monitoring.**
 
 > ⚠️ **v2.1 Experimental**: Our signals currently have near-random accuracy.
