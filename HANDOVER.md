@@ -441,3 +441,15 @@ Shreyash leaves with:
 ---
 
 *This file is the merged canonical handover. It supersedes all previous handover fragments. Last updated: 2026-05-08*
+
+---
+
+## ADDENDUM 2026-10-17 — fx-live-personal operator status (background branch only)
+
+- Branch `fx-live-personal` cut from main `bb089f3`; main stays archived at
+  `v2.1-archive`. Never push to main. Never move the tag.
+- Triage green on branch: pytest 391/391, web build green, Prefect pull still
+  `main` (manual trigger for background runs). Footer stays DEGRADED.
+- First LLM reader + eval slice landed with zero ledger writes
+  (`reports/llm_reader_eval_v1.md`, `reports/REPAIR_CHECKPOINT.md`).
+- 6 root gates still open. No VERIFIED RELEASE. Human merges any PR to main.

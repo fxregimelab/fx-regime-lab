@@ -4,6 +4,30 @@
 > **Read `MASTERPLAN.md` second** — it defines all phases, priorities, and gates.  
 > Read `docs/METHODOLOGY_AUDIT_TRIPLE_PERSONA.md` for the full audit report.
 
+## Current Sprint: fx-live-personal (background branch only, 2026-10-17)
+
+Branch `fx-live-personal` cut from main `bb089f3` (includes `v2.1-archive` tag).
+Main stays archived. Never push to main. Never move the tag.
+
+- [x] Step 1 triage: pytest 379/379 green, `tsc --noEmit` 0 errors,
+  `biome check` clean (206 files), `npm run build` pass. Migrations 59 files
+  on disk (58 real + 1 zero-byte tmp; `DB_STATUS.md` documents 49 — stale).
+  Prefect pull branch still `main` (background runs need manual trigger).
+  MOF + ECB-SDW fetchers deferred (proxies only). Footer stays DEGRADED.
+- [x] Step 2 first AI + eval slice: one LLM reader
+  (`pipeline/src/ai/renderers/analyst_note.py`,
+  `pipeline/src/ai/analyst_reader.py`) + eval harness
+  (`pipeline/src/eval/llm_reader_eval.py`). Baseline
+  `reports/llm_reader_eval_v1.md`: faithfulness 1.000, number accuracy 1.000
+  (deterministic, 3 synthetic rows), Brier n=0 (no outcomes claimed).
+  391/391 pytest (379 + 12 new), ruff clean. Zero ledger writes.
+- [ ] Step 3: push slices to `origin fx-live-personal`; draft PR only when
+  live + eval green with ledger delta zero (new rows only). No auto-merge.
+- [ ] Step 4: docs updated on branch (this file, README, AGENTS.md counts,
+  CONTEXT.md repair section, HANDOVER.md operator status, MASTERPLAN.md
+  phases, `reports/REPAIR_CHECKPOINT.md` packets). 6 root gates still open.
+  No VERIFIED RELEASE without live observation + receipts.
+
 ## Completed
 
 **Step 0: Identity Compliance Audit — COMPLETED (2026-05-18)**
@@ -43,7 +67,11 @@
 - `tests/test_simulation_engine.py` — 2 synthetic diagnostic tests
 - 264 tests passing, ruff clean, mypy clean on new modules
 
-## Current Phase: M.4 Prep + Live Monitoring
+## Current Phase: M.4 Prep + Live Monitoring (branch fx-live-personal active, 2026-10-17)
+
+> Background branch `fx-live-personal` @ `bb089f3`: pytest 391/391, web build
+> green, LLM reader + eval slice landed with zero ledger writes. Footer stays
+> DEGRADED. 6 root gates open — see `reports/REPAIR_CHECKPOINT.md`.
 
 **Staged Pipeline v2 — Slice #16 COMPLETED (2026-06-24)**
 - Production adapters: `ProductionFetcherPort`, `ProductionWriterPort`, `ProductionAlertPort`
@@ -117,7 +145,7 @@
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| pytest | 234/234 ✅ | 234+ |
+| pytest | 391/391 ✅ (379 baseline + 12 reader/eval) | 391+ |
 | TypeScript | 0 errors ✅ | 0 |
 | Biome | Clean ✅ | Clean |
 | Build | `npm run build` ✅ | Pass |

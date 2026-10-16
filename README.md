@@ -30,6 +30,13 @@ FX Regime Lab is an experiment in radical transparency for macro research:
 | USD/JPY | 48.3% | 38.2% – 58.4% | ~46% |
 | USD/INR | 41.4% | 35.2% – 47.8% | ~36% |
 
+> **Background branch `fx-live-personal` (2026-10-17, branch only — main stays
+> archived):** pipeline 391/391 pytest green, web build green, first LLM reader
+> + eval slice landed (`reports/llm_reader_eval_v1.md`, faithfulness 1.000 on
+> deterministic baseline, Brier n=0 — no outcomes claimed). Footer stays
+> DEGRADED until branch preview + live ledger proof. 6 root gates still open —
+> see `reports/REPAIR_CHECKPOINT.md`. No VERIFIED RELEASE.
+
 ## Roadmap
 
 - **v2.1** (May 2026): Honest metrics, documented limitations, public launch

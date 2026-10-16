@@ -102,7 +102,7 @@ This plan is organized into work-streams, but no work-stream advances past an ID
 | IDENTITY Phase | Gate Condition | Status | Career Gate |
 |----------------|----------------|--------|-------------|
 | **Phase A** — Signal Quality Fix | EUR/USD accuracy measured OOS + logged; brief text is clean; 14 consecutive error-free pipeline days | ✅ Met | — |
-| **Phase B** — Product Completeness | 90+ days live OOS for all 3 pairs; regime history strip live; methodology public; EUR/USD accuracy > 50% | 🔄 In Progress | MFE portfolio |
+| **Phase B** — Product Completeness | 90+ days live OOS for all 3 pairs; regime history strip live; methodology public; EUR/USD accuracy > 50% | 🔄 In Progress (+ fx-live-personal slice 2026-10-17: reader/eval on background branch, gates unchanged) | MFE portfolio |
 | **Phase C** — Regime Divergence Alert | EUR/USD rolling 90-day accuracy > 55%; SSRN paper drafted; divergence alert architecturally designed | 🔒 Locked | MFE submission |
 | **Phase D** — Full MFE Package | 6 months live OOS all pairs; performance page live; GBP/USD architecturally planned; SSRN paper submitted | 🔒 Locked | MFE application |
 
