@@ -16,8 +16,8 @@ from typing import Any
 
 from src.backfill.historical_fetcher import fetch_historical_spot_yfinance
 from src.db import writer
+from src.validation.calculator import compute_horizon_metrics, horizon_metrics_to_payload
 from src.validation.calendar import add_trading_days
-from src.validation.engine import is_correct, log_return_bps, realized_direction
 
 logger = logging.getLogger(__name__)
 
@@ -53,41 +53,6 @@ def get_spot_price(pair: str, target_date: datetime.date) -> float | None:
         if b.date <= target_date:
             return float(b.close)
     return None
-
-
-def apply_dead_band(bps: float, predicted: str) -> str:
-    """Return CORRECT / WRONG / NEUTRAL after applying Marcus ±5 bps dead-band.
-
-    Args:
-        bps: Log-return in basis points.
-        predicted: Predicted direction (BULLISH / BEARISH / NEUTRAL).
-    """
-    realized = realized_direction(bps)
-    if realized == "NEUTRAL":
-        return "NEUTRAL"
-    return "CORRECT" if is_correct(predicted, realized) else "WRONG"
-
-
-def compute_brier_score_from_outcome(conviction: float, outcome: str) -> float | None:
-    """Brier score from outcome label.
-
-    Args:
-        conviction: Normalised confidence (0-1).  In the pipeline this is the
-            raw ``confidence`` field (already 0-1).
-        outcome: "CORRECT", "WRONG", or "NEUTRAL".
-
-    Returns:
-        ``(p - y)²`` where ``y = 1.0`` (correct), ``0.0`` (wrong), ``0.5`` (neutral).
-        ``None`` for neutral predictions (no directional credit).
-    """
-    p = float(conviction)
-    if outcome == "CORRECT":
-        y = 1.0
-    elif outcome == "WRONG":
-        y = 0.0
-    else:
-        y = 0.5
-    return (p - y) ** 2
 
 
 def backfill_validation_for_call(
@@ -148,17 +113,9 @@ def backfill_validation_for_call(
     # ── T+5 horizon ───────────────────────────────────────────────────────
     if today >= t5_date:
         s5 = get_spot_price(pair, t5_date)
-        if s5 is not None:
-            bps5 = log_return_bps(s0, s5)
-            outcome5 = apply_dead_band(bps5, predicted)
-            brier5 = compute_brier_score_from_outcome(confidence, outcome5)
-            payload["log_return_t5_bps"] = bps5
-            payload["correct_t5"] = outcome5 == "CORRECT"
-            payload["brier_score_t5"] = brier5
-            payload["actual_direction_t5"] = realized_direction(bps5)
-            payload["actual_return_5d"] = bps5 / 10_000.0
-            payload["correct_5d"] = outcome5 == "CORRECT"
-            payload["brier_5d"] = brier5
+        metrics_t5 = compute_horizon_metrics(s0, s5, predicted, confidence, pair)
+        if metrics_t5 is not None:
+            payload.update(horizon_metrics_to_payload(metrics_t5, "t5"))
         else:
             logger.warning(
                 "Backfill skip T+5: missing S5 for %s on %s",
@@ -169,17 +126,9 @@ def backfill_validation_for_call(
     # ── T+20 horizon ──────────────────────────────────────────────────────
     if today >= t20_date:
         s20 = get_spot_price(pair, t20_date)
-        if s20 is not None:
-            bps20 = log_return_bps(s0, s20)
-            outcome20 = apply_dead_band(bps20, predicted)
-            brier20 = compute_brier_score_from_outcome(confidence, outcome20)
-            payload["log_return_t20_bps"] = bps20
-            payload["correct_t20"] = outcome20 == "CORRECT"
-            payload["brier_score_t20"] = brier20
-            payload["actual_direction_t20"] = realized_direction(bps20)
-            payload["actual_return_20d"] = bps20 / 10_000.0
-            payload["correct_20d"] = outcome20 == "CORRECT"
-            payload["brier_20d"] = brier20
+        metrics_t20 = compute_horizon_metrics(s0, s20, predicted, confidence, pair)
+        if metrics_t20 is not None:
+            payload.update(horizon_metrics_to_payload(metrics_t20, "t20"))
         else:
             logger.warning(
                 "Backfill skip T+20: missing S20 for %s on %s",

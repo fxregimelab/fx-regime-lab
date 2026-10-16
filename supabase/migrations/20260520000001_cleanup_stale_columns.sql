@@ -17,8 +17,10 @@ ALTER TABLE public.signals
     DROP COLUMN IF EXISTS rate_diff_zscore,
     DROP COLUMN IF EXISTS vol_skew;
 
--- 2. validation_log: drop 12 columns from early iterations
---    that are never populated by the current validation engine
+-- 2. validation_log: drop 10 columns from early iterations
+--    that are never populated by the current validation engine.
+--    NOTE: predicted_direction and predicted_regime are still written and
+--    read by pipeline/src/validation/engine.py and must be retained.
 ALTER TABLE public.validation_log
     DROP COLUMN IF EXISTS validation_date,
     DROP COLUMN IF EXISTS is_correct,
@@ -28,7 +30,5 @@ ALTER TABLE public.validation_log
     DROP COLUMN IF EXISTS correct_1d,
     DROP COLUMN IF EXISTS dxy_return_1d,
     DROP COLUMN IF EXISTS max_intraday_adverse_bps,
-    DROP COLUMN IF EXISTS predicted_direction,
-    DROP COLUMN IF EXISTS predicted_regime,
     DROP COLUMN IF EXISTS regime_at_call,
     DROP COLUMN IF EXISTS vol_regime_at_call;

@@ -205,6 +205,12 @@ All migrations are synced between local (`supabase/migrations/`) and remote (`su
 | brier_20d | float | Pipeline | Legacy alias |
 | actual_return_5d | float | Pipeline | T+5 return |
 | actual_return_20d | float | Pipeline | T+20 return |
+| log_return_net_bps_t5 | float | Pipeline | T+5 log return after round-trip cost |
+| log_return_net_bps_t20 | float | Pipeline | T+20 log return after round-trip cost |
+| correct_net_t5 | bool | Pipeline | Net-correctness flag after costs (T+5) |
+| correct_net_t20 | bool | Pipeline | Net-correctness flag after costs (T+20) |
+| cost_bps_t5 | float | Pipeline | Round-trip transaction cost in bps (T+5) |
+| cost_bps_t20 | float | Pipeline | Round-trip transaction cost in bps (T+20) |
 | call_id | int | Pipeline | FK → regime_calls.id |
 | is_superseded | bool | Pipeline | Flag for revised calls |
 | confidence | float | Pipeline | Call confidence at time |
@@ -243,7 +249,7 @@ All migrations are synced between local (`supabase/migrations/`) and remote (`su
 | `ai_usage_log` | AI request metering | date, request_count, purpose, model | Pipeline |
 | `audit_log` | Immutable audit trail | operation, table_name, row_id, old_value, new_value | Auto (trigger) |
 | `pair_profiles` | Per-pair weight config | pair, rate_weight, cot_weight, vol_weight, oi_weight, special_weight | Manual |
-| `validation_stats` | Aggregated accuracy stats | pair, as_of_date, t5_win_rate, t5_mean_brier, t5_rolling_90d_accuracy… | Pipeline |
+| `validation_stats` | Aggregated accuracy stats | pair, as_of_date, t5_total_calls, t5_win_rate, t5_net_win_rate, t5_mean_brier, t5_rolling_90d_accuracy, t20_total_calls, t20_win_rate, t20_net_win_rate, t20_rolling_90d_accuracy… | Pipeline |
 
 ---
 

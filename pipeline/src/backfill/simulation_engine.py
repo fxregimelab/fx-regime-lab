@@ -189,7 +189,7 @@ def simulate_all_days(
     all_vol_90th = np.full(n, np.nan)
     rv5_history: list[float] = []
     for j in range(21, n):
-        rv5_history.append(all_rv5[j])
+        rv5_history.append(float(all_rv5[j]))
         if len(rv5_history) >= 5:
             window = rv5_history[-252:] if len(rv5_history) > 252 else rv5_history
             all_vol_90th[j] = _percentile(window, 0.90)
@@ -562,7 +562,7 @@ def simulate_all_days_v2(
     all_vol_90th = np.full(n, np.nan)
     rv5_history: list[float] = []
     for j in range(21, n):
-        rv5_history.append(all_rv5[j])
+        rv5_history.append(float(all_rv5[j]))
         if len(rv5_history) >= 5:
             window = rv5_history[-252:] if len(rv5_history) > 252 else rv5_history
             all_vol_90th[j] = _percentile(window, 0.90)

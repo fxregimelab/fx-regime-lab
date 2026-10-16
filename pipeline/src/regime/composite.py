@@ -75,7 +75,7 @@ def _average_ranks_np(a: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         return np.array([], dtype=float)
     sorter = np.argsort(a, kind="mergesort")
     sorted_a = a[sorter]
-    ranks = np.empty(n, dtype=float)
+    ranks: npt.NDArray[np.float64] = np.empty(n, dtype=float)
     i = 0
     while i < n:
         j = i + 1

@@ -65,6 +65,9 @@ def test_writer_port_can_be_subclassed() -> None:
         ) -> None:
             self.validation_rows.extend(rows)
 
+        def get_regime_calls(self, pair: str, *, limit: int = 100) -> list[RegimeCall]:
+            return [c for c in self.calls if c.pair == pair][-limit:]
+
     writer = FakeWriter()
     call = RegimeCall(
         pair="EURUSD",

@@ -14,7 +14,6 @@ import json
 import logging
 import os
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict
 from datetime import date
 from functools import lru_cache
 from typing import Any, cast
@@ -23,9 +22,46 @@ from postgrest.exceptions import APIError
 from postgrest.types import CountMethod
 from supabase import Client, create_client
 
+from src.db.repositories.desk_card import DeskCardRepository
+from src.db.repositories.regime_call import RegimeCallRepository
+from src.db.repositories.signal import SignalRepository
+from src.db.repositories.validation_log import ValidationLogRepository
 from src.types import DeskOpenCardRow, RegimeCall, SignalRow
 
 logger = logging.getLogger(__name__)
+
+_validation_log_repo: ValidationLogRepository | None = None
+_regime_call_repo: RegimeCallRepository | None = None
+_signal_repo: SignalRepository | None = None
+_desk_card_repo: DeskCardRepository | None = None
+
+
+def _validation_log() -> ValidationLogRepository:
+    global _validation_log_repo
+    if _validation_log_repo is None:
+        _validation_log_repo = ValidationLogRepository(lambda: _client())
+    return _validation_log_repo
+
+
+def _regime_call() -> RegimeCallRepository:
+    global _regime_call_repo
+    if _regime_call_repo is None:
+        _regime_call_repo = RegimeCallRepository(lambda: _client())
+    return _regime_call_repo
+
+
+def _signal() -> SignalRepository:
+    global _signal_repo
+    if _signal_repo is None:
+        _signal_repo = SignalRepository(lambda: _client())
+    return _signal_repo
+
+
+def _desk_card() -> DeskCardRepository:
+    global _desk_card_repo
+    if _desk_card_repo is None:
+        _desk_card_repo = DeskCardRepository(lambda: _client())
+    return _desk_card_repo
 
 
 @lru_cache(maxsize=1)
@@ -62,47 +98,7 @@ def _date_iso(d: date | str) -> str:
 
 def write_signal_row(row: SignalRow) -> None:
     """Upsert signal row with all available metrics."""
-    payload: dict[str, Any] = {
-        "pair": row.pair,
-        "date": _date_iso(row.date),
-        "rate_diff_2y": row.rate_diff_2y,
-        "rate_diff_10y": row.rate_diff_10y,
-        "cot_percentile": row.cot_percentile,
-        "realized_vol_20d": row.realized_vol_20d,
-        "realized_vol_5d": row.realized_vol_5d,
-        "implied_vol_30d": row.implied_vol_30d,
-        "spot": row.spot,
-        "day_change": row.day_change,
-        "day_change_pct": row.day_change_pct,
-        "cross_asset_vix": row.cross_asset_vix,
-        "cross_asset_dxy": row.cross_asset_dxy,
-        "cross_asset_oil": row.cross_asset_oil,
-        "cross_asset_us10y": row.cross_asset_us10y,
-        "cross_asset_gold": row.cross_asset_gold,
-        "cross_asset_copper": row.cross_asset_copper,
-        "cross_asset_stoxx": row.cross_asset_stoxx,
-        "oi_delta": row.oi_delta,
-        "volume_rvol": row.volume_rvol,
-        "structural_instability": row.structural_instability,
-        "breakeven_inflation_10y": row.breakeven_inflation_10y,
-        "rate_diff_10y_real": row.rate_diff_10y_real,
-        "rate_z_tactical": row.rate_z_tactical,
-        "rate_z_structural": row.rate_z_structural,
-        "z_blended": row.z_blended,
-        "realized_vol_rank": row.realized_vol_rank,
-        "skew_alignment": row.skew_alignment,
-        "risk_reversal_25d": row.risk_reversal_25d,
-        "fpi_flow": row.fpi_flow,
-        "cot_net_pos": row.cot_net_pos,
-        "cot_asset_mgr_net": row.cot_asset_mgr_net,
-        "cot_lev_money_net": row.cot_lev_money_net,
-        "ecb_balance_sheet": row.ecb_balance_sheet,
-        "bund_btp_spread": row.bund_btp_spread,
-        "boj_policy_rate": row.boj_policy_rate,
-        "india_vix": row.india_vix,
-        "inr_forward_premium": row.inr_forward_premium,
-    }
-    _client().table("signals").upsert(payload, on_conflict="pair,date").execute()
+    _signal().write_signal_row(row)
 
 
 def compute_write_hash(inputs: dict[str, Any]) -> str:
@@ -125,49 +121,17 @@ def write_regime_call(
     Uses INSERT with conflict detection rather than upsert so that the
     immutable trigger (which blocks UPDATE) never fires on re-runs.
     """
-    payload: dict[str, Any] = asdict(call)
-    payload["date"] = _date_iso(call.date)
-    if correlation_id is not None:
-        payload["correlation_id"] = correlation_id
-    if write_hash is not None:
-        payload["write_hash"] = write_hash
-    client = _client()
-
-    # Check for existing row first — avoids immutable-trigger UPDATE error
-    existing = (
-        client.table("regime_calls")
-        .select("id")
-        .eq("pair", call.pair)
-        .eq("date", payload["date"])
-        .maybe_single()
-        .execute()
+    return _regime_call().write_regime_call(
+        call, correlation_id=correlation_id, write_hash=write_hash
     )
-    if existing and existing.data:
-        row = cast(dict[str, Any], existing.data)
-        return row.get("id")
-
-    res = client.table("regime_calls").insert(payload).execute()
-    rows = cast(list[dict[str, Any]], res.data or [])
-    return rows[0].get("id") if rows else None
-
-
-def _desk_open_card_payload(card: DeskOpenCardRow) -> dict[str, Any]:
-    payload: dict[str, Any] = asdict(card)
-    payload["date"] = _date_iso(card.date)
-    return payload
 
 
 def write_desk_open_card(card: DeskOpenCardRow) -> None:
-    _client().table("desk_open_cards").upsert(
-        _desk_open_card_payload(card), on_conflict="pair,date"
-    ).execute()
+    _desk_card().write_desk_open_card(card)
 
 
 def write_desk_open_cards_bulk(cards: Sequence[DeskOpenCardRow]) -> None:
-    if not cards:
-        return
-    rows = [_desk_open_card_payload(c) for c in cards]
-    _client().table("desk_open_cards").upsert(rows, on_conflict="pair,date").execute()
+    _desk_card().write_desk_open_cards_bulk(cards)
 
 
 def write_call_rationale(rows: list[dict[str, Any]]) -> None:
@@ -185,20 +149,13 @@ def write_call_rationale(rows: list[dict[str, Any]]) -> None:
 
 
 def get_desk_open_cards_for_date(date_str: str) -> list[dict[str, Any]]:
-    res = (
-        _client()
-        .table("desk_open_cards")
-        .select("*")
-        .eq("date", str(date_str)[:10])
-        .execute()
-    )
-    return cast(list[dict[str, Any]], res.data or [])
+    return _desk_card().get_desk_open_cards_for_date(date_str)
 
 
 def get_rpc_fx_correlation_matrix() -> dict[str, dict[str, float]]:
     """Pairwise return correlations from Postgres (symmetric half-matrix JSON)."""
 
-    res = _client().rpc("get_fx_correlation_matrix", {}).execute()
+    res = _client().rpc("get_g10_correlation_matrix", {}).execute()
     raw = res.data
     if raw is None:
         return {}
@@ -228,17 +185,7 @@ def _parse_corr_matrix_json(obj: dict[str, Any]) -> dict[str, dict[str, float]]:
 
 
 def get_latest_desk_open_card(pair: str) -> dict[str, Any] | None:
-    res = (
-        _client()
-        .table("desk_open_cards")
-        .select("*")
-        .eq("pair", pair)
-        .order("date", desc=True)
-        .limit(1)
-        .execute()
-    )
-    rows = cast(list[dict[str, Any]], res.data or [])
-    return rows[0] if rows else None
+    return _desk_card().get_latest_desk_open_card(pair)
 
 
 def update_desk_open_card_flags(
@@ -248,87 +195,20 @@ def update_desk_open_card_flags(
     invalidation_triggered: bool | None = None,
     telemetry_status: str | None = None,
 ) -> None:
-    payload: dict[str, Any] = {}
-    if invalidation_triggered is not None:
-        payload["invalidation_triggered"] = invalidation_triggered
-    if telemetry_status is not None:
-        payload["telemetry_status"] = telemetry_status
-    if not payload:
-        return
-    (
-        _client()
-        .table("desk_open_cards")
-        .update(payload)
-        .eq("pair", pair)
-        .eq("date", date_str)
-        .execute()
+    _desk_card().update_desk_open_card_flags(
+        pair,
+        date_str,
+        invalidation_triggered=invalidation_triggered,
+        telemetry_status=telemetry_status,
     )
 
 
 def update_desk_open_card_telemetry_audit(
     pair: str, date_str: str, telemetry_audit_patch: Mapping[str, Any]
 ) -> None:
-    current = (
-        _client()
-        .table("desk_open_cards")
-        .select("telemetry_audit")
-        .eq("pair", pair)
-        .eq("date", date_str)
-        .maybe_single()
-        .execute()
+    _desk_card().update_desk_open_card_telemetry_audit(
+        pair, date_str, telemetry_audit_patch
     )
-    current_row = cast(dict[str, Any] | None, current.data if current is not None else None)
-    existing = (
-        cast(dict[str, Any], current_row.get("telemetry_audit"))
-        if current_row and isinstance(current_row.get("telemetry_audit"), dict)
-        else {}
-    )
-    merged = {**existing, **dict(telemetry_audit_patch)}
-    (
-        _client()
-        .table("desk_open_cards")
-        .update({"telemetry_audit": merged})
-        .eq("pair", pair)
-        .eq("date", date_str)
-        .execute()
-    )
-
-
-# Module-level cache: True = modern schema (call_date exists),
-# False = legacy schema (call_date missing), None = not yet probed.
-_has_call_date: bool | None = None
-
-
-_VALIDATION_IGNORED_DIFF_KEYS = {"id", "created_at", "is_superseded"}
-
-
-def _validation_payload_matches_existing(
-    payload: dict[str, Any], existing: dict[str, Any]
-) -> bool:
-    """Return True when every substantive field in *payload* matches *existing*."""
-    for key, value in payload.items():
-        if key in _VALIDATION_IGNORED_DIFF_KEYS:
-            continue
-        if existing.get(key) != value:
-            return False
-    return True
-
-
-def _insert_validation_log(payload: dict[str, Any]) -> None:
-    """Insert a validation_log row, stripping unknown columns on legacy schemas."""
-    client = _client()
-    insert_payload = {k: v for k, v in payload.items() if k != "id"}
-    for _attempt in range(10):
-        try:
-            client.table("validation_log").insert(insert_payload).execute()
-            return
-        except APIError as exc:
-            msg = str(getattr(exc, "message", "")) or str(exc)
-            if "Could not find the '" in msg and "' column of 'validation_log'" in msg:
-                col_match = msg.split("Could not find the '")[1].split("'")[0]
-                insert_payload.pop(col_match, None)
-                continue
-            raise
 
 
 def get_validation_log_entry(call_date: date | str, pair: str) -> dict[str, Any] | None:
@@ -338,89 +218,7 @@ def get_validation_log_entry(call_date: date | str, pair: str) -> dict[str, Any]
     Probes the schema once and caches the result to avoid repeated failed
     queries.
     """
-    global _has_call_date
-    iso = _date_iso(call_date)
-    client = _client()
-
-    if _has_call_date is not False:
-        try:
-            res = (
-                client.table("validation_log")
-                .select("*")
-                .eq("call_date", iso)
-                .eq("pair", pair)
-                .eq("is_superseded", False)
-                .order("created_at", desc=True)
-                .limit(1)
-                .maybe_single()
-                .execute()
-            )
-            if res is not None:
-                raw = res.data
-                if isinstance(raw, dict):
-                    _has_call_date = True
-                    return cast(dict[str, Any], raw)
-        except APIError as exc:
-            msg = str(getattr(exc, "message", "")) or str(exc)
-            if "column validation_log.call_date does not exist" in msg:
-                _has_call_date = False
-            elif "column validation_log.is_superseded does not exist" in msg:
-                # Schema has call_date but not yet is_superseded
-                try:
-                    res = (
-                        client.table("validation_log")
-                        .select("*")
-                        .eq("call_date", iso)
-                        .eq("pair", pair)
-                        .maybe_single()
-                        .execute()
-                    )
-                    if res is not None:
-                        raw = res.data
-                        if isinstance(raw, dict):
-                            _has_call_date = True
-                            return cast(dict[str, Any], raw)
-                except APIError:
-                    pass
-            else:
-                raise
-
-    # Legacy schema fallback
-    if _has_call_date is not True:
-        try:
-            res = (
-                client.table("validation_log")
-                .select("*")
-                .eq("date", iso)
-                .eq("pair", pair)
-                .eq("is_superseded", False)
-                .order("created_at", desc=True)
-                .limit(1)
-                .maybe_single()
-                .execute()
-            )
-            if res is not None:
-                raw = res.data
-                if isinstance(raw, dict):
-                    return cast(dict[str, Any], raw)
-        except APIError as exc:
-            msg = str(getattr(exc, "message", "")) or str(exc)
-            if "column validation_log.is_superseded does not exist" in msg:
-                res = (
-                    client.table("validation_log")
-                    .select("*")
-                    .eq("date", iso)
-                    .eq("pair", pair)
-                    .maybe_single()
-                    .execute()
-                )
-                if res is not None:
-                    raw = res.data
-                    if isinstance(raw, dict):
-                        return cast(dict[str, Any], raw)
-            else:
-                raise
-    return None
+    return _validation_log().get_validation_log_entry(call_date, pair)
 
 
 def write_validation_row(row: Mapping[str, Any]) -> None:
@@ -432,79 +230,41 @@ def write_validation_row(row: Mapping[str, Any]) -> None:
     ``is_superseded = true`` and the new row is inserted. If the payload
     is identical, the write is skipped.
     """
-    payload = cast(dict[str, Any], dict(row))
-    client = _client()
+    _validation_log().write_validation_row(row)
 
-    call_id = payload.get("call_id")
-    pair = payload.get("pair")
-    date_val = payload.get("call_date") or payload.get("date")
 
-    # Ensure new rows start as current versions.
-    payload["is_superseded"] = False
+def supersede_validation_row(row_id: str | int) -> None:
+    """Mark a single validation_log row as superseded (append-only cleanup).
 
-    # ── Find current (non-superseded) row ─────────────────────────────
-    existing: dict[str, Any] | None = None
-    if call_id is not None:
-        try:
-            res = (
-                client.table("validation_log")
-                .select("*")
-                .eq("call_id", call_id)
-                .eq("is_superseded", False)
-                .order("created_at", desc=True)
-                .limit(1)
-                .maybe_single()
-                .execute()
-            )
-            if res is not None and res.data is not None:
-                raw = res.data
-                if isinstance(raw, dict):
-                    existing = cast(dict[str, Any], raw)
-        except APIError as exc:
-            msg = str(getattr(exc, "message", "")) or str(exc)
-            if "column validation_log.is_superseded does not exist" in msg:
-                res = (
-                    client.table("validation_log")
-                    .select("*")
-                    .eq("call_id", call_id)
-                    .maybe_single()
-                    .execute()
-                )
-                if res is not None and res.data is not None:
-                    raw = res.data
-                    if isinstance(raw, dict):
-                        existing = cast(dict[str, Any], raw)
-            elif "column validation_log.call_id does not exist" not in msg:
-                raise
+    Use for test rows or data-quality repairs that should no longer be the
+    current version for their (date, pair) key.
+    """
+    _validation_log().supersede_validation_row(row_id)
 
-    if existing is None and pair is not None and date_val is not None:
-        existing = get_validation_log_entry(date_val, pair)
 
-    if existing is not None:
-        # If the existing row already has T+5 data and the payload would not
-        # add T+20 data, skip the write. This avoids creating a duplicate
-        # partial version when only metadata/non-result fields differ.
-        if existing.get("log_return_t5_bps") is not None:
-            existing_has_t20 = existing.get("log_return_t20_bps") is not None
-            payload_has_t20 = payload.get("log_return_t20_bps") is not None
-            if existing_has_t20 or not payload_has_t20:
-                return
+def update_validation_log_row(
+    row_id: str | int, updates: Mapping[str, Any]
+) -> None:
+    """In-place update of derived fields on a validation_log row.
 
-        # Idempotency: if every substantive payload field already matches,
-        # do not insert another identical row.
-        if _validation_payload_matches_existing(payload, existing):
-            return
+    This is intentionally **not** a versioning write: it is used for bulk
+    corrections of derived/calculated fields (cost, net return, net
+    correctness) when the underlying source spot price and prediction are
+    unchanged.
+    """
+    _validation_log().update_validation_log_row(row_id, updates)
 
-        # Materially different: mark the existing row superseded, then insert
-        # the new current version. The trigger allows updates that only touch
-        # is_superseded.
-        existing_id = existing.get("id")
-        if existing_id is not None:
-            client.table("validation_log").update({"is_superseded": True}).eq(
-                "id", existing_id
-            ).execute()
 
-    _insert_validation_log(payload)
+def bulk_rewrite_validation_rows(
+    old_ids: list[str | int], new_rows: list[dict[str, Any]]
+) -> None:
+    """Versioned bulk correction of validation_log rows.
+
+    Marks the old rows superseded and inserts the corrected rows in bulk.
+    This obeys the append-only ledger rule while avoiding thousands of
+    round-trips.
+    """
+    _validation_log().bulk_rewrite_validation_rows(old_ids, new_rows)
 
 
 def write_brief(
@@ -570,7 +330,7 @@ def get_rpc_calculate_dual_correlation(pair: str, lookback: int) -> float | None
     res = (
         _client()
         .rpc(
-            "calculate_fx_basket_correlation",
+            "calculate_dual_correlation",
             {"p_pair": pair, "p_lookback": int(lookback)},
         )
         .execute()
@@ -614,17 +374,7 @@ def get_ai_request_count_today(date_str: str) -> int:
 
 
 def get_latest_regime_call(pair: str) -> dict[str, Any] | None:
-    res = (
-        _client()
-        .table("regime_calls")
-        .select("*")
-        .eq("pair", pair)
-        .order("date", desc=True)
-        .limit(1)
-        .execute()
-    )
-    data = cast(list[dict[str, Any]], res.data or [])
-    return data[0] if data else None
+    return _regime_call().get_latest_regime_call(pair)
 
 
 def get_brief_for_date(pair: str, date_str: str) -> str | None:
@@ -641,32 +391,11 @@ def get_brief_for_date(pair: str, date_str: str) -> str | None:
 
 
 def get_signal_for_pair_date(pair: str, date_str: str) -> dict[str, Any] | None:
-    res = (
-        _client()
-        .table("signals")
-        .select("*")
-        .eq("pair", pair)
-        .eq("date", date_str)
-        .execute()
-    )
-    data = cast(list[dict[str, Any]], res.data or [])
-    return data[0] if data else None
+    return _signal().get_signal_for_pair_date(pair, date_str)
 
 
 def get_historical_signals(pair: str, limit: int = 1260) -> list[dict[str, Any]]:
-    res = (
-        _client()
-        .table("signals")
-        .select(
-            "date,rate_diff_2y,rate_diff_10y,breakeven_inflation_10y,"
-            "cot_percentile,realized_vol_5d,realized_vol_20d,oi_delta,spot,cross_asset_us10y",
-        )
-        .eq("pair", pair)
-        .order("date", desc=True)
-        .limit(limit)
-        .execute()
-    )
-    return cast(list[dict[str, Any]], res.data or [])
+    return _signal().get_historical_signals(pair, limit=limit)
 
 
 def delete_pipeline_data_for_date(date_str: str, *, force: bool = False) -> None:
@@ -755,17 +484,7 @@ def _log_audit(
 
 
 def get_historical_regime_calls(pair: str, limit: int = 5000) -> list[dict[str, Any]]:
-    res = (
-        _client()
-        .table("regime_calls")
-        .select("id,date,regime,signal_composite,rate_signal,confidence")
-        .eq("pair", pair)
-        .order("date", desc=True)
-        .limit(limit)
-        .execute()
-    )
-    rows = cast(list[dict[str, Any]], res.data or [])
-    return list(reversed(rows))
+    return _regime_call().get_historical_regime_calls(pair, limit=limit)
 
 
 def update_macro_event_ai_brief(date_str: str, event: str, ai_brief: str) -> None:
@@ -967,103 +686,13 @@ def get_historical_price_for_date(pair: str, date_str: str) -> dict[str, Any] | 
     return None
 
 
-def _validation_log_has_t5_for_call(
-    call_id: Any, call_date: str, pair: str
-) -> bool:
-    """Return True when a current (non-superseded) validation_log row exists."""
-    client = _client()
-
-    def _by_call_id(include_superseded_filter: bool) -> Any:
-        q = (
-            client.table("validation_log")
-            .select("brier_score_t5")
-            .eq("call_id", call_id)
-            .not_.is_("brier_score_t5", "null")
-        )
-        if include_superseded_filter:
-            q = q.eq("is_superseded", False)
-        return q.maybe_single().execute()
-
-    def _by_date_pair(include_superseded_filter: bool) -> Any:
-        q = (
-            client.table("validation_log")
-            .select("brier_score_t5")
-            .eq("date", call_date)
-            .eq("pair", pair)
-            .not_.is_("brier_score_t5", "null")
-        )
-        if include_superseded_filter:
-            q = q.eq("is_superseded", False)
-        return q.maybe_single().execute()
-
-    if call_id is not None:
-        try:
-            vres = _by_call_id(include_superseded_filter=True)
-            if vres is not None and vres.data is not None:
-                return True
-        except APIError as exc:
-            msg = str(getattr(exc, "message", "")) or str(exc)
-            if "column validation_log.is_superseded does not exist" in msg:
-                try:
-                    vres = _by_call_id(include_superseded_filter=False)
-                    if vres is not None and vres.data is not None:
-                        return True
-                except Exception:
-                    pass
-            elif "column validation_log.call_id does not exist" not in msg:
-                pass
-        except Exception:
-            pass
-
-    try:
-        vres = _by_date_pair(include_superseded_filter=True)
-        if vres is not None and vres.data is not None:
-            return True
-    except APIError as exc:
-        msg = str(getattr(exc, "message", "")) or str(exc)
-        if "column validation_log.is_superseded does not exist" in msg:
-            try:
-                vres = _by_date_pair(include_superseded_filter=False)
-                if vres is not None and vres.data is not None:
-                    return True
-            except Exception:
-                pass
-        else:
-            pass
-    except Exception:
-        pass
-
-    return False
-
-
 def get_unvalidated_regime_calls(limit: int | None = None) -> list[dict[str, Any]]:
     """Return regime_calls rows lacking a current validation_log entry with brier_score_t5.
 
     Ordered by date ascending (oldest first) so backfill proceeds chronologically.
     Superseded validation_log rows are ignored.
     """
-    query = (
-        _client()
-        .table("regime_calls")
-        .select("id,date,pair,regime,rate_signal,confidence")
-        .order("date", desc=False)
-    )
-    if limit is not None:
-        query = query.limit(limit)
-
-    res = query.execute()
-    calls = cast(list[dict[str, Any]], res.data or [])
-
-    unvalidated: list[dict[str, Any]] = []
-    for call in calls:
-        call_id = call.get("id")
-        call_date = str(call.get("date"))[:10]
-        pair = str(call.get("pair"))
-
-        if not _validation_log_has_t5_for_call(call_id, call_date, pair):
-            unvalidated.append(call)
-
-    return unvalidated
+    return _validation_log().get_unvalidated_regime_calls(limit=limit)
 
 
 def get_historical_prices(pair: str, limit: int = 10000) -> list[dict[str, Any]]:
@@ -1251,41 +880,6 @@ def write_research_memo(
     _client().table("research_memos").upsert(payload, on_conflict="link_url").execute()
 
 
-def _pg_conn(max_retries: int = 5) -> Any:
-    """Raw Postgres connection for bulk backfill writes (pg8000)."""
-    import ssl
-    import time
-
-    import pg8000.native
-
-    ctx = ssl._create_unverified_context()
-    host = os.environ.get("SUPABASE_DB_HOST", "db.weaaacohvzzgkgxzpaee.supabase.co")
-    password = os.environ.get("SUPABASE_DB_PASSWORD")
-    if not password:
-        raise RuntimeError(
-            "SUPABASE_DB_PASSWORD must be set in the environment. "
-            "Get it from Supabase Dashboard → Project Settings → Database → Connection string."
-        )
-    last_err: BaseException | None = None
-    for attempt in range(max_retries):
-        try:
-            return pg8000.native.Connection(
-                host=host,
-                database="postgres",
-                user="postgres",
-                password=password,
-                ssl_context=ctx,
-                timeout=30,
-            )
-        except Exception as e:
-            last_err = e
-            logger.warning("DB connection attempt %d/%d failed: %s", attempt + 1, max_retries, e)
-            time.sleep(min(2 ** attempt, 30))
-    if last_err is not None:
-        raise last_err
-    raise RuntimeError(f"Failed to connect to database after {max_retries} attempts")
-
-
 def bulk_write_backfill_results(
     pair: str,
     results: Sequence[tuple[SignalRow, RegimeCall]],
@@ -1302,159 +896,7 @@ def bulk_write_backfill_results(
     append-only ledger and is never deleted or updated here (the trigger
     that blocks UPDATE/DELETE remains enabled).
     """
-    if not results:
-        return
-
-    conn = _pg_conn()
-    conn.run("ALTER TABLE regime_calls DISABLE TRIGGER trg_protect_immutable_calls")
-    conn.run("ALTER TABLE regime_calls DISABLE TRIGGER trg_log_regime_call_audit")
-
-    conn.run("DELETE FROM signals WHERE pair = :pair", pair=pair)
-    conn.run("DELETE FROM regime_calls WHERE pair = :pair", pair=pair)
-
-    signal_rows: list[tuple[Any, ...]] = []
-    regime_rows: list[tuple[Any, ...]] = []
-    for signal_row, call in results:
-        signal_rows.append((
-            signal_row.pair, signal_row.date.isoformat(), signal_row.rate_diff_2y,
-            signal_row.rate_diff_10y, signal_row.cot_percentile, signal_row.realized_vol_20d,
-            signal_row.realized_vol_5d, signal_row.implied_vol_30d, signal_row.spot,
-            signal_row.day_change, signal_row.day_change_pct, signal_row.cross_asset_vix,
-            signal_row.cross_asset_dxy, signal_row.cross_asset_oil, signal_row.cross_asset_us10y,
-            signal_row.cross_asset_gold, signal_row.cross_asset_copper,
-            signal_row.cross_asset_stoxx,
-            signal_row.oi_delta, signal_row.volume_rvol, signal_row.structural_instability,
-            signal_row.breakeven_inflation_10y, signal_row.rate_diff_10y_real,
-            signal_row.rate_z_tactical, signal_row.rate_z_structural,
-            signal_row.realized_vol_rank, signal_row.skew_alignment,
-        ))
-        regime_rows.append((
-            call.pair, call.date.isoformat(), call.regime, call.confidence,
-            call.signal_composite, call.rate_signal, call.primary_driver,
-            call.entry_timing, call.position_size, call.stop_level,
-            call.data_quality_score, call.stress_level, call.predicted_direction,
-            call.directional_bias, call.conviction, call.cot_signal,
-            call.vol_signal, call.oi_signal, call.rr_signal,
-            call.special_signal_value, call.special_signal_label, call.model_version,
-            call.strategy_version, call.data_source,
-        ))
-
-    # Batch insert signals using multi-row INSERT with per-batch commit
-    batch_size = 500
-    for i in range(0, len(signal_rows), batch_size):
-        batch = signal_rows[i:i + batch_size]
-        values_sql = []
-        params: dict[str, Any] = {}
-        for j, row in enumerate(batch):
-            prefix = f"r{j}_"
-            values_sql.append(
-                f"(:{prefix}pair, :{prefix}date, :{prefix}r2y, :{prefix}r10y, :{prefix}cot, "
-                f":{prefix}rv20, :{prefix}rv5, :{prefix}iv, :{prefix}spot, "
-                f":{prefix}dc, :{prefix}dcp, "
-                f":{prefix}vix, :{prefix}dxy, :{prefix}oil, "
-                f":{prefix}us10y, :{prefix}gold, "
-                f":{prefix}copper, :{prefix}stoxx, :{prefix}oi, :{prefix}rvol, :{prefix}si, "
-                f":{prefix}bei, :{prefix}r10r, :{prefix}rzt, :{prefix}rzs, "
-                f":{prefix}rvr, :{prefix}sa)"
-            )
-            params[f"{prefix}pair"] = row[0]
-            params[f"{prefix}date"] = row[1]
-            params[f"{prefix}r2y"] = row[2]
-            params[f"{prefix}r10y"] = row[3]
-            params[f"{prefix}cot"] = row[4]
-            params[f"{prefix}rv20"] = row[5]
-            params[f"{prefix}rv5"] = row[6]
-            params[f"{prefix}iv"] = row[7]
-            params[f"{prefix}spot"] = row[8]
-            params[f"{prefix}dc"] = row[9]
-            params[f"{prefix}dcp"] = row[10]
-            params[f"{prefix}vix"] = row[11]
-            params[f"{prefix}dxy"] = row[12]
-            params[f"{prefix}oil"] = row[13]
-            params[f"{prefix}us10y"] = row[14]
-            params[f"{prefix}gold"] = row[15]
-            params[f"{prefix}copper"] = row[16]
-            params[f"{prefix}stoxx"] = row[17]
-            params[f"{prefix}oi"] = row[18]
-            params[f"{prefix}rvol"] = row[19]
-            params[f"{prefix}si"] = row[20]
-            params[f"{prefix}bei"] = row[21]
-            params[f"{prefix}r10r"] = row[22]
-            params[f"{prefix}rzt"] = row[23]
-            params[f"{prefix}rzs"] = row[24]
-            params[f"{prefix}rvr"] = row[25]
-            params[f"{prefix}sa"] = row[26]
-        sql = (
-            "INSERT INTO signals (pair, date, rate_diff_2y, rate_diff_10y, cot_percentile, "
-            "realized_vol_20d, realized_vol_5d, implied_vol_30d, spot, day_change, day_change_pct, "
-            "cross_asset_vix, cross_asset_dxy, cross_asset_oil, "
-            "cross_asset_us10y, cross_asset_gold, "
-            "cross_asset_copper, cross_asset_stoxx, oi_delta, volume_rvol, structural_instability, "
-            "breakeven_inflation_10y, rate_diff_10y_real, rate_z_tactical, rate_z_structural, "
-            "realized_vol_rank, skew_alignment) VALUES " + ",".join(values_sql)
-        )
-        conn.run(sql, **params)
-        logger.info("Signals batch %d-%d inserted", i, i + len(batch) - 1)
-
-    for i in range(0, len(regime_rows), batch_size):
-        batch = regime_rows[i:i + batch_size]
-        values_sql = []
-        regime_params: dict[str, Any] = {}
-        for j, row in enumerate(batch):
-            prefix = f"r{j}_"
-            values_sql.append(
-                f"(:{prefix}pair, :{prefix}date, :{prefix}regime, :{prefix}conf, :{prefix}comp, "
-                f":{prefix}rate, :{prefix}driver, :{prefix}et, :{prefix}ps, :{prefix}sl, "
-                f":{prefix}dqs, :{prefix}stress, :{prefix}pred, :{prefix}bias, :{prefix}conv, "
-                f":{prefix}cot, :{prefix}vol, :{prefix}oi, :{prefix}rr, "
-                f":{prefix}ssv, :{prefix}ssl, :{prefix}mv, "
-                f":{prefix}sv, :{prefix}ds)"
-            )
-            regime_params[f"{prefix}pair"] = row[0]
-            regime_params[f"{prefix}date"] = row[1]
-            regime_params[f"{prefix}regime"] = row[2]
-            regime_params[f"{prefix}conf"] = row[3]
-            regime_params[f"{prefix}comp"] = row[4]
-            regime_params[f"{prefix}rate"] = row[5]
-            regime_params[f"{prefix}driver"] = row[6]
-            regime_params[f"{prefix}et"] = row[7]
-            regime_params[f"{prefix}ps"] = row[8]
-            regime_params[f"{prefix}sl"] = row[9]
-            regime_params[f"{prefix}dqs"] = row[10]
-            regime_params[f"{prefix}stress"] = row[11]
-            regime_params[f"{prefix}pred"] = row[12]
-            regime_params[f"{prefix}bias"] = row[13]
-            regime_params[f"{prefix}conv"] = row[14]
-            regime_params[f"{prefix}cot"] = row[15]
-            regime_params[f"{prefix}vol"] = row[16]
-            regime_params[f"{prefix}oi"] = row[17]
-            regime_params[f"{prefix}rr"] = row[18]
-            regime_params[f"{prefix}ssv"] = row[19]
-            regime_params[f"{prefix}ssl"] = row[20]
-            regime_params[f"{prefix}mv"] = row[21]
-            regime_params[f"{prefix}sv"] = row[22]
-            regime_params[f"{prefix}ds"] = row[23]
-        sql = (
-            "INSERT INTO regime_calls (pair, date, regime, confidence, signal_composite, "
-            "rate_signal, primary_driver, entry_timing, position_size, stop_level, "
-            "data_quality_score, stress_level, predicted_direction, directional_bias, "
-            "conviction, cot_signal, vol_signal, oi_signal, rr_signal, special_signal_value, "
-            "special_signal_label, model_version, strategy_version, data_source) VALUES "
-            + ",".join(values_sql)
-        )
-        conn.run(sql, **regime_params)
-        logger.info("Regime batch %d-%d inserted", i, i + len(batch) - 1)
-
-    conn.run("ALTER TABLE regime_calls ENABLE TRIGGER trg_protect_immutable_calls")
-    conn.run("ALTER TABLE regime_calls ENABLE TRIGGER trg_log_regime_call_audit")
-
-    conn.close()
-    logger.info(
-        "Batch wrote %d signals and %d regime_calls for %s",
-        len(signal_rows),
-        len(regime_rows),
-        pair,
-    )
+    _regime_call().bulk_write_backfill_results(pair, results)
 
 
 def get_latest_research_memo_thesis_bullets() -> list[str]:
@@ -1493,40 +935,6 @@ def get_latest_research_memo_thesis_bullets() -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-def _normalize_validation_row(row: dict[str, Any]) -> dict[str, Any]:
-    """Normalize a legacy validation_log row to the modern schema.
-
-    Legacy schema stores returns as decimals (``actual_return_5d``) and
-    correctness in ``correct_5d``.  Modern schema uses bps
-    (``log_return_t5_bps``) and horizon-specific keys.  This helper maps
-    the legacy fields so that ``aggregate.py`` can consume either schema.
-    """
-    out = dict(row)
-
-    # Map legacy 5d fields → modern T+5 fields
-    ret_5d = row.get("actual_return_5d")
-    if ret_5d is not None and "log_return_t5_bps" not in row:
-        out["log_return_t5_bps"] = float(ret_5d) * 10_000.0
-
-    corr_5d = row.get("correct_5d")
-    if corr_5d is not None and "correct_t5" not in row:
-        out["correct_t5"] = bool(corr_5d)
-
-    if "actual_direction" in row and "actual_direction_t5" not in row:
-        out["actual_direction_t5"] = row["actual_direction"]
-
-    # Compute Brier score on-the-fly if missing but we have confidence + correctness
-    conf = row.get("confidence")
-    if conf is not None and "brier_score_t5" not in row:
-        if out.get("correct_t5") is True:
-            out["brier_score_t5"] = (float(conf) - 1.0) ** 2
-        elif out.get("correct_t5") is False:
-            out["brier_score_t5"] = float(conf) ** 2
-
-    # Legacy schema has no separate T+20 columns — leave them absent
-    return out
-
-
 def get_validation_log_for_stats(
     pair_filter: str | None = None,
     lookback_days: int | None = None,
@@ -1539,66 +947,9 @@ def get_validation_log_for_stats(
     Automatically adapts to both the **legacy** schema (pre-migration) and
     the **modern** schema (post-migration).
     """
-    modern_select = (
-        "pair,predicted_direction,confidence,date,"
-        "actual_direction_t5,log_return_t5_bps,correct_t5,brier_score_t5,"
-        "correct_net_t5,cost_bps_t5,"
-        "actual_direction_t20,log_return_t20_bps,correct_t20,brier_score_t20,"
-        "correct_net_t20,cost_bps_t20"
+    return _validation_log().get_validation_log_for_stats(
+        pair_filter=pair_filter, lookback_days=lookback_days
     )
-    legacy_select = (
-        "pair,predicted_direction,confidence,date,"
-        "actual_direction,actual_return_1d,actual_return_5d,"
-        "correct_1d,correct_5d"
-    )
-
-    def _build_query(select: str, include_superseded_filter: bool) -> Any:
-        q = _client().table("validation_log").select(select)
-        if include_superseded_filter:
-            q = q.eq("is_superseded", False)
-        if pair_filter:
-            q = q.eq("pair", pair_filter)
-        if lookback_days is not None and lookback_days > 0:
-            cutoff = date.today() - __import__("datetime").timedelta(days=lookback_days)
-            q = q.gte("date", cutoff.isoformat())
-        return q
-
-    def _fetch_all(q: Any) -> list[dict[str, Any]]:
-        """Paginate through Supabase's 1000-row default limit."""
-        all_rows: list[dict[str, Any]] = []
-        page_size = 1000
-        page = 0
-        while True:
-            res = q.range(page * page_size, (page + 1) * page_size - 1).execute()
-            rows = cast(list[dict[str, Any]], res.data or [])
-            if not rows:
-                break
-            all_rows.extend(rows)
-            if len(rows) < page_size:
-                break
-            page += 1
-        return all_rows
-
-    # Attempt modern schema first
-    try:
-        q = _build_query(modern_select, include_superseded_filter=True)
-        return _fetch_all(q)
-    except APIError as exc:
-        msg = str(getattr(exc, "message", "")) or str(exc)
-        if "column validation_log." in msg:
-            # One or more modern columns are missing → fall back to legacy schema
-            try:
-                q = _build_query(legacy_select, include_superseded_filter=False)
-                rows = _fetch_all(q)
-            except APIError as exc2:
-                msg2 = str(getattr(exc2, "message", "")) or str(exc2)
-                if "is_superseded" in msg2:
-                    q = _build_query(legacy_select, include_superseded_filter=False)
-                    rows = _fetch_all(q)
-                else:
-                    raise
-            return [_normalize_validation_row(r) for r in rows]
-        raise
 
 
 def write_validation_stats(row: Mapping[str, Any]) -> None:

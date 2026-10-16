@@ -4,6 +4,7 @@ Marcus invalidation."""
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 from src.logic.math_utils import (
     hysteresis_tier_composite,
@@ -123,8 +124,12 @@ def run_layer1_gate(ctx: Layer1ClassifierContext) -> Layer1GateOutput:
 
     stale_fields: list[str] = []
 
-    carry = np.asarray(ctx.carry_risk_adjusted_chronological, dtype=np.float64)
-    spots = np.asarray(ctx.spot_closes_chronological, dtype=np.float64)
+    carry: npt.NDArray[np.float64] = np.asarray(
+        ctx.carry_risk_adjusted_chronological, dtype=np.float64
+    )
+    spots: npt.NDArray[np.float64] = np.asarray(
+        ctx.spot_closes_chronological, dtype=np.float64
+    )
 
     if ctx.rate_diff_2y is None:
         stale_fields.append("rate_diff_2y")
@@ -148,7 +153,9 @@ def run_layer1_gate(ctx: Layer1ClassifierContext) -> Layer1GateOutput:
 
         bei = ctx.breakeven_inflation_chronological
         if bei is not None and len(bei) >= _DELTA_PI_WINDOW + 1:
-            bei_arr = np.asarray(bei[-(_DELTA_PI_WINDOW + 1) :], dtype=np.float64)
+            bei_arr: npt.NDArray[np.float64] = np.asarray(
+                bei[-(_DELTA_PI_WINDOW + 1) :], dtype=np.float64
+            )
             first_b = bei_arr[0]
             last_b = bei_arr[-1]
             if np.isfinite(first_b) and np.isfinite(last_b):

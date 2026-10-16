@@ -61,7 +61,7 @@ cd web && npm run lint             # biome/eslint
 - `OMEGA_PROTOCOL.md` — The 13-persona council and workflow rules (process, not product direction)
 - `CLAUDE.md` — AI persona, locked decisions, session rules
 
-*Last updated: 2026-06-24*
+*Last updated: 2026-06-29*
 
 ## Current Status (v1.0 Launch Complete)
 
@@ -81,6 +81,7 @@ cd web && npm run lint             # biome/eslint
 | Staged pipeline v2 adapters + orchestrator | ✅ `src/staged/adapters/`, `src/staged/orchestrator.py` |
 | NSDL FPI research | ✅ docs/V2_NSDL_FPI_RESEARCH.md |
 | OTC Risk Reversal research | ✅ docs/V2_RISK_REVERSAL_RESEARCH.md |
+| Validation pipeline v2.2 remediation + T+5 Brier quant report | ✅ docs/V2_T5_BRIER_QUANT_REPORT.md |
 
 ## Known Issues
 

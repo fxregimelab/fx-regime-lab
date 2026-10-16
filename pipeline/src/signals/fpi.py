@@ -11,6 +11,7 @@ import math
 from collections.abc import Sequence
 
 import numpy as np
+import numpy.typing as npt
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def _mean(xs: Sequence[float]) -> float:
 
 def _mad_z(values: Sequence[float], value: float) -> float | None:
     """Robust Z-score using Median Absolute Deviation."""
-    arr = np.asarray(values, dtype=np.float64)
+    arr: npt.NDArray[np.float64] = np.asarray(values, dtype=np.float64)
     if arr.size == 0:
         return None
     med = float(np.median(arr))

@@ -1,4 +1,7 @@
-import type { ValidationRowT5, ValidationStats } from "@/lib/supabase/queries";
+import type {
+  ValidationEntry,
+  ValidationStats,
+} from "@/lib/data/domain/validation";
 
 export function fmtPctRaw(n: number | null | undefined, digits = 1) {
   if (n == null) return "—";
@@ -19,7 +22,7 @@ export function fmtBps(n: number | null | undefined, digits = 1) {
 }
 
 export function computeStatsFromLog(
-  rows: ValidationRowT5[],
+  rows: ValidationEntry[],
   pair: string | null,
   horizon: "t5" | "t20",
 ): ValidationStats {
@@ -30,17 +33,17 @@ export function computeStatsFromLog(
 
   const valid = filtered.filter(
     (r) =>
-      r[outcomeKey as keyof ValidationRowT5] === "CORRECT" ||
-      r[outcomeKey as keyof ValidationRowT5] === "WRONG",
+      r[outcomeKey as keyof ValidationEntry] === "CORRECT" ||
+      r[outcomeKey as keyof ValidationEntry] === "WRONG",
   );
   const wins = valid.filter(
-    (r) => r[outcomeKey as keyof ValidationRowT5] === "CORRECT",
+    (r) => r[outcomeKey as keyof ValidationEntry] === "CORRECT",
   ).length;
   const sampleSize = valid.length;
   const winRate = sampleSize > 0 ? wins / sampleSize : null;
 
   const brierValues = filtered
-    .map((r) => r[brierKey as keyof ValidationRowT5] as number | null)
+    .map((r) => r[brierKey as keyof ValidationEntry] as number | null)
     .filter((v): v is number => v != null);
   const brierScore =
     brierValues.length > 0
@@ -48,7 +51,7 @@ export function computeStatsFromLog(
       : null;
 
   const returns = filtered
-    .map((r) => r[returnKey as keyof ValidationRowT5] as number | null)
+    .map((r) => r[returnKey as keyof ValidationEntry] as number | null)
     .filter((v): v is number => v != null);
   const avgReturnBps =
     returns.length > 0
@@ -69,16 +72,16 @@ export function computeStatsFromLog(
 
   const netValid = valid.filter(
     (r) =>
-      r[netOutcomeKey as keyof ValidationRowT5] === true ||
-      r[netOutcomeKey as keyof ValidationRowT5] === false,
+      r[netOutcomeKey as keyof ValidationEntry] === true ||
+      r[netOutcomeKey as keyof ValidationEntry] === false,
   );
   const netWins = netValid.filter(
-    (r) => r[netOutcomeKey as keyof ValidationRowT5] === true,
+    (r) => r[netOutcomeKey as keyof ValidationEntry] === true,
   ).length;
   const netWinRate = netValid.length > 0 ? netWins / netValid.length : null;
 
   const costs = netValid
-    .map((r) => r[costKey as keyof ValidationRowT5] as number | null)
+    .map((r) => r[costKey as keyof ValidationEntry] as number | null)
     .filter((v): v is number => v != null);
   const avgCostBps =
     netValid.length > 0 && costs.length > 0
@@ -88,7 +91,7 @@ export function computeStatsFromLog(
       : null;
 
   const netReturns = filtered
-    .map((r) => r[netReturnKey as keyof ValidationRowT5] as number | null)
+    .map((r) => r[netReturnKey as keyof ValidationEntry] as number | null)
     .filter((v): v is number => v != null);
   const avgNetReturnBps =
     netReturns.length > 0
@@ -105,7 +108,7 @@ export function computeStatsFromLog(
   const rolling90dAccuracy =
     recent90.length > 0
       ? recent90.filter(
-          (r) => r[outcomeKey as keyof ValidationRowT5] === "CORRECT",
+          (r) => r[outcomeKey as keyof ValidationEntry] === "CORRECT",
         ).length / recent90.length
       : null;
 

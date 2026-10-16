@@ -105,7 +105,7 @@ def median_abs_deviation(values: npt.NDArray[np.float64]) -> float:
 def structural_instability_from_carry_history(carry_chronological: list[float]) -> bool:
     """True when short-horizon carry dispersion materially exceeds long-horizon (regime shift)."""
 
-    arr = np.asarray(carry_chronological, dtype=np.float64)
+    arr: npt.NDArray[np.float64] = np.asarray(carry_chronological, dtype=np.float64)
     arr = arr[np.isfinite(arr)]
     if arr.size < 252:
         return False
@@ -185,7 +185,9 @@ def normalize_rate_signal(
     omitted, structural Z reuses the tactical series (legacy behavior).
     """
 
-    arr = np.asarray(historical_spreads[-CARRY_LOOKBACK_DAYS:], dtype=np.float64)
+    arr: npt.NDArray[np.float64] = np.asarray(
+        historical_spreads[-CARRY_LOOKBACK_DAYS:], dtype=np.float64
+    )
     arr = arr[np.isfinite(arr)]
     if arr.size == 0:
         logger.info("Rate normalization fallback: empty history for %s", pair)
@@ -199,7 +201,7 @@ def normalize_rate_signal(
     use_real_structural = ss is not None and hist_s is not None and len(hist_s) > 0
     if use_real_structural:
         assert hist_s is not None and ss is not None
-        arr_s = np.asarray(hist_s[-CARRY_LOOKBACK_DAYS:], dtype=np.float64)
+        arr_s: npt.NDArray[np.float64] = np.asarray(hist_s[-CARRY_LOOKBACK_DAYS:], dtype=np.float64)
         arr_s = arr_s[np.isfinite(arr_s)]
         if arr_s.size == 0:
             z_structural = _mad_z_from_series(
