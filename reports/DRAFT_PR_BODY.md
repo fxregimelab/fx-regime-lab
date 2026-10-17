@@ -1,7 +1,6 @@
-# DRAFT PR BODY — fx-live-personal → main (DO NOT MERGE without human approval)
-
-> Background branch only. Main stays archived at `v2.1-archive` until a human
-> merges this. 6 root gates remain open. No VERIFIED RELEASE claimed.
+> **Draft PR — human merge only. Do not auto-merge.** Background branch;
+> main stays archived at `v2.1-archive` until a human merges this. 6 root
+> gates remain open. No VERIFIED RELEASE claimed.
 
 ## What this branch does
 
