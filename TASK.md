@@ -89,6 +89,16 @@ each with falsifiers). Concurrency caps: ≤3 open, ≤1 per pair, ≤2.25% open
 −6% weekly kill-switches. Limits in `paper/config.py` (`TradingLimits`); intraday bars
 (H4/H1/M15) seeded into the local store. Plan §5.10 amended. Last updated: 2026-10-17.
 
+Desk v2 (2026-10-17, later night): **`docs/DESK_STRATEGY_FRAMEWORK.md`** v1.0 — regime-anchored
+liquidity/structure doctrine (SU1 trend pullback, SU2 sweep reversal, SU3 breakout-retest, SU4
+range rotation; SU-R1 relative-value research) + spec-gate + operator score. Risk model v2:
+slot ceilings **5/4/3/3 → 15% max open risk**, grade-scaled (A+ 1.0 / A 0.8 / B+ 0.6 / B 0.45);
+**daily max loss −10%**; weekly kill −25%; **weekly target +50% tracked** (never a guarantee);
+operator score (asymmetric: loss −6/R vs win +4/R; violations −20; ≥85 full envelope / 60–84:
+A/A+ only +0.75× slots / <60: pause; per-model ids). Playbook v0.2. Built: `paper/levels.py`
+(swing/session/round-number map) + `paper/checklist.py` (14-check evaluator → grades → slot
+risk, version-stamped receipts). Next: manage.py (BE/trail/cut executor) + news.py.
+
 ## Completed
 
 **Step 0: Identity Compliance Audit — COMPLETED (2026-05-18)**

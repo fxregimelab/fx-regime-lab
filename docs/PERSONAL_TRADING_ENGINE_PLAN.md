@@ -372,6 +372,20 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
   contradicting for B).
 - Operating manual + agent prompts: **`docs/DESK_TRADING_PLAYBOOK.md`** (procedure this plan
   executes under); parameters mirrored in `paper/config.py` (`TradingLimits`).
+- **Risk model v2 + adaptation (owner directives, later on 2026-10-17):** per-slot risk ceilings
+  5% / 4% / 3% / 3% → **15% max open risk at a single point in time**, scaled DOWN by checklist
+  grade (A+ ×1.0, A ×0.8, B+ ×0.6, B ×0.45); **daily max loss −10%**; weekly kill −25%;
+  **weekly target +50% — tracked actual-vs-target every week, never a guarantee**; **operator
+  score** — asymmetric penalty/reward (losses punished heavier than wins reward, process
+  violations −20, kill-switch day −15) gating the autonomy envelope (≥85 full / 60–84: A,A+
+  only + 0.75× slots / <60: pause). Every decision records the operator id so any AI model is
+  comparable — the better-scoring operator earns more envelope. Instrument widening authorized
+  for the desk only (research pipeline 3-pair lock untouched); first research family: SU-R1
+  relative value across correlated majors.
+- Strategy doctrine: **`docs/DESK_STRATEGY_FRAMEWORK.md`** — "regime-anchored liquidity/structure
+  trading": lab regime models for *when/which direction*, market structure & liquidity for
+  *where*, checklist execution for *when/how big*, scorecard for *what survives*; SMC kept only
+  in falsifiable form (sweeps, pools — no order-block dogma).
 
 ---
 
