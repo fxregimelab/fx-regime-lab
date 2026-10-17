@@ -1,8 +1,10 @@
 """Read-only MetaTrader 5 connectivity + spread spike for the personal desk.
 
 Trading subset: EURUSD + USDJPY (owner decision 2026-10-17). Read-only: this
-script never places, modifies, or closes orders. Credentials are never printed
-(it attaches to an already-logged-in local terminal).
+script never places, modifies, or closes orders. Credentials are never printed;
+they are loaded from repo-root .env.local (MT5_LOGIN / MT5_PASSWORD / MT5_SERVER,
+plus optional MT5_TERMINAL and MT5_PORTABLE=1 for portable terminal installs)
+and the terminal is attached or logged in through the official Python API.
 
 What it does (when a terminal is installed & logged in):
   1. initialize() against the local MT5 terminal
@@ -17,13 +19,31 @@ Usage:
 
 from __future__ import annotations
 
+import os
 import statistics
 import sys
 import time
+from pathlib import Path
 
 PAIRS = ("EURUSD", "USDJPY")
 SUFFIX_CANDIDATES = ("", "m", ".", "#", "pro", "raw", "ecn", "z")
-D1 = None  # set after import
+
+
+def _load_env_local() -> None:
+    """Load repo-root .env.local into os.environ without overwriting current vars.
+
+    Values are never printed. Missing file is a no-op (falls back to attaching
+    to an already-logged-in terminal).
+    """
+    env_path = Path(__file__).resolve().parents[2] / ".env.local"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip())
 
 
 def _resolve_symbol(mt5, pair: str) -> str | None:
@@ -45,10 +65,32 @@ def main() -> int:
         print("MetaTrader5 package not installed. Run: python -m pip install MetaTrader5")
         return 2
 
-    if not mt5.initialize():
+    _load_env_local()
+    login = os.environ.get("MT5_LOGIN", "").strip()
+    password = os.environ.get("MT5_PASSWORD", "")
+    server = os.environ.get("MT5_SERVER", "").strip()
+    path = os.environ.get("MT5_TERMINAL", "").strip()
+    portable = os.environ.get("MT5_PORTABLE", "").strip() == "1"
+
+    if login and password and server:
+        print(f"connecting to {server} as login {login[:3]}*** (password hidden)")
+        ok = mt5.initialize(
+            path,
+            login=int(login),
+            password=password,
+            server=server,
+            timeout=120_000,
+            portable=portable,
+        )
+    else:
+        print("no MT5_* credentials in env - attaching to running terminal")
+        ok = mt5.initialize(path if path else "", timeout=120_000, portable=portable)
+
+    if not ok:
         print("initialize() failed:", mt5.last_error())
-        print("Is the MT5 terminal installed and logged in on this PC?")
+        print("Is the MT5 terminal installed? First run may need a firewall 'Allow' click.")
         return 1
+    time.sleep(2)  # let the fresh connection settle before sampling
 
     try:
         term = mt5.terminal_info()

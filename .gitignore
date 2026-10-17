@@ -52,3 +52,7 @@ runs/
 
 # Personal paper desk — local state (SQLite DB, receipts staging)
 data/desk/
+
+# MCP client configs — contain local MCP API keys, NEVER commit
+.mcp.json
+.codex/

@@ -335,9 +335,21 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
   quality: Exness, XM, IC Markets, Pepperstone. Choose empirically — the desk includes a spread sampler;
   we run demos and let measured spreads decide. Real-money broker choice is a separate future decision
   (jurisdiction/regulation matters).
-- **Owner prerequisite:** install the MT5 terminal on this PC and open a demo account (MetaQuotes-Demo is
-  the zero-paperwork default; broker demos work too); then the P0 spike verifies connectivity + symbols +
-  spread sampling.
+- **Owner prerequisite — RESOLVED (2026-10-17 evening):** Exness demo connected. Branded
+  terminal at `C:\Program Files\MetaTrader 5 EXNESS` (portable, build 6272); account demo
+  `414***68` on `Exness-MT5Trial6` (hedging). Symbols carry the Exness `m` suffix:
+  **`EURUSDm` + `USDJPYm`** (trade these exactly). MCP transport live — terminal
+  `127.0.0.1:22346`, MetaEditor `127.0.0.1:22345`, single local key kept only in gitignored
+  configs (`.mcp.json`, `.codex/config.toml`, user OpenCode config). Old MetaQuotes terminal
+  uninstalled + cleaned after rescuing its chart profiles.
+- **Balance granularity note (open owner decision):** the demo balance is USD 100 while the
+  desk R-accounting runs on notional E₀ = 10,000 (report-only). At USD 100, min lot 0.01
+  makes every stop cost ≥ ~0.6–1% per 10 pips, so sub-1% risk per trade is only possible
+  with tight stops. Options: accept coarse granularity during mechanics-validation, or
+  reset/top-up the demo to a larger balance (e.g. 10k) from the Exness side.
+- **Transport note:** MT5 MCP servers (terminal + MetaEditor) are the agent-native route
+  (trade + data + calendar + backtester as tools); the Python `MetaTrader5` package stays
+  the deterministic-pipeline route (`paper/broker_mt5.py`). Both talk to the same terminal.
 
 ---
 
