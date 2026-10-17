@@ -54,6 +54,8 @@ reader/expansion are reusable foundations; live directional record is below coin
 2026-05-27; OHLC bars stale to 2026-06-29. Plan: P0–P4 (foundations → backtests →
 paper account → local-agent layer → operate), everything local-first, zero production
 writes, public product untouched. 8 owner decisions with defaults in §11 of the plan.
+Owner-requested MT5 add-on planned (§5.9): real spread data + demo-account execution
+(owner prerequisite: terminal + demo login).
 
 ## Completed
 

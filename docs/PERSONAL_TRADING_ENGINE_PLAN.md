@@ -27,7 +27,8 @@
 4. **The plan:** build a private paper desk in 5 phases (P0 foundations → P1 backtests + strategy cohort →
    P2 paper account with risk budget → P3 local-agent layer (CLI + MCP + notes + charts) → P4 operate/gates).
    Everything local-first, zero production writes, zero public-site changes. TradingView connectivity is
-   optional and unverified; local deterministic charts come first.
+   optional and unverified; local deterministic charts come first. MetaTrader 5 is the preferred market-data
+   + demo-execution upgrade (§5.9) — real spreads, real fills, still paper money.
 5. **The pivot is compatible with IDENTITY.md** — the public product stays research-only; `position_size`
    and `stop_level` already live in the DB "for internal research" (Masterplan §0). The personal desk is
    internal tooling, like those fields — never rendered publicly.
@@ -310,6 +311,28 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
     numeric truth — our bars remain authoritative.
 - **Phase 3 (optional)**: TradingView alerts/webhooks as convenience pings (not analysis).
 
+### 5.9 MetaTrader 5 integration (owner-requested) — real data, demo execution
+
+- **What MT5 adds** (Windows-only; the official `MetaTrader5` Python package talks to the local terminal):
+  true broker **bid/ask and real spreads** (closes the "close-only, no spread modeled" gap), full **OHLC
+  history per timeframe** for every symbol the broker lists, tick data, and programmatic **order placement
+  on a demo account** — i.e., paper trading with real market mechanics instead of simulated fills.
+- **Data use:** sync daily (and optionally intraday) bars into the desk's bar store and refresh
+  `historical_prices`; sample per-pair spreads by time-of-day to replace guessed cost defaults with measured
+  ones. Strategy inputs stay from `signals`/`regime_calls`; MT5 is the *market* layer.
+- **Execution use:** v1 = **demo account only**, and only for **approved** orders — the agent can execute
+  approved paper orders end-to-end through MT5. Live-account execution is out of scope until a separate
+  explicit owner decision with guardrails (per-order/daily caps, kill switch). *(Indian residents: offshore
+  FX/CFD real-money trading faces regulatory limits — relevant only to any future real-money phase.)*
+- **USDINR caveat:** broker symbol availability varies; many MT5 brokers list EURUSD/USDJPY but not USDINR.
+  If the broker lacks USDINR → majors run on MT5 demo; USDINR stays desk-simulated (`paper/broker_sim.py`)
+  until a suitable broker/exchange path is chosen.
+- **Adapter plan:** `paper/broker_mt5.py` (init, symbol check, rates, tick/spread, order_send, positions sync)
+  + `paper/broker_sim.py` fallback, behind one `broker` interface. Credentials in `.env.local` only; never
+  printed. Every MT5 action mirrored into the paper ledger receipts.
+- **Owner prerequisite:** install the MT5 terminal on this PC and log into a demo account (broker choice:
+  prefer one listing all three pairs); then the P0 spike verifies connectivity + symbols + spread sampling.
+
 ---
 
 ## 6. Phases (effort = focused sessions, not calendar promises)
@@ -318,6 +341,8 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
 
 - [ ] `paper/prices.py`: refresh OHLC to present (extend `populate_historical_prices.py` /
       `fetch_max_history`); weekday-sanity bounds; quarantine rule; spot cross-check.
+- [ ] MT5 spike: detect local terminal, connect, verify the 3 symbols, sample real spreads
+      (owner prerequisite: install terminal + demo login, §5.9).
 - [ ] `paper/store.py`: SQLite + hash-chain receipts; `data/desk/` gitignored (add `.gitignore` rule);
       `reports/desk/` committed.
 - [ ] `paper/config.py`: pairs, costs, risk defaults, horizons, model-version guard (`2.0-live` only for live).
@@ -383,7 +408,8 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
 
 ## 9. What this is NOT
 
-- Not real money; no broker, no orders, no execution infrastructure.
+- Not real-money trading — MetaTrader 5 usage is demo-only (paper with real market mechanics, §5.9); live
+  execution is a separate future decision.
 - Not a public product change — the website and methodology stay exactly as they are.
 - Not a new pair / new signal-model change; not a Prefect production change without separate approval.
 - Not a promise of profit — it is a measurement machine that trades paper to decide what deserves risk.
@@ -414,6 +440,7 @@ the session temp dir; P0 formalizes them into a committed read-only tool.
 | 6 | Chart channel | Local charts first; TradingView visual review later (**validate**) | Local first |
 | 7 | Branch | Continue on `fx-live-personal` vs new `paper-desk` branch | Continue on `fx-live-personal` |
 | 8 | Reader provider refresh | Now / later / skip (fallback is fine) | Later |
+| 9 | MetaTrader 5 | Data-only / **data + demo execution** / skip | Data + demo execution |
 
 ---
 
