@@ -318,8 +318,10 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
   true broker **bid/ask and real spreads** (closes the "close-only, no spread modeled" gap), full **OHLC
   history per timeframe** for every symbol the broker lists, tick data, and programmatic **order placement
   on a demo account** — i.e., paper trading with real market mechanics instead of simulated fills.
-- **Data use:** sync daily (and optionally intraday) bars into the desk's bar store and refresh
-  `historical_prices`; sample per-pair spreads by time-of-day to replace guessed cost defaults with measured
+- **Data use:** sync daily (and optionally intraday) bars into the desk's **local** bar store
+  (`data/desk/paper_desk.sqlite3`, gitignored; broker feed authoritative); refresh of the production
+  `historical_prices` table is **deferred** — no production DB writes from the desk (owner constraint).
+  Sample per-pair spreads by time-of-day to replace guessed cost defaults with measured
   ones. Strategy inputs stay from `signals`/`regime_calls`; MT5 is the *market* layer.
 - **Execution use:** v1 = **demo account only**, and only for **approved** orders — the agent can execute
   approved paper orders end-to-end through MT5. Live-account execution is out of scope until a separate
@@ -342,11 +344,13 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
   `127.0.0.1:22346`, MetaEditor `127.0.0.1:22345`, single local key kept only in gitignored
   configs (`.mcp.json`, `.codex/config.toml`, user OpenCode config). Old MetaQuotes terminal
   uninstalled + cleaned after rescuing its chart profiles.
-- **Balance granularity note (open owner decision):** the demo balance is USD 100 while the
-  desk R-accounting runs on notional E₀ = 10,000 (report-only). At USD 100, min lot 0.01
-  makes every stop cost ≥ ~0.6–1% per 10 pips, so sub-1% risk per trade is only possible
-  with tight stops. Options: accept coarse granularity during mechanics-validation, or
-  reset/top-up the demo to a larger balance (e.g. 10k) from the Exness side.
+- **Balance granularity — RESOLVED (owner, 2026-10-17):** Exness offers Standard Cent only
+  as **real** accounts — there is no cent **demo** — so the desk keeps the standard demo and
+  the owner topped it up to **USD 10,000**, which is mathematically equivalent to a cent
+  account at USD 100 (every risk-relevant quantity — min lot, pip value, notional — scales
+  by exactly ×100, so 0.75–1% sizing granularity is identical). Owner mapping:
+  **real-money equivalent = desk balance ÷ 100**; the owner's 1%-max-risk rule applies in
+  desk terms (default 0.75% per trade). Desk E₀ = 10,000 now matches the live demo 1:1.
 - **Transport note:** MT5 MCP servers (terminal + MetaEditor) are the agent-native route
   (trade + data + calendar + backtester as tools); the Python `MetaTrader5` package stays
   the deterministic-pipeline route (`paper/broker_mt5.py`). Both talk to the same terminal.

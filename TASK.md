@@ -60,13 +60,17 @@ Owner-requested MT5 add-on planned (§5.9): real spread data + demo-account exec
 Owner GO'd all defaults (2026-10-17); P0 started. Trading subset = EURUSD + USDJPY
 only (no USDINR execution). **MT5 demo CONNECTED (2026-10-17 evening):** Exness-branded
 terminal `C:\Program Files\MetaTrader 5 EXNESS` (portable, build 6272), demo `414***68`
-on `Exness-MT5Trial6` (hedging, USD 100 balance). Trade symbols are `EURUSDm` /
+on `Exness-MT5Trial6` (hedging; owner topped up balance to **USD 10,000** — cent-equivalent
+of $100 real). Trade symbols are `EURUSDm` /
 `USDJPYm` (Exness 'm' suffix); quotes + OHLC history (since 2018) verified via MCP.
 MCP endpoints live: terminal `127.0.0.1:22346`, MetaEditor `127.0.0.1:22345`; key lives
 only in gitignored client configs (project `.mcp.json` / `.codex/config.toml`, user
 OpenCode config — native tool integration confirmed working). Old MetaQuotes terminal
 uninstalled + registry/shortcut cleanup done (chart profiles rescued to the new install
-first). Balance-granularity note: $100 demo vs $10k notional desk equity — see plan §5.9.
+first). Balance RESOLVED: Exness cent accounts are real-only (no cent demo) — standard
+demo topped up to $10,000 ≡ cent account at $100 (risk-relevant quantities scale ×100).
+Real-money equivalent = desk balance ÷ 100; desk E₀ = 10,000 matches the demo 1:1;
+owner's 1%-max-risk rule applies (0.75% default). See plan §5.9.
 Spike tool: `pipeline/scripts/desk_mt5_spike.py` (env-driven, masked output).
 Desk config: `pipeline/src/paper/config.py`.
 
