@@ -2,15 +2,17 @@
 
 Fixture manifests are dictionaries written into ``tmp_path``; the shipped
 manifest at ``pipeline/config/desk/authority.v1.json`` is only ever read. The
-suite covers the mandated fail-first matrix — config disagreement, demo mode
-without provisioning, forbidden pair, unknown primitive, malformed hash,
-unpriced paid model, active mode without a graduation certificate — plus the
-safe-default, secret-scan, size-limit and purity properties.
+suite covers the mandated fail-first matrix — config disagreement across all 14
+mirrored limit fields, demo mode without provisioning (runtime state cannot
+substitute manifest provisioning), forbidden pair, unknown primitive, malformed
+hash, unpriced paid model, active mode without a graduation certificate — plus
+the safe-default, secret-scan, size-limit and purity properties.
 """
 
 import copy
 import json
 import re
+from dataclasses import fields
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -21,6 +23,7 @@ from src.paper.config import LIMITS, RISK
 from src.paper.contracts import ContractError, Mode
 from src.paper.policy import (
     MAX_MANIFEST_BYTES,
+    AuthorityLimits,
     RuntimeState,
     load_authority,
     verify_authority,
@@ -208,6 +211,43 @@ def test_config_disagreement_rejected(tmp_path: Path) -> None:
     assert _load_error(tmp_path, payload).code == "INVALID_SCHEMA"
 
 
+# AD spec 01 §2 mirrors exactly 14 owner-limit fields into AuthorityLimits.
+# One parametrized case per field mutates that single JSON value; every case
+# must fail verification with AUTHORITY_MISMATCH attributable to that field.
+_LIMIT_DISAGREEMENTS: dict[str, object] = {
+    "slot_risk_ceilings": ["0.05", "0.04", "0.03", "0.05"],
+    "grade_multipliers": {"A+": "1.0", "A": "0.8", "B+": "0.6", "B": "0.5"},
+    "min_effective_risk_pct": "0.02",
+    "max_concurrent_positions": 3,
+    "max_positions_per_pair": 1,
+    "max_same_usd_sign_tickets": 1,
+    "max_open_risk_pct": "0.16",
+    "max_new_trades_per_day": 4,
+    "daily_stop_pct": "0.11",
+    "weekly_stop_pct": "0.26",
+    "max_gross_leverage": "51",
+    "account_currency": "EUR",
+    "day_boundary": "UTC+1",
+    "week_boundary": "UTC_SUNDAY",
+}
+_LIMITS_FIELDS: tuple[str, ...] = tuple(field.name for field in fields(AuthorityLimits))
+assert len(_LIMITS_FIELDS) == 14, "spec 01 §2 mirrors exactly 14 owner-limit fields"
+assert set(_LIMIT_DISAGREEMENTS) == set(_LIMITS_FIELDS), (
+    "disagreement matrix must mutate every AuthorityLimits field"
+)
+
+
+@pytest.mark.parametrize("limit_field", _LIMITS_FIELDS)
+def test_config_disagreement_matrix_all_limit_fields(tmp_path: Path, limit_field: str) -> None:
+    payload = copy.deepcopy(_manifest())
+    limits = _nested(payload, "limits")
+    assert limits[limit_field] != _LIMIT_DISAGREEMENTS[limit_field]
+    limits[limit_field] = _LIMIT_DISAGREEMENTS[limit_field]
+    error = _verify_error(tmp_path, payload)
+    assert error.code == "AUTHORITY_MISMATCH"
+    assert f"authority.limits.{limit_field}" in error.detail
+
+
 def test_demo_mode_not_provisioned(tmp_path: Path) -> None:
     payload = copy.deepcopy(_manifest())
     payload["enabled_mode"] = "demo_active"
@@ -241,6 +281,29 @@ def test_provisioned_demo_mode_verifies(tmp_path: Path) -> None:
     policy = load_authority(_write(tmp_path, payload))
     runtime = RuntimeState(graduation_certificate_id=CERT_ID, demo_account_verified=True)
     verify_authority(policy, runtime)
+
+
+def test_demo_mode_requires_manifest_provisioning(tmp_path: Path) -> None:
+    # A fully provisioned runtime cannot substitute for manifest provisioning.
+    payload = copy.deepcopy(_manifest())
+    payload["enabled_mode"] = "demo_canary"
+    payload["evaluator_policy_digest"] = DIGEST_A
+    payload["allowed_execution_build_digest"] = DIGEST_B
+    assert payload["strategy_certificate_id"] is None
+    policy = load_authority(_write(tmp_path, payload))
+    assert policy.strategy_certificate_id is None
+    runtime = RuntimeState(graduation_certificate_id=CERT_ID, demo_account_verified=True)
+
+    with pytest.raises(ContractError) as excinfo:
+        verify_authority(policy, runtime)
+    assert excinfo.value.code == "CERTIFICATE_INVALID"
+    assert "strategy certificate" in excinfo.value.detail
+
+    # Same runtime, manifest now provisioned: only the manifest permits demo.
+    provisioned = load_authority(
+        _write(tmp_path, _provisioned_demo("demo_canary"), "provisioned.json")
+    )
+    verify_authority(provisioned, runtime)
 
 
 def test_forbidden_pair_rejected(tmp_path: Path) -> None:
