@@ -465,10 +465,88 @@ def test_money_missing_currency_or_negative_amount_rejected() -> None:
         Money(currency="USD", amount=Decimal("-1"))
 
 
+_EXPECTED_REASON_CODES: tuple[str, ...] = (
+    # Exact vocabulary pinned against spec 01 (drift guard): a same-size but wrong
+    # vocabulary must fail this test, not silently pass.
+    "OK",
+    "INVALID_SCHEMA",
+    "INVALID_NUMBER",
+    "UNSUPPORTED_PAIR",
+    "ACCOUNT_MISMATCH",
+    "NON_DEMO_ACCOUNT",
+    "NETTING_UNSUPPORTED",
+    "CLOCK_UNVERIFIED",
+    "CLOCK_SKEW",
+    "TICK_STALE",
+    "BROKER_STATE_STALE",
+    "SOURCE_INCOMPLETE",
+    "SOURCE_STALE",
+    "CALENDAR_UNKNOWN",
+    "EVENT_BLACKOUT",
+    "NEWS_UNVERIFIED",
+    "SIGNAL_STALE",
+    "MODEL_VERSION_MISMATCH",
+    "BAR_INCOMPLETE",
+    "BAR_GAP",
+    "SNAPSHOT_NOT_AVAILABLE",
+    "HASH_MISMATCH",
+    "SPEC_UNACKNOWLEDGED",
+    "UNKNOWN_ALIGNMENT",
+    "OPPOSED_ALIGNMENT",
+    "NO_CANDIDATE",
+    "SETUP_INVALID",
+    "RETEST_EXPIRED",
+    "ENTRY_CHASE",
+    "GRADE_INELIGIBLE",
+    "CANARY_GRADE_INELIGIBLE",
+    "RISK_FLOOR",
+    "SLOT_RISK_CAP",
+    "OPEN_RISK_CAP",
+    "DAILY_LOSS_CAPACITY",
+    "WEEKLY_LOSS_CAPACITY",
+    "PAIR_CAP",
+    "USD_EXPOSURE_CAP",
+    "POSITION_CAP",
+    "DAILY_TRADE_CAP",
+    "LEVERAGE_CAP",
+    "MARGIN_REJECTED",
+    "LOT_SPLIT_INVALID",
+    "STOP_INVALID",
+    "STOP_NOT_PROTECTED",
+    "OWNER_STOP",
+    "OPERATOR_PAUSED",
+    "INTEGRITY_LATCH",
+    "JOURNAL_UNAVAILABLE",
+    "AUTHORITY_MISMATCH",
+    "NO_VALID_CHAMPION",
+    "CERTIFICATE_INVALID",
+    "CERTIFICATE_EXPIRED",
+    "PERMIT_EXPIRED",
+    "PERMIT_REPLAY",
+    "FENCE_STALE",
+    "ORDER_UNKNOWN",
+    "UNOWNED_POSITION",
+    "CASHFLOW_UNCLASSIFIED",
+    "BUDGET_EXHAUSTED",
+    "MODEL_UNAVAILABLE",
+    "UNSUPPORTED_CLAIM",
+    "DEADLINE_EXCEEDED",
+    "TRIAL_BUDGET_EXHAUSTED",
+    "HOLDOUT_LEAKAGE",
+    "INSUFFICIENT_DATA",
+    "INSUFFICIENT_PRECISION",
+    "SUPERIORITY_NOT_PROVEN",
+    "STRESS_FAILED",
+    "DRIFT_SHUTDOWN",
+    "STALE_STATE",
+    "CAPACITY_EXHAUSTED",
+    "CONFLICT",
+)
+
+
 def test_unknown_reason_code_rejected() -> None:
-    assert len(REASON_CODES) == 73
-    assert "OK" in REASON_CODES
-    assert "CONFLICT" in REASON_CODES
+    assert len(_EXPECTED_REASON_CODES) == len(set(_EXPECTED_REASON_CODES)) == 73
+    assert REASON_CODES == frozenset(_EXPECTED_REASON_CODES)
     assert all(code.isupper() and code.replace("_", "").isalpha() for code in REASON_CODES)
     assert require_reason_code("CONFLICT") == "CONFLICT"
     with pytest.raises(ContractError):
