@@ -6,6 +6,49 @@
 
 ## Current Sprint: fx-live-personal (background branch only, 2026-10-17)
 
+### Autonomous evolution specification pack — drafted 2026-10-18
+
+Owner approved automatic **demo** promotion of validated improvements without per-change
+approval. Draft implementation contract:
+`docs/plans/2026-10-18-autonomous-demo-desk.md`, with seven companion specifications under
+`docs/specs/autonomous-desk/`. Includes capability/dependency map, protected authority,
+typed contracts/private writer facade, point-in-time inputs, exact setup hypotheses,
+parent/child risk and recovery, reward/calibration separation, sealed evaluation,
+bounded artifact evolution, task packets, role prompts, fault matrix and graduation.
+
+This is a **docs-only draft**, not implementation or runtime enablement. Existing audit
+changes below remain local work and are preserved. Next implementation task AD-T00.
+Hard risk/evaluator/security changes, real money and pair expansion remain owner-gated;
+runtime evolution proposes data/config/prompt artifacts, not arbitrary executable code.
+Conservative proposed statistical defaults can require150+forward trading days; insufficient
+evidence means shadow/collecting, never automatically lower gates. SU4 stays research-only
+under the initial A/A+ canary policy. No unattended process, schedule or order was started.
+
+### Latest audit checkpoint — 2026-10-18 (supersedes older desk readiness claims)
+
+**Research/shadow only; unattended execution NOT ready.** Audit and ordered remediation:
+`docs/DESK_AUDIT_AND_IMPROVEMENT.md`. Framework **1.1**, playbook **0.3**.
+
+- Fixed candidate fail-open exposure/size multipliers, wrong-side/nonfinite prices,
+  corrupt/chronologically invalid bars, absent history, alignment grade caps and invalid
+  indicator/level periods. MT5 bar fetch excludes the forming candle (position 1).
+- Added pure `paper/admission.py`: readiness/demonstration-account gates and independent
+  daily/weekly remaining loss-capacity checks including open/pending/cost risk. Parent
+  trade ideas own risk; two scale-out child orders share it. Broker integration pending.
+- Added `paper/operator_score.py`: whole-parent net-R replay, duplicate rejection,
+  separate Brier metrics, latched incident/pause restrictions, global safety history
+  across model swaps. This is NOT model training; settlement/ledger adapter pending.
+- Added `paper/evidence.py`: timestamped intraday-news packet, cases/falsifiers, coverage,
+  citation IDs and frozen hash references. Collector/archives/spec attestation pending.
+- Separate blockers recorded, not changed: default AI chain's production telemetry writes;
+  approximate public calendar; replay input parity/vintage defects; superficial reader
+  evaluation; management/watchdog/reconciliation and strategy graduation.
+- Verification: **478/478 pytest**, **Ruff clean**, **mypy clean (230 files)**,
+  **Biome clean (206 files)**, **npm run build PASS** (metadataBase/edge-runtime warnings).
+  Same-USD boundary mutation made its regression test fail; correct boundary restored.
+  GitNexus impact unavailable (DB format 42/runtime 40); manual scope audit used, graph risk
+  UNKNOWN. No terminal orders, model calls, production-code changes or deployment performed.
+
 Branch `fx-live-personal` cut from main `bb089f3` (includes `v2.1-archive` tag).
 Main stays archived. Never push to main. Never move the tag.
 

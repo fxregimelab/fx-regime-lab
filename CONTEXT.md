@@ -4,6 +4,20 @@
 
 ## IDENTITY
 
+**Autonomous demo evolution design (2026-10-18):** owner permits evidence-gated automatic
+demo promotion. Draft pack/index: `docs/plans/2026-10-18-autonomous-demo-desk.md`; seven
+companion contracts/task/prompts/verification documents under `docs/specs/autonomous-desk/`.
+Not yet implemented or running; start with AD-T00. Protected evaluator/hardlimits remain
+outside the runtime research agent's authority. Private branch only; no public roadmap change.
+
+**Private desk checkpoint (2026-10-18, `fx-live-personal` only):** see
+`docs/DESK_AUDIT_AND_IMPROVEMENT.md`. Framework 1.1 / playbook 0.3; research/shadow
+only until execution readiness is proved. Pure admission, evidence-contract and
+operator-score replay modules are tested but not wired to a broker executor.
+Version stamps do not prove spec reading; asymmetric outcome points do not retrain
+an LLM. Default production AI telemetry/replay/calendar/eval defects are separately
+documented blockers. Public research product and its pair-expansion gates unchanged.
+
 I am an independent quantamental macro researcher based in Pune, India.
 I operate a live research operation focused on G10 FX regime classification and systematic alpha generation.
 
