@@ -1,0 +1,72 @@
+{
+  "authority_version": 1,
+  "schema_version": "ad/1",
+  "created_at": "2026-10-18T00:00:00Z",
+  "owner_directive_refs": [
+    "owner-directive-2026-10-17-desk-pair-subset",
+    "owner-directive-2026-10-17-risk-model-v2",
+    "owner-decision-2026-10-18-autonomous-demo-desk",
+    "owner-budget-policy-2026-10-18-autonomy-v1"
+  ],
+  "enabled_mode": "shadow",
+  "account_identity_ref": "demo-account-alias-1",
+  "pair_symbol_map": {
+    "EURUSD": "EURUSDm",
+    "USDJPY": "USDJPYm"
+  },
+  "limits": {
+    "slot_risk_ceilings": ["0.05", "0.04", "0.03", "0.03"],
+    "grade_multipliers": {"A+": "1.0", "A": "0.8", "B+": "0.6", "B": "0.45"},
+    "min_effective_risk_pct": "0.01",
+    "max_concurrent_positions": 4,
+    "max_positions_per_pair": 2,
+    "max_same_usd_sign_tickets": 2,
+    "max_open_risk_pct": "0.15",
+    "max_new_trades_per_day": 5,
+    "daily_stop_pct": "0.10",
+    "weekly_stop_pct": "0.25",
+    "max_gross_leverage": "50",
+    "account_currency": "USD",
+    "day_boundary": "UTC",
+    "week_boundary": "UTC_MONDAY"
+  },
+  "canary_risk_factor": "0.25",
+  "session_policy_ref": "spec02-session-v1",
+  "event_policy_ref": "spec02-event-blackout-v1",
+  "weekend_policy_ref": "spec03-weekend-exit-v1",
+  "allowed_primitive_versions": ["su1-v1", "su2-v1", "su3-v1", "su4-v1", "management-v1"],
+  "allowed_prompt_variables": [
+    "alignment",
+    "candidate_summary",
+    "coverage",
+    "grade",
+    "pair",
+    "regime",
+    "side"
+  ],
+  "source_allowlist": [
+    "mt5-bars",
+    "mt5-tick",
+    "mt5-instrument",
+    "mt5-account",
+    "calendar-authoritative",
+    "headline-authoritative"
+  ],
+  "evaluator_policy_digest": null,
+  "allowed_execution_build_digest": null,
+  "strategy_certificate_id": null,
+  "issuer_key_ref": "issuer-key-local-v1",
+  "human_stop_marker_path": "data/desk/OWNER_STOP",
+  "service_identity": "desk-control-plane-local",
+  "journal_root": "data/desk",
+  "budgets": {
+    "max_provider_attempts_per_day": 60,
+    "max_input_tokens": 8000,
+    "max_output_tokens": 2000,
+    "max_attempts_per_role": 2,
+    "daily_monetary_cap_usd": "0",
+    "tick_freshness_ref": "spec03-tick-freshness-v1",
+    "bars_freshness_ref": "spec02-bar-freshness-v1",
+    "calendar_freshness_ref": "spec02-calendar-freshness-v1"
+  }
+}
