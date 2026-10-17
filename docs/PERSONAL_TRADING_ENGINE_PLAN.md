@@ -99,6 +99,8 @@ local run capability + read-only tooling + receipts culture = where the paper de
 | `pipeline/src/desk/invalidation.py` | Overnight breach math: `|day_change| > 1.5·rv20`, sticky 3 ticks | Exit-on-invalidation for open paper positions |
 | `analyst_reader` + `analyst_note` | 5-line note + fallback | Desk-note prose (fallback OK for now) |
 | `run_live_personal.py` + `ledger_snapshot.py` | Local run + receipts | Attach point + receipt pattern for paper artifacts |
+| `fetchers/fx_spot.py` (`SpotBar` OHLC) | Live daily OHLC (Polygon → Alpha Vantage → yfinance), persists only close | Price-integrity path; capture full OHLC later if wanted |
+| `weekly_regime_read/scripts/track_record.py` | Stop-hit check from bar low/high + track-record JSON | Pattern for paper stop fills |
 | `historical_prices` (OHLC) | yfinance daily bars, 1996/2003+ *(stale: ends 2026-06-29)* | Refresh → simulator + charts |
 | `signals` (40+ cols) + `regime_calls` | Daily features + call intent | Desk daily inputs |
 
@@ -139,8 +141,11 @@ local run capability + read-only tooling + receipts culture = where the paper de
   calibration, not proof (IDENTITY: "Backfill only for calibration and methodology validation").
 - `historical_prices`: true daily OHLC + volume (source `yfinance`): EURUSD 5,857 rows since 2003-12,
   USDJPY 7,691 since 1996-10, USDINR 5,854 since 2003-12. **Stale: last rows 2026-06-29.** Refresh script
-  exists: `pipeline/scripts/populate_historical_prices.py`.
-- `signals.spot` = the live reference price per pair-day (used by validation; current to 2026-10-16).
+  exists: `pipeline/scripts/populate_historical_prices.py` (yfinance; 2026-03-01 → today; deep history via
+  `fetch_max_history`, 30 y). Only backfill paths write this table — the daily pipeline never does.
+- `signals.spot` = the live reference price per pair-day (used by validation; current to 2026-10-16). The live
+  fetchers (`fetchers/fx_spot.py`, Polygon → Alpha Vantage → yfinance fallback) already fetch daily OHLC
+  (`SpotBar`) but persist **only the close**; **no bid/ask exists anywhere — all pricing is close/last-only**.
 
 ### B4. What does NOT exist (the build list)
 
@@ -148,8 +153,9 @@ local run capability + read-only tooling + receipts culture = where the paper de
    "paper", no broker adapter, all "order" hits are SQL `ORDER BY`).
 2. **No notional sizing** — `position_size` is only the enum `FULL`/`HALF`; nothing converts stop distance +
    risk budget into units.
-3. **No fresh price refresh inside the daily loop** — OHLC is 3.5 months stale; no candles/charts for the 3
-   pairs in the pipeline.
+3. **No fresh price refresh inside the daily loop** — OHLC is 3.5 months stale; the pipeline discards the
+   OHLC it fetches (close only persists); no candles/charts exist for the 3 pairs (earlier chart generators
+   were deleted from the repo).
 4. **No desk access layer** — nothing lets a local agent cleanly read "today's calls + features + bars" or
    record simulated trades (CLI/MCP absent).
 5. **No disciplined strategy comparison** — validation scores the house calls only; nothing tests trend /
@@ -294,7 +300,8 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
 
 - **Phase 1 (deterministic, local)**: candlestick renderer from our OHLC with entry/stop/EMA/swing overlays →
   PNG (machine-readable by the agent) + HTML (interactive). Numeric pattern features: swing pivots, prior
-  high/low sweeps, range expansion/compression, inside/outside bars, volatility-rank bands.
+  high/low sweeps, range expansion/compression, inside/outside bars, volatility-rank bands. (Built fresh —
+  the old `charts/` PNGs are static leftovers and their generator no longer exists.)
 - **Phase 2 (visual review)**: two options, both honest:
   - *(a)* TradingView via the user's logged-in browser (browser automation — qualitative visual check only;
     this environment supports it);
@@ -309,7 +316,8 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
 
 ### P0 — Foundations (1–2 sessions)
 
-- [ ] `paper/prices.py`: refresh OHLC to present; weekday-sanity bounds; quarantine rule; spot cross-check.
+- [ ] `paper/prices.py`: refresh OHLC to present (extend `populate_historical_prices.py` /
+      `fetch_max_history`); weekday-sanity bounds; quarantine rule; spot cross-check.
 - [ ] `paper/store.py`: SQLite + hash-chain receipts; `data/desk/` gitignored (add `.gitignore` rule);
       `reports/desk/` committed.
 - [ ] `paper/config.py`: pairs, costs, risk defaults, horizons, model-version guard (`2.0-live` only for live).
