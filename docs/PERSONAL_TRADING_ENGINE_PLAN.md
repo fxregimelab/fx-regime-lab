@@ -1,7 +1,8 @@
 # Personal Trading Engine — Audit & Expansion Plan
 
-> **Status: DRAFT v0.1 — 2026-10-17. Awaiting owner decisions (see §11).**
-> Branch: `fx-live-personal`. Paper money only. 3-pair lock. Public product untouched.
+> **Status: v0.2 — 2026-10-17. Owner approved defaults ("GO"); desk trading subset: EURUSD + USDJPY only.**
+> Branch: `fx-live-personal`. Paper money only (MT5 demo). 3-pair research lock unchanged; no USDINR
+> execution. Public product untouched.
 > Owner instruction that created this document: *"audit the partial reader / local expansion / repair,
 > and plan the change from the research desk to a personal trading engine — paper money, hold 1–7 days,
 > real strategies and testing to decide which trade to take, with a local AI agent connected to the data."*
@@ -324,14 +325,19 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
   approved paper orders end-to-end through MT5. Live-account execution is out of scope until a separate
   explicit owner decision with guardrails (per-order/daily caps, kill switch). *(Indian residents: offshore
   FX/CFD real-money trading faces regulatory limits — relevant only to any future real-money phase.)*
-- **USDINR caveat:** broker symbol availability varies; many MT5 brokers list EURUSD/USDJPY but not USDINR.
-  If the broker lacks USDINR → majors run on MT5 demo; USDINR stays desk-simulated (`paper/broker_sim.py`)
-  until a suitable broker/exchange path is chosen.
+- **Trading universe decision (owner, 2026-10-17): EURUSD + USDJPY only.** The desk trades the two majors
+  on MT5; USDINR remains research-only in the pipeline (never executed). This narrows the trading subset —
+  the 3-pair research lock is unchanged (no new pairs, no expansion).
 - **Adapter plan:** `paper/broker_mt5.py` (init, symbol check, rates, tick/spread, order_send, positions sync)
   + `paper/broker_sim.py` fallback, behind one `broker` interface. Credentials in `.env.local` only; never
   printed. Every MT5 action mirrored into the paper ledger receipts.
-- **Owner prerequisite:** install the MT5 terminal on this PC and log into a demo account (broker choice:
-  prefer one listing all three pairs); then the P0 spike verifies connectivity + symbols + spread sampling.
+- **Broker selection (shortlist):** any MT5 broker works for the demo phase; shortlist for spread/execution
+  quality: Exness, XM, IC Markets, Pepperstone. Choose empirically — the desk includes a spread sampler;
+  we run demos and let measured spreads decide. Real-money broker choice is a separate future decision
+  (jurisdiction/regulation matters).
+- **Owner prerequisite:** install the MT5 terminal on this PC and open a demo account (MetaQuotes-Demo is
+  the zero-paperwork default; broker demos work too); then the P0 spike verifies connectivity + symbols +
+  spread sampling.
 
 ---
 
@@ -441,6 +447,9 @@ the session temp dir; P0 formalizes them into a committed read-only tool.
 | 7 | Branch | Continue on `fx-live-personal` vs new `paper-desk` branch | Continue on `fx-live-personal` |
 | 8 | Reader provider refresh | Now / later / skip (fallback is fine) | Later |
 | 9 | MetaTrader 5 | Data-only / **data + demo execution** / skip | Data + demo execution |
+
+> **Resolved (2026-10-17):** owner accepted all defaults ("GO"). Scope narrowing: the desk's trading
+> universe is **EURUSD + USDJPY only** — no USDINR execution (research pipeline keeps the 3-pair lock).
 
 ---
 

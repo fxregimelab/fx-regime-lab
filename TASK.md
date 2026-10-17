@@ -57,6 +57,11 @@ writes, public product untouched. 8 owner decisions with defaults in §11 of the
 Owner-requested MT5 add-on planned (§5.9): real spread data + demo-account execution
 (owner prerequisite: terminal + demo login).
 
+Owner GO'd all defaults (2026-10-17); P0 started. Trading subset = EURUSD + USDJPY
+only (no USDINR execution). MT5 Python package installed on this PC; terminal
+install + demo login pending. Spike tool: `pipeline/scripts/desk_mt5_spike.py`.
+Desk config: `pipeline/src/paper/config.py`.
+
 ## Completed
 
 **Step 0: Identity Compliance Audit — COMPLETED (2026-05-18)**

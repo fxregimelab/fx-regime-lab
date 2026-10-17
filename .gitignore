@@ -49,3 +49,6 @@ lighthouse-reports/
 
 # Old pipeline run artifacts
 runs/
+
+# Personal paper desk — local state (SQLite DB, receipts staging)
+data/desk/
