@@ -30,6 +30,9 @@ dev = [
     "pre-commit>=3.7.0",
     "types-requests>=2.31.0",
 ]
+desk = [
+    "MetaTrader5>=5.0",
+]
 
 [tool.ruff]
 line-length = 100

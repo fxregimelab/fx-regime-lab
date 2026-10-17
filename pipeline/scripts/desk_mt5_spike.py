@@ -24,6 +24,7 @@ import statistics
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 PAIRS = ("EURUSD", "USDJPY")
 SUFFIX_CANDIDATES = ("", "m", ".", "#", "pro", "raw", "ecn", "z")
@@ -46,7 +47,7 @@ def _load_env_local() -> None:
         os.environ.setdefault(key.strip(), value.strip())
 
 
-def _resolve_symbol(mt5, pair: str) -> str | None:
+def _resolve_symbol(mt5: Any, pair: str) -> str | None:
     for suffix in SUFFIX_CANDIDATES:
         candidate = f"{pair}{suffix}"
         if mt5.symbol_info(candidate) is not None:

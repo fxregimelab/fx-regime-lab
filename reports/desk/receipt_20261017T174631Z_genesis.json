@@ -1,0 +1,57 @@
+{
+  "chain": {
+    "first_bad_seq": null,
+    "head_hash": "0e5988ee2a8442b39986686bda16ffed5adbd08eda2d48cac27e6c8156e0059c",
+    "head_seq": 1,
+    "ok": true,
+    "rows": 1
+  },
+  "db_path": "data/desk/paper_desk.sqlite3",
+  "exported_at_utc": "2026-10-17T17:46:31+00:00",
+  "rows": [
+    {
+      "kind": "note",
+      "payload": {
+        "balance": 10000.0,
+        "bars_seeded": {
+          "EURUSDm": {
+            "bars": 2588,
+            "timeframe": "D1"
+          },
+          "USDJPYm": {
+            "bars": 2588,
+            "timeframe": "D1"
+          }
+        },
+        "currency": "USD",
+        "demo_server": "Exness-MT5Trial6",
+        "demo_type": "demo",
+        "equivalence": "standard demo USD 10,000 == cent account USD 100 (x100); real-money equivalent = balance / 100",
+        "event": "paper_desk_genesis",
+        "last_bars": {
+          "EURUSDm": {
+            "close": 1.12388,
+            "date_srv": "2026-10-16",
+            "spread_points": 8
+          },
+          "USDJPYm": {
+            "close": 157.979,
+            "date_srv": "2026-10-16",
+            "spread_points": 10
+          }
+        },
+        "risk_default_pct": 0.75,
+        "risk_max_pct": 1.0,
+        "source": "balance via terminal MCP; bars via MetaTrader5 python package (build 6272 feed)",
+        "symbols": [
+          "EURUSDm",
+          "USDJPYm"
+        ]
+      },
+      "row_hash": "0e5988ee2a8442b39986686bda16ffed5adbd08eda2d48cac27e6c8156e0059c",
+      "seq": 1,
+      "ts_utc": "2026-10-17T17:46:31.086925+00:00"
+    }
+  ],
+  "since_seq": 0
+}

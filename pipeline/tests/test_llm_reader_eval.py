@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from src.ai.renderers.analyst_note import AnalystNoteInput, deterministic_analyst_note
 from src.eval.llm_reader_eval import (
     brier_on_conviction,
@@ -11,7 +13,7 @@ from src.eval.llm_reader_eval import (
 )
 
 
-def _frozen(pair="EURUSD"):
+def _frozen(pair: str = "EURUSD") -> dict[str, Any]:
     return {
         "pair": pair,
         "date_str": "2026-10-17",
@@ -59,7 +61,7 @@ def test_number_accuracy_matches_within_tolerance() -> None:
 
 
 def test_brier_skips_null_outcomes() -> None:
-    rows = [
+    rows: list[dict[str, Any]] = [
         {"confidence": 0.8, "outcome": 1},
         {"confidence": 0.6, "outcome": 0},
         {"confidence": 0.5, "outcome": None},

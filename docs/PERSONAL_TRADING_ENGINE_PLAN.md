@@ -361,15 +361,17 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
 
 ### P0 — Foundations (1–2 sessions)
 
-- [ ] `paper/prices.py`: refresh OHLC to present (extend `populate_historical_prices.py` /
-      `fetch_max_history`); weekday-sanity bounds; quarantine rule; spot cross-check.
-- [ ] MT5 spike: detect local terminal, connect, verify the 3 symbols, sample real spreads
-      (owner prerequisite: install terminal + demo login, §5.9).
-- [ ] `paper/store.py`: SQLite + hash-chain receipts; `data/desk/` gitignored (add `.gitignore` rule);
-      `reports/desk/` committed.
-- [ ] `paper/config.py`: pairs, costs, risk defaults, horizons, model-version guard (`2.0-live` only for live).
+- [x] `paper/config.py`: pairs, costs, risk defaults, horizons, model-version guard (`2.0-live` only for live).
+- [x] MT5 spike: terminal detect/connect + `EURUSDm`/`USDJPYm` verified; live spread sampling
+      runs Monday (market closed at build time). `pipeline/scripts/desk_mt5_spike.py`.
+- [x] `paper/store.py`: local SQLite (`data/desk/`, gitignored) — append-only hash-chained ledger +
+      refreshable bar cache; JSON receipts to `reports/desk/` (committed; genesis receipt landed).
+- [x] `paper/prices.py` + `scripts/desk_prices_sync.py`: broker D1 bars into the local store
+      (EURUSDm + USDJPYm, 2018-07-03 → 2026-10-16, 2×2588 bars, 0 quarantined; OHLC sanity +
+      ±10%/day jump quarantine). Supabase `historical_prices` refresh deferred (no prod writes).
 - [ ] Convert this audit's probes into `pipeline/scripts/desk_audit_snapshot.py` (read-only, repeatable).
-- [ ] Tests: bounds/quarantine/spot-check unit tests.
+- [ ] Tests: bounds/quarantine unit tests — **done** (15 tests, store + prices); spot cross-check
+      vs `signals.spot` still to come.
 
 ### P1 — Strategies & backtests (2–4 sessions)
 

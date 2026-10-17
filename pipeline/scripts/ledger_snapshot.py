@@ -16,6 +16,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "pipeline"))
@@ -37,17 +38,17 @@ def _load_env_local() -> None:
             os.environ[name] = value.strip().strip('"').strip("'")
 
 
-def _client():  # lazy import, read-only use only
+def _client() -> Any:  # lazy import, read-only use only
     from supabase import create_client
 
     url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-    if not url or not (key or "").strip():
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or ""
+    if not url or not key.strip():
         raise RuntimeError("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set")
     return create_client(url, key)
 
 
-def _canon(rows: list[dict]) -> str:
+def _canon(rows: list[dict[str, Any]]) -> str:
     lines = [json.dumps(r, sort_keys=True, ensure_ascii=True, default=str) for r in rows]
     return "\n".join(sorted(lines))
 
@@ -56,13 +57,13 @@ def _sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _fetch_all(client, table: str, columns: str) -> tuple[list[dict], int]:
+def _fetch_all(client: Any, table: str, columns: str) -> tuple[list[dict[str, Any]], int]:
     """Paginated SELECT (Supabase caps rows per request); returns (rows, exact_count)."""
     exact = (
         client.table(table).select("id", count="exact").limit(0).execute()
     )
     total = int(exact.count or 0)
-    rows: list[dict] = []
+    rows: list[dict[str, Any]] = []
     chunk = 1000
     for offset in range(0, total, chunk):
         res = (
@@ -77,7 +78,7 @@ def _fetch_all(client, table: str, columns: str) -> tuple[list[dict], int]:
     return rows, total
 
 
-def snapshot() -> dict:
+def snapshot() -> dict[str, Any]:
     client = _client()
 
     call_rows, call_exact = _fetch_all(

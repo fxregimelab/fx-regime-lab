@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
 import pytest
 
@@ -62,7 +63,7 @@ def test_deterministic_fallback_has_five_lines_and_citations() -> None:
 
 def test_reader_uses_client_and_returns_five_lines() -> None:
     class FakeClient:
-        def render(self, renderer, input_data, *, date_str: str) -> str:
+        def render(self, renderer: Any, input_data: Any, *, date_str: str) -> str:
             assert date_str == "2026-10-17"
             return "l1\nl2\nl3\nl4\nl5"
 
@@ -79,7 +80,7 @@ def test_reader_uses_client_and_returns_five_lines() -> None:
 
 def test_reader_falls_back_offline_without_secrets() -> None:
     class BoomClient:
-        def render(self, renderer, input_data, *, date_str: str) -> str:
+        def render(self, renderer: Any, input_data: Any, *, date_str: str) -> str:
             raise RuntimeError("no keys in test env")
 
     out = generate_analyst_note(
@@ -97,7 +98,7 @@ def test_async_reader_falls_back() -> None:
     import asyncio
 
     class BoomAsync:
-        async def render_async(self, renderer, input_data, *, date_str: str) -> str:
+        async def render_async(self, renderer: Any, input_data: Any, *, date_str: str) -> str:
             raise RuntimeError("offline")
 
     out = asyncio.run(

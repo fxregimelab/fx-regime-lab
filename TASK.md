@@ -73,6 +73,11 @@ Real-money equivalent = desk balance ÷ 100; desk E₀ = 10,000 matches the demo
 owner's 1%-max-risk rule applies (0.75% default). See plan §5.9.
 Spike tool: `pipeline/scripts/desk_mt5_spike.py` (env-driven, masked output).
 Desk config: `pipeline/src/paper/config.py`.
+P0 build (2026-10-17 night): `paper/store.py` (local SQLite — append-only hash-chained ledger +
+refreshable bar cache) + `paper/prices.py` + `scripts/desk_prices_sync.py`; D1 bars seeded
+(EURUSDm/USDJPYm, 2018-07-03 → 2026-10-16, 2×2588, 0 quarantined); genesis receipt in
+`reports/desk/`; MetaTrader5 python package wired into the venv. Repo now fully mypy-clean
+(220 files; 17 pre-existing annotation fixes) — 406/406 pytest, ruff clean.
 
 ## Completed
 
@@ -193,7 +198,7 @@ Desk config: `pipeline/src/paper/config.py`.
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| pytest | 391/391 ✅ (379 baseline + 12 reader/eval) | 391+ |
+| pytest | 406/406 ✅ (391 + 15 paper desk) | 406+ |
 | TypeScript | 0 errors ✅ | 0 |
 | Biome | Clean ✅ | Clean |
 | Build | `npm run build` ✅ | Pass |
