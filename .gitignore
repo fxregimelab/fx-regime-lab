@@ -56,3 +56,5 @@ data/desk/
 # MCP client configs — contain local MCP API keys, NEVER commit
 .mcp.json
 .codex/
+opencode.json
+opencode.jsonc
