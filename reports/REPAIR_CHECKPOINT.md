@@ -164,6 +164,12 @@ Saturday, after Friday bars published (spot last=2026-10-16, all pairs),
 Next: draft PR to main (human merges only, after operator preview check;
 footer stays DEGRADED until then).
 
+**Draft PR opened: [#20](https://github.com/fxregimelab/fx-regime-lab/pull/20)**
+(draft=true, base=main, head=fx-live-personal, 2026-10-17 08:37 UTC). Tag
+`v2.1-archive` = `b0d33cd` unmoved; local + origin `main` = `bb089f3`
+untouched. Prod's 09:00 UTC run will hit the idempotent insert path for the
+10-16 rows (verified no-op by design).
+
 ## Open gates (6 root gates still open until evidence closes each)
 
 1. Deploy blocker: Vercel branch preview from fx-live-personal (Root Directory
