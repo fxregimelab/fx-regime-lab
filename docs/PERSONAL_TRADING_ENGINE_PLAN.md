@@ -355,6 +355,24 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
   (trade + data + calendar + backtester as tools); the Python `MetaTrader5` package stays
   the deterministic-pipeline route (`paper/broker_mt5.py`). Both talk to the same terminal.
 
+### 5.10 Owner directives (2026-10-17 night) — autonomous demo phase, intraday-first
+
+- **Approval gate removed for the demo phase** (owner): the agent executes trades autonomously
+  on the demo within the guardrails (risk/concurrency caps, kill-switches, blackouts, full
+  receipts) — those replace per-trade approval as the control surface. Any real-money phase, or
+  owner request, re-enables the explicit human gate.
+- **Intraday-first management:** most trades target ≤8h; hard horizon cap **T+5**. Scale-out
+  50% at 1R → SL to break-even (risk-free) → 1.2×ATR_H1 chandelier trail placed beyond
+  structure (liquidity-hunt-avoidant). Early-cut triggers + time stops. No emotion; every move
+  rule-receipted.
+- **Confidence = binary checklist** (14 Y/N checks: 5 hard gates + 9 scored; grades A/B/C;
+  only A/B trade; grade sizes risk). Deep research packet mandatory per candidate: news/calendar
+  scan, multi-timeframe read (D1→H4→H1→M15), bull/bear/neutral cases each with falsifiers.
+- **Multi-timeframe confirmation** required (≥2 of D1/H4/H1 aligned for grade A; no TF
+  contradicting for B).
+- Operating manual + agent prompts: **`docs/DESK_TRADING_PLAYBOOK.md`** (procedure this plan
+  executes under); parameters mirrored in `paper/config.py` (`TradingLimits`).
+
 ---
 
 ## 6. Phases (effort = focused sessions, not calendar promises)

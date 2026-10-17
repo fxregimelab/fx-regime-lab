@@ -79,6 +79,16 @@ refreshable bar cache) + `paper/prices.py` + `scripts/desk_prices_sync.py`; D1 b
 `reports/desk/`; MetaTrader5 python package wired into the venv. Repo now fully mypy-clean
 (220 files; 17 pre-existing annotation fixes) — 406/406 pytest, ruff clean.
 
+Desk playbook v0.1 (2026-10-17 night): **`docs/DESK_TRADING_PLAYBOOK.md`** — owner removed the
+per-trade approval gate for the demo phase (autonomy inside guardrails; real money still gated).
+Intraday-first management (50% scale-out at 1R → break-even → 1.2×ATR_H1 trail beyond structure;
+early-cut + time-stop rules; ≤8h typical, **T+5 max**). Confidence = **binary checklist** (5 hard
+gates + 9 scored = 14 checks → grades A/B/C; only A/B trade; grade sizes risk 0.75%/0.5%).
+Multi-TF confirmation (D1/H4/H1/M15) + per-candidate news research packet (bull/bear/neutral,
+each with falsifiers). Concurrency caps: ≤3 open, ≤1 per pair, ≤2.25% open risk, −3% daily /
+−6% weekly kill-switches. Limits in `paper/config.py` (`TradingLimits`); intraday bars
+(H4/H1/M15) seeded into the local store. Plan §5.10 amended. Last updated: 2026-10-17.
+
 ## Completed
 
 **Step 0: Identity Compliance Audit — COMPLETED (2026-05-18)**
