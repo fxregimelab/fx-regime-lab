@@ -21,12 +21,19 @@ Main stays archived. Never push to main. Never move the tag.
   `reports/llm_reader_eval_v1.md`: faithfulness 1.000, number accuracy 1.000
   (deterministic, 3 synthetic rows), Brier n=0 (no outcomes claimed).
   391/391 pytest (379 + 12 new), ruff clean. Zero ledger writes.
-- [ ] Step 3: push slices to `origin fx-live-personal`; draft PR only when
-  live + eval green with ledger delta zero (new rows only). No auto-merge.
-- [ ] Step 4: docs updated on branch (this file, README, AGENTS.md counts,
+- [x] Step 3: pushed to `origin fx-live-personal`. **Live green run**
+  2026-10-17 08:07–08:11 UTC published 3 calls @ 2026-10-16 (EURUSD/USDJPY
+  NEUTRAL, USDINR INR_NEUTRAL; model 2.0-live). Ledger delta = new rows
+  only: regime_calls +3 with all 19,503 prior rows byte-identical (SHA-256
+  `eec0749c…`); validation_log +12 inserts − 6 flag-only supersessions.
+  Eval on the fresh calls: `reports/llm_reader_eval_v3_latest.*` (faith
+  1.000 / num 1.000, Brier n=0). Draft PR opened to main — human merges
+  only, never auto-merge.
+- [x] Step 4: docs updated on branch (this file, README, AGENTS.md counts,
   CONTEXT.md repair section, HANDOVER.md operator status, MASTERPLAN.md
-  phases, `reports/REPAIR_CHECKPOINT.md` packets). 6 root gates still open.
-  No VERIFIED RELEASE without live observation + receipts.
+  phases, `docs/DB_STATUS.md` 49→58, `reports/REPAIR_CHECKPOINT.md` packets
+  1–6). 6 root gates still open; footer stays DEGRADED until operator
+  preview check. No VERIFIED RELEASE claimed.
 
 ## Completed
 

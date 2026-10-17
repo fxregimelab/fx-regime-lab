@@ -26,12 +26,21 @@
 - `pytest` 391/391 (379 baseline + 12 new), `ruff` clean, `mypy` clean (new),
   `tsc --noEmit` 0 errors, `biome check` clean, `npm run build` pass.
 - Vercel branch previews: READY (both attached projects, latest branch SHAs).
-- Ledger: regime_calls 19,503 / validation_log 19,485 (non-superseded), all 3
-  pairs fresh through 2026-10-15. Two branch E2E attempts aborted at DQS gate
-  (0.20 < 0.50, pre-close timing artifact — Packet 3); AFTER snapshots prove
-  **zero writes, hashes identical**. [UPDATE after 22:05 UTC run: green run
-  SHA + AFTER counts/hashes + delta=new-rows-only proof here.]
-- Footer stays DEGRADED until branch preview + live proof verified by operator.
+- **Live green run 2026-10-17 08:07–08:11 UTC** (branch, 52 min ahead of
+  prod's 09:00 UTC run): Prefect flow Completed() (08:11:15 UTC); published
+  3 calls @ 2026-10-16 — EURUSD NEUTRAL, USDJPY NEUTRAL, USDINR INR_NEUTRAL
+  (model 2.0-live, created_at 08:08 UTC). DQS gate passed (publication
+  implies it: gate fires before any write).
+- Ledger proof BEFORE → AFTER: regime_calls 19,503 → 19,506 (+3; old-subset
+  SHA-256 `eec0749c…` byte-identical → history intact); validation_log
+  current 19,485 → 19,491 (+12 inserts − 6 flag-only supersessions; no
+  content mutation, no deletes). Snapshots:
+  `reports/ledger_snapshot_full.json`,
+  `reports/ledger_snapshot_after_live_green.json`. Two earlier DQS aborts
+  (pre-close timing, Packet 3) wrote zero rows — hashes identical.
+- Eval on the fresh calls: `reports/llm_reader_eval_v3_latest.md`
+  (faith 1.000 / num 1.000, 3 rows @ 2026-10-16; Brier n=0 not matured).
+- Footer stays DEGRADED until operator verifies the branch preview.
 
 ## Known issues (deferred, not in this PR)
 

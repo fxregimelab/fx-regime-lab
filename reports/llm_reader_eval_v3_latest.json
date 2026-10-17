@@ -1,0 +1,41 @@
+{
+  "brier_on_conviction": {
+    "mean_brier": null,
+    "n": 0,
+    "skipped": 3
+  },
+  "eval_version": "llm-reader-eval-v1",
+  "faithfulness_overall": 1.0,
+  "n": 3,
+  "notes_llm_fallback": 3,
+  "number_accuracy_overall": 1.0,
+  "per_pair": {
+    "EURUSD": {
+      "faithfulness": 1.0,
+      "n": 1,
+      "number_accuracy": 1.0
+    },
+    "USDINR": {
+      "faithfulness": 1.0,
+      "n": 1,
+      "number_accuracy": 1.0
+    },
+    "USDJPY": {
+      "faithfulness": 1.0,
+      "n": 1,
+      "number_accuracy": 1.0
+    }
+  },
+  "versions": {
+    "2.0-live": {
+      "brier": {
+        "mean_brier": null,
+        "n": 0,
+        "skipped": 3
+      },
+      "faithfulness": 1.0,
+      "n": 3,
+      "number_accuracy": 1.0
+    }
+  }
+}

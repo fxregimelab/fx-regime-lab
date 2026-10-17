@@ -453,3 +453,9 @@ Shreyash leaves with:
 - First LLM reader + eval slice landed with zero ledger writes
   (`reports/llm_reader_eval_v1.md`, `reports/REPAIR_CHECKPOINT.md`).
 - 6 root gates still open. No VERIFIED RELEASE. Human merges any PR to main.
+- **2026-10-17 08:07–08:11 UTC: live green run on branch** — 3 calls
+  published @ 2026-10-16; ledger proof append-only (19,503 prior
+  regime_calls byte-identical, +3 new; validation_log +12/−6 flag-only
+  supersessions). Eval v3 on fresh calls: faith 1.000 / num 1.000.
+  Draft PR to main open — operator should verify branch preview (Vercel
+  SSO) before merge. Footer stays DEGRADED until then.
