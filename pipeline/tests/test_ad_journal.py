@@ -5,16 +5,22 @@ touches the production Supabase client (lazy factory mocked to raise,
 service-role env removed), enforces the 26-kind event vocabulary and strict
 JSON-scalar payload rules, is idempotent on duplicate event ids, rejects stale
 aggregate heads without partial writes, detects chain and head-projection
-corruption, blocks raw UPDATE/DELETE through database triggers, runs
-WAL + ``synchronous=FULL``, applies migrations at most once and fails closed on
-a newer schema, and leaves the legacy ``paper_desk.sqlite3`` bytes untouched.
-Every database lives under ``tmp_path``; no network, broker or production
-client is involved.
+corruption, blocks raw UPDATE/DELETE and ``INSERT OR REPLACE`` hijacks through
+database triggers on any connection (with ``recursive_triggers`` enabled on
+module connections as the second line of defense), enforces the
+``expected_aggregate_version`` CAS field, cross-checks ``aggregate_heads``
+against authoritative events before append, fails typed on malformed stored
+payloads instead of leaking ``JSONDecodeError``, routes head read/rebuild
+through the writer facade, runs WAL + ``synchronous=FULL``, applies migrations
+at most once and fails closed on a newer schema, and leaves the legacy
+``paper_desk.sqlite3`` bytes untouched. Every database lives under
+``tmp_path``; no network, broker or production client is involved.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
 import uuid
 from collections.abc import Callable, Mapping
@@ -68,6 +74,57 @@ SPEC_EVENT_KINDS = (
     "cashflow_observed",
 )
 
+# Spec 01 section 6 pins the exact ``events`` column list and order.
+SPEC_EVENTS_COLUMNS = (
+    "seq",
+    "event_id",
+    "aggregate_id",
+    "expected_aggregate_version",
+    "kind",
+    "happened_at",
+    "recorded_at",
+    "canonical_payload",
+    "prev_hash",
+    "row_hash",
+    "actor_id",
+)
+
+
+def _documented_row_hash(
+    *,
+    prev_hash: str,
+    event_id: str,
+    aggregate_id: str,
+    kind: str,
+    actor_id: str,
+    happened_at: str,
+    recorded_at: str,
+    canonical_payload: str,
+) -> str:
+    """Independently recompute the module's documented row-hash content tuple.
+
+    Kept separate from ``private_desk._compute_row_hash`` so the test pins the
+    documented scheme (field order, JSON separators, SHA-256) rather than
+    echoing whatever the module happens to compute.
+    """
+    material = json.dumps(
+        [
+            prev_hash,
+            event_id,
+            aggregate_id,
+            kind,
+            actor_id,
+            happened_at,
+            recorded_at,
+            canonical_payload,
+        ],
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
 
 def _db_path(tmp_path: Path) -> Path:
     return tmp_path / "runtime.sqlite3"
@@ -96,6 +153,7 @@ def _event(
     actor_id: str = "watchdog",
     happened_at: datetime = HAPPENED,
     payload: Mapping[str, object] | None = None,
+    expected_aggregate_version: int | None = None,
 ) -> DeskEvent:
     return DeskEvent(
         event_id=event_id if event_id is not None else str(uuid.uuid4()),
@@ -104,11 +162,12 @@ def _event(
         actor_id=actor_id,
         happened_at=happened_at,
         payload={"note": "ok"} if payload is None else payload,
+        expected_aggregate_version=expected_aggregate_version,
     )
 
 
 def _head(handle: PrivateDeskHandle, aggregate_id: str) -> AggregateHead | None:
-    return private_desk.read_aggregate_head(handle, aggregate_id)
+    return writer.read_aggregate_head(handle, aggregate_id)
 
 
 def _event_count(handle: PrivateDeskHandle) -> int:
@@ -235,7 +294,7 @@ def test_corrupted_event_row_hash_detected_and_not_repaired_by_rebuild(tmp_path:
     with pytest.raises(ContractError) as exc:
         writer.verify_desk_chain(handle)
     assert exc.value.code == "HASH_MISMATCH"
-    private_desk.rebuild_heads(handle)
+    writer.rebuild_heads(handle)
     with pytest.raises(ContractError) as still_exc:
         writer.verify_desk_chain(handle)
     assert still_exc.value.code == "HASH_MISMATCH"
@@ -260,7 +319,7 @@ def test_corrupted_head_projection_repaired_by_rebuild(tmp_path: Path) -> None:
     with pytest.raises(ContractError) as exc:
         writer.verify_desk_chain(handle)
     assert exc.value.code == "HASH_MISMATCH"
-    private_desk.rebuild_heads(handle)
+    writer.rebuild_heads(handle)
     writer.verify_desk_chain(handle)
     assert _head(handle, "parent-1") == AggregateHead("parent-1", 1, stored.seq, stored.row_hash)
     assert _head(handle, "ghost") is None
@@ -268,7 +327,7 @@ def test_corrupted_head_projection_repaired_by_rebuild(tmp_path: Path) -> None:
     with pytest.raises(ContractError) as missing_exc:
         writer.verify_desk_chain(handle)
     assert missing_exc.value.code == "HASH_MISMATCH"
-    private_desk.rebuild_heads(handle)
+    writer.rebuild_heads(handle)
     writer.verify_desk_chain(handle)
     writer.close_private_desk(handle)
 
@@ -497,3 +556,258 @@ def test_legacy_paper_desk_db_bytes_unchanged(tmp_path: Path) -> None:
 def test_event_vocabulary_is_exactly_the_spec_list() -> None:
     assert len(SPEC_EVENT_KINDS) == 26
     assert ALLOWED_EVENT_KINDS == frozenset(SPEC_EVENT_KINDS)
+
+
+# ---------------------------------------------------------------------------
+# HIGH-1: INSERT OR REPLACE cannot rewrite or fork the append-only events table.
+
+
+def test_module_connections_enable_recursive_triggers(tmp_path: Path) -> None:
+    handle = writer.open_private_desk(_db_path(tmp_path))
+    row = handle.connection.execute("PRAGMA recursive_triggers").fetchone()
+    assert row is not None and int(row[0]) == 1
+    writer.close_private_desk(handle)
+    reopened = writer.open_private_desk(_db_path(tmp_path))
+    row2 = reopened.connection.execute("PRAGMA recursive_triggers").fetchone()
+    assert row2 is not None and int(row2[0]) == 1
+    writer.close_private_desk(reopened)
+
+
+def test_insert_or_replace_hijack_aborted_on_raw_connection(tmp_path: Path) -> None:
+    db = _db_path(tmp_path)
+    handle = writer.open_private_desk(db)
+    stored = writer.append_desk_event(handle, _event(), GENESIS)
+    writer.close_private_desk(handle)
+
+    raw = sqlite3.connect(str(db))
+    try:
+        row = raw.execute("PRAGMA recursive_triggers").fetchone()
+        assert row is not None and int(row[0]) == 0  # guard must not rely on the pragma
+        with pytest.raises(sqlite3.IntegrityError) as id_exc:
+            raw.execute(
+                "INSERT OR REPLACE INTO events (event_id, aggregate_id, kind, actor_id,"
+                " happened_at, recorded_at, canonical_payload, prev_hash, row_hash)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    stored.event_id,
+                    "parent-1",
+                    "heartbeat",
+                    "attacker",
+                    "2026-10-18T10:00:00Z",
+                    "2026-10-18T10:00:00Z",
+                    '{"note":"hijack"}',
+                    GENESIS,
+                    "0" * 64,
+                ),
+            )
+        assert "append-only" in str(id_exc.value)
+        with pytest.raises(sqlite3.IntegrityError) as seq_exc:
+            raw.execute(
+                "INSERT OR REPLACE INTO events (seq, event_id, aggregate_id, kind, actor_id,"
+                " happened_at, recorded_at, canonical_payload, prev_hash, row_hash)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    stored.seq,
+                    str(uuid.uuid4()),
+                    "parent-1",
+                    "heartbeat",
+                    "attacker",
+                    "2026-10-18T10:00:00Z",
+                    "2026-10-18T10:00:00Z",
+                    '{"note":"hijack"}',
+                    GENESIS,
+                    "0" * 64,
+                ),
+            )
+        assert "append-only" in str(seq_exc.value)
+        rows = raw.execute(
+            "SELECT seq, event_id, row_hash, canonical_payload, actor_id FROM events"
+        ).fetchall()
+        assert rows == [(stored.seq, stored.event_id, stored.row_hash, '{"note":"ok"}', "watchdog")]
+    finally:
+        raw.close()
+
+
+# ---------------------------------------------------------------------------
+# HIGH-2: expected_aggregate_version column, validation and CAS semantics.
+
+
+def test_events_table_columns_pin_spec_section_6(tmp_path: Path) -> None:
+    handle = writer.open_private_desk(_db_path(tmp_path))
+    rows = handle.connection.execute("PRAGMA table_info(events)").fetchall()
+    assert tuple(str(row["name"]) for row in rows) == SPEC_EVENTS_COLUMNS
+    by_name = {str(row["name"]): row for row in rows}
+    assert int(by_name["expected_aggregate_version"]["notnull"]) == 0
+    writer.close_private_desk(handle)
+
+
+def test_expected_aggregate_version_roundtrip_and_conflict(tmp_path: Path) -> None:
+    handle = writer.open_private_desk(_db_path(tmp_path))
+    first = writer.append_desk_event(handle, _event(expected_aggregate_version=0), GENESIS)
+    assert first.expected_aggregate_version == 0
+    second = writer.append_desk_event(
+        handle, _event(expected_aggregate_version=1), first.row_hash
+    )
+    assert second.expected_aggregate_version == 1
+    assert [event.expected_aggregate_version for event in writer.read_desk_events(handle)] == [0, 1]
+    count_before = _event_count(handle)
+    head_before = _head(handle, "parent-1")
+    with pytest.raises(ContractError) as exc:
+        writer.append_desk_event(
+            handle, _event(expected_aggregate_version=1), second.row_hash
+        )
+    assert exc.value.code == "CONFLICT"
+    assert _event_count(handle) == count_before
+    assert _head(handle, "parent-1") == head_before
+    writer.close_private_desk(handle)
+
+
+def test_expected_aggregate_version_none_accepted_and_invalid_rejected(tmp_path: Path) -> None:
+    handle = writer.open_private_desk(_db_path(tmp_path))
+    stored = writer.append_desk_event(handle, _event(), GENESIS)
+    assert stored.expected_aggregate_version is None
+    row = handle.connection.execute(
+        "SELECT expected_aggregate_version FROM events WHERE seq = ?", (stored.seq,)
+    ).fetchone()
+    assert row is not None and row[0] is None
+    assert writer.read_desk_events(handle)[0].expected_aggregate_version is None
+    writer.close_private_desk(handle)
+    for bad in (True, False, -1, "0", 1.5, 2.0):
+        with pytest.raises(ContractError) as exc:
+            _raw_event(expected_aggregate_version=bad)
+        assert exc.value.code == "INVALID_SCHEMA", bad
+
+
+def test_expected_aggregate_version_not_part_of_retry_identity(tmp_path: Path) -> None:
+    handle = writer.open_private_desk(_db_path(tmp_path))
+    event = _event(expected_aggregate_version=0)
+    first = writer.append_desk_event(handle, event, GENESIS)
+    retry = writer.append_desk_event(
+        handle, _event(event_id=event.event_id, expected_aggregate_version=7), GENESIS
+    )
+    assert retry == first
+    assert retry.expected_aggregate_version == 0
+    assert _event_count(handle) == 1
+    writer.close_private_desk(handle)
+
+
+# ---------------------------------------------------------------------------
+# HIGH-3: head read/rebuild are reachable through the writer facade only.
+
+
+def test_writer_facade_delegates_head_read_and_rebuild(tmp_path: Path) -> None:
+    handle = writer.open_private_desk(_db_path(tmp_path))
+    stored = writer.append_desk_event(handle, _event(), GENESIS)
+    assert writer.read_aggregate_head(handle, "parent-1") == AggregateHead(
+        "parent-1", 1, stored.seq, stored.row_hash
+    )
+    assert writer.read_aggregate_head(handle, "parent-2") is None
+    handle.connection.execute("DELETE FROM aggregate_heads WHERE aggregate_id = ?", ("parent-1",))
+    assert writer.read_aggregate_head(handle, "parent-1") is None
+    writer.rebuild_heads(handle)
+    assert writer.read_aggregate_head(handle, "parent-1") == AggregateHead(
+        "parent-1", 1, stored.seq, stored.row_hash
+    )
+    writer.verify_desk_chain(handle)
+    writer.close_private_desk(handle)
+
+
+# ---------------------------------------------------------------------------
+# LOW-4: append cross-checks aggregate_heads against authoritative events.
+
+
+def test_missing_heads_row_aborts_append_hash_mismatch(tmp_path: Path) -> None:
+    handle = writer.open_private_desk(_db_path(tmp_path))
+    first = writer.append_desk_event(handle, _event(), GENESIS)
+    handle.connection.execute("DELETE FROM aggregate_heads WHERE aggregate_id = ?", ("parent-1",))
+    with pytest.raises(ContractError) as exc:
+        writer.append_desk_event(handle, _event(), GENESIS)
+    assert exc.value.code == "HASH_MISMATCH"
+    assert _event_count(handle) == 1
+    assert [event.seq for event in writer.read_desk_events(handle)] == [first.seq]
+    writer.rebuild_heads(handle)
+    writer.verify_desk_chain(handle)
+    second = writer.append_desk_event(handle, _event(), first.row_hash)
+    assert second.seq == 2
+    writer.close_private_desk(handle)
+
+
+def test_heads_row_without_events_aborts_append(tmp_path: Path) -> None:
+    handle = writer.open_private_desk(_db_path(tmp_path))
+    handle.connection.execute(
+        "INSERT INTO aggregate_heads (aggregate_id, version, last_seq, last_hash)"
+        " VALUES (?, 1, 7, ?)",
+        ("parent-1", "a" * 64),
+    )
+    with pytest.raises(ContractError) as exc:
+        writer.append_desk_event(handle, _event(), GENESIS)
+    assert exc.value.code == "HASH_MISMATCH"
+    assert _event_count(handle) == 0
+    writer.close_private_desk(handle)
+
+
+def test_corrupted_heads_projection_aborts_append(tmp_path: Path) -> None:
+    handle = writer.open_private_desk(_db_path(tmp_path))
+    first = writer.append_desk_event(handle, _event(), GENESIS)
+    handle.connection.execute(
+        "UPDATE aggregate_heads SET last_hash = ? WHERE aggregate_id = ?",
+        ("f" * 64, "parent-1"),
+    )
+    with pytest.raises(ContractError) as hash_exc:
+        writer.append_desk_event(handle, _event(), first.row_hash)
+    assert hash_exc.value.code == "HASH_MISMATCH"
+    handle.connection.execute(
+        "UPDATE aggregate_heads SET last_hash = ?, last_seq = ? WHERE aggregate_id = ?",
+        (first.row_hash, first.seq + 5, "parent-1"),
+    )
+    with pytest.raises(ContractError) as seq_exc:
+        writer.append_desk_event(handle, _event(), first.row_hash)
+    assert seq_exc.value.code == "HASH_MISMATCH"
+    assert _event_count(handle) == 1
+    writer.close_private_desk(handle)
+
+
+# ---------------------------------------------------------------------------
+# LOW-5: malformed stored payloads fail typed instead of leaking JSONDecodeError.
+
+
+def test_malformed_stored_payload_fails_verify_and_read(tmp_path: Path) -> None:
+    handle = writer.open_private_desk(_db_path(tmp_path))
+    event_id = str(uuid.uuid4())
+    happened = "2026-10-18T09:30:15.250000Z"
+    recorded = "2026-10-18T09:30:15.250000Z"
+    broken_payload = "{not json"
+    row_hash = _documented_row_hash(
+        prev_hash=GENESIS,
+        event_id=event_id,
+        aggregate_id="parent-1",
+        kind="heartbeat",
+        actor_id="watchdog",
+        happened_at=happened,
+        recorded_at=recorded,
+        canonical_payload=broken_payload,
+    )
+    handle.connection.execute(
+        "INSERT INTO events (event_id, aggregate_id, kind, actor_id, happened_at,"
+        " recorded_at, canonical_payload, prev_hash, row_hash)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            event_id,
+            "parent-1",
+            "heartbeat",
+            "watchdog",
+            happened,
+            recorded,
+            broken_payload,
+            GENESIS,
+            row_hash,
+        ),
+    )
+    with pytest.raises(ContractError) as verify_exc:
+        writer.verify_desk_chain(handle)
+    assert verify_exc.value.code == "HASH_MISMATCH"
+    with pytest.raises(ContractError) as read_exc:
+        writer.read_desk_events(handle)
+    assert read_exc.value.code == "HASH_MISMATCH"
+    assert not isinstance(read_exc.value, json.JSONDecodeError)
+    writer.close_private_desk(handle)

@@ -25,7 +25,12 @@ from supabase import Client, create_client
 
 from src.db.repositories import private_desk
 from src.db.repositories.desk_card import DeskCardRepository
-from src.db.repositories.private_desk import DeskEvent, PrivateDeskHandle, StoredEvent
+from src.db.repositories.private_desk import (
+    AggregateHead,
+    DeskEvent,
+    PrivateDeskHandle,
+    StoredEvent,
+)
 from src.db.repositories.regime_call import RegimeCallRepository
 from src.db.repositories.signal import SignalRepository
 from src.db.repositories.validation_log import ValidationLogRepository
@@ -1168,9 +1173,19 @@ def read_desk_events(
     return private_desk.read_desk_events(handle, after_seq=after_seq, aggregate_id=aggregate_id)
 
 
+def read_aggregate_head(handle: PrivateDeskHandle, aggregate_id: str) -> AggregateHead | None:
+    """Read the projected aggregate head, or None when unknown (local SQLite only)."""
+    return private_desk.read_aggregate_head(handle, aggregate_id)
+
+
 def verify_desk_chain(handle: PrivateDeskHandle) -> None:
     """Verify the private desk hash chain and head projection (local SQLite only)."""
     private_desk.verify_desk_chain(handle)
+
+
+def rebuild_heads(handle: PrivateDeskHandle) -> None:
+    """Rebuild the aggregate_heads projection from events (local SQLite only)."""
+    private_desk.rebuild_heads(handle)
 
 
 def close_private_desk(handle: PrivateDeskHandle) -> None:

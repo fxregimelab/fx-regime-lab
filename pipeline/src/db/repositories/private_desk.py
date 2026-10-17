@@ -4,33 +4,65 @@ AD-T03 private storage. All mutation entry points are exposed through the
 ``src.db.writer`` facade; this repository never imports or calls the production
 Supabase client path and requires no service-role environment.
 
-Storage
+Schema
+    Migration ``src/paper/migrations/001_runtime.sql`` is edited in place rather
+    than extended by an 002 patch: version 1 has never been applied outside
+    ephemeral pytest tmp databases — no persistent ``runtime.sqlite3`` has ever
+    been created (``data/desk/`` holds only the untouched legacy
+    ``paper_desk.sqlite3``) — and an in-place edit keeps the ``events`` column
+    list/order pinned to spec 01 section 6. Once any persistent runtime database
+    exists, every further change goes through a new versioned migration file.
+
     Migrations ship as ``src/paper/migrations/*.sql`` applied in numeric
     filename order and tracked in ``schema_migrations``; each migration runs
     inside one explicit ``BEGIN IMMEDIATE`` transaction with WAL journaling and
-    ``synchronous=FULL``. A database whose applied versions are not exactly the
-    shipped prefix (including any newer/unknown version) fails closed.
+    ``synchronous=FULL``. Every module-opened connection also sets
+    ``PRAGMA recursive_triggers=ON``. A database whose applied versions are not
+    exactly the shipped prefix (including any newer/unknown version) fails
+    closed.
 
 Integrity
     Events are chain-linked per aggregate: the first event of an aggregate uses
     the ``GENESIS`` sentinel, later events use the previous event's
     ``row_hash``. ``row_hash`` covers prev_hash, event_id, aggregate_id, kind,
     actor_id, happened_at, recorded_at and the payload's canonical JSON text —
-    never ``seq`` (assigned by the insert). ``aggregate_heads`` is a rebuildable
-    projection (version, last_seq, last_hash).
+    never ``seq`` (assigned by the insert) and never
+    ``expected_aggregate_version``. ``aggregate_heads`` is a rebuildable
+    projection (version, last_seq, last_hash); append re-derives the chain head
+    from ``events`` and refuses to write when the projection and the events
+    disagree (``HASH_MISMATCH``), so a stale or forged head cannot fork the
+    chain.
+
+    Append-only is enforced by database triggers on ANY connection, because
+    pragmas are per-connection and cannot be trusted: UPDATE and DELETE abort,
+    and a BEFORE INSERT guard aborts a duplicate ``event_id`` or an explicit
+    ``seq`` collision, so ``INSERT OR REPLACE`` cannot rewrite an existing row
+    even with ``recursive_triggers`` off. Enabling
+    ``recursive_triggers=ON`` on module connections is the second line of
+    defense: it also makes REPLACE's implicit DELETE fire the delete trigger.
+
+    ``expected_aggregate_version`` is an optional optimistic-concurrency CAS
+    consulted for fresh appends only: when set it must equal 0 for a brand-new
+    aggregate or ``aggregate_heads.version`` otherwise (after the same
+    projection-consistency check above); a mismatch is a ``CONFLICT`` with no
+    writes. It is stored verbatim, is not part of the row hash, and is not part
+    of the ``event_id`` idempotency identity — a retry of an existing
+    ``event_id`` returns the stored event even when this field differs.
 
 Reason codes (from ``src.paper.contracts``)
     ``INVALID_SCHEMA``
         Unknown event kind, non-JSON payload value (float/Decimal/NaN/bytes/
-        tuple), malformed id/timestamp/expected_head, malformed migration file
-        names, invalid read arguments.
+        tuple), malformed id/timestamp/expected_head/expected_aggregate_version,
+        malformed migration file names, invalid read arguments.
     ``CONFLICT``
-        Duplicate ``event_id`` whose content differs, or ``expected_head`` not
-        matching the current aggregate head (nothing is written).
+        Duplicate ``event_id`` whose content differs, ``expected_head`` not
+        matching the aggregate's last stored event hash, or
+        ``expected_aggregate_version`` not matching the aggregate version
+        (nothing is written in any case).
     ``HASH_MISMATCH``
         Chain corruption: row hash recomputation, per-aggregate prev linkage,
-        seq gaps, ``aggregate_heads`` projection mismatch — or non-canonical
-        stored row content in read paths.
+        seq gaps, ``aggregate_heads``/events disagreement, malformed stored
+        payload text — or non-canonical stored row content in read paths.
     ``JOURNAL_UNAVAILABLE``
         Applied schema not a prefix of the shipped migrations (fail closed),
         operations on a closed handle, missing migration directory, or a
@@ -193,6 +225,7 @@ class DeskEvent:
     actor_id: str
     happened_at: datetime
     payload: Mapping[str, object]
+    expected_aggregate_version: int | None = None
 
     def __post_init__(self) -> None:
         _validate_event_fields(self)
@@ -213,6 +246,12 @@ class StoredEvent:
     prev_hash: str
     row_hash: str
     payload: Mapping[str, object]
+    expected_aggregate_version: int | None = None
+
+    def __post_init__(self) -> None:
+        _expected_aggregate_version(
+            "StoredEvent.expected_aggregate_version", self.expected_aggregate_version
+        )
 
 
 @dataclass(frozen=True)
@@ -234,6 +273,18 @@ def _validate_event_fields(event: DeskEvent) -> None:
     _utc_timestamp("DeskEvent.happened_at", event.happened_at)
     if not isinstance(event.payload, Mapping):
         raise ContractError("INVALID_SCHEMA", "DeskEvent.payload: JSON object (mapping) required")
+    _expected_aggregate_version(
+        "DeskEvent.expected_aggregate_version", event.expected_aggregate_version
+    )
+
+
+def _expected_aggregate_version(name: str, value: object) -> int | None:
+    """Validate an optional aggregate version: None or a non-bool integer >= 0."""
+    if value is None:
+        return None
+    if type(value) is not int or value < 0:
+        raise ContractError("INVALID_SCHEMA", f"{name}: None or integer >= 0 required")
+    return value
 
 
 def _expected_head_text(value: object) -> str:
@@ -400,6 +451,7 @@ def open_private_desk(path: Path) -> PrivateDeskHandle:
     try:
         connection.execute("PRAGMA journal_mode=WAL")
         connection.execute("PRAGMA synchronous=FULL")
+        connection.execute("PRAGMA recursive_triggers=ON")
         _ensure_migrations_table(connection)
         applied_versions = _applied_versions(connection)
         migrations = _discover_migrations()
@@ -458,8 +510,25 @@ def _compute_row_hash(
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
+def _stored_expected_version(value: object) -> int | None:
+    """Validate the stored column value; stored corruption is HASH_MISMATCH."""
+    if value is None:
+        return None
+    if type(value) is not int or value < 0:
+        raise ContractError(
+            "HASH_MISMATCH",
+            "stored expected_aggregate_version is not NULL or a non-negative integer",
+        )
+    return value
+
+
 def _row_to_stored(row: sqlite3.Row) -> StoredEvent:
-    payload = json.loads(str(row["canonical_payload"]))
+    try:
+        payload = json.loads(str(row["canonical_payload"]))
+    except json.JSONDecodeError:
+        raise ContractError(
+            "HASH_MISMATCH", "stored canonical_payload is not valid JSON"
+        ) from None
     if not isinstance(payload, dict):
         raise ContractError("HASH_MISMATCH", "stored payload is not a JSON object")
     return StoredEvent(
@@ -473,6 +542,7 @@ def _row_to_stored(row: sqlite3.Row) -> StoredEvent:
         prev_hash=str(row["prev_hash"]),
         row_hash=str(row["row_hash"]),
         payload=payload,
+        expected_aggregate_version=_stored_expected_version(row["expected_aggregate_version"]),
     )
 
 
@@ -486,8 +556,12 @@ def append_desk_event(
     """Append one event in a single BEGIN IMMEDIATE transaction.
 
     Idempotent on ``event_id`` with identical content (returns the stored
-    event unchanged); any content difference or a stale ``expected_head`` is a
-    ``CONFLICT`` with no partial writes.
+    event unchanged); any content difference is a ``CONFLICT``. A fresh append
+    cross-checks ``aggregate_heads`` against the aggregate's last stored event
+    (disagreement is ``HASH_MISMATCH``), compares ``expected_head`` against
+    that event's ``row_hash``, and — when ``expected_aggregate_version`` is set
+    — requires the aggregate's current version (0 for a brand-new aggregate).
+    No path writes partially.
     """
     connection = _require_open(handle)
     if not isinstance(event, DeskEvent):
@@ -523,16 +597,50 @@ def append_desk_event(
                 )
             connection.execute("ROLLBACK")
             return stored
-        head_row = connection.execute(
-            "SELECT last_hash FROM aggregate_heads WHERE aggregate_id = ?",
+        # The authoritative chain head comes from events, never from the
+        # rebuildable aggregate_heads projection; a projection that disagrees
+        # with the events must abort the append instead of forking the chain.
+        last_row = connection.execute(
+            "SELECT seq, row_hash FROM events WHERE aggregate_id = ?"
+            " ORDER BY seq DESC LIMIT 1",
             (event.aggregate_id,),
         ).fetchone()
-        current_head = GENESIS if head_row is None else str(head_row["last_hash"])
+        heads_row = connection.execute(
+            "SELECT version, last_seq, last_hash FROM aggregate_heads WHERE aggregate_id = ?",
+            (event.aggregate_id,),
+        ).fetchone()
+        if (last_row is None) != (heads_row is None):
+            raise ContractError(
+                "HASH_MISMATCH",
+                f"aggregate {event.aggregate_id!r}: events and aggregate_heads disagree",
+            )
+        if (
+            last_row is not None
+            and heads_row is not None
+            and (
+                int(heads_row["last_seq"]) != int(last_row["seq"])
+                or str(heads_row["last_hash"]) != str(last_row["row_hash"])
+            )
+        ):
+            raise ContractError(
+                "HASH_MISMATCH",
+                f"aggregate {event.aggregate_id!r}: aggregate_heads does not match the last"
+                " stored event",
+            )
+        current_head = GENESIS if last_row is None else str(last_row["row_hash"])
         if head_token != current_head:
             raise ContractError(
                 "CONFLICT",
                 f"expected_head {head_token!r} does not match aggregate head {current_head!r}",
             )
+        if event.expected_aggregate_version is not None:
+            current_version = 0 if heads_row is None else int(heads_row["version"])
+            if event.expected_aggregate_version != current_version:
+                raise ContractError(
+                    "CONFLICT",
+                    f"expected_aggregate_version {event.expected_aggregate_version} does not"
+                    f" match aggregate version {current_version}",
+                )
         recorded_dt = datetime.now(UTC)
         recorded_text = _format_timestamp(recorded_dt)
         row_hash = _compute_row_hash(
@@ -546,12 +654,13 @@ def append_desk_event(
             canonical_payload=canonical_text,
         )
         cursor = connection.execute(
-            "INSERT INTO events (event_id, aggregate_id, kind, actor_id, happened_at,"
-            " recorded_at, canonical_payload, prev_hash, row_hash)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO events (event_id, aggregate_id, expected_aggregate_version, kind,"
+            " actor_id, happened_at, recorded_at, canonical_payload, prev_hash, row_hash)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 event.event_id,
                 event.aggregate_id,
+                event.expected_aggregate_version,
                 event.kind,
                 event.actor_id,
                 happened_text,
@@ -589,6 +698,7 @@ def append_desk_event(
         prev_hash=current_head,
         row_hash=row_hash,
         payload=event.payload,
+        expected_aggregate_version=event.expected_aggregate_version,
     )
 
 
@@ -670,6 +780,12 @@ def verify_desk_chain(handle: PrivateDeskHandle) -> None:
             raise ContractError(
                 "HASH_MISMATCH", f"events seq {seq}: row_hash does not match content"
             )
+        try:
+            json.loads(str(row["canonical_payload"]))
+        except json.JSONDecodeError:
+            raise ContractError(
+                "HASH_MISMATCH", f"events seq {seq}: canonical_payload is not valid JSON"
+            ) from None
         last_hash_by_aggregate[aggregate_id] = row_hash
         counts[aggregate_id] = counts.get(aggregate_id, 0) + 1
         last_seq_by_aggregate[aggregate_id] = seq
