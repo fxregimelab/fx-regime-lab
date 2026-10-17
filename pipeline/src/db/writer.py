@@ -1,8 +1,8 @@
 """
 @agent_context: Primary database interface for Supabase, handling all
 authenticated writes and service-role reads for the pipeline.
-@allowed_imports: [json, os, collections.abc, dataclasses, datetime,
-    functools, typing, supabase, src.types]
+@allowed_imports: [json, os, collections.abc, dataclasses, datetime, functools,
+    pathlib, typing, supabase, src.types, src.db.repositories.private_desk]
 @forbidden_imports: [src.ai, src.regime, src.signals]
 @obsidian_link: [[Infrastructure#Supabase Persistence]]
 """
@@ -16,13 +16,16 @@ import os
 from collections.abc import Mapping, Sequence
 from datetime import date
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, cast
 
 from postgrest.exceptions import APIError
 from postgrest.types import CountMethod
 from supabase import Client, create_client
 
+from src.db.repositories import private_desk
 from src.db.repositories.desk_card import DeskCardRepository
+from src.db.repositories.private_desk import DeskEvent, PrivateDeskHandle, StoredEvent
 from src.db.repositories.regime_call import RegimeCallRepository
 from src.db.repositories.signal import SignalRepository
 from src.db.repositories.validation_log import ValidationLogRepository
@@ -1135,3 +1138,41 @@ def get_pipeline_errors_for_date(date_str: str) -> list[dict[str, Any]]:
         .execute()
     )
     return cast(list[dict[str, Any]], res.data or [])
+
+
+# ---------------------------------------------------------------------------
+# Private desk runtime journal (AD-T03) — local SQLite only, never Supabase.
+# Thin delegates only; all logic lives in repositories/private_desk.py and no
+# function in this section may call _client().
+# ---------------------------------------------------------------------------
+
+
+def open_private_desk(path: Path) -> PrivateDeskHandle:
+    """Open (creating if needed) the private runtime desk journal. No production client."""
+    return private_desk.open_private_desk(path)
+
+
+def append_desk_event(
+    handle: PrivateDeskHandle, event: DeskEvent, expected_head: str
+) -> StoredEvent:
+    """Append one hash-chained private desk event (local SQLite only)."""
+    return private_desk.append_desk_event(handle, event, expected_head)
+
+
+def read_desk_events(
+    handle: PrivateDeskHandle,
+    after_seq: int = 0,
+    aggregate_id: str | None = None,
+) -> tuple[StoredEvent, ...]:
+    """Read private desk events ordered by seq (local SQLite only)."""
+    return private_desk.read_desk_events(handle, after_seq=after_seq, aggregate_id=aggregate_id)
+
+
+def verify_desk_chain(handle: PrivateDeskHandle) -> None:
+    """Verify the private desk hash chain and head projection (local SQLite only)."""
+    private_desk.verify_desk_chain(handle)
+
+
+def close_private_desk(handle: PrivateDeskHandle) -> None:
+    """Close a private desk handle; safe to call more than once."""
+    private_desk.close_private_desk(handle)
