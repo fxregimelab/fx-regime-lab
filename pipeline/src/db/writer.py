@@ -14,7 +14,8 @@ import json
 import logging
 import os
 from collections.abc import Mapping, Sequence
-from datetime import date
+from datetime import date, datetime
+from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, cast
@@ -28,7 +29,9 @@ from src.db.repositories.desk_card import DeskCardRepository
 from src.db.repositories.private_desk import (
     AggregateHead,
     DeskEvent,
+    Lease,
     PrivateDeskHandle,
+    Reservation,
     StoredEvent,
 )
 from src.db.repositories.regime_call import RegimeCallRepository
@@ -1152,9 +1155,11 @@ def get_pipeline_errors_for_date(date_str: str) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 
-def open_private_desk(path: Path) -> PrivateDeskHandle:
+def open_private_desk(
+    path: Path, *, migrations_dir: Path | None = None
+) -> PrivateDeskHandle:
     """Open (creating if needed) the private runtime desk journal. No production client."""
-    return private_desk.open_private_desk(path)
+    return private_desk.open_private_desk(path, migrations_dir=migrations_dir)
 
 
 def append_desk_event(
@@ -1162,6 +1167,86 @@ def append_desk_event(
 ) -> StoredEvent:
     """Append one hash-chained private desk event (local SQLite only)."""
     return private_desk.append_desk_event(handle, event, expected_head)
+
+
+def acquire_lease(
+    handle: PrivateDeskHandle, name: str, owner_id: str, ttl_seconds: int
+) -> Lease:
+    """Acquire or take over one private writer lease (local SQLite only)."""
+    return private_desk.acquire_lease(handle, name, owner_id, ttl_seconds)
+
+
+def renew_lease(
+    handle: PrivateDeskHandle,
+    name: str,
+    owner_id: str,
+    fencing_token: int,
+    ttl_seconds: int,
+) -> Lease:
+    """Extend a live held lease; stale fences are FENCE_STALE (local SQLite only)."""
+    return private_desk.renew_lease(handle, name, owner_id, fencing_token, ttl_seconds)
+
+
+def release_lease(
+    handle: PrivateDeskHandle, name: str, owner_id: str, fencing_token: int
+) -> None:
+    """Release a held lease through the private repository (local SQLite only)."""
+    private_desk.release_lease(handle, name, owner_id, fencing_token)
+
+
+def assert_fence(
+    handle: PrivateDeskHandle, name: str, owner_id: str, fencing_token: int
+) -> None:
+    """Require a held, unexpired lease matching owner+token (local SQLite only)."""
+    private_desk.assert_fence(handle, name, owner_id, fencing_token)
+
+
+def create_reservation(
+    handle: PrivateDeskHandle,
+    reservation_id: str,
+    parent_id: str,
+    amount_usd: Decimal,
+    plan_digest: str,
+    expires_at: datetime,
+    owner_fencing_token: int,
+) -> Reservation:
+    """Create one durable private risk reservation (local SQLite only)."""
+    return private_desk.create_reservation(
+        handle,
+        reservation_id,
+        parent_id,
+        amount_usd,
+        plan_digest,
+        expires_at,
+        owner_fencing_token,
+    )
+
+
+def mark_broker_pending(
+    handle: PrivateDeskHandle, reservation_id: str, owner_fencing_token: int
+) -> Reservation:
+    """Mark a reservation as possibly sent; never auto-released by TTL."""
+    return private_desk.mark_broker_pending(handle, reservation_id, owner_fencing_token)
+
+
+def release_reservation(
+    handle: PrivateDeskHandle,
+    reservation_id: str,
+    owner_fencing_token: int,
+    *,
+    proof_no_send: bool,
+) -> Reservation:
+    """Release a reservation; a possibly-sent row requires proof_no_send."""
+    return private_desk.release_reservation(
+        handle, reservation_id, owner_fencing_token, proof_no_send=proof_no_send
+    )
+
+
+def read_reservation(
+    handle: PrivateDeskHandle, reservation_id: str
+) -> Reservation | None:
+    """Read one private reservation, or None when unknown (local SQLite only)."""
+    return private_desk.read_reservation(handle, reservation_id)
 
 
 def read_desk_events(

@@ -1,6 +1,7 @@
 """Private runtime desk journal (SQLite) — append-only hash-chained events.
 
-AD-T03 private storage. All mutation entry points are exposed through the
+AD-T03 private storage (journal) and AD-T04 control state (writer leases,
+fencing tokens, reservations). All mutation entry points are exposed through the
 ``src.db.writer`` facade; this repository never imports or calls the production
 Supabase client path and requires no service-role environment.
 
@@ -13,13 +14,23 @@ Schema
     list/order pinned to spec 01 section 6. Once any persistent runtime database
     exists, every further change goes through a new versioned migration file.
 
+    Migration ``002_control.sql`` (AD-T04) adds the control state machines:
+    ``writer_leases`` (single terminal-writer lease with a monotonic fencing
+    token; ``state`` is ``held`` or ``released``) and ``reservations``
+    (``status`` is ``reserved`` or ``released``; money as a canonical decimal
+    string; ``plan_digest`` is a deliberate addition to spec 01 section 6's
+    minimum column list so a replayed ``parent_id`` is idempotent only when the
+    immutable amount and plan identity match). Both tables are updated ONLY
+    through the control API in this module; no triggers guard them because
+    they are state machines rather than append-only ledgers.
+
     Migrations ship as ``src/paper/migrations/*.sql`` applied in numeric
     filename order and tracked in ``schema_migrations``; each migration runs
     inside one explicit ``BEGIN IMMEDIATE`` transaction with WAL journaling and
     ``synchronous=FULL``. Every module-opened connection also sets
-    ``PRAGMA recursive_triggers=ON``. A database whose applied versions are not
-    exactly the shipped prefix (including any newer/unknown version) fails
-    closed.
+    ``PRAGMA recursive_triggers=ON`` and ``PRAGMA busy_timeout=5000``. A
+    database whose applied versions are not exactly the shipped prefix
+    (including any newer/unknown version) fails closed.
 
 Integrity
     Events are chain-linked per aggregate: the first event of an aggregate uses
@@ -53,20 +64,43 @@ Reason codes (from ``src.paper.contracts``)
     ``INVALID_SCHEMA``
         Unknown event kind, non-JSON payload value (float/Decimal/NaN/bytes/
         tuple), malformed id/timestamp/expected_head/expected_aggregate_version,
-        malformed migration file names, invalid read arguments.
+        malformed migration file names, invalid read arguments, or malformed
+        control arguments (lease name/owner, ttl_seconds, fencing token,
+        reservation ids, plan_digest, proof flag, or an expiry that is not an
+        aware-UTC timestamp strictly in the future).
     ``CONFLICT``
         Duplicate ``event_id`` whose content differs, ``expected_head`` not
         matching the aggregate's last stored event hash, or
         ``expected_aggregate_version`` not matching the aggregate version
-        (nothing is written in any case).
+        (nothing is written in any case). Control state: a live lease held by
+        another owner (no write), a reservation for the same ``parent_id``
+        whose amount or ``plan_digest`` differs, or a ``reservation_id``
+        reused for another parent.
     ``HASH_MISMATCH``
         Chain corruption: row hash recomputation, per-aggregate prev linkage,
         seq gaps, ``aggregate_heads``/events disagreement, malformed stored
-        payload text — or non-canonical stored row content in read paths.
+        payload text — or non-canonical stored row content in read paths
+        (including a malformed control-table row).
+    ``FENCE_STALE``
+        Lease authority failure: no stored lease, owner/fencing-token
+        mismatch, a released lease, an expired lease on renew/assert, or a
+        reservation whose ``owner_fencing_token`` differs from the caller.
+    ``ORDER_UNKNOWN``
+        Unknown ``reservation_id`` for mark/release, or a release of a
+        ``broker_pending`` reservation without ``proof_no_send`` (the row is
+        left unchanged even when ``expires_at`` has passed — TTL expiry never
+        releases a possibly-sent request).
+    ``STALE_STATE``
+        A reservation state transition invalid for the current stored status
+        (marking a released reservation broker-pending).
     ``JOURNAL_UNAVAILABLE``
         Applied schema not a prefix of the shipped migrations (fail closed),
-        operations on a closed handle, missing migration directory, or a
-        migration that fails to apply.
+        operations on a closed handle, missing migration directory, a
+        migration that fails to apply, a write lock that outlasts
+        ``busy_timeout`` (5000 ms), or a fencing-token counter at the signed
+        64-bit maximum that cannot be advanced safely.
+    ``INVALID_NUMBER``
+        A reservation amount that is not a finite, positive ``Decimal``.
 """
 
 from __future__ import annotations
@@ -75,9 +109,11 @@ import hashlib
 import json
 import re
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 
 from src.paper.contracts import ContractError
@@ -120,7 +156,13 @@ _MIGRATION_FILENAME_RE = re.compile(r"(\d+)_([A-Za-z0-9_-]+)\.sql")
 _UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 _DIGEST_RE = re.compile(r"[0-9a-f]{64}")
 _TIMESTAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z")
+_DECIMAL_TEXT_RE = re.compile(r"-?(0|[1-9][0-9]*)(\.[0-9]+)?")
 _ZERO_OFFSET = timedelta(0)
+
+_BUSY_TIMEOUT_MS = 5000
+_MAX_FENCING_TOKEN = 2**63 - 1
+_LEASE_STATES: frozenset[str] = frozenset({"held", "released"})
+_RESERVATION_STATUSES: frozenset[str] = frozenset({"reserved", "released"})
 
 
 # ---------------------------------------------------------------------------
@@ -162,6 +204,59 @@ def _parse_timestamp(name: str, value: object) -> datetime:
         raise ContractError(
             "HASH_MISMATCH", f"{name}: stored timestamp {value!r} is unparsable"
         ) from None
+
+
+def _digest(name: str, value: object) -> str:
+    if type(value) is not str or _DIGEST_RE.fullmatch(value) is None:
+        raise ContractError("INVALID_SCHEMA", f"{name}: lowercase sha256 hex required")
+    return value
+
+
+def _fence_token(name: str, value: object) -> int:
+    if type(value) is not int or value < 1:
+        raise ContractError("INVALID_SCHEMA", f"{name}: integer >= 1 required")
+    return value
+
+
+def _ttl_seconds(value: object) -> int:
+    if type(value) is not int or value < 1:
+        raise ContractError("INVALID_SCHEMA", "ttl_seconds: positive integer required")
+    return value
+
+
+def _positive_decimal(name: str, value: object) -> Decimal:
+    if not isinstance(value, Decimal) or not value.is_finite():
+        raise ContractError("INVALID_NUMBER", f"{name}: finite Decimal required")
+    if value <= 0:
+        raise ContractError("INVALID_NUMBER", f"{name}: positive decimal required")
+    return value
+
+
+def _strict_flag(name: str, value: object) -> bool:
+    if type(value) is not bool:
+        raise ContractError("INVALID_SCHEMA", f"{name}: strict boolean required")
+    return value
+
+
+def _format_decimal(value: Decimal) -> str:
+    """Canonical decimal text (mirrors ``src.paper.contracts._format_decimal``)."""
+    if value == 0:
+        return "0"
+    return format(value.normalize(), "f")
+
+
+def _stored_int(name: str, value: object, minimum: int = 0) -> int:
+    if type(value) is not int or value < minimum:
+        raise ContractError(
+            "HASH_MISMATCH", f"{name}: stored value is not an integer >= {minimum}"
+        )
+    return value
+
+
+def _stored_decimal(name: str, value: object) -> Decimal:
+    if type(value) is not str or _DECIMAL_TEXT_RE.fullmatch(value) is None:
+        raise ContractError("HASH_MISMATCH", f"{name}: stored text is not a canonical decimal")
+    return Decimal(value)
 
 
 def _normalize_json(name: str, value: object) -> object:
@@ -264,6 +359,70 @@ class AggregateHead:
     last_hash: str
 
 
+@dataclass(frozen=True)
+class Lease:
+    """One writer lease row: fenced authority over a named terminal-write scope."""
+
+    lease_name: str
+    owner_id: str
+    fencing_token: int
+    acquired_at: datetime
+    renewed_at: datetime
+    expires_at: datetime
+    state: str
+
+    def __post_init__(self) -> None:
+        _text("Lease.lease_name", self.lease_name)
+        _text("Lease.owner_id", self.owner_id)
+        _fence_token("Lease.fencing_token", self.fencing_token)
+        _utc_timestamp("Lease.acquired_at", self.acquired_at)
+        _utc_timestamp("Lease.renewed_at", self.renewed_at)
+        _utc_timestamp("Lease.expires_at", self.expires_at)
+        if self.state not in _LEASE_STATES:
+            raise ContractError("INVALID_SCHEMA", f"Lease.state: unknown state {self.state!r}")
+
+
+@dataclass(frozen=True)
+class Reservation:
+    """One risk reservation row; money crosses the boundary as a Decimal."""
+
+    reservation_id: str
+    parent_id: str
+    status: str
+    amount_usd: Decimal
+    plan_digest: str
+    expires_at: datetime
+    broker_pending: bool
+    owner_fencing_token: int
+    last_event_seq: int | None
+    created_at: datetime
+    released_at: datetime | None
+
+    def __post_init__(self) -> None:
+        _uuid("Reservation.reservation_id", self.reservation_id)
+        _uuid("Reservation.parent_id", self.parent_id)
+        if self.status not in _RESERVATION_STATUSES:
+            raise ContractError(
+                "INVALID_SCHEMA", f"Reservation.status: unknown status {self.status!r}"
+            )
+        _positive_decimal("Reservation.amount_usd", self.amount_usd)
+        _digest("Reservation.plan_digest", self.plan_digest)
+        _utc_timestamp("Reservation.expires_at", self.expires_at)
+        _strict_flag("Reservation.broker_pending", self.broker_pending)
+        _fence_token("Reservation.owner_fencing_token", self.owner_fencing_token)
+        if self.last_event_seq is not None:
+            _count("Reservation.last_event_seq", self.last_event_seq)
+        _utc_timestamp("Reservation.created_at", self.created_at)
+        if self.released_at is not None:
+            _utc_timestamp("Reservation.released_at", self.released_at)
+
+
+def _count(name: str, value: object) -> int:
+    if type(value) is not int or value < 0:
+        raise ContractError("INVALID_SCHEMA", f"{name}: integer >= 0 required")
+    return value
+
+
 def _validate_event_fields(event: DeskEvent) -> None:
     _uuid("DeskEvent.event_id", event.event_id)
     _text("DeskEvent.aggregate_id", event.aggregate_id)
@@ -337,13 +496,13 @@ class _Migration:
     path: Path
 
 
-def _discover_migrations() -> tuple[_Migration, ...]:
-    directory = _MIGRATIONS_DIR
-    if not directory.is_dir():
-        raise ContractError("JOURNAL_UNAVAILABLE", f"migration directory missing: {directory}")
+def _discover_migrations(directory: Path | None = None) -> tuple[_Migration, ...]:
+    resolved = _MIGRATIONS_DIR if directory is None else Path(directory)
+    if not resolved.is_dir():
+        raise ContractError("JOURNAL_UNAVAILABLE", f"migration directory missing: {resolved}")
     migrations: list[_Migration] = []
     seen: set[int] = set()
-    for path in directory.glob("*.sql"):
+    for path in resolved.glob("*.sql"):
         match = _MIGRATION_FILENAME_RE.fullmatch(path.name)
         if match is None:
             raise ContractError("INVALID_SCHEMA", f"malformed migration file name {path.name!r}")
@@ -353,7 +512,7 @@ def _discover_migrations() -> tuple[_Migration, ...]:
         seen.add(version)
         migrations.append(_Migration(version=version, name=path.name, path=path))
     if not migrations:
-        raise ContractError("JOURNAL_UNAVAILABLE", f"no migrations found in {directory}")
+        raise ContractError("JOURNAL_UNAVAILABLE", f"no migrations found in {resolved}")
     migrations.sort(key=lambda migration: migration.version)
     return tuple(migrations)
 
@@ -439,22 +598,29 @@ def _apply_migration(connection: sqlite3.Connection, migration: _Migration) -> N
     connection.execute("COMMIT")
 
 
-def open_private_desk(path: Path) -> PrivateDeskHandle:
+def open_private_desk(
+    path: Path, *, migrations_dir: Path | None = None
+) -> PrivateDeskHandle:
     """Open (creating if needed) the private runtime journal at ``path``.
 
     Fails closed when the database's applied schema is not the shipped prefix.
+    ``migrations_dir`` optionally overrides the shipped ``src/paper/migrations``
+    directory (test hook for half-apply fixtures); the default is unchanged.
     """
     db_path = Path(path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(str(db_path), isolation_level=None)
+    connection = sqlite3.connect(
+        str(db_path), timeout=_BUSY_TIMEOUT_MS / 1000, isolation_level=None
+    )
     connection.row_factory = sqlite3.Row
     try:
         connection.execute("PRAGMA journal_mode=WAL")
         connection.execute("PRAGMA synchronous=FULL")
         connection.execute("PRAGMA recursive_triggers=ON")
+        connection.execute(f"PRAGMA busy_timeout={_BUSY_TIMEOUT_MS}")
         _ensure_migrations_table(connection)
         applied_versions = _applied_versions(connection)
-        migrations = _discover_migrations()
+        migrations = _discover_migrations(migrations_dir)
         shipped_versions = [migration.version for migration in migrations]
         if applied_versions != shipped_versions[: len(applied_versions)]:
             raise ContractError(
@@ -543,6 +709,65 @@ def _row_to_stored(row: sqlite3.Row) -> StoredEvent:
         row_hash=str(row["row_hash"]),
         payload=payload,
         expected_aggregate_version=_stored_expected_version(row["expected_aggregate_version"]),
+    )
+
+
+def _stored_digest(name: str, value: object) -> str:
+    if type(value) is not str or _DIGEST_RE.fullmatch(value) is None:
+        raise ContractError(
+            "HASH_MISMATCH", f"{name}: stored value is not a lowercase sha256 hex digest"
+        )
+    return value
+
+
+def _row_to_lease(row: sqlite3.Row) -> Lease:
+    state = str(row["state"])
+    if state not in _LEASE_STATES:
+        raise ContractError(
+            "HASH_MISMATCH", f"writer_leases.state: unknown stored state {state!r}"
+        )
+    return Lease(
+        lease_name=str(row["lease_name"]),
+        owner_id=str(row["owner_id"]),
+        fencing_token=_stored_int("writer_leases.fencing_token", row["fencing_token"], 1),
+        acquired_at=_parse_timestamp("writer_leases.acquired_at", row["acquired_at"]),
+        renewed_at=_parse_timestamp("writer_leases.renewed_at", row["renewed_at"]),
+        expires_at=_parse_timestamp("writer_leases.expires_at", row["expires_at"]),
+        state=state,
+    )
+
+
+def _row_to_reservation(row: sqlite3.Row) -> Reservation:
+    status = str(row["status"])
+    if status not in _RESERVATION_STATUSES:
+        raise ContractError(
+            "HASH_MISMATCH", f"reservations.status: unknown stored status {status!r}"
+        )
+    pending = _stored_int("reservations.broker_pending", row["broker_pending"])
+    if pending not in (0, 1):
+        raise ContractError(
+            "HASH_MISMATCH", "reservations.broker_pending: stored value is not 0 or 1"
+        )
+    last_event_raw = row["last_event_seq"]
+    released_raw = row["released_at"]
+    return Reservation(
+        reservation_id=str(row["reservation_id"]),
+        parent_id=str(row["parent_id"]),
+        status=status,
+        amount_usd=_stored_decimal("reservations.amount_usd", row["amount_usd"]),
+        plan_digest=_stored_digest("reservations.plan_digest", row["plan_digest"]),
+        expires_at=_parse_timestamp("reservations.expires_at", row["expires_at"]),
+        broker_pending=bool(pending),
+        owner_fencing_token=_stored_int(
+            "reservations.owner_fencing_token", row["owner_fencing_token"], 1
+        ),
+        last_event_seq=None
+        if last_event_raw is None
+        else _stored_int("reservations.last_event_seq", last_event_raw),
+        created_at=_parse_timestamp("reservations.created_at", row["created_at"]),
+        released_at=None
+        if released_raw is None
+        else _parse_timestamp("reservations.released_at", released_raw),
     )
 
 
@@ -857,3 +1082,428 @@ def rebuild_heads(handle: PrivateDeskHandle) -> None:
 def close_private_desk(handle: PrivateDeskHandle) -> None:
     """Close a private desk handle; safe to call more than once."""
     handle.close()
+
+
+# ---------------------------------------------------------------------------
+# Control state (AD-T04): writer leases, fencing tokens and reservations.
+#
+# Every function validates its arguments before issuing SQL, runs inside one
+# explicit BEGIN IMMEDIATE transaction, and raises ContractError with the
+# module-documented vocabulary. These functions are the ONLY write path for
+# writer_leases/reservations; callers reach them through src.db.writer.
+
+
+def _locked_error(action: str, exc: sqlite3.Error) -> ContractError | None:
+    """Map only a busy/locked database; every other sqlite error stays visible."""
+    if isinstance(exc, sqlite3.OperationalError) and "locked" in str(exc).lower():
+        return ContractError(
+            "JOURNAL_UNAVAILABLE",
+            f"{action}: database is locked after busy_timeout {_BUSY_TIMEOUT_MS} ms",
+        )
+    return None
+
+
+@contextmanager
+def _write_transaction(
+    handle: PrivateDeskHandle, action: str
+) -> Iterator[sqlite3.Connection]:
+    """One explicit BEGIN IMMEDIATE transaction with typed lock mapping."""
+    connection = _require_open(handle)
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+    except sqlite3.Error as exc:
+        mapped = _locked_error(action, exc)
+        if mapped is not None:
+            raise mapped from exc
+        raise
+    try:
+        yield connection
+    except BaseException as exc:
+        connection.execute("ROLLBACK")
+        if isinstance(exc, sqlite3.Error):
+            mapped = _locked_error(action, exc)
+            if mapped is not None:
+                raise mapped from exc
+        raise
+    try:
+        connection.execute("COMMIT")
+    except sqlite3.Error as exc:
+        connection.execute("ROLLBACK")
+        mapped = _locked_error(action, exc)
+        if mapped is not None:
+            raise mapped from exc
+        raise
+
+
+def _insert_lease(connection: sqlite3.Connection, lease: Lease) -> None:
+    connection.execute(
+        "INSERT INTO writer_leases (lease_name, owner_id, fencing_token, acquired_at,"
+        " renewed_at, expires_at, state) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (
+            lease.lease_name,
+            lease.owner_id,
+            lease.fencing_token,
+            _format_timestamp(lease.acquired_at),
+            _format_timestamp(lease.renewed_at),
+            _format_timestamp(lease.expires_at),
+            lease.state,
+        ),
+    )
+
+
+def acquire_lease(
+    handle: PrivateDeskHandle, name: str, owner_id: str, ttl_seconds: int
+) -> Lease:
+    """Acquire or take over the named writer lease (single terminal writer).
+
+    A free, released or expired lease mints ``old fencing_token + 1`` for the
+    new owner (also for the same owner: any expiry voids the old token). The
+    same owner re-acquiring an unexpired lease gets the stored lease unchanged.
+    A live lease held by another owner raises ``CONFLICT`` with no writes.
+    """
+    lease_name = _text("name", name)
+    owner = _text("owner_id", owner_id)
+    ttl = _ttl_seconds(ttl_seconds)
+    with _write_transaction(handle, "acquire_lease") as connection:
+        now = datetime.now(UTC)
+        row = connection.execute(
+            "SELECT * FROM writer_leases WHERE lease_name = ?", (lease_name,)
+        ).fetchone()
+        if row is None:
+            lease = Lease(
+                lease_name=lease_name,
+                owner_id=owner,
+                fencing_token=1,
+                acquired_at=now,
+                renewed_at=now,
+                expires_at=now + timedelta(seconds=ttl),
+                state="held",
+            )
+            _insert_lease(connection, lease)
+            return lease
+        stored = _row_to_lease(row)
+        if stored.state == "held" and stored.expires_at > now:
+            if stored.owner_id == owner:
+                return stored
+            raise ContractError(
+                "CONFLICT",
+                f"lease {lease_name!r} is held by another owner until"
+                f" {_format_timestamp(stored.expires_at)}",
+            )
+        if stored.fencing_token >= _MAX_FENCING_TOKEN:
+            raise ContractError(
+                "JOURNAL_UNAVAILABLE",
+                f"lease {lease_name!r}: fencing token {stored.fencing_token} is at the"
+                " signed 64-bit maximum and cannot be advanced safely",
+            )
+        lease = Lease(
+            lease_name=lease_name,
+            owner_id=owner,
+            fencing_token=stored.fencing_token + 1,
+            acquired_at=now,
+            renewed_at=now,
+            expires_at=now + timedelta(seconds=ttl),
+            state="held",
+        )
+        connection.execute(
+            "UPDATE writer_leases SET owner_id = ?, fencing_token = ?, acquired_at = ?,"
+            " renewed_at = ?, expires_at = ?, state = 'held' WHERE lease_name = ?",
+            (
+                lease.owner_id,
+                lease.fencing_token,
+                _format_timestamp(lease.acquired_at),
+                _format_timestamp(lease.renewed_at),
+                _format_timestamp(lease.expires_at),
+                lease_name,
+            ),
+        )
+        return lease
+
+
+def renew_lease(
+    handle: PrivateDeskHandle,
+    name: str,
+    owner_id: str,
+    fencing_token: int,
+    ttl_seconds: int,
+) -> Lease:
+    """Extend a live held lease; any owner/token mismatch or expiry is FENCE_STALE.
+
+    Renewal cannot resurrect an expired lease: recovery is ``acquire_lease``,
+    which mints a newer fencing token.
+    """
+    lease_name = _text("name", name)
+    owner = _text("owner_id", owner_id)
+    token = _fence_token("fencing_token", fencing_token)
+    ttl = _ttl_seconds(ttl_seconds)
+    with _write_transaction(handle, "renew_lease") as connection:
+        now = datetime.now(UTC)
+        row = connection.execute(
+            "SELECT * FROM writer_leases WHERE lease_name = ?", (lease_name,)
+        ).fetchone()
+        if row is None:
+            raise ContractError("FENCE_STALE", f"lease {lease_name!r} does not exist")
+        stored = _row_to_lease(row)
+        if (
+            stored.owner_id != owner
+            or stored.fencing_token != token
+            or stored.state != "held"
+        ):
+            raise ContractError(
+                "FENCE_STALE",
+                f"lease {lease_name!r}: owner/fencing token does not match a held lease",
+            )
+        if stored.expires_at <= now:
+            raise ContractError(
+                "FENCE_STALE",
+                f"lease {lease_name!r}: expired at {_format_timestamp(stored.expires_at)};"
+                " acquire a new token",
+            )
+        renewed = Lease(
+            lease_name=lease_name,
+            owner_id=owner,
+            fencing_token=token,
+            acquired_at=stored.acquired_at,
+            renewed_at=now,
+            expires_at=now + timedelta(seconds=ttl),
+            state="held",
+        )
+        connection.execute(
+            "UPDATE writer_leases SET renewed_at = ?, expires_at = ? WHERE lease_name = ?",
+            (
+                _format_timestamp(renewed.renewed_at),
+                _format_timestamp(renewed.expires_at),
+                lease_name,
+            ),
+        )
+        return renewed
+
+
+def release_lease(
+    handle: PrivateDeskHandle, name: str, owner_id: str, fencing_token: int
+) -> None:
+    """Release a held lease; owner/token mismatch or a released lease is FENCE_STALE.
+
+    An expired-but-still-held lease may be released (relinquishment only; it
+    never extends authority), which lets a clean shutdown shorten the window
+    before a takeover.
+    """
+    lease_name = _text("name", name)
+    owner = _text("owner_id", owner_id)
+    token = _fence_token("fencing_token", fencing_token)
+    with _write_transaction(handle, "release_lease") as connection:
+        row = connection.execute(
+            "SELECT * FROM writer_leases WHERE lease_name = ?", (lease_name,)
+        ).fetchone()
+        if row is None:
+            raise ContractError("FENCE_STALE", f"lease {lease_name!r} does not exist")
+        stored = _row_to_lease(row)
+        if (
+            stored.owner_id != owner
+            or stored.fencing_token != token
+            or stored.state != "held"
+        ):
+            raise ContractError(
+                "FENCE_STALE",
+                f"lease {lease_name!r}: owner/fencing token does not match a held lease",
+            )
+        connection.execute(
+            "UPDATE writer_leases SET state = 'released' WHERE lease_name = ?", (lease_name,)
+        )
+
+
+def assert_fence(
+    handle: PrivateDeskHandle, name: str, owner_id: str, fencing_token: int
+) -> None:
+    """Require a held, unexpired lease matching owner+token exactly (hook for writes)."""
+    lease_name = _text("name", name)
+    owner = _text("owner_id", owner_id)
+    token = _fence_token("fencing_token", fencing_token)
+    with _write_transaction(handle, "assert_fence") as connection:
+        now = datetime.now(UTC)
+        row = connection.execute(
+            "SELECT * FROM writer_leases WHERE lease_name = ?", (lease_name,)
+        ).fetchone()
+        if row is None:
+            raise ContractError("FENCE_STALE", f"lease {lease_name!r} does not exist")
+        stored = _row_to_lease(row)
+        if stored.owner_id != owner or stored.fencing_token != token:
+            raise ContractError(
+                "FENCE_STALE", f"lease {lease_name!r}: owner/fencing token mismatch"
+            )
+        if stored.state != "held":
+            raise ContractError("FENCE_STALE", f"lease {lease_name!r} is released")
+        if stored.expires_at <= now:
+            raise ContractError(
+                "FENCE_STALE",
+                f"lease {lease_name!r}: expired at {_format_timestamp(stored.expires_at)}",
+            )
+
+
+def create_reservation(
+    handle: PrivateDeskHandle,
+    reservation_id: str,
+    parent_id: str,
+    amount_usd: Decimal,
+    plan_digest: str,
+    expires_at: datetime,
+    owner_fencing_token: int,
+) -> Reservation:
+    """Create one risk reservation; replay of the same parent+plan is idempotent.
+
+    The same ``parent_id`` with an identical amount and ``plan_digest`` returns
+    the stored row (whatever its status); any difference is ``CONFLICT``. Money
+    is stored as canonical decimal text; ``expires_at`` must be aware UTC and
+    strictly in the future of the system clock.
+    """
+    rid = _uuid("reservation_id", reservation_id)
+    parent = _uuid("parent_id", parent_id)
+    amount = _positive_decimal("amount_usd", amount_usd)
+    digest = _digest("plan_digest", plan_digest)
+    expiry = _utc_timestamp("expires_at", expires_at)
+    token = _fence_token("owner_fencing_token", owner_fencing_token)
+    now = datetime.now(UTC)
+    if expiry <= now:
+        raise ContractError("INVALID_SCHEMA", "expires_at: must be strictly in the future")
+    with _write_transaction(handle, "create_reservation") as connection:
+        parent_row = connection.execute(
+            "SELECT * FROM reservations WHERE parent_id = ?", (parent,)
+        ).fetchone()
+        if parent_row is not None:
+            stored = _row_to_reservation(parent_row)
+            if stored.amount_usd == amount and stored.plan_digest == digest:
+                return stored
+            raise ContractError(
+                "CONFLICT",
+                f"parent_id {parent!r} already has a reservation with a different"
+                " amount or plan_digest",
+            )
+        id_row = connection.execute(
+            "SELECT 1 FROM reservations WHERE reservation_id = ?", (rid,)
+        ).fetchone()
+        if id_row is not None:
+            raise ContractError(
+                "CONFLICT", f"reservation_id {rid!r} already exists for another parent"
+            )
+        connection.execute(
+            "INSERT INTO reservations (reservation_id, parent_id, status, amount_usd,"
+            " plan_digest, expires_at, broker_pending, owner_fencing_token,"
+            " last_event_seq, created_at, released_at)"
+            " VALUES (?, ?, 'reserved', ?, ?, ?, 0, ?, NULL, ?, NULL)",
+            (
+                rid,
+                parent,
+                _format_decimal(amount),
+                digest,
+                _format_timestamp(expiry),
+                token,
+                _format_timestamp(now),
+            ),
+        )
+        created = connection.execute(
+            "SELECT * FROM reservations WHERE reservation_id = ?", (rid,)
+        ).fetchone()
+        if created is None:
+            raise ContractError("JOURNAL_UNAVAILABLE", "reservation insert was not persisted")
+        return _row_to_reservation(created)
+
+
+def mark_broker_pending(
+    handle: PrivateDeskHandle, reservation_id: str, owner_fencing_token: int
+) -> Reservation:
+    """Persist that a send may leave the process (broker_pending = 1).
+
+    Unknown id is ``ORDER_UNKNOWN``; a token mismatch is ``FENCE_STALE``; a
+    released reservation is ``STALE_STATE``. Re-marking is idempotent.
+    """
+    rid = _uuid("reservation_id", reservation_id)
+    token = _fence_token("owner_fencing_token", owner_fencing_token)
+    with _write_transaction(handle, "mark_broker_pending") as connection:
+        row = connection.execute(
+            "SELECT * FROM reservations WHERE reservation_id = ?", (rid,)
+        ).fetchone()
+        if row is None:
+            raise ContractError("ORDER_UNKNOWN", f"reservation {rid!r} does not exist")
+        stored = _row_to_reservation(row)
+        if stored.owner_fencing_token != token:
+            raise ContractError(
+                "FENCE_STALE",
+                f"reservation {rid!r}: owner_fencing_token does not match the caller",
+            )
+        if stored.status != "reserved":
+            raise ContractError(
+                "STALE_STATE", f"reservation {rid!r} is already {stored.status}"
+            )
+        connection.execute(
+            "UPDATE reservations SET broker_pending = 1 WHERE reservation_id = ?", (rid,)
+        )
+        updated = connection.execute(
+            "SELECT * FROM reservations WHERE reservation_id = ?", (rid,)
+        ).fetchone()
+        if updated is None:
+            raise ContractError("JOURNAL_UNAVAILABLE", "reservation update was not persisted")
+        return _row_to_reservation(updated)
+
+
+def release_reservation(
+    handle: PrivateDeskHandle,
+    reservation_id: str,
+    owner_fencing_token: int,
+    *,
+    proof_no_send: bool,
+) -> Reservation:
+    """Release a reservation without ever guessing that an ambiguous send failed.
+
+    A ``broker_pending`` reservation is released only with ``proof_no_send``;
+    otherwise the call raises ``ORDER_UNKNOWN`` and the row is unchanged, even
+    when ``expires_at`` has passed. TTL expiry never auto-releases a request
+    that may have left the process.
+    """
+    rid = _uuid("reservation_id", reservation_id)
+    token = _fence_token("owner_fencing_token", owner_fencing_token)
+    proof = _strict_flag("proof_no_send", proof_no_send)
+    with _write_transaction(handle, "release_reservation") as connection:
+        row = connection.execute(
+            "SELECT * FROM reservations WHERE reservation_id = ?", (rid,)
+        ).fetchone()
+        if row is None:
+            raise ContractError("ORDER_UNKNOWN", f"reservation {rid!r} does not exist")
+        stored = _row_to_reservation(row)
+        if stored.owner_fencing_token != token:
+            raise ContractError(
+                "FENCE_STALE",
+                f"reservation {rid!r}: owner_fencing_token does not match the caller",
+            )
+        if stored.broker_pending and not proof:
+            raise ContractError(
+                "ORDER_UNKNOWN",
+                f"reservation {rid!r} may have been sent; proof_no_send required to release",
+            )
+        if stored.status == "released":
+            return stored
+        now = datetime.now(UTC)
+        connection.execute(
+            "UPDATE reservations SET status = 'released', released_at = ?"
+            " WHERE reservation_id = ?",
+            (_format_timestamp(now), rid),
+        )
+        updated = connection.execute(
+            "SELECT * FROM reservations WHERE reservation_id = ?", (rid,)
+        ).fetchone()
+        if updated is None:
+            raise ContractError("JOURNAL_UNAVAILABLE", "reservation update was not persisted")
+        return _row_to_reservation(updated)
+
+
+def read_reservation(
+    handle: PrivateDeskHandle, reservation_id: str
+) -> Reservation | None:
+    """Read one reservation by id, or None when unknown (local SQLite only)."""
+    rid = _uuid("reservation_id", reservation_id)
+    with _write_transaction(handle, "read_reservation") as connection:
+        row = connection.execute(
+            "SELECT * FROM reservations WHERE reservation_id = ?", (rid,)
+        ).fetchone()
+        if row is None:
+            return None
+        return _row_to_reservation(row)

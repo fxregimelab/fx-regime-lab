@@ -421,7 +421,10 @@ def test_migrations_apply_exactly_once_and_events_survive_reopen(tmp_path: Path)
     rows = second.connection.execute(
         "SELECT version, name, applied_at FROM schema_migrations ORDER BY version"
     ).fetchall()
-    assert [(int(row[0]), str(row[1])) for row in rows] == [(1, "001_runtime.sql")]
+    assert [(int(row[0]), str(row[1])) for row in rows] == [
+        (1, "001_runtime.sql"),
+        (2, "002_control.sql"),
+    ]
     assert str(rows[0][2])
     events = writer.read_desk_events(second)
     assert [event.row_hash for event in events] == [stored.row_hash]
