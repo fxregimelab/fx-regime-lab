@@ -44,6 +44,17 @@ Main stays archived. Never push to main. Never move the tag.
   PR #20 (merge commit, no squash, no force push — receipts on the PR
   timeline).
 
+## Next Initiative: Personal Trading Engine (drafted 2026-10-17, awaiting owner decisions)
+
+Audit + expansion plan: `docs/PERSONAL_TRADING_ENGINE_PLAN.md` (draft v0.1, plan gate
+only, no code yet). Paper-only personal desk on the 3 pairs. Key audit findings: repair/
+reader/expansion are reusable foundations; live directional record is below coin-flip
+(EURUSD 26% / USDJPY 32% / USDINR 41%, May–Oct 2026); 12 corrupted validation rows
+(±500bps, cross-pair contamination, May 2026); `strategy_ledger` MTM walk stopped
+2026-05-27; OHLC bars stale to 2026-06-29. Plan: P0–P4 (foundations → backtests →
+paper account → local-agent layer → operate), everything local-first, zero production
+writes, public product untouched. 8 owner decisions with defaults in §11 of the plan.
+
 ## Completed
 
 **Step 0: Identity Compliance Audit — COMPLETED (2026-05-18)**
