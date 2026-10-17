@@ -168,9 +168,12 @@ stays first at 45%, FX at 10%.
 - MOF + ECB-SDW fetchers deferred (proxies only). No new pairs. 3-pair lock.
 - First LLM reader + eval slice landed with zero ledger writes;
   `reports/llm_reader_eval_v1.md` is the baseline (Brier n=0, no claims).
-- Ledger append-only: no UPDATE/DELETE in new code (grep-verified).
-  Live counts+hashes pending operator run with creds.
-- Footer stays DEGRADED until branch preview + live proof. 6 root gates open.
+- Ledger append-only: no UPDATE/DELETE in new code (grep-verified); live
+  counts+hashes proven append-only (Packet 6: +3/+12 inserts, flag-only
+  supersessions, history byte-identical).
+- Footer banner fixed to score the latest published day (real published DQS,
+  0.8 gate) — no longer falsely DEGRADED while green (Packet 7). Merge to
+  main owner-instructed (PR #20). 6 root gates open.
   Packets: `reports/REPAIR_CHECKPOINT.md`.
 
 ## PROTECTED DIRECTORIES — DO NOT TOUCH

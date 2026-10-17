@@ -33,12 +33,15 @@ export async function AuditTrailBannerServer({
   if (shouldFetch) {
     try {
       const supabase = await createClient();
-      const health = await getPipelineHealth(supabase, 1);
+      const health = await getPipelineHealth(supabase, 7);
       if (health.length > 0) {
-        const latest = health[0];
-        lastRunAt = latest.date;
-        status = latest.status;
-        dqs = latest.dqs ?? null;
+        // Status reflects the latest day with published calls (calls are dated
+        // by trading day); lastRunAt keeps the newest calendar day.
+        const reference =
+          health.find((day) => day.regimeCallsCount > 0) ?? health[0];
+        lastRunAt = health[0].date;
+        status = reference.status;
+        dqs = reference.dqs ?? null;
       }
     } catch {
       // Graceful fallback: leave defaults — banner will show UNKNOWN

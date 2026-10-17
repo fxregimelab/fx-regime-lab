@@ -34,6 +34,15 @@ Main stays archived. Never push to main. Never move the tag.
   phases, `docs/DB_STATUS.md` 49→58, `reports/REPAIR_CHECKPOINT.md` packets
   1–6). 6 root gates still open; footer stays DEGRADED until operator
   preview check. No VERIFIED RELEASE claimed.
+- [x] Step 5: footer honesty fix + owner-approved publish. Task line "keep
+  DEGRADED until truly green, then change to LIVE with date" executed: the
+  site banner was falsely DEGRADED (fallback scored only the current calendar
+  day; calls are dated by trading day by design). Web fix scores the latest
+  published day with its real DQS (0.8 gate): `queries.ts` fallback,
+  `desk/layout.tsx`, `audit-trail-banner.tsx`. Checks: `tsc --noEmit` 0,
+  biome clean, `npm run build` pass. Owner-instructed merge to main via
+  PR #20 (merge commit, no squash, no force push — receipts on the PR
+  timeline).
 
 ## Completed
 
@@ -76,9 +85,11 @@ Main stays archived. Never push to main. Never move the tag.
 
 ## Current Phase: M.4 Prep + Live Monitoring (branch fx-live-personal active, 2026-10-17)
 
-> Background branch `fx-live-personal` @ `bb089f3`: pytest 391/391, web build
-> green, LLM reader + eval slice landed with zero ledger writes. Footer stays
-> DEGRADED. 6 root gates open — see `reports/REPAIR_CHECKPOINT.md`.
+> Branch `fx-live-personal` owner-instructed merge to main (PR #20, merge
+> commit): pytest 391/391, web build green, LLM reader + eval slice landed
+> with zero ledger writes on history. Site banner now honestly reads the
+> latest published day (`Pipeline: OK · DQS 1.00`). 6 root gates open — see
+> `reports/REPAIR_CHECKPOINT.md`.
 
 **Staged Pipeline v2 — Slice #16 COMPLETED (2026-06-24)**
 - Production adapters: `ProductionFetcherPort`, `ProductionWriterPort`, `ProductionAlertPort`

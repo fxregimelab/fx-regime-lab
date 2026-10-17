@@ -34,16 +34,20 @@ export default async function DeskLayout({
   try {
     const supabase = await createClient();
     const [health, latestSignals, calls] = await Promise.all([
-      getPipelineHealth(supabase, 1),
+      getPipelineHealth(supabase, 7),
       getLatestSignals(supabase),
       getLatestRegimeCalls(supabase),
     ]);
     if (health.length > 0) {
-      const latest = health[0];
-      lastRunAt = latest.date;
-      status = latest.status;
-      dqs = latest.dqs ?? null;
-      errors = latest.errors;
+      // Status reflects the latest day with published calls (calls are dated by
+      // trading day, so the current calendar day is partial by design).
+      // lastRunAt keeps the newest calendar day for run-recency checks.
+      const reference =
+        health.find((day) => day.regimeCallsCount > 0) ?? health[0];
+      lastRunAt = health[0].date;
+      status = reference.status;
+      dqs = reference.dqs ?? null;
+      errors = reference.errors;
     } else if (calls && Object.values(calls).length > 0) {
       // Fallback: use latest regime call as proxy for pipeline health
       const latestCall = Object.values(calls)[0];

@@ -1,6 +1,6 @@
-> **Draft PR — human merge only. Do not auto-merge.** Background branch;
-> main stays archived at `v2.1-archive` until a human merges this. 6 root
-> gates remain open. No VERIFIED RELEASE claimed.
+> **Merge: owner-instructed (2026-10-17).** Human-approved per branch rule
+> "merge to main only by human approved PR". 6 root gates remain open.
+> No VERIFIED RELEASE claimed.
 
 ## What this branch does
 
@@ -39,7 +39,9 @@
   (pre-close timing, Packet 3) wrote zero rows — hashes identical.
 - Eval on the fresh calls: `reports/llm_reader_eval_v3_latest.md`
   (faith 1.000 / num 1.000, 3 rows @ 2026-10-16; Brier n=0 not matured).
-- Footer stays DEGRADED until operator verifies the branch preview.
+- Footer honesty fix (Packet 7): banner scores the latest published day
+  (real published DQS, 0.8 gate) — was falsely DEGRADED while green.
+  `tsc --noEmit` 0, biome clean, `npm run build` pass.
 
 ## Known issues (deferred, not in this PR)
 
@@ -56,11 +58,12 @@
 1. `git rev-parse v2.1-archive` unchanged; `main` untouched by this branch.
 2. Compare AFTER snapshot hashes vs `reports/ledger_snapshot_full.json`
    (history identical, only new dated rows added).
-3. Open branch preview (Vercel SSO login): DEGRADED footer, fresh calls,
-   eval report present.
+3. Production check (post-merge): fxregimelab.com banner reads
+   `Pipeline: OK · DQS 1.00`; fresh 2026-10-16 calls; eval report present.
 4. Confirm no UPDATE/DELETE on `regime_calls`/`validation_log` (triggers +
    `writer.py` conflict/versioning paths only).
 
 ## Merge
 
-Human merges. Never auto-merge. No force push. No history rewrite.
+Owner instructed the merge 2026-10-17 (PR #20, merge commit; receipts on the
+PR timeline). No force push. No history rewrite.

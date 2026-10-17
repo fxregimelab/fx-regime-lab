@@ -185,3 +185,40 @@ untouched. Prod's 09:00 UTC run will hit the idempotent insert path for the
 
 - Branch base: `bb089f3` (main HEAD, includes `v2.1-archive` tag at `b0d33cd`)
 - Branch: `fx-live-personal` (background only; no merge to main without human PR)
+
+## Packet 7 — Footer honesty fix + owner-instructed merge (2026-10-17 ~09:10 UTC)
+
+Task line executed: "Keep DEGRADED footer until it is truly green, then change
+to LIVE with date." Green was achieved in Packet 6. Root cause of the standing
+false DEGRADED (site-wide audit banner: `System integrity verified: … ·
+Pipeline: DEGRADED · DQS: …`): `health_checks` is empty, so
+`getPipelineHealth` falls back to data-presence inference; calls/signals are
+dated by trading day (10-16) while the fallback scored only the current
+calendar day (10-17 = brief + validation only) → DEGRADED every day by
+construction, regardless of actual pipeline health.
+
+- Fix (web display only — no pipeline code, no DB writes, ledger untouched):
+  - `web/src/lib/supabase/queries.ts` — fallback now reads the published
+    `data_quality_score` from regime_calls (avg per day) and marks a day
+    HEALTHY on a completed cycle: signals + full 3-pair call set + brief +
+    DQS ≥ 0.8. Validation stats lag by design (T+5/T+20) → not a same-day gate.
+  - `web/src/app/desk/layout.tsx` — terminal banner scores the latest day
+    **with published calls**; `lastRunAt` keeps the newest calendar day so
+    CircuitBreaker run-recency logic is unchanged (no false trip).
+  - `web/src/components/ui/audit-trail-banner.tsx` — shell banner (all pages)
+    same reference-day pick; fetch window 1 → 7 days.
+- Impact check (manual — GitNexus index tools unavailable for this repo,
+  `detect_changes` retried 2026-10-17 09:0x UTC, DB version mismatch 42 vs 40):
+  consumers of `getPipelineHealth` are desk layout (1→7), audit page (14,
+  unchanged), desk page (7, feeds the `{false &&}`-disabled SystemStatusBar),
+  and the banner server component. No other callers of the edited symbols.
+  CircuitBreaker logic untouched.
+- Checks: `tsc --noEmit` 0 errors; `biome check .` clean (206 files);
+  `npm run build` pass (local Windows + Vercel Linux preview).
+- Merge: explicit owner instruction 2026-10-17 ("merge and push everything
+  committed correctly and publish it perfectly") — PR #20 merged as a merge
+  commit (no squash, no force push, no history rewrite). Receipts (merge SHA,
+  Vercel production READY, fxregimelab.com banner grep `Pipeline: OK ·
+  DQS 1.00`) recorded on PR #20's timeline.
+- `v2.1-archive` = `b0d33cd` unmoved. Local main fast-forwarded to the merge
+  commit.

@@ -749,7 +749,7 @@ export async function getPipelineHealth(
   ] = await Promise.all([
     supabase
       .from("regime_calls")
-      .select("date,pair")
+      .select("date,pair,data_quality_score")
       .gte("date", cutoffStr)
       .order("date", { ascending: false }),
     supabase
@@ -790,14 +790,22 @@ export async function getPipelineHealth(
     });
   }
 
-  // Aggregate regime_calls per date
+  // Aggregate regime_calls per date (count + published DQS)
+  const dqsSum = new Map<string, number>();
+  const dqsCount = new Map<string, number>();
   for (const row of (callsData ?? []) as Array<{
     date: string;
     pair: string;
+    data_quality_score: number | null;
   }>) {
     const day = dateMap.get(row.date);
     if (day) {
       day.regimeCallsCount += 1;
+      if (typeof row.data_quality_score === "number") {
+        const prev = dqsSum.get(row.date) ?? 0;
+        dqsSum.set(row.date, prev + row.data_quality_score);
+        dqsCount.set(row.date, (dqsCount.get(row.date) ?? 0) + 1);
+      }
     }
   }
 
@@ -857,14 +865,26 @@ export async function getPipelineHealth(
       day.aiBriefsGenerated = false;
     }
 
-    // Infer DQS from regime_calls if available
-    if (hasCalls && hasSignals) {
+    // DQS: prefer the published score; fall back to presence inference
+    const dqsN = dqsCount.get(day.date) ?? 0;
+    if (dqsN > 0) {
+      day.dqs = Number(((dqsSum.get(day.date) ?? 0) / dqsN).toFixed(2));
+    } else if (hasCalls && hasSignals) {
       day.dqs = day.regimeCallsCount >= 3 ? 0.95 : 0.7;
     } else if (hasCalls || hasSignals) {
       day.dqs = 0.5;
     }
 
-    if (hasSignals && hasCalls && hasValidation && hasBrief) {
+    // Healthy = completed daily cycle: signals + full 3-pair call set + brief,
+    // with published DQS at or above the 0.8 gate. Validation stats lag by
+    // design (T+5/T+20 maturities), so same-day stats are not a health gate.
+    if (
+      hasSignals &&
+      hasCalls &&
+      day.regimeCallsCount >= 3 &&
+      hasBrief &&
+      (day.dqs ?? 0) >= 0.8
+    ) {
       day.status = "HEALTHY";
     } else if (hasSignals || hasCalls) {
       day.status = "DEGRADED";

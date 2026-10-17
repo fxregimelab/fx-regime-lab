@@ -449,7 +449,7 @@ Shreyash leaves with:
 - Branch `fx-live-personal` cut from main `bb089f3`; main stays archived at
   `v2.1-archive`. Never push to main. Never move the tag.
 - Triage green on branch: pytest 391/391, web build green, Prefect pull still
-  `main` (manual trigger for background runs). Footer stays DEGRADED.
+  `main` (manual trigger for background runs). Footer honesty fix: Packet 7.
 - First LLM reader + eval slice landed with zero ledger writes
   (`reports/llm_reader_eval_v1.md`, `reports/REPAIR_CHECKPOINT.md`).
 - 6 root gates still open. No VERIFIED RELEASE. Human merges any PR to main.
@@ -457,5 +457,7 @@ Shreyash leaves with:
   published @ 2026-10-16; ledger proof append-only (19,503 prior
   regime_calls byte-identical, +3 new; validation_log +12/−6 flag-only
   supersessions). Eval v3 on fresh calls: faith 1.000 / num 1.000.
-  Draft PR to main open — operator should verify branch preview (Vercel
-  SSO) before merge. Footer stays DEGRADED until then.
+  Owner instructed merge+publish 2026-10-17 — PR #20 merged (merge commit).
+  Footer banner fixed (Packet 7) to read the latest published day honestly
+  (`Pipeline: OK · DQS 1.00`); production check on fxregimelab.com recorded
+  on PR #20.
