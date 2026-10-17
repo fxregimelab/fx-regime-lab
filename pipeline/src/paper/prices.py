@@ -214,7 +214,8 @@ class Mt5BarFeed:
         assert self._mt5 is not None
         tf = getattr(self._mt5, f"TIMEFRAME_{timeframe}")
         self._mt5.symbol_select(symbol, True)
-        rates = self._mt5.copy_rates_from_pos(symbol, tf, 0, count)
+        # Position zero is the still-forming candle: never feed it to decisions.
+        rates = self._mt5.copy_rates_from_pos(symbol, tf, 1, count)
         if rates is None:
             raise RuntimeError(
                 f"copy_rates_from_pos({symbol}, {timeframe}) failed: {self._mt5.last_error()}"

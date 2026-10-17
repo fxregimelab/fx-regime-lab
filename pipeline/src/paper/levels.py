@@ -49,6 +49,8 @@ class Level:
 
 def find_swings(bars: Sequence[Bar], k: int = 2) -> list[Swing]:
     """Strict fractal swings: bar i's high/low is the unique extreme of its ±k window."""
+    if k < 1:
+        raise ValueError("Swing radius must be positive")
     swings: list[Swing] = []
     n = len(bars)
     for i in range(k, n - k):
@@ -67,6 +69,8 @@ def round_levels(pair: str, ref_price: float, span: int = 3) -> list[Level]:
 
     Levels on both grids (e.g., 1.1200) carry both tags.
     """
+    if not math.isfinite(ref_price) or ref_price <= 0 or span < 0:
+        raise ValueError("Round grid needs positive finite price and nonnegative span")
     minor, major = ROUND_STEPS[pair]
     tags: dict[float, set[str]] = {}
     for step, tag in ((minor, "round_minor"), (major, "round_major")):
@@ -79,6 +83,8 @@ def round_levels(pair: str, ref_price: float, span: int = 3) -> list[Level]:
 
 def recent_extremes(bars: Sequence[Bar], n: int) -> tuple[float, float] | None:
     """(high, low) over the last ``n`` bars; None when there are no bars."""
+    if n < 1:
+        raise ValueError("Extreme lookback must be positive")
     window = bars[-n:]
     if not window:
         return None

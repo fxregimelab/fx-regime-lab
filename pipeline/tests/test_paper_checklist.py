@@ -8,6 +8,9 @@ Entry 1.1008 / stop 1.0988 (20 pips) passes all 14 checks.
 
 from __future__ import annotations
 
+import json
+from dataclasses import replace
+
 import pytest
 
 from src.paper.checklist import (
@@ -157,7 +160,8 @@ def test_three_scored_failures_grade_b_plus() -> None:
     )
     assert ev.score == 6
     assert ev.grade == "B+"
-    assert ev.risk_pct == pytest.approx(0.05 * 0.6)
+    assert ev.risk_pct is None  # Exposure is a hard veto, not a confidence discount.
+    assert not ev.trade_allowed
 
 
 def test_tiny_r_fails_cost_gate() -> None:
@@ -207,3 +211,97 @@ def test_ema_and_atr_helpers() -> None:
     assert ema([b.close for b in bars], 20) == pytest.approx(1.1000)
     assert atr(bars[:5]) is None
     assert ema([1.0, 1.0], 5) is None
+
+
+@pytest.mark.parametrize("stop", [ENTRY + 0.002, ENTRY, 0.0, -1.0, float("nan")])
+def test_invalid_stop_rejected(stop: float) -> None:
+    with pytest.raises(ValueError):
+        evaluate(_context(stop=stop))
+
+
+@pytest.mark.parametrize("mult", [-1.0, 1.01, float("nan"), float("inf")])
+def test_operator_cannot_increase_risk(mult: float) -> None:
+    with pytest.raises(ValueError):
+        size_risk("A+", ExposureState(), slot_mult=mult)
+
+
+def test_negative_exposure_rejected() -> None:
+    with pytest.raises(ValueError):
+        size_risk("A+", ExposureState(open_tickets=-1))
+    with pytest.raises(ValueError):
+        size_risk("A+", ExposureState(open_risk_pct=-0.1))
+
+
+def test_same_usd_exposure_is_hard_block() -> None:
+    ev = evaluate(_context(exposure=ExposureState(same_usd_sign_tickets=2)))
+    assert not ev.trade_allowed
+    assert ev.risk_pct is None
+
+
+def test_bias_contradiction_caps_grade() -> None:
+    ev = evaluate(replace(_context(), bias_aligned=False))
+    assert ev.grade == "B"
+
+
+def test_missing_market_history_is_not_open_air() -> None:
+    ev = evaluate(replace(_context(), bars_by_tf={}))
+    assert not ev.trade_allowed
+
+
+def test_corrupt_or_reversed_bars_rejected() -> None:
+    ctx = _context()
+    h1 = _h1_fixture()
+    h1[-1] = replace(h1[-1], high=float("nan"))
+    with pytest.raises(ValueError):
+        evaluate(replace(ctx, bars_by_tf={"H1": h1, "H4": _h4_fixture()}))
+    with pytest.raises(ValueError):
+        evaluate(replace(ctx, bars_by_tf={"H1": list(reversed(_h1_fixture()))}))
+
+
+@pytest.mark.parametrize("period", [0, -1])
+def test_indicator_period_must_be_positive(period: int) -> None:
+    with pytest.raises(ValueError):
+        atr(_h1_fixture(), period)
+    with pytest.raises(ValueError):
+        ema([1.0] * 20, period)
+
+
+@pytest.mark.parametrize("pair,scale", [("EURUSD", 1.0), ("USDJPY", 100.0)])
+@pytest.mark.parametrize("short", [False, True])
+def test_pair_and_direction_symmetry(pair: str, scale: float, short: bool) -> None:
+    ctx = _context()
+
+    def price(value: float) -> float:
+        return (2.2 - value if short else value) * scale
+
+    history: dict[str, list[Bar]] = {}
+    for tf, bars in ctx.bars_by_tf.items():
+        history[tf] = [replace(
+            b, symbol=pair + "m", open=price(b.open), close=price(b.close),
+            high=price(b.low if short else b.high),
+            low=price(b.high if short else b.low),
+        ) for b in bars]
+    ev = evaluate(replace(
+        ctx, pair=pair, direction="short" if short else "long",
+        entry=price(ctx.entry), stop=price(ctx.stop), bars_by_tf=history,
+    ))
+    assert ev.score == 9
+    assert ev.grade == "A+"
+    assert ev.trade_allowed
+
+
+def test_event_cohort_never_bypasses_release_blackout() -> None:
+    ev = evaluate(replace(_context(red_event_now=True), event_cohort=True))
+    assert not ev.trade_allowed
+
+
+def test_bad_pair_or_dqs_rejected() -> None:
+    with pytest.raises(ValueError):
+        evaluate(replace(_context(), pair="GBPUSD"))
+    with pytest.raises(ValueError):
+        evaluate(replace(_context(), dqs=float("nan")))
+
+
+def test_untyped_model_flag_cannot_pass_a_gate() -> None:
+    with pytest.raises(ValueError):
+        evaluate(replace(_context(), **json.loads('{"session_ok":"false"}')))

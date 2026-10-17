@@ -23,8 +23,8 @@ from dataclasses import dataclass, field
 
 # --- Governance versions --------------------------------------------------------
 
-FRAMEWORK_VERSION = "1.0"
-PLAYBOOK_VERSION = "0.2"
+FRAMEWORK_VERSION = "1.1"
+PLAYBOOK_VERSION = "0.3"
 
 # --- Targets (owner-set; tracked objectives, never guarantees) ------------------
 
@@ -60,7 +60,7 @@ class RiskConfig:
 
 @dataclass(frozen=True)
 class CostConfig:
-    """Conservative round-trip costs in bps (incl. slippage allowance)."""
+    """Round-trip cost excluding the separate slippage allowance (unmeasured defaults)."""
 
     round_trip_bps: dict[str, float] = field(
         default_factory=lambda: {"EURUSD": 1.0, "USDJPY": 1.2}
@@ -75,7 +75,8 @@ class TradingLimits:
     Risk ceilings by open slot (first open 5%, second 4%, then 3% + 3% → max 15%
     open risk at any point in time). The checklist grade scales risk DOWN from the
     slot ceiling only (A+ 1.0, A 0.8, B+ 0.6, B 0.45); C never trades. Kill-switches
-    are sized so one full stop-out round (≈15%) stops the day at -10%.
+    are entry lockouts, not guaranteed realized-loss caps. Independent admission
+    also reserves residual stop risk against remaining daily/weekly loss capacity.
     """
 
     slot_risk_ceilings: tuple[float, ...] = (0.05, 0.04, 0.03, 0.03)
@@ -106,10 +107,10 @@ class TradingLimits:
 class AgentScoreConfig:
     """Operator score — asymmetric penalty/reward for the executing AI (framework §8).
 
-    Every trade decision records the operator id (model/agent). Settled outcomes
+    Each verified trade decision must record the operator id (model/agent). Settled outcomes
     and process violations move that operator's score. The score gates the
-    autonomy envelope and can only TIGHTEN limits, never loosen them. Computed by
-    the weekly scorecard (v2); the spec is fixed here so it cannot drift.
+    autonomy envelope and can only TIGHTEN limits, never loosen them. Pure replay
+    is in operator_score.py; automated settlement/ledger integration is pending.
     """
 
     start_score: float = 100.0

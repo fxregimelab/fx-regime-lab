@@ -1,8 +1,12 @@
 # Desk Strategy Framework — "Regime-anchored liquidity/structure trading"
 
-**Version:** v1.0 (2026-10-17) · **Scope:** personal paper desk, EURUSD + USDJPY
+**Version:** v1.1 (2026-10-18) · **Scope:** personal paper desk, EURUSD + USDJPY
 **Governance pairs:** `docs/DESK_TRADING_PLAYBOOK.md` (procedure) · `pipeline/src/paper/config.py` (numbers)
-**Version stamps:** `FRAMEWORK_VERSION = 1.0`, `PLAYBOOK_VERSION = 0.2` — receipts must cite both.
+**Version stamps:** `FRAMEWORK_VERSION = 1.1`, `PLAYBOOK_VERSION = 0.3` — receipts must cite both.
+
+**Audit override:** [DESK_AUDIT_AND_IMPROVEMENT.md](DESK_AUDIT_AND_IMPROVEMENT.md)
+is the remediation contract. Research/shadow proposals only until execution, management,
+reconciliation, inputs and graduation are verified. No unattended trading readiness claimed.
 
 ---
 
@@ -115,28 +119,28 @@ is B+. M15 never creates a trade — it only refines one.
 ## 6. The spec-gate (read-before-trade)
 
 Before any session and any trade decision, the operator loads and cites:
-1. `docs/DESK_TRADING_PLAYBOOK.md` (procedure; current v0.2)
-2. `docs/DESK_STRATEGY_FRAMEWORK.md` (this doctrine; v1.0)
+1. `docs/DESK_TRADING_PLAYBOOK.md` (procedure; current v0.3)
+2. `docs/DESK_STRATEGY_FRAMEWORK.md` (this doctrine; v1.1)
 3. `pipeline/src/paper/config.py` (all numbers — single source of truth)
 
 Ledger receipts are stamped with `FRAMEWORK_VERSION` + `PLAYBOOK_VERSION`. A trade
 taken under anything else is a process violation and is recorded as such. The machine
 form of this gate is `pipeline/src/paper/checklist.py` — it evaluates the 14 checks
-and the risk lookup directly from the config spec, so what the operator scores and
-what the spec says cannot drift apart.
+and the risk lookup from declared rules/config. It does not read Markdown at runtime.
+Version stamps do not prove document reading or prevent spec drift. Archived document
+hashes, structured acknowledgment and an independent execution gate remain integration work.
 
 ## 7. Adaptation rules (how the desk learns)
 
 - **Never mid-trade.** Parameters change only at the weekly P4 review, with the evidence
   line that motivates each change; every change is a versioned config edit + doc note.
-- **Checklist item predictiveness:** each of the 14 checks accumulates win-rate
-  separation stats; checks with no separation are candidates for removal/reweighting;
-  checks with strong negative separation get investigated as inverted logic.
-- **Grade multipliers** are re-tuned when bucket stats show the current mapping is
-  mispriced (e.g., B trades outperforming B+ ⇒ multipliers converge).
-- **Setup lifecycle:** a setup is killed after ≥40 settled trades with expectancy CI
-  entirely below zero after costs; new setups enter only as B-grade-capped experiments
-  with a written falsifier.
+- **Checklist predictiveness:** capture rejected candidates as well as executions.
+  Hard-gate pass/fail effects cannot be estimated from executed trades alone.
+- **Grade multipliers:** propose changes using equal-risk, out-of-sample evidence with
+  dependence-aware uncertainty; do not retune from a small weekly bucket reversal.
+- **Setup lifecycle:** preregister trials, costs and falsifiers; walk forward with purged
+  overlap and untouched holdouts; shadow challengers before promotion. Forty trades is
+  not a universal sufficiency threshold. Insufficient evidence means keep collecting.
 - **Kill-switches are not parameters:** daily −10% / weekly −25% (demo phase) only move
   with an owner directive.
 
@@ -160,25 +164,26 @@ Envelope gating (score 0–100, start 100; can only TIGHTEN limits, never loosen
 | 60–84 | A/A+ grades only; slot ceilings ×0.75 |
 | < 60 | desk pause → written remediation + owner notice before resuming |
 
-Why: the operator — any model, including me — works under consequences. Losses cost
-more score than wins earn, and sloppy process costs heavily. The score is computed by
-scorecard v2 from the ledger; a model swap is just a new operator id, so comparing
-agents is mechanical. This is the mechanistic form of "adapt and focus": behavior
-changes through the envelope, and evidence accumulates per model.
+Pure replay is implemented in `paper/operator_score.py`; settlement/ledger wiring is
+pending. Desk history carries across model swaps. A process breach latches reduced mode;
+any score below 60 latches pause. Profits cannot erase these restrictions without review.
+Score whole-parent net R once, never individual partial fills. Track prediction quality
+(Brier for predefined events) separately from outcome points and process incidents.
+These arbitrary asymmetric points are a permission heuristic, not model training or
+proof of skill. Compare models only on identical frozen opportunities at equal shadow risk.
 
 ## 9. Honesty clause
 
 The lab's live directional record is currently below coin-flip. This framework does not
 promise profitability; its contract is: exact entries, mechanized risk placement,
-complete receipts, and parameter evolution backed by data. The aggressive demo risk
-schedule exists to generate statistically meaningful samples and realistic drawdown
-experience at zero real cost — the scorecard decides what survives.
+complete receipts, and parameter evolution backed by data. Larger demo risk produces
+larger drawdowns, not more independent samples or stronger statistical evidence.
 
 **The +50%/week target** (owner-set): encoded as the desk's weekly objective and
 reported every week as actual-vs-target with honest attribution. It is a target, not a
 guarantee — no honest system can promise a fixed weekly return, and one that did would
-be lying to you. What is guaranteed is the process: maximum aggression inside the
-guardrails, full measurement, and fast adaptation.
+be lying to you. The target never overrides the daily/weekly loss capacity or validation
+gates and must not be used as a reward multiplier.
 
 **Instrument expansion** (owner-authorized 2026-10-17): the desk may widen beyond
 EURUSD + USDJPY. Implementation enters only through the same evidence gates as any

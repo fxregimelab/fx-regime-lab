@@ -389,6 +389,32 @@ invalidation` (breach math), `signals` + `regime_calls` (inputs), `analyst_reade
 
 ---
 
+### 5.11 Audit amendment (2026-10-18; supersedes readiness claims above)
+
+See `docs/DESK_AUDIT_AND_IMPROVEMENT.md` for findings, implemented fixes and ordered gates.
+Framework 1.1 / playbook 0.3. No unattended execution readiness: autonomous research/shadow
+proposals only until independent admission, authoritative inputs, reconciliation,
+management/watchdog, settlement and strategy graduation are verified end to end.
+
+New pure modules: `paper/admission.py`, `paper/operator_score.py`, `paper/evidence.py`.
+They are not wired to an executor/ledger adapter. Checklist eligibility is not order
+authorization; version stamps are not proof of specification reading. Both child orders
+share ONE parent's initial risk; all position/slot limits count parents. Remaining daily
+and weekly loss capacity dominates the 15% open-risk cap. Operator safety history persists
+across model swaps; profitable trades cannot erase an unreviewed breach or latched pause.
+Production AI telemetry writes and replay/calendar/eval defects need separate remediation;
+do not call the default production AI chain from the private desk as a read-only path.
+
+### 5.12 Autonomous evolution design (owner decision 2026-10-18)
+
+Owner permits automatic promotion of independently validated improvements into DEMO
+operation, not changes to its own evaluator/hardlimits or real-money permissions.
+Detailed private implementation draft: `docs/plans/2026-10-18-autonomous-demo-desk.md`
+and `docs/specs/autonomous-desk/`. Its task packets supersede this older plan's vague
+implementation steps for the autonomous extension, but do not alter IDENTITY/MASTERPLAN.
+This is specification work only; execution readiness remains unproved. Runtime evolution
+is allowlisted artifact selection, not self-editing Python or unattended policy changes.
+
 ## 6. Phases (effort = focused sessions, not calendar promises)
 
 ### P0 — Foundations (1–2 sessions)

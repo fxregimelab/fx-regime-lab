@@ -40,7 +40,7 @@ def _tags_near(levels: list[Level], price: float) -> tuple[str, ...]:
 
 
 def test_find_swings_detects_unique_fractals() -> None:
-    highs = [1.0, 2.0, 3.0, 10.0, 4.0, 3.0, 2.0, 1.0, 1.0]
+    highs = [6.0, 7.0, 8.0, 10.0, 9.0, 8.0, 7.0, 6.0, 6.0]
     lows = [5.0, 5.0, 5.0, 5.0, 5.0, 4.0, 5.0, 5.0, 5.0]
     bars = [_bar(i, highs[i], lows[i]) for i in range(9)]
     swings = find_swings(bars, k=2)
@@ -105,3 +105,12 @@ def test_nearest_level_and_distance() -> None:
     assert below is not None and below.price == 1.1
     assert distance_to_nearest(levels, 1.12, "above") == pytest.approx(0.03)
     assert nearest_level(levels, 2.0, "above") is None
+
+
+def test_invalid_window_parameters_rejected() -> None:
+    with pytest.raises(ValueError):
+        find_swings([], k=0)
+    with pytest.raises(ValueError):
+        recent_extremes([], n=0)
+    with pytest.raises(ValueError):
+        round_levels("EURUSD", float("nan"))

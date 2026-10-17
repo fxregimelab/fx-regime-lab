@@ -1,8 +1,23 @@
 # Desk Trading Playbook — Operating Manual & Agent Prompts
 
-**Version:** v0.2 (2026-10-17) · **Status:** demo phase · **Scope:** personal paper desk, EURUSD + USDJPY
+**Version:** v0.3 (2026-10-18) · **Status:** research/shadow; execution not ready · **Scope:** private demo desk
 **Companion docs:** `docs/DESK_STRATEGY_FRAMEWORK.md` (doctrine) · `docs/PERSONAL_TRADING_ENGINE_PLAN.md` (§5.10) · `pipeline/src/paper/config.py` (parameter source of truth)
 **Audience:** the operating agent (me) and the owner. Nothing here is public.
+
+**Autonomous evolution draft:** `docs/plans/2026-10-18-autonomous-demo-desk.md` records
+owner permission for validated automatic DEMO promotion and the complete proposed
+implementation/specification pack. It does not mean a runner has been installed or
+that trading readiness below is satisfied. Protected hardlimits/evaluator remain fixed.
+
+**Readiness override:** see `docs/DESK_AUDIT_AND_IMPROVEMENT.md`. Stages 6–8 below
+describe the intended loop, not an installed autonomous executor. No orders until
+management/watchdog, reconciliation, authoritative inputs, independent admission and
+strategy graduation are verified. Owner demo autonomy does not waive readiness gates.
+`paper/admission.py` implements a pure gate; no runner currently wires it to MT5.
+
+**Counting convention:** caps and 5/4/3/3% slots apply to parent trade ideas. Child A/B
+split ONE parent's risk 50/50. Four parents imply at most eight initial child tickets.
+Legacy checklist `open_tickets` fields count parent risk groups, not broker fills.
 
 ---
 
@@ -131,7 +146,7 @@ all evidence-linked. 5 hard gates + 9 scored checks. Machine form: `paper/checkl
 
 Risk = slot ceiling × multiplier — slot ceilings by current open count: **5% / 4% / 3% / 3%**
 (hard cap **15% open risk at any point in time**). Grade-scaled risk below 1% → skip.
-A refusal/counter-argument: the operator-score reduced envelope (§0.8) can only scale
+The operator-score reduced envelope (§0.8) can only scale
 these DOWN.
 
 Grade history is itself measured (§8): if a bucket underperforms, the mapping retunes.
@@ -183,8 +198,8 @@ Grade history is itself measured (§8): if a bucket underperforms, the mapping r
 
 | Limit | Value |
 |-------|-------|
-| Max concurrent positions (tickets) | 4 (max 2 per pair) |
-| Same-USD-sign tickets | ≤ 2 |
+| Max concurrent parent positions | 4 (max 2 per pair); at most 8 initial child tickets |
+| Same-USD-sign parent positions | ≤ 2 |
 | Risk ceilings by open slot | 5% / 4% / 3% / 3% → **≤ 15% open risk at any point in time** |
 | Grade multipliers | A+ 1.0 · A 0.8 · B+ 0.6 · B 0.45 (× slot ceiling) |
 | Max new trades per day | 5 |
@@ -197,6 +212,11 @@ Grade history is itself measured (§8): if a bucket underperforms, the mapping r
 Balance guard: sizing uses live demo equity, so the percentages hold exactly. The
 operator score (framework §8) can only tighten these values. All limits live in
 `pipeline/src/paper/config.py` (`TradingLimits`); changes require a doc update + ledger note.
+
+Independent admission additionally requires proposed + existing residual stop risk + pending
+reservations + cost/stress reserve to fit remaining daily/weekly loss capacity. The 15%
+open-risk cap never overrides the smaller remaining daily budget. These are planning limits,
+not guaranteed realized-loss ceilings. Live sizing/reconciliation is still pending.
 
 ---
 
@@ -345,8 +365,9 @@ OUTPUT: reports/desk/research/weekly_<date>.md + ledger note with the summary li
 - Settlement scoring is automatic (R multiple, hours, MAE/MFE, costs) from the ledger.
 - **Operator score (framework §8):** asymmetric — losses cost more than wins earn, process
   violations cost heavily; gates the envelope (reduced mode: A/A+ only + 0.75× slots; below
-  60 → pause). Per-operator ids let any AI agent be compared — the better-scoring operator
-  earns more of the envelope.
+  60 → pause). Process incidents latch restrictions; model swaps do not reset desk history.
+  Compare predictive skill on identical frozen opportunities at equal shadow risk, not points
+  or dollar profit alone. Score replay exists; verified ledger/settlement wiring is pending.
 - Weekly P4 review drives two improvement tracks:
   - **Desk params** (auto-applicable, versioned in `config.py` + doc): grade thresholds, trail
     multipliers, cut thresholds, session windows, multipliers.
@@ -371,6 +392,10 @@ OUTPUT: reports/desk/research/weekly_<date>.md + ledger note with the summary li
 | 7 | `paper/news.py` — calendar + headline scan wrapper (cited, receipted) | ⏳ next |
 | 8 | Desk session runner + intraday scheduling | ⏳ |
 | 9 | Scorecard v2 (grade buckets, check predictiveness, scale-out sim, operator score) | ⏳ |
+
+Audit additions (pure components, not installed execution): `paper/admission.py` (readiness
+and loss capacity), `paper/operator_score.py` (whole-parent outcome replay and latched
+restrictions), `paper/evidence.py` (timestamped intraday packet validation).
 
 ## 10. Owner interaction
 

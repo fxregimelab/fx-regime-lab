@@ -1,11 +1,11 @@
 """Binary checklist engine — the desk's confidence gate (playbook §2, framework §6).
 
 Pure evaluation: every input is explicit (bars, pipeline fields, session flags,
-exposure state). The engine never talks to the broker. It encodes the spec it
-reads — ``docs/DESK_TRADING_PLAYBOOK.md`` §2/§4, ``docs/DESK_STRATEGY_FRAMEWORK.md``
+exposure state). The engine never talks to the broker. It encodes declared rules from
+``docs/DESK_TRADING_PLAYBOOK.md`` §2/§4, ``docs/DESK_STRATEGY_FRAMEWORK.md``
 and ``pipeline/src/paper/config.py`` (grade multipliers, slot ceilings, costs) —
-and stamps ``FRAMEWORK_VERSION`` / ``PLAYBOOK_VERSION`` into every evaluation so
-spec drift is detectable in receipts.
+and stamps ``FRAMEWORK_VERSION`` / ``PLAYBOOK_VERSION`` into every evaluation.
+It does not read those documents at runtime; versions alone do not prove spec compliance.
 
 Grade → risk: ``risk = slot_ceiling(open_tickets) × grade_multiplier``, blocked
 below ``min_effective_risk_pct`` and above the 15% open-risk cap. The
@@ -24,6 +24,7 @@ from src.paper.config import (
     FRAMEWORK_VERSION,
     LIMITS,
     PLAYBOOK_VERSION,
+    TRADING_PAIRS,
     TradingLimits,
 )
 from src.paper.levels import (
@@ -45,6 +46,8 @@ GRADE_C = "C"
 
 def atr(bars: Sequence[Bar], n: int = 14) -> float | None:
     """Average true range over the last ``n`` bars; None when insufficient."""
+    if n < 1:
+        raise ValueError("ATR period must be positive")
     if len(bars) < n + 1:
         return None
     true_ranges: list[float] = []
@@ -57,6 +60,8 @@ def atr(bars: Sequence[Bar], n: int = 14) -> float | None:
 
 def ema(values: Sequence[float], n: int) -> float | None:
     """Exponential moving average (seeded at the first value); None when insufficient."""
+    if n < 1:
+        raise ValueError("EMA period must be positive")
     if len(values) < n:
         return None
     k = 2.0 / (n + 1.0)
@@ -102,11 +107,23 @@ class CheckResult:
 
 @dataclass(frozen=True)
 class ExposureState:
-    """Open-book state for S9 + risk sizing (the §4 portfolio gate is session-level)."""
+    """Parent-trade exposure, not scale-out child fills.
+
+    Legacy field names ``open_tickets``/``same_usd_sign_tickets`` count risk
+    groups (parent trades). Two 50/50 child orders must consume ONE group.
+    No live adapter currently constructs this state automatically.
+    """
 
     open_tickets: int = 0
     same_usd_sign_tickets: int = 0
     open_risk_pct: float = 0.0
+
+    def validate(self) -> None:
+        counts = (self.open_tickets, self.same_usd_sign_tickets)
+        if any(type(n) is not int or n < 0 for n in counts):
+            raise ValueError("Exposure counts must be nonnegative integers")
+        if not math.isfinite(self.open_risk_pct) or self.open_risk_pct < 0:
+            raise ValueError("Open risk must be finite and nonnegative")
 
 
 @dataclass(frozen=True)
@@ -159,13 +176,23 @@ def size_risk(
     ``slot_mult`` carries the operator-score envelope reduction (1.0 = full envelope;
     reduced mode uses e.g. 0.75). It can only scale risk DOWN.
     """
+    exposure.validate()
+    if not math.isfinite(slot_mult) or not 0 <= slot_mult <= 1:
+        raise ValueError("Operator multiplier must be finite and between zero and one")
     multiplier = limits.grade_multipliers.get(grade)
     if multiplier is None:
         return None, None
     slot = exposure.open_tickets
-    if slot >= len(limits.slot_risk_ceilings):
+    if (
+        slot >= min(len(limits.slot_risk_ceilings), limits.max_concurrent_positions)
+        or exposure.same_usd_sign_tickets >= limits.max_same_usd_sign_tickets
+    ):
         return None, None
     ceiling = limits.slot_risk_ceilings[slot] * slot_mult
+    if not math.isfinite(ceiling) or not 0 <= ceiling <= limits.max_open_risk_pct:
+        raise ValueError("Invalid slot ceiling")
+    if not math.isfinite(multiplier) or not 0 <= multiplier <= 1:
+        raise ValueError("Grade multiplier must not increase risk")
     risk = ceiling * multiplier
     if risk < limits.min_effective_risk_pct:
         return None, ceiling
@@ -188,7 +215,9 @@ def _gate_checks(ctx: CandidateContext) -> tuple[CheckResult, ...]:
         CheckResult("H1", ctx.strategy_rule_fires, rule_detail),
         CheckResult(
             "H2",
-            ctx.dqs >= 0.8 and ctx.bars_fresh,
+            ctx.dqs >= 0.8 and ctx.bars_fresh
+            and len(ctx.bars_by_tf.get("H1", [])) >= 20
+            and len(ctx.bars_by_tf.get("H4", [])) >= 5,
             f"dqs={ctx.dqs:.2f}, bars_fresh={ctx.bars_fresh}",
         ),
         CheckResult(
@@ -319,13 +348,22 @@ def evaluate(
     limits: TradingLimits = LIMITS,
     slot_mult: float = 1.0,
 ) -> Evaluation:
-    """Score the 14 binary checks, grade, and compute slot-scaled risk."""
+    """Candidate eligibility only; NOT broker execution authorization.
+
+    Caller supplies completed, point-in-time bars. Broker reconciliation, daily
+    budget, spec attestation and account-type checks are separate admission gates.
+    """
+    _validate_candidate(ctx)
     atr_h1 = atr(ctx.bars_by_tf.get("H1", []))
     gates = _gate_checks(ctx)
     scored = _score_checks(ctx, limits, atr_h1)
     score = sum(1 for c in scored if c.passed)
     gates_ok = all(c.passed for c in gates)
     grade = _grade_from_score(score) if gates_ok else GRADE_C
+    # A failed trend agreement is not a calibrated probability. Conservative
+    # implementation of the documented contradiction cap until tri-state inputs exist.
+    if grade in ("A+", "A", "B+") and (not ctx.bias_aligned or not scored[1].passed):
+        grade = "B"
     risk: float | None = None
     ceiling: float | None = None
     if grade != GRADE_C:
@@ -343,7 +381,42 @@ def evaluate(
         slot_ceiling_pct=ceiling,
         framework_version=FRAMEWORK_VERSION,
         playbook_version=PLAYBOOK_VERSION,
+        notes=("Candidate eligibility only; independent execution admission still required.",),
     )
+
+
+def _validate_candidate(ctx: CandidateContext) -> None:
+    flags = (
+        ctx.strategy_rule_fires, ctx.bars_fresh, ctx.red_event_now, ctx.red_event_within_2h,
+        ctx.event_cohort, ctx.session_ok, ctx.spread_ok, ctx.news_conflict,
+        ctx.bias_aligned, ctx.trigger_present,
+    )
+    if any(type(flag) is not bool for flag in flags):
+        raise ValueError("Checklist flags must be booleans, not model text")
+    if ctx.pair not in TRADING_PAIRS or ctx.direction not in ("long", "short"):
+        raise ValueError("Unsupported execution pair or direction")
+    if any(not math.isfinite(p) or p <= 0 for p in (ctx.entry, ctx.stop)):
+        raise ValueError("Entry and stop must be positive finite prices")
+    if (ctx.direction == "long" and ctx.stop >= ctx.entry) or (
+        ctx.direction == "short" and ctx.stop <= ctx.entry
+    ):
+        raise ValueError("Stop must be on the loss side of entry")
+    if not math.isfinite(ctx.dqs) or not 0 <= ctx.dqs <= 1:
+        raise ValueError("DQS must be between zero and one")
+    ctx.exposure.validate()
+    for tf, bars in ctx.bars_by_tf.items():
+        last_time = -1
+        for bar in bars:
+            prices = (bar.open, bar.high, bar.low, bar.close)
+            if any(not math.isfinite(p) or p <= 0 for p in prices):
+                raise ValueError("Nonfinite or nonpositive market data")
+            if not bar.low <= min(bar.open, bar.close) <= max(bar.open, bar.close) <= bar.high:
+                raise ValueError("Invalid OHLC envelope")
+            if bar.symbol not in (ctx.pair, ctx.pair + "m") or bar.timeframe != tf:
+                raise ValueError("Cross-pair or wrong-timeframe market data")
+            if bar.time_srv <= last_time:
+                raise ValueError("Bars must have unique increasing timestamps")
+            last_time = bar.time_srv
 
 
 def to_receipt(ev: Evaluation) -> dict[str, object]:

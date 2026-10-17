@@ -3,9 +3,26 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
-from src.paper.prices import sync_bars, validate_bars
+from src.paper.prices import Mt5BarFeed, Mt5Env, sync_bars, validate_bars
 from src.paper.store import Bar, DeskStore
+
+
+def test_fetch_excludes_current_forming_bar() -> None:
+    calls: list[int] = []
+
+    def copy_rates(symbol: str, tf: int, start: int, count: int) -> list[object]:
+        calls.append(start)
+        return []
+
+    feed = Mt5BarFeed(Mt5Env("", "", "", "", False))
+    feed._mt5 = SimpleNamespace(
+        TIMEFRAME_H1=1, symbol_select=lambda symbol, visible: True,
+        copy_rates_from_pos=copy_rates,
+    )
+    assert feed.fetch_bars("EURUSDm", "H1", 10) == []
+    assert calls == [1]
 
 
 def _bar(t: int, o: float, h: float, lo: float, c: float) -> Bar:
