@@ -156,6 +156,26 @@ Validation logic (Round 3 — Immutable Ledger):
 - Legacy T+1 arithmetic-return validations remain in `validation_log` for backward compatibility.
 - This dataset serves as the basis for professional research theses and performance audits.
 
+## ACTIVE REPAIR — fx-live-personal (background branch only, 2026-10-17)
+
+Branch `fx-live-personal` cut from main `bb089f3` (main stays archived at
+`v2.1-archive`). Goal: make FX live and useful for personal use; flagship
+stays first at 45%, FX at 10%.
+
+- Triage green: pytest 391/391, `tsc --noEmit` 0 errors, biome clean,
+  `npm run build` pass. Migrations 59 files on disk (58 real + 1 tmp).
+- Prefect pull branch still `main` — background runs need manual trigger.
+- MOF + ECB-SDW fetchers deferred (proxies only). No new pairs. 3-pair lock.
+- First LLM reader + eval slice landed with zero ledger writes;
+  `reports/llm_reader_eval_v1.md` is the baseline (Brier n=0, no claims).
+- Ledger append-only: no UPDATE/DELETE in new code (grep-verified); live
+  counts+hashes proven append-only (Packet 6: +3/+12 inserts, flag-only
+  supersessions, history byte-identical).
+- Footer banner fixed to score the latest published day (real published DQS,
+  0.8 gate) — no longer falsely DEGRADED while green (Packet 7). Merge to
+  main owner-instructed (PR #20). 6 root gates open.
+  Packets: `reports/REPAIR_CHECKPOINT.md`.
+
 ## PROTECTED DIRECTORIES — DO NOT TOUCH
 
 These are off-limits to AI tools:

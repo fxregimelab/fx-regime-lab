@@ -1,0 +1,13 @@
+{
+  "latest_call_date_per_pair": {
+    "EURUSD": "2007-10-16"
+  },
+  "regime_calls": {
+    "count": 1000,
+    "sha256": "22166fcd9c49178c943fa36ccbdde85c7476bb8a37926c521e878bf4f88a4cbe"
+  },
+  "validation_log": {
+    "count": 1000,
+    "sha256": "f30d111189cdec7a8e45d7f0706128a2d682f05a18413c03ba759d9b52b42383"
+  }
+}

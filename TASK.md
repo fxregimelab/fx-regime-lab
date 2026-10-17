@@ -4,6 +4,46 @@
 > **Read `MASTERPLAN.md` second** — it defines all phases, priorities, and gates.  
 > Read `docs/METHODOLOGY_AUDIT_TRIPLE_PERSONA.md` for the full audit report.
 
+## Current Sprint: fx-live-personal (background branch only, 2026-10-17)
+
+Branch `fx-live-personal` cut from main `bb089f3` (includes `v2.1-archive` tag).
+Main stays archived. Never push to main. Never move the tag.
+
+- [x] Step 1 triage: pytest 379/379 green, `tsc --noEmit` 0 errors,
+  `biome check` clean (206 files), `npm run build` pass. Migrations 59 files
+  on disk (58 real + 1 zero-byte tmp; `DB_STATUS.md` documents 49 — stale).
+  Prefect pull branch still `main` (background runs need manual trigger).
+  MOF + ECB-SDW fetchers deferred (proxies only). Footer stays DEGRADED.
+- [x] Step 2 first AI + eval slice: one LLM reader
+  (`pipeline/src/ai/renderers/analyst_note.py`,
+  `pipeline/src/ai/analyst_reader.py`) + eval harness
+  (`pipeline/src/eval/llm_reader_eval.py`). Baseline
+  `reports/llm_reader_eval_v1.md`: faithfulness 1.000, number accuracy 1.000
+  (deterministic, 3 synthetic rows), Brier n=0 (no outcomes claimed).
+  391/391 pytest (379 + 12 new), ruff clean. Zero ledger writes.
+- [x] Step 3: pushed to `origin fx-live-personal`. **Live green run**
+  2026-10-17 08:07–08:11 UTC published 3 calls @ 2026-10-16 (EURUSD/USDJPY
+  NEUTRAL, USDINR INR_NEUTRAL; model 2.0-live). Ledger delta = new rows
+  only: regime_calls +3 with all 19,503 prior rows byte-identical (SHA-256
+  `eec0749c…`); validation_log +12 inserts − 6 flag-only supersessions.
+  Eval on the fresh calls: `reports/llm_reader_eval_v3_latest.*` (faith
+  1.000 / num 1.000, Brier n=0). Draft PR opened to main — human merges
+  only, never auto-merge.
+- [x] Step 4: docs updated on branch (this file, README, AGENTS.md counts,
+  CONTEXT.md repair section, HANDOVER.md operator status, MASTERPLAN.md
+  phases, `docs/DB_STATUS.md` 49→58, `reports/REPAIR_CHECKPOINT.md` packets
+  1–6). 6 root gates still open; footer stays DEGRADED until operator
+  preview check. No VERIFIED RELEASE claimed.
+- [x] Step 5: footer honesty fix + owner-approved publish. Task line "keep
+  DEGRADED until truly green, then change to LIVE with date" executed: the
+  site banner was falsely DEGRADED (fallback scored only the current calendar
+  day; calls are dated by trading day by design). Web fix scores the latest
+  published day with its real DQS (0.8 gate): `queries.ts` fallback,
+  `desk/layout.tsx`, `audit-trail-banner.tsx`. Checks: `tsc --noEmit` 0,
+  biome clean, `npm run build` pass. Owner-instructed merge to main via
+  PR #20 (merge commit, no squash, no force push — receipts on the PR
+  timeline).
+
 ## Completed
 
 **Step 0: Identity Compliance Audit — COMPLETED (2026-05-18)**
@@ -43,7 +83,13 @@
 - `tests/test_simulation_engine.py` — 2 synthetic diagnostic tests
 - 264 tests passing, ruff clean, mypy clean on new modules
 
-## Current Phase: M.4 Prep + Live Monitoring
+## Current Phase: M.4 Prep + Live Monitoring (branch fx-live-personal active, 2026-10-17)
+
+> Branch `fx-live-personal` owner-instructed merge to main (PR #20, merge
+> commit): pytest 391/391, web build green, LLM reader + eval slice landed
+> with zero ledger writes on history. Site banner now honestly reads the
+> latest published day (`Pipeline: OK · DQS 1.00`). 6 root gates open — see
+> `reports/REPAIR_CHECKPOINT.md`.
 
 **Staged Pipeline v2 — Slice #16 COMPLETED (2026-06-24)**
 - Production adapters: `ProductionFetcherPort`, `ProductionWriterPort`, `ProductionAlertPort`
@@ -117,7 +163,7 @@
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| pytest | 234/234 ✅ | 234+ |
+| pytest | 391/391 ✅ (379 baseline + 12 reader/eval) | 391+ |
 | TypeScript | 0 errors ✅ | 0 |
 | Biome | Clean ✅ | Clean |
 | Build | `npm run build` ✅ | Pass |
