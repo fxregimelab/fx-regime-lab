@@ -5,7 +5,31 @@
 > no destructive DB ops without a verified backup, subagents never commit, one editor per
 > file at a time.
 
-**Last updated:** 2026-10-18 (recovery checkpoint)
+**Last updated:** 2026-10-18 (session 3 — autonomous trading-readiness push)
+
+## Session 3 outcome (autonomous trading-readiness push)
+
+- Full suite **843 passed** (was 755); Ruff clean; mypy clean (259 files).
+- **RF2b committed `a20eec5`**: replay now computes the live-definition 2Y pair spread
+  (DGS2 − causal quote; missing JPY/INR quotes stay unavailable — the earlier silent
+  raw-US-yield substitution was found by the new red tests and removed), stores it as
+  `rate_diff_2y`, and normalizes the same risk-adjusted carry as live. Independent
+  review **PASS** (10 focused tests; 180-row independent reference reconstruction;
+  prefix-invariance after future appends). Non-blocking note: EUR legacy-fallback
+  warning fires per-run, not per-date.
+- **AD-T07 committed `64445f8`** (agent-implemented, coordinator-gated): strict
+  read-only BrokerReadPort with explicit MCP schema bindings (no guessed tools),
+  numeric demo/hedging gates, exact symbol mapping, freshness/completed-bar/gap
+  checks, 3-sample evidence-bound clock. 48 tests, red-first observed. Live schema
+  discovery and terminal clock observations remain provisioning blockers.
+- **AD-T08 committed `f39e62b`**: registered-source-only calendar/news collectors
+  with affirmative CoverageReceipts, latest-revision red-event blackout, and the
+  two-publisher-family headline rule; verified-empty calendar is legitimate, weak
+  news coverage blocks entry. 27 tests.
+- **`70559c1`**: tasks/plan.md + tasks/todo.md execution index for remaining slices.
+- Owner directive recorded: complete demo-execution readiness; **no credential
+  rotation** (owner's decision). Demo trading stays impossible until graduation
+  gates pass; nothing was waived.
 
 ## Recovery checkpoint — verified current state
 
@@ -41,11 +65,20 @@
 
 | Commit | What |
 |---|---|
+| `70559c1` | docs(desk): execution index for the remaining AD slices |
+| `64445f8` | feat(desk): AD-T07 read-only broker protocol, clock and instrument boundary |
+| `f39e62b` | feat(desk): AD-T08 calendar and headline coverage with fail-closed receipts |
+| `a20eec5` | fix(backfill): live-definition 2Y pair spread and carry parity in replay (RF2b) |
+| `47c5bb9` | docs(research): post-top-up audit + recovery gates preserved |
+| `5a92695` | fix(backfill): price-population script bootstrap + subprocess regression |
+| `f85a5e6` | fix(security): embedded database credential fallbacks removed |
+| `3ba5f18` | fix(validation): batch scoring forward-price fallback removed (VQ) |
 | `0360b80` | feat(desk): AD-T12 AI attempt budgets — reserve/settle policy, production isolation |
-| `bf12c0d` | fix(validation): scorer repair — per-pair price filter, causal spot, read-only rescore audit (VR1) |
+| `bf12c0d` | fix(validation): scorer repair — per-pair price filter, causal spot, rescore audit (VR1) |
 | `1cbdb12` | fix(backfill): replay writer safety — scoped upsert + protected live/legacy dates (RF1) |
 | `2845770` | fix(desk): AD-T06 ack-shape amendment — understood_clause_ids + unresolved_conflicts |
 | `4390c77` | fix(backfill): replay signal fidelity — canonical COT/OI, raw beta rows (RF2) |
+| `8df4a9f` | fix(rate): live z-histories from canonical yields with same-day definitions (LRH) |
 | `7fa18b4` | docs(desk): AD-T06 review dispositions — spec 01 §8 ack-shape amendment + decision D7 |
 | `debde0c` | fix(desk): AD-T05 review fixes (sealed index binding, post-finalize archive rejected, safe relpaths) |
 
