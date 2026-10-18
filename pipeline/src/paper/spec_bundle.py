@@ -8,26 +8,37 @@ their prompt labels:
 - ``strategy_scientist`` — "bounded strategy scientist" (§6);
 - ``postmortem_writer`` — "evidence-based postmortem writer" (§7).
 
-Each role receives a bounded excerpt of the two rule documents
-(``BUNDLE_SOURCES``) anchored on real headings. The clause selection carries the
-mandatory runtime-context concepts of spec 06 §1: demo-only operation, the
-fixed execution universe, "model cannot trade or change policy", unknown→wait
-(hard gates), "facts must cite snapshot fields" (research packet), and the
-target is reporting-only (honesty clause). Deterministic gates enforce these
-rules; this module only reproduces their text.
+``SpecBundle`` lists the exact digest of every rule document in
+``BUNDLE_SOURCES`` (ordered path/hash pairs); each role's ``ExcerptPacket``
+lists that role's required clause IDs and embeds bounded excerpts of the real
+rule documents anchored on their visible headings. Allowed mode and expiry are
+NOT loader content: they are control-plane gates supplied at load time,
+recorded with the ``spec_loaded`` event and enforced by the control plane,
+which must refuse decisions when the bundle is outside its allowed mode or
+past expiry.
+
+This loader only reproduces anchored rule-document text and gates on clause
+IDs. It does not itself carry or enforce the mandatory runtime-context concepts
+of spec 06 §1 (demo-only operation, fixed execution universe, "model cannot
+trade or change policy", unknown→wait, facts citing snapshot fields, output
+schema, untrusted tool/page text, reporting-only target): enforcing those
+concepts belongs to deterministic gates and the AD-T13 prompt/context builder,
+not this filesystem-pure loader.
 
 ``validate_acknowledgment`` is STRICTLY EVIDENCE ONLY. It checks that a model
 returned the loaded bundle digest, its own runtime role, a strict UTC
-timestamp and the exact mandatory clause-id set. It never grants permission,
-never waives a rule, never unlocks execution and has no side effects. No API in
-this module returns authority; runtime gates must consult protected policy and
+timestamp, the exact mandatory clause-id set and a list of unresolved
+conflicts (evidence only, never a waiver). It never grants permission, never
+waives a rule, never unlocks execution and has no side effects. No API in this
+module returns authority; runtime gates must consult protected policy and
 broker state independently of any acknowledgment.
 
 Fail-closed codes: ``SPEC_UNACKNOWLEDGED`` for a missing/unreadable or changed
-source, a missing mandatory heading, a mismatched digest/role/clause set;
-``INVALID_SCHEMA`` for oversized content, unresolved placeholders, malformed
-acknowledgment payloads and unknown roles. Loading is pure filesystem read:
-no DB, broker, network, AI or production client is touched.
+source, a missing mandatory heading, a mismatched digest, a clause-set mismatch
+and an unknown role on the acknowledgment path; ``INVALID_SCHEMA`` for
+oversized content, unresolved placeholders, malformed acknowledgment payloads
+and an unknown role on the excerpt path. Loading is pure filesystem read: no
+DB, broker, network, AI or production client is touched.
 """
 
 from __future__ import annotations
@@ -69,7 +80,15 @@ _ZERO_OFFSET = timedelta(0)
 _TIMESTAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z")
 _HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*$")
 _FENCE_RE = re.compile(r"^[ \t]*(?:```|~~~)")
-_EXPECTED_ACK_KEYS = frozenset({"bundle_digest", "role", "acknowledged_at", "clauses"})
+_EXPECTED_ACK_KEYS = frozenset(
+    {
+        "bundle_digest",
+        "role",
+        "acknowledged_at",
+        "understood_clause_ids",
+        "unresolved_conflicts",
+    }
+)
 _FORBIDDEN_ACK_FRAGMENTS = ("waiv", "permission", "unlock", "grant", "authorit")
 
 
@@ -505,17 +524,16 @@ def _check_timestamp(value: object) -> None:
         )
 
 
-def _clause_ids(value: object) -> tuple[str, ...]:
+def _string_sequence(value: object, field: str, description: str) -> tuple[str, ...]:
+    """Return a validated sequence of non-empty strings for one ack field."""
     if isinstance(value, (str, bytes, bytearray)) or not isinstance(value, Sequence):
-        raise ContractError(
-            "INVALID_SCHEMA", "acknowledgment.clauses: sequence of clause ids required"
-        )
+        raise ContractError("INVALID_SCHEMA", f"acknowledgment.{field}: {description}")
     items: list[str] = []
     for index, item in enumerate(value):
         if type(item) is not str or not item.strip():
             raise ContractError(
                 "INVALID_SCHEMA",
-                f"acknowledgment.clauses[{index}]: non-empty string required",
+                f"acknowledgment.{field}[{index}]: non-empty string required",
             )
         items.append(item)
     return tuple(items)
@@ -526,15 +544,17 @@ def validate_acknowledgment(
 ) -> None:
     """Validate an evidence-only acknowledgment; return ``None`` or fail typed.
 
-    Exactly four keys are accepted. Any extra key — including waiver,
+    Exactly five keys are accepted. Any extra key — including waiver,
     permission, grant, unlock or authority-shaped names — is ``INVALID_SCHEMA``:
     a model acknowledgment may never claim a waived rule or grant permission.
     The bundle digest must match (``SPEC_UNACKNOWLEDGED``), the role must be a
     known runtime role (``SPEC_UNACKNOWLEDGED``), and ``acknowledged_at`` must
-    be a strict UTC string ending ``Z``. Clause coverage uses set equality:
-    duplicates are tolerated but add no coverage; missing or unexpected clause
-    ids are ``SPEC_UNACKNOWLEDGED``. The function has no side effects and its
-    ``None`` result is not authority.
+    be a strict UTC string ending ``Z``. ``understood_clause_ids`` coverage uses
+    set equality: duplicates are tolerated but add no coverage; missing or
+    unexpected clause ids are ``SPEC_UNACKNOWLEDGED``. ``unresolved_conflicts``
+    is a list of non-empty strings recording missing or contradictory facts as
+    evidence only — an empty list is valid and nothing here is a waiver. The
+    function has no side effects and its ``None`` result is not authority.
     """
     checked = _checked_bundle(bundle)
     payload = _ack_mapping(acknowledgment)
@@ -570,12 +590,23 @@ def validate_acknowledgment(
     _check_timestamp(payload["acknowledged_at"])
 
     required = {anchor.clause_id for anchor in anchors}
-    provided = set(_clause_ids(payload["clauses"]))
+    provided = set(
+        _string_sequence(
+            payload["understood_clause_ids"],
+            "understood_clause_ids",
+            "sequence of clause ids required",
+        )
+    )
+    _string_sequence(
+        payload["unresolved_conflicts"],
+        "unresolved_conflicts",
+        "sequence of unresolved-conflict strings required",
+    )
     missing_clauses = sorted(required - provided)
     unexpected = sorted(provided - required)
     if missing_clauses or unexpected:
         raise ContractError(
             "SPEC_UNACKNOWLEDGED",
-            "acknowledgment.clauses: "
+            "acknowledgment.understood_clause_ids: "
             f"missing {missing_clauses!r}, unexpected {unexpected!r}",
         )

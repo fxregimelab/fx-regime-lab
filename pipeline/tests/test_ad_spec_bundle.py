@@ -1,19 +1,30 @@
 """AD-T06 spec bundle loader and evidence-only acknowledgment.
 
-The suite pins the runtime spec-gate contract from spec 01 section 8 and the
-runtime prompt roles in spec 06 sections 4-7: exact rule-document bytes are
-digested, mandatory clause headings are extracted deterministically, role
-excerpts are bounded, and an acknowledgment can only ever be evidence that a
-model saw a bundle digest and clause set. No acknowledgment key, value,
-duplicate, waiver, permission or unknown clause can widen authority.
+The suite pins the amended spec 01 section 8 contract and the strict
+load/verify behavior:
 
-Behavior tests build small fixture documents under ``tmp_path`` with the real
-heading text; one content-pinning test loads the actual rule bundle.
+- ``SpecBundle`` carries the exact rule-document digests and each role excerpt
+  packet embeds that role's mandatory clause IDs;
+- the recorded acknowledgment uses the exact key set
+  ``{bundle_digest, role, acknowledged_at, understood_clause_ids,
+  unresolved_conflicts}``, where ``unresolved_conflicts`` is evidence only,
+  never a waiver;
+- exact bytes are digested, mandatory headings are extracted deterministically
+  outside fenced blocks, excerpts are bounded, and forged or malformed
+  bundles/acknowledgments fail closed with typed errors.
+
+No acknowledgment key, value, duplicate, waiver, permission or unknown clause
+can widen authority. Behavior tests build small fixture documents under
+``tmp_path`` with the real heading text; one content-pinning test loads the
+actual rule bundle.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Callable, Mapping, Sequence
+from copy import deepcopy
 from dataclasses import FrozenInstanceError
 from pathlib import Path
 from typing import cast
@@ -32,6 +43,7 @@ from src.paper.spec_bundle import (
     STRATEGY_SCIENTIST,
     ClauseAnchor,
     SpecBundle,
+    SpecFile,
     load_spec_bundle,
     required_excerpts_for,
     validate_acknowledgment,
@@ -138,20 +150,39 @@ def _ack(
     bundle: SpecBundle,
     role: str,
     *,
-    clauses: Sequence[str] | None = None,
+    understood_clause_ids: object = None,
+    unresolved_conflicts: object = None,
     acknowledged_at: object = TS,
     **extra: object,
 ) -> dict[str, object]:
-    if clauses is None:
-        clauses = [anchor.clause_id for anchor in MANDATORY_CLAUSES[role]]
+    if understood_clause_ids is None:
+        understood_clause_ids = [
+            anchor.clause_id for anchor in MANDATORY_CLAUSES[role]
+        ]
+    if unresolved_conflicts is None:
+        unresolved_conflicts = []
     payload: dict[str, object] = {
         "bundle_digest": bundle.bundle_digest,
         "role": role,
         "acknowledged_at": acknowledged_at,
-        "clauses": list(clauses),
+        "understood_clause_ids": understood_clause_ids,
+        "unresolved_conflicts": unresolved_conflicts,
     }
     payload.update(extra)
     return payload
+
+
+def _digest_for(files: Sequence[SpecFile]) -> str:
+    """Independently recompute the canonical ordered (relpath, hash) digest."""
+    document = [[file.relpath, file.digest] for file in files]
+    payload = json.dumps(
+        document,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _error(call: Callable[[], object]) -> ContractError:
@@ -197,6 +228,28 @@ def test_missing_required_clause_raises(tmp_path: Path) -> None:
     assert RESEARCH not in packet.text
 
 
+def test_duplicate_heading_ambiguity_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(
+        tmp_path,
+        framework=_framework() + f"\n## {BANNED}\nFIXTURE-DUPLICATE-HEADING\n",
+    )
+    bundle = load_spec_bundle(root)
+
+    error = _error(lambda: required_excerpts_for(bundle, RESEARCH_ANALYST, root))
+    assert error.code == "INVALID_SCHEMA"
+    assert "ambiguous" in error.detail
+
+
+def test_fenced_decoy_heading_is_not_parsed(tmp_path: Path) -> None:
+    decoy = f"```\n## {BANNED}\nFIXTURE-FENCED-DECOY\n```\n\n"
+    root = _write_fixture(tmp_path, framework=decoy + _framework())
+    bundle = load_spec_bundle(root)
+
+    packet = required_excerpts_for(bundle, RESEARCH_ANALYST, root)
+    assert _BODIES[BANNED] in packet.text
+    assert "FIXTURE-FENCED-DECOY" not in packet.text
+
+
 def test_mismatched_bundle_acknowledgment_rejected(tmp_path: Path) -> None:
     root = _write_fixture(tmp_path)
     bundle = load_spec_bundle(root)
@@ -227,6 +280,17 @@ def test_unresolved_marker_rejected(tmp_path: Path, marker: str) -> None:
     assert marker in error.detail
 
 
+def test_unresolved_marker_in_playbook_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(
+        tmp_path, playbook=_playbook() + "\nunresolved TODO: placeholder\n"
+    )
+
+    error = _error(lambda: load_spec_bundle(root))
+    assert error.code == "INVALID_SCHEMA"
+    assert BUNDLE_SOURCES[1] in error.detail
+    assert "TODO:" in error.detail
+
+
 @pytest.mark.parametrize("key", ["waive", "waiver", "permission", "unlock"])
 def test_model_acknowledgment_cannot_waive_rule(tmp_path: Path, key: str) -> None:
     root = _write_fixture(tmp_path)
@@ -243,7 +307,7 @@ def test_ack_missing_clause_rejected(tmp_path: Path) -> None:
     root = _write_fixture(tmp_path)
     bundle = load_spec_bundle(root)
     required = [anchor.clause_id for anchor in MANDATORY_CLAUSES[RESEARCH_ANALYST]]
-    acknowledgment = _ack(bundle, RESEARCH_ANALYST, clauses=required[:-1])
+    acknowledgment = _ack(bundle, RESEARCH_ANALYST, understood_clause_ids=required[:-1])
 
     error = _error(lambda: validate_acknowledgment(bundle, acknowledgment))
     assert error.code == "SPEC_UNACKNOWLEDGED"
@@ -253,7 +317,7 @@ def test_ack_missing_clause_rejected(tmp_path: Path) -> None:
 def test_ack_wrong_role_rejected(tmp_path: Path) -> None:
     root = _write_fixture(tmp_path)
     bundle = load_spec_bundle(root)
-    acknowledgment = _ack(bundle, "executor", clauses=())
+    acknowledgment = _ack(bundle, "executor", understood_clause_ids=())
 
     error = _error(lambda: validate_acknowledgment(bundle, acknowledgment))
     assert error.code == "SPEC_UNACKNOWLEDGED"
@@ -264,7 +328,7 @@ def test_ack_cross_role_clauses_rejected(tmp_path: Path) -> None:
     root = _write_fixture(tmp_path)
     bundle = load_spec_bundle(root)
     scientist_ids = [anchor.clause_id for anchor in MANDATORY_CLAUSES[STRATEGY_SCIENTIST]]
-    acknowledgment = _ack(bundle, RESEARCH_ANALYST, clauses=scientist_ids)
+    acknowledgment = _ack(bundle, RESEARCH_ANALYST, understood_clause_ids=scientist_ids)
 
     error = _error(lambda: validate_acknowledgment(bundle, acknowledgment))
     assert error.code == "SPEC_UNACKNOWLEDGED"
@@ -274,8 +338,10 @@ def test_ack_cross_role_clauses_rejected(tmp_path: Path) -> None:
 def test_acknowledgment_is_evidence_only(tmp_path: Path) -> None:
     root = _write_fixture(tmp_path)
     bundle = load_spec_bundle(root)
-    acknowledgment = _ack(bundle, RESEARCH_VERIFIER)
-    before = dict(acknowledgment)
+    acknowledgment = _ack(
+        bundle, RESEARCH_VERIFIER, unresolved_conflicts=["conflict: source A vs B"]
+    )
+    before = deepcopy(acknowledgment)
 
     assert _validate_as_object(bundle, acknowledgment) is None
     assert _validate_as_object(bundle, acknowledgment) is None
@@ -336,6 +402,73 @@ def test_deterministic_loads(tmp_path: Path) -> None:
     assert first.total_bytes == sum(file.size for file in first.files)
 
 
+def test_forged_bundle_digest_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    forged = SpecBundle(
+        bundle_digest="0" * 64,
+        files=bundle.files,
+        total_bytes=bundle.total_bytes,
+    )
+
+    error = _error(
+        lambda: validate_acknowledgment(forged, _ack(forged, RESEARCH_ANALYST))
+    )
+    assert error.code == "INVALID_SCHEMA"
+    assert "self-consistent" in error.detail
+    stale = _error(lambda: required_excerpts_for(forged, RESEARCH_ANALYST, root))
+    assert stale.code == "INVALID_SCHEMA"
+
+
+def test_forged_bundle_file_order_or_duplicates_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+
+    reordered = (bundle.files[1], bundle.files[0])
+    reordered_bundle = SpecBundle(
+        bundle_digest=_digest_for(reordered),
+        files=reordered,
+        total_bytes=sum(file.size for file in reordered),
+    )
+    error = _error(
+        lambda: validate_acknowledgment(
+            reordered_bundle, _ack(reordered_bundle, RESEARCH_ANALYST)
+        )
+    )
+    assert error.code == "INVALID_SCHEMA"
+    assert "file set" in error.detail
+
+    duplicated = (bundle.files[0], bundle.files[0], bundle.files[1])
+    duplicated_bundle = SpecBundle(
+        bundle_digest=_digest_for(duplicated),
+        files=duplicated,
+        total_bytes=sum(file.size for file in duplicated),
+    )
+    duplicate_error = _error(
+        lambda: validate_acknowledgment(
+            duplicated_bundle, _ack(duplicated_bundle, RESEARCH_ANALYST)
+        )
+    )
+    assert duplicate_error.code == "INVALID_SCHEMA"
+    assert "file set" in duplicate_error.detail
+
+
+def test_forged_bundle_total_bytes_mismatch_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    forged = SpecBundle(
+        bundle_digest=_digest_for(bundle.files),
+        files=bundle.files,
+        total_bytes=bundle.total_bytes + 1,
+    )
+
+    error = _error(
+        lambda: validate_acknowledgment(forged, _ack(forged, RESEARCH_ANALYST))
+    )
+    assert error.code == "INVALID_SCHEMA"
+    assert "total_bytes" in error.detail
+
+
 def test_bundle_dataclasses_are_frozen(tmp_path: Path) -> None:
     root = _write_fixture(tmp_path)
     bundle = load_spec_bundle(root)
@@ -380,13 +513,13 @@ def test_ack_duplicate_clause_ids_cover_exact_set(tmp_path: Path) -> None:
 
     duplicated = [*required, required[0]]
     assert _validate_as_object(
-        bundle, _ack(bundle, RESEARCH_ANALYST, clauses=duplicated)
+        bundle, _ack(bundle, RESEARCH_ANALYST, understood_clause_ids=duplicated)
     ) is None
 
     missing = [*required[:-1], required[0]]
     error = _error(
         lambda: validate_acknowledgment(
-            bundle, _ack(bundle, RESEARCH_ANALYST, clauses=missing)
+            bundle, _ack(bundle, RESEARCH_ANALYST, understood_clause_ids=missing)
         )
     )
     assert error.code == "SPEC_UNACKNOWLEDGED"
@@ -397,7 +530,7 @@ def test_ack_extra_clause_id_rejected(tmp_path: Path) -> None:
     bundle = load_spec_bundle(root)
     required = [anchor.clause_id for anchor in MANDATORY_CLAUSES[RESEARCH_ANALYST]]
     acknowledgment = _ack(
-        bundle, RESEARCH_ANALYST, clauses=[*required, "framework.invented"]
+        bundle, RESEARCH_ANALYST, understood_clause_ids=[*required, "framework.invented"]
     )
 
     error = _error(lambda: validate_acknowledgment(bundle, acknowledgment))
@@ -409,9 +542,19 @@ def test_ack_missing_key_and_wrong_types_rejected(tmp_path: Path) -> None:
     root = _write_fixture(tmp_path)
     bundle = load_spec_bundle(root)
 
-    missing = _ack(bundle, RESEARCH_ANALYST)
-    del missing["clauses"]
-    assert _error(lambda: validate_acknowledgment(bundle, missing)).code == "INVALID_SCHEMA"
+    missing_clauses = _ack(bundle, RESEARCH_ANALYST)
+    del missing_clauses["understood_clause_ids"]
+    assert (
+        _error(lambda: validate_acknowledgment(bundle, missing_clauses)).code
+        == "INVALID_SCHEMA"
+    )
+
+    missing_conflicts = _ack(bundle, RESEARCH_ANALYST)
+    del missing_conflicts["unresolved_conflicts"]
+    assert (
+        _error(lambda: validate_acknowledgment(bundle, missing_conflicts)).code
+        == "INVALID_SCHEMA"
+    )
 
     wrong = _ack(bundle, RESEARCH_ANALYST)
     wrong["bundle_digest"] = 123
@@ -421,6 +564,138 @@ def test_ack_missing_key_and_wrong_types_rejected(tmp_path: Path) -> None:
     assert _error(lambda: validate_acknowledgment(bundle, unknown)).code == "INVALID_SCHEMA"
 
 
+def test_ack_legacy_clauses_key_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    legacy = _ack(bundle, RESEARCH_ANALYST)
+    legacy["clauses"] = legacy.pop("understood_clause_ids")
+
+    error = _error(lambda: validate_acknowledgment(bundle, legacy))
+    assert error.code == "INVALID_SCHEMA"
+    assert "clauses" in error.detail
+
+
+def test_ack_non_string_clause_item_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    required = [anchor.clause_id for anchor in MANDATORY_CLAUSES[RESEARCH_ANALYST]]
+    acknowledgment = _ack(
+        bundle, RESEARCH_ANALYST, understood_clause_ids=[*required[:-1], 123]
+    )
+
+    error = _error(lambda: validate_acknowledgment(bundle, acknowledgment))
+    assert error.code == "INVALID_SCHEMA"
+    assert f"understood_clause_ids[{len(required) - 1}]" in error.detail
+
+
+def test_ack_whitespace_only_clause_id_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    required = [anchor.clause_id for anchor in MANDATORY_CLAUSES[RESEARCH_ANALYST]]
+    acknowledgment = _ack(
+        bundle, RESEARCH_ANALYST, understood_clause_ids=["   ", *required[1:]]
+    )
+
+    error = _error(lambda: validate_acknowledgment(bundle, acknowledgment))
+    assert error.code == "INVALID_SCHEMA"
+    assert "understood_clause_ids[0]" in error.detail
+
+
+@pytest.mark.parametrize("container", ["playbook.standing_rules", b"playbook.standing_rules", 7])
+def test_ack_clause_container_must_be_sequence(
+    tmp_path: Path, container: object
+) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    acknowledgment = _ack(bundle, RESEARCH_ANALYST, understood_clause_ids=container)
+
+    error = _error(lambda: validate_acknowledgment(bundle, acknowledgment))
+    assert error.code == "INVALID_SCHEMA"
+    assert "sequence of clause ids required" in error.detail
+
+
+def test_ack_non_string_key_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    payload = cast(Mapping[str, object], {123: "not-a-key"})
+
+    error = _error(lambda: validate_acknowledgment(bundle, payload))
+    assert error.code == "INVALID_SCHEMA"
+    assert "string keys" in error.detail
+
+
+def test_ack_non_string_role_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    acknowledgment = _ack(bundle, RESEARCH_ANALYST)
+    acknowledgment["role"] = 123
+
+    error = _error(lambda: validate_acknowledgment(bundle, acknowledgment))
+    assert error.code == "INVALID_SCHEMA"
+    assert "role" in error.detail
+
+
+@pytest.mark.parametrize("container", ["none encountered", b"none encountered", 7])
+def test_ack_unresolved_conflicts_container_rejected(
+    tmp_path: Path, container: object
+) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    acknowledgment = _ack(
+        bundle, RESEARCH_ANALYST, unresolved_conflicts=container
+    )
+
+    error = _error(lambda: validate_acknowledgment(bundle, acknowledgment))
+    assert error.code == "INVALID_SCHEMA"
+    assert "sequence of unresolved-conflict strings required" in error.detail
+
+
+@pytest.mark.parametrize("item", [123, "   "])
+def test_ack_unresolved_conflicts_invalid_item_rejected(
+    tmp_path: Path, item: object
+) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    acknowledgment = _ack(
+        bundle, RESEARCH_ANALYST, unresolved_conflicts=["missing: coverage", item]
+    )
+
+    error = _error(lambda: validate_acknowledgment(bundle, acknowledgment))
+    assert error.code == "INVALID_SCHEMA"
+    assert "unresolved_conflicts[1]" in error.detail
+
+
+def test_ack_unresolved_conflicts_empty_list_accepted(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    acknowledgment = _ack(bundle, RESEARCH_ANALYST, unresolved_conflicts=[])
+
+    assert _validate_as_object(bundle, acknowledgment) is None
+
+
+def test_ack_spec01_section8_key_shape_accepted(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    bundle = load_spec_bundle(root)
+    acknowledgment: dict[str, object] = {
+        "bundle_digest": bundle.bundle_digest,
+        "role": RESEARCH_ANALYST,
+        "acknowledged_at": TS,
+        "understood_clause_ids": [
+            anchor.clause_id for anchor in MANDATORY_CLAUSES[RESEARCH_ANALYST]
+        ],
+        "unresolved_conflicts": ["missing: source coverage"],
+    }
+
+    assert set(acknowledgment) == {
+        "bundle_digest",
+        "role",
+        "acknowledged_at",
+        "understood_clause_ids",
+        "unresolved_conflicts",
+    }
+    assert _validate_as_object(bundle, acknowledgment) is None
+
+
 def test_missing_source_rejected(tmp_path: Path) -> None:
     root = _write_fixture(tmp_path)
     (root / BUNDLE_SOURCES[0]).unlink()
@@ -428,6 +703,23 @@ def test_missing_source_rejected(tmp_path: Path) -> None:
     error = _error(lambda: load_spec_bundle(root))
     assert error.code == "SPEC_UNACKNOWLEDGED"
     assert BUNDLE_SOURCES[0] in error.detail
+
+
+def test_empty_rule_document_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path, framework="")
+
+    error = _error(lambda: load_spec_bundle(root))
+    assert error.code == "INVALID_SCHEMA"
+    assert "empty" in error.detail
+
+
+def test_non_utf8_rule_document_rejected(tmp_path: Path) -> None:
+    root = _write_fixture(tmp_path)
+    (root / BUNDLE_SOURCES[0]).write_bytes(b"\xff\xfe\x00 not valid utf-8")
+
+    error = _error(lambda: load_spec_bundle(root))
+    assert error.code == "INVALID_SCHEMA"
+    assert "UTF-8" in error.detail
 
 
 def test_unknown_role_excerpt_rejected(tmp_path: Path) -> None:
