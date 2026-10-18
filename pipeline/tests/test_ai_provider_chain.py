@@ -9,6 +9,7 @@ import pytest
 
 from src.ai.providers.chain import FallbackProviderChain
 from src.ai.rate_limiter import DAILY_REQUEST_LIMIT, check_limit
+from src.ai.telemetry import NonRetryableAttemptError
 
 
 def test_check_limit_raises_when_at_cap() -> None:
@@ -94,13 +95,20 @@ def test_fallback_chain_skips_groq_when_unavailable() -> None:
     mock_create.assert_awaited_once()
 
 
-def test_fallback_chain_rate_limit_skips_provider_api_calls() -> None:
+def test_fallback_chain_rate_limit_is_nonretryable_and_skips_provider_api_calls() -> None:
+    """AD-T12: a cap breach is nonretryable — one read, no send, no retries.
+
+    The previous behavior (cap exception swallowed as a provider failure and the
+    chain kept trying) is the fail-first item this contract replaces.
+    """
     chain = FallbackProviderChain()
 
     with patch("src.ai.providers.chain.groq.groq_available", return_value=True), patch(
         "src.ai.providers.chain.check_limit",
         side_effect=RuntimeError("Daily AI request limit reached (180/180)"),
-    ), patch("src.ai.providers.chain.groq.async_groq_client") as groq_client_factory, patch(
+    ) as check_limit_mock, patch(
+        "src.ai.providers.chain.groq.async_groq_client"
+    ) as groq_client_factory, patch(
         "src.ai.providers.chain.gemini.gemini_available", return_value=False
     ), patch(
         "src.ai.providers.chain.nim.nim_available", return_value=False
@@ -116,7 +124,7 @@ def test_fallback_chain_rate_limit_skips_provider_api_calls() -> None:
         or_client.chat.completions.create = AsyncMock()
         or_client_factory.return_value = or_client
 
-        with pytest.raises(RuntimeError, match="All AI providers failed after retries"):
+        with pytest.raises(NonRetryableAttemptError, match="Daily AI request limit reached"):
             asyncio.run(
                 chain.call_async(
                     [{"role": "user", "content": "hi"}],
@@ -126,5 +134,6 @@ def test_fallback_chain_rate_limit_skips_provider_api_calls() -> None:
                 )
             )
 
+    check_limit_mock.assert_called_once()
     groq_client.chat.completions.create.assert_not_awaited()
     or_client.chat.completions.create.assert_not_awaited()
