@@ -13,27 +13,45 @@ on-disk contract:
 
 The frozen ``SnapshotManifest`` record (contracts.py, used exactly as defined,
 never redefined) carries a single ``content_digest``/``content_relative_path``
-and cannot hold per-file entries; per the AD-T05 packet's escape rule no field
-was added to it. The record describes the snapshot's primary content file
-(``content_relative_path``/``content_digest``, with ``available_at`` as its
-as-of and ``clock_profile_digest`` pinning the clock artifact); the sealed
-index carries the per-file digest/as-of/row-count listing that the record
-cannot. ``verify_snapshot`` cross-checks the two so a consistently rewritten
-manifest whose ``content_digest`` disagrees with the sealed index still fails.
+slot, and this module binds that slot to the sealed listing itself: the
+manifest must name ``archive.index.json`` and its ``content_digest`` must equal
+the SHA-256 of the index's exact canonical bytes (use ``sealed_index_digest``
+to read it before building the record). ``manifest.sha256`` therefore
+transitively anchors every archived file: manifest -> sealed index -> per-file
+digests. ``finalize_snapshot`` and ``verify_snapshot`` both enforce the
+binding, so flipping or consistently rewriting any payload and/or the index
+without also rewriting the manifest record is always ``HASH_MISMATCH``.
+
+External-witness boundary (spec 01 section 7): local verification cannot
+detect an attacker who consistently rewrites every local artifact (payloads +
+index + ``manifest.json`` + ``manifest.sha256``). Detecting that requires the
+externally witnessed head hash that later tasks journal and compare — a local
+chain alone cannot prove tail integrity.
 
 Fail-closed reason codes: ``INVALID_SCHEMA`` (unsafe/non-normalized relpaths,
-reserved names, wrong parameter types, malformed documents, unlisted reads,
-allowlist violations), ``SOURCE_STALE`` (row timestamp later than ``as_of``),
-``HASH_MISMATCH`` (any digest, byte-identity, directory-equality, symlink or
-missing-evidence failure), ``CONFLICT`` (duplicate/revised archive of the same
-relpath, second finalize, non-empty workspace reuse), ``SNAPSHOT_NOT_AVAILABLE``
-(missing workspace/index/manifest where the operation needs it).
+reserved names, Windows-reserved or trailing-space/dot path segments, wrong
+parameter types, malformed documents, manifest/index binding violations,
+unlisted reads, allowlist violations), ``SOURCE_STALE`` (row timestamp later
+than ``as_of``), ``HASH_MISMATCH`` (any digest, byte-identity,
+directory-equality, symlink, canonical-form or missing-evidence failure),
+``CONFLICT`` (duplicate/revised archive of the same relpath, any archiving or
+second finalize after ``manifest.json`` exists, non-empty workspace reuse),
+``SNAPSHOT_NOT_AVAILABLE`` (missing workspace/index/manifest where the
+operation needs it).
 
 Duplicate behavior: re-archiving identical bytes with identical ``as_of`` and
 row count returns the original digest; any other duplicate or revision of the
 same relpath is ``CONFLICT`` — revised input must become another snapshot.
-Finalize is a single immutable commit; both writes are temp-file+replace, so a
-crash leaves a flagged ``.ad-tmp`` leftover rather than a half-committed state.
+
+Commit order and crash behavior: ``archive_file`` writes payload bytes first
+and the updated sealed index second; ``finalize_snapshot`` writes
+``manifest.json`` third and ``manifest.sha256`` last. Each write is
+temp-file+replace, so a crash can leave an ``.ad-tmp`` leftover or a partial
+snapshot with ``manifest.json`` but no ``manifest.sha256``. Every partial state
+fails closed: a retry of ``archive_file`` or ``finalize_snapshot`` is
+``CONFLICT``, ``verify_snapshot`` is ``HASH_MISMATCH``, and nothing is
+auto-repaired — recovery is a manual, reviewed operation.
+
 No DB, broker, network or production client is touched. ``restore_snapshot``
 gates every listed path against an fnmatch allowlist before writing any byte
 and refuses targets inside the snapshot directory. ``fnmatch.fnmatchcase`` is
@@ -65,6 +83,15 @@ MANIFEST_DIGEST_NAME = "manifest.sha256"
 INDEX_NAME = "archive.index.json"
 
 _RESERVED_RELPATHS = frozenset({MANIFEST_NAME, MANIFEST_DIGEST_NAME, INDEX_NAME})
+# Microsoft's reserved device names: a path segment whose stem (text before the
+# first dot) matches one is unusable on Windows regardless of extension, e.g.
+# ``aux.txt`` aliases ``AUX``. COM0/LPT0 are included per Microsoft's reserved
+# names list.
+_WINDOWS_RESERVED_STEMS = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{index}" for index in range(10)}
+    | {f"LPT{index}" for index in range(10)}
+)
 _SNAPSHOT_ID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 _DIGEST_RE = re.compile(r"[0-9a-f]{64}")
 _ZERO_OFFSET = timedelta(0)
@@ -100,6 +127,17 @@ def _validate_relpath(name: str, value: object) -> str:
     parts = PurePosixPath(value).parts
     if not parts or any(part in ("..", ".") for part in parts):
         raise ContractError("INVALID_SCHEMA", f"{name}: '..'/'./' segments are not allowed")
+    for part in parts:
+        if part.endswith((" ", ".")):
+            raise ContractError(
+                "INVALID_SCHEMA",
+                f"{name}: path segment {part!r} must not end with a space or dot"
+                " (Windows normalizes/aliases them)",
+            )
+        if part.split(".", 1)[0].upper() in _WINDOWS_RESERVED_STEMS:
+            raise ContractError(
+                "INVALID_SCHEMA", f"{name}: Windows-reserved path segment {part!r}"
+            )
     if "/".join(parts) != value:
         raise ContractError("INVALID_SCHEMA", f"{name}: paths must be POSIX-normalized")
     return value
@@ -236,7 +274,12 @@ def _load_index(workspace: Path, *, missing_code: str = "SNAPSHOT_NOT_AVAILABLE"
     _ArchiveEntry, ...
 ]:
     raw = _read_file(workspace / INDEX_NAME, missing_code=missing_code, name=INDEX_NAME)
-    return _parse_index(raw)
+    entries = _parse_index(raw)
+    if raw != _canonical_index_bytes(entries):
+        raise ContractError(
+            "HASH_MISMATCH", f"{INDEX_NAME}: bytes are not the canonical sealed listing"
+        )
+    return entries
 
 
 def _entries_by_path(entries: Sequence[_ArchiveEntry]) -> dict[str, _ArchiveEntry]:
@@ -276,7 +319,12 @@ def archive_file(
 
     ``as_of`` must be aware UTC; every given row timestamp must be aware UTC
     and not later than ``as_of`` (equal is allowed) or ``SOURCE_STALE``.
-    Returns the file's lowercase SHA-256 hex digest.
+    Returns the file's lowercase SHA-256 hex digest. Writes the payload bytes
+    first and the updated sealed index second (temp-file+replace each), so a
+    crash can leave at most an unlisted payload — never a listed ghost. Once
+    ``manifest.json`` (or ``manifest.sha256``) exists the snapshot is a
+    finalized single commit: any further archiving is ``CONFLICT`` with no
+    write.
     """
     clean = _validate_relpath("relpath", relpath)
     if type(payload) is not bytes:
@@ -300,6 +348,11 @@ def archive_file(
     workspace = Path(snapshot_dir)
     if not workspace.is_dir():
         raise ContractError("SNAPSHOT_NOT_AVAILABLE", "snapshot workspace does not exist")
+    if (workspace / MANIFEST_NAME).exists() or (workspace / MANIFEST_DIGEST_NAME).exists():
+        raise ContractError(
+            "CONFLICT",
+            "snapshot already shows a committed manifest; no file may be archived afterwards",
+        )
     entries = _load_index(workspace) if (workspace / INDEX_NAME).exists() else ()
     digest = _sha256(payload)
     existing = _entries_by_path(entries).get(clean)
@@ -325,12 +378,35 @@ def archive_file(
     return digest
 
 
+def sealed_index_digest(snapshot_dir: Path) -> str:
+    """SHA-256 of the sealed index's exact canonical bytes.
+
+    Callers put this digest into ``SnapshotManifest.content_digest`` with
+    ``content_relative_path`` set to ``INDEX_NAME`` before calling
+    ``finalize_snapshot``; the committed manifest record then anchors every
+    listed file transitively.
+    """
+    workspace = Path(snapshot_dir)
+    if not workspace.is_dir():
+        raise ContractError("SNAPSHOT_NOT_AVAILABLE", "snapshot workspace does not exist")
+    entries = _load_index(workspace)
+    return _sha256(_canonical_index_bytes(entries))
+
+
 def finalize_snapshot(snapshot_dir: Path, manifest: SnapshotManifest) -> str:
     """Commit canonical ``manifest.json`` + ``manifest.sha256``; return the digest.
 
-    The manifest's ``content_relative_path`` must already be archived and its
-    ``content_digest`` must match the sealed index, else ``INVALID_SCHEMA`` /
-    ``HASH_MISMATCH``. A second finalize of the same workspace is ``CONFLICT``
+    The manifest's single content slot must be bound to the sealed listing
+    itself: ``content_relative_path`` must equal ``INDEX_NAME`` and
+    ``content_digest`` must equal the SHA-256 of the index's exact canonical
+    bytes (see ``sealed_index_digest``), else ``INVALID_SCHEMA`` /
+    ``HASH_MISMATCH``. ``snapshot_id`` must equal the directory name, else
+    ``INVALID_SCHEMA``. Commit order is payloads -> sealed index ->
+    ``manifest.json`` -> ``manifest.sha256`` last, so a crash can leave a
+    partial snapshot with ``manifest.json`` but no ``manifest.sha256``; that
+    state fails closed (verification is ``HASH_MISMATCH``, retries are
+    ``CONFLICT``) and is never auto-repaired — recovery is a manual, reviewed
+    operation. A second finalize of the same workspace is ``CONFLICT``
     (manifests are immutable; another revision means another snapshot id).
     """
     if type(manifest) is not SnapshotManifest:
@@ -338,20 +414,26 @@ def finalize_snapshot(snapshot_dir: Path, manifest: SnapshotManifest) -> str:
     workspace = Path(snapshot_dir)
     if not workspace.is_dir():
         raise ContractError("SNAPSHOT_NOT_AVAILABLE", "snapshot workspace does not exist")
-    if (workspace / MANIFEST_NAME).exists():
-        raise ContractError(
-            "CONFLICT", "snapshot already finalized; revised input requires a new snapshot id"
-        )
-    entries = _load_index(workspace)
-    primary = _entries_by_path(entries).get(manifest.content_relative_path)
-    if primary is None:
+    if manifest.snapshot_id != workspace.name:
         raise ContractError(
             "INVALID_SCHEMA",
-            f"{manifest.content_relative_path!r}: manifest content path is not archived",
+            f"manifest.snapshot_id {manifest.snapshot_id!r} does not match directory name"
+            f" {workspace.name!r}",
         )
-    if primary.sha256 != manifest.content_digest:
+    if manifest.content_relative_path != INDEX_NAME:
         raise ContractError(
-            "HASH_MISMATCH", "manifest content_digest disagrees with the archived content"
+            "INVALID_SCHEMA",
+            f"manifest.content_relative_path must be the sealed listing {INDEX_NAME!r}",
+        )
+    if (workspace / MANIFEST_NAME).exists() or (workspace / MANIFEST_DIGEST_NAME).exists():
+        raise ContractError(
+            "CONFLICT",
+            "snapshot already shows a committed manifest; revised input requires a new snapshot id",
+        )
+    entries = _load_index(workspace)
+    if manifest.content_digest != _sha256(_canonical_index_bytes(entries)):
+        raise ContractError(
+            "HASH_MISMATCH", "manifest content_digest disagrees with the sealed index bytes"
         )
     payload = canonical_bytes(manifest)
     _write_atomic(workspace / MANIFEST_NAME, payload)
@@ -404,13 +486,21 @@ def verify_snapshot(
     """Verify every digest, byte and directory entry; return the parsed manifest.
 
     Checks, in order: manifest digest vs ``manifest.sha256``; manifest file
-    bytes vs the record's canonical bytes; sealed-index parse; strict directory
-    equality (only the three module files plus listed data files may exist);
-    every listed file exists, is not a symlink, hashes to its recorded digest
-    and carries an aware-UTC ``as_of``; manifest/index content agreement; and,
-    when ``dependency_lookup`` is given, each provided artifact's bytes must
-    hash to the digest recorded for that listed name. Any failure is a typed
-    ``ContractError`` (``HASH_MISMATCH`` / ``INVALID_SCHEMA``).
+    bytes vs the record's canonical bytes; the content-slot binding
+    (``content_relative_path`` must be ``INDEX_NAME`` and ``content_digest``
+    must equal the SHA-256 of the index's exact canonical bytes, so flipping or
+    consistently rewriting payloads and/or the listing breaks the chain);
+    sealed-index parse and canonical-form check; strict directory equality
+    (only the three module files plus listed data files may exist — equality
+    is file-level, so an extra empty directory is not detected); every listed
+    file exists, is not a symlink, hashes to its recorded digest and carries
+    an aware-UTC ``as_of``; and, when ``dependency_lookup`` is given, each
+    provided artifact's bytes must hash to the digest recorded for that listed
+    name. Verification never writes or repairs anything. Any failure is a
+    typed ``ContractError`` (``HASH_MISMATCH`` / ``INVALID_SCHEMA``). A full
+    consistent local rewrite (payloads + index + manifest + manifest.sha256)
+    is not detectable here; spec 01 section 7 requires the externally
+    witnessed head hash for that.
     """
     workspace = Path(snapshot_dir)
     if not workspace.is_dir():
@@ -430,18 +520,17 @@ def verify_snapshot(
         raise ContractError("HASH_MISMATCH", "manifest digest does not match manifest.sha256")
     if manifest_bytes != canonical_bytes(manifest):
         raise ContractError("HASH_MISMATCH", "manifest.json is not the canonical record bytes")
-    entries = _load_index(workspace, missing_code="HASH_MISMATCH")
-    by_path = _entries_by_path(entries)
-    primary = by_path.get(manifest.content_relative_path)
-    if primary is None:
+    if manifest.content_relative_path != INDEX_NAME:
         raise ContractError(
             "INVALID_SCHEMA",
-            f"{manifest.content_relative_path!r}: manifest content path is not listed",
+            f"manifest.content_relative_path must be the sealed listing {INDEX_NAME!r}",
         )
-    if primary.sha256 != manifest.content_digest:
+    entries = _load_index(workspace, missing_code="HASH_MISMATCH")
+    if manifest.content_digest != _sha256(_canonical_index_bytes(entries)):
         raise ContractError(
-            "HASH_MISMATCH", "manifest content_digest disagrees with the sealed index"
+            "HASH_MISMATCH", "manifest content_digest disagrees with the sealed index bytes"
         )
+    by_path = _entries_by_path(entries)
     expected = {MANIFEST_NAME, MANIFEST_DIGEST_NAME, INDEX_NAME} | set(by_path)
     found = set(_scan_tree(workspace))
     missing = sorted(expected - found)
