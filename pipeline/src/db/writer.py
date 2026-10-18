@@ -895,13 +895,18 @@ def bulk_write_backfill_results(
     pair: str,
     results: Sequence[tuple[SignalRow, RegimeCall]],
 ) -> None:
-    """Bulk-persist backfill (signal, call) tuples for a single pair.
+    """Bulk-upsert backfill (signal, call) tuples for a single pair.
 
-    This is a deliberate, audited exception for ``signals`` and
-    ``regime_calls``: backfills must first purge stale reconstructed rows
-    for the pair before inserting the regenerated history. Triggers are
-    disabled for the duration, deletes/inserts are committed per batch, and
-    triggers are re-enabled before the function returns.
+    The write is scoped to the reconstruction ``model_version`` value(s)
+    carried by ``results``: existing rows for the pair with any other
+    ``model_version`` (including NULL legacy rows) are protected live/legacy
+    data. Replay rows dated on those protected dates are skipped with a
+    warning instead of deleting anything, and rows that are written use
+    ``INSERT ... ON CONFLICT (pair, date) DO UPDATE`` so re-runs update
+    reconstructed rows in place while auxiliary ``signals`` columns keep
+    their values. The ``regime_calls`` immutability/audit triggers are
+    disabled only for the duration of the write and are always re-enabled
+    in a ``finally`` block.
 
     ``validation_log`` is intentionally untouched: it is an immutable
     append-only ledger and is never deleted or updated here (the trigger
