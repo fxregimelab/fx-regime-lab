@@ -1,42 +1,27 @@
--- Backfill validation_log per-horizon net columns
--- Uses CASE for per-pair costs
-
-UPDATE validation_log
-SET
-    cost_bps_t5 = CASE pair
-        WHEN 'EURUSD' THEN 0.2
-        WHEN 'USDJPY' THEN 0.3
-        WHEN 'USDINR' THEN 1.0
-        ELSE 0.5
-    END,
-    cost_bps_t20 = CASE pair
-        WHEN 'EURUSD' THEN 0.2
-        WHEN 'USDJPY' THEN 0.3
-        WHEN 'USDINR' THEN 1.0
-        ELSE 0.5
-    END,
-    correct_net_t5 = (
-        predicted_direction = actual_direction_t5
-        AND predicted_direction IS NOT NULL
-        AND actual_direction_t5 IS NOT NULL
-        AND predicted_direction != 'NEUTRAL'
-    ),
-    correct_net_t20 = (
-        predicted_direction = actual_direction_t20
-        AND predicted_direction IS NOT NULL
-        AND actual_direction_t20 IS NOT NULL
-        AND predicted_direction != 'NEUTRAL'
-    ),
-    log_return_net_bps_t5 = log_return_t5_bps - CASE pair
-        WHEN 'EURUSD' THEN 0.2
-        WHEN 'USDJPY' THEN 0.3
-        WHEN 'USDINR' THEN 1.0
-        ELSE 0.5
-    END,
-    log_return_net_bps_t20 = log_return_t20_bps - CASE pair
-        WHEN 'EURUSD' THEN 0.2
-        WHEN 'USDJPY' THEN 0.3
-        WHEN 'USDINR' THEN 1.0
-        ELSE 0.5
-    END
-WHERE correct_net_t5 IS NULL;
+-- RETIRED (VQ, 2026-10-18): this file is a comment-only no-op and must not be run.
+--
+-- The former script backfilled validation_log per-horizon net columns over a
+-- direct SQL UPDATE and is superseded because it:
+--
+--   * used a wrong prediction mapping: `predicted_direction = actual_direction_t5`
+--     compares call vocabulary (BULLISH / BEARISH / NEUTRAL) against realized
+--     vocabulary (UP / DOWN / NEUTRAL), so every directional row was marked
+--     incorrect (see src/validation/calculator.py:is_correct / is_correct_net);
+--   * carried a divergent per-pair cost table (USDINR 1.0 bps vs the canonical
+--     10.0 bps in src/validation/calculator.py:COST_BPS_ROUND_TRIP), producing
+--     log_return_net_bps_* values that disagree with the canonical calculator;
+--   * bypassed the sanctioned writer API and the append-only ledger protocol
+--     (all DB writes must go through pipeline/src/db/writer.py).
+--
+-- Canonical repair paths:
+--
+--   * recompute math:    pipeline/src/validation/calculator.py
+--                        (compute_horizon_metrics / horizon_metrics_to_payload)
+--   * read-only audit:   pipeline/scripts/audit_validation_rescore.py
+--   * sanctioned fixes:  pipeline/src/db/writer.py (bulk_rewrite_validation_rows,
+--                        supersede_validation_row, update_validation_log_row)
+--   * REST bulk backfill: pipeline/scripts/_bulk_backfill_validation_rest.py
+--
+-- Retired in place (comment-only, not renamed) so references in briefs and git
+-- history still resolve, and no tooling can accidentally re-execute the stale
+-- mapping against the live ledger.

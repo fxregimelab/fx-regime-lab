@@ -9,7 +9,13 @@ from dotenv import load_dotenv
 load_dotenv(".env")
 
 DB_HOST = os.getenv("SUPABASE_DB_HOST", "db.weaaacohvzzgkgxzpaee.supabase.co")
-DB_PASSWORD = os.getenv("SUPABASE_DB_PASSWORD", "6bT2H0t6FwBZtOr0H70qEYx3")
+DB_PASSWORD = os.getenv("SUPABASE_DB_PASSWORD")
+if not DB_PASSWORD:
+    raise SystemExit(
+        "SUPABASE_DB_PASSWORD is not set. Export it in the environment or add it "
+        "to .env (SUPABASE_DB_PASSWORD=...) before running this script; "
+        "refusing to connect without credentials."
+    )
 DB_NAME = "postgres"
 DB_USER = "postgres"
 DB_PORT = "5432"
