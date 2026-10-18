@@ -1,14 +1,19 @@
 """Bulk backfill validation_log via Supabase REST.
 
 Loads prices and regime_calls in memory, computes T+5/T+20 metrics, and
-upserts validation_log rows in batches. Idempotent via upsert on
-(call_date, pair).
+inserts validation_log rows in batches (skipping dates that are already
+validated).
+
+Price loading is pair-scoped (``historical_prices`` rows are filtered by
+``pair``) and spot resolution is causal: only observations on or before the
+target date are used (no lookahead).
 """
 
 from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import date, timedelta
 from typing import Any, cast
 
@@ -19,20 +24,23 @@ from src.validation.calendar import add_trading_days
 logger = logging.getLogger(__name__)
 
 
-def _paginate_table(table: str, select: str, *, order_by: str = "id") -> list[dict[str, Any]]:
+def _paginate_table(
+    table: str,
+    select: str,
+    *,
+    order_by: str = "id",
+    eq_filters: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
     """Fetch all rows from a Supabase table, paginating past the 1000-row limit."""
     client = writer._client()
     rows: list[dict[str, Any]] = []
     start = 0
     page_size = 1000
     while True:
-        res = (
-            client.table(table)
-            .select(select)
-            .order(order_by)
-            .range(start, start + page_size - 1)
-            .execute()
-        )
+        query: Any = client.table(table).select(select)
+        for column, value in (eq_filters or {}).items():
+            query = query.eq(column, value)
+        res = query.order(order_by).range(start, start + page_size - 1).execute()
         page = cast(list[dict[str, Any]], res.data or [])
         if not page:
             break
@@ -44,12 +52,20 @@ def _paginate_table(table: str, select: str, *, order_by: str = "id") -> list[di
 
 
 def _load_prices() -> dict[str, dict[date, float]]:
+    """Load ``historical_prices`` per pair.
+
+    Every query MUST be filtered by ``pair``: without the filter the table
+    pagination mixes all pairs' rows into the same series (last row per date
+    wins), which contaminated live validation_log rows with impossible values
+    (e.g. -5057.66 bps scored on both EURUSD and USDINR for 2026-05-20).
+    """
     out: dict[str, dict[date, float]] = defaultdict(dict)
     for pair in ("EURUSD", "USDJPY", "USDINR"):
         rows = _paginate_table(
             "historical_prices",
             "date,close",
             order_by="date",
+            eq_filters={"pair": pair},
         )
         for row in rows:
             d = row["date"]
@@ -59,16 +75,22 @@ def _load_prices() -> dict[str, dict[date, float]]:
     return dict(out)
 
 
-def _get_spot(prices: dict[date, float], target: date) -> float | None:
+# Backward-fill window: bridges weekends and normal FX market holidays. Longer
+# gaps mean the price series lacks coverage for the target date and must not be
+# bridged with stale observations.
+_MAX_SPOT_BACKFILL_DAYS = 9
+
+
+def _get_spot(prices: Mapping[date, float], target: date) -> float | None:
+    """Spot on or before *target*: exact match, else last observation ≤ target.
+
+    Causal (no lookahead): dates after *target* are never used. Returns None
+    when no observation exists within ``_MAX_SPOT_BACKFILL_DAYS`` before the
+    target date.
+    """
     if target in prices:
         return prices[target]
-    # Forward-fill (next available)
-    for offset in range(1, 10):
-        d = target + timedelta(days=offset)
-        if d in prices:
-            return prices[d]
-    # Backward-fill (previous available)
-    for offset in range(1, 10):
+    for offset in range(1, _MAX_SPOT_BACKFILL_DAYS + 1):
         d = target - timedelta(days=offset)
         if d in prices:
             return prices[d]
