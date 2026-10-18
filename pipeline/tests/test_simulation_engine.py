@@ -20,6 +20,9 @@ from datetime import date, timedelta
 from typing import Any
 from unittest.mock import patch
 
+import numpy as np
+import pytest
+
 from src.backfill import simulation_engine
 from src.backfill.simulation_engine import (
     simulate_all_days,
@@ -34,6 +37,7 @@ from src.signals.cot import (
     compute_cot_percentile,
     compute_cot_smart_spread_percentile,
 )
+from src.signals.rate import compute_risk_adjusted_carry_v2, normalize_rate_signal
 from src.types import CotRow, SpotBar
 
 START = date(2024, 1, 1)
@@ -299,3 +303,72 @@ def test_simulation_v1_and_v2_share_coverage_and_output_ranges() -> None:
         assert -2.0 <= float(call.signal_composite) <= 2.0
         assert 0.0 <= float(call.confidence) <= 1.0
         assert call.predicted_direction in {"BULLISH", "BEARISH", "NEUTRAL"}
+
+
+@pytest.mark.parametrize("series", ["IRLTLT01JPM156N", "INDIRLTLT01STM"])
+def test_pair_spread_never_substitutes_raw_us_yield_for_missing_quote(series: str) -> None:
+    day = date(2024, 3, 1)
+    curves = {"DGS2": {day: 4.5}, series: {day + timedelta(days=1): 0.5}}
+    assert simulation_engine._pair_spread_2y(day, curves, series) is None
+
+
+@pytest.mark.parametrize("pair", ["USDJPY", "USDINR"])
+def test_missing_non_eur_history_retains_required_quote_identity(pair: str) -> None:
+    series = simulation_engine._rate_quote_2y_series(pair, {})
+    assert series == simulation_engine.YIELD_QUOTE_2Y_MAP[pair]
+
+
+def test_pair_spread_monthly_fill_and_eur_legacy_are_prefix_invariant() -> None:
+    day = date(2024, 3, 15)
+    curves = {
+        "DGS2": {day - timedelta(days=1): 4.5},
+        "IRLTLT01JPM156N": {date(2024, 3, 1): 0.5, date(2024, 4, 1): 9.0},
+    }
+    assert simulation_engine._pair_spread_2y(day, curves, "IRLTLT01JPM156N") == 4.0
+    assert simulation_engine._pair_spread_2y(day, curves, None) == 4.5
+    curves["ECBDFR"] = {day + timedelta(days=1): 99.0}
+    assert simulation_engine._pair_spread_2y(day, curves, "ECBDFR") == 4.5
+    assert simulation_engine._pair_spread_2y(date(2000, 1, 1), curves, None) is None
+
+
+def test_replay_rate_normalization_uses_live_carry_and_strictly_prior_history() -> None:
+    days = _business_days(START, N_BARS)
+    spots, signals, curves = _make_spot_bars(days), _make_signals(days), _make_yields(days)
+    curves["ECBDFR"] = {days[0]: 2.0, days[90]: 2.25}
+    returns = np.diff(np.log([spots[d].close for d in days]))
+
+    def reference_carry(index: int, iv: float | None) -> float:
+        quote = 2.0 if index < 90 else 2.25
+        rv = float(np.std(returns[index - 21:index]) * np.sqrt(252) * 100)
+        carry = compute_risk_adjusted_carry_v2(
+            curves["DGS2"][days[index]] - quote, rv, iv, "EURUSD"
+        )
+        assert carry is not None
+        return carry
+
+    with (
+        patch.object(simulation_engine, "_load_all_spot_bars", return_value=spots),
+        patch.object(simulation_engine, "_load_historical_cot", return_value={}),
+        patch.object(
+            simulation_engine, "normalize_rate_signal", wraps=normalize_rate_signal
+        ) as norm,
+    ):
+        rows = simulate_all_days_v2(
+            "EURUSD", days[0], days[-1], curves, signals_by_date=signals
+        )
+    assert len(rows) == N_BARS - START_INDEX == norm.call_count
+    for index, ((signal, _), call) in enumerate(
+        zip(rows, norm.call_args_list, strict=True), start=START_INDEX
+    ):
+        quote = 2.0 if index < 90 else 2.25
+        assert signal.rate_diff_2y == pytest.approx(curves["DGS2"][days[index]] - quote)
+        assert call.args[0] == pytest.approx(reference_carry(index, 10.0))
+        assert call.args[2] == pytest.approx([reference_carry(i, None) for i in range(21, index)])
+        # Returned rows must carry the Z the live chain produced, not just any
+        # call the spy observed (review finding: assert on the returned values).
+        reference_z = normalize_rate_signal(
+            reference_carry(index, 10.0),
+            "EURUSD",
+            [reference_carry(i, None) for i in range(21, index)],
+        )
+        assert signal.rate_z_tactical == pytest.approx(reference_z.z_tactical)

@@ -5,6 +5,13 @@ using stored yields from ``historical_yields`` and stored signals.  The v2 engin
 (``--v2``) additionally reads canonical COT/OI history from ``historical_cot``;
 the v1 engine omits COT (which degrades gracefully in the model).
 
+Rate inputs follow the live definitions (post-LRH): the 2Y pair spread is
+``DGS2 − quote`` (quote: ``ECBDFR`` / ``IRLTLT01JPM156N`` / ``INDIRLTLT01STM``),
+each leg causally forward-filled from ``historical_yields``, and the v2
+normalization consumes the live risk-adjusted carry
+(``compute_risk_adjusted_carry_v2``).  EUR replays under the legacy DGS2-level
+definition until ``ECBDFR`` history exists, with a warning.
+
 Usage::
 
     python -m src.backfill.simulation_engine --pair USDJPY --start 1997-01-01
@@ -46,6 +53,7 @@ from src.signals.cot import (
 )
 from src.signals.open_interest import compute_oi_signal
 from src.signals.rate import (
+    compute_risk_adjusted_carry_v2,
     normalize_rate_signal,
     rate_direction_from_spreads,
 )
@@ -71,6 +79,15 @@ YIELD_ID_MAP: dict[str, dict[str, str]] = {
     "EURUSD": {"base": "DGS2", "quote_10y": "IRLTLT01DEM156N"},
     "USDJPY": {"base": "DGS2", "quote_10y": "IRLTLT01JPM156N"},
     "USDINR": {"base": "DGS2", "quote_10y": "INDIRLTLT01STM"},
+}
+
+# Live universe ``yield_quote`` legs behind the 2Y pair spread (same mapping as the
+# orchestrator's ``universe`` rows and the staged ``RateFamily`` adapter):
+# ``spread_2y = DGS2 − quote``.
+YIELD_QUOTE_2Y_MAP: dict[str, str] = {
+    "EURUSD": "ECBDFR",
+    "USDJPY": "IRLTLT01JPM156N",
+    "USDINR": "INDIRLTLT01STM",
 }
 
 
@@ -157,6 +174,53 @@ def _get_yield(
     return series[max(candidates)]
 
 
+def _rate_quote_2y_series(
+    pair: str, yields_by_series: dict[str, dict[date, float]]
+) -> str | None:
+    """Quote series for the live-definition 2Y spread; warns when its history is absent.
+
+    EUR currently has no ``ECBDFR`` rows in ``historical_yields`` (backfill pending), so
+    it replays under the legacy definition with one warning per run. JPY/INR quote legs
+    are monthly FRED series that forward-fill onto the daily grid.
+    """
+
+    quote_2y_id = YIELD_QUOTE_2Y_MAP[pair]
+    if not yields_by_series.get(quote_2y_id):
+        logger.warning(
+            "Rate 2Y spread: no %s history in historical_yields for %s — %s",
+            quote_2y_id,
+            pair,
+            "using legacy DGS2-level definition" if pair == "EURUSD" else "spread unavailable",
+        )
+    return quote_2y_id
+
+
+def _pair_spread_2y(
+    as_of: date,
+    yields_by_series: dict[str, dict[date, float]],
+    quote_2y_id: str | None,
+) -> float | None:
+    """Live-definition 2Y pair spread ``DGS2 − quote`` with causal forward-fill.
+
+    Mirrors the orchestrator's ``_rate_spread_2y_for_pair``: ``DGS2`` minus the pair's
+    ``yield_quote`` series, each leg resolved to its last observation ``≤ as_of`` (never
+    future). ``quote_2y_id=None`` (missing quote history) falls back to the legacy
+    definition (raw DGS2 level). EUR's explicit legacy fallback also applies before
+    its first ECBDFR observation, so appending future observations cannot alter a
+    prior result. Missing JPY/INR quote observations yield None, not raw US yields.
+    """
+
+    base_yield = _get_yield("DGS2", as_of, yields_by_series)
+    if quote_2y_id is None:
+        return base_yield
+    quote = _get_yield(quote_2y_id, as_of, yields_by_series)
+    if base_yield is None:
+        return None
+    if quote is None:
+        return base_yield if quote_2y_id == "ECBDFR" else None
+    return float(base_yield) - float(quote)
+
+
 def _percentile(values: list[float], p: float) -> float:
     if not values:
         return 0.0
@@ -229,6 +293,7 @@ def simulate_all_days(
     yield_series = ymap.get("quote_10y", "DGS10")
     yield_history = sorted(yields_by_series.get(yield_series, {}).items())
     yield_values = [v for _, v in yield_history]
+    quote_2y_id = _rate_quote_2y_series(pair, yields_by_series)
 
     driver = get_primary_driver(compute_dynamic_betas([]))
     special_signal = compute_special_signal(pair, {})
@@ -246,7 +311,6 @@ def simulate_all_days(
         window_bars = [spot_map[d] for d in all_sorted_dates[max(0, full_idx - 2519):full_idx + 1]]
         spot_closes = [b.close for b in window_bars]
 
-        base_yield = _get_yield(ymap.get("base", "DGS2"), as_of, yields_by_series)
         quote_10y = _get_yield(ymap.get("quote_10y", ""), as_of, yields_by_series)
         us_10y = _get_yield("DGS10", as_of, yields_by_series)
         bei = _get_yield("T10YIE", as_of, yields_by_series)
@@ -255,7 +319,8 @@ def simulate_all_days(
             rate_spread_10y = float(us_10y) - float(quote_10y)
         else:
             rate_spread_10y = None
-        rate_spread_2y = base_yield
+        # Live-definition 2Y pair spread (legacy DGS2 level until the quote history exists).
+        rate_spread_2y = _pair_spread_2y(as_of, yields_by_series, quote_2y_id)
         rate_spread_10y_real = (
             None
             if rate_spread_10y is None
@@ -574,7 +639,8 @@ def simulate_all_days_v2(
     """Compute all regime calls using M.3 signal logic.
 
     Improvements over v1:
-    - Rate normalization uses MAD Z-score via ``normalize_rate_signal()``
+    - Rate normalization uses MAD Z-score via ``normalize_rate_signal()`` on the
+      live-definition risk-adjusted carry (2Y pair spread / implied-or-RV20 vol)
     - Uses z_blended (60%% tactical + 40%% structural)
     - COT/OI recomputed from canonical ``historical_cot`` rows on the causal
       slice, with the live smart-spread 70/30 blend
@@ -631,12 +697,26 @@ def simulate_all_days_v2(
 
     ymap = YIELD_ID_MAP.get(pair, {})
 
-    # Build historical carry and structural series for rate normalization.
+    # Build the live-definition rate series used by the z-normalization and the
+    # Layer-1 gate. Mirrors ``run_daily`` post-LRH: per-day 2Y pair spread
+    # (DGS2 − quote, causal forward-fill), risk-adjusted via
+    # ``compute_risk_adjusted_carry_v2`` with RV20-only vol (same as the live
+    # history builder), plus the real-10Y structural spread. Every per-day slice
+    # below uses indices strictly before ``full_idx`` (never the replay day itself).
+    quote_2y_id = _rate_quote_2y_series(pair, yields_by_series)
     carry_history_chronological: list[float] = []
     real_carry_history_chronological: list[float] = []
-    carry_dates: list[date] = []
-    for as_of in all_sorted_dates:
-        base_yield = _get_yield(ymap.get("base", "DGS2"), as_of, yields_by_series)
+    for i, as_of in enumerate(all_sorted_dates):
+        spread_2y = _pair_spread_2y(as_of, yields_by_series, quote_2y_id)
+        rv20_day = float(all_rv20[i]) if not np.isnan(all_rv20[i]) else None
+        carry_day = (
+            compute_risk_adjusted_carry_v2(spread_2y, rv20_day, None, pair)
+            if spread_2y is not None
+            else None
+        )
+        carry_history_chronological.append(
+            float("nan") if carry_day is None else carry_day
+        )
         quote_10y = _get_yield(ymap.get("quote_10y", ""), as_of, yields_by_series)
         us_10y = _get_yield("DGS10", as_of, yields_by_series)
         bei = _get_yield("T10YIE", as_of, yields_by_series)
@@ -647,13 +727,9 @@ def simulate_all_days_v2(
                 if bei is not None
                 else spread_10y
             )
-            carry_history_chronological.append(spread_10y)
             real_carry_history_chronological.append(real_spread)
-            carry_dates.append(as_of)
         else:
-            carry_history_chronological.append(float("nan"))
             real_carry_history_chronological.append(float("nan"))
-            carry_dates.append(as_of)
 
     # Load signals if not provided
     sig_map = signals_by_date or _load_signals_for_pair(pair, start, end)
@@ -666,8 +742,6 @@ def simulate_all_days_v2(
 
     results: list[tuple[SignalRow, RegimeCall]] = []
     prior_regime: str | None = None
-    carry_history: list[float] = []
-    last_carry: float | None = None
 
     for full_idx, as_of in date_indices:
         if full_idx < 60:
@@ -677,16 +751,16 @@ def simulate_all_days_v2(
         window_bars = [spot_map[d] for d in all_sorted_dates[max(0, full_idx - 2519):full_idx + 1]]
         spot_closes = [b.close for b in window_bars]
 
-        base_yield = _get_yield(ymap.get("base", "DGS2"), as_of, yields_by_series)
         quote_10y = _get_yield(ymap.get("quote_10y", ""), as_of, yields_by_series)
         us_10y = _get_yield("DGS10", as_of, yields_by_series)
         bei = _get_yield("T10YIE", as_of, yields_by_series)
 
+        # Live-definition 2Y pair spread (legacy DGS2 level until the quote history exists).
+        rate_spread_2y = _pair_spread_2y(as_of, yields_by_series, quote_2y_id)
         if us_10y is not None and quote_10y is not None:
             rate_spread_10y = float(us_10y) - float(quote_10y)
         else:
             rate_spread_10y = None
-        rate_spread_2y = base_yield
         rate_spread_10y_real = (
             None
             if rate_spread_10y is None
@@ -697,35 +771,44 @@ def simulate_all_days_v2(
             )
         )
 
-        if rate_spread_10y is not None:
-            last_carry = float(rate_spread_10y)
-        if last_carry is not None:
-            carry_history.append(last_carry)
+        rv20 = float(all_rv20[full_idx]) if not np.isnan(all_rv20[full_idx]) else None
+        rv5 = float(all_rv5[full_idx]) if not np.isnan(all_rv5[full_idx]) else None
+        vol_norm = all_vol_norm[full_idx]
+        vol_exp = all_vol_exp[full_idx]
 
-        # ── Rate normalization with MAD (M.3.2) ─────────────────────────────
+        sig_row = sig_map.get(as_of, {})
+
+        # ── Rate normalization with MAD (M.3.2) — live wiring (post-LRH) ────
+        # Same chain as ``run_daily``: risk-adjusted carry v2 over the pair 2Y
+        # spread (implied vol from the stored row when present, RV20 otherwise)
+        # with the raw-spread fallback; history slices share the same definitions.
+        rate_spread_for_norm: float | None = (
+            rate_spread_2y if rate_spread_2y is not None else rate_spread_10y
+        )
+        iv30_raw = sig_row.get("implied_vol_30d")
+        iv30 = float(iv30_raw) if isinstance(iv30_raw, (int, float)) else None
+        risk_adjusted_carry = compute_risk_adjusted_carry_v2(
+            rate_spread_2y, rv20, iv30, pair
+        )
+        if risk_adjusted_carry is not None:
+            rate_spread_for_norm = risk_adjusted_carry
+
+        # Causal slices strictly before ``as_of`` on the current-day definitions.
+        hist_carry = [
+            v for v in carry_history_chronological[:full_idx] if not math.isnan(v)
+        ]
+        hist_real = [
+            v for v in real_carry_history_chronological[:full_idx] if not math.isnan(v)
+        ]
         rate_norm_z = None
-        rate_z_structural_val = None
-        if rate_spread_10y is not None:
-            # Build causal historical spreads up to (but not including) as_of
-            hist_carry = [
-                v for d, v in zip(carry_dates[:full_idx], carry_history_chronological[:full_idx])
-                if not math.isnan(v)
-            ]
-            hist_real = [
-                v for _d, v in zip(
-                    carry_dates[:full_idx],
-                    real_carry_history_chronological[:full_idx],
-                )
-                if not math.isnan(v)
-            ]
-            if len(hist_carry) >= 20:
-                rate_norm_z = normalize_rate_signal(
-                    float(rate_spread_10y),
-                    pair,
-                    hist_carry,
-                    spread_structural=rate_spread_10y_real,
-                    historical_structural=hist_real if len(hist_real) >= 5 else None,
-                )
+        if rate_spread_for_norm is not None:
+            rate_norm_z = normalize_rate_signal(
+                float(rate_spread_for_norm),
+                pair,
+                hist_carry,
+                spread_structural=rate_spread_10y_real,
+                historical_structural=hist_real if len(hist_real) >= 5 else None,
+            )
         rate_norm = rate_norm_z.z_blended if rate_norm_z is not None else None
         rate_z_structural_val = (
             rate_norm_z.z_structural if rate_norm_z is not None else None
@@ -734,13 +817,7 @@ def simulate_all_days_v2(
             rate_spread_2y, rate_spread_10y_real, z_tactical=rate_norm
         )
 
-        rv20 = float(all_rv20[full_idx]) if not np.isnan(all_rv20[full_idx]) else None
-        rv5 = float(all_rv5[full_idx]) if not np.isnan(all_rv5[full_idx]) else None
-        vol_norm = all_vol_norm[full_idx]
-        vol_exp = all_vol_exp[full_idx]
-
         # ── COT with smart spread (M.3.3) from canonical historical_cot ──────
-        sig_row = sig_map.get(as_of, {})
         cot_cut = bisect_right(pair_cot_dates, as_of)
         cot_rows_asof = pair_cot_rows[:cot_cut]
         cot_pct = compute_cot_percentile(cot_rows_asof, pair, as_of=as_of)
@@ -815,7 +892,7 @@ def simulate_all_days_v2(
         )
 
         structural_instability = False
-        carry_gate = tuple(carry_history[-2520:]) if carry_history else ()
+        carry_gate = tuple(hist_carry[-2520:]) if hist_carry else ()
         gate_out = classify_regime_layer1(
             Layer1ClassifierContext(
                 pair=pair,
