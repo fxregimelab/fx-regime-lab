@@ -134,6 +134,7 @@ from src.fetchers.open_interest import compute_oi_delta_from_cot, compute_oi_fro
 from src.fetchers.substack import fetch_latest_substack_memo
 from src.fetchers.volatility import fetch_implied_vol, fetch_realized_vol
 from src.fetchers.yields import (
+    FRED_FALLBACK_SERIES,
     fetch_boj_policy_rate,
     fetch_bund_btp_spread,
     fetch_ecb_balance_sheet,
@@ -168,10 +169,13 @@ from src.signals.intervention import compute_intervention_proximity
 from src.signals.open_interest import compute_oi_signal
 from src.signals.rate import (
     build_carry_history_from_rows,
+    build_carry_history_from_yields,
     build_real_yield_10y_spread_history_from_rows,
+    build_real_yield_10y_spread_history_from_yields,
     compute_risk_adjusted_carry_v2,
     normalize_rate_signal,
     rate_direction_from_spreads,
+    realized_vol_by_date_from_rows,
     structural_instability_from_carry_history,
 )
 from src.signals.special import compute_special_signal
@@ -481,6 +485,126 @@ def _rate_spread_10y_legacy(
     if qv is None:
         return None
     return float(us) - float(qv)
+
+
+# Structural (real 10Y) quote legs: the live structural spread uses the legacy buffer keys
+# ``de_10y`` / ``jp_10y`` / ``in_10y`` (see ``_rate_spread_10y_legacy``); map each pair to
+# the FRED series behind that leg so the history uses the same definition in historical_yields.
+_STRUCTURAL_QUOTE_10Y_SERIES: dict[str, str] = {
+    "EURUSD": FRED_FALLBACK_SERIES["de_10y"][0],
+    "USDJPY": FRED_FALLBACK_SERIES["jp_10y"][0],
+    "USDINR": FRED_FALLBACK_SERIES["in_10y"][0],
+}
+
+_RATE_HISTORY_YIELD_PAGE_SIZE = 1000
+# 2520 business days ≈ 10 years; 12 calendar years leaves margin for the tail trim.
+_RATE_HISTORY_WINDOW_DAYS = 365 * 12
+
+
+def _load_rate_history_yields(*, start: date | None = None) -> dict[str, dict[date, float]]:
+    """Read-only snapshot of ``historical_yields`` as series_id → date → value.
+
+    Loaded once per daily run and fed to the canonical rate z-history builders. Read
+    failures degrade to an empty mapping so the per-pair stored-signal-row fallback runs.
+    """
+
+    out: dict[str, dict[date, float]] = {}
+    try:
+        base_query = writer._client().table("historical_yields").select("series_id,date,value")
+        query = base_query.gte("date", start.isoformat()) if start is not None else base_query
+        offset = 0
+        while True:
+            res = (
+                query.order("series_id")
+                .order("date")
+                .range(offset, offset + _RATE_HISTORY_YIELD_PAGE_SIZE - 1)
+                .execute()
+            )
+            rows = cast(list[dict[str, Any]], res.data or [])
+            if not rows:
+                break
+            for row in rows:
+                series = str(row.get("series_id") or "")
+                value = row.get("value")
+                if not series or value is None:
+                    continue
+                try:
+                    d = date.fromisoformat(str(row.get("date"))[:10])
+                    out.setdefault(series, {})[d] = float(value)
+                except (TypeError, ValueError):
+                    continue
+            if len(rows) < _RATE_HISTORY_YIELD_PAGE_SIZE:
+                break
+            offset += _RATE_HISTORY_YIELD_PAGE_SIZE
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "Rate history: historical_yields read failed (%s) — stored signal rows will be used",
+            exc,
+        )
+        return {}
+    logger.info("Rate history: loaded %s yield series from historical_yields", len(out))
+    return out
+
+
+def _build_rate_histories_for_pair(
+    pair: str,
+    *,
+    universe: dict[str, Any],
+    historical_rows: list[dict[str, Any]],
+    yields_by_series: Mapping[str, Mapping[date, float]],
+    max_points: int = 2520,
+) -> tuple[list[float], list[float]]:
+    """Carry + real-10Y z-histories from canonical yields, with per-pair row fallback.
+
+    The live z inputs use today's spread definitions; the histories must match them. When
+    a required series or the vol history is unavailable for this pair (e.g. ECBDFR not yet
+    backfilled) the pair falls back to the stored-signal-row construction with a warning;
+    the daily run is never interrupted.
+    """
+
+    vol_by_date = realized_vol_by_date_from_rows(historical_rows)
+    base_2y_id, quote_2y_id = _universe_yield_tickers(universe, pair)
+
+    carry_history: list[float] | None = None
+    if base_2y_id is not None and quote_2y_id is not None:
+        carry_history = build_carry_history_from_yields(
+            yields_by_series,
+            base_series=base_2y_id,
+            quote_series=quote_2y_id,
+            vol_by_date=vol_by_date,
+            max_points=max_points,
+        )
+    if carry_history is None:
+        logger.warning(
+            "Rate carry history: canonical build unavailable for %s (2Y legs %s/%s, vol points %s) "
+            "— falling back to stored signal rows",
+            pair,
+            base_2y_id,
+            quote_2y_id,
+            len(vol_by_date),
+        )
+        carry_history = build_carry_history_from_rows(historical_rows, max_points=max_points)
+
+    quote_10y_id = _STRUCTURAL_QUOTE_10Y_SERIES.get(pair)
+    real_10y_history: list[float] | None = None
+    if quote_10y_id is not None:
+        real_10y_history = build_real_yield_10y_spread_history_from_yields(
+            yields_by_series,
+            quote_series=quote_10y_id,
+            max_points=max_points,
+        )
+    if real_10y_history is None:
+        logger.warning(
+            "Rate real-10Y history: canonical build unavailable for %s (quote %s) "
+            "— falling back to stored signal rows",
+            pair,
+            quote_10y_id,
+        )
+        real_10y_history = build_real_yield_10y_spread_history_from_rows(
+            historical_rows, max_points=max_points
+        )
+
+    return carry_history, real_10y_history
 
 
 try:
@@ -1055,12 +1179,20 @@ async def run_daily(
 
     pending_desk_cards: list[dict[str, Any]] = []
 
+    # Canonical yield history for the rate z-histories (read-only; loaded once per run).
+    rate_history_yields = _load_rate_history_yields(
+        start=as_of_day - timedelta(days=_RATE_HISTORY_WINDOW_DAYS)
+    )
+
     for pair in PAIRS:
         prior_db = writer.get_latest_regime_call(pair)
         historical_rows = writer.get_historical_signals(pair, limit=2520)
-        historical_carry = build_carry_history_from_rows(historical_rows, max_points=2520)
-        historical_real_10y = build_real_yield_10y_spread_history_from_rows(
-            historical_rows, max_points=2520
+        historical_carry, historical_real_10y = _build_rate_histories_for_pair(
+            pair,
+            universe=universe,
+            historical_rows=historical_rows,
+            yields_by_series=rate_history_yields,
+            max_points=2520,
         )
         structural_instability = structural_instability_from_carry_history(historical_carry)
         historical_us10y = [

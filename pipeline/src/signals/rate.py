@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import logging
+import math
+from bisect import bisect_right
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
@@ -89,6 +92,168 @@ def build_real_yield_10y_spread_history_from_rows(
         parsed.append((dt, real))
     parsed.sort(key=lambda x: x[0])
     tail = parsed[-max_points:] if len(parsed) > max_points else parsed
+    return [v for _, v in tail]
+
+
+def _series_points(series: Mapping[date, float]) -> tuple[list[date], list[float]]:
+    """Sorted (dates, finite values) view of one yield series for causal lookups."""
+
+    dates: list[date] = []
+    values: list[float] = []
+    for d, raw in sorted(series.items()):
+        try:
+            v = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(v):
+            continue
+        dates.append(d)
+        values.append(v)
+    return dates, values
+
+
+def _last_observation_at_or_before(
+    dates: list[date], values: list[float], d: date
+) -> float | None:
+    """Most recent observation dated ≤ ``d`` (causal forward-fill, never future)."""
+
+    idx = bisect_right(dates, d) - 1
+    if idx < 0:
+        return None
+    return values[idx]
+
+
+def realized_vol_by_date_from_rows(historical_rows: list[dict[str, Any]]) -> dict[date, float]:
+    """Map of signal date → ``realized_vol_20d`` from stored signal rows (positive only)."""
+
+    out: dict[date, float] = {}
+    for row in historical_rows:
+        dt = _to_date(row.get("date"))
+        vol = _to_float(row.get("realized_vol_20d"))
+        if dt is None or vol is None or not math.isfinite(vol) or vol <= 0.0:
+            continue
+        out[dt] = vol
+    return out
+
+
+def build_carry_history_from_yields(
+    yields_by_series: Mapping[str, Mapping[date, float]],
+    *,
+    base_series: str,
+    quote_series: str,
+    vol_by_date: Mapping[date, float],
+    date_grid: Iterable[date] | None = None,
+    max_points: int = CARRY_LOOKBACK_DAYS,
+) -> list[float] | None:
+    """Risk-adjusted carry (2Y pair spread / RV20) rebuilt from canonical yield history.
+
+    Same definition as the live ``_rate_spread_2y_for_pair`` z input: on each grid date
+    ``d``, ``spread(d) = base(d) - quote(d)`` where both legs are causally forward-filled
+    (last observation ≤ ``d``), then ``carry(d) = spread(d) / realized_vol_20d(d)`` using
+    the stored signal-row vol for that date. Dates without a vol observation are skipped.
+    Oldest-first, trimmed to the ``max_points`` most recent points. Returns ``None`` (with
+    a warning) when the history cannot be built — callers must fall back to the
+    stored-signal-row construction for that pair.
+    """
+
+    base_dates, base_values = _series_points(yields_by_series.get(base_series, {}))
+    quote_dates, quote_values = _series_points(yields_by_series.get(quote_series, {}))
+    if not base_dates:
+        logger.warning(
+            "Carry history: yield series %s missing — cannot rebuild from yields", base_series
+        )
+        return None
+    if not quote_dates:
+        logger.warning(
+            "Carry history: yield series %s missing — cannot rebuild from yields", quote_series
+        )
+        return None
+    if not vol_by_date:
+        logger.warning(
+            "Carry history: realized-vol history empty (%s vs %s) — cannot rebuild from yields",
+            base_series,
+            quote_series,
+        )
+        return None
+
+    grid = sorted(set(date_grid)) if date_grid is not None else list(base_dates)
+    points: list[tuple[date, float]] = []
+    for d in grid:
+        base_v = _last_observation_at_or_before(base_dates, base_values, d)
+        quote_v = _last_observation_at_or_before(quote_dates, quote_values, d)
+        vol = _to_float(vol_by_date.get(d))
+        if base_v is None or quote_v is None or vol is None:
+            continue
+        if not math.isfinite(vol) or vol <= 0.0:
+            continue
+        points.append((d, (base_v - quote_v) / vol))
+    if not points:
+        logger.warning(
+            "Carry history: no usable points (%s vs %s) — cannot rebuild from yields",
+            base_series,
+            quote_series,
+        )
+        return None
+    tail = points[-max_points:] if len(points) > max_points else points
+    return [v for _, v in tail]
+
+
+def build_real_yield_10y_spread_history_from_yields(
+    yields_by_series: Mapping[str, Mapping[date, float]],
+    *,
+    quote_series: str,
+    base_series: str = "DGS10",
+    breakeven_series: str = "T10YIE",
+    date_grid: Iterable[date] | None = None,
+    max_points: int = CARRY_LOOKBACK_DAYS,
+) -> list[float] | None:
+    """Real 10Y pair spread ``(base - quote) - breakeven`` from canonical yield history.
+
+    Matches the live structural input: DGS10 minus the pair's long-rate quote minus the
+    same-day breakeven. All legs are causally forward-filled (last observation ≤ ``d``);
+    the default grid is the base series' observation dates. Oldest-first, trimmed to the
+    ``max_points`` most recent points. Returns ``None`` (with a warning) when the history
+    cannot be built — callers must fall back to the stored-signal-row construction for
+    that pair.
+    """
+
+    base_dates, base_values = _series_points(yields_by_series.get(base_series, {}))
+    quote_dates, quote_values = _series_points(yields_by_series.get(quote_series, {}))
+    bei_dates, bei_values = _series_points(yields_by_series.get(breakeven_series, {}))
+    if not base_dates:
+        logger.warning(
+            "Real-10Y history: yield series %s missing — cannot rebuild from yields", base_series
+        )
+        return None
+    if not quote_dates:
+        logger.warning(
+            "Real-10Y history: yield series %s missing — cannot rebuild from yields", quote_series
+        )
+        return None
+    if not bei_dates:
+        logger.warning(
+            "Real-10Y history: yield series %s missing — cannot rebuild from yields",
+            breakeven_series,
+        )
+        return None
+
+    grid = sorted(set(date_grid)) if date_grid is not None else list(base_dates)
+    points: list[tuple[date, float]] = []
+    for d in grid:
+        base_v = _last_observation_at_or_before(base_dates, base_values, d)
+        quote_v = _last_observation_at_or_before(quote_dates, quote_values, d)
+        bei_v = _last_observation_at_or_before(bei_dates, bei_values, d)
+        if base_v is None or quote_v is None or bei_v is None:
+            continue
+        points.append((d, (base_v - quote_v) - bei_v))
+    if not points:
+        logger.warning(
+            "Real-10Y history: no usable points (%s vs %s) — cannot rebuild from yields",
+            base_series,
+            quote_series,
+        )
+        return None
+    tail = points[-max_points:] if len(points) > max_points else points
     return [v for _, v in tail]
 
 

@@ -25,6 +25,7 @@ SERIES_CONFIG: dict[str, dict[str, Any]] = {
     "IRLTLT01JPM156N": {"description": "JP 10Y Govt Bond", "start": "1989-01-01"},
     "INDIRLTLT01STM": {"description": "IN 10Y Govt Bond", "start": "2000-01-01"},
     "T10YIE": {"description": "US 10Y Breakeven Inflation", "start": "2003-01-01"},
+    "ECBDFR": {"description": "ECB Deposit Facility Rate", "start": "1999-01-01"},
 }
 
 
