@@ -2,6 +2,9 @@
 
 Loads prices into memory, computes T+5/T+20 metrics in bulk,
 and inserts via pg8000 direct SQL for speed.
+
+Spot resolution is causal: only observations on or before the target date
+are used (no lookahead), with a 9-day backward staleness bound.
 """
 
 from __future__ import annotations
@@ -99,17 +102,22 @@ def _load_validated_call_keys() -> set[tuple[int | None, date, str]]:
     return out
 
 
+# Backward-fill window: bridges weekends and normal FX market holidays. Longer
+# gaps mean the price series lacks coverage for the target date and must not be
+# bridged with stale observations.
+_MAX_SPOT_BACKFILL_DAYS = 9
+
+
 def _get_spot(prices: dict[date, float], target: date) -> float | None:
-    """Exact match first, then forward-fill (next available), then backward-fill."""
+    """Spot on or before *target*: exact match, else last observation ≤ target.
+
+    Causal (no lookahead): dates after *target* are never used. Returns None
+    when no observation exists within ``_MAX_SPOT_BACKFILL_DAYS`` before the
+    target date.
+    """
     if target in prices:
         return prices[target]
-    # Forward-fill: next available date
-    for offset in range(1, 10):
-        d = target + timedelta(days=offset)
-        if d in prices:
-            return prices[d]
-    # Backward-fill: previous available date
-    for offset in range(1, 10):
+    for offset in range(1, _MAX_SPOT_BACKFILL_DAYS + 1):
         d = target - timedelta(days=offset)
         if d in prices:
             return prices[d]
