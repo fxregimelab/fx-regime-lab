@@ -1,41 +1,47 @@
-# Brief — RF2b: recon rate-carry definition parity (parked until RF2 lands)
+# Brief — RF2b: recon rate-carry definition parity (post-RF2, post-LRH)
 
-**Status:** parked — refine after the RF2 implementer report (its line refs will shift).
+**Status:** queued (spawn with inline copy of this brief)
 **Kind:** implementer
 **Files:** `pipeline/src/backfill/simulation_engine.py` + `pipeline/tests/test_simulation_engine.py`.
 
 ## Defect
 
-Recon `rate_diff_2y` is **not the live quantity**:
+Recon signals still build the rate inputs differently from live:
 
-- Sim (`simulation_engine.py`): `rate_spread_2y = base_yield` (raw `DGS2` level) for every pair;
-  the z input is built from `rate_spread_10y` (US10Y − quote10Y) — neither matches live.
-- Live: `_rate_spread_2y_for_pair` = `DGS2 − universe.yield_quote` (EUR `ECBDFR`, JPY
-  `IRLTLT01JPM156N`, INR `INDIRLTLT01STM`) and the z input is that spread / vol.
+- sim stores `rate_diff_2y` = raw `DGS2` level (`base_yield`) for every pair, not the pair spread;
+- the quantity the sim feeds into `normalize_rate_signal` is not the same as the live
+  risk-adjusted carry (trace the current live wiring — post-LRH commit: `_rate_spread_2y_for_pair`,
+  `compute_risk_adjusted_carry_v2`, and the orchestrator z call sites — and mirror it exactly).
 
-Consequence: live z-score history mixes definitions (recon rows dominate) → `z_tactical` pinned
-`−1.0`, `rate_signal=BEARISH` 107/115 (JPY) and 73/113 (INR).
+Consequence: recon signals cannot be compared to live behavior 1:1; deep-backtests measure a
+different decision logic than production runs.
 
-(Note: the LRH brief removes the live-path dependency on recon rows, so RF2b is a **fidelity**
-fix for future recon runs/backtests, not a blocker for LRH.)
+## Required behavior
 
-## Required behavior (draft — confirm against RF2 code)
+1. For each replay day and pair, compute the pair 2Y spread with the live definition:
+   `DGS2 − quote` where quote ∈ {ECBDFR (EUR), IRLTLT01JPM156N (JPY), INDIRLTLT01STM (INR)},
+   causally forward-filled from `historical_yields` (monthly legs FF to the daily grid, last
+   observation ≤ as_of ONLY — no future leakage).
+2. Feed `normalize_rate_signal` the same risk-adjusted handling live uses (confirm from the
+   post-LRH live wiring and mirror exactly; if live uses spread/vol, do the same).
+3. EUR until ECBDFR history exists: fall back to the legacy definition for EUR only, with a
+   logged warning (deterministic, never crash).
+4. Keep the stored `rate_diff_2y` in signals consistent with what was actually used.
+5. Tests: synthetic `historical_yields` fixture incl. monthly series; assert per-day spread ==
+   live-definition spread (causal FF, no future leak); assert the EUR fallback path; assert
+   z-input parity against a live-computed reference value.
 
-1. Compute the recon pair spread with the same definition as live wherever history exists:
-   - `DGS2 − IRLTLT01JPM156N` (JPY), `DGS2 − INDIRLTLT01STM` (INR): both in `historical_yields`
-     (monthly → causal forward-fill to daily grid).
-   - EUR: `DGS2 − ECBDFR` — requires the ECBDFR history (added by the LRH config change, backfilled
-     by the coordinator). Until it exists, fall back to the legacy definition **with a logged
-     warning** and record which definition produced each row (e.g. keep using current behavior).
-2. Rebuild the z input to match live: `risk-adjusted carry = spread / realized_vol_20d`
-   (not the 10Y spread). Keep vol computation unchanged.
-3. Keep `rate_diff_2y` written to `signals` consistent with the recomputation; keep
-   `rate_diff_10y`/structural inputs as live defines them where history allows.
-4. Tests: synthetic `historical_yields` fixture; assert the sim's spread for a given date equals
-   the live-definition spread (forward-filled, causal, no future leak); assert fallback path when
-   ECBDFR is absent.
+## Constraints
 
-## Out of scope
+No DB writes; do not edit other agents' files; no commits/push/checkout/stash. If full-suite
+failures appear only in files you did not touch, re-run once.
 
-- No DB writes / no re-run of the recon (that is a gated operational step in the coordinator's
-  plan: RF1 safety + ledger snapshot + explicit report first).
+## Verify (from `pipeline\`)
+
+Focused `-m pytest tests/test_simulation_engine.py -q` + full `-m pytest -q` (baseline 749);
+`-m ruff check .`; `-m mypy .`.
+
+## Report
+
+Per-item resolution, test names, exact commands + results, residual risks, manual callers list
+(GitNexus unavailable → risk UNKNOWN).

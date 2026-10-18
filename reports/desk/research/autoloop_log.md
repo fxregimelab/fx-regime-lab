@@ -5,7 +5,37 @@
 > no destructive DB ops without a verified backup, subagents never commit, one editor per
 > file at a time.
 
-**Last updated:** 2026-10-18 (session 2)
+**Last updated:** 2026-10-18 (recovery checkpoint)
+
+## Recovery checkpoint — verified current state
+
+- LRH committed and pushed as `8df4a9f`; independent LRH review is NOT complete.
+- RF1R, VR1R and T12R returned PASS in the preceding session. The older running-agent
+  table below is historical; those three reviews have finished.
+- VQ implementation is complete: causal scoring `3ba5f18`, credential/legacy-SQL cleanup
+  `f85a5e6`; bootstrap fix and subprocess regression `5a92695`. Latest coordinator checks:
+  11 focused tests, full suite 755 passed, Ruff clean, mypy clean (251 files), diff check
+  clean. Independent review remains pending; no runtime strategy promotion is implied.
+- RF2b left partial source edits in `simulation_engine.py`; preserved, NOT committed or
+  accepted as complete. Existing 4 simulation tests pass, but new parity tests are missing.
+- LRH-review and RF2b recovery calls failed with provider HTTP 500 / rate limits. No agent
+  is currently working successfully on them; do not infer completion from the queue below.
+- Fixed the price-population script import bootstrap (pipeline root, not pipeline/src).
+  Retried with `.env.local` loaded: 497 price bars upserted through `writer` (166 EURUSD,
+  165 USDJPY, 166 USDINR). These are upsert counts, not counts of newly inserted dates.
+- Before/after ledger fingerprints are identical: 19,506 regime calls and 19,491 active
+  validation rows. Fingerprints cover selected columns only; NOT restorable backups.
+- Read-only post-top-up audit: 589 rows flagged; category counts (overlap): cross-pair 15,
+  gross 519, flag 92, net 523, Brier 85, cost 222, no-prices 68. Price coverage ends:
+  EURUSD 2026-10-17, USDJPY 2026-10-16, USDINR 2026-10-18; source dates still need QA.
+- VR2 ledger corrections NOT executed. `bulk_rewrite_validation_rows` performs separate
+  supersede and insert requests, not an atomic transaction. Before use, require a full
+  restorable affected-row backup and verified failure/recovery plan, plus independent
+  approval of the exact correction manifest. No validation rows have been changed here.
+- Removed hardcoded credentials from two VQ scripts; rotation remains owner action because
+  historical commits still contain the exposed credential. Never copy its value into reports.
+- GitNexus `detect_changes(scope='all')` still fails: storage format 42 vs runtime 40.
+  Graph impact remains UNKNOWN; manual scope review and tests are the available evidence.
 
 ## Committed this loop
 
