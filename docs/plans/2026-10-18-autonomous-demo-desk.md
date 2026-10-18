@@ -224,6 +224,14 @@ Disk free <2GB or journal failure pauses entries; open-position safety continues
   weekly target is reporting-only and never a release condition or override.
 - **D6 Draft versus runtime:** this pack does not modify trading code, start daemons,
   register schedules, provision secrets, place orders, commit or push prior local changes.
+- **D7 AD-T06 acknowledgment wire + spec 01 §8 (coordinator-approved):** review H1/H2
+  disposition — the recorded acknowledgment uses the exact strict key set
+  `{bundle_digest, role, acknowledged_at, understood_clause_ids, unresolved_conflicts}`:
+  the spec-01 member names are retained (`clauses` is renamed to `understood_clause_ids`),
+  `unresolved_conflicts` records missing/contradictory facts as evidence only. Allowed mode
+  and expiry are control-plane gates supplied and recorded at `spec_loaded`, not content
+  listed by the filesystem-pure loader. Spec 01 §8 was amended to this exact shape; no
+  safety clause was removed.
 
 ## 10. Delivery and execution contract
 

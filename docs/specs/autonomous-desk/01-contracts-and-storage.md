@@ -268,10 +268,15 @@ repo and research mounts. Reports under `reports/desk/` are redacted; runtime sn
 may contain broker/account/private licensed content and MUST remain gitignored.
 Tests must assert ignore rules for new runtime paths before collectors write data.
 
-`SpecBundle` lists exact document/config digests, required clause IDs, allowed mode and
-expiry. Runtime loader verifies content, supplies bounded excerpts to the model and
-records an acknowledgment `{bundle_digest, understood_clause_ids, unresolved_conflicts}`.
-Deterministic gates enforce clauses; acknowledgment alone does not prove comprehension.
+`SpecBundle` lists the exact rule-document digests; each role's excerpt packet lists that
+role's required clause IDs. The runtime loader verifies content, supplies the bounded
+excerpt to the model and records an acknowledgment with the exact key set
+`{bundle_digest, role, acknowledged_at, understood_clause_ids, unresolved_conflicts}`;
+unknown keys are rejected and `unresolved_conflicts` is a list of non-empty strings,
+never a waiver. Allowed mode and expiry are control-plane gates: the control plane
+supplies them at load time, records them with the `spec_loaded` event and must refuse
+decisions when the bundle is outside its allowed mode or past expiry. Deterministic gates
+enforce clauses; acknowledgment alone does not prove comprehension.
 
 Assign each parent a persistent slot 0..3 at reservation. Use the lowest free slot,
 never the current count as an index once gaps exist. Reservations occupy slots.
