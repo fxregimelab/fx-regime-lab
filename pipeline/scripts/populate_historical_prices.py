@@ -10,8 +10,8 @@ import os
 import sys
 from datetime import date
 
-# Ensure pipeline/src is on path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+# Ensure the pipeline package root is on path (so ``import src...`` resolves)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.backfill.historical_fetcher import backfill_spot_for_pair
 
