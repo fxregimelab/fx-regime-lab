@@ -1,8 +1,9 @@
 """Historical walk-forward simulation engine (optimized batch version).
 
 Replays the daily pipeline logic over every trading day in ``historical_prices``,
-using stored yields from ``historical_yields``.  Cross-asset and COT are omitted
-(both degrade gracefully in the model).
+using stored yields from ``historical_yields`` and stored signals.  The v2 engine
+(``--v2``) additionally reads canonical COT/OI history from ``historical_cot``;
+the v1 engine omits COT (which degrades gracefully in the model).
 
 Usage::
 
@@ -15,6 +16,7 @@ import argparse
 import logging
 import math
 import os
+from bisect import bisect_right
 from collections import defaultdict
 from datetime import date
 from typing import Any
@@ -24,6 +26,10 @@ import numpy as np
 from src.core.ingestion_snapshot import IngestionSnapshot
 from src.core.regime_call_builder import RegimeCallBuilder
 from src.db import writer
+from src.fetchers.open_interest import (
+    compute_oi_delta_from_cot,
+    compute_oi_from_cot,
+)
 from src.logic.layer2_directional import run_layer2_directional
 from src.logic.layer3_execution import run_layer3_execution
 from src.regime.classifier import classify_regime_layer1
@@ -33,7 +39,11 @@ from src.regime.composite import (
     get_primary_driver,
 )
 from src.regime.confidence import compute_confidence
-from src.signals.cot import compute_cot_smart_spread_percentile, normalize_cot_signal
+from src.signals.cot import (
+    compute_cot_percentile,
+    compute_cot_smart_spread_percentile,
+    normalize_cot_signal,
+)
 from src.signals.open_interest import compute_oi_signal
 from src.signals.rate import (
     normalize_rate_signal,
@@ -416,7 +426,7 @@ def _load_signals_for_pair(pair: str, start: date, end: date) -> dict[date, dict
     """Load signal rows from DB indexed by date."""
     conn = _pg_conn()
     result = conn.run(
-        "SELECT date, cot_percentile, realized_vol_5d, realized_vol_20d, "
+        "SELECT date, rate_diff_2y, cot_percentile, realized_vol_5d, realized_vol_20d, "
         "implied_vol_30d, oi_delta, rate_z_tactical, rate_z_structural, z_blended, "
         "fpi_flow, ecb_balance_sheet, bund_btp_spread, "
         "cot_asset_mgr_net, cot_lev_money_net, cot_net_pos, "
@@ -433,31 +443,61 @@ def _load_signals_for_pair(pair: str, start: date, end: date) -> dict[date, dict
     for r in result:
         d = r[0] if isinstance(r[0], date) else date.fromisoformat(str(r[0])[:10])
         out[d] = {
-            "cot_percentile": float(r[1]) if r[1] is not None else None,
-            "realized_vol_5d": float(r[2]) if r[2] is not None else None,
-            "realized_vol_20d": float(r[3]) if r[3] is not None else None,
-            "implied_vol_30d": float(r[4]) if r[4] is not None else None,
-            "oi_delta": int(r[5]) if r[5] is not None else None,
-            "rate_z_tactical": float(r[6]) if r[6] is not None else None,
-            "rate_z_structural": float(r[7]) if r[7] is not None else None,
-            "z_blended": float(r[8]) if r[8] is not None else None,
-            "fpi_flow": float(r[9]) if r[9] is not None else None,
-            "ecb_balance_sheet": float(r[10]) if r[10] is not None else None,
-            "bund_btp_spread": float(r[11]) if r[11] is not None else None,
-            "cot_asset_mgr_net": int(r[12]) if r[12] is not None else None,
-            "cot_lev_money_net": int(r[13]) if r[13] is not None else None,
-            "cot_net_pos": int(r[14]) if r[14] is not None else None,
-            "cross_asset_vix": float(r[15]) if r[15] is not None else None,
-            "cross_asset_dxy": float(r[16]) if r[16] is not None else None,
-            "cross_asset_oil": float(r[17]) if r[17] is not None else None,
-            "cross_asset_gold": float(r[18]) if r[18] is not None else None,
-            "cross_asset_copper": float(r[19]) if r[19] is not None else None,
-            "cross_asset_stoxx": float(r[20]) if r[20] is not None else None,
-            "boj_policy_rate": float(r[21]) if r[21] is not None else None,
-            "india_vix": float(r[22]) if r[22] is not None else None,
-            "inr_forward_premium": float(r[23]) if r[23] is not None else None,
+            "rate_diff_2y": float(r[1]) if r[1] is not None else None,
+            "cot_percentile": float(r[2]) if r[2] is not None else None,
+            "realized_vol_5d": float(r[3]) if r[3] is not None else None,
+            "realized_vol_20d": float(r[4]) if r[4] is not None else None,
+            "implied_vol_30d": float(r[5]) if r[5] is not None else None,
+            "oi_delta": int(r[6]) if r[6] is not None else None,
+            "rate_z_tactical": float(r[7]) if r[7] is not None else None,
+            "rate_z_structural": float(r[8]) if r[8] is not None else None,
+            "z_blended": float(r[9]) if r[9] is not None else None,
+            "fpi_flow": float(r[10]) if r[10] is not None else None,
+            "ecb_balance_sheet": float(r[11]) if r[11] is not None else None,
+            "bund_btp_spread": float(r[12]) if r[12] is not None else None,
+            "cot_asset_mgr_net": int(r[13]) if r[13] is not None else None,
+            "cot_lev_money_net": int(r[14]) if r[14] is not None else None,
+            "cot_net_pos": int(r[15]) if r[15] is not None else None,
+            "cross_asset_vix": float(r[16]) if r[16] is not None else None,
+            "cross_asset_dxy": float(r[17]) if r[17] is not None else None,
+            "cross_asset_oil": float(r[18]) if r[18] is not None else None,
+            "cross_asset_gold": float(r[19]) if r[19] is not None else None,
+            "cross_asset_copper": float(r[20]) if r[20] is not None else None,
+            "cross_asset_stoxx": float(r[21]) if r[21] is not None else None,
+            "boj_policy_rate": float(r[22]) if r[22] is not None else None,
+            "india_vix": float(r[23]) if r[23] is not None else None,
+            "inr_forward_premium": float(r[24]) if r[24] is not None else None,
         }
     return out
+
+
+def _load_historical_cot() -> dict[str, list[CotRow]]:
+    """Load canonical COT reports from ``historical_cot`` (read-only).
+
+    Returns one ``CotRow`` list per pair, ascending by report date, mirroring the
+    source the live orchestrator reads via its COT buffer.
+    """
+    conn = _pg_conn()
+    result = conn.run(
+        "SELECT date, pair, net_long, lev_money_net, asset_mgr_net, open_interest "
+        "FROM historical_cot ORDER BY pair, date"
+    )
+    conn.close()
+    by_pair: dict[str, list[CotRow]] = defaultdict(list)
+    for row in result:
+        d = row[0] if isinstance(row[0], date) else date.fromisoformat(str(row[0])[:10])
+        by_pair[row[1]].append(
+            CotRow(
+                date=d,
+                pair=row[1],
+                net_long=int(row[2]) if row[2] is not None else 0,
+                open_interest=int(row[5]) if row[5] is not None else 0,
+                asset_mgr_net=int(row[4]) if row[4] is not None else None,
+                lev_money_net=int(row[3]) if row[3] is not None else None,
+            )
+        )
+    logger.info("Loaded historical COT for %d pairs", len(by_pair))
+    return dict(by_pair)
 
 
 def _build_cross_asset_from_signal(sig: dict[str, Any] | None) -> dict[str, Any]:
@@ -536,7 +576,8 @@ def simulate_all_days_v2(
     Improvements over v1:
     - Rate normalization uses MAD Z-score via ``normalize_rate_signal()``
     - Uses z_blended (60%% tactical + 40%% structural)
-    - COT loaded from signals table with smart-spread 70/30 blend
+    - COT/OI recomputed from canonical ``historical_cot`` rows on the causal
+      slice, with the live smart-spread 70/30 blend
     - Special signal uses real macro data for EURUSD
     - Betas passed to ``compute_composite()``
     """
@@ -617,6 +658,12 @@ def simulate_all_days_v2(
     # Load signals if not provided
     sig_map = signals_by_date or _load_signals_for_pair(pair, start, end)
 
+    # Canonical COT history for this pair (weekly reports, ascending by date).
+    # Preloaded once per run; the per-day slice below is causal (date <= as_of).
+    cot_by_pair = _load_historical_cot()
+    pair_cot_rows = cot_by_pair.get(pair, [])
+    pair_cot_dates = [r.date for r in pair_cot_rows]
+
     results: list[tuple[SignalRow, RegimeCall]] = []
     prior_regime: str | None = None
     carry_history: list[float] = []
@@ -692,26 +739,12 @@ def simulate_all_days_v2(
         vol_norm = all_vol_norm[full_idx]
         vol_exp = all_vol_exp[full_idx]
 
-        # ── COT with smart spread (M.3.3) ────────────────────────────────────
+        # ── COT with smart spread (M.3.3) from canonical historical_cot ──────
         sig_row = sig_map.get(as_of, {})
-        cot_pct = sig_row.get("cot_percentile")
-        cot_smart = None
-        if cot_pct is not None:
-            # Build minimal CotRow list for smart spread (needs asset_mgr_net, lev_money_net)
-            amn = sig_row.get("cot_asset_mgr_net")
-            lmn = sig_row.get("cot_lev_money_net")
-            if amn is not None and lmn is not None:
-                cot_rows = [
-                    CotRow(
-                        date=as_of,
-                        pair=pair,
-                        net_long=sig_row.get("cot_net_pos") or 0,
-                        open_interest=1000,
-                        asset_mgr_net=int(amn),
-                        lev_money_net=int(lmn),
-                    )
-                ]
-                cot_smart = compute_cot_smart_spread_percentile(cot_rows, pair, min_reports=1)
+        cot_cut = bisect_right(pair_cot_dates, as_of)
+        cot_rows_asof = pair_cot_rows[:cot_cut]
+        cot_pct = compute_cot_percentile(cot_rows_asof, pair, as_of=as_of)
+        cot_smart = compute_cot_smart_spread_percentile(cot_rows_asof, pair, as_of=as_of)
         cot_pct_norm = normalize_cot_signal(cot_pct) if cot_pct is not None else None
         cot_smart_norm = normalize_cot_signal(cot_smart) if cot_smart is not None else None
         cot_norm: float | None = None
@@ -720,13 +753,10 @@ def simulate_all_days_v2(
         elif cot_pct_norm is not None:
             cot_norm = cot_pct_norm
 
-        # ── OI ───────────────────────────────────────────────────────────────
-        oi_delta = sig_row.get("oi_delta")
-        oi_norm = None
-        if oi_delta is not None:
-            # Approximate OI percentile from delta sign (MVP)
-            oi_norm = 50.0 + (50.0 if oi_delta > 0 else -50.0)
-            oi_norm = compute_oi_signal(oi_norm)
+        # ── OI from the same canonical COT rows ──────────────────────────────
+        oi_pct = compute_oi_from_cot(cot_rows_asof, pair)
+        oi_delta = compute_oi_delta_from_cot(cot_rows_asof, pair)
+        oi_norm = compute_oi_signal(oi_pct)
 
         # ── Special signal with real macro data (M.3.1) ──────────────────────
         cross_for_special = _build_cross_asset_from_signal(sig_row)
@@ -746,37 +776,24 @@ def simulate_all_days_v2(
                 # Simplified: raw flow as proxy (full normalization needs history)
                 fpi_signal = float(fpi_flow)
 
-        # ── Betas from historical signals (M.2.1) ────────────────────────────
+        # ── Betas from raw historical signal rows (M.2.1) ────────────────────
+        # Mirrors ``writer.get_historical_signals`` row shape: one raw dict per
+        # session with the exact keys ``compute_dynamic_betas`` reads.
         betas_5y: dict[str, float] = {}
-        hist_for_betas: list[dict[str, float]] = []
+        hist_for_betas: list[dict[str, Any]] = []
         for d in all_sorted_dates[max(0, full_idx - 1260):full_idx]:
             s = sig_map.get(d, {})
-            entry: dict[str, float] = {}
-            zb = s.get("z_blended")
-            if zb is not None:
-                entry["rate"] = float(zb)
-            else:
-                rt = s.get("rate_z_tactical")
-                rs = s.get("rate_z_structural")
-                if rt is not None and rs is not None:
-                    entry["rate"] = float(0.60 * rt + 0.40 * rs)
-                elif rt is not None:
-                    entry["rate"] = float(rt)
-            cp = s.get("cot_percentile")
-            if cp is not None:
-                entry["cot"] = float(normalize_cot_signal(cp) or 0.0)
-            r5 = s.get("realized_vol_5d")
-            r20 = s.get("realized_vol_20d")
-            if r5 is not None and r20 is not None:
-                entry["vol"] = float(compute_vol_signal(r5, r20, None) or 0.0)
-            od = s.get("oi_delta")
-            if od is not None:
-                entry["oi"] = float(compute_oi_signal(50.0 + (50.0 if od > 0 else -50.0)) or 0.0)
-            ss = compute_special_signal(pair, _build_cross_asset_from_signal(s), **eur_kwargs)
-            if ss is not None:
-                entry["special"] = float(ss)
-            if entry:
-                hist_for_betas.append(entry)
+            hist_for_betas.append(
+                {
+                    "date": d,
+                    "spot": spot_map[d].close,
+                    "rate_diff_2y": s.get("rate_diff_2y"),
+                    "cot_percentile": s.get("cot_percentile"),
+                    "realized_vol_5d": s.get("realized_vol_5d"),
+                    "realized_vol_20d": s.get("realized_vol_20d"),
+                    "oi_delta": s.get("oi_delta"),
+                }
+            )
         if len(hist_for_betas) >= 30:
             betas_5y = compute_dynamic_betas(hist_for_betas)
 
