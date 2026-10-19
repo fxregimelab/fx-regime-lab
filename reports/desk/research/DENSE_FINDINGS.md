@@ -161,8 +161,8 @@ The stable-region candidate is also negative in total. The full-period winner is
 positive only because it was chosen using the holdout period; it is not
 out-of-sample evidence.
 
-Among the two candidates whose geometry was fixed before the holdout, the only
-positive component is USDJPY on `1.5/1.5/96`: +24.62R over 730 trades
+Among the two candidates evaluated on the holdout, the only positive component
+is USDJPY on `1.5/1.5/96`: +24.62R over 730 trades
 (7.8/week), +0.034R/trade, positive in both 2025 (+2.04R) and 2026 (+22.56R).
 Its weekly t-statistic is **0.64 (p=0.53)**. It is not statistically
 distinguishable from zero, and EURUSD's −0.068R on the same period makes the
