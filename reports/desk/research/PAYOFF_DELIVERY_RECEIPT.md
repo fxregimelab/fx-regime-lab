@@ -15,8 +15,15 @@ is ignored and never part of the commit. No main/tag change or public deployment
   (secret-file grep bypass and ambiguous companion paths), then **PASS** after
   scoped read allowlists, disabled content search and full-path references.
   Reviewer independently observed23 package tests pass; no remaining P0/P1.
-- PD-01 worker trial: `ses_eab5b99caffenptzDehkpN1NS4`; free configured route,
-  completion/actual route verification pending at receipt creation.
+- PD-01 worker: `ses_eab5b99caffenptzDehkpN1NS4`; free configured route
+  (minimax flash free), no DeepSeek, no paid fallback. Reached step cap after
+  implementing both new files and full verification; final receipt pending.
+  Coordinator re-ran focused pytest (34 passed), ruff (clean), mypy (285 clean).
+- Independent PD-01 auditor: `ses_eab4fa0dfffeCV2K607CPjsEGp`; **PASS**.
+  Independently ran focused pytest (34 passed) and ruff (clean); confirmed
+  untracked-only scope, units, oracles, validation, cost-once semantics, no I/O
+  or runtime integration. Two low-info notes only, no change requests.
+  Coordinator mypy 285-clean covers the auditor's unobserved mypy claim.
 - Independent payoff contract review: `ses_eab54e1e8ffe49RjSpAe00MWO9`;
   arithmetic passed, initial REQUEST_CHANGES on cost/management ambiguity.
   Final **PASS** after separating C_hat from realised costs, preserving all-in
