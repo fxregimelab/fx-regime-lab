@@ -29,6 +29,23 @@ is ignored and never part of the commit. No main/tag change or public deployment
   Final **PASS** after separating C_hat from realised costs, preserving all-in
   risk, binding buffered entry protection and making preregistration explicit.
   This is a specification review, not validation of the concurrent math module.
+- Precedence decision (owner-delegated 2026-10-19): coordinator adopted the
+  STRICTER calendar rule — red blackout [decision−2h, release+2h], collection
+  [decision−2h, decision+24h]. Fail-closed; recorded in 05-delivery PD-00A.
+- PD-00A worker: `ses_eab253edeffe0HbpnEYc8n7Am2`; free configured route,
+  no DeepSeek. Genuine red observed (15 failed: 90-min-prior unobservable under
+  honest fake, 90-min-ahead unblocked), then ±2h symmetric blackout, 2h
+  lookback, event-in-window enforcement, version pin; focused 42 passed,
+  ruff/mypy clean.
+- Independent PD-00A auditor: `ses_eab1dec92ffe9R8PzjgPxMAePM`; **PASS**.
+  Independently ran focused pytest (42 passed), ruff/mypy clean; verified single
+  authoritative constant, boundaries, revision handling, caller compatibility,
+  H3 exemption untouched. Worker's historical red and full-run claims accepted
+  as reported (reverting to re-observe out of scope).
+- Tracked doc drift (not code defects): playbook H3 prose and AD spec02 line 60
+  still describe the old 15-min coverage; implementation is now strictly
+  stronger. Prose reconciliation is a separate coordinator step; integration is
+  not declared ready until prose, code and pins agree.
 
 ## Observed checks before final integration
 
@@ -71,3 +88,22 @@ specification or pure arithmetic library.
 
 Final integration/review status will be appended after independent review and
 PD-01 completion; pending is not PASS.
+
+## PD-00A/PD-00B acceptance (2026-10-19, later same day)
+
+- PD-00B worker: `ses_eab253edbffeTZmvk67uYYw4Dg`; free configured route,
+  no DeepSeek. Behavioural reds observed on the unchanged engine via probe, then
+  adverse-open fills, horizon-local settlement, explicit censored path,
+  settled-only wins/losses; focused 10 new + 9 existing passed, full 1004
+  passed, ruff/mypy clean. Historical numbers unchanged on a gap-free sample
+  by design, not proof of general equivalence.
+- Independent PD-00B auditor: `ses_eab19783cffequQJjf840I2mBS`; **PASS** with
+  three coordinator corrections, all accepted: (1) entry-at-planned-price is NOT
+  generally conservative — favourable gaps gift R; entry-gap invariant is now a
+  PD-00C prerequisite; (2) horizon-inside-closure settles as X_HORIZON, censored
+  only when input ends early — record corrected; (3) censored-mark leakage is
+  wider than reported (net_r, expectancy, Trade.win, weekly/per-setup, equity,
+  open trades) — any portfolio/equity/ranking use blocked until PD-00C resolves
+  settled-vs-all semantics. Auditor independently ran focused 19 passed.
+- Full suite after both repairs: **1004 passed** (coordinator-observed);
+  mypy 286 files clean; ruff clean.

@@ -7,7 +7,8 @@ then simulates the deterministic management policy in
 
 - 50% off at +1 initial price-R, stop to break-even plus a cost buffer, then a
   chandelier trail on completed bars.
-- early adverse cut, time stop, hard T+5 horizon, Friday 19:00 UTC flatten.
+- early adverse cut, time stop, hard calendar-day horizon, Friday 19:00 UTC
+  flatten.
 
 Honesty rules baked in here:
 
@@ -18,6 +19,16 @@ Honesty rules baked in here:
   at the trigger bar, so no future bar can leak into a decision.
 - When one bar spans both the stop and the target, the STOP is assumed to fill
   first (pessimistic). This cannot manufacture an edge.
+- A gap through the protective stop fills at the ADVERSE OPEN, never at the
+  stop price: a stop is not a guaranteed fill price. A loss can therefore be
+  larger than the nominal 1R and is never clamped back to it.
+- The hold horizon is a CALENDAR-DAY research bound. It is NOT broker-session
+  T+5: AD execution spec (03) section 7 counts T+5 with verified broker
+  trading sessions, which this offline harness does not have. The two are
+  bound separately and the mismatch is reported, never relabelled.
+- Settlement only ever uses bars at or before the horizon. A trade that is
+  still open when the input ends before its horizon is CENSORED: it is
+  reported as unresolved, never booked as a settled win or dropped as a loss.
 - Costs come from the canonical table in ``src.paper.config`` and are reported
   separately from gross R.
 - Every candidate that is not traded is recorded with an explicit reason, so
@@ -60,8 +71,16 @@ X_TRAIL = "trail"
 X_PARTIAL_THEN_EXIT = "partial_then_exit"
 X_EARLY_CUT = "early_adverse_cut"
 X_TIME_STOP = "time_stop"
-X_HORIZON = "t_plus_5"
+# The research horizon is a calendar-day bound, NOT broker-session T+5. The
+# label says so; it is never relabelled as a trading-session count.
+X_HORIZON = "horizon_calendar_day"
 X_FRIDAY = "friday_flatten"
+# The input ended before the horizon: the outcome is unknown, not settled.
+X_CENSORED = "censored_data_end"
+
+# Basis of the hold horizon recorded on every trade. Broker-session T+5 is a
+# separate, unbound semantic (AD execution spec 03 section 7).
+HORIZON_BASIS = "calendar_day"
 
 _H1_WINDOW = 256   # spec-02 bounded decision window
 _M15_LOOKBACK = timedelta(hours=10)  # >= 32 bars so the spec minimum is met
@@ -123,6 +142,11 @@ class Trade:
     mfe_r: float               # best favourable excursion in R
     bars_held: int
     partial_taken: bool
+    # True when the input ended before the horizon and the outcome is unknown.
+    # A censored trade is neither a settled win nor a dropped loss.
+    censored: bool = False
+    # Basis of the hold horizon this trade was managed under.
+    horizon_basis: str = HORIZON_BASIS
 
     @property
     def win(self) -> bool:
@@ -153,16 +177,27 @@ class BacktestResult:
         return sum(t.cost_r for t in self.trades)
 
     @property
+    def settled_trades(self) -> list[Trade]:
+        """Trades with a resolved outcome; a censored trade is not settled."""
+        return [t for t in self.trades if not t.censored]
+
+    @property
+    def censored_trades(self) -> list[Trade]:
+        """Unresolved trades: the input ended before their horizon."""
+        return [t for t in self.trades if t.censored]
+
+    @property
     def wins(self) -> list[Trade]:
-        return [t for t in self.trades if t.net_r > 0.0]
+        return [t for t in self.settled_trades if t.net_r > 0.0]
 
     @property
     def losses(self) -> list[Trade]:
-        return [t for t in self.trades if t.net_r <= 0.0]
+        return [t for t in self.settled_trades if t.net_r <= 0.0]
 
     @property
     def win_rate(self) -> float:
-        return len(self.wins) / len(self.trades) if self.trades else 0.0
+        settled = self.settled_trades
+        return len(self.wins) / len(settled) if settled else 0.0
 
     @property
     def expectancy_r(self) -> float:
@@ -345,7 +380,7 @@ def simulate_trade(
 
     Bars are consumed in order; each bar's high/low decides whether the stop,
     the 1R partial or the trail was touched. Same-bar stop+target resolves to
-    the stop (pessimistic).
+    the stop (pessimistic). A gap through the stop fills at the adverse open.
     """
     entry_index = None
     for k, bar in enumerate(m15):
@@ -381,7 +416,12 @@ def simulate_trade(
     time_stop_done = False
     last_trail_h1: datetime | None = None
     best_price = entry
+    censored = False
+    last_in_horizon: OHLCBar | None = None
 
+    # Calendar-day research horizon. NOT broker-session T+5 (AD execution spec
+    # 03 section 7): that count needs verified broker trading sessions, which
+    # this offline harness does not have. The basis is recorded on the trade.
     horizon = entry_at + timedelta(days=cfg.horizon_days)
 
     def close_r(price: float) -> float:
@@ -394,6 +434,7 @@ def simulate_trade(
         if bar_open_at > horizon:
             break
         bars_held += 1
+        last_in_horizon = bar
 
         favourable = (bar.high - entry) if side == "long" else (entry - bar.low)
         adverse = (entry - bar.low) if side == "long" else (bar.high - entry)
@@ -404,8 +445,14 @@ def simulate_trade(
         # 1. protective stop first: pessimistic when a bar spans stop and target
         stop_hit = bar.low <= current_stop if side == "long" else bar.high >= current_stop
         if stop_hit:
-            realised_r += remaining * close_r(current_stop)
-            exit_price, exit_at = current_stop, bar.timestamp
+            # A gap through the stop fills at the ADVERSE OPEN, never at the
+            # stop price: a stop is not a guaranteed fill price, so the loss
+            # can exceed the nominal 1R and is never clamped back to it.
+            fill_price = (
+                min(current_stop, bar.open) if side == "long" else max(current_stop, bar.open)
+            )
+            realised_r += remaining * close_r(fill_price)
+            exit_price, exit_at = fill_price, bar.timestamp
             exit_reason = X_TRAIL if current_stop != stop else (
                 X_PARTIAL_THEN_EXIT if partial_done else X_STOP
             )
@@ -461,11 +508,26 @@ def simulate_trade(
                         current_stop = min(current_stop, best_price + cfg.trail_atr_mult * atr)
 
     if remaining > 0.0:
-        last = m15[-1] if m15 else None
-        if last is not None:
+        last = last_in_horizon
+        if last is not None and last.timestamp >= horizon:
+            # The calendar-day horizon is reached inside the data: close the
+            # remainder at the close of the last completed bar that opened at
+            # or before the horizon. No later bar can change this settlement.
             realised_r += remaining * close_r(last.close)
             exit_price = last.close
             exit_at = last.timestamp
+            exit_reason = X_HORIZON
+        else:
+            # The input ended before the horizon: the outcome is UNKNOWN. The
+            # remainder is marked at the last observed close and the trade is
+            # reported as censored, never booked as a settled win or dropped
+            # as a loss.
+            censored = True
+            exit_reason = X_CENSORED
+            if last is not None:
+                realised_r += remaining * close_r(last.close)
+                exit_price = last.close
+                exit_at = last.timestamp
 
     return Trade(
         pair=pair,
@@ -486,6 +548,8 @@ def simulate_trade(
         mfe_r=mfe_r,
         bars_held=bars_held,
         partial_taken=partial_done,
+        censored=censored,
+        horizon_basis=HORIZON_BASIS,
     )
 
 

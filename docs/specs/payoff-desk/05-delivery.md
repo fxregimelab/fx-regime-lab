@@ -82,6 +82,22 @@ USD-sign exposure and loss capacity; identical timelines reproduce; no futures
 fund earlier trades; restart/replay uses immutable R. Same-timestamp ambiguity
 must be explicitly conservative. This task proves feasible replay, not an edge.
 
+Prerequisites carried from PD-00B audit (binding, not optional):
+- Entry-gap invariant: `simulate_trade` prices entries at the planned price and
+  never reads the fill bar's open. Favourable gaps gift R; this is NOT
+  conservatism without proof that detectors set entry_price equal to the
+  fill-bar open. Pin the invariant or model entry gaps explicitly.
+- Settled-vs-all semantics: censored marks currently flow into `net_r`,
+  `expectancy_r`, `Trade.win`, weekly/per-setup stats, equity accumulation and
+  open-trade admission. Resolve settled-only vs all-trade semantics for every
+  consumer (engine result properties, `report.py`, `run_backtest` equity/caps)
+  before any portfolio, equity, ranking or kill-switch use.
+- Horizon wording correction: horizon-inside-closure settles as
+  `horizon_calendar_day`; censored applies only when input ends before the
+  horizon. Broker-session T+5 remains unbound future work, explicitly labeled.
+- Historical reports were not regenerated and still carry pre-change labels;
+  string-equality consumers of exit labels must be updated here.
+
 ## PD-01 — Payoff mathematics, first small-model packet
 
 Status: READY for offline development after the package is accepted. This pure

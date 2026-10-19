@@ -11,6 +11,21 @@ Fail-closed coverage for the red-event blackout authority:
   determines the release time used for blackout math.
 - Source data is inert input; nothing here executes or trusts its text.
 
+Blackout policy (coordinator decision 2026-10-19, packet PD-00A in
+``docs/specs/payoff-desk/05-delivery.md``):
+
+- The collected window is exactly ``[decision - CALENDAR_LOOKBACK,
+  decision + CALENDAR_LOOKAHEAD]`` = ``[t-2h, t+24h]``. A source must return
+  only events released inside that interval; a source that returns an event
+  released outside it breaks the coverage contract and blocks entry.
+- A red release blocks a new entry from ``CALENDAR_BLACKOUT_BEFORE`` before
+  the release until ``CALENDAR_BLACKOUT_AFTER`` after it (symmetric two
+  hours). The collection lookback is never narrower than the blackout span,
+  so every release that could block a decision is inside the window that was
+  actually collected.
+- ``CALENDAR_POLICY_VERSION`` pins this policy to the framework and playbook
+  versions it was adjudicated under, so a receipt can cite the rule it ran.
+
 This module never fetches by itself — a registered collector transport supplies
 the raw window. Live entitlement for that transport is a separate provisioning
 fact; its absence stays a blocker rather than being faked here.
@@ -22,12 +37,25 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Protocol
 
+from src.paper.config import FRAMEWORK_VERSION, PLAYBOOK_VERSION
 from src.paper.contracts import ContractError, Coverage, Pair
 
-_RED_BLACKOUT_BEFORE = timedelta(minutes=15)
-_RED_BLACKOUT_AFTER = timedelta(hours=2)
-_COVERAGE_LOOKBACK = timedelta(minutes=15)
-_COVERAGE_LOOKAHEAD = timedelta(hours=24)
+# Collection window and blackout policy (coordinator decision 2026-10-19,
+# PD-00A). Public and single-sourced: the source request, the receipt
+# validation, the error text and the tests all read these constants instead
+# of repeating literals that can drift apart.
+CALENDAR_LOOKBACK = timedelta(hours=2)
+CALENDAR_LOOKAHEAD = timedelta(hours=24)
+CALENDAR_BLACKOUT_BEFORE = timedelta(hours=2)
+CALENDAR_BLACKOUT_AFTER = timedelta(hours=2)
+
+# Citable pin for the rule above: policy identity, the adjudicating packet and
+# date, and the framework/playbook versions it was read under.
+CALENDAR_POLICY_VERSION = (
+    "ad-calendar-blackout/2h-symmetric/PD-00A-2026-10-19"
+    f"/playbook-{PLAYBOOK_VERSION}/framework-{FRAMEWORK_VERSION}"
+)
+
 _MAX_FETCH_AGE = timedelta(minutes=5)
 _IMPACT_TIERS = frozenset({"red", "amber", "green"})
 
@@ -51,6 +79,26 @@ def _non_empty(name: str, value: str) -> str:
     if type(value) is not str or not value.strip():
         raise ContractError("INVALID_SCHEMA", f"{name}: non-empty string required")
     return value
+
+
+def _span(delta: timedelta) -> str:
+    """Render one policy span as a compact label (2h, 24h, 15min)."""
+    minutes = int(delta.total_seconds() // 60)
+    if minutes % 60 == 0:
+        return f"{minutes // 60}h"
+    return f"{minutes}min"
+
+
+def _window_label() -> str:
+    """The exact collection window this policy requests, in policy notation."""
+    return f"t-{_span(CALENDAR_LOOKBACK)}..t+{_span(CALENDAR_LOOKAHEAD)}"
+
+
+def _blackout_span_label() -> str:
+    """The span around a decision that must be covered to prove a blackout verdict."""
+    return (
+        f"t-{_span(CALENDAR_BLACKOUT_BEFORE)}..t+{_span(CALENDAR_BLACKOUT_AFTER)}"
+    )
 
 
 @dataclass(frozen=True)
@@ -129,6 +177,17 @@ def _validate_event(event: CalendarEvent, decision_at: datetime) -> None:
         raise ContractError("INVALID_SCHEMA", "CalendarEvent: not yet available at decision")
 
 
+def _require_event_in_window(
+    event: CalendarEvent, start: datetime, end: datetime
+) -> None:
+    """A release outside the covered window means the source broke its contract."""
+    if not start <= event.release_at <= end:
+        raise ContractError(
+            "SOURCE_INCOMPLETE",
+            f"event {event.event_id!r} was released outside the covered window",
+        )
+
+
 def _validate_receipt_shape(receipt: CoverageReceipt, decision_at: datetime) -> None:
     _aware_utc("CoverageReceipt.window_start", receipt.window_start)
     _aware_utc("CoverageReceipt.window_end", receipt.window_end)
@@ -153,8 +212,8 @@ def collect_calendar(
         raise ContractError("SOURCE_INCOMPLETE", f"calendar source {source_id!r} is not registered")
 
     currencies = _PAIR_CURRENCIES[pair]
-    start = decision_at - _COVERAGE_LOOKBACK
-    end = decision_at + _COVERAGE_LOOKAHEAD
+    start = decision_at - CALENDAR_LOOKBACK
+    end = decision_at + CALENDAR_LOOKAHEAD
     payload = source.read_window(start, end, currencies)
     if not isinstance(payload, CalendarPayload):
         raise ContractError("INVALID_SCHEMA", "calendar source must return a CalendarPayload")
@@ -166,7 +225,10 @@ def collect_calendar(
     if receipt.currencies != currencies:
         raise ContractError("SOURCE_INCOMPLETE", "receipt currencies do not cover the pair")
     if receipt.window_start != start or receipt.window_end != end:
-        raise ContractError("SOURCE_INCOMPLETE", "receipt window does not match t-15min..t+24h")
+        raise ContractError(
+            "SOURCE_INCOMPLETE",
+            f"receipt window does not match {_window_label()}",
+        )
     if receipt.status is not Coverage.verified:
         raise ContractError("SOURCE_INCOMPLETE", f"calendar coverage status {receipt.status!r}")
 
@@ -175,6 +237,7 @@ def collect_calendar(
         if not isinstance(event, CalendarEvent):
             raise ContractError("INVALID_SCHEMA", "calendar payload contains a non-event")
         _validate_event(event, decision_at)
+        _require_event_in_window(event, start, end)
         if event.currency not in receipt.currencies:
             raise ContractError("SOURCE_INCOMPLETE", "event currency outside covered set")
         key = (event.event_id, event.revision)
@@ -187,9 +250,14 @@ def collect_calendar(
 def entry_blackout(payload: CalendarPayload, *, decision_at: datetime) -> bool:
     """True when a red release blocks new entries at ``decision_at``.
 
-    Blackout rule: no entry from 15 minutes before a red release until 2 hours
-    after it. The latest revision per event id is the authoritative release
-    time; superseded revisions remain archived as evidence only.
+    Blackout rule: no entry from ``CALENDAR_BLACKOUT_BEFORE`` before a red
+    release until ``CALENDAR_BLACKOUT_AFTER`` after it. The latest revision
+    per event id is the authoritative release time; superseded revisions
+    remain archived as evidence only.
+
+    The verdict is only proven when the collected window covers the whole
+    blocking span around this decision: an uncovered span could hide a red
+    release that should block, so it blocks instead.
     """
     _aware_utc("decision_at", decision_at)
     receipt = payload.receipt
@@ -198,18 +266,26 @@ def entry_blackout(payload: CalendarPayload, *, decision_at: datetime) -> bool:
         raise ContractError("SOURCE_INCOMPLETE", f"calendar coverage status {receipt.status!r}")
     if not receipt.window_start <= decision_at <= receipt.window_end:
         raise ContractError("SOURCE_INCOMPLETE", "decision outside the covered calendar window")
+    if receipt.window_start > decision_at - CALENDAR_BLACKOUT_BEFORE or (
+        receipt.window_end < decision_at + CALENDAR_BLACKOUT_AFTER
+    ):
+        raise ContractError(
+            "SOURCE_INCOMPLETE",
+            f"receipt window does not cover the blackout span {_blackout_span_label()}",
+        )
 
     latest: dict[str, CalendarEvent] = {}
     for event in payload.events:
         _validate_event(event, decision_at)
+        _require_event_in_window(event, receipt.window_start, receipt.window_end)
         current = latest.get(event.event_id)
         if current is None or event.revision > current.revision:
             latest[event.event_id] = event
     for event in latest.values():
         if event.impact != "red":
             continue
-        if event.release_at - _RED_BLACKOUT_BEFORE <= decision_at <= (
-            event.release_at + _RED_BLACKOUT_AFTER
+        if event.release_at - CALENDAR_BLACKOUT_BEFORE <= decision_at <= (
+            event.release_at + CALENDAR_BLACKOUT_AFTER
         ):
             return True
     return False
