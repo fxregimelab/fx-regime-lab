@@ -24,21 +24,29 @@ Use temp databases/fakes; tests must deny broker/model/production DB effects.
 
 ## PD-00A — Calendar source window and policy adjudication
 
-Status: source-window repair READY; blackout policy decision BLOCKED pending
-explicit precedence review, not guessed by a worker.
+Status: DECIDED and READY. Owner delegated the precedence decision to the
+coordinator on 2026-10-19; coordinator adopts the STRICTER rule (fail-closed):
+block red releases in [decision−2h, release+2h] — the playbook's 2h
+pre-release window plus the coded 2h post-release window. Collection window
+becomes [decision−2h, decision+24h]. This weakens nothing: the coded 15-minute
+pre-release rule is superseded upward, never downward. Checklist H3 and the
+event-cohort exemption stay out of scope; report, do not change.
 
 Reads: `paper/calendar.py`, `tests/test_ad_calendar.py`, AD data/execution specs,
 `docs/DESK_TRADING_PLAYBOOK.md` red-event rule, current authority/version pins.
 Writes: only `pipeline/src/paper/calendar.py`,
 `pipeline/tests/test_ad_calendar.py` after impact/caller review.
 
-Required cases: source honours EXACT requested interval and returns only events
-inside it; prior red release 90min ago must be observable for a 2h post-release
-blackout; verify exact boundaries and latest revision handling; event 90min in
-future exposes -15min versus -2h policy conflict. Fix collection lookback to
-cover the active rule, with matching receipt validation and tests. Do not claim
-calendar integration ready until documented policy, code and version pins agree.
-Preserve existing stricter owner constraints pending adjudication; report conflict.
+Required cases: source honours EXACT requested interval [decision−2h,
+decision+24h] and returns only events inside it; red release 90min prior is
+observable and blocking; red release 90min ahead is blocking under the decided
+2h pre-release rule; verify exact boundaries (both window edges, both blackout
+edges) and latest revision handling. Fix collection lookback to 2h, with
+matching receipt validation, error-message text, and tests. Pin the calendar
+blackout policy to a citable version (framework/playbook version stamp).
+Do not claim calendar integration ready until documented policy, code and
+version pins agree. The test fake must become honest (filter to the requested
+interval) so the 90-min-prior regression is genuinely red before the fix.
 
 Command from pipeline: `.venv\Scripts\python.exe -m pytest tests/test_ad_calendar.py -q`.
 No real feed entitlement or broker access is needed/proved by these tests.

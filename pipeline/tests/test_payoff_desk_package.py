@@ -52,12 +52,16 @@ def test_agents_are_fail_closed_and_do_not_select_deepseek(name: str) -> None:
         assert ("read", secret, "deny") in rules
 
 
-def test_builder_has_only_bound_pd01_edit_scope() -> None:
+def test_builder_has_only_bound_packet_edit_scope() -> None:
     rules = _rules(_header(ROOT / ".opencode" / "agents" / "desk-builder.md"))
     edits = {(r, e) for a, r, e in rules if a == "edit"}
     assert edits == {
         ("pipeline/src/paper/backtest/payoff.py", "ask"),
         ("pipeline/tests/test_payoff.py", "ask"),
+        ("pipeline/src/paper/calendar.py", "ask"),
+        ("pipeline/tests/test_ad_calendar.py", "ask"),
+        ("pipeline/src/paper/backtest/engine.py", "ask"),
+        ("pipeline/tests/test_payoff_engine_regressions.py", "ask"),
     }
 
 
