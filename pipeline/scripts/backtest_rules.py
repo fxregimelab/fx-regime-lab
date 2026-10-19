@@ -77,7 +77,8 @@ def main() -> int:
             )
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    (REPORT_DIR / f"rules_{args.timeframe}.json").write_text(
+    filename = "rules.json" if args.timeframe == "m15" else f"rules_{args.timeframe}.json"
+    (REPORT_DIR / filename).write_text(
         json.dumps(
             {"config": asdict(rule_cfg), "timeframe": args.timeframe, "results": rows},
             indent=2,

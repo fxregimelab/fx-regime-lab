@@ -39,41 +39,44 @@ def _frame(n: int, atr: float = 0.0010) -> FeatureFrame:
 
 
 def test_asian_range_covers_only_the_pre_london_window() -> None:
+    # Timestamps are close times: 07:00 is the last Asian bar (06:45-07:00),
+    # 07:15 is the first London bar.
     bars = [
         _bar(15, open_=1.1000, high=1.1005, low=1.0995, close=1.1000),
         _bar(30, open_=1.1000, high=1.1010, low=1.0990, close=1.1005),
         _bar(7 * 60, open_=1.1005, high=1.1020, low=1.1000, close=1.1015),
+        _bar(7 * 60 + 15, open_=1.1015, high=1.1030, low=1.1010, close=1.1025),
     ]
     ranges = _asian_ranges(bars)
     high, low = ranges[MONDAY.date()]
-    assert high == 1.1010
+    assert high == 1.1020
     assert low == 1.0990
 
 
 def test_london_breakout_requires_the_first_close_beyond_the_range() -> None:
     bars: list[OHLCBar] = []
-    # 00:15-06:45 range: high 1.1010, low 1.0990
-    for i in range(27):
+    # 00:15-07:00 inclusive (28 bars): high 1.1010, low 1.0990
+    for i in range(28):
         bars.append(
             _bar(15 * (i + 1), open_=1.1000, high=1.1010, low=1.0990, close=1.1000)
         )
-    # 07:00 breakout close above the range
-    bars.append(_bar(7 * 60, open_=1.1000, high=1.1016, low=1.0999, close=1.1015))
-    # 07:15 another close above: not a fresh breakout
-    bars.append(_bar(7 * 60 + 15, open_=1.1015, high=1.1020, low=1.1012, close=1.1018))
+    # 07:15 is the first London close and breaks the range
+    bars.append(_bar(7 * 60 + 15, open_=1.1000, high=1.1016, low=1.0999, close=1.1015))
+    # 07:30 another close above: not a fresh breakout
+    bars.append(_bar(7 * 60 + 30, open_=1.1015, high=1.1020, low=1.1012, close=1.1018))
 
     frame = _frame(len(bars))
     signals = london_breakout(bars, frame)
-    assert signals == [(27, 1)]
+    assert signals == [(28, 1)]
 
 
 def test_london_breakout_ignores_narrow_ranges() -> None:
     bars: list[OHLCBar] = []
-    for i in range(27):
+    for i in range(28):
         bars.append(
             _bar(15 * (i + 1), open_=1.1000, high=1.1001, low=1.0999, close=1.1000)
         )
-    bars.append(_bar(7 * 60, open_=1.1000, high=1.1005, low=1.0999, close=1.1004))
+    bars.append(_bar(7 * 60 + 15, open_=1.1000, high=1.1005, low=1.0999, close=1.1004))
     frame = _frame(len(bars), atr=0.0100)  # range 0.0002 < 0.5 * 0.0100
     assert london_breakout(bars, frame) == []
 

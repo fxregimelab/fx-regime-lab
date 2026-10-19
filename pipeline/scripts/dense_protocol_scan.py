@@ -47,11 +47,6 @@ def main() -> int:
         ]
         for pair in PAIRS
     }
-    span_weeks = max(
-        (series[PAIRS[0]][-1].timestamp - series[PAIRS[0]][0].timestamp).total_seconds()
-        / (7 * 86400.0),
-        1.0,
-    )
 
     base = DenseConfig(
         stop_atr_mult=args.stop,
@@ -64,8 +59,10 @@ def main() -> int:
         for signal_rate in SIGNAL_RATES:
             cfg = replace(base, train_days=train_days, signal_rate=signal_rate)
             pair_rows: list[dict[str, Any]] = []
+            results = []
             for pair in PAIRS:
                 result = run_walk_forward(pair, series[pair], cfg=cfg)
+                results.append(result)
                 row = summary(result)
                 pair_rows.append(
                     {
@@ -81,6 +78,11 @@ def main() -> int:
                 )
             total_trades = sum(int(r["trades"]) for r in pair_rows)
             total_net = sum(float(r["net_r"]) for r in pair_rows)
+            span_start = min(r.folds[0].test_start for r in results if r.folds)
+            span_end = max(r.end for r in results)
+            span_weeks = max(
+                (span_end - span_start).total_seconds() / (7 * 86400.0), 1.0
+            )
             rows.append(
                 {
                     "train_days": train_days,

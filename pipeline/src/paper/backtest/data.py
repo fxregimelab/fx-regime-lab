@@ -93,6 +93,7 @@ def load_series(
                     low=float(row["low"]),
                     close=float(row["close"]),
                     volume=float(row.get("tick_volume") or row.get("volume") or 0.0),
+                    spread_points=float(row.get("spread") or 0.0),
                 )
             )
     bars.sort(key=lambda b: b.timestamp)
@@ -127,6 +128,23 @@ def slice_between(
 
 def expected_step(timeframe: str) -> timedelta:
     return timedelta(seconds=_BAR_SECONDS[timeframe])
+
+
+def data_fingerprint(data_dir: Path = DEFAULT_DATA_DIR) -> dict[str, str]:
+    """Content hashes so a report can be tied to the exact CSVs it used."""
+    import hashlib
+
+    fingerprint: dict[str, str] = {}
+    for pair in PAIRS:
+        for timeframe in TIMEFRAMES:
+            path = next(
+                (p for p in _mt5_paths(data_dir, pair, timeframe) if p.exists()), None
+            )
+            if path is None:
+                continue
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+            fingerprint[f"{pair}_{timeframe}"] = digest
+    return fingerprint
 
 
 def coverage_summary(bundle: dict[str, dict[str, BarSeries]]) -> list[dict[str, Any]]:

@@ -63,8 +63,10 @@ def main() -> int:
             base, stop_atr_mult=stop_mult, target_r=target, max_hold_bars=hold
         )
         pair_rows = []
+        results = []
         for pair in PAIRS:
             result = run_walk_forward(pair, series[pair], cfg=cfg)
+            results.append(result)
             row = summary(result)
             pair_rows.append(
                 {
@@ -81,10 +83,11 @@ def main() -> int:
             )
         total_trades = sum(int(r["trades"]) for r in pair_rows)
         total_net = sum(float(r["net_r"]) for r in pair_rows)
+        # Rate denominator is the out-of-sample span only, never the training bars.
+        span_start = min(r.folds[0].test_start for r in results if r.folds)
+        span_end = max(r.end for r in results)
         span_weeks = max(
-            (series[PAIRS[0]][-1].timestamp - series[PAIRS[0]][0].timestamp).total_seconds()
-            / (7 * 86400.0),
-            1.0,
+            (span_end - span_start).total_seconds() / (7 * 86400.0), 1.0
         )
         rows.append(
             {
@@ -106,7 +109,8 @@ def main() -> int:
         )
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    (REPORT_DIR / f"sweep_{tag}.json").write_text(
+    filename = "sweep.json" if tag == "m15" else f"sweep_{tag}.json"
+    (REPORT_DIR / filename).write_text(
         json.dumps(
             {
                 "base": asdict(base),

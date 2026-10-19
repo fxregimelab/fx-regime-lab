@@ -120,9 +120,7 @@ class DenseConfig:
     ridge_shrinkage: float = 0.05
     signal_rate: float = 0.02       # fraction of eligible bars considered
     min_edge_r: float = 0.02        # predicted net R must clear this
-    min_train_rows: int = 5_000
-
-    bars_per_week: float = 480.0    # 5 days x 96 M15 bars
+    min_train_rows: int = 5_000     # directional rows (both sides stacked)
 
 
 @dataclass(frozen=True)
@@ -147,6 +145,8 @@ class TradeRecord:
     gross_r: float
     cost_r: float
     score: float
+    bars_held: int
+    entry_spread_points: float
 
     @property
     def win(self) -> bool:
@@ -200,7 +200,9 @@ class DenseResult:
 
     @property
     def weeks(self) -> float:
-        return max((self.end - self.start).total_seconds() / (7 * 86400.0), 1e-9)
+        """Out-of-sample span only: training bars are not tradable evidence."""
+        first_test = self.folds[0].test_start if self.folds else self.start
+        return max((self.end - first_test).total_seconds() / (7 * 86400.0), 1e-9)
 
     @property
     def trades_per_week(self) -> float:
@@ -401,7 +403,7 @@ def build_features(
         (close - sma20) / np.where(std20 > 0.0, std20, np.nan),
         (close - low20) / np.where((high20 - low20) > 0.0, high20 - low20, np.nan) - 0.5,
         (close - open_) / safe_atr,
-        (high - np.maximum(open_, close)) / safe_atr,
+        (np.maximum(open_, close) - high) / safe_atr,
         (np.minimum(open_, close) - low) / safe_atr,
         (close - pdh) / safe_atr,
         (close - pdl) / safe_atr,
@@ -442,8 +444,13 @@ def build_features(
 
 
 def directional_matrix(base: Array) -> Array:
-    """Long-side directional view; short-side is the columnwise mirror."""
-    return base * _DIRECTIONAL_MASK
+    """Long-side view.
+
+    Directional columns already point "long-positive" by construction; context
+    columns (session, volatility, clock) are not signed and must keep their
+    values. The short side mirrors only the directional columns.
+    """
+    return base
 
 
 # --- Outcome simulation ----------------------------------------------------------
@@ -572,6 +579,41 @@ def _fold_bounds(
     return folds
 
 
+def _bar_delta(times: list[datetime]) -> timedelta:
+    """Nominal bar size, inferred from the first few completed bars."""
+    if len(times) < 2:
+        return timedelta(minutes=15)
+    diffs = [
+        (times[i] - times[i - 1]).total_seconds()
+        for i in range(1, min(len(times), 50))
+    ]
+    positive = [value for value in diffs if value > 0.0]
+    if not positive:
+        return timedelta(minutes=15)
+    return timedelta(seconds=int(np.median(positive)))
+
+
+def _labels_resolved_before(
+    times: list[datetime],
+    long_exit: IntArray,
+    short_exit: IntArray,
+    cutoff: datetime,
+) -> BoolArray:
+    """Purge training rows whose outcome is only known inside the test window.
+
+    A label simulated from bar ``i`` can resolve up to ``max_hold_bars`` later.
+    Training on such a row would let the model see test-period prices.
+    """
+    ready: BoolArray = np.zeros(len(times), dtype=np.bool_)
+    for i in range(len(times)):
+        long_index = int(long_exit[i])
+        short_index = int(short_exit[i])
+        if long_index < 0 or short_index < 0:
+            continue
+        ready[i] = times[long_index] < cutoff and times[short_index] < cutoff
+    return ready
+
+
 def run_walk_forward(
     pair: str,
     bars: list[OHLCBar],
@@ -583,6 +625,7 @@ def run_walk_forward(
     frame = build_features(bars, pair, cfg=cfg)
     long_r, short_r, long_exit, short_exit = build_labels(bars, frame, pair, cfg=cfg)
     times = list(frame.times)
+    bar_delta = _bar_delta(times)
 
     long_features = directional_matrix(frame.base)
     # Mirror only the directional columns; context columns stay unchanged.
@@ -592,16 +635,21 @@ def run_walk_forward(
     trades: list[TradeRecord] = []
     fold_results: list[FoldResult] = []
     all_valid = frame.valid & np.isfinite(long_r) & np.isfinite(short_r)
+    test_union: BoolArray = np.zeros(len(times), dtype=np.bool_)
 
     for fold_index, (train_start, train_end, test_start, test_end) in enumerate(folds):
+        # Purge: every training label must resolve strictly before the test window.
+        resolved = _labels_resolved_before(times, long_exit, short_exit, train_end)
         train_mask = np.array(
             [train_start <= ts < train_end for ts in times], dtype=np.bool_
-        ) & all_valid
+        ) & all_valid & resolved
         test_mask = np.array(
             [test_start <= ts < test_end for ts in times], dtype=np.bool_
         ) & all_valid
-        if int(np.sum(train_mask)) < cfg.min_train_rows or not np.any(test_mask):
+        train_rows = 2 * int(np.sum(train_mask))
+        if train_rows < cfg.min_train_rows or not np.any(test_mask):
             continue
+        test_union |= test_mask
 
         train_features = np.vstack(
             [long_features[train_mask], short_features[train_mask]]
@@ -665,7 +713,7 @@ def run_walk_forward(
                     fold=fold_index,
                     side="long" if side > 0 else "short",
                     decision_at=times[i],
-                    entry_at=entry_bar.timestamp - timedelta(minutes=15),
+                    entry_at=entry_bar.timestamp - bar_delta,
                     exit_at=exit_bar.timestamp,
                     entry_price=entry_bar.open,
                     risk_price=risk,
@@ -673,6 +721,8 @@ def run_walk_forward(
                     gross_r=net_r + cost_r,
                     cost_r=cost_r,
                     score=score,
+                    bars_held=int(exit_index) - int(i),
+                    entry_spread_points=entry_bar.spread_points,
                 )
             )
             block_until = exit_index
@@ -692,8 +742,8 @@ def run_walk_forward(
                 test_start=test_start,
                 test_end=test_end,
                 threshold=threshold,
-                train_rows=int(np.sum(train_mask)),
-                test_rows=int(np.sum(test_mask)),
+                train_rows=train_rows,
+                test_rows=2 * int(np.sum(test_mask)),
                 trades=len(fold_trades),
                 net_r=sum(t.net_r for t in fold_trades),
                 mean_selected_score=(
@@ -707,7 +757,8 @@ def run_walk_forward(
             )
         )
 
-    all_valid_r = np.concatenate([long_r[all_valid], short_r[all_valid]])
+    evidence_mask = test_union if np.any(test_union) else all_valid
+    all_valid_r = np.concatenate([long_r[evidence_mask], short_r[evidence_mask]])
     return DenseResult(
         pair=pair,
         start=times[0],

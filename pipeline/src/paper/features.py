@@ -51,6 +51,7 @@ class OHLCBar:
     low: float
     close: float
     volume: float = 0.0
+    spread_points: float = 0.0
 
     def __post_init__(self) -> None:
         if (
@@ -70,6 +71,14 @@ class OHLCBar:
             raise ContractError("INVALID_SCHEMA", "OHLCBar: low/open/close/high ordering broken")
         if type(self.volume) is not float or self.volume < 0.0 or not math.isfinite(self.volume):
             raise ContractError("INVALID_NUMBER", "OHLCBar.volume: nonnegative finite required")
+        if (
+            type(self.spread_points) is not float
+            or self.spread_points < 0.0
+            or not math.isfinite(self.spread_points)
+        ):
+            raise ContractError(
+                "INVALID_NUMBER", "OHLCBar.spread_points: nonnegative finite required"
+            )
 
 
 def validate_bars(bars: Sequence[OHLCBar]) -> None:

@@ -1,27 +1,33 @@
 """Interpretable dense rule baselines (research only, never execution).
 
 The walk-forward model can overfit in ways that are hard to see. These three
-rules are the honest cross-check: if a 24-feature ridge model cannot beat a
+rules are the honest cross-check: if a multi-feature ridge model cannot beat a
 one-line session rule, the model is not adding value.
 
-Every rule is causal and takes the next M15 open. Costs and the pessimistic
+Every rule is causal and takes the next bar's open. Costs and the pessimistic
 same-bar rule are inherited from :mod:`src.paper.backtest.dense`.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timedelta
 
 from src.paper.backtest.dense import (
     DenseConfig,
     FeatureFrame,
     TradeRecord,
+    _bar_delta,
     build_features,
     simulate_outcome,
 )
 from src.paper.config import COSTS
 from src.paper.features import OHLCBar
+
+
+def _bar_open(timestamp: datetime, delta: timedelta) -> datetime:
+    """Nominal open time of a bar whose ``timestamp`` is its close time."""
+    return timestamp - delta
 
 
 @dataclass(frozen=True)
@@ -32,11 +38,18 @@ class RuleConfig:
     min_gap_bars: int = 8
 
 
-def _asian_ranges(bars: list[OHLCBar]) -> dict[date, tuple[float, float]]:
-    """High/low of the 00:00-07:00 UTC window for each completed day."""
+def _asian_ranges(
+    bars: list[OHLCBar], delta: timedelta | None = None
+) -> dict[date, tuple[float, float]]:
+    """High/low of the 00:00-07:00 UTC window for each completed day.
+
+    Membership is decided by the bar's *open* time, so the bar covering
+    06:45-07:00 (close time 07:00) is included and the 07:00-07:15 bar is not.
+    """
+    delta = delta or _bar_delta([b.timestamp for b in bars])
     ranges: dict[date, tuple[float, float]] = {}
     for bar in bars:
-        open_at = bar.timestamp.replace(second=0, microsecond=0)
+        open_at = _bar_open(bar.timestamp, delta)
         if open_at.hour >= 7:
             continue
         day = open_at.date()
@@ -48,14 +61,20 @@ def _asian_ranges(bars: list[OHLCBar]) -> dict[date, tuple[float, float]]:
 def london_breakout(
     bars: list[OHLCBar], frame: FeatureFrame, *, min_range_atr: float = 0.5
 ) -> list[tuple[int, int]]:
-    """First close beyond the Asian range during the London window."""
-    ranges = _asian_ranges(bars)
+    """First close beyond the Asian range during the London window.
+
+    ``bars[i].timestamp`` is the close time, so the bar covering 06:45-07:00
+    closes at 07:00 and belongs to Asia. The first London decision is the bar
+    that opens at 07:00 (close time 07:15).
+    """
+    delta = _bar_delta([bar.timestamp for bar in bars])
+    ranges = _asian_ranges(bars, delta)
     out: list[tuple[int, int]] = []
     for i in range(1, len(bars)):
-        close_at = bars[i].timestamp
-        if close_at.weekday() >= 5 or not (7 <= close_at.hour < 16):
+        open_at = _bar_open(bars[i].timestamp, delta)
+        if open_at.weekday() >= 5 or not (7 <= open_at.hour < 16):
             continue
-        levels = ranges.get(close_at.date())
+        levels = ranges.get(open_at.date())
         if levels is None:
             continue
         high, low = levels
@@ -132,6 +151,7 @@ def evaluate_signals(
 ) -> list[TradeRecord]:
     """Settle rule signals with one position per pair at a time."""
     trades: list[TradeRecord] = []
+    delta = _bar_delta([bar.timestamp for bar in bars])
     block_until = -1
     for index, side in sorted(signals):
         if index < block_until:
@@ -151,7 +171,7 @@ def evaluate_signals(
                 fold=-1,
                 side="long" if side > 0 else "short",
                 decision_at=bars[index].timestamp,
-                entry_at=entry_bar.timestamp,
+                entry_at=entry_bar.timestamp - delta,
                 exit_at=exit_bar.timestamp,
                 entry_price=entry_bar.open,
                 risk_price=risk,
@@ -159,6 +179,8 @@ def evaluate_signals(
                 gross_r=net_r + cost_r,
                 cost_r=cost_r,
                 score=0.0,
+                bars_held=exit_index - index,
+                entry_spread_points=entry_bar.spread_points,
             )
         )
         block_until = exit_index

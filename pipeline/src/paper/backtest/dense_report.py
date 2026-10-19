@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+import numpy as np
+
 from src.paper.backtest.dense import DenseResult, TradeRecord
 
 
@@ -46,9 +48,13 @@ def summary(result: DenseResult) -> dict[str, Any]:
     active_weeks = [w for w in weeks if int(w["trades"]) > 0]
     gross_win = sum(t.net_r for t in wins)
     gross_loss = -sum(t.net_r for t in losses)
+    positive_folds = [f.net_r for f in result.folds if f.net_r > 0.0]
+    fold_profit_total = sum(positive_folds)
+    spread_values = [t.entry_spread_points for t in trades if t.entry_spread_points > 0.0]
     return {
         "pair": result.pair,
         "sample_start": result.start.isoformat(),
+        "oos_start": result.folds[0].test_start.isoformat() if result.folds else None,
         "sample_end": result.end.isoformat(),
         "trades": len(trades),
         "trades_per_week": round(result.trades_per_week, 3),
@@ -69,11 +75,15 @@ def summary(result: DenseResult) -> dict[str, Any]:
         "long_trades": sum(1 for t in trades if t.side == "long"),
         "short_trades": sum(1 for t in trades if t.side == "short"),
         "avg_bars_held": round(
-            sum(
-                (t.exit_at - t.entry_at).total_seconds() / 900.0 for t in trades
-            ) / len(trades),
-            2,
+            sum(t.bars_held for t in trades) / len(trades), 2
         ) if trades else 0.0,
+        "entry_spread_points_mean": round(float(np.mean(spread_values)), 2)
+        if spread_values else None,
+        "entry_spread_points_median": round(float(np.median(spread_values)), 2)
+        if spread_values else None,
+        "fold_profit_concentration": round(
+            max(positive_folds) / fold_profit_total, 4
+        ) if fold_profit_total > 0.0 else None,
         "average_week_net_r": round(
             sum(w["net_r"] for w in active_weeks) / len(active_weeks), 4
         ) if active_weeks else 0.0,
@@ -122,7 +132,7 @@ def render_markdown(rows: list[dict[str, Any]], *, title: str, config: dict[str,
         f"# {title}",
         "",
         "**Historical simulation - not live results.** Walk-forward: every trade below was",
-        "chosen by a model trained only on earlier bars. Entry at the next M15 open, stop",
+        "chosen by a model trained only on earlier bars. Entry at the next bar's open, stop",
         "before target on ambiguous bars, gaps fill at the open, canonical costs included.",
         "",
         "## Configuration (fixed a priori, not tuned per fold)",

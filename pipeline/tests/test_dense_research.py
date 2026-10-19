@@ -12,12 +12,14 @@ import pytest
 from src.paper.backtest.dense import (
     FEATURE_NAMES,
     DenseConfig,
+    _labels_resolved_before,
     build_features,
     build_labels,
     directional_matrix,
     run_walk_forward,
     simulate_outcome,
 )
+from src.paper.config import COSTS
 from src.paper.features import OHLCBar
 
 START = datetime(2022, 1, 3, tzinfo=UTC)
@@ -212,6 +214,30 @@ def test_directional_mirror_flips_only_directional_columns() -> None:
             np.testing.assert_allclose(short_view[:, k], long_view[:, k])
 
 
+def test_context_features_are_not_zeroed() -> None:
+    """Regression: the long view once multiplied context columns by zero."""
+    from src.paper.backtest.dense import DIRECTIONAL_FEATURES
+
+    bars = _synthetic_series(400)
+    frame = build_features(bars, "EURUSD")
+    long_view = directional_matrix(frame.base)
+    context = [k for k, name in enumerate(FEATURE_NAMES) if name not in DIRECTIONAL_FEATURES]
+    assert context
+    for k in context:
+        np.testing.assert_allclose(long_view[:, k], frame.base[:, k])
+    # At least one context column must carry real variance, not a constant.
+    assert np.nanstd(frame.base[200:, context]) > 0.0
+
+
+def test_labels_resolved_before_purges_rows_that_reach_the_test_window() -> None:
+    times = [START + timedelta(minutes=15 * i) for i in range(6)]
+    cutoff = times[4]
+    long_exit = np.array([3, 4, 5, 2, -1, 1], dtype=np.int64)
+    short_exit = np.array([3, 4, 5, 2, -1, 1], dtype=np.int64)
+    ready = _labels_resolved_before(times, long_exit, short_exit, cutoff)
+    assert ready.tolist() == [True, False, False, True, False, True]
+
+
 def test_walk_forward_folds_are_strictly_forward() -> None:
     bars = _synthetic_series(7_000)
     cfg = DenseConfig(
@@ -259,6 +285,26 @@ def test_every_trade_pays_cost_and_net_is_gross_minus_cost() -> None:
     )
     result = run_walk_forward("EURUSD", bars, cfg=cfg)
     assert result.trades
+    total_bps = COSTS.round_trip_bps["EURUSD"] + COSTS.slippage_bps
     for trade in result.trades:
-        assert trade.cost_r > 0.0
-        assert trade.net_r == pytest.approx(trade.gross_r - trade.cost_r)
+        # Independent recomputation from entry price and risk distance.
+        expected = (trade.entry_price * total_bps / 10_000.0) / trade.risk_price
+        assert trade.cost_r == pytest.approx(expected)
+        assert trade.gross_r == pytest.approx(trade.net_r + trade.cost_r)
+        assert trade.bars_held >= 1
+
+
+def test_entry_timestamp_is_the_next_bar_open() -> None:
+    bars = _synthetic_series(7_000)
+    cfg = DenseConfig(
+        train_days=20,
+        test_days=10,
+        warmup_bars=120,
+        min_train_rows=500,
+        signal_rate=0.05,
+    )
+    result = run_walk_forward("EURUSD", bars, cfg=cfg)
+    assert result.trades
+    for trade in result.trades:
+        # On a contiguous series the next bar's open equals the decision close.
+        assert trade.entry_at == trade.decision_at
