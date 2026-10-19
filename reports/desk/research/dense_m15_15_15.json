@@ -1,0 +1,1849 @@
+{
+  "generated_by": "scripts/backtest_dense.py",
+  "timeframe": "m15",
+  "start": null,
+  "config": {
+    "stop_atr_mult": 1.5,
+    "target_r": 1.5,
+    "max_hold_bars": 32,
+    "warmup_bars": 120,
+    "train_days": 365,
+    "test_days": 90,
+    "calibration_fraction": 0.25,
+    "ridge_shrinkage": 0.05,
+    "signal_rate": 0.03,
+    "min_edge_r": 0.0,
+    "min_train_rows": 5000
+  },
+  "data_fingerprint": {
+    "EURUSD_d1": "20c5d51e57c90d04",
+    "EURUSD_h4": "28f4ac62ae6fae2c",
+    "EURUSD_h1": "d7096419d22fef2a",
+    "EURUSD_m15": "a0f84b6b7707a3ff",
+    "USDJPY_d1": "e9a772a0bad5044b",
+    "USDJPY_h4": "666686cfe810f408",
+    "USDJPY_h1": "ae9b826da545a0ae",
+    "USDJPY_m15": "b7be0c29f1c782a7"
+  },
+  "pairs": [
+    {
+      "pair": "EURUSD",
+      "sample_start": "2022-10-27T01:45:00+00:00",
+      "oos_start": "2023-10-27T01:45:00+00:00",
+      "sample_end": "2026-10-19T09:00:00+00:00",
+      "trades": 189,
+      "trades_per_week": 1.216,
+      "active_weeks": 61,
+      "win_rate": 0.4392,
+      "expectancy_r": 0.0005,
+      "total_net_r": 0.0915,
+      "total_gross_r": 15.7062,
+      "total_costs_r": 15.6148,
+      "avg_win_r": 1.1394,
+      "avg_loss_r": -0.8913,
+      "profit_factor": 1.001,
+      "unconditional_expectancy_r": -0.2494,
+      "edge_vs_unconditional_r": 0.2499,
+      "valid_bars": 98876,
+      "long_trades": 116,
+      "short_trades": 73,
+      "avg_bars_held": 15.94,
+      "entry_spread_points_mean": 9.85,
+      "entry_spread_points_median": 9.0,
+      "fold_profit_concentration": 0.2742,
+      "average_week_net_r": 0.0015,
+      "best_week_r": 11.4181,
+      "worst_week_r": -4.8768,
+      "fold_results": [
+        {
+          "fold": 0,
+          "test_start": "2023-10-27T01:45:00+00:00",
+          "test_end": "2024-01-25T01:45:00+00:00",
+          "trades": 16,
+          "net_r": -2.1793,
+          "mean_actual_r": -0.1362,
+          "unconditional_r": -0.2362,
+          "threshold": 0.0,
+          "train_rows": 49822,
+          "test_rows": 11896
+        },
+        {
+          "fold": 1,
+          "test_start": "2024-01-25T01:45:00+00:00",
+          "test_end": "2024-04-24T01:45:00+00:00",
+          "trades": 15,
+          "net_r": -2.2866,
+          "mean_actual_r": -0.1524,
+          "unconditional_r": -0.2962,
+          "threshold": 0.0,
+          "train_rows": 61742,
+          "test_rows": 12296
+        },
+        {
+          "fold": 2,
+          "test_start": "2024-04-24T01:45:00+00:00",
+          "test_end": "2024-07-23T01:45:00+00:00",
+          "trades": 5,
+          "net_r": 0.5657,
+          "mean_actual_r": 0.1131,
+          "unconditional_r": -0.3297,
+          "threshold": 0.0,
+          "train_rows": 74032,
+          "test_rows": 12288
+        },
+        {
+          "fold": 3,
+          "test_start": "2024-07-23T01:45:00+00:00",
+          "test_end": "2024-10-21T01:45:00+00:00",
+          "trades": 11,
+          "net_r": 1.7283,
+          "mean_actual_r": 0.1571,
+          "unconditional_r": -0.2864,
+          "threshold": 0.0,
+          "train_rows": 86306,
+          "test_rows": 12288
+        },
+        {
+          "fold": 4,
+          "test_start": "2024-10-21T01:45:00+00:00",
+          "test_end": "2025-01-19T01:45:00+00:00",
+          "trades": 40,
+          "net_r": -4.4912,
+          "mean_actual_r": -0.1123,
+          "unconditional_r": -0.2175,
+          "threshold": 0.0,
+          "train_rows": 98580,
+          "test_rows": 12054
+        },
+        {
+          "fold": 5,
+          "test_start": "2025-01-19T01:45:00+00:00",
+          "test_end": "2025-04-19T01:45:00+00:00",
+          "trades": 65,
+          "net_r": -0.6639,
+          "mean_actual_r": -0.0102,
+          "unconditional_r": -0.171,
+          "threshold": 0.0654,
+          "train_rows": 110640,
+          "test_rows": 12476
+        },
+        {
+          "fold": 6,
+          "test_start": "2025-04-19T01:45:00+00:00",
+          "test_end": "2025-07-18T01:45:00+00:00",
+          "trades": 1,
+          "net_r": -0.3866,
+          "mean_actual_r": -0.3866,
+          "unconditional_r": -0.1535,
+          "threshold": 0.2519,
+          "train_rows": 123118,
+          "test_rows": 12324
+        },
+        {
+          "fold": 7,
+          "test_start": "2025-07-18T01:45:00+00:00",
+          "test_end": "2025-10-16T01:45:00+00:00",
+          "trades": 16,
+          "net_r": 2.7238,
+          "mean_actual_r": 0.1702,
+          "unconditional_r": -0.205,
+          "threshold": 0.0,
+          "train_rows": 135476,
+          "test_rows": 12288
+        },
+        {
+          "fold": 8,
+          "test_start": "2025-10-16T01:45:00+00:00",
+          "test_end": "2026-01-14T01:45:00+00:00",
+          "trades": 0,
+          "net_r": 0,
+          "mean_actual_r": 0.0,
+          "unconditional_r": -0.2634,
+          "threshold": 0.0,
+          "train_rows": 147770,
+          "test_rows": 11896
+        },
+        {
+          "fold": 9,
+          "test_start": "2026-01-14T01:45:00+00:00",
+          "test_end": "2026-04-14T01:45:00+00:00",
+          "trades": 16,
+          "net_r": 0.6452,
+          "mean_actual_r": 0.0403,
+          "unconditional_r": -0.2134,
+          "threshold": 0.0,
+          "train_rows": 159634,
+          "test_rows": 12294
+        },
+        {
+          "fold": 10,
+          "test_start": "2026-04-14T01:45:00+00:00",
+          "test_end": "2026-07-13T01:45:00+00:00",
+          "trades": 2,
+          "net_r": 1.6671,
+          "mean_actual_r": 0.8336,
+          "unconditional_r": -0.2892,
+          "threshold": 0.0,
+          "train_rows": 171918,
+          "test_rows": 12288
+        },
+        {
+          "fold": 11,
+          "test_start": "2026-07-13T01:45:00+00:00",
+          "test_end": "2026-10-11T01:45:00+00:00",
+          "trades": 0,
+          "net_r": 0,
+          "mean_actual_r": 0.0,
+          "unconditional_r": -0.3296,
+          "threshold": 0.0,
+          "train_rows": 184250,
+          "test_rows": 12442
+        },
+        {
+          "fold": 12,
+          "test_start": "2026-10-11T01:45:00+00:00",
+          "test_end": "2026-10-19T09:00:00+00:00",
+          "trades": 2,
+          "net_r": 2.769,
+          "mean_actual_r": 1.3845,
+          "unconditional_r": -0.263,
+          "threshold": 0.0,
+          "train_rows": 196642,
+          "test_rows": 1054
+        }
+      ],
+      "mean_coefficients": [
+        {
+          "feature": "atr_pct",
+          "mean": 0.06801
+        },
+        {
+          "feature": "dist_pdh",
+          "mean": -0.05075
+        },
+        {
+          "feature": "bb_z",
+          "mean": -0.02763
+        },
+        {
+          "feature": "vwap_dist",
+          "mean": 0.02001
+        },
+        {
+          "feature": "range_pos",
+          "mean": 0.01908
+        },
+        {
+          "feature": "atr_ratio",
+          "mean": 0.01755
+        },
+        {
+          "feature": "dist_pdl",
+          "mean": -0.01511
+        },
+        {
+          "feature": "ema_slope",
+          "mean": 0.01431
+        },
+        {
+          "feature": "dist_round",
+          "mean": 0.01375
+        },
+        {
+          "feature": "body",
+          "mean": -0.01344
+        },
+        {
+          "feature": "session_ny",
+          "mean": 0.01341
+        },
+        {
+          "feature": "hour_sin",
+          "mean": 0.01313
+        },
+        {
+          "feature": "hour_cos",
+          "mean": -0.01244
+        },
+        {
+          "feature": "rsi_centered",
+          "mean": -0.01091
+        },
+        {
+          "feature": "ema_dist",
+          "mean": -0.0086
+        },
+        {
+          "feature": "streak",
+          "mean": -0.00835
+        },
+        {
+          "feature": "vol_dir",
+          "mean": 0.00788
+        },
+        {
+          "feature": "session_london",
+          "mean": 0.00747
+        },
+        {
+          "feature": "ret_1",
+          "mean": 0.0073
+        },
+        {
+          "feature": "ret_4",
+          "mean": 0.00714
+        },
+        {
+          "feature": "ret_16",
+          "mean": 0.00652
+        },
+        {
+          "feature": "upper_wick",
+          "mean": -0.00484
+        },
+        {
+          "feature": "dow_sin",
+          "mean": 0.0044
+        },
+        {
+          "feature": "clv",
+          "mean": 0.00275
+        },
+        {
+          "feature": "gap",
+          "mean": -0.00234
+        },
+        {
+          "feature": "dow_cos",
+          "mean": 0.00205
+        },
+        {
+          "feature": "vol_z",
+          "mean": 0.00176
+        },
+        {
+          "feature": "session_asia",
+          "mean": 0.00171
+        },
+        {
+          "feature": "range_exp",
+          "mean": -0.00146
+        },
+        {
+          "feature": "lower_wick",
+          "mean": -0.00083
+        }
+      ],
+      "weekly": [
+        {
+          "week": "2023-W43",
+          "trades": 1,
+          "net_r": -1.0744,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.0744
+        },
+        {
+          "week": "2023-W44",
+          "trades": 2,
+          "net_r": 0.3447,
+          "avg_win_r": 1.4324,
+          "avg_loss_r": -1.0877
+        },
+        {
+          "week": "2023-W46",
+          "trades": 3,
+          "net_r": -1.7737,
+          "avg_win_r": 0.3941,
+          "avg_loss_r": -1.0839
+        },
+        {
+          "week": "2023-W48",
+          "trades": 1,
+          "net_r": -0.4874,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.4874
+        },
+        {
+          "week": "2023-W49",
+          "trades": 2,
+          "net_r": -0.4492,
+          "avg_win_r": 0.6191,
+          "avg_loss_r": -1.0683
+        },
+        {
+          "week": "2023-W50",
+          "trades": 3,
+          "net_r": 1.6833,
+          "avg_win_r": 0.9907,
+          "avg_loss_r": -0.2982
+        },
+        {
+          "week": "2024-W01",
+          "trades": 2,
+          "net_r": 1.3763,
+          "avg_win_r": 1.4317,
+          "avg_loss_r": -0.0553
+        },
+        {
+          "week": "2024-W02",
+          "trades": 2,
+          "net_r": -1.7989,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.8994
+        },
+        {
+          "week": "2024-W05",
+          "trades": 1,
+          "net_r": 0.9792,
+          "avg_win_r": 0.9792,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W07",
+          "trades": 1,
+          "net_r": -0.5787,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.5787
+        },
+        {
+          "week": "2024-W11",
+          "trades": 1,
+          "net_r": 0.9298,
+          "avg_win_r": 0.9298,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W12",
+          "trades": 2,
+          "net_r": -0.2364,
+          "avg_win_r": 1.2199,
+          "avg_loss_r": -1.4563
+        },
+        {
+          "week": "2024-W15",
+          "trades": 10,
+          "net_r": -3.3806,
+          "avg_win_r": 1.1267,
+          "avg_loss_r": -1.3146
+        },
+        {
+          "week": "2024-W18",
+          "trades": 2,
+          "net_r": -0.2494,
+          "avg_win_r": 0.0209,
+          "avg_loss_r": -0.2702
+        },
+        {
+          "week": "2024-W23",
+          "trades": 1,
+          "net_r": 1.4188,
+          "avg_win_r": 1.4188,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W24",
+          "trades": 1,
+          "net_r": -1.0891,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.0891
+        },
+        {
+          "week": "2024-W28",
+          "trades": 1,
+          "net_r": 0.4855,
+          "avg_win_r": 0.4855,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W31",
+          "trades": 1,
+          "net_r": 0.6889,
+          "avg_win_r": 0.6889,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W32",
+          "trades": 2,
+          "net_r": 0.36,
+          "avg_win_r": 1.4369,
+          "avg_loss_r": -1.0769
+        },
+        {
+          "week": "2024-W34",
+          "trades": 2,
+          "net_r": 0.3359,
+          "avg_win_r": 1.4218,
+          "avg_loss_r": -1.0859
+        },
+        {
+          "week": "2024-W36",
+          "trades": 3,
+          "net_r": 0.0335,
+          "avg_win_r": 1.4265,
+          "avg_loss_r": -0.6965
+        },
+        {
+          "week": "2024-W38",
+          "trades": 1,
+          "net_r": 1.4327,
+          "avg_win_r": 1.4327,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W40",
+          "trades": 1,
+          "net_r": -0.6048,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.6048
+        },
+        {
+          "week": "2024-W42",
+          "trades": 1,
+          "net_r": -0.5179,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.5179
+        },
+        {
+          "week": "2024-W45",
+          "trades": 9,
+          "net_r": 0.3929,
+          "avg_win_r": 1.2559,
+          "avg_loss_r": -0.9262
+        },
+        {
+          "week": "2024-W46",
+          "trades": 4,
+          "net_r": -2.1469,
+          "avg_win_r": 0.2227,
+          "avg_loss_r": -0.7898
+        },
+        {
+          "week": "2024-W47",
+          "trades": 3,
+          "net_r": -2.1432,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.7144
+        },
+        {
+          "week": "2024-W48",
+          "trades": 5,
+          "net_r": 0.6817,
+          "avg_win_r": 1.4336,
+          "avg_loss_r": -0.7285
+        },
+        {
+          "week": "2024-W49",
+          "trades": 2,
+          "net_r": 0.8586,
+          "avg_win_r": 1.4279,
+          "avg_loss_r": -0.5693
+        },
+        {
+          "week": "2024-W50",
+          "trades": 3,
+          "net_r": -0.9736,
+          "avg_win_r": 0.6104,
+          "avg_loss_r": -0.792
+        },
+        {
+          "week": "2024-W51",
+          "trades": 2,
+          "net_r": 0.3617,
+          "avg_win_r": 1.426,
+          "avg_loss_r": -1.0643
+        },
+        {
+          "week": "2025-W01",
+          "trades": 2,
+          "net_r": -0.9947,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.4974
+        },
+        {
+          "week": "2025-W02",
+          "trades": 5,
+          "net_r": -1.4026,
+          "avg_win_r": 1.4296,
+          "avg_loss_r": -0.7081
+        },
+        {
+          "week": "2025-W03",
+          "trades": 5,
+          "net_r": 0.8748,
+          "avg_win_r": 0.6709,
+          "avg_loss_r": -0.569
+        },
+        {
+          "week": "2025-W04",
+          "trades": 2,
+          "net_r": -2.1195,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.0597
+        },
+        {
+          "week": "2025-W05",
+          "trades": 1,
+          "net_r": 0.103,
+          "avg_win_r": 0.103,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W06",
+          "trades": 6,
+          "net_r": -4.8768,
+          "avg_win_r": 0.3919,
+          "avg_loss_r": -1.0537
+        },
+        {
+          "week": "2025-W07",
+          "trades": 1,
+          "net_r": -0.108,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.108
+        },
+        {
+          "week": "2025-W10",
+          "trades": 6,
+          "net_r": -2.059,
+          "avg_win_r": 0.8262,
+          "avg_loss_r": -0.9278
+        },
+        {
+          "week": "2025-W14",
+          "trades": 13,
+          "net_r": 11.4181,
+          "avg_win_r": 1.4563,
+          "avg_loss_r": -1.0484
+        },
+        {
+          "week": "2025-W15",
+          "trades": 29,
+          "net_r": -0.9364,
+          "avg_win_r": 1.3369,
+          "avg_loss_r": -0.9987
+        },
+        {
+          "week": "2025-W16",
+          "trades": 7,
+          "net_r": -2.0853,
+          "avg_win_r": 0.7183,
+          "avg_loss_r": -1.06
+        },
+        {
+          "week": "2025-W29",
+          "trades": 1,
+          "net_r": -0.3866,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.3866
+        },
+        {
+          "week": "2025-W31",
+          "trades": 7,
+          "net_r": 2.1415,
+          "avg_win_r": 1.348,
+          "avg_loss_r": -1.0835
+        },
+        {
+          "week": "2025-W33",
+          "trades": 2,
+          "net_r": -1.4054,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.7027
+        },
+        {
+          "week": "2025-W34",
+          "trades": 1,
+          "net_r": -0.292,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.292
+        },
+        {
+          "week": "2025-W36",
+          "trades": 2,
+          "net_r": 0.3443,
+          "avg_win_r": 1.4139,
+          "avg_loss_r": -1.0696
+        },
+        {
+          "week": "2025-W37",
+          "trades": 1,
+          "net_r": -0.0868,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.0868
+        },
+        {
+          "week": "2025-W38",
+          "trades": 1,
+          "net_r": 0.9056,
+          "avg_win_r": 0.9056,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W40",
+          "trades": 1,
+          "net_r": -0.3012,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.3012
+        },
+        {
+          "week": "2025-W41",
+          "trades": 1,
+          "net_r": 1.4178,
+          "avg_win_r": 1.4178,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W04",
+          "trades": 1,
+          "net_r": 0.3246,
+          "avg_win_r": 0.3246,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W05",
+          "trades": 3,
+          "net_r": 0.6989,
+          "avg_win_r": 0.8849,
+          "avg_loss_r": -1.0709
+        },
+        {
+          "week": "2026-W07",
+          "trades": 1,
+          "net_r": 1.4178,
+          "avg_win_r": 1.4178,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W10",
+          "trades": 6,
+          "net_r": -2.3448,
+          "avg_win_r": 1.4231,
+          "avg_loss_r": -1.2978
+        },
+        {
+          "week": "2026-W12",
+          "trades": 1,
+          "net_r": 1.4359,
+          "avg_win_r": 1.4359,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W13",
+          "trades": 3,
+          "net_r": 0.1775,
+          "avg_win_r": 1.4528,
+          "avg_loss_r": -0.6376
+        },
+        {
+          "week": "2026-W15",
+          "trades": 1,
+          "net_r": -1.0648,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.0648
+        },
+        {
+          "week": "2026-W25",
+          "trades": 1,
+          "net_r": 1.0912,
+          "avg_win_r": 1.0912,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W27",
+          "trades": 1,
+          "net_r": 0.576,
+          "avg_win_r": 0.576,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W42",
+          "trades": 2,
+          "net_r": 2.769,
+          "avg_win_r": 1.3845,
+          "avg_loss_r": 0.0
+        }
+      ]
+    },
+    {
+      "pair": "USDJPY",
+      "sample_start": "2022-10-26T13:45:00+00:00",
+      "oos_start": "2023-10-26T13:45:00+00:00",
+      "sample_end": "2026-10-16T21:00:00+00:00",
+      "trades": 553,
+      "trades_per_week": 3.563,
+      "active_weeks": 110,
+      "win_rate": 0.4702,
+      "expectancy_r": 0.0303,
+      "total_net_r": 16.7347,
+      "total_gross_r": 87.8784,
+      "total_costs_r": 71.1437,
+      "avg_win_r": 1.2421,
+      "avg_loss_r": -1.0451,
+      "profit_factor": 1.0546,
+      "unconditional_expectancy_r": -0.2114,
+      "edge_vs_unconditional_r": 0.2416,
+      "valid_bars": 98878,
+      "long_trades": 155,
+      "short_trades": 398,
+      "avg_bars_held": 10.36,
+      "entry_spread_points_mean": 15.35,
+      "entry_spread_points_median": 10.0,
+      "fold_profit_concentration": 0.2259,
+      "average_week_net_r": 0.1521,
+      "best_week_r": 11.9632,
+      "worst_week_r": -7.7941,
+      "fold_results": [
+        {
+          "fold": 0,
+          "test_start": "2023-10-26T13:45:00+00:00",
+          "test_end": "2024-01-24T13:45:00+00:00",
+          "trades": 86,
+          "net_r": -13.7535,
+          "mean_actual_r": -0.1599,
+          "unconditional_r": -0.1799,
+          "threshold": 0.0,
+          "train_rows": 49840,
+          "test_rows": 11896
+        },
+        {
+          "fold": 1,
+          "test_start": "2024-01-24T13:45:00+00:00",
+          "test_end": "2024-04-23T13:45:00+00:00",
+          "trades": 18,
+          "net_r": 7.7009,
+          "mean_actual_r": 0.4278,
+          "unconditional_r": -0.2794,
+          "threshold": 0.0157,
+          "train_rows": 61762,
+          "test_rows": 12296
+        },
+        {
+          "fold": 2,
+          "test_start": "2024-04-23T13:45:00+00:00",
+          "test_end": "2024-07-22T13:45:00+00:00",
+          "trades": 83,
+          "net_r": -1.9119,
+          "mean_actual_r": -0.023,
+          "unconditional_r": -0.2237,
+          "threshold": 0.0,
+          "train_rows": 74014,
+          "test_rows": 12288
+        },
+        {
+          "fold": 3,
+          "test_start": "2024-07-22T13:45:00+00:00",
+          "test_end": "2024-10-20T13:45:00+00:00",
+          "trades": 38,
+          "net_r": 9.0145,
+          "mean_actual_r": 0.2372,
+          "unconditional_r": -0.1213,
+          "threshold": 0.1547,
+          "train_rows": 86312,
+          "test_rows": 12348
+        },
+        {
+          "fold": 4,
+          "test_start": "2024-10-20T13:45:00+00:00",
+          "test_end": "2025-01-18T13:45:00+00:00",
+          "trades": 22,
+          "net_r": -3.9214,
+          "mean_actual_r": -0.1782,
+          "unconditional_r": -0.1689,
+          "threshold": 0.0542,
+          "train_rows": 98650,
+          "test_rows": 12090
+        },
+        {
+          "fold": 5,
+          "test_start": "2025-01-18T13:45:00+00:00",
+          "test_end": "2025-04-18T13:45:00+00:00",
+          "trades": 101,
+          "net_r": 8.6356,
+          "mean_actual_r": 0.0855,
+          "unconditional_r": -0.1576,
+          "threshold": 0.0,
+          "train_rows": 110738,
+          "test_rows": 12420
+        },
+        {
+          "fold": 6,
+          "test_start": "2025-04-18T13:45:00+00:00",
+          "test_end": "2025-07-17T13:45:00+00:00",
+          "trades": 5,
+          "net_r": 1.7399,
+          "mean_actual_r": 0.348,
+          "unconditional_r": -0.155,
+          "threshold": 0.1392,
+          "train_rows": 123152,
+          "test_rows": 12288
+        },
+        {
+          "fold": 7,
+          "test_start": "2025-07-17T13:45:00+00:00",
+          "test_end": "2025-10-15T13:45:00+00:00",
+          "trades": 29,
+          "net_r": -2.6178,
+          "mean_actual_r": -0.0903,
+          "unconditional_r": -0.2159,
+          "threshold": 0.0132,
+          "train_rows": 135490,
+          "test_rows": 12288
+        },
+        {
+          "fold": 8,
+          "test_start": "2025-10-15T13:45:00+00:00",
+          "test_end": "2026-01-13T13:45:00+00:00",
+          "trades": 21,
+          "net_r": 9.6248,
+          "mean_actual_r": 0.4583,
+          "unconditional_r": -0.2282,
+          "threshold": 0.0,
+          "train_rows": 147772,
+          "test_rows": 11896
+        },
+        {
+          "fold": 9,
+          "test_start": "2026-01-13T13:45:00+00:00",
+          "test_end": "2026-04-13T13:45:00+00:00",
+          "trades": 42,
+          "net_r": 3.6796,
+          "mean_actual_r": 0.0876,
+          "unconditional_r": -0.1985,
+          "threshold": 0.0,
+          "train_rows": 159620,
+          "test_rows": 12294
+        },
+        {
+          "fold": 10,
+          "test_start": "2026-04-13T13:45:00+00:00",
+          "test_end": "2026-07-12T13:45:00+00:00",
+          "trades": 41,
+          "net_r": 0.859,
+          "mean_actual_r": 0.021,
+          "unconditional_r": -0.3699,
+          "threshold": 0.0,
+          "train_rows": 171960,
+          "test_rows": 12348
+        },
+        {
+          "fold": 11,
+          "test_start": "2026-07-12T13:45:00+00:00",
+          "test_end": "2026-10-10T13:45:00+00:00",
+          "trades": 66,
+          "net_r": -3.6638,
+          "mean_actual_r": -0.0555,
+          "unconditional_r": -0.2406,
+          "threshold": 0.0,
+          "train_rows": 184288,
+          "test_rows": 12476
+        },
+        {
+          "fold": 12,
+          "test_start": "2026-10-10T13:45:00+00:00",
+          "test_end": "2026-10-16T21:00:00+00:00",
+          "trades": 1,
+          "net_r": 1.3489,
+          "mean_actual_r": 1.3489,
+          "unconditional_r": -0.1631,
+          "threshold": 0.0,
+          "train_rows": 196766,
+          "test_rows": 958
+        }
+      ],
+      "mean_coefficients": [
+        {
+          "feature": "dist_pdl",
+          "mean": -0.08591
+        },
+        {
+          "feature": "atr_pct",
+          "mean": 0.06695
+        },
+        {
+          "feature": "dist_pdh",
+          "mean": 0.05358
+        },
+        {
+          "feature": "vwap_dist",
+          "mean": -0.03858
+        },
+        {
+          "feature": "rsi_centered",
+          "mean": -0.03452
+        },
+        {
+          "feature": "upper_wick",
+          "mean": -0.02547
+        },
+        {
+          "feature": "ret_16",
+          "mean": 0.02496
+        },
+        {
+          "feature": "range_pos",
+          "mean": 0.02212
+        },
+        {
+          "feature": "lower_wick",
+          "mean": 0.02129
+        },
+        {
+          "feature": "ret_4",
+          "mean": 0.0191
+        },
+        {
+          "feature": "vol_z",
+          "mean": 0.01472
+        },
+        {
+          "feature": "vol_dir",
+          "mean": 0.01316
+        },
+        {
+          "feature": "dow_sin",
+          "mean": 0.00988
+        },
+        {
+          "feature": "atr_ratio",
+          "mean": 0.00945
+        },
+        {
+          "feature": "dow_cos",
+          "mean": -0.00942
+        },
+        {
+          "feature": "session_ny",
+          "mean": -0.00889
+        },
+        {
+          "feature": "range_exp",
+          "mean": -0.00877
+        },
+        {
+          "feature": "gap",
+          "mean": -0.00639
+        },
+        {
+          "feature": "dist_round",
+          "mean": -0.00583
+        },
+        {
+          "feature": "session_asia",
+          "mean": 0.00506
+        },
+        {
+          "feature": "ema_dist",
+          "mean": -0.00467
+        },
+        {
+          "feature": "hour_sin",
+          "mean": 0.0046
+        },
+        {
+          "feature": "hour_cos",
+          "mean": -0.00439
+        },
+        {
+          "feature": "bb_z",
+          "mean": -0.00426
+        },
+        {
+          "feature": "body",
+          "mean": -0.00411
+        },
+        {
+          "feature": "session_london",
+          "mean": -0.00294
+        },
+        {
+          "feature": "ret_1",
+          "mean": 0.00147
+        },
+        {
+          "feature": "clv",
+          "mean": 0.00089
+        },
+        {
+          "feature": "ema_slope",
+          "mean": 0.00086
+        },
+        {
+          "feature": "streak",
+          "mean": -0.0006
+        }
+      ],
+      "weekly": [
+        {
+          "week": "2023-W44",
+          "trades": 8,
+          "net_r": 0.5795,
+          "avg_win_r": 1.3002,
+          "avg_loss_r": -1.1554
+        },
+        {
+          "week": "2023-W45",
+          "trades": 3,
+          "net_r": 0.8845,
+          "avg_win_r": 1.1318,
+          "avg_loss_r": -1.3791
+        },
+        {
+          "week": "2023-W46",
+          "trades": 4,
+          "net_r": -0.3171,
+          "avg_win_r": 1.1953,
+          "avg_loss_r": -1.3539
+        },
+        {
+          "week": "2023-W47",
+          "trades": 6,
+          "net_r": 0.3417,
+          "avg_win_r": 1.2485,
+          "avg_loss_r": -1.1346
+        },
+        {
+          "week": "2023-W48",
+          "trades": 2,
+          "net_r": -0.9329,
+          "avg_win_r": 0.1918,
+          "avg_loss_r": -1.1247
+        },
+        {
+          "week": "2023-W49",
+          "trades": 17,
+          "net_r": -5.6728,
+          "avg_win_r": 1.4065,
+          "avg_loss_r": -1.0588
+        },
+        {
+          "week": "2023-W50",
+          "trades": 13,
+          "net_r": -1.4902,
+          "avg_win_r": 1.435,
+          "avg_loss_r": -0.8034
+        },
+        {
+          "week": "2023-W51",
+          "trades": 10,
+          "net_r": 3.1309,
+          "avg_win_r": 1.3876,
+          "avg_loss_r": -0.7614
+        },
+        {
+          "week": "2023-W52",
+          "trades": 1,
+          "net_r": 1.4311,
+          "avg_win_r": 1.4311,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W01",
+          "trades": 10,
+          "net_r": -4.1135,
+          "avg_win_r": 0.7272,
+          "avg_loss_r": -1.1704
+        },
+        {
+          "week": "2024-W02",
+          "trades": 2,
+          "net_r": 2.8311,
+          "avg_win_r": 1.4156,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W03",
+          "trades": 5,
+          "net_r": -5.0973,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.0195
+        },
+        {
+          "week": "2024-W04",
+          "trades": 6,
+          "net_r": -4.2355,
+          "avg_win_r": 1.0931,
+          "avg_loss_r": -1.0657
+        },
+        {
+          "week": "2024-W05",
+          "trades": 3,
+          "net_r": -0.693,
+          "avg_win_r": 1.4354,
+          "avg_loss_r": -1.0642
+        },
+        {
+          "week": "2024-W11",
+          "trades": 2,
+          "net_r": 0.6622,
+          "avg_win_r": 1.3982,
+          "avg_loss_r": -0.736
+        },
+        {
+          "week": "2024-W12",
+          "trades": 10,
+          "net_r": 4.6283,
+          "avg_win_r": 1.1798,
+          "avg_loss_r": -1.2101
+        },
+        {
+          "week": "2024-W15",
+          "trades": 1,
+          "net_r": 1.3508,
+          "avg_win_r": 1.3508,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W16",
+          "trades": 1,
+          "net_r": 0.6594,
+          "avg_win_r": 0.6594,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W17",
+          "trades": 5,
+          "net_r": -3.2031,
+          "avg_win_r": 1.4327,
+          "avg_loss_r": -1.1589
+        },
+        {
+          "week": "2024-W18",
+          "trades": 29,
+          "net_r": 2.8137,
+          "avg_win_r": 1.2863,
+          "avg_loss_r": -1.013
+        },
+        {
+          "week": "2024-W19",
+          "trades": 1,
+          "net_r": 1.1368,
+          "avg_win_r": 1.1368,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W20",
+          "trades": 11,
+          "net_r": -4.0857,
+          "avg_win_r": 1.3403,
+          "avg_loss_r": -1.0133
+        },
+        {
+          "week": "2024-W22",
+          "trades": 1,
+          "net_r": 1.0978,
+          "avg_win_r": 1.0978,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W23",
+          "trades": 5,
+          "net_r": -0.166,
+          "avg_win_r": 1.2749,
+          "avg_loss_r": -0.9052
+        },
+        {
+          "week": "2024-W24",
+          "trades": 4,
+          "net_r": 0.3532,
+          "avg_win_r": 1.3282,
+          "avg_loss_r": -1.1516
+        },
+        {
+          "week": "2024-W25",
+          "trades": 1,
+          "net_r": 0.7214,
+          "avg_win_r": 0.7214,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W26",
+          "trades": 2,
+          "net_r": 2.1121,
+          "avg_win_r": 1.056,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W27",
+          "trades": 2,
+          "net_r": 2.215,
+          "avg_win_r": 1.1075,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W28",
+          "trades": 10,
+          "net_r": -1.3787,
+          "avg_win_r": 1.2769,
+          "avg_loss_r": -0.7442
+        },
+        {
+          "week": "2024-W29",
+          "trades": 12,
+          "net_r": -3.5283,
+          "avg_win_r": 1.3252,
+          "avg_loss_r": -1.1036
+        },
+        {
+          "week": "2024-W30",
+          "trades": 1,
+          "net_r": -1.0441,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.0441
+        },
+        {
+          "week": "2024-W31",
+          "trades": 7,
+          "net_r": 4.4822,
+          "avg_win_r": 1.3111,
+          "avg_loss_r": -1.0366
+        },
+        {
+          "week": "2024-W32",
+          "trades": 21,
+          "net_r": -1.7623,
+          "avg_win_r": 1.4642,
+          "avg_loss_r": -1.0366
+        },
+        {
+          "week": "2024-W33",
+          "trades": 1,
+          "net_r": 1.2709,
+          "avg_win_r": 1.2709,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W34",
+          "trades": 1,
+          "net_r": 1.4537,
+          "avg_win_r": 1.4537,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W36",
+          "trades": 3,
+          "net_r": 0.357,
+          "avg_win_r": 1.4628,
+          "avg_loss_r": -0.5529
+        },
+        {
+          "week": "2024-W38",
+          "trades": 1,
+          "net_r": 1.457,
+          "avg_win_r": 1.457,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W39",
+          "trades": 2,
+          "net_r": 1.4787,
+          "avg_win_r": 0.7393,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W40",
+          "trades": 1,
+          "net_r": 1.3214,
+          "avg_win_r": 1.3214,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W43",
+          "trades": 1,
+          "net_r": -1.3357,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.3357
+        },
+        {
+          "week": "2024-W44",
+          "trades": 1,
+          "net_r": 1.4377,
+          "avg_win_r": 1.4377,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W45",
+          "trades": 4,
+          "net_r": -0.0019,
+          "avg_win_r": 1.0471,
+          "avg_loss_r": -1.048
+        },
+        {
+          "week": "2024-W47",
+          "trades": 3,
+          "net_r": -1.95,
+          "avg_win_r": 0.1647,
+          "avg_loss_r": -1.0574
+        },
+        {
+          "week": "2024-W48",
+          "trades": 3,
+          "net_r": -1.4277,
+          "avg_win_r": 1.0833,
+          "avg_loss_r": -1.2555
+        },
+        {
+          "week": "2024-W49",
+          "trades": 1,
+          "net_r": 1.4116,
+          "avg_win_r": 1.4116,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2024-W50",
+          "trades": 3,
+          "net_r": 1.5799,
+          "avg_win_r": 1.3254,
+          "avg_loss_r": -1.071
+        },
+        {
+          "week": "2024-W51",
+          "trades": 3,
+          "net_r": -3.4278,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.1426
+        },
+        {
+          "week": "2025-W02",
+          "trades": 2,
+          "net_r": 0.8689,
+          "avg_win_r": 0.4344,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W03",
+          "trades": 1,
+          "net_r": -1.0764,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.0764
+        },
+        {
+          "week": "2025-W04",
+          "trades": 7,
+          "net_r": -0.2813,
+          "avg_win_r": 1.3374,
+          "avg_loss_r": -1.0734
+        },
+        {
+          "week": "2025-W05",
+          "trades": 5,
+          "net_r": -4.2074,
+          "avg_win_r": 0.3101,
+          "avg_loss_r": -1.1294
+        },
+        {
+          "week": "2025-W06",
+          "trades": 3,
+          "net_r": -0.9302,
+          "avg_win_r": 1.1869,
+          "avg_loss_r": -1.0586
+        },
+        {
+          "week": "2025-W07",
+          "trades": 2,
+          "net_r": 0.2358,
+          "avg_win_r": 1.3165,
+          "avg_loss_r": -1.0807
+        },
+        {
+          "week": "2025-W08",
+          "trades": 1,
+          "net_r": 1.3573,
+          "avg_win_r": 1.3573,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W09",
+          "trades": 2,
+          "net_r": 0.3469,
+          "avg_win_r": 1.418,
+          "avg_loss_r": -1.0711
+        },
+        {
+          "week": "2025-W10",
+          "trades": 9,
+          "net_r": -5.4746,
+          "avg_win_r": 0.9977,
+          "avg_loss_r": -1.0672
+        },
+        {
+          "week": "2025-W11",
+          "trades": 2,
+          "net_r": 0.3647,
+          "avg_win_r": 1.4287,
+          "avg_loss_r": -1.064
+        },
+        {
+          "week": "2025-W12",
+          "trades": 1,
+          "net_r": -1.1093,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.1093
+        },
+        {
+          "week": "2025-W13",
+          "trades": 1,
+          "net_r": 1.2781,
+          "avg_win_r": 1.2781,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W14",
+          "trades": 17,
+          "net_r": 1.3626,
+          "avg_win_r": 1.4432,
+          "avg_loss_r": -1.1314
+        },
+        {
+          "week": "2025-W15",
+          "trades": 44,
+          "net_r": 11.9632,
+          "avg_win_r": 1.438,
+          "avg_loss_r": -1.0052
+        },
+        {
+          "week": "2025-W16",
+          "trades": 7,
+          "net_r": 3.7299,
+          "avg_win_r": 1.1715,
+          "avg_loss_r": -1.0639
+        },
+        {
+          "week": "2025-W17",
+          "trades": 1,
+          "net_r": 1.4488,
+          "avg_win_r": 1.4488,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W19",
+          "trades": 1,
+          "net_r": 1.3529,
+          "avg_win_r": 1.3529,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W27",
+          "trades": 1,
+          "net_r": 1.0181,
+          "avg_win_r": 1.0181,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W29",
+          "trades": 4,
+          "net_r": 0.515,
+          "avg_win_r": 1.2975,
+          "avg_loss_r": -1.04
+        },
+        {
+          "week": "2025-W30",
+          "trades": 3,
+          "net_r": -3.2043,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.0681
+        },
+        {
+          "week": "2025-W31",
+          "trades": 6,
+          "net_r": -1.5301,
+          "avg_win_r": 1.4366,
+          "avg_loss_r": -1.1008
+        },
+        {
+          "week": "2025-W33",
+          "trades": 3,
+          "net_r": 2.4382,
+          "avg_win_r": 1.2419,
+          "avg_loss_r": -0.0456
+        },
+        {
+          "week": "2025-W34",
+          "trades": 1,
+          "net_r": -0.479,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.479
+        },
+        {
+          "week": "2025-W36",
+          "trades": 2,
+          "net_r": -2.3587,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.1793
+        },
+        {
+          "week": "2025-W37",
+          "trades": 1,
+          "net_r": -1.0777,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.0777
+        },
+        {
+          "week": "2025-W38",
+          "trades": 5,
+          "net_r": 0.5571,
+          "avg_win_r": 1.0069,
+          "avg_loss_r": -1.2318
+        },
+        {
+          "week": "2025-W39",
+          "trades": 2,
+          "net_r": -0.0941,
+          "avg_win_r": 1.1196,
+          "avg_loss_r": -1.2137
+        },
+        {
+          "week": "2025-W40",
+          "trades": 2,
+          "net_r": 0.3385,
+          "avg_win_r": 1.434,
+          "avg_loss_r": -1.0955
+        },
+        {
+          "week": "2025-W41",
+          "trades": 2,
+          "net_r": 0.1974,
+          "avg_win_r": 1.2923,
+          "avg_loss_r": -1.0949
+        },
+        {
+          "week": "2025-W43",
+          "trades": 3,
+          "net_r": 3.5934,
+          "avg_win_r": 1.1978,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W44",
+          "trades": 5,
+          "net_r": 1.8851,
+          "avg_win_r": 1.3791,
+          "avg_loss_r": -1.1261
+        },
+        {
+          "week": "2025-W45",
+          "trades": 1,
+          "net_r": 1.1885,
+          "avg_win_r": 1.1885,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W47",
+          "trades": 5,
+          "net_r": -3.4589,
+          "avg_win_r": 1.3487,
+          "avg_loss_r": -1.2019
+        },
+        {
+          "week": "2025-W48",
+          "trades": 3,
+          "net_r": 2.8274,
+          "avg_win_r": 0.9425,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W49",
+          "trades": 1,
+          "net_r": 1.0583,
+          "avg_win_r": 1.0583,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W50",
+          "trades": 2,
+          "net_r": 1.3283,
+          "avg_win_r": 0.6641,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2025-W51",
+          "trades": 1,
+          "net_r": 1.2028,
+          "avg_win_r": 1.2028,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W04",
+          "trades": 8,
+          "net_r": 1.5337,
+          "avg_win_r": 1.4437,
+          "avg_loss_r": -1.0603
+        },
+        {
+          "week": "2026-W05",
+          "trades": 9,
+          "net_r": 2.7361,
+          "avg_win_r": 1.4326,
+          "avg_loss_r": -1.1068
+        },
+        {
+          "week": "2026-W07",
+          "trades": 10,
+          "net_r": 0.3044,
+          "avg_win_r": 1.1383,
+          "avg_loss_r": -1.0774
+        },
+        {
+          "week": "2026-W08",
+          "trades": 1,
+          "net_r": -1.1414,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.1414
+        },
+        {
+          "week": "2026-W09",
+          "trades": 5,
+          "net_r": 1.8639,
+          "avg_win_r": 1.3505,
+          "avg_loss_r": -1.0937
+        },
+        {
+          "week": "2026-W11",
+          "trades": 1,
+          "net_r": -1.2544,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.2544
+        },
+        {
+          "week": "2026-W12",
+          "trades": 4,
+          "net_r": 0.1899,
+          "avg_win_r": 1.3062,
+          "avg_loss_r": -1.2113
+        },
+        {
+          "week": "2026-W13",
+          "trades": 2,
+          "net_r": -1.467,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -0.7335
+        },
+        {
+          "week": "2026-W14",
+          "trades": 1,
+          "net_r": 0.8505,
+          "avg_win_r": 0.8505,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W15",
+          "trades": 1,
+          "net_r": 0.064,
+          "avg_win_r": 0.064,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W18",
+          "trades": 14,
+          "net_r": 1.0243,
+          "avg_win_r": 1.4085,
+          "avg_loss_r": -0.9283
+        },
+        {
+          "week": "2026-W19",
+          "trades": 12,
+          "net_r": 0.0653,
+          "avg_win_r": 1.0628,
+          "avg_loss_r": -1.0519
+        },
+        {
+          "week": "2026-W20",
+          "trades": 2,
+          "net_r": 0.2331,
+          "avg_win_r": 1.3754,
+          "avg_loss_r": -1.1423
+        },
+        {
+          "week": "2026-W21",
+          "trades": 1,
+          "net_r": 1.2384,
+          "avg_win_r": 1.2384,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W23",
+          "trades": 2,
+          "net_r": 1.6911,
+          "avg_win_r": 0.8456,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W24",
+          "trades": 1,
+          "net_r": 0.8111,
+          "avg_win_r": 0.8111,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W27",
+          "trades": 9,
+          "net_r": -4.2043,
+          "avg_win_r": 1.0696,
+          "avg_loss_r": -1.2355
+        },
+        {
+          "week": "2026-W30",
+          "trades": 1,
+          "net_r": -1.3886,
+          "avg_win_r": 0.0,
+          "avg_loss_r": -1.3886
+        },
+        {
+          "week": "2026-W31",
+          "trades": 18,
+          "net_r": 4.1247,
+          "avg_win_r": 1.4283,
+          "avg_loss_r": -0.97
+        },
+        {
+          "week": "2026-W32",
+          "trades": 7,
+          "net_r": 1.1983,
+          "avg_win_r": 1.1025,
+          "avg_loss_r": -1.0706
+        },
+        {
+          "week": "2026-W33",
+          "trades": 4,
+          "net_r": -0.1089,
+          "avg_win_r": 1.2397,
+          "avg_loss_r": -1.2942
+        },
+        {
+          "week": "2026-W34",
+          "trades": 3,
+          "net_r": 3.4721,
+          "avg_win_r": 1.1574,
+          "avg_loss_r": 0.0
+        },
+        {
+          "week": "2026-W36",
+          "trades": 13,
+          "net_r": -2.601,
+          "avg_win_r": 1.3696,
+          "avg_loss_r": -0.8977
+        },
+        {
+          "week": "2026-W37",
+          "trades": 16,
+          "net_r": -7.7941,
+          "avg_win_r": 1.0493,
+          "avg_loss_r": -1.1855
+        },
+        {
+          "week": "2026-W38",
+          "trades": 4,
+          "net_r": -0.5663,
+          "avg_win_r": 0.9141,
+          "avg_loss_r": -1.1973
+        },
+        {
+          "week": "2026-W42",
+          "trades": 1,
+          "net_r": 1.3489,
+          "avg_win_r": 1.3489,
+          "avg_loss_r": 0.0
+        }
+      ]
+    }
+  ]
+}

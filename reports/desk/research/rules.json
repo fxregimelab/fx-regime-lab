@@ -5,27 +5,28 @@
     "max_hold_bars": 48,
     "min_gap_bars": 8
   },
+  "timeframe": "m15",
   "results": [
     {
       "rule": "london_breakout",
       "pair": "EURUSD",
-      "trades": 1731,
-      "trades_per_week": 8.338,
-      "win_rate": 0.4177,
-      "expectancy_r": -0.0968,
-      "net_r": -167.559,
-      "costs_r": 188.241,
+      "trades": 1697,
+      "trades_per_week": 8.174,
+      "win_rate": 0.4237,
+      "expectancy_r": -0.0842,
+      "net_r": -142.868,
+      "costs_r": 178.793,
       "active_weeks": 209
     },
     {
       "rule": "london_breakout",
       "pair": "USDJPY",
-      "trades": 1289,
-      "trades_per_week": 6.217,
-      "win_rate": 0.4282,
-      "expectancy_r": -0.0789,
-      "net_r": -101.711,
-      "costs_r": 132.871,
+      "trades": 1292,
+      "trades_per_week": 6.232,
+      "win_rate": 0.4319,
+      "expectancy_r": -0.0669,
+      "net_r": -86.494,
+      "costs_r": 131.216,
       "active_weeks": 208
     },
     {
