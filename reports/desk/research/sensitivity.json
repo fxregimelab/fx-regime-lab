@@ -1,0 +1,114 @@
+{
+  "baseline": {
+    "trades": 39,
+    "trades_per_week": 0.188,
+    "net_r": 0.031,
+    "expectancy_r": 0.001,
+    "win_rate": 0.333,
+    "by_pair": {
+      "EURUSD": 13,
+      "USDJPY": 26
+    },
+    "by_setup": {
+      "SU1-v1": 38,
+      "SU2-v1": 0,
+      "SU3-v1": 1
+    }
+  },
+  "h4_structure_allows_neutral": {
+    "trades": 79,
+    "trades_per_week": 0.381,
+    "net_r": -4.313,
+    "expectancy_r": -0.055,
+    "win_rate": 0.329,
+    "by_pair": {
+      "EURUSD": 27,
+      "USDJPY": 52
+    },
+    "by_setup": {
+      "SU1-v1": 76,
+      "SU2-v1": 0,
+      "SU3-v1": 3
+    }
+  },
+  "stop_floor_1.0xATR": {
+    "trades": 39,
+    "trades_per_week": 0.188,
+    "net_r": 0.031,
+    "expectancy_r": 0.001,
+    "win_rate": 0.333,
+    "by_pair": {
+      "EURUSD": 13,
+      "USDJPY": 26
+    },
+    "by_setup": {
+      "SU1-v1": 38,
+      "SU2-v1": 0,
+      "SU3-v1": 1
+    }
+  },
+  "stop_floor_0.8xATR": {
+    "trades": 40,
+    "trades_per_week": 0.193,
+    "net_r": 1.398,
+    "expectancy_r": 0.035,
+    "win_rate": 0.35,
+    "by_pair": {
+      "EURUSD": 13,
+      "USDJPY": 27
+    },
+    "by_setup": {
+      "SU1-v1": 38,
+      "SU2-v1": 1,
+      "SU3-v1": 1
+    }
+  },
+  "both_relaxed": {
+    "trades": 79,
+    "trades_per_week": 0.381,
+    "net_r": -4.313,
+    "expectancy_r": -0.055,
+    "win_rate": 0.329,
+    "by_pair": {
+      "EURUSD": 27,
+      "USDJPY": 52
+    },
+    "by_setup": {
+      "SU1-v1": 76,
+      "SU2-v1": 0,
+      "SU3-v1": 3
+    }
+  },
+  "cost_share_cap_20pct": {
+    "trades": 44,
+    "trades_per_week": 0.212,
+    "net_r": -0.599,
+    "expectancy_r": -0.014,
+    "win_rate": 0.318,
+    "by_pair": {
+      "EURUSD": 15,
+      "USDJPY": 29
+    },
+    "by_setup": {
+      "SU1-v1": 42,
+      "SU2-v1": 0,
+      "SU3-v1": 2
+    }
+  },
+  "session_window_removed": {
+    "trades": 149,
+    "trades_per_week": 0.718,
+    "net_r": 0.988,
+    "expectancy_r": 0.007,
+    "win_rate": 0.356,
+    "by_pair": {
+      "EURUSD": 60,
+      "USDJPY": 89
+    },
+    "by_setup": {
+      "SU1-v1": 148,
+      "SU2-v1": 0,
+      "SU3-v1": 1
+    }
+  }
+}

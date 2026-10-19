@@ -1,0 +1,115 @@
+{
+  "pairs": {
+    "EURUSD": {
+      "opportunities": 24752,
+      "d1_context": {
+        "long": 11843,
+        "neutral": 2251,
+        "short": 10658
+      },
+      "stages": {
+        "0_input": 803,
+        "3a_setup_conditions": 26328,
+        "unclassified": 1142,
+        "4_session": 133,
+        "2_h4_structure": 36822,
+        "1_d1_context": 4502,
+        "3b_m15_retest": 482,
+        "5_geometry": 50,
+        "3c_entry_band": 124
+      },
+      "reasons": {
+        "both:insufficient_window": 803,
+        "SU1-v1:no_ema_touch": 2538,
+        "SU2-v1:no_reason": 1142,
+        "SU3-v1:breakout_close_below_margin": 8950,
+        "SU1-v1:pullback_closed_through_swing": 559,
+        "SU1-v1:last_close_wrong_side_of_ema": 3983,
+        "SU2-v1:sweep_not_beyond_pool_band": 8079,
+        "SU2-v1:sweep_did_not_reclaim_pool": 90,
+        "SU2-v1:session_closed": 9,
+        "SU1-v1:structure_not_aligned": 12274,
+        "SU2-v1:structure_not_aligned": 12274,
+        "SU3-v1:structure_not_aligned": 12274,
+        "both:no_directional_context": 4502,
+        "SU1-v1:trigger_close_not_beyond_prior_extreme": 1742,
+        "SU2-v1:trigger_range_too_wide": 74,
+        "SU3-v1:trigger_range_too_wide": 158,
+        "SU3-v1:session_closed": 48,
+        "SU1-v1:session_closed": 76,
+        "SU1-v1:no_retest_within_window": 361,
+        "SU3-v1:trigger_not_directional_body": 70,
+        "SU3-v1:stop_below_atr_floor": 43,
+        "SU2-v1:retest_made_new_low_beyond_sweep": 11,
+        "SU1-v1:trigger_range_too_wide": 85,
+        "SU3-v1:entry_outside_band": 48,
+        "SU2-v1:no_retest_within_window": 5,
+        "SU1-v1:cost_share_above_cap": 1,
+        "SU1-v1:entry_outside_band": 67,
+        "SU2-v1:stop_below_atr_floor": 5,
+        "SU3-v1:no_retest_within_window": 105,
+        "SU2-v1:entry_outside_band": 9,
+        "SU3-v1:cost_share_above_cap": 1
+      },
+      "candidates": {
+        "SU1-v1": 12,
+        "SU3-v1": 1
+      }
+    },
+    "USDJPY": {
+      "opportunities": 24764,
+      "d1_context": {
+        "long": 14202,
+        "neutral": 1954,
+        "short": 8608
+      },
+      "stages": {
+        "0_input": 784,
+        "2_h4_structure": 39504,
+        "1_d1_context": 3908,
+        "3a_setup_conditions": 24279,
+        "3b_m15_retest": 587,
+        "3c_entry_band": 136,
+        "unclassified": 1345,
+        "4_session": 157,
+        "5_geometry": 43
+      },
+      "reasons": {
+        "both:insufficient_window": 784,
+        "SU1-v1:structure_not_aligned": 13168,
+        "SU2-v1:structure_not_aligned": 13168,
+        "SU3-v1:structure_not_aligned": 13168,
+        "both:no_directional_context": 3908,
+        "SU1-v1:trigger_close_not_beyond_prior_extreme": 1978,
+        "SU2-v1:sweep_not_beyond_pool_band": 7317,
+        "SU3-v1:breakout_close_below_margin": 8413,
+        "SU1-v1:last_close_wrong_side_of_ema": 3566,
+        "SU1-v1:pullback_closed_through_swing": 481,
+        "SU1-v1:no_ema_touch": 2154,
+        "SU1-v1:no_retest_within_window": 429,
+        "SU1-v1:entry_outside_band": 76,
+        "SU3-v1:no_retest_within_window": 135,
+        "SU2-v1:sweep_did_not_reclaim_pool": 97,
+        "SU2-v1:no_reason": 1345,
+        "SU1-v1:trigger_range_too_wide": 57,
+        "SU3-v1:trigger_range_too_wide": 87,
+        "SU1-v1:session_closed": 87,
+        "SU3-v1:session_closed": 61,
+        "SU3-v1:trigger_not_directional_body": 79,
+        "SU3-v1:entry_outside_band": 46,
+        "SU2-v1:retest_made_new_low_beyond_sweep": 16,
+        "SU2-v1:session_closed": 9,
+        "SU3-v1:stop_below_atr_floor": 36,
+        "SU2-v1:trigger_range_too_wide": 50,
+        "SU1-v1:cost_share_above_cap": 3,
+        "SU2-v1:no_retest_within_window": 7,
+        "SU2-v1:entry_outside_band": 14,
+        "SU2-v1:stop_below_atr_floor": 3,
+        "SU3-v1:cost_share_above_cap": 1
+      },
+      "candidates": {
+        "SU1-v1": 27
+      }
+    }
+  }
+}
