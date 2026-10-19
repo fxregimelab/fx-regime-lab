@@ -1,8 +1,10 @@
 """Frequency/expectancy curve for the dense selector (research only).
 
-The mandate asks for 10-15 settled trades per week. This script varies only the
-selection rate (and the minimum predicted edge) on a fixed geometry, so the
-trade-off between frequency and expectancy is measured rather than assumed.
+The mandate asks for 10-15 settled trades per week. On a fixed geometry this
+script varies the calibration quantile (``signal_rate``), and can separately
+vary the minimum predicted edge and the number of concurrent positions per
+pair. Those are the only levers that can raise frequency without changing the
+model.
 
 Nothing here is promoted automatically. A positive low-frequency cell is not an
 edge at the mandated frequency if expectancy collapses as trades are added.
@@ -16,7 +18,12 @@ from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-from src.paper.backtest.data import DEFAULT_DATA_DIR, PAIRS, load_series
+from src.paper.backtest.data import (
+    DEFAULT_DATA_DIR,
+    PAIRS,
+    data_fingerprint,
+    load_series,
+)
 from src.paper.backtest.dense import DenseConfig, run_walk_forward
 from src.paper.backtest.dense_report import summary
 from src.paper.features import OHLCBar
@@ -30,8 +37,11 @@ def main() -> int:
     parser.add_argument("--timeframe", default="m15")
     parser.add_argument("--start", default=None)
     parser.add_argument("--stop", type=float, default=1.5)
-    parser.add_argument("--target", type=float, default=2.0)
+    parser.add_argument("--target", type=float, default=1.5)
     parser.add_argument("--hold", type=int, default=32)
+    parser.add_argument("--min-edge", type=float, default=0.0)
+    parser.add_argument("--concurrency", type=int, default=1)
+    parser.add_argument("--tag", default="")
     args = parser.parse_args()
 
     start = (
@@ -48,7 +58,8 @@ def main() -> int:
         stop_atr_mult=args.stop,
         target_r=args.target,
         max_hold_bars=args.hold,
-        min_edge_r=0.0,
+        min_edge_r=args.min_edge,
+        max_concurrent=args.concurrency,
     )
     rows = []
     for signal_rate in SIGNAL_RATES:
@@ -68,8 +79,9 @@ def main() -> int:
                     "expectancy_r": row["expectancy_r"],
                     "net_r": row["total_net_r"],
                     "unconditional_r": row["unconditional_expectancy_r"],
-                    "edge_r": row["edge_vs_unconditional_r"],
-                    "fold_profit_concentration": row["fold_profit_concentration"],
+                    "matched_unconditional_r": row["matched_unconditional_r"],
+                    "edge_r": row["edge_vs_matched_r"],
+                    "max_fold_share_of_positive": row["max_fold_share_of_positive"],
                 }
             )
         span_start = min(r.folds[0].test_start for r in results if r.folds)
@@ -102,12 +114,14 @@ def main() -> int:
             )
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    (REPORT_DIR / "frequency_curve.json").write_text(
+    suffix = f"_{args.tag}" if args.tag else ""
+    (REPORT_DIR / f"frequency_curve{suffix}.json").write_text(
         json.dumps(
             {
                 "base": asdict(base),
                 "timeframe": args.timeframe,
                 "start": args.start,
+                "data_fingerprint": data_fingerprint(DEFAULT_DATA_DIR),
                 "grid": rows,
             },
             indent=2,

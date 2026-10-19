@@ -18,7 +18,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from src.paper.backtest.data import DEFAULT_DATA_DIR, PAIRS, load_series
+from src.paper.backtest.data import (
+    DEFAULT_DATA_DIR,
+    PAIRS,
+    data_fingerprint,
+    load_series,
+)
 from src.paper.backtest.dense import DenseConfig, run_walk_forward
 from src.paper.backtest.dense_report import summary
 from src.paper.features import OHLCBar
@@ -35,6 +40,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--timeframe", choices=sorted(GRIDS), default="m15")
     parser.add_argument("--start", default=None)
+    parser.add_argument("--end", default=None)
+    parser.add_argument("--min-edge", type=float, default=0.0)
+    parser.add_argument("--signal-rate", type=float, default=0.03)
+    parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument("--tag", default=None)
     args = parser.parse_args()
 
@@ -43,8 +52,13 @@ def main() -> int:
     start = (
         datetime.fromisoformat(args.start).replace(tzinfo=UTC) if args.start else None
     )
+    end = datetime.fromisoformat(args.end).replace(tzinfo=UTC) if args.end else None
 
-    base = DenseConfig(min_edge_r=0.0, signal_rate=0.03)
+    base = DenseConfig(
+        min_edge_r=args.min_edge,
+        signal_rate=args.signal_rate,
+        max_concurrent=args.concurrency,
+    )
     loaded = {
         pair: load_series(pair, args.timeframe, data_dir=DEFAULT_DATA_DIR) for pair in PAIRS
     }
@@ -52,7 +66,8 @@ def main() -> int:
         pair: [
             bar
             for bar in loaded[pair].bars
-            if start is None or bar.timestamp >= start
+            if (start is None or bar.timestamp >= start)
+            and (end is None or bar.timestamp < end)
         ]
         for pair in PAIRS
     }
@@ -116,6 +131,8 @@ def main() -> int:
                 "base": asdict(base),
                 "timeframe": args.timeframe,
                 "start": args.start,
+                "end": args.end,
+                "data_fingerprint": data_fingerprint(DEFAULT_DATA_DIR),
                 "grid": rows,
             },
             indent=2,

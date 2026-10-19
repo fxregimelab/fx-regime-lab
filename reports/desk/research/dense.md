@@ -1,10 +1,14 @@
-# Dense walk-forward research
+# Dense walk-forward research (M15)
 
 **Historical simulation - not live results.** Walk-forward: every trade below was
-chosen by a model trained only on earlier bars. Entry at the next M15 open, stop
-before target on ambiguous bars, gaps fill at the open, canonical costs included.
+chosen by a model trained only on earlier bars. Entry at the next bar's open, stop
+before target on ambiguous bars, stop gaps fill at the open, target gaps cap at
+the target, canonical costs included.
 
-## Configuration (fixed a priori, not tuned per fold)
+## Configuration (fixed for this run; not re-tuned per fold)
+
+Sweep winners are chosen after seeing the whole grid and are therefore
+post-hoc maxima, not a-priori configurations.
 
 - `stop_atr_mult`: 1.5
 - `target_r`: 2.0
@@ -17,18 +21,25 @@ before target on ambiguous bars, gaps fill at the open, canonical costs included
 - `signal_rate`: 0.02
 - `min_edge_r`: 0.02
 - `min_train_rows`: 5000
+- `max_concurrent`: 1
 
 | Pair | Trades | Trades/wk | Win rate | Expectancy R | Net R | Costs R |
 |---|---|---|---|---|---|---|
 | EURUSD | 147 | 0.946 | 36.7% | -0.105 | -15.44 | 15.24 |
 | USDJPY | 448 | 2.887 | 42.9% | +0.067 | +30.01 | 62.38 |
 
-## Selected vs unconditional
+## Selected vs benchmarks
 
-| Pair | Selected expectancy R | Unconditional R | Edge |
-|---|---|---|---|
-| EURUSD | -0.105 | -0.254 | +0.148 |
-| USDJPY | +0.067 | -0.213 | +0.280 |
+All-bar unconditional averages every bar; matched averages both sides at the bars the model actually selected, removing bar-composition effects.
+
+| Pair | Selected R | All-bar R | Matched R | Edge vs matched | t (iid) | p (iid) |
+|---|---|---|---|---|---|---|
+| EURUSD | -0.105 | -0.254 | -0.128 | +0.023 | -1.057 | +0.292 |
+| USDJPY | +0.067 | -0.213 | -0.111 | +0.178 | +1.027 | +0.305 |
+
+Paired test (selected minus matched, same decision bars): EURUSD t=+0.259, p=+0.796, USDJPY t=+3.168, p=+0.002
+
+The t-test treats trades as independent; overlapping labels and the one-position constraint make it optimistic. Use it as a rough screen.
 
 ## EURUSD fold detail
 
@@ -46,7 +57,7 @@ before target on ambiguous bars, gaps fill at the open, canonical costs included
 | 9 | 2026-01-14 to 2026-04-14 | 12 | +1.05 | +0.087 | -0.240 |
 | 10 | 2026-04-14 to 2026-07-13 | 1 | +0.81 | +0.809 | -0.308 |
 | 11 | 2026-07-13 to 2026-10-11 | 0 | +0.00 | +0.000 | -0.328 |
-| 12 | 2026-10-11 to 2026-10-19 | 2 | +3.77 | +1.885 | -0.205 |
+| 12 | 2026-10-11 to 2026-10-19 | 2 | +3.77 | +1.885 | -0.211 |
 
 ## USDJPY fold detail
 
@@ -64,4 +75,4 @@ before target on ambiguous bars, gaps fill at the open, canonical costs included
 | 9 | 2026-01-13 to 2026-04-13 | 33 | +4.88 | +0.148 | -0.217 |
 | 10 | 2026-04-13 to 2026-07-12 | 37 | -3.17 | -0.086 | -0.396 |
 | 11 | 2026-07-12 to 2026-10-10 | 58 | +1.86 | +0.032 | -0.225 |
-| 12 | 2026-10-10 to 2026-10-16 | 1 | +1.85 | +1.849 | -0.167 |
+| 12 | 2026-10-10 to 2026-10-16 | 1 | +1.85 | +1.849 | -0.171 |

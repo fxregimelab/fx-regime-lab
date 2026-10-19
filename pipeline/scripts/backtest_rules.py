@@ -8,7 +8,12 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 
-from src.paper.backtest.data import DEFAULT_DATA_DIR, PAIRS, load_series
+from src.paper.backtest.data import (
+    DEFAULT_DATA_DIR,
+    PAIRS,
+    data_fingerprint,
+    load_series,
+)
 from src.paper.backtest.dense_report import weekly_rows
 from src.paper.backtest.rules import RuleConfig, run_rule
 
@@ -80,7 +85,9 @@ def main() -> int:
     filename = "rules.json" if args.timeframe == "m15" else f"rules_{args.timeframe}.json"
     (REPORT_DIR / filename).write_text(
         json.dumps(
-            {"config": asdict(rule_cfg), "timeframe": args.timeframe, "results": rows},
+            {"config": asdict(rule_cfg), "timeframe": args.timeframe,
+             "data_fingerprint": data_fingerprint(DEFAULT_DATA_DIR),
+             "results": rows},
             indent=2,
         ),
         encoding="utf-8",

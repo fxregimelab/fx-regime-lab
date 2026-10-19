@@ -38,6 +38,7 @@ def main() -> int:
     parser.add_argument("--hold", type=int, default=None)
     parser.add_argument("--signal-rate", type=float, default=None)
     parser.add_argument("--min-edge", type=float, default=None)
+    parser.add_argument("--concurrency", type=int, default=None)
     parser.add_argument("--tag", default=None)
     args = parser.parse_args()
 
@@ -53,12 +54,18 @@ def main() -> int:
         overrides["signal_rate"] = args.signal_rate
     if args.min_edge is not None:
         overrides["min_edge_r"] = args.min_edge
+    if args.concurrency is not None:
+        overrides["max_concurrent"] = args.concurrency
     if overrides:
         cfg = replace(cfg, **overrides)
 
     start = (
         datetime.fromisoformat(args.start).replace(tzinfo=UTC) if args.start else None
     )
+
+    def _fmt_r(value: float | None) -> str:
+        return "n/a" if value is None else f"{value:+.3f}"
+
     rows = []
     for pair in PAIRS:
         series = load_series(pair, args.timeframe, data_dir=DEFAULT_DATA_DIR)
@@ -76,8 +83,10 @@ def main() -> int:
             f"  trades={row['trades']} ({row['trades_per_week']}/wk) "
             f"win={row['win_rate']:.1%} exp={row['expectancy_r']:+.3f}R "
             f"net={row['total_net_r']:+.2f}R "
-            f"unconditional={row['unconditional_expectancy_r']:+.3f}R "
-            f"fold_conc={row['fold_profit_concentration']}"
+            f"unconditional={_fmt_r(row['unconditional_expectancy_r'])}R "
+            f"matched={_fmt_r(row['matched_unconditional_r'])}R "
+            f"t={row['t_stat_iid']} p={row['p_value_iid']} "
+            f"fold_share={row['max_fold_share_of_positive']}"
         )
 
     tag = args.tag or args.timeframe

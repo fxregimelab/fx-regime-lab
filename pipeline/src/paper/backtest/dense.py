@@ -118,9 +118,10 @@ class DenseConfig:
     calibration_fraction: float = 0.25
 
     ridge_shrinkage: float = 0.05
-    signal_rate: float = 0.02       # fraction of eligible bars considered
+    signal_rate: float = 0.02       # calibration quantile, not a realised rate
     min_edge_r: float = 0.02        # predicted net R must clear this
     min_train_rows: int = 5_000     # directional rows (both sides stacked)
+    max_concurrent: int = 1         # open positions per pair at a time
 
 
 @dataclass(frozen=True)
@@ -136,6 +137,7 @@ class TradeRecord:
     pair: str
     fold: int
     side: str
+    decision_index: int
     decision_at: datetime
     entry_at: datetime
     exit_at: datetime
@@ -147,6 +149,7 @@ class TradeRecord:
     score: float
     bars_held: int
     entry_spread_points: float
+    matched_r: float
 
     @property
     def win(self) -> bool:
@@ -180,6 +183,7 @@ class DenseResult:
     folds: list[FoldResult]
     config: DenseConfig
     unconditional_r: float
+    matched_unconditional_r: float
     valid_bars: int
 
     @property
@@ -431,7 +435,10 @@ def build_features(
 
     valid: BoolArray = np.ones(n, dtype=np.bool_)
     valid[: cfg.warmup_bars] = False
+    # Exclude the final bar (no next open) and the final hold window, whose
+    # labels would be truncated at the series end rather than resolved.
     valid[-1] = False
+    valid[-min(cfg.max_hold_bars, n) :] = False
     valid[:-1] &= np.all(np.isfinite(base[:-1]), axis=1)   # need a next bar to enter
     valid &= np.isfinite(atr)
 
@@ -453,6 +460,13 @@ def directional_matrix(base: Array) -> Array:
     return base
 
 
+def feature_views(base: Array) -> tuple[Array, Array]:
+    """Return the long and short model views of the same feature matrix."""
+    long_view = directional_matrix(base)
+    short_view = np.where(_DIRECTIONAL_MASK, -long_view, long_view)
+    return long_view, short_view
+
+
 # --- Outcome simulation ----------------------------------------------------------
 
 
@@ -467,8 +481,9 @@ def simulate_outcome(
 ) -> tuple[float, int] | None:
     """Net R and exit index for a trade decided at bar ``index``.
 
-    Entry is the next bar's open. Gap-through fills happen at the open. A bar
-    that spans both stop and target books the stop (pessimistic).
+    Entry is the next bar's open. Stop gaps fill at the open (pessimistic);
+    target gaps are capped at the target. A bar that spans both stop and target
+    books the stop.
     """
     cfg = cfg or DenseConfig()
     if side not in (-1, 1):
@@ -627,15 +642,16 @@ def run_walk_forward(
     times = list(frame.times)
     bar_delta = _bar_delta(times)
 
-    long_features = directional_matrix(frame.base)
-    # Mirror only the directional columns; context columns stay unchanged.
-    short_features = np.where(_DIRECTIONAL_MASK, -long_features, long_features)
+    long_features, short_features = feature_views(frame.base)
 
     folds = _fold_bounds(times, cfg)
     trades: list[TradeRecord] = []
     fold_results: list[FoldResult] = []
     all_valid = frame.valid & np.isfinite(long_r) & np.isfinite(short_r)
     test_union: BoolArray = np.zeros(len(times), dtype=np.bool_)
+    # Pair-global concurrency: a trade opened in one fold can still be open in
+    # the next fold's test window.
+    open_exits: list[int] = []
 
     for fold_index, (train_start, train_end, test_start, test_end) in enumerate(folds):
         # Purge: every training label must resolve strictly before the test window.
@@ -690,9 +706,9 @@ def run_walk_forward(
         )
 
         fold_trades: list[TradeRecord] = []
-        block_until = -1
         for i in test_indices:
-            if i < block_until:
+            open_exits = [exit_index for exit_index in open_exits if exit_index > i]
+            if len(open_exits) >= cfg.max_concurrent:
                 continue
             if scores_long[i] >= scores_short[i]:
                 side, score = 1, float(scores_long[i])
@@ -712,6 +728,7 @@ def run_walk_forward(
                     pair=pair,
                     fold=fold_index,
                     side="long" if side > 0 else "short",
+                    decision_index=int(i),
                     decision_at=times[i],
                     entry_at=entry_bar.timestamp - bar_delta,
                     exit_at=exit_bar.timestamp,
@@ -723,9 +740,12 @@ def run_walk_forward(
                     score=score,
                     bars_held=int(exit_index) - int(i),
                     entry_spread_points=entry_bar.spread_points,
+                    matched_r=(
+                        float(long_r[i]) + float(short_r[i])
+                    ) / 2.0,
                 )
             )
-            block_until = exit_index
+            open_exits.append(exit_index)
 
         trades.extend(fold_trades)
         unconditional = float(np.mean(np.concatenate(
@@ -757,8 +777,22 @@ def run_walk_forward(
             )
         )
 
-    evidence_mask = test_union if np.any(test_union) else all_valid
-    all_valid_r = np.concatenate([long_r[evidence_mask], short_r[evidence_mask]])
+    if np.any(test_union):
+        all_valid_r = np.concatenate([long_r[test_union], short_r[test_union]])
+        unconditional = float(np.mean(all_valid_r)) if all_valid_r.size else float("nan")
+    else:
+        # No accepted fold means no out-of-sample evidence. Never fall back to
+        # training bars: that would silently mix in-sample and out-of-sample.
+        unconditional = float("nan")
+
+    matched_values = [
+        (float(long_r[trade.decision_index]) + float(short_r[trade.decision_index]))
+        / 2.0
+        for trade in trades
+    ]
+    matched_unconditional = (
+        float(np.mean(matched_values)) if matched_values else float("nan")
+    )
     return DenseResult(
         pair=pair,
         start=times[0],
@@ -766,6 +800,7 @@ def run_walk_forward(
         trades=trades,
         folds=fold_results,
         config=cfg,
-        unconditional_r=float(np.mean(all_valid_r)) if all_valid_r.size else 0.0,
+        unconditional_r=unconditional,
+        matched_unconditional_r=matched_unconditional,
         valid_bars=int(np.sum(all_valid)),
     )

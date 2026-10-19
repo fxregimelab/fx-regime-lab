@@ -1,4 +1,16 @@
 {
+  "_meta": {
+    "data_fingerprint": {
+      "EURUSD_d1": "20c5d51e57c90d04",
+      "EURUSD_h4": "28f4ac62ae6fae2c",
+      "EURUSD_h1": "d7096419d22fef2a",
+      "EURUSD_m15": "a0f84b6b7707a3ff",
+      "USDJPY_d1": "e9a772a0bad5044b",
+      "USDJPY_h4": "666686cfe810f408",
+      "USDJPY_h1": "ae9b826da545a0ae",
+      "USDJPY_m15": "b7be0c29f1c782a7"
+    }
+  },
   "baseline": {
     "trades": 39,
     "trades_per_week": 0.188,

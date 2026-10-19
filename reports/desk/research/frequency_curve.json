@@ -1,7 +1,7 @@
 {
   "base": {
     "stop_atr_mult": 1.5,
-    "target_r": 2.0,
+    "target_r": 1.5,
     "max_hold_bars": 32,
     "warmup_bars": 120,
     "train_days": 365,
@@ -10,196 +10,219 @@
     "ridge_shrinkage": 0.05,
     "signal_rate": 0.02,
     "min_edge_r": 0.0,
-    "min_train_rows": 5000
+    "min_train_rows": 5000,
+    "max_concurrent": 1
   },
   "timeframe": "m15",
   "start": null,
+  "data_fingerprint": {
+    "EURUSD_d1": "20c5d51e57c90d04",
+    "EURUSD_h4": "28f4ac62ae6fae2c",
+    "EURUSD_h1": "d7096419d22fef2a",
+    "EURUSD_m15": "a0f84b6b7707a3ff",
+    "USDJPY_d1": "e9a772a0bad5044b",
+    "USDJPY_h4": "666686cfe810f408",
+    "USDJPY_h1": "ae9b826da545a0ae",
+    "USDJPY_m15": "b7be0c29f1c782a7"
+  },
   "grid": [
     {
       "signal_rate": 0.02,
       "pairs": [
         {
           "pair": "EURUSD",
-          "trades": 191,
-          "trades_per_week": 1.229,
-          "win_rate": 0.377,
-          "expectancy_r": -0.0792,
-          "net_r": -15.1307,
-          "unconditional_r": -0.2535,
-          "edge_r": 0.1743,
-          "fold_profit_concentration": 0.4914
+          "trades": 159,
+          "trades_per_week": 1.023,
+          "win_rate": 0.4403,
+          "expectancy_r": 0.0118,
+          "net_r": 1.8728,
+          "unconditional_r": -0.2493738939465166,
+          "matched_unconditional_r": -0.13728131972549387,
+          "edge_r": 0.1490599210389239,
+          "max_fold_share_of_positive": 0.2557
         },
         {
           "pair": "USDJPY",
-          "trades": 551,
-          "trades_per_week": 3.551,
-          "win_rate": 0.4047,
-          "expectancy_r": 0.0079,
-          "net_r": 4.3314,
-          "unconditional_r": -0.2127,
-          "edge_r": 0.2206,
-          "fold_profit_concentration": 0.3256
+          "trades": 496,
+          "trades_per_week": 3.196,
+          "win_rate": 0.4738,
+          "expectancy_r": 0.0339,
+          "net_r": 16.8224,
+          "unconditional_r": -0.21143264372877268,
+          "matched_unconditional_r": -0.13110015425580188,
+          "edge_r": 0.1650163546028567,
+          "max_fold_share_of_positive": 0.2521
         }
       ],
-      "total_trades": 742,
-      "total_trades_per_week": 4.77,
-      "total_net_r": -10.799,
-      "net_r_per_week": -0.069
+      "total_trades": 655,
+      "total_trades_per_week": 4.211,
+      "total_net_r": 18.695,
+      "net_r_per_week": 0.12
     },
     {
       "signal_rate": 0.05,
       "pairs": [
         {
           "pair": "EURUSD",
-          "trades": 249,
-          "trades_per_week": 1.602,
-          "win_rate": 0.3855,
-          "expectancy_r": -0.0702,
-          "net_r": -17.4909,
-          "unconditional_r": -0.2535,
-          "edge_r": 0.1833,
-          "fold_profit_concentration": 0.4914
+          "trades": 220,
+          "trades_per_week": 1.415,
+          "win_rate": 0.45,
+          "expectancy_r": 0.0111,
+          "net_r": 2.4352,
+          "unconditional_r": -0.2493738939465166,
+          "matched_unconditional_r": -0.11643332642344909,
+          "edge_r": 0.12750259054326366,
+          "max_fold_share_of_positive": 0.219
         },
         {
           "pair": "USDJPY",
-          "trades": 720,
-          "trades_per_week": 4.64,
-          "win_rate": 0.3986,
-          "expectancy_r": 0.0031,
-          "net_r": 2.2202,
-          "unconditional_r": -0.2127,
-          "edge_r": 0.2158,
-          "fold_profit_concentration": 0.2776
+          "trades": 648,
+          "trades_per_week": 4.176,
+          "win_rate": 0.483,
+          "expectancy_r": 0.0572,
+          "net_r": 37.0829,
+          "unconditional_r": -0.21143264372877268,
+          "matched_unconditional_r": -0.12478822286309359,
+          "edge_r": 0.18201499349294512,
+          "max_fold_share_of_positive": 0.2218
         }
       ],
-      "total_trades": 969,
-      "total_trades_per_week": 6.23,
-      "total_net_r": -15.271,
-      "net_r_per_week": -0.098
+      "total_trades": 868,
+      "total_trades_per_week": 5.58,
+      "total_net_r": 39.518,
+      "net_r_per_week": 0.254
     },
     {
       "signal_rate": 0.1,
       "pairs": [
         {
           "pair": "EURUSD",
-          "trades": 265,
-          "trades_per_week": 1.704,
-          "win_rate": 0.3849,
-          "expectancy_r": -0.0802,
-          "net_r": -21.2637,
-          "unconditional_r": -0.2535,
-          "edge_r": 0.1733,
-          "fold_profit_concentration": 0.4914
+          "trades": 234,
+          "trades_per_week": 1.505,
+          "win_rate": 0.4231,
+          "expectancy_r": -0.0378,
+          "net_r": -8.8348,
+          "unconditional_r": -0.2493738939465166,
+          "matched_unconditional_r": -0.10575658478702658,
+          "edge_r": 0.06800095624303139,
+          "max_fold_share_of_positive": 0.2742
         },
         {
           "pair": "USDJPY",
-          "trades": 818,
-          "trades_per_week": 5.271,
-          "win_rate": 0.4046,
-          "expectancy_r": 0.0205,
-          "net_r": 16.7374,
-          "unconditional_r": -0.2127,
-          "edge_r": 0.2332,
-          "fold_profit_concentration": 0.3103
+          "trades": 764,
+          "trades_per_week": 4.923,
+          "win_rate": 0.4843,
+          "expectancy_r": 0.0694,
+          "net_r": 53.0447,
+          "unconditional_r": -0.21143264372877268,
+          "matched_unconditional_r": -0.11577456054938962,
+          "edge_r": 0.18520479499191894,
+          "max_fold_share_of_positive": 0.2609
         }
       ],
-      "total_trades": 1083,
-      "total_trades_per_week": 6.963,
-      "total_net_r": -4.526,
-      "net_r_per_week": -0.029
+      "total_trades": 998,
+      "total_trades_per_week": 6.416,
+      "total_net_r": 44.21,
+      "net_r_per_week": 0.284
     },
     {
       "signal_rate": 0.2,
       "pairs": [
         {
           "pair": "EURUSD",
-          "trades": 271,
-          "trades_per_week": 1.743,
-          "win_rate": 0.3948,
-          "expectancy_r": -0.0612,
-          "net_r": -16.5815,
-          "unconditional_r": -0.2535,
-          "edge_r": 0.1924,
-          "fold_profit_concentration": 0.4718
+          "trades": 242,
+          "trades_per_week": 1.557,
+          "win_rate": 0.4298,
+          "expectancy_r": -0.0228,
+          "net_r": -5.5285,
+          "unconditional_r": -0.2493738939465166,
+          "matched_unconditional_r": -0.10269098703435629,
+          "edge_r": 0.07984598364065537,
+          "max_fold_share_of_positive": 0.2742
         },
         {
           "pair": "USDJPY",
-          "trades": 854,
-          "trades_per_week": 5.503,
-          "win_rate": 0.404,
-          "expectancy_r": 0.0157,
-          "net_r": 13.3942,
-          "unconditional_r": -0.2127,
-          "edge_r": 0.2284,
-          "fold_profit_concentration": 0.3192
+          "trades": 806,
+          "trades_per_week": 5.194,
+          "win_rate": 0.4801,
+          "expectancy_r": 0.0573,
+          "net_r": 46.2214,
+          "unconditional_r": -0.21143264372877268,
+          "matched_unconditional_r": -0.10916615593828422,
+          "edge_r": 0.1665128525448087,
+          "max_fold_share_of_positive": 0.2785
         }
       ],
-      "total_trades": 1125,
-      "total_trades_per_week": 7.233,
-      "total_net_r": -3.187,
-      "net_r_per_week": -0.02
+      "total_trades": 1048,
+      "total_trades_per_week": 6.738,
+      "total_net_r": 40.693,
+      "net_r_per_week": 0.262
     },
     {
       "signal_rate": 0.35,
       "pairs": [
         {
           "pair": "EURUSD",
-          "trades": 295,
-          "trades_per_week": 1.897,
-          "win_rate": 0.3898,
-          "expectancy_r": -0.0696,
-          "net_r": -20.5397,
-          "unconditional_r": -0.2535,
-          "edge_r": 0.1839,
-          "fold_profit_concentration": 0.4914
+          "trades": 258,
+          "trades_per_week": 1.659,
+          "win_rate": 0.4186,
+          "expectancy_r": -0.0481,
+          "net_r": -12.4048,
+          "unconditional_r": -0.2493738939465166,
+          "matched_unconditional_r": -0.1155095112675075,
+          "edge_r": 0.06742887599011715,
+          "max_fold_share_of_positive": 0.2742
         },
         {
           "pair": "USDJPY",
-          "trades": 885,
-          "trades_per_week": 5.703,
-          "win_rate": 0.4056,
-          "expectancy_r": 0.0173,
-          "net_r": 15.3301,
-          "unconditional_r": -0.2127,
-          "edge_r": 0.2301,
-          "fold_profit_concentration": 0.3176
+          "trades": 825,
+          "trades_per_week": 5.316,
+          "win_rate": 0.48,
+          "expectancy_r": 0.0466,
+          "net_r": 38.4647,
+          "unconditional_r": -0.21143264372877268,
+          "matched_unconditional_r": -0.11702112912686606,
+          "edge_r": 0.16364506706790308,
+          "max_fold_share_of_positive": 0.2785
         }
       ],
-      "total_trades": 1180,
-      "total_trades_per_week": 7.586,
-      "total_net_r": -5.21,
-      "net_r_per_week": -0.033
+      "total_trades": 1083,
+      "total_trades_per_week": 6.963,
+      "total_net_r": 26.06,
+      "net_r_per_week": 0.168
     },
     {
       "signal_rate": 0.5,
       "pairs": [
         {
           "pair": "EURUSD",
-          "trades": 295,
-          "trades_per_week": 1.897,
-          "win_rate": 0.3898,
-          "expectancy_r": -0.0696,
-          "net_r": -20.5397,
-          "unconditional_r": -0.2535,
-          "edge_r": 0.1839,
-          "fold_profit_concentration": 0.4914
+          "trades": 258,
+          "trades_per_week": 1.659,
+          "win_rate": 0.4186,
+          "expectancy_r": -0.0481,
+          "net_r": -12.4048,
+          "unconditional_r": -0.2493738939465166,
+          "matched_unconditional_r": -0.1155095112675075,
+          "edge_r": 0.06742887599011715,
+          "max_fold_share_of_positive": 0.2742
         },
         {
           "pair": "USDJPY",
-          "trades": 885,
-          "trades_per_week": 5.703,
-          "win_rate": 0.4056,
-          "expectancy_r": 0.0173,
-          "net_r": 15.3301,
-          "unconditional_r": -0.2127,
-          "edge_r": 0.2301,
-          "fold_profit_concentration": 0.3176
+          "trades": 825,
+          "trades_per_week": 5.316,
+          "win_rate": 0.48,
+          "expectancy_r": 0.0466,
+          "net_r": 38.4647,
+          "unconditional_r": -0.21143264372877268,
+          "matched_unconditional_r": -0.11702112912686606,
+          "edge_r": 0.16364506706790308,
+          "max_fold_share_of_positive": 0.2785
         }
       ],
-      "total_trades": 1180,
-      "total_trades_per_week": 7.586,
-      "total_net_r": -5.21,
-      "net_r_per_week": -0.033
+      "total_trades": 1083,
+      "total_trades_per_week": 6.963,
+      "total_net_r": 26.06,
+      "net_r_per_week": 0.168
     }
   ]
 }

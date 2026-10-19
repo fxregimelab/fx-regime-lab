@@ -6,72 +6,82 @@
     "min_gap_bars": 8
   },
   "timeframe": "h1",
+  "data_fingerprint": {
+    "EURUSD_d1": "20c5d51e57c90d04",
+    "EURUSD_h4": "28f4ac62ae6fae2c",
+    "EURUSD_h1": "d7096419d22fef2a",
+    "EURUSD_m15": "a0f84b6b7707a3ff",
+    "USDJPY_d1": "e9a772a0bad5044b",
+    "USDJPY_h4": "666686cfe810f408",
+    "USDJPY_h1": "ae9b826da545a0ae",
+    "USDJPY_m15": "b7be0c29f1c782a7"
+  },
   "results": [
     {
       "rule": "london_breakout",
       "pair": "EURUSD",
-      "trades": 1073,
-      "trades_per_week": 4.291,
-      "win_rate": 0.4073,
-      "expectancy_r": -0.0649,
-      "net_r": -69.677,
-      "costs_r": 64.344,
-      "active_weeks": 251
+      "trades": 1069,
+      "trades_per_week": 4.275,
+      "win_rate": 0.4097,
+      "expectancy_r": -0.0598,
+      "net_r": -63.949,
+      "costs_r": 64.155,
+      "active_weeks": 249
     },
     {
       "rule": "london_breakout",
       "pair": "USDJPY",
-      "trades": 832,
-      "trades_per_week": 3.327,
-      "win_rate": 0.4519,
-      "expectancy_r": 0.0291,
-      "net_r": 24.21,
-      "costs_r": 41.794,
-      "active_weeks": 250
+      "trades": 828,
+      "trades_per_week": 3.311,
+      "win_rate": 0.4505,
+      "expectancy_r": 0.0284,
+      "net_r": 23.512,
+      "costs_r": 41.563,
+      "active_weeks": 249
     },
     {
       "rule": "mean_reversion",
       "pair": "EURUSD",
-      "trades": 639,
-      "trades_per_week": 2.555,
-      "win_rate": 0.4131,
-      "expectancy_r": -0.0687,
-      "net_r": -43.902,
-      "costs_r": 36.405,
-      "active_weeks": 247
+      "trades": 636,
+      "trades_per_week": 2.543,
+      "win_rate": 0.4104,
+      "expectancy_r": -0.0759,
+      "net_r": -48.243,
+      "costs_r": 36.246,
+      "active_weeks": 246
     },
     {
       "rule": "mean_reversion",
       "pair": "USDJPY",
-      "trades": 568,
-      "trades_per_week": 2.271,
-      "win_rate": 0.3803,
-      "expectancy_r": -0.1495,
-      "net_r": -84.921,
-      "costs_r": 28.967,
-      "active_weeks": 240
+      "trades": 566,
+      "trades_per_week": 2.263,
+      "win_rate": 0.3799,
+      "expectancy_r": -0.1507,
+      "net_r": -85.288,
+      "costs_r": 28.833,
+      "active_weeks": 239
     },
     {
       "rule": "momentum_pullback",
       "pair": "EURUSD",
-      "trades": 1086,
-      "trades_per_week": 4.343,
-      "win_rate": 0.3959,
-      "expectancy_r": -0.1057,
-      "net_r": -114.82,
-      "costs_r": 56.603,
-      "active_weeks": 250
+      "trades": 1082,
+      "trades_per_week": 4.327,
+      "win_rate": 0.3974,
+      "expectancy_r": -0.1025,
+      "net_r": -110.911,
+      "costs_r": 56.36,
+      "active_weeks": 249
     },
     {
       "rule": "momentum_pullback",
       "pair": "USDJPY",
-      "trades": 1068,
-      "trades_per_week": 4.271,
-      "win_rate": 0.4298,
-      "expectancy_r": -0.0289,
-      "net_r": -30.877,
-      "costs_r": 51.487,
-      "active_weeks": 250
+      "trades": 1064,
+      "trades_per_week": 4.255,
+      "win_rate": 0.4295,
+      "expectancy_r": -0.0287,
+      "net_r": -30.509,
+      "costs_r": 51.241,
+      "active_weeks": 249
     }
   ]
 }

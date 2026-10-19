@@ -1,10 +1,14 @@
 # Dense walk-forward research (H1)
 
 **Historical simulation - not live results.** Walk-forward: every trade below was
-chosen by a model trained only on earlier bars. Entry at the next M15 open, stop
-before target on ambiguous bars, gaps fill at the open, canonical costs included.
+chosen by a model trained only on earlier bars. Entry at the next bar's open, stop
+before target on ambiguous bars, stop gaps fill at the open, target gaps cap at
+the target, canonical costs included.
 
-## Configuration (fixed a priori, not tuned per fold)
+## Configuration (fixed for this run; not re-tuned per fold)
+
+Sweep winners are chosen after seeing the whole grid and are therefore
+post-hoc maxima, not a-priori configurations.
 
 - `stop_atr_mult`: 2.5
 - `target_r`: 2.0
@@ -17,18 +21,25 @@ before target on ambiguous bars, gaps fill at the open, canonical costs included
 - `signal_rate`: 0.03
 - `min_edge_r`: 0.0
 - `min_train_rows`: 5000
+- `max_concurrent`: 1
 
 | Pair | Trades | Trades/wk | Win rate | Expectancy R | Net R | Costs R |
 |---|---|---|---|---|---|---|
-| EURUSD | 248 | 1.253 | 41.1% | -0.029 | -7.12 | 13.31 |
-| USDJPY | 432 | 2.183 | 44.2% | +0.114 | +49.09 | 25.36 |
+| EURUSD | 246 | 1.243 | 41.1% | -0.026 | -6.36 | 13.20 |
+| USDJPY | 430 | 2.173 | 44.0% | +0.105 | +45.23 | 25.22 |
 
-## Selected vs unconditional
+## Selected vs benchmarks
 
-| Pair | Selected expectancy R | Unconditional R | Edge |
-|---|---|---|---|
-| EURUSD | -0.029 | -0.048 | +0.019 |
-| USDJPY | +0.114 | -0.051 | +0.165 |
+All-bar unconditional averages every bar; matched averages both sides at the bars the model actually selected, removing bar-composition effects.
+
+| Pair | Selected R | All-bar R | Matched R | Edge vs matched | t (iid) | p (iid) |
+|---|---|---|---|---|---|---|
+| EURUSD | -0.026 | -0.047 | +0.006 | -0.032 | -0.317 | +0.752 |
+| USDJPY | +0.105 | -0.051 | -0.038 | +0.143 | +1.618 | +0.106 |
+
+Paired test (selected minus matched, same decision bars): EURUSD t=-0.423, p=+0.673, USDJPY t=+2.542, p=+0.011
+
+The t-test treats trades as independent; overlapping labels and the one-position constraint make it optimistic. Use it as a rough screen.
 
 ## EURUSD fold detail
 
@@ -48,8 +59,8 @@ before target on ambiguous bars, gaps fill at the open, canonical costs included
 | 11 | 2025-09-18 to 2025-12-17 | 16 | +7.82 | +0.489 | -0.012 |
 | 12 | 2025-12-17 to 2026-03-17 | 30 | -2.96 | -0.099 | +0.017 |
 | 13 | 2026-03-17 to 2026-06-15 | 24 | -3.65 | -0.152 | -0.156 |
-| 14 | 2026-06-15 to 2026-09-13 | 9 | -3.38 | -0.376 | -0.142 |
-| 15 | 2026-09-13 to 2026-10-19 | 7 | +4.19 | +0.599 | -0.088 |
+| 14 | 2026-06-15 to 2026-09-13 | 8 | -2.31 | -0.289 | -0.142 |
+| 15 | 2026-09-13 to 2026-10-19 | 6 | +3.87 | +0.645 | -0.059 |
 
 ## USDJPY fold detail
 
@@ -61,13 +72,13 @@ before target on ambiguous bars, gaps fill at the open, canonical costs included
 | 3 | 2023-09-29 to 2023-12-28 | 20 | -5.99 | -0.300 | +0.037 |
 | 4 | 2023-12-28 to 2024-03-27 | 40 | +18.07 | +0.452 | -0.057 |
 | 5 | 2024-03-27 to 2024-06-25 | 34 | +13.57 | +0.399 | -0.098 |
-| 6 | 2024-06-25 to 2024-09-23 | 17 | -3.75 | -0.221 | -0.041 |
+| 6 | 2024-06-25 to 2024-09-23 | 16 | -5.66 | -0.354 | -0.041 |
 | 7 | 2024-09-23 to 2024-12-22 | 40 | +6.10 | +0.152 | -0.065 |
 | 8 | 2024-12-22 to 2025-03-22 | 27 | -7.95 | -0.295 | -0.068 |
 | 9 | 2025-03-22 to 2025-06-20 | 22 | +15.19 | +0.691 | +0.039 |
 | 10 | 2025-06-20 to 2025-09-18 | 24 | +2.18 | +0.091 | -0.019 |
 | 11 | 2025-09-18 to 2025-12-17 | 22 | +8.26 | +0.376 | +0.022 |
-| 12 | 2025-12-17 to 2026-03-17 | 19 | +2.78 | +0.146 | -0.081 |
+| 12 | 2025-12-17 to 2026-03-17 | 18 | +0.83 | +0.046 | -0.081 |
 | 13 | 2026-03-17 to 2026-06-15 | 39 | -4.12 | -0.106 | -0.149 |
 | 14 | 2026-06-15 to 2026-09-13 | 23 | -6.31 | -0.275 | -0.080 |
-| 15 | 2026-09-13 to 2026-10-19 | 7 | +4.58 | +0.654 | -0.197 |
+| 15 | 2026-09-13 to 2026-10-19 | 7 | +4.58 | +0.654 | -0.207 |

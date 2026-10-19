@@ -170,6 +170,7 @@ def evaluate_signals(
                 pair=pair,
                 fold=-1,
                 side="long" if side > 0 else "short",
+                decision_index=index,
                 decision_at=bars[index].timestamp,
                 entry_at=entry_bar.timestamp - delta,
                 exit_at=exit_bar.timestamp,
@@ -181,6 +182,7 @@ def evaluate_signals(
                 score=0.0,
                 bars_held=exit_index - index,
                 entry_spread_points=entry_bar.spread_points,
+                matched_r=float("nan"),
             )
         )
         block_until = exit_index
@@ -209,4 +211,5 @@ def run_rule(
         signals = momentum_pullback(bars, frame, min_gap_bars=rule_cfg.min_gap_bars)
     else:
         raise ValueError(f"unknown rule {rule!r}")
+    signals = [(index, side) for index, side in signals if bool(frame.valid[index])]
     return evaluate_signals(pair, bars, frame, signals, cfg=cfg)

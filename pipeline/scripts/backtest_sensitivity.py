@@ -26,7 +26,12 @@ if str(_ROOT) not in sys.path:
 
 import src.paper.features as features  # noqa: E402
 import src.paper.strategies as strategies  # noqa: E402
-from src.paper.backtest.data import DEFAULT_DATA_DIR, PAIRS, load_pair  # noqa: E402
+from src.paper.backtest.data import (  # noqa: E402
+    DEFAULT_DATA_DIR,
+    PAIRS,
+    data_fingerprint,
+    load_pair,
+)
 from src.paper.backtest.engine import BacktestConfig, run_backtest  # noqa: E402
 from src.paper.features import Swing  # noqa: E402
 
@@ -125,7 +130,11 @@ def main() -> int:
     setattr(strategies, "session_allows_entry", original_session)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(scenarios, indent=2), encoding="utf-8")
+    payload = {
+        "_meta": {"data_fingerprint": data_fingerprint(DEFAULT_DATA_DIR)},
+        **scenarios,
+    }
+    args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(f"\nwrote {args.out}")
     print("\nReminder: the baseline row is the only one that reflects the shipped rules.")
     return 0

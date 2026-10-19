@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import numpy as np
@@ -16,6 +17,7 @@ from src.paper.backtest.dense import (
     build_features,
     build_labels,
     directional_matrix,
+    feature_views,
     run_walk_forward,
     simulate_outcome,
 )
@@ -52,6 +54,21 @@ def _synthetic_series(count: int, *, seed: int = 7) -> list[OHLCBar]:
         bars.append(_bar(i, open_=open_, high=high, low=low, close=close))
         price = close
     return bars
+
+
+def _synthetic_series_h1(count: int, *, seed: int = 7) -> list[OHLCBar]:
+    bars = _synthetic_series(count, seed=seed)
+    return [
+        OHLCBar(
+            timestamp=START + timedelta(hours=i),
+            open=bar.open,
+            high=bar.high,
+            low=bar.low,
+            close=bar.close,
+            volume=bar.volume,
+        )
+        for i, bar in enumerate(bars)
+    ]
 
 
 # --- Feature contract ------------------------------------------------------------
@@ -201,12 +218,7 @@ def test_directional_mirror_flips_only_directional_columns() -> None:
 
     bars = _synthetic_series(300)
     frame = build_features(bars, "EURUSD")
-    long_view = directional_matrix(frame.base)
-    short_view = np.where(
-        np.array([name in DIRECTIONAL_FEATURES for name in FEATURE_NAMES]),
-        -long_view,
-        long_view,
-    )
+    long_view, short_view = feature_views(frame.base)
     for k, name in enumerate(FEATURE_NAMES):
         if name in DIRECTIONAL_FEATURES:
             np.testing.assert_allclose(short_view[:, k], -long_view[:, k])
@@ -308,3 +320,135 @@ def test_entry_timestamp_is_the_next_bar_open() -> None:
     for trade in result.trades:
         # On a contiguous series the next bar's open equals the decision close.
         assert trade.entry_at == trade.decision_at
+
+
+def test_h1_entry_timestamp_is_the_next_bar_open() -> None:
+    bars = _synthetic_series_h1(6_000)
+    cfg = DenseConfig(
+        train_days=40,
+        test_days=20,
+        warmup_bars=120,
+        min_train_rows=500,
+        signal_rate=0.10,
+    )
+    result = run_walk_forward("EURUSD", bars, cfg=cfg)
+    assert result.trades
+    for trade in result.trades:
+        assert trade.entry_at == trade.decision_at
+        expected_held = int(
+            (trade.exit_at - trade.decision_at).total_seconds() / 3600.0
+        )
+        assert trade.bars_held == expected_held
+
+
+def test_purge_is_applied_inside_walk_forward() -> None:
+    """Integration: training rows whose label resolves in the test window are removed."""
+    bars = _synthetic_series(7_000)
+    cfg = DenseConfig(
+        train_days=20,
+        test_days=10,
+        warmup_bars=120,
+        min_train_rows=500,
+        signal_rate=0.05,
+    )
+    result = run_walk_forward("EURUSD", bars, cfg=cfg)
+    assert result.folds
+    frame = build_features(bars, "EURUSD", cfg=cfg)
+    long_r, short_r, long_exit, short_exit = build_labels(bars, frame, "EURUSD", cfg=cfg)
+    times = list(frame.times)
+    all_valid = frame.valid & np.isfinite(long_r) & np.isfinite(short_r)
+    purged_any = False
+    for fold in result.folds:
+        resolved = _labels_resolved_before(times, long_exit, short_exit, fold.train_end)
+        train_only = np.array(
+            [fold.train_start <= ts < fold.train_end for ts in times], dtype=np.bool_
+        ) & all_valid
+        expected = 2 * int(np.sum(train_only & resolved))
+        assert fold.train_rows == expected
+        unpurged = 2 * int(np.sum(train_only))
+        assert fold.train_rows <= unpurged
+        purged_any = purged_any or fold.train_rows < unpurged
+    assert purged_any, "no fold lost a row to the purge; the guard is not active"
+
+
+def test_weeks_denominator_starts_at_the_first_test_window() -> None:
+    bars = _synthetic_series(7_000)
+    cfg = DenseConfig(
+        train_days=20,
+        test_days=10,
+        warmup_bars=120,
+        min_train_rows=500,
+        signal_rate=0.05,
+    )
+    result = run_walk_forward("EURUSD", bars, cfg=cfg)
+    assert result.folds
+    expected = (
+        result.end - result.folds[0].test_start
+    ).total_seconds() / (7 * 86400.0)
+    assert result.weeks == pytest.approx(expected)
+
+
+def test_no_accepted_fold_returns_nan_unconditional_not_training_bars() -> None:
+    bars = _synthetic_series(500)
+    cfg = DenseConfig(train_days=400, test_days=30, warmup_bars=120)
+    result = run_walk_forward("EURUSD", bars, cfg=cfg)
+    assert result.folds == []
+    assert math.isnan(result.unconditional_r)
+
+
+def test_concurrency_can_admit_more_trades() -> None:
+    bars = _synthetic_series(7_000)
+    base = DenseConfig(
+        train_days=20,
+        test_days=10,
+        warmup_bars=120,
+        min_train_rows=500,
+        signal_rate=0.30,
+        min_edge_r=0.0,
+    )
+    one = run_walk_forward("EURUSD", bars, cfg=replace(base, max_concurrent=1))
+    two = run_walk_forward("EURUSD", bars, cfg=replace(base, max_concurrent=2))
+    three = run_walk_forward("EURUSD", bars, cfg=replace(base, max_concurrent=3))
+    assert len(two.trades) > len(one.trades)
+    assert len(three.trades) > len(two.trades)
+
+
+def test_matched_benchmark_uses_the_selected_decision_bars() -> None:
+    bars = _synthetic_series(7_000)
+    cfg = DenseConfig(
+        train_days=20,
+        test_days=10,
+        warmup_bars=120,
+        min_train_rows=500,
+        signal_rate=0.05,
+    )
+    result = run_walk_forward("EURUSD", bars, cfg=cfg)
+    assert result.trades
+    frame = build_features(bars, "EURUSD", cfg=cfg)
+    long_r, short_r, _, _ = build_labels(bars, frame, "EURUSD", cfg=cfg)
+    expected = float(
+        np.mean(
+            [
+                (float(long_r[t.decision_index]) + float(short_r[t.decision_index])) / 2.0
+                for t in result.trades
+            ]
+        )
+    )
+    assert result.matched_unconditional_r == pytest.approx(expected)
+
+
+def test_upper_wick_is_negative_when_the_high_is_rejected() -> None:
+    bars = _synthetic_series(200)
+    index = 150
+    original = bars[index]
+    bars[index] = OHLCBar(
+        timestamp=original.timestamp,
+        open=original.open,
+        high=original.open + 0.0100,
+        low=original.low,
+        close=original.open,
+        volume=1.0,
+    )
+    frame = build_features(bars, "EURUSD")
+    column = FEATURE_NAMES.index("upper_wick")
+    assert frame.base[index, column] < 0.0

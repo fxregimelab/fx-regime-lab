@@ -19,7 +19,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from src.paper.backtest.data import DEFAULT_DATA_DIR, PAIRS, load_series
+from src.paper.backtest.data import (
+    DEFAULT_DATA_DIR,
+    PAIRS,
+    data_fingerprint,
+    load_series,
+)
 from src.paper.backtest.dense import DenseConfig, run_walk_forward
 from src.paper.backtest.dense_report import summary
 
@@ -108,6 +113,7 @@ def main() -> int:
                 "base": asdict(base),
                 "timeframe": args.timeframe,
                 "start": args.start,
+                "data_fingerprint": data_fingerprint(DEFAULT_DATA_DIR),
                 "grid": rows,
             },
             indent=2,

@@ -23,7 +23,12 @@ import numpy as np
 import numpy.typing as npt
 from scipy.stats import spearmanr
 
-from src.paper.backtest.data import DEFAULT_DATA_DIR, PAIRS, load_series
+from src.paper.backtest.data import (
+    DEFAULT_DATA_DIR,
+    PAIRS,
+    data_fingerprint,
+    load_series,
+)
 from src.paper.backtest.dense import (
     DIRECTIONAL_FEATURES,
     FEATURE_NAMES,
@@ -157,6 +162,7 @@ def main() -> int:
                 "stop_atr_mult": args.stop,
                 "target_r": args.target,
                 "max_hold_bars": args.hold,
+                "data_fingerprint": data_fingerprint(DEFAULT_DATA_DIR),
                 "pairs": results,
             },
             indent=2,

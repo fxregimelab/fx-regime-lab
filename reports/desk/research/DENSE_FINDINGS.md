@@ -1,166 +1,251 @@
 # Dense-trading research findings (2026-10-19)
 
-**Historical simulation — not live results.** Every number below comes from
-completed bars, with entry at the next bar's open, stop-before-target on
-ambiguous bars, gaps filled at the open, and canonical costs subtracted from
-every label. The harness was independently reviewed; the review found and this
-revision fixes a dead-context-feature bug, a cross-fold label leak, rate
-denominators that included training bars, and several smaller defects. All
-numbers here are post-fix and were regenerated from the same data snapshot
-(fingerprints in `dense*.json`).
+**Historical simulation — not live results.** Every number comes from completed
+bars with entry at the next bar's open, stop-before-target on ambiguous bars,
+stop gaps filled at the open, target gaps capped at the target, and canonical
+costs subtracted from every label.
+
+This revision follows an independent adversarial review. The review found and
+this revision fixes: a dead-context-feature bug, a cross-fold label leak, rate
+denominators that included training bars, an unconditional benchmark that mixed
+training and test rows, a one-bar-late entry timestamp, a backwards upper-wick
+sign, close-time instead of open-time session windows, and tests that restated
+the implementation instead of pinning the contract.
+All numbers below are post-fix and were regenerated from one data snapshot
+(fingerprints in each `dense*.json`).
 
 ## The question
 
-The owner asked for **10–15 settled trades per week** so that selection can be
+The owner asked for **10–15 settled trades per week** so selection can be
 optimised on a statistically usable sample. The structural-setup path produced
 **39 trades in four years (~0.19/week)**, which cannot support optimisation.
 
-Two things had to be separated:
+Two questions had to be separated:
 
 1. **Can the desk generate the frequency?** (mechanical)
-2. **Is there an edge at that frequency?** (economic)
+2. **Is there an edge that survives out of sample at that frequency?** (economic)
 
 The answer to (1) is yes. The answer to (2), on all data and features currently
-available, is **not at the mandated frequency, and not on EURUSD**.
+available, is **no**.
 
-## What was measured
+## Protocol
 
-| Instrument | File | What it answers |
-|---|---|---|
-| Dense walk-forward harness | `src/paper/backtest/dense.py` | OOS expectancy of a feature-scored selector |
-| Geometry sweep | `sweep.json`, `sweep_h1.json` | Does stop/target/hold change the sign? |
-| Interpretable rules | `rules.json`, `rules_h1.json` | Can a one-line rule beat the model? |
-| Univariate edge scan | `edge_scan_h1.json` | Is any feature predictive at all? |
-| Protocol scan | `protocol_scan.json` | Do retrain window / selectivity help? |
-| Frequency curve | `frequency_curve.json` | What happens to expectancy as trades are added? |
-| Structural sensitivity | `sensitivity.json` | Can relaxing setup gates reach the target frequency? |
+- Expanding-window walk-forward; no shuffling; fixed hyper-parameters within a
+  run; training strictly before each test window.
+- **Label purge:** a training label is used only if its simulated exit resolves
+  before the test window starts. Without this, near-boundary labels leak test
+  prices into training.
+- **Entry** at the next bar's open. **Stop gaps** fill at the open; **target
+  gaps** are capped at the target. A bar spanning both books the stop.
+- **Costs:** canonical round-trip + slippage from `src/paper/config.py`.
+- **Features:** 30 causal features. The long view keeps every column; the short
+  view mirrors only the directional columns, so context (session, volatility,
+  clock) is never zeroed.
+- **Denominators:** trades/week use the out-of-sample span only.
+- **Benchmarks:** `unconditional` averages every valid bar; `matched` averages
+  both sides at the bars the model actually selected, removing bar-composition
+  effects. `edge vs matched` is the honest selection edge.
+- **Uncertainty:** an iid trade t-test and a weekly t-test (missing weeks = 0).
+  Both treat observations as independent; overlapping labels and the
+  one-position constraint make them optimistic. Neither is a block bootstrap.
 
-Protocol: expanding-window walk-forward, no shuffling, fixed hyper-parameters,
-training strictly before each test window. Training labels are **purged**: a
-label is only used if it resolves before the test window starts. Model: ridge
-on 30 causal features, one symmetric model over long and short directional
-views. The rate denominator is the out-of-sample span only.
+## Result 1 — the a-priori baseline has no EURUSD edge
 
-## Result 1 — frequency is achievable, and it is not where the edge is
+`dense.json`, M15, default geometry (`stop 1.5 / target 2.0 / hold 32`,
+`signal_rate 0.02`, `min_edge 0.02`, one position per pair):
 
-The interpretable rules trade at the requested rate:
+| Pair | Trades | Per week | Expectancy | Net R | t (iid) | p | Matched R | Edge vs matched |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| EURUSD | 147 | 0.95 | −0.105R | −15.44 | −1.06 | 0.29 | −0.128 | +0.023 |
+| USDJPY | 448 | 2.89 | +0.067R | +30.01 | 1.03 | 0.31 | −0.111 | +0.178 |
 
-| Rule | Pair | Trades | Per week | Expectancy | Net R |
-|---|---|---:|---:|---:|---:|
-| London breakout | EURUSD | 1697 | 8.17 | −0.084R | −142.9 |
-| London breakout | USDJPY | 1292 | 6.23 | −0.067R | −86.5 |
-| Mean reversion | EURUSD | 1534 | 7.39 | −0.079R | −121.3 |
-| Mean reversion | USDJPY | 1413 | 6.82 | −0.086R | −121.0 |
-| Momentum pullback | EURUSD | 3224 | 15.53 | −0.096R | −309.9 |
-| Momentum pullback | USDJPY | 2890 | 13.94 | −0.126R | −363.1 |
+The model selects bars whose both-side average is still negative (−0.128 /
+−0.111) but materially better than the all-bar average (−0.254 / −0.213), so it
+is avoiding bad bars. On EURUSD, picking the better side adds only +0.023R,
+leaving −0.105R after costs. On USDJPY it adds +0.178R, enough to turn positive,
+but not statistically distinguishable from zero.
 
-M15, 2022-10-27 → 2026-10-19. The two rules that actually reach 10–15/week
-(momentum on both pairs) are the **worst** of the six. Frequency is not the
-binding constraint; the edge is.
+## Result 2 — the best full-period cells are positive, but they are in-sample maxima
 
-On H1 with the best rule geometry, one cell turns slightly positive:
+The M15 geometry sweep (27 configurations) selected
+`stop 1.5 / target 1.5 / hold 32` as the best cell:
 
-| Rule | Pair | Trades | Per week | Expectancy |
-|---|---|---:|---:|---:|
-| London breakout | USDJPY | 832 | 3.33 | +0.029R |
+| Pair | Trades | Per week | Expectancy | Net R | t (iid) |
+|---|---:|---:|---:|---:|---:|
+| EURUSD | 189 | 1.22 | +0.001R | +0.09 | 0.01 |
+| USDJPY | 553 | 3.56 | +0.030R | +16.73 | 0.60 |
 
-That is the entire positive rule set: one pair, one rule, 3.3 trades/week,
-+0.029R per trade.
+The neighbouring cells are also positive (`1.5/1.5/64 +0.047R/wk`,
+`1.5/1.5/96 +0.095R/wk`, `1.5/1.0/32 +0.059R/wk`), which is why this region
+looked more credible than the isolated H1 winner. But the geometry was chosen
+after seeing all 27 cells; it is a post-hoc maximum, not an a-priori rule.
 
-## Result 2 — best dense cells are positive, but only at low frequency
-
-M15 geometry sweep, 27 configurations, walk-forward:
-
-| Stop / target / hold | Trades | Per week | Net R | R/week |
-|---|---:|---:|---:|---:|
-| 1.5 / 1.5 / 32 | 742 | 4.77 | +16.83 | +0.108 |
-| 1.5 / 1.5 / 96 | 810 | 5.21 | +16.16 | +0.104 |
-| 4.0 / 2.0 / 96 | 965 | 6.20 | +14.30 | +0.092 |
-| 1.5 / 1.0 / 32 | 627 | 4.00 | +9.10 | +0.059 |
-| 2.5 / 2.0 / 32 | 1139 | 7.30 | −57.20 | −0.370 |
-
-The `1.5 / 1.5` region is internally consistent across hold times. It is also
-**USDJPY-only**:
+The H1 sweep selected `stop 2.5 / target 2.0 / hold 48`:
 
 | Pair | Trades | Per week | Expectancy | Net R |
 |---|---:|---:|---:|---:|
-| EURUSD | 189 | 1.22 | +0.0005R | +0.09 |
-| USDJPY | 553 | 3.56 | +0.0303R | +16.73 |
+| EURUSD | 246 | 1.24 | −0.026R | −6.36 |
+| USDJPY | 430 | 2.17 | +0.105R | +45.23 |
 
-EURUSD is exactly flat. USDJPY's +16.73R is not spread across years:
+Its immediate neighbours are negative (`2.5/2.0/24 −0.08R/wk`,
+`2.5/1.5/48 −0.03R/wk`). That is the signature of an isolated fit, not a
+stable region.
 
-| Year | USDJPY net R | Trades |
-|---|---:|---:|
-| 2023 | −2.05 | 64 |
-| 2024 | −0.62 | 180 |
-| 2025 | +17.18 | 159 |
-| 2026 | +2.22 | 150 |
+## Result 3 — frequency is achievable, and it dilutes the edge
 
-The edge is a 2025 phenomenon. 8 of 13 folds are positive; the largest single
-fold is 22.6% of positive fold profit, so it is not one-fold concentration, but
-it is year-concentrated.
+`frequency_curve_*.json` varies only the calibration quantile, minimum predicted
+edge and concurrency on the best M15 geometry (`1.5/1.5/32`). The three
+concurrency levels are:
 
-H1 sweep (27 configurations), best cell `2.5 / 2.0 / 48`:
+| Config | Concurrency | Trades | Per week | EURUSD R | USDJPY R | Total R | R/week |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| c1 | 1 | 803 | 5.2 | +0.059 | +0.090 | +66.2 | +0.43 |
+| c2 | 2 | 1382 | 8.9 | +0.009 | +0.049 | +53.8 | +0.35 |
+| c3 | 3 | 1832 | 11.8 | −0.027 | +0.036 | +36.3 | +0.23 |
 
-| Pair | Trades | Per week | Expectancy | Net R |
-|---|---:|---:|---:|---:|
-| EURUSD | 248 | 1.25 | −0.029R | −7.12 |
-| USDJPY | 432 | 2.18 | +0.114R | +49.09 |
-
-USDJPY by year: 2023 +0.49, 2024 +33.75, 2025 +18.82, **2026 −3.96**. 9 of 16
-folds positive. The edge is real enough to measure in 2024–2025 and is decaying
-in 2026.
-
-A longer training window and a wider selection band raise the H1 USDJPY cell
-to +0.173R over 353 trades (2.42/week), but the last three folds are negative.
-That is a protocol choice selected after seeing the data, so it is a hypothesis,
-not a validated configuration.
-
-## Result 3 — pushing to 10–15/week drives expectancy to zero
-
-The frequency curve varies only the selection rate on a fixed geometry
-(`frequency_curve.json`). This is the direct answer to the mandate:
-
-| Selection rate | Total trades | Per week | Total net R | R/week | USDJPY expectancy |
-|---:|---:|---:|---:|---:|---:|
-| 0.02 | 742 | 4.8 | −10.8 | −0.07 | +0.008R |
-| 0.05 | 969 | 6.2 | −15.3 | −0.10 | +0.003R |
-| 0.10 | 1083 | 7.0 | −4.5 | −0.03 | +0.021R |
-| 0.20 | 1125 | 7.2 | −3.2 | −0.02 | +0.016R |
-| 0.35 | 1180 | 7.6 | −5.2 | −0.03 | +0.017R |
-| 0.50 | 1180 | 7.6 | −5.2 | −0.03 | +0.017R |
+(`signal_rate 0.20`, `min_edge 0.02`.)
 
 Two facts matter:
 
-1. The best measured **total** frequency with one position per pair at a time is
-   **7.6/week**, still below the mandate.
-2. At that frequency the total is **negative** and USDJPY is **+0.017R**, which
-   is inside the cost noise. The +0.067R USDJPY cell in the a-priori baseline
-   came from a much more selective threshold (2.9/week).
+1. **The production limit is `max_positions_per_pair = 2`** (`config.py:88`).
+   `c3` uses 3 per pair and is **not allowed** without an owner-level change.
+   The maximum within the current limit is approximately **8.9 trades/week**
+   (c2), below the 10–15 mandate.
+2. **EURUSD turns negative as frequency rises**: +0.059R at c1, +0.009R at c2,
+   −0.027R at c3. The total stays positive only because USDJPY carries it.
 
-A positive edge that exists only where there are few trades cannot be scaled to
-10–15/week by lowering the bar; the added trades are the ones the model ranked
-lowest, and they are not profitable after costs.
+Per-year, c2 (the highest frequency allowed by the current policy):
 
-## Result 4 — the apparent univariate signal is a risk filter, not alpha
+| Pair | 2023 | 2024 | 2025 | 2026 |
+|---|---:|---:|---:|---:|
+| EURUSD | +1.93R | −10.18R | −1.29R | +12.69R |
+| USDJPY | −11.12R | +18.16R | +16.64R | +26.94R |
 
-`edge_scan_h1.json` is decisive on this point:
+USDJPY is positive in 2024–2026 and negative in 2023. EURUSD is positive only in
+2023 and 2026 and negative in the two middle years. Weekly t-tests (missing
+weeks = 0): EURUSD 0.15 (p=0.88), USDJPY 1.16 (p=0.25). Neither is significant.
 
-- `atr_pct` has the highest pooled IC (+0.42), but its **top decile is
-  −0.046R** and its bottom decile is −0.118R. High volatility predicts a
-  *smaller loss*, not a profit. It is a regime filter, not a directional edge.
-- `hour_sin`, `session_london` and `range_exp` behave the same way: they sort
-  loss magnitude, not sign.
-- The genuinely directional features are unstable by year. USDJPY `dist_pdl`
-  top-decile mean goes +0.183 (2022) → +0.109 (2023) → −0.041 (2024) → −0.150
-  (2025) → −0.177 (2026). USDJPY `range_pos` goes +0.193 → −0.014 → +0.024 →
-  −0.015 → −0.177.
-- Overlapping labels mean the pooled IC overstates significance; the per-year
+## Result 4 — the holdout destroys the selected edge
+
+This is the decisive test. Geometry was selected using only the out-of-sample
+period **2023-10-27 → 2025-01-01**, then evaluated on **2025-01-01 → 2026-10-19**
+with the same selection parameters (`signal_rate 0.20`, `min_edge 0.02`,
+concurrency 2).
+
+The selection-period winner was `stop 4.0 / target 1.5 / hold 64`:
+**+87.8R (+1.42R/week) on the selection period**. On the holdout:
+
+| Candidate | EURUSD holdout | USDJPY holdout | Total holdout |
+|---|---:|---:|---:|
+| Selection winner (`4.0/1.5/64`) | −45.12R (−0.066R) | −21.74R (−0.014R) | **−66.85R** |
+| Stable-region (`1.5/1.5/96`) | −31.96R (−0.068R) | +24.62R (+0.034R) | **−7.33R** |
+| Full-period winner (`1.5/1.5/32`, in-sample) | −24.13R (−0.051R) | +42.10R (+0.062R) | +17.97R |
+
+The selection winner did not merely decay: it reversed from +87.8R to −66.9R.
+The stable-region candidate is also negative in total. The full-period winner is
+positive only because it was chosen using the holdout period; it is not
+out-of-sample evidence.
+
+Among the two true holdout candidates, the only positive component is USDJPY on
+`1.5/1.5/96`: +24.62R over 730 trades (7.8/week), +0.034R/trade, positive in
+both 2025 (+2.04R) and 2026 (+22.56R). Its weekly t-statistic is **0.64
+(p=0.53)**. It is not statistically distinguishable from zero, and EURUSD's
+−0.068R on the same period makes the two-pair total negative.
+
+## Result 4b — acceptance criteria check (amendment)
+
+The amendment's criteria are the contract. The two best candidates do not pass:
+
+| Criterion | c2 (8.9/week, max within policy) | Holdout stable (12.8/week) |
+|---|---:|---:|
+| ≥ 8 settled trades/week | 8.9 ✅ | 12.8 ✅ |
+| Net expectancy > 0 | +0.039R ✅ | −0.006R ❌ |
+| Edge vs unconditional ≥ +0.05R | +0.259 / +0.260 ✅ | +0.164 / +0.256 ✅ |
+| Profit factor ≥ 1.15 | 1.02 / 1.09 ❌ | 0.89 / 1.06 ❌ |
+| No fold > 40% of net R | EURUSD 427%, USDJPY 38% ❌ | EURUSD n/a (net < 0), USDJPY 81% ❌ |
+| Final-three-fold sign stable | EURUSD +,0,+; USDJPY +,+,+ ❌ | EURUSD −,+,+; USDJPY +,−,+ ❌ |
+| Drawdown inside daily/weekly stops | not simulated ⚠️ | not simulated ⚠️ |
+
+`c2` is the highest-frequency cell inside the per-pair limit and is itself an
+in-sample geometry; the holdout column is the true out-of-sample test. Both fail
+the contract. The drawdown row is unverified, not passed: the R backtest does
+not apply the equity-based daily −10% / weekly −25% stops or the 5%/4% slot
+sizing.
+
+### Partial final fold
+
+The last fold is shorter than the nominal test window (8.3 days for the M15
+reports, 24–35 days for the H1/holdout reports). Excluding it:
+
+- M15 `1.5/1.5/32`: EURUSD −0.0143R over 187 trades (the full-period +0.0005R
+  is carried by the final two trades); USDJPY +0.0279R over 552.
+- H1 `2.5/2.0/48`: EURUSD −0.0426R over 240; USDJPY +0.0961R over 423.
+- c2: EURUSD −0.0029R over 345; USDJPY +0.0477R over 1033.
+- Holdout stable: EURUSD −0.0740R over 470; USDJPY +0.0336R over 728.
+
+The partial fold does not change the sign of the conclusion, but it removes the
+one positive EURUSD full-period cell.
+
+### Multiple testing
+
+The geometry sweep tests 27 cells and the frequency/concurrency grid adds more.
+The best cells are maxima over that grid, no multiple-testing correction is
+applied, and the holdout is the only protection against selection bias. The
+holdout rejects the selection winner, which is what a grid maximum looks like
+when the underlying edge is noise.
+
+## Result 5 — the interpretable rules confirm the sign
+
+The one-line rules reach the mandated frequency and lose money:
+
+M15:
+
+| Rule | Pair | Trades | Per week | Expectancy | Net R |
+|---|---|---:|---:|---:|---:|
+| London breakout | EURUSD | 1694 | 8.16 | −0.085R | −144.6 |
+| London breakout | USDJPY | 1290 | 6.22 | −0.065R | −84.3 |
+| Mean reversion | EURUSD | 1530 | 7.37 | −0.078R | −119.4 |
+| Mean reversion | USDJPY | 1412 | 6.81 | −0.085R | −120.0 |
+| Momentum pullback | EURUSD | 3219 | 15.51 | −0.098R | −316.0 |
+| Momentum pullback | USDJPY | 2886 | 13.92 | −0.125R | −359.8 |
+
+The two rules that actually reach 10–15/week (momentum on both pairs) are the
+worst. Frequency is not the binding constraint.
+
+H1, best geometry (`2.5/1.5/48`):
+
+| Rule | Pair | Trades | Per week | Expectancy |
+|---|---|---:|---:|---:|
+| London breakout | USDJPY | 828 | 3.31 | +0.028R |
+| London breakout | EURUSD | 1069 | 4.28 | −0.060R |
+| Mean reversion | USDJPY | 566 | 2.26 | −0.151R |
+| Momentum pullback | USDJPY | 1064 | 4.25 | −0.029R |
+
+One positive rule at 3.3/week does not satisfy the mandate.
+
+## Result 6 — the apparent univariate signal is a risk filter
+
+`edge_scan_h1.json`:
+
+- `atr_pct` has the highest pooled IC (EURUSD 0.42, USDJPY 0.40), but its
+  **top decile is −0.046R** for EURUSD (−0.053R for USDJPY) and its bottom
+  decile is −0.118R (−0.127R). High volatility predicts a *smaller loss*, not a
+  profit. It is a regime filter.
+- `hour_sin`, `session_london` and `range_exp` sort loss magnitude, not sign.
+- The directional features are unstable by year. USDJPY `dist_pdl` top-decile
+  mean: +0.183 (2022) → +0.110 (2023) → −0.042 (2024) → −0.151 (2025) →
+  −0.177 (2026). USDJPY `range_pos`: +0.194 → −0.012 → +0.025 → −0.016 →
+  −0.174.
+- `upper_wick` is the most stable directional column for USDJPY (top-decile mean
+  −0.160R; per-year −0.166, −0.163, −0.172, −0.064, −0.269), which is
+  consistent with a rejection signal — but the *bottom* decile is +0.052R, so
+  the spread is a loss-avoidance effect, not a reliable long signal.
+- Overlapping labels mean the pooled IC overstates significance. The per-year
   table is the honest test, and it flips sign.
 
-## Result 5 — the structural gates cannot reach 10–15/week either
+## Result 7 — the structural gates cannot reach 10–15/week
 
-From `sensitivity.json` (M15, diagnostic relaxations, production rules untouched):
+From `sensitivity.json` (diagnostic relaxations; production rules untouched):
 
 | Scenario | Trades | Per week | Expectancy |
 |---|---:|---:|---:|
@@ -170,59 +255,66 @@ From `sensitivity.json` (M15, diagnostic relaxations, production rules untouched
 | Cost share cap 20% | 44 | 0.212 | −0.014R |
 | Session window removed | 149 | 0.718 | +0.007R |
 
-Even the most permissive relaxation reaches **0.72 trades/week**, roughly
-20× short of the mandate. The setup conjunctions simply do not occur that often;
-the gates are not what is suppressing frequency.
+Even the most permissive relaxation reaches 0.72 trades/week, 14–21× short of
+the 10–15 mandate. The setup conjunctions do not occur often enough; the gates
+are not the only constraint, and removing the session window still leaves under
+one trade per week.
 
-## Result 6 — costs are conservative, not the source of the result
+## Result 8 — costs are conservative, not the source of the result
 
 Median broker spread in the dump is EURUSD 0.8 pips and USDJPY 1.0 pip. The
-canonical table charges 1.65 and 2.55 pips round trip. The model's *selected*
-entries are wider than the median (mean 1.19 pips EURUSD, 1.41 pips USDJPY),
-so the canonical margin is thinner than the full-sample comparison suggests —
-but it is still conservative, not optimistic. Re-pricing at the selected-entry
-spread would improve the best cells by roughly 0.01–0.03R per trade. It does not
-create a 2026 edge, and it does not make 10–15/week profitable.
-
-Changing the cost model is an owner-level decision, not an agent change.
+canonical table charges 1.0 bp round-trip spread + 0.5 bp slippage for EURUSD
+(1.65 pips at current prices) and 1.2 + 0.5 bp for USDJPY (2.55 pips). The
+model's selected-entry spread averages 1.00 pip EURUSD and 1.51 pips USDJPY
+(selected-entry medians 0.9 and 1.0). For EURUSD the canonical spread component
+already matches the selected mean; for USDJPY the canonical spread (1.8 pips) is
+wider than the selected mean (1.5). Re-pricing only the spread component at the
+selected mean would change expectancy by less than 0.02R per trade. It does not
+create a holdout edge, and the slippage allowance remains an unmeasured
+assumption. Changing the cost model is an owner-level decision.
 
 ## Conclusion
 
-- The desk **can** trade 10–15 times per week. The rules already do.
-- At that frequency, with the data and features currently available, there is
-  **no demonstrated positive expectancy**. The 10–15/week rules lose 0.08–0.13R
-  per trade.
-- The best positive configurations are **USDJPY-only, 2–4 trades/week**, and
-  their edge is concentrated in 2024–2025 with 2026 flat-to-negative.
-- EURUSD — the primary success metric and the pair that must lead — is flat at
-  best (+0.0005R over 189 trades) and negative in most configurations.
-- The maximum measured total frequency with one position per pair is 7.6/week,
-  and total expectancy there is approximately zero to negative.
+- The desk **can** generate 10–15 entries per week. The rules already do; the dense
+  model reaches 8.9/week within the current per-pair limit and 11.8/week only
+  by exceeding it.
+- **No configuration produces a stable, out-of-sample positive edge at the
+  mandated frequency.** The full-period positive cells are geometry maxima
+  selected on the same data. When geometry is chosen on 2023–2024 and tested on
+  2025–2026, the winner loses 66.9R and the stable-region candidate loses 7.3R.
+- **EURUSD — the primary success metric — is negative out of sample in every
+  held-out geometry** (−0.05 to −0.068R per trade). USDJPY has a weak positive
+  holdout cell (+0.034R, 7.8/week) that is not statistically significant
+  (weekly p=0.53) and does not offset EURUSD.
+- The maximum frequency within the current risk policy is ~8.9 trades/week.
+  10–15/week requires `max_positions_per_pair > 2`, which is owner-gated, and
+  at that frequency EURUSD turns negative.
+- The best honest description of the current system is: **mechanically capable,
+  economically unproven, and negative on the pair that must lead.**
 
-Promoting a dense configuration now would knowingly run a low-frequency,
-single-pair, decaying-edge strategy on demo, while claiming to satisfy a
-10–15/week, two-pair mandate. That would be a false claim. It is not a
-profitable trading system and must not be described as one.
+Promoting a configuration now would run a known in-sample maximum on demo and
+describe it as a validated 10–15/week strategy. That would be false. It is not
+a profitable trading system and must not be presented as one.
 
 ## Owner decision required
 
-The measurement does not support building the full autonomous executor yet.
-The honest options are:
+The measurement does not support building the autonomous executor yet. The
+honest options are:
 
-1. **Accept a bounded demo experiment** on the USDJPY low-frequency cell
-   (2–4/week, +0.03 to +0.17R/trade, 2026 flat-to-negative). This is an
-   experiment with a known decaying edge, not the mandated product.
-2. **Relax the one-position-per-pair constraint** and/or add concurrency to
-   reach 10–15/week. The frequency curve says the added trades are ~0R, so this
-   meets the frequency target but not the economic one.
-3. **Invest in new data before building the executor**: an authoritative
+1. **Accept a bounded USDJPY-only demo experiment** on the `1.5/1.5/96`
+   holdout cell (7.8/week, +0.034R/trade, 2025 +2.04R, 2026 +22.56R, weekly
+   p=0.53). This is a single-pair experiment with a non-significant edge, not
+   the mandated two-pair product.
+2. **Keep the two-pair mandate and do not trade**: EURUSD has no out-of-sample
+   edge, and the two-pair total is negative.
+3. **Raise `max_positions_per_pair` to 3** (owner-gated) to reach 11.8/week at
+   +0.23R/week, accepting that EURUSD is negative and the edge is not
+   statistically significant.
+4. **Invest in new data before building the executor**: an authoritative
    economic calendar (actual vs consensus, surprise-scaled) or cross-asset /
    positioning context. This is the only path with a plausible new mechanism.
-4. **Change the cost model to measured broker spread** (owner decision). It
-   improves the best cells slightly; it does not create an edge.
 
-Each option is a product decision. None of them is a reason to relax the
-graduation gates in
+None of these is a reason to relax the graduation gates in
 `docs/specs/autonomous-desk/AMENDMENT_2026-10-19_HF_MANDATE.md`.
 
 ## What was not done
@@ -237,12 +329,26 @@ graduation gates in
 ```powershell
 cd pipeline
 $env:PYTHONPATH="."
+
+# A-priori baseline
 .\.venv\Scripts\python.exe scripts\backtest_dense.py
-.\.venv\Scripts\python.exe scripts\backtest_dense.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 2.0 --hold 48 --signal-rate 0.03 --min-edge 0 --tag h1_edge
+
+# Best full-period M15 cell (post-hoc)
+.\.venv\Scripts\python.exe scripts\backtest_dense.py --timeframe m15 --stop 1.5 --target 1.5 --hold 32 --signal-rate 0.20 --min-edge 0.02 --concurrency 2 --tag m15_c2
+
+# Geometry selection on 2023-10..2025-01, then holdout evaluation
+.\.venv\Scripts\python.exe scripts\backtest_dense_sweep.py --timeframe m15 --start 2022-10-27 --end 2025-01-01 --min-edge 0.02 --signal-rate 0.20 --concurrency 2 --tag m15_holdout_select
+.\.venv\Scripts\python.exe scripts\backtest_dense.py --timeframe m15 --start 2024-01-01 --stop 4.0 --target 1.5 --hold 64 --signal-rate 0.20 --min-edge 0.02 --concurrency 2 --tag holdout_select_winner
+.\.venv\Scripts\python.exe scripts\backtest_dense.py --timeframe m15 --start 2024-01-01 --stop 1.5 --target 1.5 --hold 96 --signal-rate 0.20 --min-edge 0.02 --concurrency 2 --tag holdout_stable
+
+# Frequency / concurrency curve
+.\.venv\Scripts\python.exe scripts\dense_frequency_curve.py --stop 1.5 --target 1.5 --hold 32 --min-edge 0.02 --concurrency 2 --tag conc2
+
+# Rules, edge scan, protocol scan, sweeps
+.\.venv\Scripts\python.exe scripts\backtest_rules.py --timeframe m15
+.\.venv\Scripts\python.exe scripts\backtest_rules.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 1.5 --hold 48
+.\.venv\Scripts\python.exe scripts\edge_scan.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 1.5 --hold 48 --tag edge_scan_h1
+.\.venv\Scripts\python.exe scripts\dense_protocol_scan.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 2.0 --hold 48
 .\.venv\Scripts\python.exe scripts\backtest_dense_sweep.py --timeframe m15
 .\.venv\Scripts\python.exe scripts\backtest_dense_sweep.py --timeframe h1 --start 2022-01-01 --tag h1
-.\.venv\Scripts\python.exe scripts\edge_scan.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 1.5 --hold 48 --tag edge_scan_h1
-.\.venv\Scripts\python.exe scripts\backtest_rules.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 1.5 --hold 48
-.\.venv\Scripts\python.exe scripts\dense_frequency_curve.py --timeframe m15 --stop 1.5 --target 2.0 --hold 32
-.\.venv\Scripts\python.exe scripts\dense_protocol_scan.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 2.0 --hold 48
 ```
