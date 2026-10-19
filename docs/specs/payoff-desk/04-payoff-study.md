@@ -16,7 +16,9 @@ Initial four research policies:
 
 1. M0: full position, original stop, terminal target chosen for planned net >=3R.
 2. M1: half at +1R, runner original stop; runner target supports net >=3R total.
-3. M2: half at +1R, after confirmed partial fill runner stop at entry; same target.
+3. M2: half at +1R, after confirmed partial fill runner stop at entry plus the
+   registered cost buffer (mirrored for shorts); same target. Bind the buffer
+   in pips, price and price-R, plus lot/stop rounding, before replay.
 4. M3: M2 plus the EXISTING playbook's exact structural/ATR trailing rule.
 
 Before M3 runs, bind ATR period/timeframe, closed-bar timing, structural
@@ -24,6 +26,10 @@ confirmation delay, stop rounding, update frequency and broker constraints.
 If any is unresolved, M3 is BLOCKED, not approximated by a convenient trail.
 M1 and M0 are counterfactuals; they do not replace the current management policy.
 Do not add 20 variants after seeing which of these wins.
+Common early/time/news/session/Friday/horizon rules must also be identical and
+exactly bound across policies, so treatment differences are attributable. Their
+current structural-replay mismatches block the full-management study. M2 minus
+M1 measures buffered protection; M3 minus M2 measures the incremental trail.
 
 ## Event ordering and accounting
 
@@ -51,7 +57,8 @@ With initial price-risk 100 cash units, no reserve/costs unless stated, exactly 
 
 1. Original stop before +1R => -1R for each policy (subject to its entry).
 2. Half +1R then runner -1R => 0R gross for M1.
-3. Half +1R then runner 0R => +0.5R gross for M2.
+3. Half +1R then runner 0R => +0.5R gross as a zero-buffer arithmetic oracle,
+   not the actual buffered M2. With runner buffer d price-R, gross is .5+.5d.
 4. Half +1R then runner +3R => +2R gross, NOT +3R.
 5. Half +1R then runner +5R => +3R gross, not automatically +3R net.
 6. Total cost 0.1R: previous case +2.9R net; runner +5.2R gives +3R net.
@@ -94,6 +101,11 @@ opinions as independent observations. No repeated peeking until p<0.05.
 Choose endpoint/sample plan before results; preserve existing graduation gates.
 PBO/deflated metrics are useful diagnostics where their assumptions hold, not a
 substitute for fresh evidence. No statistical threshold is changed in this pack.
+The eventual registration must name M1-M0, M2-M1 and M3-M2 paired comparisons,
+primary net-parent-R endpoint, multiplicity treatment, time-block construction,
+sample/stopping plan and fresh forward dates. Use a declared common eligible-lot
+cohort for the paired study and report all policy-specific exclusions. Those
+bindings are not supplied by this design: until registered, no statistical PASS.
 
 Report per pair/setup/regime and aggregate: count/span, net expectancy, realised
 average win/loss, scratch fraction, profit factor, full-target rate, 1R-first rate,

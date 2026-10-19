@@ -29,6 +29,12 @@ loss on the original quantity. A is the frozen initial cost/gap reserve. The
 protected parent denominator is D=G+A (`immutable_initial_risk_usd`), per AD
 execution spec sections 2/3/9. It is not G alone. Quantities and valuations use
 actual instrument tick/contract rules. Let k=A/G and c=actual scenario costs/G.
+Admission instead uses frozen modelled costs C_hat and c_hat=C_hat/G for its
+declared favourable-exit scenario. Settlement replaces C_hat with actual C,
+never D or initial A. A is a reserve/denominator component, not an additional
+realised expense to deduct from P&L. Planned account-risk fraction is D divided
+by decision-time equity, after instrument lot rounding; gaps/cost overruns can
+produce a larger actual loss.
 
 For fraction f closed at aR and remaining fraction (1-f) at bR:
 
@@ -54,6 +60,8 @@ At f=0.5, a=1, the following are in PRICE-R:
 - net +3 all-in parent-R needs runner >= `5 + 6*k + 2*c`;
 - when k=c, the latter becomes `5 + 8*c`, not `5 + 2*c`.
 
+For planned admission use c_hat in those formulas; actual settlement uses c.
+
 If costs depend on exit price/time, calculate the net payoff with that scenario's
 costs. Do not solve the equation using an unrelated average spread. A no-partial
 plan needs price target >= `3*(1+k) + c` for 3 all-in parent-R. Reject unsupported target distances;
@@ -75,7 +83,11 @@ first slot, not a default risk demand. Risk may be reduced only. Compounding,
 overlapping positions and gap losses make nominal risk different from guaranteed
 maximum loss. Return aspirations of 300–500% create no permission or forecast.
 
-The current 50%-at-1R -> entry stop -> trail policy remains the runtime policy
+The existing specified policy is 50%-at-1 price-R -> confirmed stop amendment
+to entry PLUS the registered cost buffer -> structural/ATR trail, not a zero
+price-R entry stop. Config currently names a 1.5-pip buffer; actual integration
+must reconcile that value, instrument rounding and AD policy/version before use.
+No live runtime manager is installed. That specified policy remains unchanged
 until an independently reviewed replacement is explicitly admitted. Alternative
 management policies below are research challengers, not a unilateral production
 policy edit. Real money, evaluator changes, pair expansion, credentials and

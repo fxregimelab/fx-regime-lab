@@ -17,6 +17,11 @@ is ignored and never part of the commit. No main/tag change or public deployment
   Reviewer independently observed23 package tests pass; no remaining P0/P1.
 - PD-01 worker trial: `ses_eab5b99caffenptzDehkpN1NS4`; free configured route,
   completion/actual route verification pending at receipt creation.
+- Independent payoff contract review: `ses_eab54e1e8ffe49RjSpAe00MWO9`;
+  arithmetic passed, initial REQUEST_CHANGES on cost/management ambiguity.
+  Final **PASS** after separating C_hat from realised costs, preserving all-in
+  risk, binding buffered entry protection and making preregistration explicit.
+  This is a specification review, not validation of the concurrent math module.
 
 ## Observed checks before final integration
 
