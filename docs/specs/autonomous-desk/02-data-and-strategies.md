@@ -57,12 +57,12 @@ Backfilled rows remain a separate cohort and are not called live outcomes.
 Use a registered authoritative feed with exact aware release timestamps, currency,
 impact tier, event ID, revisions, actual/forecast/prior and retrieval status. Terminal
 calendar availability/entitlement must be verified by integration tests; do not invent
-RPC tool names. Input coverage must cover t−15min through t+24h for USD plus pair currency.
+RPC tool names. Input coverage must cover t−2h through t+24h for USD plus pair currency.
 Calendar refresh ≤5min in session; release-minute updates archived without lookahead.
 Unknown impact/time/currency coverage is a blocker. The public macro-calendar's approximate
 fallback schedule is research context only and never the execution-blackout authority.
 
-No entries within ±15min of a red release or within its next 2h. No event-cohort exemption
+No entries with a red release inside [decision−2h, release+2h]. No event-cohort exemption
 in initial execution: source cohort S5 and SU-R1 stay research-only. Management continues
 during blackouts; it does not wait for an AI opinion to honor a stop or reduce exposure.
 

@@ -116,7 +116,7 @@ all evidence-linked. 5 hard gates + 9 scored checks. Machine form: `paper/checkl
 |---|------|----------------|
 | H1 | Strategy rule fires | Candidate is rule-valid for its cohort/setup (checked against the written definition) |
 | H2 | Data quality | Pipeline DQS ≥ 0.8 **and** desk bars fresh through the last completed session (both pairs, all TFs) |
-| H3 | Event window clear | No red-tier USD/EUR/JPY event within ±15 min; no red event within next 2h (intraday entries) unless cohort is event-based |
+| H3 | Event window clear | No red-tier USD/EUR/JPY release with release_at inside [decision−2h, release+2h] (intraday entries) unless cohort is event-based. Implementation note 2026-10-19: the calendar module enforces the window with no exemption (stricter); the exemption itself is pending owner reconciliation and must not be assumed available. |
 | H4 | Cost efficiency | Round-trip cost + slippage ≤ 10% of the planned 1R distance (net ≥ 0.90R at the partial) |
 | H5 | Session & spread | Entry inside 07:00–16:30 UTC; spread ≤ 1.5× the pair's typical; not first/last 15 min of session; no new entries Friday after 14:00 UTC |
 
