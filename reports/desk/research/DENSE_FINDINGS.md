@@ -124,7 +124,7 @@ Three facts matter:
    c1, +0.009R at c2, −0.027R at c3. The total stays positive only because
    USDJPY carries it.
 
-Per-year, c2 (the highest-frequency cell at this geometry):
+Per-year, c2 (the concurrency-2 cell at the `signal_rate 0.20` calibration):
 
 | Pair | 2023 | 2024 | 2025 | 2026 |
 |---|---:|---:|---:|---:|
@@ -168,12 +168,16 @@ Its weekly t-statistic is **0.64 (p=0.53)**. It is not statistically
 distinguishable from zero, and EURUSD's −0.068R on the same period makes the
 two-pair total negative.
 
-The stable cell was rank 3 on the selection grid (+8.6R, +0.139R/week), chosen
-because its neighbours were also positive; that is a post-hoc stability screen,
-not a pre-registered rule. The calibration quantile (0.20) and minimum edge
-(0.02) were chosen from the full-period frequency curve, so the holdout is clean
-for geometry but not for those two parameters. The USDJPY cell remains
-non-significant after that choice.
+The selection winner is the only geometry chosen on selection-period data alone.
+The stable `1.5/1.5/96` cell is a post-hoc stability pick: on the full-period
+sweep the `1.5/1.5/{32,64,96}` family is uniformly positive, and on the
+selection-period sweep `1.5/1.5/96` ranks third (+8.6R, +0.139R/week) with only
+one immediate neighbour (`1.5/1.5/64`, +0.072R/week) positive. Because the
+full-period row includes the holdout, the stable cell is not clean for geometry
+either; it is shown as a falsification check, and it is negative in total. The
+calibration quantile (0.20) and minimum edge (0.02) were chosen from the
+full-period frequency curve, so neither candidate is clean for those two
+parameters. The USDJPY cell remains non-significant after that choice.
 
 ## Result 4b — acceptance criteria check (amendment)
 
@@ -190,12 +194,14 @@ The amendment's criteria are the contract. The two best candidates do not pass:
 | Final-three-fold sign stable | EURUSD +,0,+; USDJPY +,+,+ ❌ | EURUSD −,+,+; USDJPY +,−,+ ❌ |
 | Drawdown inside daily/weekly stops | not simulated ⚠️ | not simulated ⚠️ |
 
-`c2` is the highest-frequency cell at the `1.5/1.5/32` geometry and is itself an
-in-sample geometry; the holdout column is out of sample for geometry but
-conditional on the calibration parameters chosen on the full period. Both fail
-the contract. The drawdown row is unverified, not passed: the R backtest does
-not apply the equity-based daily −10% / weekly −25% stops or the 5%/4% slot
-sizing.
+`c2` is the concurrency-2 cell at the `1.5/1.5/32` geometry and is itself an
+in-sample geometry. The holdout stable cell is a post-hoc stability pick, so it
+is not clean for geometry either; only the selection winner (`4.0/1.5/64`,
+Result 4) is a selection-period-only geometry, and it loses 66.9R on the
+holdout. Both are also conditional on the calibration parameters chosen on the
+full period. Both fail the contract. The drawdown row is unverified, not passed:
+the R backtest does not apply the equity-based daily −10% / weekly −25% stops or
+the 5%/4% slot sizing.
 
 The harness is a fixed-exit signal test. It also does not apply
 `max_new_trades_per_day = 5`, `max_same_usd_sign_tickets = 2`,
@@ -226,9 +232,9 @@ applied, and the holdout is the only protection against selection bias. The
 holdout rejects the selection winner, which is what a grid maximum looks like
 when the underlying edge is noise. The calibration quantile (0.20) and minimum
 predicted edge (0.02) were also chosen from the full-period frequency curve, so
-the holdout is clean for geometry but not for those two parameters. The holdout
-stable cell's USDJPY result is non-significant (weekly p=0.53) even after that
-choice.
+neither candidate is clean for those two parameters; the stable cell is not
+clean for geometry either (Result 4). The holdout stable cell's USDJPY result is
+non-significant (weekly p=0.53) even after those choices.
 
 ## Result 5 — the interpretable rules confirm the sign
 
@@ -237,7 +243,7 @@ use the project's close-time `OHLCBar.timestamp` convention; `london_breakout`
 converts to open time for the Asian range, while `mean_reversion` and
 `momentum_pullback` filter on the decision bar's close time.
 
-M15 (rules geometry `2.5/1.5/48`, not the dense `1.5/1.5/32`):
+M15 (rules geometry `2.5/1.5/48`, full M15 span 2022-10-27 → 2026-10-19, not the dense `1.5/1.5/32`):
 
 | Rule | Pair | Trades | Per week | Expectancy | Net R |
 |---|---|---:|---:|---:|---:|
@@ -262,7 +268,7 @@ H1, sweep winner (`2.5/2.0/48`):
 | Momentum pullback | EURUSD | 1013 | 4.05 | −0.116R |
 | Momentum pullback | USDJPY | 966 | 3.86 | −0.038R |
 
-One positive rule at 3.1/week does not satisfy the mandate.
+One positive rule at 3.05/week does not satisfy the mandate.
 
 ## Result 6 — the apparent univariate signal is a risk filter
 
@@ -348,13 +354,15 @@ honest options are:
 1. **Accept a bounded USDJPY-only demo experiment** on the `1.5/1.5/96`
    holdout cell (7.8/week, +0.034R/trade, 2025 +2.04R, 2026 +22.56R, weekly
    p=0.53). This is a single-pair experiment with a non-significant edge, not
-   the mandated two-pair product. The calibration parameters were chosen on the
-   full period, so this is not fully clean out of sample.
+   the mandated two-pair product. The cell is a post-hoc stability pick and the
+   calibration parameters were chosen on the full period, so this is not clean
+   out of sample.
 2. **Run a two-pair stable-cell demo at 12.8/week within the current per-pair
    limit** (`1.5/1.5/96`), accepting that the holdout total is −7.3R and EURUSD
    is −0.068R. This satisfies the frequency mandate without a policy change, but
    the point estimate is negative; it is an execution/cost experiment, not an
-   edge claim.
+   edge claim. The cell is a post-hoc stability pick, so it is not clean out of
+   sample.
 3. **Keep the two-pair mandate and do not trade**: EURUSD has no out-of-sample
    edge, and the two-pair total is negative.
 4. **Invest in new data before building the executor**: an authoritative
