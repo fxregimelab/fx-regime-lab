@@ -19,6 +19,11 @@ Frozen discipline:
   SU1 > SU2 > SU3 and an opposite-side conflict at the same decision means
   wait (no trade). SU4 stays research-only (B-capped, half risk) and is not
   implemented for execution in v1.
+
+Rejection tracing: spec-02 section 6 requires exact reason codes in negative
+cases. Pass ``rejections`` to receive one :class:`Rejection` per evaluated
+opportunity, recording the FIRST failing gate in evaluation order. Passing it
+never changes which candidates are emitted.
 """
 
 from __future__ import annotations
@@ -51,6 +56,37 @@ _ENTRY_BAND_ATR = 0.25
 _M15 = timedelta(minutes=15)
 _ONE_HOUR = timedelta(hours=1)
 
+# Stable rejection codes (spec-02 section 6: exact reason codes in negatives).
+R_D1_CONTEXT = "d1_context_mismatch"
+R_INSUFFICIENT = "insufficient_bars"
+R_STRUCTURE = "structure_not_aligned"
+R_EMA_SIDE = "last_close_wrong_side_of_ema"
+R_NO_EMA_TOUCH = "no_ema_touch"
+R_SWING_BREAK = "pullback_closed_through_swing"
+R_TRIGGER_CLOSE = "trigger_close_not_beyond_prior_extreme"
+R_TRIGGER_BODY = "trigger_not_directional_body"
+R_TRIGGER_RANGE = "trigger_range_too_wide"
+R_NO_RETEST = "no_retest_within_window"
+R_NO_NEXT_BAR = "no_next_m15_bar"
+R_ENTRY_BAND = "entry_outside_band"
+R_SESSION = "session_closed"
+R_STOP_FLOOR = "stop_below_atr_floor"
+R_COST_SHARE = "cost_share_above_cap"
+R_POOL_SWEEP = "sweep_not_beyond_pool_band"
+R_POOL_RECLAIM = "sweep_did_not_reclaim_pool"
+R_POOL_FAILED = "retest_made_new_low_beyond_sweep"
+R_BREAKOUT_MARGIN = "breakout_close_below_margin"
+R_ZONE_FAILURE = "h1_close_through_zone"
+
+
+@dataclass(frozen=True)
+class Rejection:
+    """One evaluated opportunity that produced no candidate, with its reason."""
+
+    setup_id: str
+    at: datetime
+    reason: str
+
 
 @dataclass(frozen=True)
 class SetupCandidate:
@@ -75,6 +111,13 @@ def _checked_direction(direction: str) -> str:
     return direction
 
 
+def _record(
+    sink: list[Rejection] | None, setup_id: str, at: datetime, reason: str
+) -> None:
+    if sink is not None:
+        sink.append(Rejection(setup_id=setup_id, at=at, reason=reason))
+
+
 def _cost_share(pair: str, entry: float, stop: float) -> float:
     """Round-trip cost as a fraction of the 1R distance (spec 02 section 2)."""
     distance = abs(entry - stop)
@@ -86,9 +129,27 @@ def _cost_share(pair: str, entry: float, stop: float) -> float:
 
 def _entry_ok(pair: str, entry: float, stop: float, atr: float) -> bool:
     """Stop-distance and cost gates; callers cannot relax either."""
+    return _geometry_reason(pair, entry, stop, atr) is None
+
+
+def _geometry_reason(pair: str, entry: float, stop: float, atr: float) -> str | None:
+    """First failing geometry gate, or None when the trade is admissible."""
     if abs(entry - stop) < _MIN_STOP_ATR * atr:
-        return False
-    return _cost_share(pair, entry, stop) <= _MAX_COST_SHARE
+        return R_STOP_FLOOR
+    if _cost_share(pair, entry, stop) > _MAX_COST_SHARE:
+        return R_COST_SHARE
+    return None
+
+
+def _evaluated_indices(length: int, first: int, only_index: int | None) -> list[int]:
+    """Indices the trigger loop visits; ``only_index`` collapses it to one bar."""
+    if only_index is None:
+        return list(range(first, length))
+    if not first <= only_index < length:
+        raise ContractError(
+            "INVALID_SCHEMA", f"only_index {only_index} outside [{first}, {length})"
+        )
+    return [only_index]
 
 
 def _m15_after(
@@ -112,9 +173,7 @@ def _m15_after(
     return out
 
 
-def _next_m15_open(
-    m15: Sequence[OHLCBar], after: datetime
-) -> tuple[datetime, float] | None:
+def _next_m15_open(m15: Sequence[OHLCBar], after: datetime) -> tuple[datetime, float] | None:
     for bar in m15:
         if bar.timestamp > after:
             return bar.timestamp - _M15, bar.open
@@ -142,22 +201,30 @@ def detect_su1(
     pair: str,
     d1_context: str,
     direction: str,
+    only_index: int | None = None,
+    rejections: list[Rejection] | None = None,
 ) -> list[SetupCandidate]:
     """SU1-v1 regime-aligned pullback/reclaim (spec 02 section 4)."""
     _checked_direction(direction)
     candidates: list[SetupCandidate] = []
-    if d1_context != direction or len(h1) < 30 or len(m15) < 2:
+    if len(h1) < 30 or len(m15) < 2:
+        if h1:
+            _record(rejections, "SU1-v1", h1[-1].timestamp, R_INSUFFICIENT)
+        return candidates
+    if d1_context != direction:
+        _record(rejections, "SU1-v1", h1[-1].timestamp, R_D1_CONTEXT)
         return candidates
     low_swings, high_swings = _split_swings(h1)
     low_times = [s.confirmed_at for s in low_swings]
     high_times = [s.confirmed_at for s in high_swings]
 
-    for i in range(26, len(h1)):
+    for i in _evaluated_indices(len(h1), 26, only_index):
         trigger = h1[i]
         atr = atr14(h1[max(0, i - 14) : i + 1])
         if structure_state_at(h4_swings, direction=direction, as_of=trigger.timestamp) != (
             "aligned"
         ):
+            _record(rejections, "SU1-v1", trigger.timestamp, R_STRUCTURE)
             continue
         window = list(h1[max(0, i - 255) : i + 1])
         start = i - len(window) + 1
@@ -165,8 +232,10 @@ def detect_su1(
         prev = h1[i - 1]
         ema_prev = ema[(i - 1) - start]
         if direction == "long" and not prev.close > ema_prev:
+            _record(rejections, "SU1-v1", trigger.timestamp, R_EMA_SIDE)
             continue
         if direction == "short" and not prev.close < ema_prev:
+            _record(rejections, "SU1-v1", trigger.timestamp, R_EMA_SIDE)
             continue
 
         touched = False
@@ -185,16 +254,23 @@ def detect_su1(
                     broke = True
                 if direction == "short" and bar.close > swing.price:
                     broke = True
-        if not touched or broke:
+        if not touched:
+            _record(rejections, "SU1-v1", trigger.timestamp, R_NO_EMA_TOUCH)
+            continue
+        if broke:
+            _record(rejections, "SU1-v1", trigger.timestamp, R_SWING_BREAK)
             continue
 
         if direction == "long":
             if not (trigger.close > prev.high and trigger.close > trigger.open):
+                _record(rejections, "SU1-v1", trigger.timestamp, R_TRIGGER_CLOSE)
                 continue
         else:
             if not (trigger.close < prev.low and trigger.close < trigger.open):
+                _record(rejections, "SU1-v1", trigger.timestamp, R_TRIGGER_CLOSE)
                 continue
         if (trigger.high - trigger.low) > 2.0 * atr:
+            _record(rejections, "SU1-v1", trigger.timestamp, R_TRIGGER_RANGE)
             continue
 
         level = trigger.high if direction == "long" else trigger.low
@@ -207,14 +283,18 @@ def detect_su1(
                 retest = bar
                 break
         if retest is None:
+            _record(rejections, "SU1-v1", trigger.timestamp, R_NO_RETEST)
             continue
         entry = _next_m15_open(m15, retest.timestamp)
         if entry is None:
+            _record(rejections, "SU1-v1", trigger.timestamp, R_NO_NEXT_BAR)
             continue
         entry_at, entry_price = entry
         if abs(entry_price - level) > _ENTRY_BAND_ATR * atr:
+            _record(rejections, "SU1-v1", trigger.timestamp, R_ENTRY_BAND)
             continue
         if not session_allows_entry(retest.timestamp):
+            _record(rejections, "SU1-v1", trigger.timestamp, R_SESSION)
             continue
 
         pullback_low = min(h1[j].low for j in range(i - 6, i))
@@ -224,6 +304,12 @@ def detect_su1(
         else:
             stop = max(pullback_high, retest.high) + 0.25 * atr
         if not _entry_ok(pair, entry_price, stop, atr):
+            _record(
+                rejections,
+                "SU1-v1",
+                trigger.timestamp,
+                _geometry_reason(pair, entry_price, stop, atr) or R_STOP_FLOOR,
+            )
             continue
         risk = abs(entry_price - stop)
         target = entry_price + risk if direction == "long" else entry_price - risk
@@ -253,17 +339,24 @@ def detect_su2(
     pair: str,
     d1_context: str,
     direction: str,
+    only_index: int | None = None,
+    rejections: list[Rejection] | None = None,
 ) -> list[SetupCandidate]:
     """SU2-v1 sweep, reclaim and held retest (spec 02 section 4)."""
     _checked_direction(direction)
     candidates: list[SetupCandidate] = []
-    if d1_context != direction or len(h1) < 40 or len(m15) < 10:
+    if len(h1) < 40 or len(m15) < 10:
+        if h1:
+            _record(rejections, "SU2-v1", h1[-1].timestamp, R_INSUFFICIENT)
+        return candidates
+    if d1_context != direction:
+        _record(rejections, "SU2-v1", h1[-1].timestamp, R_D1_CONTEXT)
         return candidates
     wanted = "low" if direction == "long" else "high"
     pools: list[Pool] = []
     pools_valid_until = h1[0].timestamp
 
-    for i in range(21, len(h1)):
+    for i in _evaluated_indices(len(h1), 21, only_index):
         anchor = h1[i]
         if anchor.timestamp >= pools_valid_until:
             window = list(h1[max(0, i - 255) : i + 1])
@@ -273,6 +366,7 @@ def detect_su2(
         if structure_state_at(h4_swings, direction=direction, as_of=anchor.timestamp) != (
             "aligned"
         ):
+            _record(rejections, "SU2-v1", anchor.timestamp, R_STRUCTURE)
             continue
         for sweep in _m15_after(m15, anchor.timestamp, 4, within=_ONE_HOUR):
             sweep_open = sweep.timestamp - _M15
@@ -280,6 +374,7 @@ def detect_su2(
             active.sort(key=lambda p: p.upper, reverse=True)
             for pool in active:
                 if (sweep.high - sweep.low) > 2.0 * atr:
+                    _record(rejections, "SU2-v1", sweep.timestamp, R_TRIGGER_RANGE)
                     continue
                 if direction == "long":
                     beyond = pool.lower - sweep.low
@@ -287,7 +382,11 @@ def detect_su2(
                 else:
                     beyond = sweep.high - pool.upper
                     reclaimed = sweep.close < pool.lower
-                if not (0.05 * atr <= beyond <= 0.5 * atr and reclaimed):
+                if not 0.05 * atr <= beyond <= 0.5 * atr:
+                    _record(rejections, "SU2-v1", sweep.timestamp, R_POOL_SWEEP)
+                    continue
+                if not reclaimed:
+                    _record(rejections, "SU2-v1", sweep.timestamp, R_POOL_RECLAIM)
                     continue
                 retest = None
                 failed = False
@@ -311,10 +410,15 @@ def detect_su2(
                     if reaches and holds:
                         retest = bar
                         break
-                if failed or retest is None:
+                if failed:
+                    _record(rejections, "SU2-v1", sweep.timestamp, R_POOL_FAILED)
+                    continue
+                if retest is None:
+                    _record(rejections, "SU2-v1", sweep.timestamp, R_NO_RETEST)
                     continue
                 entry = _next_m15_open(m15, retest.timestamp)
                 if entry is None:
+                    _record(rejections, "SU2-v1", sweep.timestamp, R_NO_NEXT_BAR)
                     continue
                 entry_at, entry_price = entry
                 in_band = (
@@ -322,13 +426,23 @@ def detect_su2(
                     <= entry_price
                     <= pool.upper + _ENTRY_BAND_ATR * atr
                 )
-                if not in_band or not session_allows_entry(retest.timestamp):
+                if not in_band:
+                    _record(rejections, "SU2-v1", sweep.timestamp, R_ENTRY_BAND)
+                    continue
+                if not session_allows_entry(retest.timestamp):
+                    _record(rejections, "SU2-v1", sweep.timestamp, R_SESSION)
                     continue
                 if direction == "long":
                     stop = sweep.low - 0.25 * atr
                 else:
                     stop = sweep.high + 0.25 * atr
                 if not _entry_ok(pair, entry_price, stop, atr):
+                    _record(
+                        rejections,
+                        "SU2-v1",
+                        sweep.timestamp,
+                        _geometry_reason(pair, entry_price, stop, atr) or R_STOP_FLOOR,
+                    )
                     continue
                 risk = abs(entry_price - stop)
                 target = entry_price + risk if direction == "long" else entry_price - risk
@@ -359,18 +473,26 @@ def detect_su3(
     pair: str,
     d1_context: str,
     direction: str,
+    only_index: int | None = None,
+    rejections: list[Rejection] | None = None,
 ) -> list[SetupCandidate]:
     """SU3-v1 confirmed breakout/retest (spec 02 section 4)."""
     _checked_direction(direction)
     candidates: list[SetupCandidate] = []
-    if d1_context != direction or len(h1) < 30 or len(m15) < 2:
+    if len(h1) < 30 or len(m15) < 2:
+        if h1:
+            _record(rejections, "SU3-v1", h1[-1].timestamp, R_INSUFFICIENT)
         return candidates
-    for i in range(26, len(h1)):
+    if d1_context != direction:
+        _record(rejections, "SU3-v1", h1[-1].timestamp, R_D1_CONTEXT)
+        return candidates
+    for i in _evaluated_indices(len(h1), 26, only_index):
         trigger = h1[i]
         atr = atr14(h1[max(0, i - 14) : i + 1])
         if structure_state_at(h4_swings, direction=direction, as_of=trigger.timestamp) != (
             "aligned"
         ):
+            _record(rejections, "SU3-v1", trigger.timestamp, R_STRUCTURE)
             continue
         prior = list(h1[i - 20 : i])
         if direction == "long":
@@ -385,39 +507,57 @@ def detect_su3(
         else:
             body = trigger.open - trigger.close
             exceeds = trigger.close <= zone_lower
-        if not (exceeds and body >= 0.5 * atr and (trigger.high - trigger.low) <= 2.0 * atr):
+        if not exceeds:
+            _record(rejections, "SU3-v1", trigger.timestamp, R_BREAKOUT_MARGIN)
+            continue
+        if body < 0.5 * atr:
+            _record(rejections, "SU3-v1", trigger.timestamp, R_TRIGGER_BODY)
+            continue
+        if (trigger.high - trigger.low) > 2.0 * atr:
+            _record(rejections, "SU3-v1", trigger.timestamp, R_TRIGGER_RANGE)
             continue
 
         h1_cursor = i + 1
         retest = None
+        zone_failed = False
         for bar in _m15_after(m15, trigger.timestamp, _SU3_RETEST_BARS):
             while h1_cursor < len(h1) and h1[h1_cursor].timestamp <= bar.timestamp:
                 closed_bar = h1[h1_cursor]
-                zone_failed = (
+                failed = (
                     closed_bar.close < zone_lower
                     if direction == "long"
                     else closed_bar.close > zone_upper
                 )
-                if zone_failed:
+                if failed:
+                    zone_failed = True
                     break
                 h1_cursor += 1
-            if h1_cursor < len(h1) and h1[h1_cursor].timestamp <= bar.timestamp:
+            if zone_failed:
                 break  # a zone-failing H1 close invalidates the retest window
             dips = bar.low <= zone_upper if direction == "long" else bar.high >= zone_lower
             holds = bar.close > level if direction == "long" else bar.close < level
             if dips and holds:
                 retest = bar
                 break
+        if zone_failed:
+            _record(rejections, "SU3-v1", trigger.timestamp, R_ZONE_FAILURE)
+            continue
         if retest is None:
+            _record(rejections, "SU3-v1", trigger.timestamp, R_NO_RETEST)
             continue
         entry = _next_m15_open(m15, retest.timestamp)
         if entry is None:
+            _record(rejections, "SU3-v1", trigger.timestamp, R_NO_NEXT_BAR)
             continue
         entry_at, entry_price = entry
         in_band = (
             zone_lower - _ENTRY_BAND_ATR * atr <= entry_price <= zone_upper + _ENTRY_BAND_ATR * atr
         )
-        if not in_band or not session_allows_entry(retest.timestamp):
+        if not in_band:
+            _record(rejections, "SU3-v1", trigger.timestamp, R_ENTRY_BAND)
+            continue
+        if not session_allows_entry(retest.timestamp):
+            _record(rejections, "SU3-v1", trigger.timestamp, R_SESSION)
             continue
         retest_extreme = retest.low if direction == "long" else retest.high
         if direction == "long":
@@ -425,6 +565,12 @@ def detect_su3(
         else:
             stop = max(retest_extreme, zone_upper) + 0.25 * atr
         if not _entry_ok(pair, entry_price, stop, atr):
+            _record(
+                rejections,
+                "SU3-v1",
+                trigger.timestamp,
+                _geometry_reason(pair, entry_price, stop, atr) or R_STOP_FLOOR,
+            )
             continue
         risk = abs(entry_price - stop)
         target = entry_price + risk if direction == "long" else entry_price - risk

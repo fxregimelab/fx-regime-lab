@@ -15,8 +15,12 @@ from typing import Any
 
 import pytest
 
+from src.paper.contracts import ContractError
 from src.paper.features import OHLCBar, Swing
 from src.paper.strategies import (
+    R_D1_CONTEXT,
+    R_TRIGGER_CLOSE,
+    Rejection,
     SetupCandidate,
     _cost_share,
     _entry_ok,
@@ -402,3 +406,66 @@ def test_conflict_resolution_precedence_and_opposite_side_wait() -> None:
     assert resolve_conflicts([su1_long, _cand("SU1-v1", "short", at)]) == []
     later = _cand("SU2-v1", "long", at + timedelta(minutes=15))
     assert resolve_conflicts([su1_long, later]) == [su1_long, later]
+
+
+# --- Rejection tracing and single-bar evaluation ---------------------------------
+
+
+def test_rejections_record_the_first_failing_gate() -> None:
+    sink: list[Rejection] = []
+    found = detect_su1(
+        su1_h1(),
+        h4_rising(),
+        su1_m15(),
+        pair="EURUSD",
+        d1_context="short",
+        direction="long",
+        rejections=sink,
+    )
+    assert found == []
+    assert [(r.setup_id, r.reason) for r in sink] == [("SU1-v1", R_D1_CONTEXT)]
+
+
+def test_rejection_sink_does_not_change_emitted_candidates() -> None:
+    baseline = detect_su1(
+        su1_h1(), h4_rising(), su1_m15(), pair="EURUSD",
+        d1_context="long", direction="long",
+    )
+    sink: list[Rejection] = []
+    with_sink = detect_su1(
+        su1_h1(), h4_rising(), su1_m15(), pair="EURUSD",
+        d1_context="long", direction="long", rejections=sink,
+    )
+    assert baseline == with_sink
+    # Every evaluated non-candidate bar is recorded; the candidate is not.
+    candidate_times = {c.trigger_at for c in baseline}
+    assert sink
+    assert all(r.at not in candidate_times for r in sink)
+
+
+def test_only_index_evaluates_exactly_one_trigger_bar() -> None:
+    h1 = su1_h1()
+    m15 = su1_m15()
+    last = len(h1) - 1
+
+    found = detect_su1(
+        h1, h4_rising(), m15, pair="EURUSD", d1_context="long",
+        direction="long", only_index=last,
+    )
+    assert len(found) == 1
+
+    sink: list[Rejection] = []
+    missed = detect_su1(
+        h1, h4_rising(), m15, pair="EURUSD", d1_context="long",
+        direction="long", only_index=last - 1, rejections=sink,
+    )
+    assert missed == []
+    assert [r.reason for r in sink] == [R_TRIGGER_CLOSE]
+
+
+def test_only_index_outside_the_evaluable_range_raises() -> None:
+    with pytest.raises(ContractError):
+        detect_su1(
+            su1_h1(), h4_rising(), su1_m15(), pair="EURUSD",
+            d1_context="long", direction="long", only_index=999,
+        )
