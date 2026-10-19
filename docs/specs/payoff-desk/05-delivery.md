@@ -72,9 +72,47 @@ Successor PD-00C stays closed until all regression/caller checks accepted.
 
 ## PD-00C — Event-time and joint portfolio replay
 
-Status: needs-binding after PD-00B. Reuse existing engine records; do not create
-another private ledger. Expected scope: structural `run_backtest` plus joint-pair
-driver and focused replay tests; exact files/subtasks bind after interface review.
+Status: READY. Binding decided by coordinator 2026-10-19; all ten inventory
+ambiguities resolved below. No owner input needed: every choice follows the
+fail-closed/conservative default, and nothing here changes risk limits,
+evaluator gates, or live admission.
+
+Decisions (inventory session `ses_eaaf94a9dffebi0r2WakTHrsex`):
+- A1: `net_r`/`gross_r`/`costs_r`/`expectancy_r` become settled-only; add
+  `net_r_all`, `gross_r_all`, `costs_r_all`, `expectancy_r_all`, `unresolved_r`,
+  `trade_count`/`settled_count`/`censored_count`. Matches the Trade docstring
+  ("one settled parent") and makes misuse impossible.
+- A2: entry-latch-only on loss-capacity breach, explicitly labeled. No forced
+  liquidation in the replay; that needs a bar-driven engine (separate packet).
+- A3: `O` = flat 1R-per-open-position proxy, labeled as proxy; `C` = the planned
+  trade's `cost_r` converted to equity fraction. Matches current cap treatment.
+- A4: at equal timestamps exits settle before entries; simultaneous entries
+  ordered by `(entry_at, decision_at, pair, setup_id)`, second sees first's
+  reservation; every tie-break recorded and reproducible.
+- A5: P-A — keep "fill = next M15 open", enforce the invariant fail-closed in
+  the engine (`A_ENTRY_FILL_MISMATCH`, no silent booking), and state R1 (gates
+  evaluated at the future fill open) and R2 (no fill/slippage model) in the
+  report assumptions. P-B gap modelling is a separate packet.
+- A6: ticket-count USD cap now; notional variant belongs to the sizing layer.
+- A7: censored positions keep slot and stop-risk reservation to sample end.
+- A8: historical `backtest.json` untouched; new runs write a new stem;
+  staleness recorded in the receipt.
+- A9: funnel mislabel fixed in this packet (emitted vs admitted vs settled).
+- A10: current management inherited unchanged; the one-close/unconditional-
+  Friday drift stays a labeled open item for PD-03. PD-00C certifies replay
+  honesty only, never the management policy.
+
+Split into two sequential packets (shared interfaces, so no parallelism):
+- PD-00C1: `engine.py` (event-time settlement, settled-only properties,
+  fill-invariant enforcement, `detect_candidates` split) + NEW
+  `portfolio.py` (joint driver, `usd_sign`, ordering, tie-breaks, fingerprint)
+  + NEW `tests/test_payoff_portfolio_regressions.py` (oracles 1–2, 6–28 as
+  applicable to engine+portfolio). No report or script changes.
+- PD-00C2: `report.py` (settled-only aggregates, semantics block, funnel fix)
+  + `backtest/__init__.py` exports + `scripts/backtest_desk.py` `--joint`
+  (new stem) + `scripts/backtest_sensitivity.py` settled-only aggregates +
+  remaining oracles (3–5, 29–30). Needs PD-00C1 accepted.
+  `dense.py`/`rules.py`, live admission, ledger, historical reports: untouched.
 
 Required evidence: pending exits do not affect equity/last-stop before exit;
 chronological stable event ordering; overlapping pair entries share global caps,
@@ -82,21 +120,10 @@ USD-sign exposure and loss capacity; identical timelines reproduce; no futures
 fund earlier trades; restart/replay uses immutable R. Same-timestamp ambiguity
 must be explicitly conservative. This task proves feasible replay, not an edge.
 
-Prerequisites carried from PD-00B audit (binding, not optional):
-- Entry-gap invariant: `simulate_trade` prices entries at the planned price and
-  never reads the fill bar's open. Favourable gaps gift R; this is NOT
-  conservatism without proof that detectors set entry_price equal to the
-  fill-bar open. Pin the invariant or model entry gaps explicitly.
-- Settled-vs-all semantics: censored marks currently flow into `net_r`,
-  `expectancy_r`, `Trade.win`, weekly/per-setup stats, equity accumulation and
-  open-trade admission. Resolve settled-only vs all-trade semantics for every
-  consumer (engine result properties, `report.py`, `run_backtest` equity/caps)
-  before any portfolio, equity, ranking or kill-switch use.
-- Horizon wording correction: horizon-inside-closure settles as
-  `horizon_calendar_day`; censored applies only when input ends before the
-  horizon. Broker-session T+5 remains unbound future work, explicitly labeled.
-- Historical reports were not regenerated and still carry pre-change labels;
-  string-equality consumers of exit labels must be updated here.
+Carried PD-00B-audit prerequisites, now folded into the A-decisions above:
+entry-gap invariant (A5), settled-vs-all semantics for every consumer (A1),
+horizon wording with explicitly labeled calendar-day basis (PD-00C2 report
+assumptions), historical-report staleness (A8).
 
 ## PD-01 — Payoff mathematics, first small-model packet
 

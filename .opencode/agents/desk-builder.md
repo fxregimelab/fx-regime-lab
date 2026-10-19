@@ -32,7 +32,7 @@ permissions:
     resource: 'TASK.md'
     effect: allow
   - action: skill
-    resource: '*'
+    resource: desk-worker
     effect: allow
   - action: edit
     resource: 'pipeline/src/paper/backtest/payoff.py'
@@ -51,6 +51,12 @@ permissions:
     effect: ask
   - action: edit
     resource: 'pipeline/tests/test_payoff_engine_regressions.py'
+    effect: ask
+  - action: edit
+    resource: 'pipeline/src/paper/backtest/portfolio.py'
+    effect: ask
+  - action: edit
+    resource: 'pipeline/tests/test_payoff_portfolio_regressions.py'
     effect: ask
   - action: shell
     resource: '*'
