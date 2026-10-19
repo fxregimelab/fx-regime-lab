@@ -12,7 +12,7 @@ training and test rows, a one-bar-late entry timestamp, a backwards upper-wick
 sign, close-time instead of open-time session windows, and tests that restated
 the implementation instead of pinning the contract.
 All numbers below are post-fix and were regenerated from one data snapshot
-(fingerprints in each `dense*.json`).
+(fingerprints in each report JSON).
 
 ## The question
 
@@ -192,7 +192,11 @@ The geometry sweep tests 27 cells and the frequency/concurrency grid adds more.
 The best cells are maxima over that grid, no multiple-testing correction is
 applied, and the holdout is the only protection against selection bias. The
 holdout rejects the selection winner, which is what a grid maximum looks like
-when the underlying edge is noise.
+when the underlying edge is noise. The calibration quantile (0.20) and minimum
+predicted edge (0.02) were also chosen from the full-period frequency curve, so
+the holdout is clean for geometry but not for those two parameters. The holdout
+stable cell's USDJPY result is non-significant (weekly p=0.53) even after that
+choice.
 
 ## Result 5 — the interpretable rules confirm the sign
 
