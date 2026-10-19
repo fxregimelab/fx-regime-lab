@@ -8,7 +8,9 @@ few to distinguish an edge from noise.
 This module does not change the production detectors and never places an order.
 It builds a causal feature matrix from completed M15 bars, labels every bar with
 the realised net R of a canonical trade entered at the *next* M15 open, and runs
-an expanding-window walk-forward so that every reported number is out-of-sample.
+an expanding-window walk-forward so that every reported trade outcome is
+out-of-sample; training diagnostics such as `train_rows`, `threshold`, and
+`coefficients` are in-sample by construction.
 
 Honesty rules, same spirit as ``engine.py``:
 

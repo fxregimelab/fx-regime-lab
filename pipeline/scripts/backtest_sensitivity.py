@@ -131,7 +131,7 @@ def main() -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     payload = {
-        "_meta": {"data_fingerprint": data_fingerprint(DEFAULT_DATA_DIR)},
+        "data_fingerprint": data_fingerprint(DEFAULT_DATA_DIR),
         **scenarios,
     }
     args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")

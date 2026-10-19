@@ -28,7 +28,13 @@ START = datetime(2022, 1, 3, tzinfo=UTC)
 
 
 def _bar(
-    index: int, *, open_: float, high: float, low: float, close: float
+    index: int,
+    *,
+    open_: float,
+    high: float,
+    low: float,
+    close: float,
+    volume: float = 1.0,
 ) -> OHLCBar:
     return OHLCBar(
         timestamp=START + timedelta(minutes=15 * index),
@@ -36,7 +42,7 @@ def _bar(
         high=high,
         low=low,
         close=close,
-        volume=1.0,
+        volume=volume,
     )
 
 
@@ -51,7 +57,10 @@ def _synthetic_series(count: int, *, seed: int = 7) -> list[OHLCBar]:
         close = max(0.5, open_ + drift + shock)
         high = max(open_, close) + abs(float(rng.normal(0.0, 0.00018)))
         low = min(open_, close) - abs(float(rng.normal(0.0, 0.00018)))
-        bars.append(_bar(i, open_=open_, high=high, low=low, close=close))
+        volume = 1.0 + 0.5 * (1.0 + math.sin(i / 7.0))
+        bars.append(
+            _bar(i, open_=open_, high=high, low=low, close=close, volume=volume)
+        )
         price = close
     return bars
 
@@ -211,6 +220,9 @@ def test_labels_cover_both_sides_and_are_finite_where_valid() -> None:
     assert (long_exit[valid] >= 1).all()
     assert (short_exit[valid] >= 1).all()
     assert np.isnan(long_r[~valid]).all()
+    # Constant volume once left only ~26% of bars valid via NaN volume z-scores;
+    # require at least 60% so that regression cannot silently shrink the sample.
+    assert valid.sum() > 0.6 * len(bars)
 
 
 def test_directional_mirror_flips_only_directional_columns() -> None:
@@ -237,8 +249,12 @@ def test_context_features_are_not_zeroed() -> None:
     assert context
     for k in context:
         np.testing.assert_allclose(long_view[:, k], frame.base[:, k])
-    # At least one context column must carry real variance, not a constant.
-    assert np.nanstd(frame.base[200:, context]) > 0.0
+    # Every context column must carry real variance, not just one of them.
+    context_slice = frame.base[200:, context]
+    assert np.isfinite(context_slice).any(axis=0).all()
+    stds = np.nanstd(context_slice, axis=0)
+    flat = [FEATURE_NAMES[k] for k, value in zip(context, stds) if not value > 0.0]
+    assert not flat, f"constant context columns: {flat}"
 
 
 def test_labels_resolved_before_purges_rows_that_reach_the_test_window() -> None:

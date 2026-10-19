@@ -86,6 +86,7 @@ def main() -> int:
     (REPORT_DIR / filename).write_text(
         json.dumps(
             {"config": asdict(rule_cfg), "timeframe": args.timeframe,
+             "start": args.start,
              "data_fingerprint": data_fingerprint(DEFAULT_DATA_DIR),
              "results": rows},
             indent=2,

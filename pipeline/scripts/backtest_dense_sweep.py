@@ -94,6 +94,16 @@ def main() -> int:
                     "costs_r": row["total_costs_r"],
                     "unconditional_r": row["unconditional_expectancy_r"],
                     "edge_r": row["edge_vs_unconditional_r"],
+                    "first_test_start": (
+                        result.folds[0].test_start.isoformat()
+                        if result.folds
+                        else None
+                    ),
+                    "last_test_end": (
+                        result.folds[-1].test_end.isoformat()
+                        if result.folds
+                        else None
+                    ),
                 }
             )
         total_trades = sum(int(r["trades"]) for r in pair_rows)

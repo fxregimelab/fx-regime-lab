@@ -6,6 +6,7 @@
     "min_gap_bars": 8
   },
   "timeframe": "m15",
+  "start": null,
   "data_fingerprint": {
     "EURUSD_d1": "20c5d51e57c90d04",
     "EURUSD_h4": "28f4ac62ae6fae2c",

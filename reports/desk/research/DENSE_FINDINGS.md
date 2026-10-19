@@ -9,8 +9,8 @@ This revision follows an independent adversarial review. The review found and
 this revision fixes: a dead-context-feature bug, a cross-fold label leak, rate
 denominators that included training bars, an unconditional benchmark that mixed
 training and test rows, a one-bar-late entry timestamp, a backwards upper-wick
-sign, close-time instead of open-time session windows, and tests that restated
-the implementation instead of pinning the contract.
+sign, and tests that restated the implementation instead of pinning the
+contract.
 All numbers below are post-fix and were regenerated from one data snapshot
 (fingerprints in each report JSON).
 
@@ -105,21 +105,34 @@ concurrency levels are:
 
 (`signal_rate 0.20`, `min_edge 0.02`.)
 
-Two facts matter:
+Three facts matter:
 
-1. **The production limit is `max_positions_per_pair = 2`** (`config.py:88`).
-   `c3` uses 3 per pair and is **not allowed** without an owner-level change.
-   The maximum within the current limit is approximately **8.9 trades/week**
-   (c2), below the 10–15 mandate.
-2. **EURUSD turns negative as frequency rises**: +0.059R at c1, +0.009R at c2,
-   −0.027R at c3. The total stays positive only because USDJPY carries it.
+1. **The production limit is `max_positions_per_pair = 2` and
+   `max_concurrent_positions = 4`** (`config.py:87-88`). `c3` uses 3 per pair
+   (up to 6 open tickets), above the global cap, and at 5%/4%/3% slot risk it
+   would exceed the 15% `max_open_risk_pct` budget. Raising only
+   `max_positions_per_pair` would not make it admissible. At the
+   `1.5/1.5/32` geometry, the maximum within the current limit is approximately
+   **8.9 trades/week** (c2).
+2. **Frequency is not the binding constraint.** Wider-stop cells at the same
+   per-pair limit reach the mandate: the stable `1.5/1.5/96` cell produces
+   12.8/week (EURUSD 5.03, USDJPY 7.81) and the selection winner
+   `4.0/1.5/64` produces 23.5/week in the holdout. Both are negative or
+   non-significant out of sample (Result 4). The 8.9/week figure is a property
+   of this geometry, not of the policy.
+3. **EURUSD turns negative as frequency rises** at this geometry: +0.059R at
+   c1, +0.009R at c2, −0.027R at c3. The total stays positive only because
+   USDJPY carries it.
 
-Per-year, c2 (the highest frequency allowed by the current policy):
+Per-year, c2 (the highest-frequency cell at this geometry):
 
 | Pair | 2023 | 2024 | 2025 | 2026 |
 |---|---:|---:|---:|---:|
 | EURUSD | +1.93R | −10.18R | −1.29R | +12.69R |
 | USDJPY | −11.12R | +18.16R | +16.64R | +26.94R |
+
+(Per-year R values are rounded to 0.01R and may not add exactly to the period
+total.)
 
 USDJPY is positive in 2024–2026 and negative in 2023. EURUSD is positive only in
 2023 and 2026 and negative in the two middle years. Weekly t-tests (missing
@@ -128,8 +141,10 @@ weeks = 0): EURUSD 0.15 (p=0.88), USDJPY 1.16 (p=0.25). Neither is significant.
 ## Result 4 — the holdout destroys the selected edge
 
 This is the decisive test. Geometry was selected using only the out-of-sample
-period **2023-10-27 → 2025-01-01**, then evaluated on **2025-01-01 → 2026-10-19**
-with the same selection parameters (`signal_rate 0.20`, `min_edge 0.02`,
+period **2023-10-27 → 2025-01-01** (the sweep filters
+`bar.timestamp < 2025-01-01`), then evaluated out of sample from the first test
+window on **2024-12-31T22:15** (no 2024 P&L) through **2026-10-19** with the
+same selection parameters (`signal_rate 0.20`, `min_edge 0.02`,
 concurrency 2).
 
 The selection-period winner was `stop 4.0 / target 1.5 / hold 64`:
@@ -146,31 +161,48 @@ The stable-region candidate is also negative in total. The full-period winner is
 positive only because it was chosen using the holdout period; it is not
 out-of-sample evidence.
 
-Among the two true holdout candidates, the only positive component is USDJPY on
-`1.5/1.5/96`: +24.62R over 730 trades (7.8/week), +0.034R/trade, positive in
-both 2025 (+2.04R) and 2026 (+22.56R). Its weekly t-statistic is **0.64
-(p=0.53)**. It is not statistically distinguishable from zero, and EURUSD's
-−0.068R on the same period makes the two-pair total negative.
+Among the two candidates whose geometry was fixed before the holdout, the only
+positive component is USDJPY on `1.5/1.5/96`: +24.62R over 730 trades
+(7.8/week), +0.034R/trade, positive in both 2025 (+2.04R) and 2026 (+22.56R).
+Its weekly t-statistic is **0.64 (p=0.53)**. It is not statistically
+distinguishable from zero, and EURUSD's −0.068R on the same period makes the
+two-pair total negative.
+
+The stable cell was rank 3 on the selection grid (+8.6R, +0.139R/week), chosen
+because its neighbours were also positive; that is a post-hoc stability screen,
+not a pre-registered rule. The calibration quantile (0.20) and minimum edge
+(0.02) were chosen from the full-period frequency curve, so the holdout is clean
+for geometry but not for those two parameters. The USDJPY cell remains
+non-significant after that choice.
 
 ## Result 4b — acceptance criteria check (amendment)
 
 The amendment's criteria are the contract. The two best candidates do not pass:
 
-| Criterion | c2 (8.9/week, max within policy) | Holdout stable (12.8/week) |
+| Criterion | c2 (8.9/week, `1.5/1.5/32`) | Holdout stable (12.8/week) |
 |---|---:|---:|
 | ≥ 8 settled trades/week | 8.9 ✅ | 12.8 ✅ |
 | Net expectancy > 0 | +0.039R ✅ | −0.006R ❌ |
 | Edge vs unconditional ≥ +0.05R | +0.259 / +0.260 ✅ | +0.164 / +0.256 ✅ |
+| Edge vs matched ≥ +0.05R | +0.099 / +0.158 ✅ | +0.026 / +0.226 ❌ (EURUSD) |
 | Profit factor ≥ 1.15 | 1.02 / 1.09 ❌ | 0.89 / 1.06 ❌ |
 | No fold > 40% of net R | EURUSD 427%, USDJPY 38% ❌ | EURUSD n/a (net < 0), USDJPY 81% ❌ |
 | Final-three-fold sign stable | EURUSD +,0,+; USDJPY +,+,+ ❌ | EURUSD −,+,+; USDJPY +,−,+ ❌ |
 | Drawdown inside daily/weekly stops | not simulated ⚠️ | not simulated ⚠️ |
 
-`c2` is the highest-frequency cell inside the per-pair limit and is itself an
-in-sample geometry; the holdout column is the true out-of-sample test. Both fail
+`c2` is the highest-frequency cell at the `1.5/1.5/32` geometry and is itself an
+in-sample geometry; the holdout column is out of sample for geometry but
+conditional on the calibration parameters chosen on the full period. Both fail
 the contract. The drawdown row is unverified, not passed: the R backtest does
 not apply the equity-based daily −10% / weekly −25% stops or the 5%/4% slot
 sizing.
+
+The harness is a fixed-exit signal test. It also does not apply
+`max_new_trades_per_day = 5`, `max_same_usd_sign_tickets = 2`,
+`cooldown_after_stop_hours = 4`, the 50%-at-1R partial, the trailing stop, the
+time stop, the early cut, or slot/equity sizing. The conclusion is about the
+signal, not the full desk management policy; a live demo would need a separate
+execution study.
 
 ### Partial final fold
 
@@ -200,9 +232,12 @@ choice.
 
 ## Result 5 — the interpretable rules confirm the sign
 
-The one-line rules reach the mandated frequency and lose money:
+The one-line rules reach the mandated frequency and lose money. The baselines
+use the project's close-time `OHLCBar.timestamp` convention; `london_breakout`
+converts to open time for the Asian range, while `mean_reversion` and
+`momentum_pullback` filter on the decision bar's close time.
 
-M15:
+M15 (rules geometry `2.5/1.5/48`, not the dense `1.5/1.5/32`):
 
 | Rule | Pair | Trades | Per week | Expectancy | Net R |
 |---|---|---:|---:|---:|---:|
@@ -216,20 +251,22 @@ M15:
 The two rules that actually reach 10–15/week (momentum on both pairs) are the
 worst. Frequency is not the binding constraint.
 
-H1, best geometry (`2.5/1.5/48`):
+H1, sweep winner (`2.5/2.0/48`):
 
 | Rule | Pair | Trades | Per week | Expectancy |
 |---|---|---:|---:|---:|
-| London breakout | USDJPY | 828 | 3.31 | +0.028R |
-| London breakout | EURUSD | 1069 | 4.28 | −0.060R |
-| Mean reversion | USDJPY | 566 | 2.26 | −0.151R |
-| Momentum pullback | USDJPY | 1064 | 4.25 | −0.029R |
+| London breakout | EURUSD | 980 | 3.92 | −0.027R |
+| London breakout | USDJPY | 762 | 3.05 | +0.035R |
+| Mean reversion | EURUSD | 601 | 2.40 | −0.101R |
+| Mean reversion | USDJPY | 538 | 2.15 | −0.143R |
+| Momentum pullback | EURUSD | 1013 | 4.05 | −0.116R |
+| Momentum pullback | USDJPY | 966 | 3.86 | −0.038R |
 
-One positive rule at 3.3/week does not satisfy the mandate.
+One positive rule at 3.1/week does not satisfy the mandate.
 
 ## Result 6 — the apparent univariate signal is a risk filter
 
-`edge_scan_h1.json`:
+`edge_scan_h1.json` (geometry `2.5/1.5/48`):
 
 - `atr_pct` has the highest pooled IC (EURUSD 0.42, USDJPY 0.40), but its
   **top decile is −0.046R** for EURUSD (−0.053R for USDJPY) and its bottom
@@ -249,7 +286,7 @@ One positive rule at 3.3/week does not satisfy the mandate.
 
 ## Result 7 — the structural gates cannot reach 10–15/week
 
-From `sensitivity.json` (diagnostic relaxations; production rules untouched):
+From `sensitivity.json` (selected diagnostic relaxations; production rules untouched):
 
 | Scenario | Trades | Per week | Expectancy |
 |---|---:|---:|---:|
@@ -279,9 +316,11 @@ assumption. Changing the cost model is an owner-level decision.
 
 ## Conclusion
 
-- The desk **can** generate 10–15 entries per week. The rules already do; the dense
-  model reaches 8.9/week within the current per-pair limit and 11.8/week only
-  by exceeding it.
+- The desk **can** generate 10–15 entries per week without changing risk policy:
+  the stable `1.5/1.5/96` cell reaches 12.8/week and the selection candidate
+  `4.0/1.5/64` reaches 23.5/week in the holdout, all at
+  `max_positions_per_pair = 2`. Frequency is not the binding constraint;
+  profitability is.
 - **No configuration produces a stable, out-of-sample positive edge at the
   mandated frequency.** The full-period positive cells are geometry maxima
   selected on the same data. When geometry is chosen on 2023–2024 and tested on
@@ -290,9 +329,10 @@ assumption. Changing the cost model is an owner-level decision.
   held-out geometry** (−0.05 to −0.068R per trade). USDJPY has a weak positive
   holdout cell (+0.034R, 7.8/week) that is not statistically significant
   (weekly p=0.53) and does not offset EURUSD.
-- The maximum frequency within the current risk policy is ~8.9 trades/week.
-  10–15/week requires `max_positions_per_pair > 2`, which is owner-gated, and
-  at that frequency EURUSD turns negative.
+- **`c3`'s 11.8/week is not admissible**: it uses three concurrent positions per
+  pair (six total), above `max_concurrent_positions = 4`, and at 5%/4%/3% slot
+  risk it would exceed the 15% open-risk cap. Raising only the per-pair limit
+  would not deliver it.
 - The best honest description of the current system is: **mechanically capable,
   economically unproven, and negative on the pair that must lead.**
 
@@ -308,12 +348,15 @@ honest options are:
 1. **Accept a bounded USDJPY-only demo experiment** on the `1.5/1.5/96`
    holdout cell (7.8/week, +0.034R/trade, 2025 +2.04R, 2026 +22.56R, weekly
    p=0.53). This is a single-pair experiment with a non-significant edge, not
-   the mandated two-pair product.
-2. **Keep the two-pair mandate and do not trade**: EURUSD has no out-of-sample
+   the mandated two-pair product. The calibration parameters were chosen on the
+   full period, so this is not fully clean out of sample.
+2. **Run a two-pair stable-cell demo at 12.8/week within the current per-pair
+   limit** (`1.5/1.5/96`), accepting that the holdout total is −7.3R and EURUSD
+   is −0.068R. This satisfies the frequency mandate without a policy change, but
+   the point estimate is negative; it is an execution/cost experiment, not an
+   edge claim.
+3. **Keep the two-pair mandate and do not trade**: EURUSD has no out-of-sample
    edge, and the two-pair total is negative.
-3. **Raise `max_positions_per_pair` to 3** (owner-gated) to reach 11.8/week at
-   +0.23R/week, accepting that EURUSD is negative and the edge is not
-   statistically significant.
 4. **Invest in new data before building the executor**: an authoritative
    economic calendar (actual vs consensus, surprise-scaled) or cross-asset /
    positioning context. This is the only path with a plausible new mechanism.
@@ -339,6 +382,11 @@ $env:PYTHONPATH="."
 
 # Best full-period M15 cell (post-hoc)
 .\.venv\Scripts\python.exe scripts\backtest_dense.py --timeframe m15 --stop 1.5 --target 1.5 --hold 32 --signal-rate 0.20 --min-edge 0.02 --concurrency 2 --tag m15_c2
+.\.venv\Scripts\python.exe scripts\backtest_dense.py --timeframe m15 --stop 1.5 --target 1.5 --hold 32 --signal-rate 0.20 --min-edge 0.02 --concurrency 1 --tag m15_c1
+.\.venv\Scripts\python.exe scripts\backtest_dense.py --timeframe m15 --stop 1.5 --target 1.5 --hold 32 --signal-rate 0.20 --min-edge 0.02 --concurrency 3 --tag m15_c3
+
+# H1 sweep winner, single configuration
+.\.venv\Scripts\python.exe scripts\backtest_dense.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 2.0 --hold 48 --signal-rate 0.03 --min-edge 0 --tag h1_edge
 
 # Geometry selection on 2023-10..2025-01, then holdout evaluation
 .\.venv\Scripts\python.exe scripts\backtest_dense_sweep.py --timeframe m15 --start 2022-10-27 --end 2025-01-01 --min-edge 0.02 --signal-rate 0.20 --concurrency 2 --tag m15_holdout_select
@@ -350,7 +398,7 @@ $env:PYTHONPATH="."
 
 # Rules, edge scan, protocol scan, sweeps
 .\.venv\Scripts\python.exe scripts\backtest_rules.py --timeframe m15
-.\.venv\Scripts\python.exe scripts\backtest_rules.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 1.5 --hold 48
+.\.venv\Scripts\python.exe scripts\backtest_rules.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 2.0 --hold 48
 .\.venv\Scripts\python.exe scripts\edge_scan.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 1.5 --hold 48 --tag edge_scan_h1
 .\.venv\Scripts\python.exe scripts\dense_protocol_scan.py --timeframe h1 --start 2022-01-01 --stop 2.5 --target 2.0 --hold 48
 .\.venv\Scripts\python.exe scripts\backtest_dense_sweep.py --timeframe m15
