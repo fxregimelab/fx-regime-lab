@@ -1,5 +1,13 @@
 # Dense-trading research findings (2026-10-19)
 
+**Later audit scope note:** see `PAYOFF_DESK_AUDIT.md` and
+`docs/specs/payoff-desk/README.md`. The owner's research priority is now payoff,
+not frequency. Rates described as within policy below establish per-pair/global
+ticket-count geometry only, not full joint sizing/news/session/loss-capacity
+feasibility. The structural sensitivity P&L is historical and needs gap/horizon/
+event-time repairs before reuse. Dense fixed-exit numbers are not changed by
+those separate structural defects and are not complete desk-policy results.
+
 **Historical simulation — not live results.** Every number comes from completed
 bars with entry at the next bar's open, stop-before-target on ambiguous bars,
 stop gaps filled at the open, target gaps capped at the target, and canonical

@@ -6,6 +6,36 @@
 
 ## Current Sprint: fx-live-personal (background branch only, 2026-10-17)
 
+### Payoff-first audit and handoff — 2026-10-19 (newest checkpoint)
+
+Owner prioritises pair-specific macro context and >=3R planned blended NET
+payoff on frozen all-in parent risk, not a weekly trade quota. New index:
+`docs/specs/payoff-desk/README.md`; fresh source audit:
+`reports/desk/research/PAYOFF_DESK_AUDIT.md`. Existing hard risk/evaluator,
+public accuracy/expansion and forward graduation gates remain unchanged.
+
+Installed seven project-local development agents and four skills under
+`.opencode/`; they are not runtime trading services. No DeepSeek invocation.
+The current strategy source has SU1–SU3, strict contracts, disabled authority,
+private journal primitives, snapshots, broker-read adapters, coverage validators
+and feature math. Older "AD-T00 next/docs-only" sections BELOW are historical,
+not a current completion inventory. Grounded runtime reasoning, durable private
+AI policy, execution/reconciliation/management/watchdog/settlement/evolution
+integration are still not complete or enabled.
+
+New blocking findings: calendar collection omits part of its post-event lookback;
+blackout-policy conflict; structural replay uses future settlements for equity,
+fills adverse gaps at stops and can settle beyond its horizon; management and
+price-R/all-in-parent-R conventions differ. PD-00A/B/C own those repairs; PD-01
+is a separately bound pure payoff-math packet. Do not optimise on uncorrected
+portfolio results or call already-inspected history untouched holdout data.
+
+Baseline independently rerun: pytest917 passed, Ruff clean, mypy clean282 files.
+Package checks/review receipt to follow in the audit delivery record. No order,
+paid runtime inference, scheduler, public deployment or production DB write.
+Local ignored OpenCode config persists MT5 terminal disabled; other endpoints
+and global permissions unchanged. See payoff-desk/07-mcp-boundary.md.
+
 ### Autonomous evolution specification pack — drafted 2026-10-18
 
 Owner approved automatic **demo** promotion of validated improvements without per-change

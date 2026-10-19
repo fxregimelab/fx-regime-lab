@@ -1,5 +1,10 @@
 # AD specification 06 — Small-model prompts, budgets and operations
 
+**2026-10-19 development package:** project-local OpenCode definitions now live
+in `.opencode/agents/` and `.opencode/skills/`; use the payoff-desk index and
+bound task packet before dispatch. These definitions implement development role
+instructions only, not the runtime workers/CLI proposed in this document.
+
 **Status:** proposed instructions/CLI contract. The scripts/services below do NOT exist
 until their implementation tasks pass. Copyable prompts are for bounded roles; their
 text does not grant tools or override process isolation. Code implements safety decisions.

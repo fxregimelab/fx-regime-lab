@@ -1,5 +1,11 @@
 # AD implementation task packets — small-model execution order
 
+**2026-10-19 routing:** reconcile actual source/receipts before executing this
+historical backlog. Many foundation modules now exist; old status/counts below
+are not today's inventory. Payoff-first audit/repair packets and the next bound
+worker task are in `docs/specs/payoff-desk/README.md`. Protected AD authority,
+risk, evaluator and graduation requirements remain in force.
+
 **Status:** proposed build backlog, not tasks already executed. Each task is a reviewable
 slice. All paths below are repo-relative; Python commands run from `pipeline/` unless
 stated otherwise. Test/module names prefixed `test_ad_` are NEW planned files.

@@ -1,5 +1,13 @@
 # Amendment 2026-10-19 — Dense-trading mandate (owner directive)
 
+**Later owner direction:** the private research priority is now payoff-first,
+not a trade quota; see `docs/specs/payoff-desk/01-mandate.md`. This historical
+amendment and its measured results remain unchanged below. In particular its
+acceptance thresholds are not silently waived: a lower-frequency strategy
+needs a separately approved graduation contract. The note about cost <=0.10R
+below is a historical heuristic, not a theorem of profitability (expectancy
+depends on the outcome distribution as well as costs).
+
 Status: **owner-directed requirement change, effective immediately for research.**
 Authority: owner instruction, 2026-10-19. Recorded by the executing agent; not a
 self-granted weakening of any gate.

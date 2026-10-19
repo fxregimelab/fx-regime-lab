@@ -4,6 +4,17 @@
 
 ## IDENTITY
 
+**Newest private desk direction (2026-10-19):** payoff-first, pair-specific
+macro research; `docs/specs/payoff-desk/README.md` is the private extension/handoff
+index, not a public roadmap replacement. Audit:
+`reports/desk/research/PAYOFF_DESK_AUDIT.md`. Older AD-T00/doc-only statuses below
+are historical. Execution remains disabled: calendar and structural-replay
+defects plus unbuilt trusted runtime joins block readiness. >=3R means planned
+blended net payoff on immutable all-in parent risk, not a 3R runner after a
+half-at1R partial. Research frequency priority changed by owner; no evaluator,
+hard risk, forward gate, public metric or pair-expansion threshold was changed.
+Project-local OpenCode agents/skills are development aids, not installed traders.
+
 **Autonomous demo evolution design (2026-10-18):** owner permits evidence-gated automatic
 demo promotion. Draft pack/index: `docs/plans/2026-10-18-autonomous-demo-desk.md`; seven
 companion contracts/task/prompts/verification documents under `docs/specs/autonomous-desk/`.
