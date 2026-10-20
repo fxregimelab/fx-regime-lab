@@ -1,6 +1,7 @@
 ---
 description: Review payoff arithmetic and preregister matched management experiments; no strategy promotion authority.
 mode: subagent
+model: opencode/minimax-m3.1-flash-free
 steps: 24
 permissions:
   - action: '*'

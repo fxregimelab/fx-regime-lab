@@ -1,6 +1,7 @@
 ---
 description: Assess a frozen EURUSD or USDJPY evidence packet and scenarios without order or sizing authority.
 mode: subagent
+model: opencode/minimax-m3.1-flash-free
 steps: 20
 permissions:
   - action: '*'

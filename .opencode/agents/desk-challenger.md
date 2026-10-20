@@ -1,6 +1,7 @@
 ---
 description: Independently challenge a frozen desk thesis for unsupported claims, leakage and missing opposing evidence.
 mode: subagent
+model: opencode/minimax-m3.1-flash-free
 steps: 20
 permissions:
   - action: '*'

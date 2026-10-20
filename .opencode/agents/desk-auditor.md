@@ -1,6 +1,7 @@
 ---
 description: Independently audit desk code, package permissions and evidence against pinned requirements; no edits or promotion.
 mode: subagent
+model: opencode/minimax-m3.1-flash-free
 steps: 36
 permissions:
   - action: '*'
