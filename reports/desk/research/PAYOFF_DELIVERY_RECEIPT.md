@@ -107,3 +107,51 @@ PD-01 completion; pending is not PASS.
   settled-vs-all semantics. Auditor independently ran focused 19 passed.
 - Full suite after both repairs: **1004 passed** (coordinator-observed);
   mypy 286 files clean; ruff clean.
+
+## PD-00C1 acceptance (2026-10-21)
+
+- Worker: `ses_eaaf32890ffe9OuNk1YYzUMSWz` (free MiniMax route). Hit its step
+  cap after implementing the slice; 3 of its own tests were still failing and
+  the red-first observation, full regression and receipt were outstanding.
+- Coordinator completed the remainder: fixed the two USD-sign fixtures (the
+  `candidate()` helper's flat `stop=99.0` default was invalid for a SHORT, so
+  the short settled instantly and voided the cap oracle) by making the default
+  side-aware; added `JointResult`/`ReplayEvent` annotations; updated the
+  spec-bundle digest pin.
+- Red-first observed by the coordinator: with the pre-packet engine restored
+  and `portfolio.py` removed, the new file failed to collect with
+  `ImportError: cannot import name 'A_ENTRY_FILL_MISMATCH'` (exit 1) while the
+  19 baseline engine tests still passed; implementation then restored.
+- Independent auditor: `ses_ea1e0e084ffeWZLMlWqDdFQtXs` (free MiniMax route);
+  **PASS** on all ten decisions, with one HIGH and ten LOW findings.
+- H1 (HIGH, closed): no acceptance-path test proved a real detector candidate
+  survives the new fail-closed fill gate. Added two guards: a contract test
+  that every fill planned by the detectors' own `_next_m15_open` passes
+  `entry_fill_mismatch`, and an end-to-end assertion over whatever the real
+  detectors emit. Non-vacuity proven by mutation: making `_next_m15_open` plan
+  a limit-style price makes the contract test FAIL.
+- L1/L9 closed: R1 (gates evaluated at the future fill open) and R2 (no fill or
+  slippage model) are now stated in the engine docstring, and the docstring
+  states that the management policy is NOT certified (one-close early cut,
+  unconditional Friday flatten).
+- L2/L8 closed: the tie-break docstring now describes the candidate ORDER
+  (including rejected candidates), and `JointResult` carries gross_r,
+  costs_r, expectancy_r and their `_all` variants.
+- L4 closed: a degenerate candidate (entry == stop) is now reported as
+  `A_INVALID_RISK`, not mislabelled `A_NO_ENTRY_BAR`.
+- L6 closed: `ReplayEvent.net_r` is documented as a future value on an entry
+  event, while `equity` is the pre-outcome number.
+- L5/L7 closed by documentation: the duplicate key is consumed by the
+  candidate (conservative), and the USD ticket cap is documented as a
+  joint-driver-only gate.
+- L10 closed: the digest-pin comment wrongly attributed the change to commit
+  34939e3. `BUNDLE_SOURCES` is only DESK_STRATEGY_FRAMEWORK.md +
+  DESK_TRADING_PLAYBOOK.md, and only commit 27b8556 changed one of them.
+- L11 carried to PD-03 as an explicit open item: `X_PARTIAL_THEN_EXIT` is
+  unreachable and the cooldown trigger set omits horizon/censored exits.
+- Auditor-noted behaviour delta recorded: `run_backtest` now admits in A4
+  order, so single-pair results are not bit-identical to the pre-packet engine.
+  The historical report is deliberately NOT regenerated, so its staleness must
+  not be read as a regression.
+- Final: focused 37 new + existing, full suite **1041 passed**, ruff clean,
+  mypy 288 files clean. PD-00C2 (report.py, exports, scripts) still closed.

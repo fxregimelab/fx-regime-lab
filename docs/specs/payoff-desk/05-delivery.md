@@ -160,6 +160,14 @@ part of PD-01. A module returning plausible numbers without unit oracles fails.
   versions; no duplicate denominator. Needs PD-01 and authority reconciliation.
 - PD-03: identical-entry M0–M3 management study with intrabar ambiguity and lot
   steps. Needs PD-00B/C, PD-02 and exact M3 definition. Match full desk policy.
+  Carried management defects (pre-existing, unchanged by PD-00C1, found during
+  the PD-00C1 audit and NOT fixed there): (i) the one-close early cut and the
+  unconditional Friday flatten still diverge from AD 03 section 7; (ii) the
+  ``X_PARTIAL_THEN_EXIT`` label is unreachable because a moved stop is
+  classified as a trail first, so every partial-then-stop exit is labelled
+  ``X_TRAIL``; (iii) the cooldown trigger set is only
+  ``{X_STOP, X_EARLY_CUT, X_TIME_STOP}``, so a horizon or censored exit does
+  not start a cooldown. PD-03 must decide each explicitly.
 - PD-04: pair-context source adapters with PIT consensus/vintages and coverage.
   Needs real source entitlement; web articles are not a feed provision.
 - PD-05: bounded grounded analyst + challenger, private AI budget/telemetry.

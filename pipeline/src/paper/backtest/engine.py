@@ -33,12 +33,55 @@ Honesty rules baked in here:
   separately from gross R.
 - Every candidate that is not traded is recorded with an explicit reason, so
   the funnel reconciles: H1 opportunities -> candidates -> admitted -> trades.
+- EVENT TIME: the equity is derived from SETTLED exits only. A trade's outcome
+  is booked when its exit happens, never when it is admitted, so a later
+  opportunity can never be funded by a future outcome. An open position holds
+  its slot and its stop-risk reservation while it is open.
+- A censored position contributes NOTHING to the equity and keeps its slot and
+  its reservation until the end of the sample: its outcome is unknown, so it
+  frees nothing.
+- The entry fill must be a REAL M15 open. A candidate whose planned entry
+  price is not the open of the next M15 bar is rejected with
+  ``A_ENTRY_FILL_MISMATCH`` and is never booked.
+- KNOWN LIMITATION (R1): the detector gates (stop floor, cost share, entry
+  band) are evaluated at the planned fill price, which is the NEXT bar's open
+  and therefore not known at decision time. This is a mild lookahead in the
+  accept/reject decision, not in the fill itself.
+- KNOWN LIMITATION (R2): there is NO fill model. The harness assumes a market
+  fill at the next open; it models no slippage beyond the canonical cost table,
+  no partial fills and no no-fill. The canonical cost table is a COST model,
+  not a fill model.
+- The settled-only aggregates are the default (``net_r``, ``gross_r``,
+  ``costs_r``, ``expectancy_r``). The ``*_all`` variants, ``unresolved_r`` and
+  the counts carry the censored tail explicitly instead of hiding it.
+- Same-timestamp ambiguity is resolved conservatively: at an equal timestamp
+  the exits settle before the entries, and simultaneous entries are ordered by
+  ``(entry_at, decision_at, pair, setup_id)``, so the second entry always sees
+  the first entry's reservation. The joint driver records those tie-breaks; the
+  single-pair ``run_backtest`` applies the same order but does not record them.
+- The correlated-USD ticket cap is applied by the joint driver
+  (``src.paper.backtest.portfolio``). ``run_backtest`` passes no such gate, so
+  the two paths agree only while ``max_per_pair`` equals
+  ``max_same_usd_sign_tickets``.
+
+MANAGEMENT IS NOT CERTIFIED BY THIS MODULE. The management rules implemented
+here (a ONE-CLOSE early adverse cut and an UNCONDITIONAL Friday flatten) still
+diverge from AD execution spec (03) section 7, which requires a two-close
+no-reclaim cut and a conditional Friday flatten. The divergence is a known
+open item for PD-03. Nothing here certifies the management policy.
+
+The money unit of this module is PRICE-R: one R is the original stop
+distance of the parent. The all-in parent-R of the payoff mandate
+(``D = G + A``) belongs to ``src.paper.backtest.payoff`` and is never mixed
+into these fields.
 """
 
 from __future__ import annotations
 
 import bisect
+import math
 from collections import Counter
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
@@ -63,6 +106,14 @@ A_WEEKLY_STOP = "weekly_stop"
 A_NEW_TRADES_DAY = "max_new_trades_per_day"
 A_COOLDOWN = "cooldown_after_stop"
 A_DUPLICATE = "duplicate_decision"
+# The planned fill is not the open of the next M15 bar: the candidate is
+# rejected, never booked at a price that no bar opened at.
+A_ENTRY_FILL_MISMATCH = "entry_fill_mismatch"
+# Correlated one-way USD load: the joint (cross-pair) ticket cap.
+A_USD_SIGN_CAP = "usd_exposure_cap"
+# The M15 series holds no bar at or after the planned entry.
+A_NO_ENTRY_BAR = "no_entry_bar"
+A_INVALID_RISK = "invalid_risk"
 
 # --- Exit reasons ---------------------------------------------------------------
 
@@ -122,7 +173,12 @@ class BacktestConfig:
 
 @dataclass
 class Trade:
-    """One settled parent position, gross and net of canonical costs."""
+    """One parent position, gross and net of canonical costs.
+
+    A trade is SETTLED when its outcome is resolved. A censored trade (the
+    input ended before its horizon) is not settled: it is never a win, never
+    a settled loss, and it never contributes to the settled-only aggregates.
+    """
 
     pair: str
     setup_id: str
@@ -135,7 +191,7 @@ class Trade:
     atr_h1: float
     risk_price: float
     exit_reason: str
-    r_multiple: float          # gross, on the initial 1R
+    r_multiple: float          # gross, on the initial 1R (PRICE-R)
     cost_r: float              # canonical round-trip cost expressed in R
     net_r: float
     mae_r: float               # worst adverse excursion in R
@@ -149,8 +205,17 @@ class Trade:
     horizon_basis: str = HORIZON_BASIS
 
     @property
+    def settled(self) -> bool:
+        """True when the outcome is resolved; a censored trade is not settled."""
+        return not self.censored
+
+    @property
     def win(self) -> bool:
-        return self.net_r > 0.0
+        """A win is a SETTLED trade with a positive net R.
+
+        A censored trade is never a win, whatever its marked R says.
+        """
+        return self.settled and self.net_r > 0.0
 
 
 @dataclass
@@ -163,18 +228,69 @@ class BacktestResult:
     setup_counts: Counter[str]
     opportunities: int
     config: BacktestConfig
+    # Detector-emitted candidates (before admission). The funnel needs the
+    # emitted / admitted / settled split: ``setup_counts`` counts ADMITTED
+    # trades per setup, never the emitted candidates.
+    candidates_emitted: int = 0
+    emitted_setup_counts: Counter[str] = field(default_factory=Counter)
+
+    @property
+    def trade_count(self) -> int:
+        """Every booked trade, settled or censored."""
+        return len(self.trades)
+
+    @property
+    def settled_count(self) -> int:
+        """Trades with a resolved outcome."""
+        return len(self.settled_trades)
+
+    @property
+    def censored_count(self) -> int:
+        """Unresolved trades: the input ended before their horizon."""
+        return len(self.censored_trades)
+
+    @property
+    def admitted_count(self) -> int:
+        """Candidates that passed admission and were booked."""
+        return len(self.trades)
 
     @property
     def net_r(self) -> float:
-        return sum(t.net_r for t in self.trades)
+        """SETTLED-ONLY net R (A1). Censored trades are excluded."""
+        return sum(t.net_r for t in self.settled_trades)
 
     @property
     def gross_r(self) -> float:
-        return sum(t.r_multiple for t in self.trades)
+        """SETTLED-ONLY gross R (A1). Censored trades are excluded."""
+        return sum(t.r_multiple for t in self.settled_trades)
 
     @property
     def costs_r(self) -> float:
+        """SETTLED-ONLY costs in R (A1). Censored trades are excluded."""
+        return sum(t.cost_r for t in self.settled_trades)
+
+    @property
+    def net_r_all(self) -> float:
+        """Net R over EVERY booked trade, censored tail included."""
+        return sum(t.net_r for t in self.trades)
+
+    @property
+    def gross_r_all(self) -> float:
+        """Gross R over EVERY booked trade, censored tail included."""
+        return sum(t.r_multiple for t in self.trades)
+
+    @property
+    def costs_r_all(self) -> float:
+        """Costs in R over EVERY booked trade, censored tail included."""
         return sum(t.cost_r for t in self.trades)
+
+    @property
+    def unresolved_r(self) -> float:
+        """The net R that is NOT settled: the censored tail only.
+
+        ``net_r_all == net_r + unresolved_r`` always holds.
+        """
+        return sum(t.net_r for t in self.censored_trades)
 
     @property
     def settled_trades(self) -> list[Trade]:
@@ -201,7 +317,14 @@ class BacktestResult:
 
     @property
     def expectancy_r(self) -> float:
-        return self.net_r / len(self.trades) if self.trades else 0.0
+        """SETTLED-ONLY expectancy (A1): net R per SETTLED trade."""
+        settled = self.settled_trades
+        return self.net_r / len(settled) if settled else 0.0
+
+    @property
+    def expectancy_r_all(self) -> float:
+        """Expectancy over EVERY booked trade, censored tail included."""
+        return self.net_r_all / len(self.trades) if self.trades else 0.0
 
     @property
     def avg_win_r(self) -> float:
@@ -221,6 +344,7 @@ class BacktestResult:
 
     @property
     def total_candidates(self) -> int:
+        """ADMITTED trades per setup summed; kept for the legacy funnel."""
         return sum(self.setup_counts.values())
 
 
@@ -348,7 +472,88 @@ def evaluate_h1_bar(
     return resolve_conflicts(found)
 
 
+@dataclass(frozen=True)
+class DetectionResult:
+    """The detector phase only: emitted candidates, rejections and coverage.
+
+    No admission, no portfolio state and no settlement happen here, so the
+    same detection can be replayed against a SHARED joint portfolio.
+    """
+
+    pair: str
+    candidates: tuple[SetupCandidate, ...]
+    rejections: Counter[str]
+    opportunities: int
+    emitted_by_setup: Counter[str]
+
+
+def detect_candidates(
+    pair: str,
+    *,
+    d1: list[OHLCBar],
+    h4: list[OHLCBar],
+    h1: list[OHLCBar],
+    m15: list[OHLCBar],
+    cfg: BacktestConfig | None = None,
+) -> DetectionResult:
+    """Evaluate every H1 bar and emit the candidates that pass the detectors.
+
+    This is the DETECTION half of :func:`run_backtest`, split out so the
+    joint (cross-pair) driver can admit the candidates of several pairs
+    against one shared portfolio. It never admits, sizes or settles anything.
+    """
+    cfg = cfg or BacktestConfig()
+    d1_series = d1_context_series(
+        d1, period=cfg.d1_ema_period, slope_bars=cfg.d1_slope_bars
+    )
+    rejections: Counter[str] = Counter()
+    candidates: list[SetupCandidate] = []
+    opportunities = 0
+
+    m15_start = m15[0].timestamp if m15 else datetime.min
+    m15_times = [b.timestamp for b in m15]
+    h4_times = [b.timestamp for b in h4]
+    swing_cache: dict[int, list[Swing]] = {}
+    for i in range(len(h1)):
+        trigger = h1[i]
+        if trigger.timestamp < m15_start:
+            continue
+        opportunities += 1
+        swings = _h4_swings_at(h4, h4_times, trigger.timestamp, swing_cache)
+        lo = bisect.bisect_right(m15_times, trigger.timestamp - _M15_LOOKBACK)
+        hi = bisect.bisect_right(m15_times, trigger.timestamp + _M15_LOOKAHEAD)
+        m15_window = m15[lo:hi]
+        for cand in evaluate_h1_bar(
+            i, pair=pair, h1=h1, swings=swings, m15_window=m15_window,
+            d1_series=d1_series, cfg=cfg, rejections=rejections,
+        ):
+            candidates.append(cand)
+
+    candidates.sort(key=lambda c: (c.entry_at, c.decision_at, c.setup_id, c.side))
+    emitted_by_setup: Counter[str] = Counter()
+    for cand in candidates:
+        emitted_by_setup[cand.setup_id] += 1
+    return DetectionResult(
+        pair=pair,
+        candidates=tuple(candidates),
+        rejections=rejections,
+        opportunities=opportunities,
+        emitted_by_setup=emitted_by_setup,
+    )
+
+
 # --- Trade management -----------------------------------------------------------
+
+
+def round_trip_cost_r(pair: str, entry: float, risk: float) -> float:
+    """Canonical round-trip cost (spread + slippage) expressed in PRICE-R.
+
+    The cost is charged once per parent, on the original risk distance. It is
+    never re-derived from an exit price and never charged twice for the two
+    exit legs.
+    """
+    total_bps = COSTS.round_trip_bps[pair] + COSTS.slippage_bps
+    return (entry * total_bps / 10_000.0) / risk
 
 
 def _h1_atr_until(h1: list[OHLCBar], when: datetime) -> float | None:
@@ -366,6 +571,47 @@ def _last_h1_close_at(h1: list[OHLCBar], when: datetime) -> datetime | None:
             break
         latest = b.timestamp
     return latest
+
+
+def entry_fill_bar(m15: Sequence[OHLCBar], entry_at: datetime) -> OHLCBar | None:
+    """The M15 bar whose OPEN is the planned fill.
+
+    ``OHLCBar.timestamp`` is the CLOSE time, so the bar that OPENS at
+    ``entry_at`` closes at ``entry_at + 15 minutes``. The fill bar is the
+    first bar that opens at or after the planned entry; ``None`` means the
+    series holds no such bar.
+    """
+    for bar in m15:
+        if bar.timestamp - timedelta(minutes=15) >= entry_at:
+            return bar
+    return None
+
+
+def entry_fill_mismatch(
+    cand: SetupCandidate,
+    m15: Sequence[OHLCBar],
+    *,
+    rel_tol: float = 1e-9,
+    abs_tol: float = 1e-12,
+) -> str | None:
+    """``A_ENTRY_FILL_MISMATCH`` when the planned fill is not a real M15 open.
+
+    The fill invariant is "fill = next M15 open". A candidate whose planned
+    entry price is not the open of the fill bar (or whose planned entry time
+    is not a bar open at all) is NOT booked: the engine fails closed with
+    this reason instead of silently booking a price no bar opened at.
+
+    ``None`` means the invariant holds, or that the series holds no fill bar
+    at all (that case is reported separately as ``A_NO_ENTRY_BAR``).
+    """
+    bar = entry_fill_bar(m15, cand.entry_at)
+    if bar is None:
+        return None
+    if bar.timestamp - timedelta(minutes=15) != cand.entry_at:
+        return A_ENTRY_FILL_MISMATCH
+    if not math.isclose(bar.open, cand.entry_price, rel_tol=rel_tol, abs_tol=abs_tol):
+        return A_ENTRY_FILL_MISMATCH
+    return None
 
 
 def simulate_trade(
@@ -399,8 +645,7 @@ def simulate_trade(
     pip = cfg.pip_size[pair]
     be_buffer = cfg.breakeven_buffer_pips * pip
 
-    total_bps = COSTS.round_trip_bps[pair] + COSTS.slippage_bps
-    cost_r = (entry * total_bps / 10_000.0) / risk
+    cost_r = round_trip_cost_r(pair, entry, risk)
 
     partial_done = False
     remaining = 1.0
@@ -553,6 +798,362 @@ def simulate_trade(
     )
 
 
+# --- Event-time portfolio replay -------------------------------------------------
+
+
+@dataclass(frozen=True)
+class PairCandidate:
+    """One candidate together with the pair it belongs to."""
+
+    pair: str
+    candidate: SetupCandidate
+
+
+@dataclass(frozen=True)
+class OpenPosition:
+    """An admitted parent position that still holds a slot and its reservation.
+
+    A censored position keeps BOTH until the end of the sample: its outcome
+    is unknown, so it frees neither the slot nor the stop-risk reservation.
+    """
+
+    pair: str
+    setup_id: str
+    side: str
+    entry_at: datetime
+    exit_at: datetime
+    net_r: float
+    cost_r: float
+    exit_reason: str
+    censored: bool
+
+
+@dataclass
+class ReplayState:
+    """Event-time portfolio state. Only SETTLED exits move the equity."""
+
+    equity: float
+    starting_equity: float
+    open_positions: list[OpenPosition] = field(default_factory=list)
+    day_counts: Counter[str] = field(default_factory=Counter)
+    last_stop: dict[tuple[str, str], datetime] = field(default_factory=dict)
+    day_start_equity: float = 0.0
+    week_start_equity: float = 0.0
+    current_day: str | None = None
+    current_week: str | None = None
+
+
+@dataclass(frozen=True)
+class ReplayEvent:
+    """One chronological portfolio event: an entry, an exit or a rejection.
+
+    ``net_r`` is the REALISED net R of the position. On an EXIT event it is the
+    outcome that was just booked. On an ENTRY event it is the position's FINAL
+    net R, carried for convenience -- it is a FUTURE value and was NOT known at
+    the entry timestamp. ``equity`` on an entry event is the pre-outcome
+    equity, which is the number that must never see a future result.
+    """
+
+    at: datetime
+    kind: str
+    pair: str
+    setup_id: str
+    side: str
+    reason: str
+    net_r: float
+    equity: float
+
+
+@dataclass(frozen=True)
+class ReplayOutcome:
+    """The result of one event-time replay."""
+
+    trades: tuple[Trade, ...]
+    rejections: Counter[str]
+    events: tuple[ReplayEvent, ...]
+    equity: float
+    open_positions: tuple[OpenPosition, ...]
+
+
+# An optional extra portfolio gate. It receives the live state, the candidate
+# and the planned cost in R, and returns a rejection reason or None.
+PortfolioGate = Callable[[ReplayState, PairCandidate, float], str | None]
+
+
+def order_candidates(candidates: Sequence[PairCandidate]) -> list[PairCandidate]:
+    """The A4 order: ``(entry_at, decision_at, pair, setup_id)``.
+
+    ``side`` is the final, deterministic tie-break so that two candidates that
+    share every other key still have one reproducible order.
+    """
+    return sorted(
+        candidates,
+        key=lambda pc: (
+            pc.candidate.entry_at,
+            pc.candidate.decision_at,
+            pc.pair,
+            pc.candidate.setup_id,
+            pc.candidate.side,
+        ),
+    )
+
+
+def _settle(
+    state: ReplayState,
+    events: list[ReplayEvent],
+    positions: Sequence[OpenPosition],
+    *,
+    cfg: BacktestConfig,
+) -> None:
+    """Book the given settled exits: equity, cooldown and the event log."""
+    for position in sorted(
+        positions, key=lambda p: (p.exit_at, p.pair, p.setup_id, p.side)
+    ):
+        state.equity += position.net_r * cfg.risk_per_trade * cfg.starting_equity
+        state.open_positions = [p for p in state.open_positions if p is not position]
+        if position.exit_reason in (X_STOP, X_EARLY_CUT, X_TIME_STOP):
+            state.last_stop[(position.pair, position.side)] = position.exit_at
+        events.append(
+            ReplayEvent(
+                at=position.exit_at,
+                kind="exit",
+                pair=position.pair,
+                setup_id=position.setup_id,
+                side=position.side,
+                reason=position.exit_reason,
+                net_r=position.net_r,
+                equity=state.equity,
+            )
+        )
+
+
+def _settle_due(
+    state: ReplayState,
+    events: list[ReplayEvent],
+    *,
+    now: datetime,
+    cfg: BacktestConfig,
+) -> None:
+    """Settle every exit that happened at or before ``now``.
+
+    A censored position is NEVER settled: it keeps its slot and its
+    reservation until the end of the sample.
+    """
+    due = [p for p in state.open_positions if not p.censored and p.exit_at <= now]
+    _settle(state, events, due, cfg=cfg)
+
+
+def _admission_reason(
+    state: ReplayState,
+    pc: PairCandidate,
+    *,
+    cfg: BacktestConfig,
+) -> str | None:
+    """The first failing portfolio gate, or None when the candidate is admitted.
+
+    The gates are the same ones the single-pair replay always applied, in the
+    same order. The loss-capacity breaches are ENTRY LATCHES: they block new
+    entries and never liquidate an open position (that would need a
+    bar-driven engine, which is a separate packet).
+    """
+    cand = pc.candidate
+    pair = pc.pair
+    day_key = cand.entry_at.date().isoformat()
+
+    if state.day_start_equity > 0.0 and (
+        (state.equity - state.day_start_equity) / state.day_start_equity
+        <= -cfg.daily_stop_pct
+    ):
+        return A_DAILY_STOP
+    if state.week_start_equity > 0.0 and (
+        (state.equity - state.week_start_equity) / state.week_start_equity
+        <= -cfg.weekly_stop_pct
+    ):
+        return A_WEEKLY_STOP
+    if state.day_counts[day_key] >= cfg.max_new_trades_per_day:
+        return A_NEW_TRADES_DAY
+    if len(state.open_positions) >= cfg.max_concurrent:
+        return A_MAX_SLOTS
+    if sum(1 for p in state.open_positions if p.pair == pair) >= cfg.max_per_pair:
+        return A_PAIR_SLOTS
+    stopped_at = state.last_stop.get((pair, cand.side))
+    if stopped_at is not None and cand.entry_at - stopped_at < timedelta(
+        hours=cfg.cooldown_hours
+    ):
+        return A_COOLDOWN
+    # Open-risk reservation (A3): O is the flat 1R-per-open-position PROXY
+    # (the open positions plus the one being planned) and C is the planned
+    # trade's cost_r converted to an equity fraction. Both are fractions of
+    # the starting equity, so they are compared with max_open_risk_pct.
+    risk = abs(cand.entry_price - cand.stop_price)
+    planned_cost_r = round_trip_cost_r(pair, cand.entry_price, risk) if risk > 0.0 else 0.0
+    open_risk_proxy = (len(state.open_positions) + 1) * cfg.risk_per_trade
+    cost_reserve_fraction = planned_cost_r * cfg.risk_per_trade
+    if open_risk_proxy + cost_reserve_fraction > cfg.max_open_risk_pct:
+        return A_OPEN_RISK
+    return None
+
+
+def _reject_event(state: ReplayState, pc: PairCandidate, reason: str) -> ReplayEvent:
+    return ReplayEvent(
+        at=pc.candidate.entry_at,
+        kind="reject",
+        pair=pc.pair,
+        setup_id=pc.candidate.setup_id,
+        side=pc.candidate.side,
+        reason=reason,
+        net_r=0.0,
+        equity=state.equity,
+    )
+
+
+def replay_candidates(
+    candidates: Sequence[PairCandidate],
+    m15_bars: Mapping[str, list[OHLCBar]],
+    h1_bars: Mapping[str, list[OHLCBar]],
+    *,
+    cfg: BacktestConfig,
+    gate: PortfolioGate | None = None,
+) -> ReplayOutcome:
+    """Admit and settle candidates in EVENT TIME against one shared portfolio.
+
+    The equity is derived from SETTLED exits only: a trade's outcome is
+    booked when its exit happens, never when it is admitted, so a later
+    opportunity can never be funded by a future outcome. A position that is
+    still open holds its slot and its stop-risk reservation.
+
+    At an equal timestamp the exits settle before the entries; simultaneous
+    entries are ordered by ``(entry_at, decision_at, pair, setup_id)`` and the
+    second entry sees the first entry's reservation.
+
+    ``gate`` is an optional extra portfolio check (the joint USD-sign ticket
+    cap) evaluated after the built-in gates.
+    """
+    state = ReplayState(
+        equity=cfg.starting_equity,
+        starting_equity=cfg.starting_equity,
+        day_start_equity=cfg.starting_equity,
+        week_start_equity=cfg.starting_equity,
+    )
+    events: list[ReplayEvent] = []
+    rejections: Counter[str] = Counter()
+    trades: list[Trade] = []
+    seen: set[tuple[str, datetime, str]] = set()
+
+    for pc in order_candidates(candidates):
+        cand = pc.candidate
+        pair = pc.pair
+        m15 = m15_bars.get(pair, [])
+
+        # 1. every exit that already happened settles before this entry
+        _settle_due(state, events, now=cand.entry_at, cfg=cfg)
+
+        # 2. one parent per decision and side, PER PAIR: two pairs may each
+        #    have a candidate at the same decision time. The key is consumed by
+        #    the CANDIDATE, not only by a booked parent: a candidate that is
+        #    then rejected for a fill mismatch or a cap still blocks a later
+        #    candidate with the same key. That is deliberately conservative --
+        #    one decision yields at most one parent attempt.
+        key_seen = (pair, cand.decision_at, cand.side)
+        if key_seen in seen:
+            rejections[A_DUPLICATE] += 1
+            events.append(_reject_event(state, pc, A_DUPLICATE))
+            continue
+        seen.add(key_seen)
+
+        # 3. the day and week anchors move with the SETTLED equity
+        day_key = cand.entry_at.date().isoformat()
+        iso = cand.entry_at.isocalendar()
+        week_key = f"{iso.year}-W{iso.week}"
+        if day_key != state.current_day:
+            state.current_day = day_key
+            state.day_start_equity = state.equity
+            state.day_counts.clear()
+        if week_key != state.current_week:
+            state.current_week = week_key
+            state.week_start_equity = state.equity
+
+        # 4. the fill invariant: the planned fill must be a real M15 open
+        mismatch = entry_fill_mismatch(cand, m15)
+        if mismatch is not None:
+            rejections[mismatch] += 1
+            events.append(_reject_event(state, pc, mismatch))
+            continue
+        if entry_fill_bar(m15, cand.entry_at) is None:
+            rejections[A_NO_ENTRY_BAR] += 1
+            events.append(_reject_event(state, pc, A_NO_ENTRY_BAR))
+            continue
+
+        # 5. the portfolio gates, then the optional joint gate
+        reason = _admission_reason(state, pc, cfg=cfg)
+        if reason is None and gate is not None:
+            risk = abs(cand.entry_price - cand.stop_price)
+            planned_cost_r = (
+                round_trip_cost_r(pair, cand.entry_price, risk) if risk > 0.0 else 0.0
+            )
+            reason = gate(state, pc, planned_cost_r)
+        if reason is not None:
+            rejections[reason] += 1
+            events.append(_reject_event(state, pc, reason))
+            continue
+
+        # 6. simulate the management of the admitted parent
+        trade = simulate_trade(cand, pair, m15, h1_bars.get(pair, []), cfg=cfg)
+        if trade is None:
+            # A degenerate candidate (entry == stop, so no risk to size) is a
+            # DIFFERENT failure from "the series has no fill bar". Name it.
+            reason = (
+                A_INVALID_RISK
+                if abs(cand.entry_price - cand.stop_price) <= 0.0
+                else A_NO_ENTRY_BAR
+            )
+            rejections[reason] += 1
+            events.append(_reject_event(state, pc, reason))
+            continue
+
+        trades.append(trade)
+        state.day_counts[day_key] += 1
+        state.open_positions.append(
+            OpenPosition(
+                pair=pair,
+                setup_id=cand.setup_id,
+                side=cand.side,
+                entry_at=trade.entry_at,
+                exit_at=trade.exit_at,
+                net_r=trade.net_r,
+                cost_r=trade.cost_r,
+                exit_reason=trade.exit_reason,
+                censored=trade.censored,
+            )
+        )
+        events.append(
+            ReplayEvent(
+                at=trade.entry_at,
+                kind="entry",
+                pair=pair,
+                setup_id=cand.setup_id,
+                side=cand.side,
+                reason="admitted",
+                net_r=trade.net_r,
+                equity=state.equity,
+            )
+        )
+
+    # The sample can end with positions still open: the exits that happened
+    # after the last entry are settled now, in time order, so the final
+    # equity is complete. Censored positions are never settled.
+    remaining = [p for p in state.open_positions if not p.censored]
+    _settle(state, events, remaining, cfg=cfg)
+
+    return ReplayOutcome(
+        trades=tuple(trades),
+        rejections=rejections,
+        events=tuple(events),
+        equity=state.equity,
+        open_positions=tuple(state.open_positions),
+    )
+
+
 # --- Driver ---------------------------------------------------------------------
 
 
@@ -565,105 +1166,26 @@ def run_backtest(
     m15: list[OHLCBar],
     cfg: BacktestConfig | None = None,
 ) -> BacktestResult:
-    """Evaluate every H1 bar, admit candidates, and settle the survivors."""
+    """Evaluate every H1 bar, admit candidates, and settle the survivors.
+
+    The signature is unchanged. The replay is event time: the equity only
+    moves when a trade SETTLES, so a later candidate can never be funded by a
+    future outcome.
+    """
     cfg = cfg or BacktestConfig()
-    d1_series = d1_context_series(
-        d1, period=cfg.d1_ema_period, slope_bars=cfg.d1_slope_bars
+    detection = detect_candidates(pair, d1=d1, h4=h4, h1=h1, m15=m15, cfg=cfg)
+    outcome = replay_candidates(
+        [PairCandidate(pair=pair, candidate=cand) for cand in detection.candidates],
+        {pair: m15},
+        {pair: h1},
+        cfg=cfg,
     )
     rejections: Counter[str] = Counter()
+    rejections.update(detection.rejections)
+    rejections.update(outcome.rejections)
     setup_counts: Counter[str] = Counter()
-    candidates: list[SetupCandidate] = []
-    opportunities = 0
-
-    m15_start = m15[0].timestamp if m15 else datetime.min
-    m15_times = [b.timestamp for b in m15]
-    h4_times = [b.timestamp for b in h4]
-    swing_cache: dict[int, list[Swing]] = {}
-    for i in range(len(h1)):
-        trigger = h1[i]
-        if trigger.timestamp < m15_start:
-            continue
-        opportunities += 1
-        swings = _h4_swings_at(h4, h4_times, trigger.timestamp, swing_cache)
-        lo = bisect.bisect_right(m15_times, trigger.timestamp - _M15_LOOKBACK)
-        hi = bisect.bisect_right(m15_times, trigger.timestamp + _M15_LOOKAHEAD)
-        m15_window = m15[lo:hi]
-        for cand in evaluate_h1_bar(
-            i, pair=pair, h1=h1, swings=swings, m15_window=m15_window,
-            d1_series=d1_series, cfg=cfg, rejections=rejections,
-        ):
-            candidates.append(cand)
-
-    candidates.sort(key=lambda c: (c.entry_at, c.decision_at))
-    trades: list[Trade] = []
-    open_trades: list[Trade] = []
-    last_stop: dict[tuple[str, str], datetime] = {}
-    day_counts: Counter[str] = Counter()
-    equity = cfg.starting_equity
-    day_start_equity = equity
-    current_day: str | None = None
-    week_start_equity = equity
-    current_week: str | None = None
-    seen: set[tuple[datetime, str]] = set()
-
-    for cand in candidates:
-        key_seen = (cand.decision_at, cand.side)
-        if key_seen in seen:
-            rejections[A_DUPLICATE] += 1
-            continue
-        seen.add(key_seen)
-
-        day_key = cand.entry_at.date().isoformat()
-        iso = cand.entry_at.isocalendar()
-        week_key = f"{iso.year}-W{iso.week}"
-        if day_key != current_day:
-            current_day = day_key
-            day_start_equity = equity
-            day_counts.clear()
-        if week_key != current_week:
-            current_week = week_key
-            week_start_equity = equity
-
-        open_trades = [t for t in open_trades if t.exit_at > cand.entry_at]
-
-        if (equity - day_start_equity) / day_start_equity <= -cfg.daily_stop_pct:
-            rejections[A_DAILY_STOP] += 1
-            continue
-        if (equity - week_start_equity) / week_start_equity <= -cfg.weekly_stop_pct:
-            rejections[A_WEEKLY_STOP] += 1
-            continue
-        if day_counts[day_key] >= cfg.max_new_trades_per_day:
-            rejections[A_NEW_TRADES_DAY] += 1
-            continue
-        if len(open_trades) >= cfg.max_concurrent:
-            rejections[A_MAX_SLOTS] += 1
-            continue
-        if sum(1 for t in open_trades if t.pair == pair) >= cfg.max_per_pair:
-            rejections[A_PAIR_SLOTS] += 1
-            continue
-        stop_key = (pair, cand.side)
-        stopped_at = last_stop.get(stop_key)
-        if stopped_at is not None and cand.entry_at - stopped_at < timedelta(
-            hours=cfg.cooldown_hours
-        ):
-            rejections[A_COOLDOWN] += 1
-            continue
-        if len(open_trades) * cfg.risk_per_trade + cfg.risk_per_trade > cfg.max_open_risk_pct:
-            rejections[A_OPEN_RISK] += 1
-            continue
-
-        trade = simulate_trade(cand, pair, m15, h1, cfg=cfg)
-        if trade is None:
-            rejections["no_entry_bar"] += 1
-            continue
-        setup_counts[cand.setup_id] += 1
-        trades.append(trade)
-        day_counts[day_key] += 1
-        equity += trade.net_r * cfg.risk_per_trade * cfg.starting_equity
-        if trade.exit_reason in (X_STOP, X_EARLY_CUT, X_TIME_STOP):
-            last_stop[stop_key] = trade.exit_at
-        if trade.exit_at > cand.entry_at:
-            open_trades.append(trade)
+    for trade in outcome.trades:
+        setup_counts[trade.setup_id] += 1
 
     return BacktestResult(
         pair=pair,
@@ -671,9 +1193,11 @@ def run_backtest(
         # M15 series starts, not when the (longer) H1 series starts.
         start=m15[0].timestamp if m15 else (h1[0].timestamp if h1 else datetime.min),
         end=h1[-1].timestamp if h1 else datetime.min,
-        trades=trades,
+        trades=list(outcome.trades),
         rejections=rejections,
         setup_counts=setup_counts,
-        opportunities=opportunities,
+        opportunities=detection.opportunities,
         config=cfg,
+        candidates_emitted=len(detection.candidates),
+        emitted_setup_counts=detection.emitted_by_setup,
     )

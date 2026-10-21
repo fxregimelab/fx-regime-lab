@@ -733,7 +733,12 @@ def test_unknown_role_excerpt_rejected(tmp_path: Path) -> None:
 
 # Content pinning: update DELIBERATELY when either rule document changes.
 # The digest covers the ordered (relpath, sha256) pairs, not the file mtimes.
-REAL_BUNDLE_DIGEST = "b0803715b04f0d7ac10094b227e7e580062bb92b4dec3c3d5551dab08c3b2014"
+# BUNDLE_SOURCES is DESK_STRATEGY_FRAMEWORK.md + DESK_TRADING_PLAYBOOK.md only.
+# Updated 2026-10-20: commit 27b8556 re-stated the symmetric 2h blackout in
+# DESK_TRADING_PLAYBOOK.md (a bundle source). Commit 34939e3 changed
+# docs/specs/payoff-desk/05-delivery.md, which is NOT a bundle source and did
+# not affect this digest.
+REAL_BUNDLE_DIGEST = "6aa58acfcbaee5f4031913669a73d83a3b14bbb24c3842bdd33589e6c8801381"
 
 
 def test_real_bundle_digest_pinned() -> None:
