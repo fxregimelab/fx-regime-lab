@@ -113,6 +113,15 @@ Split into two sequential packets (shared interfaces, so no parallelism):
   (new stem) + `scripts/backtest_sensitivity.py` settled-only aggregates +
   remaining oracles (3–5, 29–30). Needs PD-00C1 accepted.
   `dense.py`/`rules.py`, live admission, ledger, historical reports: untouched.
+- PD-00C2 additional binding (from the PD-00C1 audit): the report MUST carry a
+  `semantics` block naming the basis (`settled_only`), what the censored tail is
+  excluded from, that marks are reported separately, the horizon basis
+  (`calendar_day`), the entry fill rule (`next_m15_open`), and the R1/R2
+  limitations. `A_INVALID_RISK` and the `candidates_emitted` funnel stage must
+  appear. `--joint` writes a NEW stem; the historical `backtest.json` is not
+  regenerated and its staleness is stated in the run output.
+  `backtest_sensitivity.py` aggregates must switch to settled-only or they
+  will silently disagree with the report.
 
 Required evidence: pending exits do not affect equity/last-stop before exit;
 chronological stable event ordering; overlapping pair entries share global caps,

@@ -58,6 +58,18 @@ permissions:
   - action: edit
     resource: 'pipeline/tests/test_payoff_portfolio_regressions.py'
     effect: ask
+  - action: edit
+    resource: 'pipeline/src/paper/backtest/report.py'
+    effect: ask
+  - action: edit
+    resource: 'pipeline/src/paper/backtest/__init__.py'
+    effect: ask
+  - action: edit
+    resource: 'pipeline/scripts/backtest_desk.py'
+    effect: ask
+  - action: edit
+    resource: 'pipeline/scripts/backtest_sensitivity.py'
+    effect: ask
   - action: shell
     resource: '*'
     effect: ask

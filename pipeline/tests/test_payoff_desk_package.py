@@ -64,6 +64,10 @@ def test_builder_has_only_bound_packet_edit_scope() -> None:
         ("pipeline/tests/test_payoff_engine_regressions.py", "ask"),
         ("pipeline/src/paper/backtest/portfolio.py", "ask"),
         ("pipeline/tests/test_payoff_portfolio_regressions.py", "ask"),
+        ("pipeline/src/paper/backtest/report.py", "ask"),
+        ("pipeline/src/paper/backtest/__init__.py", "ask"),
+        ("pipeline/scripts/backtest_desk.py", "ask"),
+        ("pipeline/scripts/backtest_sensitivity.py", "ask"),
     }
 
 
