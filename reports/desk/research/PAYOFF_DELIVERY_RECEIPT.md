@@ -155,3 +155,39 @@ PD-01 completion; pending is not PASS.
   not be read as a regression.
 - Final: focused 37 new + existing, full suite **1041 passed**, ruff clean,
   mypy 288 files clean. PD-00C2 (report.py, exports, scripts) still closed.
+
+## PD-00C2 acceptance (2026-10-21)
+
+- Worker: `ses_ea1d0ad14ffebwS9s60I9laVXL` (free MiniMax route). Genuine red
+  observed: 9 new oracles failed against the pre-packet sources
+  (`9 failed, 1042 passed`); then 1051 passed with ruff/mypy clean.
+- Independent auditor: `ses_ea1b66377ffeV5iWSqCcb6Opcm` (free MiniMax route);
+  **PASS** on all eight binding requirements, with one MEDIUM and six LOW
+  findings, all inside the packet's own files. All are now closed.
+- M-1 closed: the reserved stem is now refused UNCONDITIONALLY, not only when
+  the resolved path equals the historical path, and the comment/help text now
+  describes what the code does. An unreadable path now REFUSES (fail closed)
+  instead of being treated as safe.
+- L1 closed: the semantics block now names every all-trades key that exists
+  (per_setup.net_r_all / win_rate_all / expectancy_r_all, weekly_rows
+  .trades_total / .unresolved / .net_r_with_marks, per_setup.trades_total,
+  weekly.weeks_with_trades), the RE-BASED LEGACY KEYS with their old and new
+  meanings, and the sibling-output scope (dense*/rules/funnel in the same
+  folder keep their own all-trades semantics).
+- L3 closed: `write_report` now refuses the reserved stem itself, so a direct
+  library caller cannot overwrite the historical artifact.
+- L4 closed: the report API is re-exported from the package.
+- L5 closed: the refusal is now pinned END TO END — a test runs the script with
+  `--stem backtest` into a temporary directory, asserts exit code 2 and that
+  NOTHING was written; plus a second test proving `write_report` raises and
+  leaves no file. Non-vacuity proven by mutation: disabling the refusal makes
+  the test fail (and the bypassed run performs a full replay).
+- L6 closed: the printed note now says every PERFORMANCE figure is
+  settled-only, not only the R figures.
+- Coordinator verification: full suite **1053 passed**, ruff clean, mypy 288
+  files clean; the historical `backtest.json`/`backtest.md` SHA-256 digests are
+  unchanged (`06c28de5…e1675`, `8c33e21a…4df71`); no `backtest_joint*` artifact
+  was left in the repository.
+- Audit-noted scope truth: the repository is NOT repo-wide settled-only. The
+  dense and rules harnesses keep their own all-trades semantics, and the
+  semantics block now says so in-band.

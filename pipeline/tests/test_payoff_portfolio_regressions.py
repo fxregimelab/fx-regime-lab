@@ -25,22 +25,33 @@ network: nothing here can reach a live account or a production ledger.
 
 from __future__ import annotations
 
+import hashlib
+import importlib.util
 import inspect
+import sys
+import tempfile
 from collections import Counter
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from types import ModuleType
+from unittest import mock
 
 import pytest
 
+from src.paper.backtest import report as report_mod
 from src.paper.backtest.engine import (
     A_COOLDOWN,
     A_DAILY_STOP,
     A_DUPLICATE,
     A_ENTRY_FILL_MISMATCH,
+    A_INVALID_RISK,
     A_MAX_SLOTS,
     A_NO_ENTRY_BAR,
     A_OPEN_RISK,
     A_PAIR_SLOTS,
     A_USD_SIGN_CAP,
+    X_CENSORED,
+    X_HORIZON,
     X_STOP,
     BacktestConfig,
     BacktestResult,
@@ -669,19 +680,27 @@ def test_a_duplicate_candidate_is_never_booked_twice() -> None:
 # --- 6. Settled-only aggregates (A1) ---------------------------------------------
 
 
-def make_trade(*, net_r: float, gross: float = 0.0, cost: float = 0.0, censored: bool) -> Trade:
+def make_trade(
+    *,
+    net_r: float,
+    gross: float = 0.0,
+    cost: float = 0.0,
+    censored: bool,
+    setup_id: str = "SU1-v1",
+    entry_at: datetime = T0,
+) -> Trade:
     return Trade(
         pair="EURUSD",
-        setup_id="SU1-v1",
+        setup_id=setup_id,
         side="long",
-        entry_at=T0,
-        exit_at=T0 + BAR,
+        entry_at=entry_at,
+        exit_at=entry_at + BAR,
         entry_price=100.0,
         stop_price=99.0,
         exit_price=100.0,
         atr_h1=1.0,
         risk_price=1.0,
-        exit_reason="censored_data_end" if censored else X_STOP,
+        exit_reason=X_CENSORED if censored else X_STOP,
         r_multiple=gross,
         cost_r=cost,
         net_r=net_r,
@@ -928,3 +947,367 @@ def test_the_joint_usd_cap_is_configurable_and_ticket_based() -> None:
     )
     assert events_of(relaxed, "reject") == []
     assert len(relaxed.trades) == 3
+
+
+# --- 10. Report-level oracles (PD-00C2) -------------------------------------------
+#
+# The report is the only place where a reader sees the replay numbers, so it
+# has to be unambiguous: every R aggregate is SETTLED-ONLY, the censored tail
+# is reported beside it as marks, the funnel keeps the detector output apart
+# from the admitted trades, and the historical report is never regenerated.
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_PIPELINE_ROOT = _REPO_ROOT / "pipeline"
+_HISTORICAL_DIR = _REPO_ROOT / "reports" / "desk" / "research"
+_HISTORICAL_REPORT = _HISTORICAL_DIR / "backtest.json"
+_HISTORICAL_MARKDOWN = _HISTORICAL_DIR / "backtest.md"
+# The historical report predates the PD-00B engine repair and the PD-00C
+# event-time replay. PD-00C2 does NOT regenerate it (A8), so these digests
+# pin the file and a silent regeneration fails the suite.
+_HISTORICAL_REPORT_SHA256 = (
+    "06c28de5ed4f3cfa6990aa2951cb0cc638a63fccc8349453a4a3ff0c7e9e1675"
+)
+_HISTORICAL_MARKDOWN_SHA256 = (
+    "8c33e21a62c5212dcb55a67f78951944a56af3b1edaa4ee902e024313264df71"
+)
+
+
+def _result(
+    trades: list[Trade],
+    *,
+    candidates_emitted: int | None = None,
+    rejections: Counter[str] | None = None,
+    start: datetime = T0,
+    end: datetime | None = None,
+) -> BacktestResult:
+    """A BacktestResult the report can aggregate, with an explicit funnel."""
+    setup_counts: Counter[str] = Counter(t.setup_id for t in trades)
+    emitted = candidates_emitted if candidates_emitted is not None else len(trades)
+    return BacktestResult(
+        pair="EURUSD",
+        start=start,
+        end=end if end is not None else start + timedelta(days=7),
+        trades=trades,
+        rejections=rejections if rejections is not None else Counter(),
+        setup_counts=setup_counts,
+        opportunities=emitted,
+        config=BacktestConfig(),
+        candidates_emitted=emitted,
+        emitted_setup_counts=Counter(setup_counts),
+    )
+
+
+def _load_script(name: str) -> ModuleType:
+    """Import one pipeline script by path (the scripts are not a package)."""
+    path = _PIPELINE_ROOT / "scripts" / f"{name}.py"
+    spec = importlib.util.spec_from_file_location(f"_pd00c2_{name}", path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_oracle_3_the_report_aggregates_are_settled_only_and_the_tail_stays_visible() -> None:
+    """Oracle 3: every R aggregate in the report is settled-only (A1)."""
+    win = make_trade(net_r=1.0, gross=1.1, cost=0.1, censored=False)
+    loss = make_trade(net_r=-2.0, gross=-2.1, cost=0.1, censored=False)
+    unknown = make_trade(net_r=3.0, gross=3.1, cost=0.1, censored=True, setup_id="SU2-v1")
+    result = _result([win, loss, unknown], candidates_emitted=4)
+
+    report = report_mod.build_report([result])
+    stats = report["combined"]["trade_stats"]
+
+    assert stats["trades_total"] == 3
+    assert stats["trades_settled"] == 2
+    assert stats["trades_censored"] == 1
+    # settled-only aggregates
+    assert stats["total_net_r"] == pytest.approx(-1.0)
+    assert stats["total_gross_r"] == pytest.approx(-1.0)
+    assert stats["total_costs_r"] == pytest.approx(0.2)
+    assert stats["expectancy_r"] == pytest.approx(-0.5)
+    assert stats["win_rate"] == pytest.approx(0.5)
+    assert stats["avg_win_r"] == pytest.approx(1.0)
+    assert stats["avg_loss_r"] == pytest.approx(-2.0)
+    assert stats["profit_factor"] == pytest.approx(0.5)
+    # the censored tail is reported, never folded into the settled numbers
+    assert stats["unresolved_r"] == pytest.approx(3.0)
+    assert stats["net_r_all"] == pytest.approx(2.0)
+    assert stats["gross_r_all"] == pytest.approx(2.1)
+    assert stats["costs_r_all"] == pytest.approx(0.3)
+    assert stats["expectancy_r_all"] == pytest.approx(2.0 / 3.0, abs=1e-3)
+    # the censored trade is not a win anywhere in the report
+    assert stats["by_exit"][X_CENSORED] == 1
+    assert X_CENSORED not in stats["by_exit_settled"]
+
+
+def test_oracle_4_a_setup_without_a_settled_trade_never_divides_by_zero() -> None:
+    """Oracle 4: a setup with only censored trades reports zeros, not an error."""
+    settled = make_trade(net_r=1.0, gross=1.1, cost=0.1, censored=False, setup_id="SU1-v1")
+    unknown = make_trade(net_r=3.0, gross=3.1, cost=0.1, censored=True, setup_id="SU2-v1")
+    result = _result([settled, unknown], candidates_emitted=2)
+
+    per_setup = report_mod.per_setup_stats(result)
+    assert per_setup["SU2-v1"]["trades_total"] == 1
+    assert per_setup["SU2-v1"]["trades_settled"] == 0
+    assert per_setup["SU2-v1"]["trades_censored"] == 1
+    assert per_setup["SU2-v1"]["net_r"] == 0.0
+    assert per_setup["SU2-v1"]["win_rate"] == 0.0
+    assert per_setup["SU2-v1"]["expectancy_r"] == 0.0
+    assert per_setup["SU2-v1"]["avg_win_r"] == 0.0
+    assert per_setup["SU2-v1"]["avg_loss_r"] == 0.0
+    assert per_setup["SU2-v1"]["profit_factor"] == 0.0
+    # the marks of the unresolved sample stay visible
+    assert per_setup["SU2-v1"]["unresolved_r"] == pytest.approx(3.0)
+    # the settled setup keeps its own numbers
+    assert per_setup["SU1-v1"]["trades_settled"] == 1
+    assert per_setup["SU1-v1"]["net_r"] == pytest.approx(1.0)
+
+
+def test_oracle_5_the_weekly_table_splits_the_settled_result_from_the_marks() -> None:
+    """Oracle 5: the weekly row carries the unresolved count and the marked net."""
+    week_one = make_trade(net_r=1.0, gross=1.1, cost=0.1, censored=False, entry_at=T0)
+    week_two = make_trade(
+        net_r=3.0,
+        gross=3.1,
+        cost=0.1,
+        censored=True,
+        entry_at=T0 + timedelta(days=7),
+    )
+    result = _result(
+        [week_one, week_two],
+        candidates_emitted=2,
+        end=T0 + timedelta(days=14),
+    )
+
+    rows = report_mod.weekly_table(result, risk_per_trade=0.01)
+    assert len(rows) == 2
+    first, second = rows
+    assert first["trades"] == 1
+    assert first["trades_total"] == 1
+    assert first["unresolved"] == 0
+    assert first["wins"] == 1
+    assert first["net_r"] == pytest.approx(1.0)
+    assert first["net_r_with_marks"] == pytest.approx(1.0)
+    assert second["trades"] == 0
+    assert second["trades_total"] == 1
+    assert second["unresolved"] == 1
+    assert second["wins"] == 0
+    assert second["net_r"] == 0.0
+    assert second["net_r_with_marks"] == pytest.approx(3.0)
+
+    summary = report_mod.weekly_summary(result, risk_per_trade=0.01)
+    assert summary["trades_per_week"] == pytest.approx(0.5)
+    assert summary["trades_per_week_all"] == pytest.approx(1.0)
+    assert summary["unresolved_total"] == 1
+    # only the week that holds a SETTLED trade counts as active
+    assert summary["active_weeks"] == 1
+
+
+def test_oracle_29_the_horizon_and_censored_labels_are_not_relabelled() -> None:
+    """Oracle 29: the PD-00B exit labels survive the report unchanged."""
+    horizon = make_trade(net_r=0.5, gross=0.6, cost=0.1, censored=False)
+    horizon.exit_reason = X_HORIZON
+    unknown = make_trade(net_r=3.0, gross=3.1, cost=0.1, censored=True)
+    result = _result([horizon, unknown], candidates_emitted=2)
+
+    report = report_mod.build_report([result])
+    stats = report["combined"]["trade_stats"]
+    assert stats["by_exit"][X_HORIZON] == 1
+    assert stats["by_exit"][X_CENSORED] == 1
+    assert stats["by_exit_settled"][X_HORIZON] == 1
+    assert X_CENSORED not in stats["by_exit_settled"]
+    # the horizon basis stays calendar_day; it is never relabelled as T+5
+    assert report["semantics"]["horizon_basis"] == "calendar_day"
+    assert X_HORIZON != "t_plus_5"
+    assert X_CENSORED != "t_plus_5"
+    markdown = report_mod.render_markdown(report)
+    assert X_HORIZON in markdown
+    assert X_CENSORED in markdown
+    assert "t_plus_5" not in markdown
+
+
+def test_oracle_30_the_historical_report_file_is_byte_unchanged() -> None:
+    """Oracle 30: PD-00C2 does not regenerate the historical report (A8)."""
+    assert _HISTORICAL_REPORT.exists()
+    digest = hashlib.sha256(_HISTORICAL_REPORT.read_bytes()).hexdigest()
+    assert digest == _HISTORICAL_REPORT_SHA256
+    assert _HISTORICAL_MARKDOWN.exists()
+    markdown_digest = hashlib.sha256(_HISTORICAL_MARKDOWN.read_bytes()).hexdigest()
+    assert markdown_digest == _HISTORICAL_MARKDOWN_SHA256
+
+
+def test_the_report_carries_the_semantics_block() -> None:
+    """PD-00C2 binding: the report names its basis, its limits and its gaps."""
+    result = _result([make_trade(net_r=1.0, gross=1.1, cost=0.1, censored=False)])
+    report = report_mod.build_report([result])
+    semantics = report["semantics"]
+
+    assert semantics["basis"] == "settled_only"
+    assert semantics["horizon_basis"] == "calendar_day"
+    assert semantics["entry_fill"] == "next_m15_open"
+    assert semantics["censored_tail_excluded_from"]
+    assert semantics["marks_reported_separately"]
+    # R1: the gates are evaluated at the future fill open
+    assert "gate" in semantics["limitations"]["R1"].lower()
+    assert "open" in semantics["limitations"]["R1"].lower()
+    # R2: there is no fill model
+    assert "no fill model" in semantics["limitations"]["R2"].lower()
+    # the two things this report does not certify
+    assert semantics["management_policy_certified"] is False
+    assert semantics["historical_report_stale_by_design"] is True
+
+    markdown = report_mod.render_markdown(report)
+    assert "settled_only" in markdown
+    assert "calendar_day" in markdown
+    assert "next_m15_open" in markdown
+    assert "R1" in markdown and "R2" in markdown
+
+
+def test_the_funnel_keeps_the_emitted_admitted_settled_and_censored_stages_apart() -> None:
+    """A9: candidates_emitted is the DETECTOR output, not the admitted count."""
+    win = make_trade(net_r=1.0, gross=1.1, cost=0.1, censored=False)
+    loss = make_trade(net_r=-2.0, gross=-2.1, cost=0.1, censored=False)
+    unknown = make_trade(net_r=3.0, gross=3.1, cost=0.1, censored=True, setup_id="SU2-v1")
+    rejections: Counter[str] = Counter(
+        {"SU1-v1:d1_context_mismatch": 4, A_INVALID_RISK: 1}
+    )
+    result = _result([win, loss, unknown], candidates_emitted=4, rejections=rejections)
+
+    fn = report_mod.funnel(result)
+    assert fn["candidates_emitted"] == 4
+    assert fn["trades_admitted"] == 3
+    assert fn["trades_settled"] == 2
+    assert fn["trades_censored"] == 1
+    # four stages, four different numbers
+    assert len(
+        {
+            fn["candidates_emitted"],
+            fn["trades_admitted"],
+            fn["trades_settled"],
+            fn["trades_censored"],
+        }
+    ) == 4
+    # the funnel reconciles
+    assert fn["emitted_not_admitted"] == 1
+    assert fn["admission_rejection_total"] == 1
+    assert fn["reconciles"] is True
+    # A_INVALID_RISK is always visible, even at zero
+    assert fn["admission_rejections"][A_INVALID_RISK] == 1
+    assert A_INVALID_RISK in fn["admission_rejections"]
+    # the detector rejections stay separate from the admission ones
+    assert fn["detector_rejections_by_reason"] == {"SU1-v1:d1_context_mismatch": 4}
+    # the legacy keys carry the CORRECT values now
+    assert fn["candidates_passed_all_detector_gates"] == fn["candidates_emitted"]
+    assert fn["trades_taken"] == fn["trades_admitted"]
+
+    # and the combined funnel of the report reconciles too
+    combined = report_mod.build_report([result])["combined"]["funnel"]
+    assert combined["candidates_emitted"] == 4
+    assert combined["reconciles"] is True
+
+
+def test_the_package_exports_the_new_names_and_keeps_the_old_ones() -> None:
+    """PD-00C2 binding: the new public names are exported, the old ones stay."""
+    import src.paper.backtest as pkg
+    from src.paper.backtest import portfolio  # noqa: F401
+
+    for name in (
+        "detect_candidates",
+        "DetectionResult",
+        "ReplayEvent",
+        "ReplayOutcome",
+        "JointConfig",
+        "JointResult",
+        "PairBars",
+        "TieBreak",
+        "replay_joint",
+        "run_joint_backtest",
+        "usd_sign",
+    ):
+        assert hasattr(pkg, name), name
+        assert name in pkg.__all__, name
+    # every original export name is intact
+    for name in (
+        "DEFAULT_DATA_DIR",
+        "BacktestConfig",
+        "BacktestResult",
+        "BarSeries",
+        "Trade",
+        "context_at",
+        "coverage_summary",
+        "d1_context_series",
+        "evaluate_h1_bar",
+        "load_bundle",
+        "load_pair",
+        "load_series",
+        "run_backtest",
+        "simulate_trade",
+    ):
+        assert hasattr(pkg, name), name
+        assert name in pkg.__all__, name
+
+
+def test_the_desk_script_defaults_to_the_joint_replay_and_a_new_stem() -> None:
+    """PD-00C2 binding: --joint is the default and the historical stem is refused."""
+    script = _load_script("backtest_desk")
+    parser = getattr(script, "build_parser")()
+    assert parser.parse_args([]).mode == "joint"
+    assert parser.parse_args(["--joint"]).mode == "joint"
+    assert parser.parse_args(["--per-pair"]).mode == "per_pair"
+    default_stem = parser.parse_args([]).stem
+    assert default_stem != "backtest"
+
+    conflicts = getattr(script, "historical_conflicts")(_HISTORICAL_DIR, "backtest")
+    assert conflicts, "the historical stem must be refused"
+    assert getattr(script, "historical_conflicts")(_HISTORICAL_DIR, "backtest_joint") == []
+
+
+def test_the_reserved_stem_is_refused_anywhere_and_writes_nothing() -> None:
+    """L5: the refusal is proven END TO END, not only by calling the helper.
+
+    ``--stem backtest`` must exit non-zero and leave no file behind, in ANY
+    output directory -- not only in the research folder. A stray file named
+    like the historical report elsewhere is exactly what a later reader could
+    mistake for the historical artifact.
+    """
+    script = _load_script("backtest_desk")
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "elsewhere"
+        out.mkdir()
+        argv = ["backtest_desk.py", "--stem", "backtest", "--out", str(out)]
+        with mock.patch.object(sys, "argv", argv):
+            exit_code = script.main()
+        assert exit_code == 2
+        assert not list(out.iterdir()), "the refused run must write nothing"
+
+
+def test_the_report_library_also_refuses_the_reserved_stem() -> None:
+    """L3: the A8 protection lives in write_report, so library callers are safe."""
+    report = getattr(_load_script("backtest_desk"), "build_report", None)
+    assert report is not None
+    from src.paper.backtest.report import RESERVED_STEM, write_report
+
+    assert RESERVED_STEM == "backtest"
+    with tempfile.TemporaryDirectory() as tmp:
+        with pytest.raises(ValueError, match="reserved"):
+            write_report({"combined": {}}, Path(tmp), stem=RESERVED_STEM)
+        assert not list(Path(tmp).iterdir()), "a refused write must leave no file"
+
+
+def test_the_sensitivity_script_aggregates_are_settled_only() -> None:
+    """PD-00C2 binding: the probe cannot silently disagree with the report."""
+    script = _load_script("backtest_sensitivity")
+    win = make_trade(net_r=1.0, gross=1.1, cost=0.1, censored=False)
+    unknown = make_trade(net_r=3.0, gross=3.1, cost=0.1, censored=True)
+    result = _result([win, unknown], candidates_emitted=2)
+
+    summary = getattr(script, "scenario_summary")([result])
+    assert summary["basis"] == "settled_only"
+    assert summary["trades"] == 1
+    assert summary["trades_total"] == 2
+    assert summary["trades_censored"] == 1
+    assert summary["net_r"] == pytest.approx(1.0)
+    assert summary["unresolved_r"] == pytest.approx(3.0)
+    assert summary["expectancy_r"] == pytest.approx(1.0)
+    assert summary["win_rate"] == pytest.approx(1.0)

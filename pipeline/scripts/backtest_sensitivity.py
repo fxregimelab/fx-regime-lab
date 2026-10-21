@@ -6,6 +6,12 @@ in trade count. Any relaxation here is a *measurement*, never a proposal: the
 production detectors in ``src.paper.strategies`` are untouched, and the frozen
 spec still governs execution.
 
+Every aggregate here is SETTLED-ONLY, exactly like the desk report
+(``src.paper.backtest.report``): a trade whose outcome is unknown (the input
+ended before its horizon) is never a win and never part of a performance
+number. The censored tail is reported beside the settled figures, never folded
+into them, so this probe cannot silently disagree with the report.
+
 Usage (from ``pipeline/``)::
 
     python scripts/backtest_sensitivity.py
@@ -19,6 +25,7 @@ import sys
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
@@ -32,10 +39,61 @@ from src.paper.backtest.data import (  # noqa: E402
     data_fingerprint,
     load_pair,
 )
-from src.paper.backtest.engine import BacktestConfig, run_backtest  # noqa: E402
+from src.paper.backtest.engine import (  # noqa: E402
+    BacktestConfig,
+    BacktestResult,
+    run_backtest,
+)
 from src.paper.features import Swing  # noqa: E402
 
 _BASELINE_STRUCTURE = features.structure_state_at
+
+_SETUPS = ("SU1-v1", "SU2-v1", "SU3-v1")
+
+
+def scenario_summary(results: Sequence[BacktestResult]) -> dict[str, Any]:
+    """The SETTLED-ONLY aggregates of one scenario.
+
+    The same basis as the desk report: the performance numbers count the
+    settled trades only, and the censored tail is reported beside them as
+    ``trades_total``, ``trades_censored``, ``net_r_all`` and ``unresolved_r``.
+    """
+    trades = [t for r in results for t in r.trades]
+    settled = [t for t in trades if t.settled]
+    censored = [t for t in trades if not t.settled]
+    net = sum(t.net_r for t in settled)
+    marks = sum(t.net_r for t in censored)
+    wins = sum(1 for t in settled if t.net_r > 0)
+    # the same sample span the report uses for its combined block
+    span_start = min((r.start for r in results), default=None)
+    span_end = max((r.end for r in results), default=None)
+    days = 0
+    if span_start is not None and span_end is not None:
+        days = (span_end - span_start).days
+    weeks = max(1.0, days / 7.0)
+    return {
+        "basis": "settled_only",
+        "trades": len(settled),
+        "trades_total": len(trades),
+        "trades_censored": len(censored),
+        "trades_per_week": round(len(settled) / weeks, 3),
+        "net_r": round(net, 3),
+        "net_r_all": round(net + marks, 3),
+        "unresolved_r": round(marks, 3),
+        "expectancy_r": round(net / len(settled), 3) if settled else 0.0,
+        "expectancy_r_all": (
+            round((net + marks) / len(trades), 3) if trades else 0.0
+        ),
+        "win_rate": round(wins / len(settled), 3) if settled else 0.0,
+        "by_pair": {r.pair: r.settled_count for r in results},
+        "by_pair_total": {r.pair: r.trade_count for r in results},
+        "by_setup": {
+            setup: sum(1 for t in settled if t.setup_id == setup) for setup in _SETUPS
+        },
+        "by_setup_total": {
+            setup: sum(1 for t in trades if t.setup_id == setup) for setup in _SETUPS
+        },
+    }
 
 
 def _structure_allow_neutral(
@@ -63,7 +121,7 @@ def main() -> int:
     pairs = tuple(args.pair) if args.pair else PAIRS
     cfg = BacktestConfig()
 
-    scenarios: dict[str, dict[str, object]] = {}
+    scenarios: dict[str, dict[str, Any]] = {}
 
     def run(label: str) -> None:
         results = []
@@ -78,23 +136,14 @@ def main() -> int:
                 cfg=cfg,
             )
             results.append(result)
-        trades = [t for r in results for t in r.trades]
-        net = sum(t.net_r for t in trades)
-        wins = sum(1 for t in trades if t.net_r > 0)
-        weeks = max(1.0, (results[0].end - results[0].start).days / 7.0)
-        scenarios[label] = {
-            "trades": len(trades),
-            "trades_per_week": round(len(trades) / weeks, 3),
-            "net_r": round(net, 3),
-            "expectancy_r": round(net / len(trades), 3) if trades else 0.0,
-            "win_rate": round(wins / len(trades), 3) if trades else 0.0,
-            "by_pair": {r.pair: len(r.trades) for r in results},
-            "by_setup": {
-                setup: sum(1 for t in trades if t.setup_id == setup)
-                for setup in ("SU1-v1", "SU2-v1", "SU3-v1")
-            },
-        }
-        print(f"{label:44s} trades={len(trades):4d} netR={net:+7.2f}")
+        summary = scenario_summary(results)
+        scenarios[label] = summary
+        net = summary["net_r"]
+        settled = summary["trades"]
+        print(
+            f"{label:44s} trades={settled:4d} netR={net:+7.2f} "
+            f"(settled-only, {summary['trades_censored']} censored)"
+        )
 
     print("baseline (frozen rules as shipped):")
     run("baseline")
@@ -137,6 +186,10 @@ def main() -> int:
     args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(f"\nwrote {args.out}")
     print("\nReminder: the baseline row is the only one that reflects the shipped rules.")
+    print(
+        "Reminder: every row is SETTLED-ONLY; the censored tail is reported beside "
+        "the settled figures, never folded into them."
+    )
     return 0
 
 
