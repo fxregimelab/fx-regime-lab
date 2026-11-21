@@ -1,5 +1,8 @@
 # FX Regime Lab — Complete Project Overview
 
+> [!warning] Historical narrative — status added 1 November 2026
+> The original overview below is preserved for context. Its production, performance, runtime and career claims are not verified-current evidence. Read [[ThesisGraph/00 Start Here|the current ThesisGraph handbook]] for product direction and [[reports/workspace-audit-2026-11-01/FINAL-VERIFICATION|the November audit]] for checked findings and unresolved limits. This banner does not change existing implementation contracts. The original file is preserved in `reports/vault-organisation-2026-11-01/before/`.
+
 > **Purpose of this document:** A resume-ready, ultra-detailed technical narrative of the FX Regime Lab project. It covers the full system architecture, every major module, the engineering decisions behind it, what is production-grade, and where the project is deliberately thin or experimental.
 
 ---

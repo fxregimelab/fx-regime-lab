@@ -10,6 +10,24 @@ src.analysis, src.db, src.types]
 
 from __future__ import annotations
 
+# Explicit local equity-extraction gateway. This branch exits before FX imports,
+# provider fallback configuration or production telemetry can be initialised.
+if __name__ == "__main__":
+    import runpy
+    import sys
+    from pathlib import Path
+
+    if sys.argv[1:] == ["--nayvora-extract"]:
+        runpy.run_path(
+            str(
+                Path(__file__).resolve().parents[3]
+                / "reports/strategy-2026-11-01/mvp-workspace/extraction/worker.py"
+            ),
+            run_name="__main__",
+        )
+        raise SystemExit(0)
+    raise SystemExit("Supported local command: --nayvora-extract")
+
 import json
 import logging
 from typing import Any, TypeVar

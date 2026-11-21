@@ -134,3 +134,10 @@ This project is indexed by GitNexus as **fx-regime-lab** (13762 symbols, 19376 r
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+---
+
+## Workspace map
+
+The workspace-wide project map is maintained at **D:\\Projects\\PROJECTS-MAP.md** (Strata\strata history entry D:\Projects\Strata\strata). It is the complete, categorized list of every project, research and archive node under D:\Projects. Read it before starting work here.
+
