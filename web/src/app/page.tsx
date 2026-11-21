@@ -13,10 +13,13 @@ import {
   getLatestRegimeCalls,
   getLatestSignals,
   getSiteContent,
-  getValidationLog,
   getValidationStats,
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
+import {
+  LIVE_MODEL_VERSION,
+  STRATEGY_VERSION,
+} from "@/lib/validation-contract";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
@@ -229,7 +232,11 @@ function LiveSnapshot({
                   <SnapshotCard
                     pair={pair.display}
                     pairColor={pair.pairColor}
-                    spot={signal?.spot?.toFixed(4) ?? "—"}
+                    spot={
+                      call && !signal
+                        ? "INPUTS UNAVAILABLE"
+                        : (signal?.spot?.toFixed(4) ?? "—")
+                    }
                     regime={(call?.regime ?? "—").replace(/_/g, " ")}
                     regimeCategory={call?.regime ?? undefined}
                     confidence={call?.confidence ?? null}
@@ -252,40 +259,31 @@ function ValidationSnapshot({
   winRate,
   sampleSize,
   totalCalls,
+  brierSampleSize,
 }: {
   brierScore: number | null;
   winRate: number | null;
   sampleSize: number | null;
   totalCalls: number;
+  brierSampleSize: number | null;
 }) {
-  const brierLabel =
-    brierScore == null
-      ? "—"
-      : brierScore < 0.1
-        ? "Excellent calibration"
-        : brierScore < 0.2
-          ? "Good calibration"
-          : brierScore < 0.3
-            ? "Fair calibration"
-            : "Poor calibration";
-
   return (
     <section className="py-24">
       <div className="max-w-[1152px] mx-auto px-6">
         <SectionHeader
           label="Validation"
-          title="Every call validated. Append-only by convention."
-          description="Directional accuracy is easy to game. Brier score measures calibration honesty — how well our confidence matches our accuracy."
+          title="Published calls and their recorded outcomes."
+          description="Live model 2.0-live, strategy v2, scoring publication-snapshot-v2. Missing outcomes and abstentions are excluded from directional accuracy."
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-10">
           <MetricCard
             label="Brier Score (Heuristic)"
             value={brierScore != null ? brierScore.toFixed(3) : "—"}
-            sub={brierLabel}
+            sub="Heuristic confidence; lower score is better"
             context={
-              sampleSize != null
-                ? `Based on ${sampleSize} published calls`
+              brierSampleSize != null
+                ? `Based on ${brierSampleSize} eligible probability scores`
                 : "Awaiting validation"
             }
             size="md"
@@ -294,10 +292,10 @@ function ValidationSnapshot({
           <MetricCard
             label="Win Rate (T+5)"
             value={winRate != null ? `${(winRate * 100).toFixed(1)}%` : "—"}
-            sub="vs 50% random baseline"
+            sub="Directional calls with mature T+5 outcomes"
             context={
-              sampleSize != null && sampleSize < 200
-                ? `n=${sampleSize} — statistical significance requires ~200 calls`
+              sampleSize != null
+                ? `n=${sampleSize}; overlapping outcomes require separate uncertainty analysis`
                 : undefined
             }
             size="md"
@@ -305,7 +303,7 @@ function ValidationSnapshot({
           <MetricCard
             label="Calls Published"
             value={totalCalls > 0 ? String(totalCalls) : "—"}
-            sub="Since May 2026"
+            sub="This live model and strategy only"
             size="md"
           />
           <MetricCard
@@ -318,9 +316,9 @@ function ValidationSnapshot({
 
         <div className="flex items-center justify-between flex-wrap gap-4 pt-6 border-t border-[var(--color-border)]">
           <p className="font-sans text-[13px] text-[var(--color-text-secondary)] max-w-[560px]">
-            Outcomes measured against next-day spot with a 5bps dead-band. Our
-            accuracy is currently near random — we publish this openly as part
-            of our research process.{" "}
+            T+5 outcomes use five weekday steps and a 5 bps deadband. Holiday
+            and publication-time checks remain under review. A Brier score alone
+            does not establish calibration or forecasting skill.{" "}
             <a href="/limitations" className="underline">
               See limitations
             </a>
@@ -476,11 +474,10 @@ function AboutSnippet({
 
 export default async function HomePage() {
   const supabase = await createClient();
+  const calls = await getLatestRegimeCalls(supabase);
 
-  const [calls, signals, validation, statsT5, siteContent] = await Promise.all([
-    getLatestRegimeCalls(supabase),
-    getLatestSignals(supabase),
-    getValidationLog(supabase),
+  const [signals, statsT5, siteContent] = await Promise.all([
+    getLatestSignals(supabase, calls),
     getValidationStats(supabase, "t5"),
     getSiteContent(supabase),
   ]);
@@ -488,13 +485,13 @@ export default async function HomePage() {
   const { count } = await supabase
     .from("regime_calls")
     .select("*", { count: "exact", head: true })
-    .gte("date", "2026-05-01");
-
-  const correctCount = validation.filter((r) => r.outcome === "correct").length;
-  const winRate =
-    validation.length > 0 ? correctCount / validation.length : null;
+    .eq("data_source", "live")
+    .eq("strategy_version", STRATEGY_VERSION)
+    .eq("model_version", LIVE_MODEL_VERSION)
+    .lte("date", new Date().toISOString().slice(0, 10));
 
   const allRow = statsT5.find((s) => s.pair === "ALL");
+  const winRate = allRow?.winRate ?? null;
   const brierScore = allRow?.brierScore ?? null;
   const sampleSize = allRow?.sampleSize ?? null;
 
@@ -547,6 +544,7 @@ export default async function HomePage() {
           winRate={winRate}
           sampleSize={sampleSize}
           totalCalls={count ?? 0}
+          brierSampleSize={allRow?.brierSampleSize ?? null}
         />
         <SignalArchitecture />
         <AboutSnippet siteContent={siteContent} />

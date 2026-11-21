@@ -42,7 +42,13 @@ export function ValidationTable({
     return neutralColor;
   };
 
-  const legacyHeaders = ["DATE", "PAIR", "REGIME", "OUTCOME", "RET %"];
+  const legacyHeaders = [
+    "DATE",
+    "PAIR",
+    "PREDICTION",
+    "OUTCOME",
+    "MARKET MOVE (BPS)",
+  ];
   const t5t20Headers = [
     "DATE",
     "PAIR",
@@ -106,20 +112,33 @@ export function ValidationTable({
                       </td>
                       <td
                         className={`px-4 py-2 text-[11px] font-bold ${
-                          row.outcome === "correct" ? upColor : downColor
+                          row.outcome === "correct"
+                            ? upColor
+                            : row.outcome === "incorrect"
+                              ? downColor
+                              : neutralColor
                         }`}
                       >
                         {row.outcome === "correct"
                           ? "✓ CORRECT"
-                          : "✗ INCORRECT"}
+                          : row.outcome === "incorrect"
+                            ? "✗ INCORRECT"
+                            : row.outcome === "neutral"
+                              ? "ABSTAINED"
+                              : "UNAVAILABLE"}
                       </td>
                       <td
                         className={`px-4 py-2 text-xs font-bold ${
-                          row.return_pct >= 0 ? upColor : downColor
+                          row.return_pct == null
+                            ? neutralColor
+                            : row.return_pct >= 0
+                              ? upColor
+                              : downColor
                         }`}
                       >
-                        {row.return_pct >= 0 ? "+" : ""}
-                        {row.return_pct.toFixed(2)} bps
+                        {row.return_pct == null
+                          ? "—"
+                          : `${row.return_pct >= 0 ? "+" : ""}${row.return_pct.toFixed(2)} bps`}
                       </td>
                     </>
                   )}

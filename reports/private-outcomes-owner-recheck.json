@@ -1,0 +1,233 @@
+{
+  "verified_at": "2026-10-01T19:45:47.802847+00:00",
+  "report_sha256": "19136098e5f3b369eca5c11ba3e29e1fd3068524fec7329156969c90331a75f6",
+  "publication_records": 32,
+  "distinct_observations": 8,
+  "repeated_publications": 24,
+  "decision_status_counts": {
+    "ABSTAIN": 8
+  },
+  "outcome_status_counts": {
+    "PENDING": 5,
+    "UNAVAILABLE": 3
+  },
+  "reason_groups": [
+    {
+      "reason": "Fewer than 20 same-direction trades in the comparable calibration bucket.",
+      "observations": 8,
+      "evaluated_frozen_direction_count": 0,
+      "mean_frozen_direction_benchmark_net_r": null,
+      "interpretation": "Overlapping reason groups; not causal filter attribution.",
+      "evaluated_candidate_plan_count": 0,
+      "mean_candidate_plan_net_r": null
+    },
+    {
+      "reason": "Fewer than 40 matured calibration trades in this direction.",
+      "observations": 8,
+      "evaluated_frozen_direction_count": 0,
+      "mean_frozen_direction_benchmark_net_r": null,
+      "interpretation": "Overlapping reason groups; not causal filter attribution.",
+      "evaluated_candidate_plan_count": 0,
+      "mean_candidate_plan_net_r": null
+    },
+    {
+      "reason": "Held-out probability calibration for this policy, direction and strength bucket has not passed.",
+      "observations": 8,
+      "evaluated_frozen_direction_count": 0,
+      "mean_frozen_direction_benchmark_net_r": null,
+      "interpretation": "Overlapping reason groups; not causal filter attribution.",
+      "evaluated_candidate_plan_count": 0,
+      "mean_candidate_plan_net_r": null
+    },
+    {
+      "reason": "Latest feature window crosses a quarantined observation; abstain.",
+      "observations": 3,
+      "evaluated_frozen_direction_count": 0,
+      "mean_frozen_direction_benchmark_net_r": null,
+      "interpretation": "Overlapping reason groups; not causal filter attribution.",
+      "evaluated_candidate_plan_count": 0,
+      "mean_candidate_plan_net_r": null
+    },
+    {
+      "reason": "Positive net expectancy is not established in comparable calibration and this selected policy's same-direction, same-bucket heldout results.",
+      "observations": 8,
+      "evaluated_frozen_direction_count": 0,
+      "mean_frozen_direction_benchmark_net_r": null,
+      "interpretation": "Overlapping reason groups; not causal filter attribution.",
+      "evaluated_candidate_plan_count": 0,
+      "mean_candidate_plan_net_r": null
+    },
+    {
+      "reason": "Price-only baseline; historical macro/news have not been validated.",
+      "observations": 8,
+      "evaluated_frozen_direction_count": 0,
+      "mean_frozen_direction_benchmark_net_r": null,
+      "interpretation": "Overlapping reason groups; not causal filter attribution.",
+      "evaluated_candidate_plan_count": 0,
+      "mean_candidate_plan_net_r": null
+    },
+    {
+      "reason": "The requested 60% net-profitable threshold is not established.",
+      "observations": 8,
+      "evaluated_frozen_direction_count": 0,
+      "mean_frozen_direction_benchmark_net_r": null,
+      "interpretation": "Overlapping reason groups; not causal filter attribution.",
+      "evaluated_candidate_plan_count": 0,
+      "mean_candidate_plan_net_r": null
+    },
+    {
+      "reason": "The selected policy has no completed-bar signal today.",
+      "observations": 5,
+      "evaluated_frozen_direction_count": 0,
+      "mean_frozen_direction_benchmark_net_r": null,
+      "interpretation": "Overlapping reason groups; not causal filter attribution.",
+      "evaluated_candidate_plan_count": 0,
+      "mean_candidate_plan_net_r": null
+    }
+  ],
+  "distinct_rows": [
+    {
+      "pair": "EURGBP",
+      "recorded_at": "2026-10-01T17:38:06.951317+00:00",
+      "earliest_entry_date": "2026-10-02",
+      "direction": null,
+      "reasons": [
+        "Price-only baseline; historical macro/news have not been validated.",
+        "Held-out probability calibration for this policy, direction and strength bucket has not passed.",
+        "Fewer than 20 same-direction trades in the comparable calibration bucket.",
+        "Fewer than 40 matured calibration trades in this direction.",
+        "Positive net expectancy is not established in comparable calibration and this selected policy's same-direction, same-bucket heldout results.",
+        "The selected policy has no completed-bar signal today.",
+        "The requested 60% net-profitable threshold is not established."
+      ],
+      "outcome_status": "PENDING",
+      "outcome_reason": "FULL_HORIZON_NOT_COMPLETED"
+    },
+    {
+      "pair": "USDJPY",
+      "recorded_at": "2026-10-01T17:38:06.951317+00:00",
+      "earliest_entry_date": "2026-10-02",
+      "direction": null,
+      "reasons": [
+        "Price-only baseline; historical macro/news have not been validated.",
+        "Held-out probability calibration for this policy, direction and strength bucket has not passed.",
+        "Fewer than 20 same-direction trades in the comparable calibration bucket.",
+        "Fewer than 40 matured calibration trades in this direction.",
+        "Positive net expectancy is not established in comparable calibration and this selected policy's same-direction, same-bucket heldout results.",
+        "The selected policy has no completed-bar signal today.",
+        "Latest feature window crosses a quarantined observation; abstain.",
+        "The requested 60% net-profitable threshold is not established."
+      ],
+      "outcome_status": "UNAVAILABLE",
+      "outcome_reason": "FROZEN_BENCHMARK_UNAVAILABLE"
+    },
+    {
+      "pair": "USDCHF",
+      "recorded_at": "2026-10-01T17:38:06.951317+00:00",
+      "earliest_entry_date": "2026-10-02",
+      "direction": null,
+      "reasons": [
+        "Price-only baseline; historical macro/news have not been validated.",
+        "Held-out probability calibration for this policy, direction and strength bucket has not passed.",
+        "Fewer than 20 same-direction trades in the comparable calibration bucket.",
+        "Fewer than 40 matured calibration trades in this direction.",
+        "Positive net expectancy is not established in comparable calibration and this selected policy's same-direction, same-bucket heldout results.",
+        "The selected policy has no completed-bar signal today.",
+        "Latest feature window crosses a quarantined observation; abstain.",
+        "The requested 60% net-profitable threshold is not established."
+      ],
+      "outcome_status": "UNAVAILABLE",
+      "outcome_reason": "FROZEN_BENCHMARK_UNAVAILABLE"
+    },
+    {
+      "pair": "USDCAD",
+      "recorded_at": "2026-10-01T17:38:06.951317+00:00",
+      "earliest_entry_date": "2026-10-02",
+      "direction": "BUY",
+      "reasons": [
+        "Price-only baseline; historical macro/news have not been validated.",
+        "Held-out probability calibration for this policy, direction and strength bucket has not passed.",
+        "Fewer than 20 same-direction trades in the comparable calibration bucket.",
+        "Fewer than 40 matured calibration trades in this direction.",
+        "Positive net expectancy is not established in comparable calibration and this selected policy's same-direction, same-bucket heldout results.",
+        "The requested 60% net-profitable threshold is not established."
+      ],
+      "outcome_status": "PENDING",
+      "outcome_reason": "FULL_HORIZON_NOT_COMPLETED"
+    },
+    {
+      "pair": "NZDUSD",
+      "recorded_at": "2026-10-01T17:38:06.951317+00:00",
+      "earliest_entry_date": "2026-10-02",
+      "direction": null,
+      "reasons": [
+        "Price-only baseline; historical macro/news have not been validated.",
+        "Held-out probability calibration for this policy, direction and strength bucket has not passed.",
+        "Fewer than 20 same-direction trades in the comparable calibration bucket.",
+        "Fewer than 40 matured calibration trades in this direction.",
+        "Positive net expectancy is not established in comparable calibration and this selected policy's same-direction, same-bucket heldout results.",
+        "The selected policy has no completed-bar signal today.",
+        "Latest feature window crosses a quarantined observation; abstain.",
+        "The requested 60% net-profitable threshold is not established."
+      ],
+      "outcome_status": "UNAVAILABLE",
+      "outcome_reason": "FROZEN_BENCHMARK_UNAVAILABLE"
+    },
+    {
+      "pair": "AUDUSD",
+      "recorded_at": "2026-10-01T17:38:06.951317+00:00",
+      "earliest_entry_date": "2026-10-02",
+      "direction": "SELL",
+      "reasons": [
+        "Price-only baseline; historical macro/news have not been validated.",
+        "Held-out probability calibration for this policy, direction and strength bucket has not passed.",
+        "Fewer than 20 same-direction trades in the comparable calibration bucket.",
+        "Fewer than 40 matured calibration trades in this direction.",
+        "Positive net expectancy is not established in comparable calibration and this selected policy's same-direction, same-bucket heldout results.",
+        "The requested 60% net-profitable threshold is not established."
+      ],
+      "outcome_status": "PENDING",
+      "outcome_reason": "FULL_HORIZON_NOT_COMPLETED"
+    },
+    {
+      "pair": "GBPUSD",
+      "recorded_at": "2026-10-01T17:38:06.951317+00:00",
+      "earliest_entry_date": "2026-10-02",
+      "direction": "SELL",
+      "reasons": [
+        "Price-only baseline; historical macro/news have not been validated.",
+        "Held-out probability calibration for this policy, direction and strength bucket has not passed.",
+        "Fewer than 20 same-direction trades in the comparable calibration bucket.",
+        "Fewer than 40 matured calibration trades in this direction.",
+        "Positive net expectancy is not established in comparable calibration and this selected policy's same-direction, same-bucket heldout results.",
+        "The requested 60% net-profitable threshold is not established."
+      ],
+      "outcome_status": "PENDING",
+      "outcome_reason": "FULL_HORIZON_NOT_COMPLETED"
+    },
+    {
+      "pair": "EURUSD",
+      "recorded_at": "2026-10-01T17:38:06.951317+00:00",
+      "earliest_entry_date": "2026-10-02",
+      "direction": null,
+      "reasons": [
+        "Price-only baseline; historical macro/news have not been validated.",
+        "Held-out probability calibration for this policy, direction and strength bucket has not passed.",
+        "Fewer than 20 same-direction trades in the comparable calibration bucket.",
+        "Fewer than 40 matured calibration trades in this direction.",
+        "Positive net expectancy is not established in comparable calibration and this selected policy's same-direction, same-bucket heldout results.",
+        "The selected policy has no completed-bar signal today.",
+        "The requested 60% net-profitable threshold is not established."
+      ],
+      "outcome_status": "PENDING",
+      "outcome_reason": "FULL_HORIZON_NOT_COMPLETED"
+    }
+  ],
+  "csv_rows": 32,
+  "auth_csrf_export_logout": "PASS",
+  "report_and_entire_journal_unchanged": true,
+  "saved_file_count": 53,
+  "execution_state": "NOT_RECORDED",
+  "forecast_qualification": "UNQUALIFIED",
+  "runtime_pid": 5052
+}

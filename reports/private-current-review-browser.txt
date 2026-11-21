@@ -1,0 +1,24 @@
+Actual authenticated browser verification, 2026-10-01T15:29Z.
+URL: http://127.0.0.1:8765/
+Browser: Playwright CLI session fxcurrent.
+Script: output/playwright/private-current-verify.js (local ignored verification artifact).
+
+Result:
+Seven actual pairs: EURUSD, GBPUSD, AUDUSD, NZDUSD, USDCAD, USDCHF, EURGBP.
+All current candidates ABSTAIN; all probabilities null.
+Method private-current-headline-v3; status GENERATED_UNVALIDATED.
+Input binding fd539f8c537ef666158f74553447cef4ceb8cc1f8e6e88946e44a184784b8d51.
+Output binding 7c20892c5491b3a832b0007365e8458ae245478b242caeecf72b1dd31f582451.
+Every pair brief exposed both hashes, unvalidated status, publisher gaps and calculated risk-note origin.
+Desktop 1440x1100: passed; output/playwright/private-current-desktop.png.
+Mobile 390x844: passed; output/playwright/private-current-mobile.png.
+Both images inspected. Hashes wrap, source gaps and unvalidated status are readable.
+Mobile document overflow: false.
+Refresh without CSRF: 403; no refresh or model call started.
+Authenticated CSV: 200, 2000 outcome rows.
+Reload: authenticated view and input binding preserved.
+Sign out: report, status and export each returned 401.
+Console: expected negative-control HTTP 401/403 messages; no JavaScript exception.
+Browser password-form accessibility advisory remains a browser advisory, not a passed browser accessibility audit.
+Loopback GET /: 200. Owned service PID 10948, python.exe -m src.private_desk.cli serve.
+No private credential appears in this receipt.

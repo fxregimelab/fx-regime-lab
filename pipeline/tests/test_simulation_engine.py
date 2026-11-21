@@ -174,5 +174,6 @@ def test_simulation_v2_call_includes_regime_category() -> None:
     assert v2_results
     for _s, call in v2_results:
         assert call.regime_category is not None and call.regime_category != ""
-        assert call.model_version == "2.1-m3"
+        assert call.model_version == "3.0-directional-reference"
+        assert call.strategy_version == "pair-direction-v1"
         assert call.data_source == "backtest"

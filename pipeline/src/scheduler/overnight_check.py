@@ -6,17 +6,20 @@ import json
 import logging
 from dataclasses import dataclass
 from datetime import date
+from math import isfinite
 from pathlib import Path
 from typing import Any
 
 from src.db import writer
 from src.fetchers.cross_asset import fetch_cross_asset
 from src.fetchers.fx_spot import fetch_fx_spot
-from src.types import SpotBar, load_universe, pairs_from_universe
+from src.staged.contracts import StageHealth
+from src.types import SpotBar, load_universe
 
 logger = logging.getLogger(__name__)
 
 _STATE_PATH = Path("/tmp/fx_regime_lab_overnight_state.json")
+_LOCKED_PAIRS = ("EURUSD", "USDJPY", "USDINR")
 _OFFLINE_FAILURE_THRESHOLD = 3
 _INVALIDATION_VOL_MULTIPLIER = 1.5
 _INVALIDATION_PERSISTENCE_TICKS = 3
@@ -67,7 +70,7 @@ def _write_state(consecutive_failures: int, invalidation_streak: dict[str, int])
 
 def fetch_proxy_basket() -> ProxyBasket:
     load_universe()
-    pairs = pairs_from_universe(asset_class="FX")
+    pairs = _LOCKED_PAIRS
     spots = fetch_fx_spot(lookback_days=3)
     cross = fetch_cross_asset(lookback_days=3)
     latest_spot: dict[str, float] = {}
@@ -81,7 +84,7 @@ def fetch_proxy_basket() -> ProxyBasket:
 
 def _set_all_latest_cards_offline() -> None:
     load_universe()
-    for pair in pairs_from_universe(asset_class="FX"):
+    for pair in _LOCKED_PAIRS:
         latest = writer.get_latest_desk_open_card(pair)
         if not latest:
             continue
@@ -91,27 +94,40 @@ def _set_all_latest_cards_offline() -> None:
         writer.update_desk_open_card_flags(pair, row_date, telemetry_status="OFFLINE")
 
 
-def run_overnight_check() -> None:
+def run_overnight_check(*, as_of: date | None = None) -> StageHealth:
+    as_of = as_of or date.today()
+    if as_of != date.today():
+        return StageHealth(
+            "overnight_check", "DEGRADED", notes=["historical_telemetry_unavailable"]
+        )
     load_universe()
-    pairs = pairs_from_universe(asset_class="FX")
+    pairs = _LOCKED_PAIRS
+    checked: set[str] = set()
+    notes: list[str] = []
     state = _read_state()
     try:
         basket = fetch_proxy_basket()
-        if len(basket.spot) != len(pairs):
+        if set(basket.spot) != set(pairs) or any(
+            not isfinite(value) or value <= 0 for value in basket.spot.values()
+        ):
             raise RuntimeError("Spot proxy basket incomplete")
     except Exception as exc:  # noqa: BLE001
         logger.warning("Overnight proxy fetch failed: %s", exc)
         failures = state["consecutive_failures"] + 1
         streak_clean = _coerce_streak_dict(state.get("invalidation_streak"))
-        _write_state(failures, streak_clean)
-        if failures >= _OFFLINE_FAILURE_THRESHOLD:
-            _set_all_latest_cards_offline()
-            logger.warning("Telemetry set OFFLINE after %s failures", failures)
-        return
+        try:
+            _write_state(failures, streak_clean)
+            if failures >= _OFFLINE_FAILURE_THRESHOLD:
+                _set_all_latest_cards_offline()
+        except Exception as secondary:
+            logger.warning("Telemetry failure state write failed: %s", type(secondary).__name__)
+        raise
 
     streak_dict: dict[str, int] = _coerce_streak_dict(state.get("invalidation_streak"))
     _write_state(0, streak_dict)
-    today_str = date.today().isoformat()
+    today_str = as_of.isoformat()
+    if basket.vix is None or not isfinite(basket.vix):
+        notes.append("vix_unavailable")
 
     baseline_vix = None
     vix_trigger = False
@@ -141,16 +157,19 @@ def run_overnight_check() -> None:
             continue
 
         signal_date = str(signal_row.get("date", ""))[:10]
-        if not signal_date:
+        if signal_date != today_str or str(latest_card.get("date", ""))[:10] != signal_date:
             continue
 
         ny_close = signal_row.get("spot")
         realized_vol_20d = signal_row.get("realized_vol_20d")
-        if not isinstance(ny_close, (int, float)) or not isinstance(
-            realized_vol_20d, (int, float)
-        ):
+        if not isinstance(ny_close, (int, float)) or not isinstance(realized_vol_20d, (int, float)):
             continue
-        if ny_close == 0.0 or realized_vol_20d <= 0.0:
+        if (
+            not isfinite(ny_close)
+            or not isfinite(realized_vol_20d)
+            or ny_close <= 0
+            or realized_vol_20d <= 0
+        ):
             continue
 
         live_spot = basket.spot.get(pair)
@@ -169,9 +188,7 @@ def run_overnight_check() -> None:
 
         invalidation = prev_inv or streak_dict[pair] >= _INVALIDATION_PERSISTENCE_TICKS
         pending_invalidation = (
-            breach
-            and not invalidation
-            and 0 < streak_dict[pair] < _INVALIDATION_PERSISTENCE_TICKS
+            breach and not invalidation and 0 < streak_dict[pair] < _INVALIDATION_PERSISTENCE_TICKS
         )
 
         writer.update_desk_open_card_flags(
@@ -193,6 +210,7 @@ def run_overnight_check() -> None:
                 "overnight_pending_invalidation": pending_invalidation,
             },
         )
+        checked.add(pair)
         logger.info(
             (
                 "Overnight check %s: change=%.4f vol20=%.4f persistence=%s/%s "
@@ -208,6 +226,13 @@ def run_overnight_check() -> None:
         )
 
     _write_state(0, streak_dict)
+    missing = sorted(set(pairs) - checked)
+    return StageHealth(
+        "overnight_check",
+        "DEGRADED" if missing or notes else "OK",
+        missing_fields=missing,
+        notes=notes,
+    )
 
 
 if __name__ == "__main__":

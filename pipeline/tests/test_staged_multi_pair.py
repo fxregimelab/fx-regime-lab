@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import pytest
 
@@ -14,6 +16,7 @@ from src.staged.constants import (
 from src.staged.contracts import IngestionSnapshot, StageHealth
 from src.staged.fakes import FakeAlertPort, FakeFetcherPort, FakeWriterPort
 from src.staged.orchestrator import (
+    _archive_price_task,
     _ingestion_task,
     _publish_task,
     _regime_task,
@@ -21,7 +24,7 @@ from src.staged.orchestrator import (
     _validate_task,
     run_multi_pair_flow,
 )
-from src.types import CotRow, SpotBar
+from src.types import CotRow, RegimeCall, SignalRow, SpotBar
 
 
 def _spot_bar(pair: str, d: datetime.date, close: float) -> SpotBar:
@@ -33,6 +36,14 @@ def _spot_bar(pair: str, d: datetime.date, close: float) -> SpotBar:
         low=close,
         close=close,
         volume=1_000_000.0,
+        provider="polygon",
+        instrument=f"C:{pair}",
+        retrieved_at=datetime.datetime(2026, 5, 20, 23, tzinfo=datetime.UTC),
+        provider_timestamp=datetime.datetime.combine(
+            d,
+            datetime.time.min,
+            tzinfo=datetime.UTC,
+        ),
     )
 
 
@@ -79,7 +90,8 @@ def _make_multi_pair_snapshot() -> IngestionSnapshot:
     spots = {pair: _make_pair_spots(pair, as_of, base) for pair, base in pairs}
     cot_rows: list[CotRow] = []
     for pair, _ in pairs:
-        cot_rows.extend(_make_cot_rows(pair, as_of))
+        if pair != "USDINR":
+            cot_rows.extend(_make_cot_rows(pair, as_of))
 
     return IngestionSnapshot(
         date=as_of,
@@ -103,6 +115,12 @@ def _make_multi_pair_snapshot() -> IngestionSnapshot:
             "gold": 2000.0,
             "copper": 4.0,
             "stoxx": 4500.0,
+            "hist": {
+                # Synthetic causal histories: 30 past observations plus the
+                # current scalar above. USDINR has no COT input by contract.
+                "oil": [60.0 + i * 0.5 for i in range(30)] + [75.0],
+                "dxy": [96.5 + i * 0.25 for i in range(30)] + [104.0],
+            },
         },
         macro={
             "ecb_balance_sheet": 7000.0,
@@ -131,6 +149,7 @@ def _patch_staged_retry_delay_for_speed(
         return
 
     for task in (
+        _archive_price_task,
         _ingestion_task,
         _signal_task,
         _regime_task,
@@ -144,6 +163,7 @@ def test_stage_boundary_tasks_have_retry_policy() -> None:
     """Each stage boundary in the multi-pair flow is a Prefect task with retries."""
 
     for task in (
+        _archive_price_task,
         _ingestion_task,
         _signal_task,
         _regime_task,
@@ -176,13 +196,57 @@ def test_multi_pair_flow_runs_all_three_pairs() -> None:
 
     assert output.date == snapshot.date
     assert set(output.outputs.keys()) == {"EURUSD", "USDJPY", "USDINR"}
-    assert all(o.health.status == "OK" for o in output.outputs.values())
-    assert output.health.status == "OK"
+    assert all(o.health.status == "DEGRADED" for o in output.outputs.values())
+    assert output.health.status == "DEGRADED"
     assert len(writer.regime_calls) == 3
-    assert len(alert.successes) == 3
-    assert len(alert.heartbeats) == 1
-    assert alert.heartbeats[0]["pairs_processed"] == 3
-    assert alert.heartbeats[0]["regime_calls_count"] == 3
+    assert not alert.successes
+    assert len(writer.signal_rows) == 3
+    assert len(writer.archive_calls) == 1
+    assert len(writer.archive_calls[0]) == 120
+    assert not alert.heartbeats
+    assert len(alert.statuses) == 4
+    assert alert.statuses[-1]["health"].status == "DEGRADED"
+
+
+def test_multi_pair_flow_archives_once_before_all_publications() -> None:
+    snapshot = _make_multi_pair_snapshot()
+    events: list[str] = []
+
+    class OrderedWriter(FakeWriterPort):
+        def archive_price_observations(
+            self,
+            observations: Sequence[Mapping[str, Any]],
+        ) -> Mapping[str, Any]:
+            events.append("archive")
+            return super().archive_price_observations(observations)
+
+        def publish_regime_call(
+            self,
+            call: RegimeCall,
+            signal_row: SignalRow,
+            *,
+            correlation_id: str | None = None,
+        ) -> int | str | None:
+            events.append("publish")
+            return super().publish_regime_call(
+                call,
+                signal_row,
+                correlation_id=correlation_id,
+            )
+
+    writer = OrderedWriter()
+    asyncio.run(
+        run_multi_pair_flow(
+            snapshot.date,
+            fetcher=FakeFetcherPort(snapshot),
+            writer=writer,
+            alert=FakeAlertPort(),
+            correlation_id="archive-order",
+        )
+    )
+
+    assert events == ["archive", "publish", "publish", "publish"]
+    assert len(writer.archive_calls) == 1
 
 
 def test_multi_pair_flow_continues_when_ingestion_degraded() -> None:
@@ -221,7 +285,8 @@ def test_multi_pair_flow_continues_when_ingestion_degraded() -> None:
     assert set(output.outputs.keys()) == {"EURUSD", "USDJPY", "USDINR"}
     assert all(o.health.status == "DEGRADED" for o in output.outputs.values())
     assert len(writer.regime_calls) == 3
-    assert len(alert.successes) == 3
+    assert not alert.successes
+    assert len(writer.signal_rows) == 3
 
 
 def test_multi_pair_flow_fails_on_critical_ingestion_failure() -> None:

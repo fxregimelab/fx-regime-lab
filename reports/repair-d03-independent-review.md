@@ -1,0 +1,9 @@
+# D03 independent review — 30 September 2026
+
+Verdict: **partial repair verified locally; D03 remains IN PROGRESS**. The old rate-quality check used the spot date. The revised check uses each required rate observation and rejects the deterministic stale-rate/fresh-spot case. Current FRED and Yahoo acquisition leaves verified release time and historical vintage unknown, so those rates cannot qualify. No economic or forecasting improvement is established.
+
+Independent checks on the shared checkout: five D03 tests passed; the full pipeline suite passed **2,041** tests; Ruff passed; MyPy passed on 231 source files; `git diff --check` exited zero. Sampled D03 file hashes match the worker's report. The Unlazy status command still reports **0 of 7 gates met** because the worker did not record automatic gate evidence; direct test output must not be relabelled as that evidence.
+
+The `live/staged/replay` test calls rate-qualification seams with synthetic released observations. It does not exercise full production orchestration or prove a provider's release time, vintage, or stored replay provenance. The G2 and G3 gate descriptions are therefore broader than their current checks. A follow-up should make those gates match measurable behavior and add integration checks where practical. The rate helpers also do not compare a qualifying observation's value with the parallel scalar yield map. The DQS check does compare them, but the signal helper can still consume the observation. Test and resolve that potential disagreement before enabling a sourced rate feature.
+
+The remaining D03 work is source-by-source release/vintage evidence, a durable point-in-time record and replay policy, honest frequency-specific freshness, integration checks, and an operating decision about the expected DQS penalty while current inputs fail closed. D01 still blocks a matched live two-year pair spread. Do not mark D03 VERIFIED LOCAL from this review.

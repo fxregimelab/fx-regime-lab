@@ -1,0 +1,35 @@
+{
+  "at_utc": "2026-10-01T20:20:35.346259+00:00",
+  "pid": 18664,
+  "report_sha256": "c7fca95ddfaf994ecf499bc63dc4026dc0581b7add23765d3d82e28ae437c804",
+  "status_http": 200,
+  "idle": true,
+  "report_http": 200,
+  "fomc_events": 83,
+  "selected_changes": 27,
+  "complete_events_per_horizon": [
+    2,
+    2
+  ],
+  "journal_http": 200,
+  "journal_counts": {
+    "decision_count": 40,
+    "unique_observation_count": 8,
+    "repeated_publication_count": 32,
+    "outcome_status_counts": {
+      "PENDING": 5,
+      "UNAVAILABLE": 3
+    }
+  },
+  "csv_http": 200,
+  "csv_rows": 40,
+  "anonymous_http": {
+    "/api/report": 401,
+    "/api/journal": 401,
+    "/api/journal.csv": 401
+  },
+  "missing_csrf_http": 403,
+  "post_logout_http": 401,
+  "reads_preserved_report_and_journal": true,
+  "execution": "NOT_RECORDED"
+}

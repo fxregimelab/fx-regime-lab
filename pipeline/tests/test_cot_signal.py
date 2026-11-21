@@ -105,8 +105,8 @@ class TestComputeCotSmartSpreadPercentile:
     def test_falls_back_to_net_long_when_breakdown_missing(self) -> None:
         rows = _cot_rows(n=20, with_breakdown=False)
         result = compute_cot_smart_spread_percentile(rows, "EURUSD")
-        assert result is not None
-        assert 0.0 <= result <= 100.0
+        # A different category cannot stand in for the missing AM-minus-LM series.
+        assert result is None
 
     def test_uses_smart_spread_when_breakdown_present(self) -> None:
         rows = _cot_rows(n=20)

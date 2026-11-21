@@ -1,0 +1,33 @@
+{
+  "at_utc": "2026-10-01T20:27:46.829575+00:00",
+  "browser": "Codex in-app browser",
+  "tab": "4",
+  "url": "http://127.0.0.1:8765/#decisionJournal",
+  "authenticated": true,
+  "fomc_visible": {
+    "inventory": 83,
+    "exact_clocks": 75,
+    "changes": 28,
+    "selected_changes": 27,
+    "complete_events_per_horizon": [
+      2,
+      2
+    ],
+    "JPY_in_table": true,
+    "uncertainty": "Unavailable",
+    "qualification": "UNQUALIFIED"
+  },
+  "journal_visible": {
+    "decision_count": 40,
+    "unique_observation_count": 8,
+    "repeated_publication_count": 32,
+    "pending": 5,
+    "unavailable": 3,
+    "JPY_preserved": true
+  },
+  "old_tab_recovery": "Tab 3 focus-emulation command timed out; fresh tab 4 succeeded. Existing user tab preserved.",
+  "screenshots": {
+    "private-fomc-dashboard.png": "fc96fd85e88ffc9726def5cd59e6d74a329a2b55a59494517b43be8fb7bee454",
+    "private-fomc-journal-dashboard.png": "ec401bc357dd990266fbed8aa1905dacefbfc502f2840aeffec13ec36c82e8fb"
+  }
+}

@@ -66,15 +66,11 @@ def compute_cot_smart_spread_percentile(
     as_of: date | None = None,
     min_reports: int = COT_PERCENTILE_MIN_REPORTS,
 ) -> float | None:
-    """Percentile of Asset Manager net minus Leveraged Money net.
+    """Causal percentile of Asset Manager net minus Leveraged Money net.
 
-    This "smart spread" captures the disagreement between real money
-    (trend-following, slow) and fast money (CTAs, macro funds). When
-    real money is long and fast money is short, the spread is wide positive
-    — often a contrarian signal at turning points.
-
-    The current observation is excluded from the reference distribution
-    (strictly causal).
+    The latest eligible report is the current observation and is excluded
+    from the reference distribution. Reports without both categories are not
+    substituted with another positioning measure.
     """
 
     filtered = [r for r in rows if r.pair == pair]
@@ -82,29 +78,34 @@ def compute_cot_smart_spread_percentile(
         filtered = [r for r in filtered if r.date <= as_of]
     if not filtered:
         return None
-    by_report_date: dict[date, CotRow] = {}
+    by_report_date: dict[date, tuple[int | None, int | None]] = {}
+    conflicting_dates: set[date] = set()
     for r in filtered:
-        by_report_date[r.date] = r
-    chronological = [by_report_date[d] for d in sorted(by_report_date)]
-    window_rows = chronological[-window_reports:]
-    if len(window_rows) < min_reports + 1:
-        return None
-
-    # Compute smart spread for each row; fall back to net_long if breakdown missing.
-    spreads: list[float] = []
-    for r in window_rows:
-        am = r.asset_mgr_net
-        lm = r.lev_money_net
-        if am is not None and lm is not None:
-            spreads.append(float(am) - float(lm))
+        category_values = (r.asset_mgr_net, r.lev_money_net)
+        if r.date in by_report_date and by_report_date[r.date] != category_values:
+            conflicting_dates.add(r.date)
         else:
-            spreads.append(float(r.net_long))
+            by_report_date[r.date] = category_values
 
-    last = spreads[-1]
-    hist = spreads[:-1]
-    n = len(hist)
-    if n == 0:
+    window_dates = sorted(by_report_date)[-window_reports:]
+    if not window_dates or any(d in conflicting_dates for d in window_dates):
         return None
+
+    current_am, current_lm = by_report_date[window_dates[-1]]
+    if current_am is None or current_lm is None:
+        return None
+
+    hist: list[float] = []
+    for report_date in window_dates[:-1]:
+        am, lm = by_report_date[report_date]
+        if am is not None and lm is not None:
+            hist.append(float(am) - float(lm))
+
+    if not hist or len(hist) < min_reports:
+        return None
+
+    last = float(current_am) - float(current_lm)
+    n = len(hist)
     pct = 100.0 * sum(1 for v in hist if v <= last) / float(n)
     return float(pct)
 

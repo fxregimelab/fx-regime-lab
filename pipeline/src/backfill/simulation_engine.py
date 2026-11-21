@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import argparse
 import logging
-import math
 import os
 from collections import defaultdict
-from datetime import date
+from collections.abc import Mapping
+from datetime import date, datetime
 from typing import Any
 
 import numpy as np
@@ -27,18 +27,21 @@ from src.db import writer
 from src.logic.layer2_directional import run_layer2_directional
 from src.logic.layer3_execution import run_layer3_execution
 from src.regime.classifier import classify_regime_layer1
-from src.regime.composite import (
-    compute_composite,
-    compute_dynamic_betas,
-    get_primary_driver,
-)
+from src.regime.composite import compute_composite
 from src.regime.confidence import compute_confidence
-from src.signals.cot import compute_cot_smart_spread_percentile, normalize_cot_signal
-from src.signals.open_interest import compute_oi_signal
-from src.signals.rate import (
-    normalize_rate_signal,
-    rate_direction_from_spreads,
+from src.signals.cot import normalize_cot_signal
+from src.signals.direction import (
+    DIRECTIONAL_MODEL_VERSION,
+    DIRECTIONAL_STRATEGY_VERSION,
+    directional_inputs,
 )
+from src.signals.fpi import FPI_UNAVAILABLE_NOTES
+from src.signals.rate import rate_direction_from_spreads
+from src.signals.rate_inputs import (
+    current_real_yield_spread,
+    nominal_ten_year_context,
+)
+from src.signals.rate_observation import RateObservation, qualified_two_year_spread
 from src.signals.special import compute_special_signal
 from src.signals.volatility import (
     TRADING_DAYS_3Y_VOL_RANK,
@@ -58,9 +61,9 @@ from src.types import (
 logger = logging.getLogger(__name__)
 
 YIELD_ID_MAP: dict[str, dict[str, str]] = {
-    "EURUSD": {"base": "DGS2", "quote_10y": "IRLTLT01DEM156N"},
-    "USDJPY": {"base": "DGS2", "quote_10y": "IRLTLT01JPM156N"},
-    "USDINR": {"base": "DGS2", "quote_10y": "INDIRLTLT01STM"},
+    "EURUSD": {"foreign_10y": "IRLTLT01DEM156N", "foreign_10y_alias": "de_10y"},
+    "USDJPY": {"foreign_10y": "IRLTLT01JPM156N", "foreign_10y_alias": "jp_10y"},
+    "USDINR": {"foreign_10y": "INDIRLTLT01STM", "foreign_10y_alias": "in_10y"},
 }
 
 
@@ -69,6 +72,7 @@ def _pg_conn(max_retries: int = 5) -> Any:
     import time
 
     import pg8000.native
+
     ctx = ssl._create_unverified_context()
     host = os.environ.get("SUPABASE_DB_HOST", "db.weaaacohvzzgkgxzpaee.supabase.co")
     password = os.environ.get("SUPABASE_DB_PASSWORD")
@@ -91,7 +95,7 @@ def _pg_conn(max_retries: int = 5) -> Any:
         except Exception as e:
             last_err = e
             logger.warning("DB connection attempt %d/%d failed: %s", attempt + 1, max_retries, e)
-            time.sleep(min(2 ** attempt, 30))
+            time.sleep(min(2**attempt, 30))
     if last_err is not None:
         raise last_err
     raise RuntimeError(f"Failed to connect to database after {max_retries} attempts")
@@ -160,11 +164,40 @@ def _percentile(values: list[float], p: float) -> float:
     return sorted_values[lower] * (1 - weight) + sorted_values[upper] * weight
 
 
+def _historical_rate_values(
+    pair: str,
+    as_of: date,
+    yields_by_series: dict[str, dict[date, float]],
+) -> dict[str, float | None]:
+    """Return source IDs and currency aliases without changing their meaning."""
+    ymap = YIELD_ID_MAP.get(pair, {})
+    foreign_series = ymap.get("foreign_10y", "")
+    foreign_alias = ymap.get("foreign_10y_alias", "")
+    us_2y = _get_yield("DGS2", as_of, yields_by_series)
+    us_10y = _get_yield("DGS10", as_of, yields_by_series)
+    foreign_10y = _get_yield(foreign_series, as_of, yields_by_series)
+    values: dict[str, float | None] = {
+        "DGS2": us_2y,
+        "ECBDFR": _get_yield("ECBDFR", as_of, yields_by_series),
+        "IRLTLT01JPM156N": _get_yield("IRLTLT01JPM156N", as_of, yields_by_series),
+        "INDIRLTLT01STM": _get_yield("INDIRLTLT01STM", as_of, yields_by_series),
+        "T10YIE": _get_yield("T10YIE", as_of, yields_by_series),
+        "us_2y": us_2y,
+        "us_10y": us_10y,
+    }
+    if foreign_alias:
+        values[foreign_alias] = foreign_10y
+    return values
+
+
 def simulate_all_days(
     pair: str,
     start: date,
     end: date,
     yields_by_series: dict[str, dict[date, float]],
+    *,
+    rate_observations_by_date: Mapping[date, Mapping[str, RateObservation]] | None = None,
+    decision_times: Mapping[date, datetime] | None = None,
 ) -> list[tuple[SignalRow, RegimeCall]]:
     """Compute all regime calls in-memory. Returns list of (signal, call)."""
     spot_map = _load_all_spot_bars(pair)
@@ -182,8 +215,8 @@ def simulate_all_days(
     all_rv20 = np.full(n, np.nan)
     all_rv5 = np.full(n, np.nan)
     for j in range(21, n):
-        all_rv20[j] = float(np.std(all_log_returns[j - 21:j]) * np.sqrt(252) * 100)
-        all_rv5[j] = float(np.std(all_log_returns[j - 5:j]) * np.sqrt(252) * 100)
+        all_rv20[j] = float(np.std(all_log_returns[j - 21 : j]) * np.sqrt(252) * 100)
+        all_rv5[j] = float(np.std(all_log_returns[j - 5 : j]) * np.sqrt(252) * 100)
 
     # Pre-compute vol_90th (rolling 252-day percentile of RV5)
     all_vol_90th = np.full(n, np.nan)
@@ -208,74 +241,42 @@ def simulate_all_days(
     all_rv21_series = realized_vol21_series_annualized_pct(all_closes)
     all_rv_rank = np.full(n, np.nan)
     for j in range(21 + 30, n):
-        tail = all_rv21_series[21:j + 1]
+        tail = all_rv21_series[21 : j + 1]
         win = tail[-TRADING_DAYS_3Y_VOL_RANK:] if len(tail) > TRADING_DAYS_3Y_VOL_RANK else tail
         if len(win) >= 2:
             current = float(win[-1])
             hist = win[:-1]
             all_rv_rank[j] = empirical_cdf_rank(current, hist)
 
-    ymap = YIELD_ID_MAP.get(pair, {})
-    yield_series = ymap.get("quote_10y", "DGS10")
-    yield_history = sorted(yields_by_series.get(yield_series, {}).items())
-    yield_values = [v for _, v in yield_history]
-
-    driver = get_primary_driver(compute_dynamic_betas([]))
-    special_signal = compute_special_signal(pair, {})
+    driver = "Static directional reference (unvalidated)"
+    special_signal = directional_inputs(
+        pair, rate=None, cot=None, special=compute_special_signal(pair, {}), fpi=None
+    ).special
 
     results: list[tuple[SignalRow, RegimeCall]] = []
     prior_regime: str | None = None
-    carry_history: list[float] = []
-    last_carry: float | None = None
 
     for full_idx, as_of in date_indices:
         if full_idx < 60:
             continue
 
         today_bar = spot_map[as_of]
-        window_bars = [spot_map[d] for d in all_sorted_dates[max(0, full_idx - 2519):full_idx + 1]]
+        window_bars = [
+            spot_map[d] for d in all_sorted_dates[max(0, full_idx - 2519) : full_idx + 1]
+        ]
         spot_closes = [b.close for b in window_bars]
 
-        base_yield = _get_yield(ymap.get("base", "DGS2"), as_of, yields_by_series)
-        quote_10y = _get_yield(ymap.get("quote_10y", ""), as_of, yields_by_series)
-        us_10y = _get_yield("DGS10", as_of, yields_by_series)
-        bei = _get_yield("T10YIE", as_of, yields_by_series)
-
-        if us_10y is not None and quote_10y is not None:
-            rate_spread_10y = float(us_10y) - float(quote_10y)
-        else:
-            rate_spread_10y = None
-        rate_spread_2y = base_yield
-        rate_spread_10y_real = (
-            None
-            if rate_spread_10y is None
-            else (
-                float(rate_spread_10y) - float(bei)
-                if bei is not None
-                else float(rate_spread_10y)
-            )
+        rate_values = _historical_rate_values(pair, as_of, yields_by_series)
+        bei = rate_values.get("T10YIE")
+        rate_spread_2y = qualified_two_year_spread(
+            pair,
+            (rate_observations_by_date or {}).get(as_of, {}),
+            decision_at=(decision_times or {}).get(as_of),
         )
-
-        # Forward-fill carry history for Layer 1 gate
-        if rate_spread_10y is not None:
-            last_carry = float(rate_spread_10y)
-        if last_carry is not None:
-            carry_history.append(last_carry)
-
-        rate_norm_z = None
+        rate_spread_10y = nominal_ten_year_context(pair, rate_values)
+        rate_spread_10y_real = current_real_yield_spread(pair, rate_spread_10y, rate_values)
+        rate_norm = None
         rate_z_structural_val = None
-        if rate_spread_10y is not None and len(yield_values) >= 20:
-            hist_vals = [v for d, v in yield_history if d <= as_of]
-            if len(hist_vals) >= 20:
-                mean = sum(hist_vals) / len(hist_vals)
-                variance = sum((x - mean) ** 2 for x in hist_vals) / len(hist_vals)
-                std = variance ** 0.5
-                if std > 0:
-                    z = (float(rate_spread_10y) - mean) / std
-                    rate_norm_z = z
-                    rate_z_structural_val = z
-
-        rate_norm = rate_norm_z
         rate_dir = rate_direction_from_spreads(
             rate_spread_2y, rate_spread_10y_real, z_tactical=rate_norm
         )
@@ -288,21 +289,26 @@ def simulate_all_days(
         cot_norm = None
         oi_norm = None
         composite = compute_composite(
-            rate_norm, cot_norm, vol_norm, oi_norm,
+            rate_norm,
+            cot_norm,
+            vol_norm,
+            oi_norm,
             pair=pair,
             special_signal=special_signal,
         )
         if composite is None:
+            logger.debug("directional_inputs_unavailable for %s at %s — no call", pair, as_of)
             continue
 
         confidence = compute_confidence(
-            composite, rate_norm, cot_norm,
+            composite,
+            rate_norm,
+            cot_norm,
             pair=pair,
             special_signal=special_signal,
         )
 
         structural_instability = False
-        carry_gate = tuple(carry_history[-2520:]) if carry_history else ()
         gate_out = classify_regime_layer1(
             Layer1ClassifierContext(
                 pair=pair,
@@ -310,7 +316,7 @@ def simulate_all_days(
                 vol_expanding=vol_exp,
                 structural_instability=structural_instability,
                 prior_regime_label=prior_regime,
-                carry_risk_adjusted_chronological=carry_gate,
+                carry_risk_adjusted_chronological=(),
                 spot_closes_chronological=tuple(spot_closes),
                 breakeven_inflation_chronological=None,
                 rate_diff_2y=rate_spread_2y,
@@ -323,6 +329,7 @@ def simulate_all_days(
             confidence = float(max(0.40, confidence * 0.50))
 
         layer2_out = run_layer2_directional(
+            pair=pair,
             composite=float(composite),
             z_tactical=rate_norm,
             z_structural=rate_z_structural_val,
@@ -332,9 +339,7 @@ def simulate_all_days(
         )
 
         rv_rank_layer3 = (
-            float(all_rv_rank[full_idx])
-            if not np.isnan(all_rv_rank[full_idx])
-            else None
+            float(all_rv_rank[full_idx]) if not np.isnan(all_rv_rank[full_idx]) else None
         )
         layer3_out = run_layer3_execution(
             layer2=layer2_out,
@@ -379,6 +384,12 @@ def simulate_all_days(
             realized_vol_rank=layer3_out["realized_vol_rank"],
             skew_alignment=layer3_out["skew_alignment"],
         )
+        signal_row.data_quality_notes = [
+            "rate_inputs_unqualified",
+            "rate_history_unavailable",
+        ]
+        if pair == "USDINR":
+            signal_row.data_quality_notes.extend(FPI_UNAVAILABLE_NOTES)
 
         call = builder.build_regime_call(
             pair=pair,
@@ -396,8 +407,8 @@ def simulate_all_days(
             oi_norm=None,
             special_signal=special_signal,
             apply_dqs_cap=False,
-            model_version="2.0-historical",
-            strategy_version="v2",
+            model_version=DIRECTIONAL_MODEL_VERSION,
+            strategy_version=DIRECTIONAL_STRATEGY_VERSION,
             data_source="backtest",
         )
         call.regime_category = None
@@ -484,20 +495,9 @@ def _build_historical_snapshot(
 ) -> IngestionSnapshot:
     """Construct an ``IngestionSnapshot`` for a historical simulation date."""
 
-    ymap = YIELD_ID_MAP.get(pair, {})
-    base_yield = _get_yield(ymap.get("base", "DGS2"), as_of, yields_by_series)
-    quote_10y = _get_yield(ymap.get("quote_10y", ""), as_of, yields_by_series)
-    us_10y = _get_yield("DGS10", as_of, yields_by_series)
-    bei = _get_yield("T10YIE", as_of, yields_by_series)
+    yields = _historical_rate_values(pair, as_of, yields_by_series)
 
-    yields: dict[str, float | None] = {
-        "us_2y": base_yield,
-        "us_10y": us_10y,
-        "T10YIE": bei,
-        "quote_10y": quote_10y,
-    }
-
-    window_bars = [spot_map[d] for d in all_sorted_dates[max(0, full_idx - 2519):full_idx + 1]]
+    window_bars = [spot_map[d] for d in all_sorted_dates[max(0, full_idx - 2519) : full_idx + 1]]
 
     # Backfill snapshots are reconstructed from stored signals; COT rows are not
     # needed for assembly because the builder reads cot_percentile/cot_norm directly.
@@ -530,15 +530,17 @@ def simulate_all_days_v2(
     end: date,
     yields_by_series: dict[str, dict[date, float]],
     signals_by_date: dict[date, dict[str, Any]] | None = None,
+    *,
+    rate_observations_by_date: Mapping[date, Mapping[str, RateObservation]] | None = None,
+    decision_times: Mapping[date, datetime] | None = None,
 ) -> list[tuple[SignalRow, RegimeCall]]:
     """Compute all regime calls using M.3 signal logic.
 
     Improvements over v1:
-    - Rate normalization uses MAD Z-score via ``normalize_rate_signal()``
-    - Uses z_blended (60%% tactical + 40%% structural)
+    - Unqualified rate normalization remains unavailable
     - COT loaded from signals table with smart-spread 70/30 blend
     - Special signal uses real macro data for EURUSD
-    - Betas passed to ``compute_composite()``
+    - Static directional weights; beta adaptation is disabled
     """
     spot_map = _load_all_spot_bars(pair)
     all_sorted_dates = sorted(spot_map)
@@ -555,8 +557,8 @@ def simulate_all_days_v2(
     all_rv20 = np.full(n, np.nan)
     all_rv5 = np.full(n, np.nan)
     for j in range(21, n):
-        all_rv20[j] = float(np.std(all_log_returns[j - 21:j]) * np.sqrt(252) * 100)
-        all_rv5[j] = float(np.std(all_log_returns[j - 5:j]) * np.sqrt(252) * 100)
+        all_rv20[j] = float(np.std(all_log_returns[j - 21 : j]) * np.sqrt(252) * 100)
+        all_rv5[j] = float(np.std(all_log_returns[j - 5 : j]) * np.sqrt(252) * 100)
 
     # Pre-compute vol_90th (rolling 252-day percentile of RV5)
     all_vol_90th = np.full(n, np.nan)
@@ -581,108 +583,40 @@ def simulate_all_days_v2(
     all_rv21_series = realized_vol21_series_annualized_pct(all_closes)
     all_rv_rank = np.full(n, np.nan)
     for j in range(21 + 30, n):
-        tail = all_rv21_series[21:j + 1]
+        tail = all_rv21_series[21 : j + 1]
         win = tail[-TRADING_DAYS_3Y_VOL_RANK:] if len(tail) > TRADING_DAYS_3Y_VOL_RANK else tail
         if len(win) >= 2:
             current = float(win[-1])
             hist = win[:-1]
             all_rv_rank[j] = empirical_cdf_rank(current, hist)
 
-    ymap = YIELD_ID_MAP.get(pair, {})
-
-    # Build historical carry and structural series for rate normalization.
-    carry_history_chronological: list[float] = []
-    real_carry_history_chronological: list[float] = []
-    carry_dates: list[date] = []
-    for as_of in all_sorted_dates:
-        base_yield = _get_yield(ymap.get("base", "DGS2"), as_of, yields_by_series)
-        quote_10y = _get_yield(ymap.get("quote_10y", ""), as_of, yields_by_series)
-        us_10y = _get_yield("DGS10", as_of, yields_by_series)
-        bei = _get_yield("T10YIE", as_of, yields_by_series)
-        if us_10y is not None and quote_10y is not None:
-            spread_10y = float(us_10y) - float(quote_10y)
-            real_spread = (
-                spread_10y - float(bei)
-                if bei is not None
-                else spread_10y
-            )
-            carry_history_chronological.append(spread_10y)
-            real_carry_history_chronological.append(real_spread)
-            carry_dates.append(as_of)
-        else:
-            carry_history_chronological.append(float("nan"))
-            real_carry_history_chronological.append(float("nan"))
-            carry_dates.append(as_of)
-
     # Load signals if not provided
     sig_map = signals_by_date or _load_signals_for_pair(pair, start, end)
 
     results: list[tuple[SignalRow, RegimeCall]] = []
     prior_regime: str | None = None
-    carry_history: list[float] = []
-    last_carry: float | None = None
 
     for full_idx, as_of in date_indices:
         if full_idx < 60:
             continue
 
         today_bar = spot_map[as_of]
-        window_bars = [spot_map[d] for d in all_sorted_dates[max(0, full_idx - 2519):full_idx + 1]]
+        window_bars = [
+            spot_map[d] for d in all_sorted_dates[max(0, full_idx - 2519) : full_idx + 1]
+        ]
         spot_closes = [b.close for b in window_bars]
 
-        base_yield = _get_yield(ymap.get("base", "DGS2"), as_of, yields_by_series)
-        quote_10y = _get_yield(ymap.get("quote_10y", ""), as_of, yields_by_series)
-        us_10y = _get_yield("DGS10", as_of, yields_by_series)
-        bei = _get_yield("T10YIE", as_of, yields_by_series)
-
-        if us_10y is not None and quote_10y is not None:
-            rate_spread_10y = float(us_10y) - float(quote_10y)
-        else:
-            rate_spread_10y = None
-        rate_spread_2y = base_yield
-        rate_spread_10y_real = (
-            None
-            if rate_spread_10y is None
-            else (
-                float(rate_spread_10y) - float(bei)
-                if bei is not None
-                else float(rate_spread_10y)
-            )
+        rate_values = _historical_rate_values(pair, as_of, yields_by_series)
+        bei = rate_values.get("T10YIE")
+        rate_spread_2y = qualified_two_year_spread(
+            pair,
+            (rate_observations_by_date or {}).get(as_of, {}),
+            decision_at=(decision_times or {}).get(as_of),
         )
-
-        if rate_spread_10y is not None:
-            last_carry = float(rate_spread_10y)
-        if last_carry is not None:
-            carry_history.append(last_carry)
-
-        # ── Rate normalization with MAD (M.3.2) ─────────────────────────────
-        rate_norm_z = None
+        rate_spread_10y = nominal_ten_year_context(pair, rate_values)
+        rate_spread_10y_real = current_real_yield_spread(pair, rate_spread_10y, rate_values)
+        rate_norm = None
         rate_z_structural_val = None
-        if rate_spread_10y is not None:
-            # Build causal historical spreads up to (but not including) as_of
-            hist_carry = [
-                v for d, v in zip(carry_dates[:full_idx], carry_history_chronological[:full_idx])
-                if not math.isnan(v)
-            ]
-            hist_real = [
-                v for _d, v in zip(
-                    carry_dates[:full_idx],
-                    real_carry_history_chronological[:full_idx],
-                )
-                if not math.isnan(v)
-            ]
-            if len(hist_carry) >= 20:
-                rate_norm_z = normalize_rate_signal(
-                    float(rate_spread_10y),
-                    pair,
-                    hist_carry,
-                    spread_structural=rate_spread_10y_real,
-                    historical_structural=hist_real if len(hist_real) >= 5 else None,
-                )
-        rate_norm = rate_norm_z.z_blended if rate_norm_z is not None else None
-        rate_z_structural_val = (
-            rate_norm_z.z_structural if rate_norm_z is not None else None
-        )
         rate_dir = rate_direction_from_spreads(
             rate_spread_2y, rate_spread_10y_real, z_tactical=rate_norm
         )
@@ -695,38 +629,16 @@ def simulate_all_days_v2(
         # ── COT with smart spread (M.3.3) ────────────────────────────────────
         sig_row = sig_map.get(as_of, {})
         cot_pct = sig_row.get("cot_percentile")
-        cot_smart = None
-        if cot_pct is not None:
-            # Build minimal CotRow list for smart spread (needs asset_mgr_net, lev_money_net)
-            amn = sig_row.get("cot_asset_mgr_net")
-            lmn = sig_row.get("cot_lev_money_net")
-            if amn is not None and lmn is not None:
-                cot_rows = [
-                    CotRow(
-                        date=as_of,
-                        pair=pair,
-                        net_long=sig_row.get("cot_net_pos") or 0,
-                        open_interest=1000,
-                        asset_mgr_net=int(amn),
-                        lev_money_net=int(lmn),
-                    )
-                ]
-                cot_smart = compute_cot_smart_spread_percentile(cot_rows, pair, min_reports=1)
-        cot_pct_norm = normalize_cot_signal(cot_pct) if cot_pct is not None else None
-        cot_smart_norm = normalize_cot_signal(cot_smart) if cot_smart is not None else None
-        cot_norm: float | None = None
-        if cot_pct_norm is not None and cot_smart_norm is not None:
-            cot_norm = 0.70 * cot_pct_norm + 0.30 * cot_smart_norm
-        elif cot_pct_norm is not None:
-            cot_norm = cot_pct_norm
+        # Stored daily snapshots do not supply a homogeneous report history.
+        cot_norm = normalize_cot_signal(cot_pct)
+        if pair == "USDINR":
+            cot_pct = None
+            cot_norm = None
 
         # ── OI ───────────────────────────────────────────────────────────────
         oi_delta = sig_row.get("oi_delta")
         oi_norm = None
-        if oi_delta is not None:
-            # Approximate OI percentile from delta sign (MVP)
-            oi_norm = 50.0 + (50.0 if oi_delta > 0 else -50.0)
-            oi_norm = compute_oi_signal(oi_norm)
+        # A change in contracts cannot reconstruct a level percentile.
 
         # ── Special signal with real macro data (M.3.1) ──────────────────────
         cross_for_special = _build_cross_asset_from_signal(sig_row)
@@ -740,65 +652,36 @@ def simulate_all_days_v2(
 
         # ── FPI (USDINR only) ────────────────────────────────────────────────
         fpi_signal: float | None = None
-        if pair == "USDINR":
-            fpi_flow = sig_row.get("fpi_flow")
-            if fpi_flow is not None:
-                # Simplified: raw flow as proxy (full normalization needs history)
-                fpi_signal = float(fpi_flow)
+        # Legacy scalar flows lack source/vintage evidence and are not republished.
+        directional = directional_inputs(
+            pair, rate=rate_norm, cot=cot_norm, special=special_signal, fpi=None
+        )
+        rate_norm, cot_norm = directional.rate, directional.cot
+        special_signal = directional.special
 
-        # ── Betas from historical signals (M.2.1) ────────────────────────────
-        betas_5y: dict[str, float] = {}
-        hist_for_betas: list[dict[str, float]] = []
-        for d in all_sorted_dates[max(0, full_idx - 1260):full_idx]:
-            s = sig_map.get(d, {})
-            entry: dict[str, float] = {}
-            zb = s.get("z_blended")
-            if zb is not None:
-                entry["rate"] = float(zb)
-            else:
-                rt = s.get("rate_z_tactical")
-                rs = s.get("rate_z_structural")
-                if rt is not None and rs is not None:
-                    entry["rate"] = float(0.60 * rt + 0.40 * rs)
-                elif rt is not None:
-                    entry["rate"] = float(rt)
-            cp = s.get("cot_percentile")
-            if cp is not None:
-                entry["cot"] = float(normalize_cot_signal(cp) or 0.0)
-            r5 = s.get("realized_vol_5d")
-            r20 = s.get("realized_vol_20d")
-            if r5 is not None and r20 is not None:
-                entry["vol"] = float(compute_vol_signal(r5, r20, None) or 0.0)
-            od = s.get("oi_delta")
-            if od is not None:
-                entry["oi"] = float(compute_oi_signal(50.0 + (50.0 if od > 0 else -50.0)) or 0.0)
-            ss = compute_special_signal(pair, _build_cross_asset_from_signal(s), **eur_kwargs)
-            if ss is not None:
-                entry["special"] = float(ss)
-            if entry:
-                hist_for_betas.append(entry)
-        if len(hist_for_betas) >= 30:
-            betas_5y = compute_dynamic_betas(hist_for_betas)
-
-        # ── Composite with betas (M.2.1) ─────────────────────────────────────
+        # Static directional reference; no contemporaneous-beta adaptation.
         composite = compute_composite(
-            rate_norm, cot_norm, vol_norm, oi_norm,
+            rate_norm,
+            cot_norm,
+            vol_norm,
+            oi_norm,
             pair=pair,
             special_signal=special_signal,
             fpi_signal=fpi_signal,
-            betas=betas_5y,
         )
         if composite is None:
+            logger.debug("directional_inputs_unavailable for %s at %s — no call", pair, as_of)
             continue
 
         confidence = compute_confidence(
-            composite, rate_norm, cot_norm,
+            composite,
+            rate_norm,
+            cot_norm,
             pair=pair,
             special_signal=special_signal,
         )
 
         structural_instability = False
-        carry_gate = tuple(carry_history[-2520:]) if carry_history else ()
         gate_out = classify_regime_layer1(
             Layer1ClassifierContext(
                 pair=pair,
@@ -806,7 +689,7 @@ def simulate_all_days_v2(
                 vol_expanding=vol_exp,
                 structural_instability=structural_instability,
                 prior_regime_label=prior_regime,
-                carry_risk_adjusted_chronological=carry_gate,
+                carry_risk_adjusted_chronological=(),
                 spot_closes_chronological=tuple(spot_closes),
                 breakeven_inflation_chronological=None,
                 rate_diff_2y=rate_spread_2y,
@@ -819,6 +702,7 @@ def simulate_all_days_v2(
             confidence = float(max(0.40, confidence * 0.50))
 
         layer2_out = run_layer2_directional(
+            pair=pair,
             composite=float(composite),
             z_tactical=rate_norm,
             z_structural=rate_z_structural_val,
@@ -828,9 +712,7 @@ def simulate_all_days_v2(
         )
 
         rv_rank_layer3 = (
-            float(all_rv_rank[full_idx])
-            if not np.isnan(all_rv_rank[full_idx])
-            else None
+            float(all_rv_rank[full_idx]) if not np.isnan(all_rv_rank[full_idx]) else None
         )
         layer3_out = run_layer3_execution(
             layer2=layer2_out,
@@ -859,9 +741,9 @@ def simulate_all_days_v2(
             rate_spread_2y=rate_spread_2y,
             rate_spread_10y=rate_spread_10y,
             rate_spread_10y_real=rate_spread_10y_real,
-            rate_z_tactical=rate_norm_z.z_tactical if rate_norm_z is not None else None,
-            rate_z_structural=rate_norm_z.z_structural if rate_norm_z is not None else None,
-            z_blended=rate_norm_z.z_blended if rate_norm_z is not None else None,
+            rate_z_tactical=None,
+            rate_z_structural=None,
+            z_blended=None,
             cot_percentile=cot_pct,
             cot_norm=cot_norm,
             realized_vol_20d=rv20,
@@ -873,14 +755,20 @@ def simulate_all_days_v2(
             oi_norm=oi_norm,
             special_signal=special_signal,
             fpi_signal=fpi_signal,
-            fpi_raw={"fpi_total_net_cr": fpi_signal} if fpi_signal is not None else None,
+            fpi_raw=None,
             structural_instability=structural_instability,
             breakeven_inflation_10y=bei,
             realized_vol_rank=layer3_out["realized_vol_rank"],
             skew_alignment=layer3_out["skew_alignment"],
         )
+        signal_row.data_quality_notes = [
+            "rate_inputs_unqualified",
+            "rate_history_unavailable",
+        ]
+        if pair == "USDINR":
+            signal_row.data_quality_notes.extend(FPI_UNAVAILABLE_NOTES)
 
-        driver = get_primary_driver(betas_5y)
+        driver = "Static directional reference (unvalidated)"
         call = builder.build_regime_call(
             pair=pair,
             signal_row=signal_row,
@@ -897,8 +785,8 @@ def simulate_all_days_v2(
             oi_norm=oi_norm,
             special_signal=special_signal,
             apply_dqs_cap=False,
-            model_version="2.1-m3",
-            strategy_version="v2",
+            model_version=DIRECTIONAL_MODEL_VERSION,
+            strategy_version=DIRECTIONAL_STRATEGY_VERSION,
             data_source="backtest",
         )
 

@@ -1561,6 +1561,11 @@ export type Database = {
       };
       validation_log: {
         Row: {
+          predicted_regime: string | null;
+          predicted_direction: string | null;
+          model_version: string | null;
+          strategy_version: string | null;
+          evaluation_version: string;
           actual_direction: string | null;
           actual_direction_t20: string | null;
           actual_direction_t5: string | null;
@@ -1596,6 +1601,11 @@ export type Database = {
           pair: string;
         };
         Insert: {
+          predicted_regime?: string | null;
+          predicted_direction?: string | null;
+          model_version?: string | null;
+          strategy_version?: string | null;
+          evaluation_version?: string;
           actual_direction?: string | null;
           actual_direction_t20?: string | null;
           actual_direction_t5?: string | null;
@@ -1631,6 +1641,11 @@ export type Database = {
           pair: string;
         };
         Update: {
+          predicted_regime?: string | null;
+          predicted_direction?: string | null;
+          model_version?: string | null;
+          strategy_version?: string | null;
+          evaluation_version?: string;
           actual_direction?: string | null;
           actual_direction_t20?: string | null;
           actual_direction_t5?: string | null;
@@ -1684,6 +1699,35 @@ export type Database = {
       };
       validation_stats: {
         Row: {
+          population_version: string;
+          t5_evaluation_calls: number | null;
+          t5_missing_evaluation_calls: number | null;
+          t20_evaluation_calls: number | null;
+          t20_missing_evaluation_calls: number | null;
+          t5_pending_calls: number;
+          t5_unknown_direction_calls: number;
+          t20_pending_calls: number;
+          t20_unknown_direction_calls: number;
+          t20_cost_bps: number | null;
+          t20_mean_signed_gross_return_bps: number | null;
+          t20_net_directional_calls: number;
+          t20_calibration_calls: number;
+          t20_probability_score_calls: number;
+          t20_missing_outcome_calls: number;
+          t20_abstention_calls: number;
+          t20_mature_calls: number;
+          t5_cost_bps: number | null;
+          t5_mean_signed_gross_return_bps: number | null;
+          t5_net_directional_calls: number;
+          t5_calibration_calls: number;
+          t5_probability_score_calls: number;
+          t5_missing_outcome_calls: number;
+          t5_abstention_calls: number;
+          t5_mature_calls: number;
+          window_days: number;
+          evaluation_version: string;
+          model_version: string;
+          strategy_version: string;
           as_of_date: string;
           computed_at: string;
           created_at: string | null;
@@ -1726,6 +1770,35 @@ export type Database = {
           t20_net_win_rate_ci_upper: number | null;
         };
         Insert: {
+          population_version?: string;
+          t5_evaluation_calls?: number | null;
+          t5_missing_evaluation_calls?: number | null;
+          t20_evaluation_calls?: number | null;
+          t20_missing_evaluation_calls?: number | null;
+          t5_pending_calls?: number;
+          t5_unknown_direction_calls?: number;
+          t20_pending_calls?: number;
+          t20_unknown_direction_calls?: number;
+          t20_cost_bps?: number | null;
+          t20_mean_signed_gross_return_bps?: number | null;
+          t20_net_directional_calls?: number;
+          t20_calibration_calls?: number;
+          t20_probability_score_calls?: number;
+          t20_missing_outcome_calls?: number;
+          t20_abstention_calls?: number;
+          t20_mature_calls?: number;
+          t5_cost_bps?: number | null;
+          t5_mean_signed_gross_return_bps?: number | null;
+          t5_net_directional_calls?: number;
+          t5_calibration_calls?: number;
+          t5_probability_score_calls?: number;
+          t5_missing_outcome_calls?: number;
+          t5_abstention_calls?: number;
+          t5_mature_calls?: number;
+          window_days?: number;
+          evaluation_version?: string;
+          model_version?: string;
+          strategy_version?: string;
           as_of_date: string;
           computed_at?: string;
           created_at?: string | null;
@@ -1768,6 +1841,35 @@ export type Database = {
           t20_net_win_rate_ci_upper?: number | null;
         };
         Update: {
+          population_version?: string;
+          t5_evaluation_calls?: number | null;
+          t5_missing_evaluation_calls?: number | null;
+          t20_evaluation_calls?: number | null;
+          t20_missing_evaluation_calls?: number | null;
+          t5_pending_calls?: number;
+          t5_unknown_direction_calls?: number;
+          t20_pending_calls?: number;
+          t20_unknown_direction_calls?: number;
+          t20_cost_bps?: number | null;
+          t20_mean_signed_gross_return_bps?: number | null;
+          t20_net_directional_calls?: number;
+          t20_calibration_calls?: number;
+          t20_probability_score_calls?: number;
+          t20_missing_outcome_calls?: number;
+          t20_abstention_calls?: number;
+          t20_mature_calls?: number;
+          t5_cost_bps?: number | null;
+          t5_mean_signed_gross_return_bps?: number | null;
+          t5_net_directional_calls?: number;
+          t5_calibration_calls?: number;
+          t5_probability_score_calls?: number;
+          t5_missing_outcome_calls?: number;
+          t5_abstention_calls?: number;
+          t5_mature_calls?: number;
+          window_days?: number;
+          evaluation_version?: string;
+          model_version?: string;
+          strategy_version?: string;
           as_of_date?: string;
           computed_at?: string;
           created_at?: string | null;
@@ -1812,7 +1914,47 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      live_publication_signals: {
+        Row: {
+          call_id: number;
+          date: string;
+          pair: string;
+          signal_payload: Json;
+        };
+        Relationships: [];
+      };
+      validation_observations: {
+        Row: {
+          id: number;
+          call_id: number;
+          date: string;
+          call_date: string;
+          pair: string;
+          predicted_direction: string | null;
+          predicted_regime: string | null;
+          confidence: number | null;
+          data_source: string;
+          strategy_version: string;
+          model_version: string;
+          evaluation_version: string;
+          population_version: string;
+          evaluation_id: number | null;
+          evaluation_present: boolean;
+          log_return_t5_bps: number | null;
+          brier_score_t5: number | null;
+          log_return_net_bps_t5: number | null;
+          cost_bps_t5: number | null;
+          correct_t5: boolean | null;
+          correct_net_t5: boolean | null;
+          log_return_t20_bps: number | null;
+          brier_score_t20: number | null;
+          log_return_net_bps_t20: number | null;
+          cost_bps_t20: number | null;
+          correct_t20: boolean | null;
+          correct_net_t20: boolean | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       calculate_fx_basket_correlation: {

@@ -1,197 +1,301 @@
-"""Asymmetry engine for crowding pain and squeeze-risk conditions."""
+"""Provisional crowding descriptions with explicit evidence limits."""
 
 from __future__ import annotations
 
-import logging
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+import math
+from collections.abc import Sequence
 from datetime import date
+from typing import Any, NoReturn
 
+from src.core.spot_history import SpotHistoryError, select_spot_history, strict_date
 from src.types import CotRow, SpotBar
 
-logger = logging.getLogger(__name__)
+_PAIR_ALIASES = {
+    "EURUSD": "EURUSD",
+    "EUR/USD": "EURUSD",
+    "USDJPY": "USDJPY",
+    "USD/JPY": "USDJPY",
+    "USDINR": "USDINR",
+    "USD/INR": "USDINR",
+}
+_DIRECTIONS = frozenset(("BULLISH", "BEARISH", "NEUTRAL"))
+_MAX_SAFE_INTEGER = 9_007_199_254_740_991
 
 
-@dataclass(frozen=True)
-class PainIndexResult:
-    pair: str
-    as_of_date: str
-    pain_index: float | None
-    cot_is_stale: bool
-    cot_age_days: int | None
-    cot_percentile: float | None
-    regime_direction: int
-    vwap_8w: float | None
-    spot: float | None
-    underwater_triggered: bool
-    realized_vol_20d: float | None
-    vwap_distance_pct: float | None
-    underwater_vol_buffer_pct: float | None
-    rvol: float | None = None
+def _normalize_pair(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError("pair must be one of EURUSD, USDJPY, or USDINR")
+    normalized = _PAIR_ALIASES.get(value.upper())
+    if normalized is None:
+        raise ValueError("pair must be one of EURUSD, USDJPY, or USDINR")
+    return normalized
 
 
-def _regime_direction(regime: str) -> int:
-    regime_upper = regime.upper()
-    if "STRENGTH" in regime_upper or "DEPR" in regime_upper:
-        return 1
-    if "WEAKNESS" in regime_upper or "APPR" in regime_upper:
-        return -1
-    return 0
+def _validate_contract_count(value: object) -> int:
+    if type(value) is not int or abs(value) > _MAX_SAFE_INTEGER:
+        raise ValueError("contract count must be a JavaScript-safe Python integer")
+    return value
 
 
-def _vwap_8w_base(spot_bars: Sequence[SpotBar]) -> float | None:
-    """Simple 8-week (~40 session) average close (carry-neutral baseline)."""
+def _unavailable_cot(*reasons: str) -> dict[str, Any]:
+    return {
+        "status": "UNAVAILABLE",
+        "report_date": None,
+        "report_age_days": None,
+        "net_long": None,
+        "asset_mgr_net": None,
+        "lev_money_net": None,
+        "pair_direction": None,
+        "alignment": "UNAVAILABLE",
+        "series_definition": "UNKNOWN",
+        "release_status": "UNVERIFIED",
+        "rank_percentile": None,
+        "reasons": list(reasons),
+    }
 
-    if len(spot_bars) < 40:
-        return None
-    window = spot_bars[-40:]
-    numerator = sum(bar.close for bar in window)
-    if numerator <= 0.0:
-        return None
-    return numerator / float(len(window))
+
+def _alignment_for(*, predicted_direction: str | None, pair_direction: int) -> str:
+    if predicted_direction is None:
+        return "UNAVAILABLE"
+    if predicted_direction == "NEUTRAL":
+        return "ABSTAINED"
+    if pair_direction == 0:
+        return "FLAT_REPORTED_NET"
+    call_direction = 1 if predicted_direction == "BULLISH" else -1
+    return "ALIGNED" if call_direction == pair_direction else "OPPOSED"
 
 
-def _cumulative_swap_return_price(
-    spot_bars: Sequence[SpotBar],
-    carry_by_date: Mapping[date, float],
-) -> float:
-    """Sum of daily carry accrual in price space: spot * (rate_diff_2y/365)/100."""
+def _cot_rows_identical(left: CotRow, right: CotRow) -> bool:
+    fields = (
+        "date",
+        "pair",
+        "net_long",
+        "open_interest",
+        "asset_mgr_net",
+        "lev_money_net",
+    )
+    return all(
+        type(getattr(left, field)) is type(getattr(right, field))
+        and getattr(left, field) == getattr(right, field)
+        for field in fields
+    )
 
-    if len(spot_bars) < 40:
-        return 0.0
-    window = spot_bars[-40:]
-    total = 0.0
-    for bar in window:
-        r2 = carry_by_date.get(bar.date)
-        if r2 is None or bar.close <= 0.0:
+
+def _cot_component(
+    *,
+    pair: str,
+    as_of: date,
+    predicted_direction: str | None,
+    rows: Sequence[CotRow],
+) -> dict[str, Any]:
+    if pair == "USDINR":
+        return _unavailable_cot(
+            "UNSUPPORTED_COT_PAIR",
+            "CATEGORY_PROVENANCE_UNAVAILABLE",
+        )
+
+    try:
+        eligible: dict[date, CotRow] = {}
+        conflicts: set[date] = set()
+        for row in rows:
+            if not isinstance(row, CotRow):
+                return _unavailable_cot(
+                    "INVALID_COT_ROW",
+                    "CATEGORY_PROVENANCE_UNAVAILABLE",
+                )
+            if _PAIR_ALIASES.get(row.pair.upper()) != pair:
+                continue
+            report_date = strict_date(row.date, field="cot.date")
+            if report_date > as_of:
+                continue
+            prior = eligible.get(report_date)
+            if prior is None:
+                eligible[report_date] = row
+            elif not _cot_rows_identical(prior, row):
+                conflicts.add(report_date)
+    except (AttributeError, TypeError, ValueError, SpotHistoryError):
+        return _unavailable_cot(
+            "INVALID_COT_ROW",
+            "CATEGORY_PROVENANCE_UNAVAILABLE",
+        )
+
+    if not eligible:
+        return _unavailable_cot(
+            "COT_REPORT_UNAVAILABLE",
+            "CATEGORY_PROVENANCE_UNAVAILABLE",
+        )
+
+    report_date = max(eligible)
+    if report_date in conflicts:
+        unavailable = _unavailable_cot(
+            "CONFLICTING_LATEST_COT_REPORT",
+            "CATEGORY_PROVENANCE_UNAVAILABLE",
+        )
+        unavailable["report_date"] = report_date.isoformat()
+        unavailable["report_age_days"] = (as_of - report_date).days
+        return unavailable
+
+    anchor = eligible[report_date]
+    reasons = ["CATEGORY_PROVENANCE_UNAVAILABLE", "RELEASE_METADATA_UNAVAILABLE"]
+    try:
+        net_long = _validate_contract_count(anchor.net_long)
+    except ValueError:
+        unavailable = _unavailable_cot("INVALID_NET_LONG", *reasons)
+        unavailable["report_date"] = report_date.isoformat()
+        unavailable["report_age_days"] = (as_of - report_date).days
+        return unavailable
+
+    category_values: dict[str, int | None] = {}
+    for field_name, missing_reason, invalid_reason in (
+        ("asset_mgr_net", "ASSET_MGR_NET_UNAVAILABLE", "INVALID_ASSET_MGR_NET"),
+        ("lev_money_net", "LEV_MONEY_NET_UNAVAILABLE", "INVALID_LEV_MONEY_NET"),
+    ):
+        raw = getattr(anchor, field_name)
+        if raw is None:
+            category_values[field_name] = None
+            reasons.append(missing_reason)
             continue
-        total += float(bar.close) * (float(r2) / 365.0) / 100.0
-    return total
+        try:
+            category_values[field_name] = _validate_contract_count(raw)
+        except ValueError:
+            category_values[field_name] = None
+            reasons.append(invalid_reason)
+
+    source_direction = 0 if net_long == 0 else (1 if net_long > 0 else -1)
+    pair_direction = source_direction if pair == "EURUSD" else -source_direction
+    alignment = _alignment_for(
+        predicted_direction=predicted_direction,
+        pair_direction=pair_direction,
+    )
+    if predicted_direction is None:
+        reasons.append("PREDICTED_DIRECTION_UNAVAILABLE")
+
+    return {
+        "status": "PROVISIONAL",
+        "report_date": report_date.isoformat(),
+        "report_age_days": (as_of - report_date).days,
+        "net_long": net_long,
+        "asset_mgr_net": category_values["asset_mgr_net"],
+        "lev_money_net": category_values["lev_money_net"],
+        "pair_direction": pair_direction,
+        "alignment": alignment,
+        "series_definition": "UNKNOWN",
+        "release_status": "UNVERIFIED",
+        "rank_percentile": None,
+        "reasons": reasons,
+    }
 
 
-def compute_pain_index(
+def _price_component(
+    *, pair: str, as_of: date, bars: Sequence[SpotBar]
+) -> dict[str, Any]:
+    unavailable: dict[str, Any] = {
+        "status": "UNAVAILABLE",
+        "latest_date": None,
+        "spot": None,
+        "mean_close_40": None,
+        "observation_count": 0,
+        "relative_to_mean_pct": None,
+        "reasons": [],
+    }
+    try:
+        selected = select_spot_history(bars, pair=pair, as_of=as_of)
+    except (SpotHistoryError, TypeError, ValueError, OverflowError):
+        unavailable["reasons"] = ["INVALID_SPOT_HISTORY"]
+        return unavailable
+
+    if not selected:
+        unavailable["reasons"] = ["SPOT_HISTORY_UNAVAILABLE"]
+        return unavailable
+
+    window = selected[-40:]
+    count = len(window)
+    latest = window[-1]
+    spot = float(latest.close)
+    reasons = ["REPORT_DATE_ONLY"]
+    status = "PROVISIONAL"
+    mean: float | None = None
+    relative: float | None = None
+    if count < 40:
+        reasons.append("INSUFFICIENT_PRICE_OBSERVATIONS")
+    else:
+        mean = sum(float(bar.close) / 40.0 for bar in window)
+        if not math.isfinite(mean) or mean <= 0.0:
+            reasons.append("INVALID_PRICE_ARITHMETIC")
+            status = "UNAVAILABLE"
+            mean = None
+        else:
+            relative = 100.0 * (spot / mean - 1.0)
+            if not math.isfinite(relative):
+                reasons.append("INVALID_PRICE_ARITHMETIC")
+                status = "UNAVAILABLE"
+                mean = None
+                relative = None
+
+    return {
+        "status": status,
+        "latest_date": latest.date.isoformat(),
+        "spot": spot,
+        "mean_close_40": mean,
+        "observation_count": count,
+        "relative_to_mean_pct": relative,
+        "reasons": reasons,
+    }
+
+
+def compute_crowding_diagnostic(
+    *,
     pair: str,
     as_of_date: date,
-    regime: str,
-    cot_percentile: float | None,
-    cot_rows: list[CotRow],
+    predicted_direction: str | None,
+    cot_rows: Sequence[CotRow],
     spot_bars: Sequence[SpotBar],
-    realized_vol_20d: float | None = None,
-    implied_vol_30d: float | None = None,
-    carry_by_date: Mapping[date, float] | None = None,
-    rvol: float | None = None,
-) -> PainIndexResult:
-    direction = _regime_direction(regime)
-    latest_cot = max((r.date for r in cot_rows if r.pair == pair), default=None)
-    cot_age_days = None if latest_cot is None else (as_of_date - latest_cot).days
-    cot_is_stale = cot_age_days is None or cot_age_days > 7
-    if cot_is_stale:
-        logger.info("Pain_Index unavailable for %s: stale COT (%s days)", pair, cot_age_days)
-        return PainIndexResult(
-            pair=pair,
-            as_of_date=as_of_date.isoformat(),
-            pain_index=None,
-            cot_is_stale=True,
-            cot_age_days=cot_age_days,
-            cot_percentile=cot_percentile,
-            regime_direction=direction,
-            vwap_8w=None,
-            spot=spot_bars[-1].close if spot_bars else None,
-            underwater_triggered=False,
-            realized_vol_20d=realized_vol_20d,
-            vwap_distance_pct=None,
-            underwater_vol_buffer_pct=None,
-            rvol=rvol,
-        )
+    call_id: int | None = None,
+) -> dict[str, Any]:
+    """Describe supplied positioning and prices without estimating loss or squeeze."""
 
-    if cot_percentile is None:
-        logger.info("Pain_Index unavailable for %s: missing COT percentile", pair)
-        return PainIndexResult(
-            pair=pair,
-            as_of_date=as_of_date.isoformat(),
-            pain_index=None,
-            cot_is_stale=False,
-            cot_age_days=cot_age_days,
-            cot_percentile=None,
-            regime_direction=direction,
-            vwap_8w=None,
-            spot=spot_bars[-1].close if spot_bars else None,
-            underwater_triggered=False,
-            realized_vol_20d=realized_vol_20d,
-            vwap_distance_pct=None,
-            underwater_vol_buffer_pct=None,
-            rvol=rvol,
-        )
+    normalized_pair = _normalize_pair(pair)
+    try:
+        cutoff = strict_date(as_of_date, field="as_of_date")
+    except SpotHistoryError as exc:
+        raise ValueError(str(exc)) from exc
+    if predicted_direction is not None and (
+        not isinstance(predicted_direction, str)
+        or predicted_direction not in _DIRECTIONS
+    ):
+        raise ValueError("predicted_direction must be BULLISH, BEARISH, NEUTRAL, or None")
+    if call_id is not None and (
+        type(call_id) is not int
+        or call_id <= 0
+        or call_id > _MAX_SAFE_INTEGER
+    ):
+        raise ValueError("call_id must be a positive JavaScript-safe Python integer or None")
 
-    directional_crowding = ((cot_percentile - 50.0) / 50.0) * -1.0
-    divergence = abs(float(direction) - directional_crowding)
-    base_pain = min(100.0, max(0.0, (divergence / 2.0) * 100.0))
-
-    current_spot = spot_bars[-1].close if spot_bars else None
-    base_vwap = _vwap_8w_base(spot_bars)
-    swap_accum = (
-        _cumulative_swap_return_price(spot_bars, carry_by_date)
-        if carry_by_date is not None
-        else 0.0
+    cot = _cot_component(
+        pair=normalized_pair,
+        as_of=cutoff,
+        predicted_direction=predicted_direction,
+        rows=cot_rows,
     )
-    vwap_eff = (base_vwap + swap_accum) if base_vwap is not None else None
+    price = _price_component(pair=normalized_pair, as_of=cutoff, bars=spot_bars)
+    return {
+        "version": "crowding-description-v1",
+        "pair": normalized_pair,
+        "call_id": call_id,
+        "as_of_date": cutoff.isoformat(),
+        "predicted_direction": predicted_direction,
+        "cot": cot,
+        "price": price,
+        "participant_loss_estimate": None,
+        "squeeze_probability": None,
+        "point_in_time_qualified": False,
+    }
 
-    vwap_distance_pct: float | None = None
-    buffer_pct: float | None = None
-    underwater = False
-    vol_premium: float | None = None
-    if (
-        implied_vol_30d is not None
-        and realized_vol_20d is not None
-        and implied_vol_30d > 0.0
-        and realized_vol_20d > 0.0
-    ):
-        vol_premium = float(implied_vol_30d) - float(realized_vol_20d)
 
-    if (
-        current_spot is not None
-        and vwap_eff is not None
-        and vwap_eff > 0.0
-    ):
-        vwap_distance_pct = abs(current_spot - vwap_eff) / vwap_eff * 100.0
-        crowded_long_usd = cot_percentile >= 50.0
-        wrong_side = (
-            current_spot < vwap_eff if crowded_long_usd else current_spot > vwap_eff
-        )
-        if realized_vol_20d is None or realized_vol_20d <= 0.0:
-            buffer_pct = None
-        else:
-            buffer_pct = 0.5 * float(realized_vol_20d)
-        premium_ok = vol_premium is not None and vol_premium > 0.0
-        
-        # Pillar 2: RVOL Gate (1.5x threshold for institutional conviction)
-        rvol_ok = rvol is None or rvol >= 1.5
+def compute_pain_index(*args: Any, **kwargs: Any) -> NoReturn:
+    """Retired: participant pain is not identified by COT and close histories."""
 
-        underwater = (
-            wrong_side
-            and buffer_pct is not None
-            and vwap_distance_pct >= buffer_pct
-            and premium_ok
-            and rvol_ok
-        )
-
-    if base_pain > 80.0 and not underwater:
-        logger.info("Pain_Index capped at 80 for %s: underwater trigger not met", pair)
-        base_pain = 80.0
-
-    return PainIndexResult(
-        pair=pair,
-        as_of_date=as_of_date.isoformat(),
-        pain_index=base_pain,
-        cot_is_stale=False,
-        cot_age_days=cot_age_days,
-        cot_percentile=cot_percentile,
-        regime_direction=direction,
-        vwap_8w=vwap_eff,
-        spot=current_spot,
-        underwater_triggered=underwater,
-        realized_vol_20d=realized_vol_20d,
-        vwap_distance_pct=vwap_distance_pct,
-        underwater_vol_buffer_pct=buffer_pct,
-        rvol=rvol,
+    raise RuntimeError(
+        "compute_pain_index is retired; use compute_crowding_diagnostic for "
+        "provisional reported-position and price descriptions"
     )

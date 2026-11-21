@@ -1,0 +1,8 @@
+PASS 1: HTML, script syntax, accessibility hooks and safe content sinks
+PASS 2: All eight pairs including USDJPY, missing observations, null probability and empty charts
+PASS 3: Engine schema, charts, long-history separation, session evidence, pagination and untrusted content
+PASS: Daily holding study preserves unqualified, negative and safe-text states
+PASS: FOMC study preserves negative, unavailable, safe text and unqualified states
+PASS: Private outcome journal preserves abstention, pending status and safe text
+PASS 4: Authentication, failed login, CSRF refresh, progress, report recovery, export and logout
+PRIVATE_DESK_UI_VERIFIED

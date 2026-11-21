@@ -1,0 +1,90 @@
+
+> fx-regime-lab@0.1.0 build
+> next build
+
+   ▲ Next.js 15.3.9
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 27.0s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+ ⚠ Using edge runtime on a page currently disables static generation for that page
+   Generating static pages (0/32) ...
+ ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+   Generating static pages (8/32) 
+   Generating static pages (16/32) 
+   Generating static pages (24/32) 
+ ✓ Generating static pages (32/32)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                        Size  First Load JS
+┌ ƒ /                                           3.22 kB         118 kB
+├ ○ /_not-found                                   981 B         102 kB
+├ ƒ /about                                        216 B         115 kB
+├ ƒ /about/opengraph-image                        263 B         102 kB
+├ ƒ /api/backtest                                 263 B         102 kB
+├ ƒ /audit                                       3.4 kB         105 kB
+├ ƒ /audit/opengraph-image                        263 B         102 kB
+├ ƒ /brief                                      1.06 kB         116 kB
+├ ƒ /brief/opengraph-image                        263 B         102 kB
+├ ○ /calendar                                     263 B         102 kB
+├ ƒ /calendar/opengraph-image                     263 B         102 kB
+├ ƒ /desk                                       3.31 kB         111 kB
+├ ƒ /desk/calendar                              3.88 kB         178 kB
+├ ƒ /desk/calendar/opengraph-image                263 B         102 kB
+├ ƒ /desk/compare                               48.2 kB         229 kB
+├ ƒ /desk/compare/opengraph-image                 263 B         102 kB
+├ ƒ /desk/fx-regime                               263 B         102 kB
+├ ƒ /desk/fx-regime/[pair]                      6.52 kB         111 kB
+├ ƒ /desk/fx-regime/[pair]/opengraph-image        263 B         102 kB
+├ ƒ /desk/memos                                 1.32 kB         176 kB
+├ ƒ /desk/memos/opengraph-image                   263 B         102 kB
+├ ƒ /desk/opengraph-image                         263 B         102 kB
+├ ƒ /desk/performance                           2.32 kB         177 kB
+├ ƒ /desk/performance/opengraph-image             263 B         102 kB
+├ ○ /diagnostics                                  178 B         105 kB
+├ ƒ /journey                                      193 B         115 kB
+├ ○ /limitations                                  263 B         102 kB
+├ ƒ /memo                                       1.12 kB         106 kB
+├ ƒ /memo/[date]                                  178 B         105 kB
+├ ƒ /memo/opengraph-image                         263 B         102 kB
+├ ƒ /methodology                                14.5 kB         129 kB
+├ ƒ /methodology/opengraph-image                  263 B         102 kB
+├ ○ /performance                                  263 B         102 kB
+├ ƒ /performance/opengraph-image                  263 B         102 kB
+├ ○ /robots.txt                                   263 B         102 kB
+├ ○ /sitemap.xml                                  263 B         102 kB
+├ ○ /terminal                                     263 B         102 kB
+├ ○ /terminal/calendar                            263 B         102 kB
+├ ƒ /terminal/calendar/opengraph-image            263 B         102 kB
+├ ○ /terminal/compare                             450 B         102 kB
+├ ƒ /terminal/compare/opengraph-image             263 B         102 kB
+├ ○ /terminal/fx-regime                           263 B         102 kB
+├ ƒ /terminal/fx-regime/[pair]                    263 B         102 kB
+├ ƒ /terminal/fx-regime/[pair]/opengraph-image    263 B         102 kB
+├ ○ /terminal/memos                               263 B         102 kB
+├ ƒ /terminal/memos/opengraph-image               263 B         102 kB
+├ ○ /terminal/opengraph-image                     263 B         102 kB
+├ ○ /terminal/performance                         263 B         102 kB
+├ ƒ /terminal/performance/opengraph-image         263 B         102 kB
+└ ƒ /track-record                               6.28 kB         121 kB
++ First Load JS shared by all                    101 kB
+  ├ chunks/1684-1a8e9874e47652ee.js             46.1 kB
+  ├ chunks/4bd1b696-0dc7ffbc65a1602b.js         53.2 kB
+  └ other shared chunks (total)                 2.06 kB
+
+Route (pages)                                      Size  First Load JS
+─ ƒ /api/linkedin-alpha-hook                        0 B        92.2 kB
++ First Load JS shared by all                   92.2 kB
+  ├ chunks/framework-dcd2c1f5d9432bec.js        57.5 kB
+  ├ chunks/main-c4e8e4472de0fbff.js             32.4 kB
+  └ other shared chunks (total)                 2.35 kB
+
+ƒ Middleware                                      32 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

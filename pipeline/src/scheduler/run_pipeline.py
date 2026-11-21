@@ -1,10 +1,4 @@
-"""Pipeline execution wrapper with alerting.
-
-Replaces the shell-based run_daily.sh for the primary execution path.
-Runs the daily orchestrator, overnight check, validation engine, and
-validation aggregate — each with failure isolation — then sends the
-appropriate Slack/email alerts.
-"""
+"""One scheduled entrypoint with recorded stage results and honest completion."""
 
 from __future__ import annotations
 
@@ -13,100 +7,80 @@ import logging
 import sys
 import time
 import uuid
+from collections.abc import Coroutine, Sequence
+from dataclasses import asdict
 from datetime import date
-from typing import Any
+from math import isfinite
+from typing import Any, TypeVar
+
+from prefect import flow
 
 from src import config
 from src.db.writer import (
-    count_regime_calls_for_date,
     get_brief_for_date,
-    get_historical_regime_calls,
-    get_regime_calls_dqs_for_date,
+    get_current_live_regime_history,
     write_pipeline_error,
     write_pipeline_run,
 )
 from src.monitoring.accuracy_alerts import check_accuracy_alerts, send_accuracy_alerts
-from src.monitoring.alerts import (
-    alert_on_failure,
-    send_success_heartbeat,
-)
-from src.monitoring.health_dashboard import get_health_for_date
+from src.monitoring.alerts import send_success_heartbeat
+from src.scheduler.contracts import DailyRunOutput
 from src.scheduler.orchestrator import _regime_call_from_db, run_daily
 from src.scheduler.overnight_check import run_overnight_check
 from src.staged.adapters.alert import ProductionAlertPort
 from src.staged.adapters.fetcher import ProductionFetcherPort
 from src.staged.adapters.writer import ProductionWriterPort
-from src.staged.contracts import MultiPairRunOutput
+from src.staged.contracts import MultiPairRunOutput, StageHealth, combine_stage_health
 from src.staged.orchestrator import run_multi_pair_flow
 from src.staged.shadow_runner import run_shadow_comparison
-from src.types import PAIRS, RegimeCall
+from src.types import RegimeCall
 from src.validation.aggregate import run_aggregate_stats
 
 logger = logging.getLogger(__name__)
+_T = TypeVar("_T")
+_LOCKED_PAIRS = ("EURUSD", "USDJPY", "USDINR")
 
 
-def _run_sync(coro: Any) -> Any:
-    """Run an async coroutine in the current event loop."""
+def _run_sync(coro: Coroutine[Any, Any, _T]) -> _T:
+    """Bridge the synchronous scheduled flow to async inference."""
     try:
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
     except RuntimeError:
         return asyncio.run(coro)
-    else:
-        return loop.run_until_complete(coro)
+    coro.close()
+    raise RuntimeError("Use the synchronous pipeline entrypoint outside a running event loop")
 
 
 def _log_pipeline_health(
     date_str: str,
     *,
+    reports: Sequence[StageHealth],
     steps_completed: list[str],
     steps_failed: list[str],
-    duration_seconds: float | None = None,
-    dqs_score: float | None = None,
-    pairs_processed: int | None = None,
+    duration_seconds: float,
+    dqs_score: float | None,
+    pairs_processed: int | None,
 ) -> None:
-    """Write a health snapshot to ``pipeline_runs`` (best-effort)."""
-    try:
-        snapshot = get_health_for_date(date_str)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Health snapshot inference failed for %s: %s", date_str, exc)
-        snapshot = None
-
-    if snapshot is not None:
-        # Do NOT inherit stale status from old DB rows (e.g. ABORTED).
-        # Recompute: FAILED if any step crashed, otherwise HEALTHY.
-        payload: dict[str, Any] = {
+    """Persist execution evidence; failure must prevent a healthy heartbeat."""
+    health = combine_stage_health("DailyPipeline", *reports)
+    write_pipeline_run(
+        {
             "date": date_str,
-            "status": "FAILED" if steps_failed else "HEALTHY",
-            "steps_completed": steps_completed,
-            "steps_failed": steps_failed,
-            "dqs_score": dqs_score if dqs_score is not None else snapshot.dqs_score,
-            "regime_calls_count": (
-                pairs_processed
-                if pairs_processed is not None
-                else snapshot.regime_calls_count
-            ),
-            "validation_stats_computed": snapshot.validation_stats_computed,
-            "ai_briefs_generated": snapshot.ai_briefs_generated,
-            "macro_event_briefs_generated": snapshot.macro_event_briefs_generated,
-            "errors": snapshot.errors,
-            "duration_seconds": duration_seconds,
-        }
-    else:
-        payload = {
-            "date": date_str,
-            "status": "FAILED" if steps_failed else "UNKNOWN",
-            "steps_completed": steps_completed,
-            "steps_failed": steps_failed,
+            "status": "HEALTHY" if health.status == "OK" else health.status,
+            "steps_completed": list(steps_completed),
+            "steps_failed": list(steps_failed),
             "dqs_score": dqs_score,
             "regime_calls_count": pairs_processed,
-            "errors": [],
+            "validation_stats_computed": any(
+                report.stage_name == "validation_aggregate" and report.status == "OK"
+                for report in reports
+            ),
+            "ai_briefs_generated": None,
+            "macro_event_briefs_generated": None,
+            "errors": [asdict(report) for report in reports if report.status != "OK"],
             "duration_seconds": duration_seconds,
         }
-
-    try:
-        write_pipeline_run(payload)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Failed to write pipeline_run for %s: %s", date_str, exc)
+    )
 
 
 def _get_v1_outputs_for_date(
@@ -116,14 +90,12 @@ def _get_v1_outputs_for_date(
 
     v1_calls: dict[str, RegimeCall] = {}
     v1_briefs: dict[str, str | None] = {}
-    for pair in PAIRS:
+    for pair in _LOCKED_PAIRS:
         brief = get_brief_for_date(pair, date_str)
         v1_briefs[pair] = brief
-        rows = get_historical_regime_calls(pair)
-        for row in rows:
-            if str(row.get("date") or "")[:10] == date_str:
-                v1_calls[pair] = _regime_call_from_db(row)
-                break
+        rows = get_current_live_regime_history(pair, as_of=date_str, session_limit=1)
+        if rows and str(rows[0].get("date") or "")[:10] == date_str:
+            v1_calls[pair] = _regime_call_from_db(rows[0])
     return v1_calls, v1_briefs
 
 
@@ -131,230 +103,220 @@ async def _run_v2_live_pipeline(
     date_str: str,
     correlation_id: str,
 ) -> MultiPairRunOutput:
-    """Run the staged v2 pipeline with production ports."""
-
-    as_of = date.fromisoformat(date_str[:10])
     return await run_multi_pair_flow(
-        as_of,
+        date.fromisoformat(date_str),
         fetcher=ProductionFetcherPort(),
         writer=ProductionWriterPort(),
         alert=ProductionAlertPort(),
         correlation_id=correlation_id,
+        send_run_status=False,
     )
 
 
-def _dqs_from_v2_output(output: MultiPairRunOutput) -> float:
-    """Average data_quality_score across v2 regime calls."""
-
-    scores = [
-        call.data_quality_score
-        for call in (out.regime_call for out in output.outputs.values())
-        if call.data_quality_score is not None
-    ]
-    if not scores:
-        return 1.0
-    return round(sum(scores) / len(scores), 4)
+def _complete_dqs(scores: Sequence[float | None]) -> float | None:
+    if not scores or any(s is None or not isfinite(s) or not 0 <= s <= 1 for s in scores):
+        return None
+    return round(sum(s for s in scores if s is not None) / len(scores), 4)
 
 
-def run_pipeline(date_str: str | None = None) -> None:
-    """Execute the full daily pipeline with alerting.
+def _dqs_from_v2_output(output: MultiPairRunOutput) -> float | None:
+    return _complete_dqs([out.regime_call.data_quality_score for out in output.outputs.values()])
 
-    Steps:
-      1. Daily orchestrator (signals, regime calls, briefs)
-      2. Overnight check (invalidation, persistence)
-      3. Validation engine (T+5/T+20 Brier scores)
-      4. Validation aggregate (track-record stats)
 
-    Feature flags (see ``src.config``):
-      * ``USE_V2_PIPELINE=true``  → run staged v2 as the live orchestrator
-      * ``SHADOW_V2=true``        → run v2 alongside v1 and compare outputs
+def _require_validation_evidence(reports: Sequence[StageHealth]) -> None:
+    validation = [report for report in reports if report.stage_name == "ValidateStage"]
+    if (
+        len(validation) != 1
+        or validation[0].status not in ("OK", "DEGRADED")
+        or "validation_scan_completed" not in validation[0].notes
+        or "validation_not_run" in validation[0].notes
+    ):
+        raise RuntimeError("Daily inference returned without completed validation evidence")
 
-    Alerting behavior:
-      * Orchestrator crash      → Slack failure alert
-      * DQS < 0.70 (no crash)   → email alert
-      * DQS >= 0.70 success     → Slack heartbeat
-      * Subsequent step crash   → Slack failure alert (step name included)
+
+@flow(name="FX Regime Lab scheduled pipeline", log_prints=True, timeout_seconds=2400)
+def run_pipeline(date_str: str | None = None) -> StageHealth:
+    """Run live inference, validation, overnight checks and aggregation exactly once.
+
+    Shadow comparison is optional and cannot alter the live ledger. Its failures
+    remain visible as degradation. Required-stage failures reach Prefect unchanged.
     """
-    if date_str is None:
-        date_str = date.today().isoformat()
-
+    as_of = date.fromisoformat(date_str) if date_str is not None else date.today()
+    date_str = as_of.isoformat()
     correlation_id = str(uuid.uuid4())
-    dqs_score: float | None = None
-    regime_calls_count = 0
-    failed_step = ""
-    steps_completed: list[str] = []
-    steps_failed: list[str] = []
-    start_time = time.monotonic()
+    started = time.monotonic()
+    reports: list[StageHealth] = []
+    completed: list[str] = []
+    failed: list[str] = []
+    dqs: float | None = None
+    published_pairs: tuple[str, ...] | None = None
+    stage = "orchestrator_v2" if config.USE_V2_PIPELINE else "orchestrator"
 
-    # ── Step 1: Daily orchestrator ──────────────────────────────────
+    def record_health() -> None:
+        _log_pipeline_health(
+            date_str,
+            reports=reports,
+            steps_completed=completed,
+            steps_failed=failed,
+            duration_seconds=round(time.monotonic() - started, 2),
+            dqs_score=dqs,
+            pairs_processed=len(published_pairs) if published_pairs is not None else None,
+        )
+
     try:
         if config.USE_V2_PIPELINE:
-            v2_output = _run_sync(_run_v2_live_pipeline(date_str, correlation_id))
-            dqs_score = _dqs_from_v2_output(v2_output)
-            regime_calls_count = v2_output.regime_calls_count
-            steps_completed.append("orchestrator_v2")
+            output = _run_sync(_run_v2_live_pipeline(date_str, correlation_id))
+            if not isinstance(output, MultiPairRunOutput) or output.date != as_of:
+                raise RuntimeError("Staged run returned invalid execution evidence")
+            if any(
+                (p, out.date, out.regime_call.pair, out.regime_call.date)
+                != (out.pair, as_of, p, as_of)
+                for p, out in output.outputs.items()
+            ):
+                raise RuntimeError("Staged publication identity mismatch")
+            published_pairs = tuple(output.outputs)
+            if output.pairs_processed != len(published_pairs) or output.regime_calls_count != len(
+                published_pairs
+            ):
+                raise RuntimeError("Staged publication counts disagree with outputs")
+            dqs = _dqs_from_v2_output(output)
+            inference_health = combine_stage_health(
+                "Inference",
+                output.health,
+                *(out.health for out in output.outputs.values()),
+                *output.stage_health,
+            )
+            validation_reports = output.stage_health
         else:
-            _run_sync(run_daily(date_str, correlation_id=correlation_id))
-            steps_completed.append("orchestrator")
-    except Exception as exc:
-        failed_step = "orchestrator_v2" if config.USE_V2_PIPELINE else "orchestrator"
-        steps_failed.append(failed_step)
-        write_pipeline_error(
-            step=failed_step,
-            error_type=type(exc).__name__,
-            message=str(exc),
-            correlation_id=correlation_id,
+            legacy = _run_sync(run_daily(date_str, correlation_id=correlation_id))
+            if not isinstance(legacy, DailyRunOutput) or legacy.date != date_str:
+                raise RuntimeError("Legacy run returned invalid execution evidence")
+            published_pairs = legacy.published_pairs
+            dqs = _complete_dqs([legacy.dqs_score])
+            inference_health = combine_stage_health(
+                "Inference", legacy.health, *legacy.stage_health
+            )
+            validation_reports = legacy.stage_health
+        reports.append(inference_health)
+        if inference_health.status == "FAILED":
+            raise RuntimeError("Daily inference reported FAILED")
+        _require_validation_evidence(validation_reports)
+        if len(set(published_pairs)) != len(published_pairs) or set(published_pairs) - set(
+            _LOCKED_PAIRS
+        ):
+            raise RuntimeError("Published pair identities violate the locked universe")
+        completed.extend([stage, "validation"])
+        missing = sorted(set(_LOCKED_PAIRS) - set(published_pairs))
+        reports.append(
+            StageHealth(
+                "PublicationCoverage", "DEGRADED" if missing else "OK", missing_fields=missing
+            )
         )
-        alert_on_failure(
-            date_str=date_str,
-            failed_step=failed_step,
-            exception=exc,
-            dqs_score=dqs_score,
+        reports.append(
+            StageHealth(
+                "DataQuality",
+                "DEGRADED" if dqs is None or dqs < 0.75 else "OK",
+                notes=["quality_unavailable_or_low"] if dqs is None or dqs < 0.75 else [],
+            )
         )
-        _log_pipeline_health(
-            date_str,
-            steps_completed=steps_completed,
-            steps_failed=steps_failed,
-            duration_seconds=round(time.monotonic() - start_time, 2),
-            dqs_score=dqs_score,
-            pairs_processed=regime_calls_count,
-        )
-        raise
 
-    # Compute DQS and pair count from regime_calls written by the orchestrator
-    # when running the legacy v1 path.
-    if not config.USE_V2_PIPELINE:
-        try:
-            dqs_scores = get_regime_calls_dqs_for_date(date_str)
-            dqs_score = round(sum(dqs_scores) / len(dqs_scores), 4) if dqs_scores else 1.0
-        except Exception:
-            dqs_score = 1.0
-        try:
-            regime_calls_count = count_regime_calls_for_date(date_str)
-        except Exception:
-            regime_calls_count = 0
-
-    # ── Step 1b: Shadow-run v2 comparison (only when v1 is live) ────
-    if config.SHADOW_V2 and not config.USE_V2_PIPELINE:
-        try:
-            v1_calls, v1_briefs = _get_v1_outputs_for_date(date_str)
-            shadow_result = _run_sync(
-                run_shadow_comparison(
-                    date.fromisoformat(date_str[:10]),
-                    v1_calls=v1_calls,
-                    v1_briefs=v1_briefs,
-                    fetcher=ProductionFetcherPort(),
-                    correlation_id=correlation_id,
+        if config.SHADOW_V2 and not config.USE_V2_PIPELINE:
+            try:
+                calls, briefs = _get_v1_outputs_for_date(date_str)
+                shadow = _run_sync(
+                    run_shadow_comparison(
+                        as_of,
+                        v1_calls=calls,
+                        v1_briefs=briefs,
+                        fetcher=ProductionFetcherPort(),
+                        correlation_id=correlation_id,
+                    )
                 )
+                reports.append(
+                    StageHealth(
+                        "shadow_v2",
+                        "OK" if shadow.equivalent else "DEGRADED",
+                        notes=[] if shadow.equivalent else ["output_divergence"],
+                    )
+                )
+                completed.append("shadow_v2")
+            except Exception as exc:
+                reports.append(StageHealth("shadow_v2", "DEGRADED", notes=[type(exc).__name__]))
+
+        stage = "overnight_check"
+        overnight = run_overnight_check(as_of=as_of)
+        if not isinstance(overnight, StageHealth):
+            raise RuntimeError("Overnight check returned no execution evidence")
+        reports.append(overnight)
+        if overnight.status == "FAILED":
+            raise RuntimeError("Overnight check reported FAILED")
+        completed.append(stage)
+
+        stage = "validation_aggregate"
+        aggregates = run_aggregate_stats(as_of_date=as_of)
+        reports.append(
+            StageHealth(
+                stage,
+                "OK" if aggregates else "DEGRADED",
+                notes=[] if aggregates else ["no_aggregate_rows"],
             )
-            logger.info(
-                "Shadow v2 comparison for %s: equivalent=%s pairs=%s",
-                date_str,
-                shadow_result.equivalent,
-                {p: c.equivalent for p, c in shadow_result.comparisons.items()},
-            )
-            steps_completed.append("shadow_v2")
-        except Exception as exc:
-            failed_step = "shadow_v2"
-            steps_failed.append(failed_step)
+        )
+        completed.append(stage)
+
+        if as_of == date.today():
+            try:
+                alerts = check_accuracy_alerts()
+                if alerts:
+                    send_accuracy_alerts(alerts)
+            except Exception as exc:
+                reports.append(
+                    StageHealth("accuracy_alerts", "DEGRADED", notes=[type(exc).__name__])
+                )
+
+        stage = "health_record"
+        record_health()
+        completed.append(stage)
+    except Exception as exc:
+        failed.append(stage)
+        reports.append(StageHealth(stage, "FAILED", notes=[type(exc).__name__]))
+        # Secondary diagnostics must not replace the required-stage exception.
+        try:
             write_pipeline_error(
-                step=failed_step,
+                step=stage,
                 error_type=type(exc).__name__,
-                message=str(exc),
+                message="Required pipeline stage failed; inspect run logs",
                 correlation_id=correlation_id,
             )
-            # Shadow failures are non-fatal: v1 already published the live ledger.
-            logger.warning("Shadow v2 comparison failed for %s: %s", date_str, exc)
-
-    # ── Step 2: Overnight check ─────────────────────────────────────
-    try:
-        run_overnight_check()
-        steps_completed.append("overnight_check")
-    except Exception as exc:
-        failed_step = "overnight_check"
-        steps_failed.append("overnight_check")
-        write_pipeline_error(
-            step="overnight_check",
-            error_type=type(exc).__name__,
-            message=str(exc),
-            correlation_id=correlation_id,
-        )
-        alert_on_failure(
-            date_str=date_str,
-            failed_step=failed_step,
-            exception=exc,
-        )
-        _log_pipeline_health(
-            date_str,
-            steps_completed=steps_completed,
-            steps_failed=steps_failed,
-            duration_seconds=round(time.monotonic() - start_time, 2),
-            dqs_score=dqs_score,
-            pairs_processed=regime_calls_count,
-        )
+        except Exception as diagnostic_error:
+            logger.warning("Failure diagnostic write failed: %s", type(diagnostic_error).__name__)
+        try:
+            record_health()
+        except Exception as diagnostic_error:
+            logger.warning("Failure health write failed: %s", type(diagnostic_error).__name__)
+        try:
+            ProductionAlertPort().send_status(
+                as_of, combine_stage_health("DailyPipeline", *reports)
+            )
+        except Exception as diagnostic_error:
+            logger.warning("Failure notice failed: %s", type(diagnostic_error).__name__)
         raise
 
-    # ── Step 3: Validation aggregate ────────────────────────────────
-    try:
-        run_aggregate_stats()
-        steps_completed.append("validation_aggregate")
-    except Exception as exc:
-        failed_step = "validation_aggregate"
-        steps_failed.append("validation_aggregate")
-        write_pipeline_error(
-            step="validation_aggregate",
-            error_type=type(exc).__name__,
-            message=str(exc),
-            correlation_id=correlation_id,
-        )
-        alert_on_failure(
+    health = combine_stage_health("DailyPipeline", *reports)
+    assert published_pairs is not None
+    if health.status == "OK":
+        assert dqs is not None
+        send_success_heartbeat(
             date_str=date_str,
-            failed_step=failed_step,
-            exception=exc,
+            pairs_processed=len(published_pairs),
+            regime_calls_count=len(published_pairs),
+            dqs_score=dqs,
         )
-        _log_pipeline_health(
-            date_str,
-            steps_completed=steps_completed,
-            steps_failed=steps_failed,
-            duration_seconds=round(time.monotonic() - start_time, 2),
-            dqs_score=dqs_score,
-            pairs_processed=regime_calls_count,
-        )
-        raise
-
-    # ── Accuracy alerts ─────────────────────────────────────────────
-    try:
-        alerts = check_accuracy_alerts()
-        if alerts:
-            send_accuracy_alerts(alerts)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Accuracy alert check failed: %s", exc)
-
-    # ── Health snapshot ─────────────────────────────────────────────
-    _log_pipeline_health(
-        date_str,
-        steps_completed=steps_completed,
-        steps_failed=steps_failed,
-        duration_seconds=round(time.monotonic() - start_time, 2),
-        dqs_score=dqs_score,
-        pairs_processed=regime_calls_count,
-    )
-
-    # ── Success alerting ────────────────────────────────────────────
-    # Since DQS is not directly exposed here, we default to heartbeat.
-    # If DQS < 0.70 had been raised inside run_daily, the exception
-    # would have been caught above and a failure alert sent instead.
-    send_success_heartbeat(
-        date_str=date_str,
-        pairs_processed=7,  # 3-pair lock + 4 secondary
-        regime_calls_count=regime_calls_count,
-        dqs_score=dqs_score or 1.0,
-    )
-
-    logger.info("Pipeline complete for %s", date_str)
+    else:
+        ProductionAlertPort().send_status(as_of, health)
+    logger.info("Pipeline execution finished for %s: %s", date_str, health.status)
+    return health
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    date_override = sys.argv[1] if len(sys.argv) > 1 else None
-    run_pipeline(date_override)
+    run_pipeline(sys.argv[1] if len(sys.argv) > 1 else None)

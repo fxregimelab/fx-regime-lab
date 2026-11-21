@@ -7,9 +7,10 @@ immutable and safe to pass through Prefect task results.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Literal
 
+from src.signals.rate_observation import RateObservation
 from src.types import (
     CotRow,
     Layer1GateOutput,
@@ -38,24 +39,48 @@ class StageHealth:
     notes: list[str] = field(default_factory=list)
 
 
+def combine_stage_health(stage_name: str, *reports: StageHealth) -> StageHealth:
+    """Preserve the worst status and all source details without mutating reports."""
+    rank = {"OK": 0, "DEGRADED": 1, "FAILED": 2}
+    status: StageStatus = "OK"
+    for report in reports:
+        if rank[report.status] > rank[status]:
+            status = report.status
+    return StageHealth(
+        stage_name=stage_name,
+        status=status,
+        missing_fields=list(dict.fromkeys(v for r in reports for v in r.missing_fields)),
+        derived_fields=list(dict.fromkeys(v for r in reports for v in r.derived_fields)),
+        notes=list(
+            dict.fromkeys(
+                [f"{r.stage_name}:{r.status}" for r in reports if r.status != "OK"]
+                + [v for r in reports for v in r.notes]
+            )
+        ),
+    )
+
+
 @dataclass(frozen=True)
 class IngestionSnapshot:
     """All fetched market and macro inputs for a single pipeline date.
 
     This object isolates fetcher outputs from signal logic and downstream
-    regime-call assembly. It is immutable so that signal builders can depend
-    on a stable contract.
+    regime-call assembly. ``frozen=True`` prevents attribute rebinding, while
+    the contained dictionaries and history lists remain mutable and must be
+    treated as read-only by stage implementations.
     """
 
     date: date
     spots: dict[str, tuple[SpotBar, ...]]
     yields: dict[str, float | None]
     cot_rows: list[CotRow]
-    cross_asset: dict[str, float | None]
+    cross_asset: dict[str, Any]
     macro: dict[str, Any] | None = None
     dqs_score: float | None = None
     stress_level: str | None = None
     health: StageHealth = field(default_factory=lambda: StageHealth("IngestionStage", "OK"))
+    rate_observations: dict[str, RateObservation] = field(default_factory=dict)
+    rate_decision_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -123,6 +148,7 @@ class PublishOutput:
     desk_card: dict[str, Any] | None
     alerts_sent: list[str]
     health: StageHealth = field(default_factory=lambda: StageHealth("PublishStage", "OK"))
+    stage_health: tuple[StageHealth, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -135,3 +161,4 @@ class MultiPairRunOutput:
     health: StageHealth
     pairs_processed: int
     regime_calls_count: int
+    stage_health: tuple[StageHealth, ...] = ()

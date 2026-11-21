@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import datetime
 
+import pytest
+
 from src.core.ingestion_snapshot import IngestionSnapshot
+from src.core.spot_history import SpotHistoryError
 from src.fetchers.buffer_keys import KEY_COT, KEY_CROSS_ASSET, KEY_FX_SPOT, KEY_YIELDS
 from src.types import CotRow, SpotBar
 
@@ -41,7 +44,6 @@ def test_from_buffer_partial_spots() -> None:
         KEY_FX_SPOT: {
             "EURUSD": [
                 _bar(pair="EURUSD", close=1.1),
-                {"date": "2026-01-15", "pair": "EURUSD", "close": 0.0},
                 {"date": "not-a-date", "pair": "EURUSD", "close": 1.2},
             ],
             "USDJPY": "not-a-list",
@@ -181,3 +183,177 @@ def test_yesterday_bar_missing_pair_returns_none() -> None:
         cross_asset={},
     )
     assert snapshot.yesterday_bar_for("EURUSD") is None
+
+
+def test_from_buffer_rejects_conflicting_duplicate_spot_rows() -> None:
+    buffer = {
+        KEY_FX_SPOT: {
+            "EURUSD": [
+                {
+                    "date": "2026-01-15",
+                    "pair": "EURUSD",
+                    "open": 1.1,
+                    "high": 1.1,
+                    "low": 1.1,
+                    "close": 1.1,
+                },
+                {
+                    "date": "2026-01-15",
+                    "pair": "EURUSD",
+                    "open": 1.2,
+                    "high": 1.2,
+                    "low": 1.2,
+                    "close": 1.2,
+                },
+            ]
+        }
+    }
+
+    with pytest.raises(SpotHistoryError, match="Conflicting EURUSD spot rows"):
+        IngestionSnapshot.from_buffer(datetime.date(2026, 1, 15), buffer)
+
+
+def test_from_buffer_rejects_timestamp_instead_of_truncating_it() -> None:
+    buffer = {
+        KEY_FX_SPOT: {
+            "EURUSD": [
+                {
+                    "date": "2026-01-15T23:59:59Z",
+                    "pair": "EURUSD",
+                    "close": 1.1,
+                }
+            ]
+        }
+    }
+
+    snapshot = IngestionSnapshot.from_buffer(datetime.date(2026, 1, 15), buffer)
+    assert snapshot.spots == {}
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"open": None}, "spot.open is required"),
+        ({"high": True}, "spot.high must be a finite number"),
+        ({"low": float("nan")}, "spot.low must be a finite number"),
+        ({"close": float("inf")}, "spot.close must be a finite number"),
+        ({"close": "bad"}, "spot.close must be a finite number"),
+        ({"close": 0.0}, "spot.close must be positive"),
+        ({"volume": -1.0}, "spot.volume must be nonnegative"),
+    ],
+)
+def test_from_buffer_rejects_invalid_dict_prices(
+    overrides: dict[str, object], message: str
+) -> None:
+    row: dict[str, object] = {
+        "date": "2026-01-15",
+        "pair": "EURUSD",
+        "open": 1.0,
+        "high": 1.2,
+        "low": 0.9,
+        "close": 1.1,
+        "volume": 10.0,
+    }
+    row.update(overrides)
+
+    with pytest.raises(SpotHistoryError, match=message):
+        IngestionSnapshot.from_buffer(
+            datetime.date(2026, 1, 15),
+            {KEY_FX_SPOT: {"EURUSD": [row]}},
+        )
+
+
+@pytest.mark.parametrize("missing", ["open", "high", "low", "close"])
+def test_from_buffer_does_not_fabricate_missing_ohlc(missing: str) -> None:
+    row: dict[str, object] = {
+        "date": "2026-01-15",
+        "pair": "EURUSD",
+        "open": 1.0,
+        "high": 1.2,
+        "low": 0.9,
+        "close": 1.1,
+    }
+    del row[missing]
+
+    with pytest.raises(SpotHistoryError, match=rf"spot\.{missing} is required"):
+        IngestionSnapshot.from_buffer(
+            datetime.date(2026, 1, 15),
+            {KEY_FX_SPOT: {"EURUSD": [row]}},
+        )
+
+
+def test_today_and_yesterday_ignore_future_and_sort_input() -> None:
+    as_of = datetime.date(2026, 1, 15)
+    earlier = SpotBar(
+        date=datetime.date(2026, 1, 14),
+        pair="EURUSD",
+        open=1.0,
+        high=1.0,
+        low=1.0,
+        close=1.0,
+    )
+    latest = SpotBar(
+        date=as_of,
+        pair="EURUSD",
+        open=1.1,
+        high=1.1,
+        low=1.1,
+        close=1.1,
+    )
+    future = SpotBar(
+        date=datetime.date(2026, 1, 16),
+        pair="EURUSD",
+        open=9.0,
+        high=9.0,
+        low=9.0,
+        close=9.0,
+    )
+    snapshot = IngestionSnapshot(
+        date=as_of,
+        spots={"EURUSD": (future, latest, earlier)},
+        yields={},
+        cot_rows=[],
+        cross_asset={},
+    )
+
+    assert snapshot.today_bar_for("EURUSD") is latest
+    assert snapshot.yesterday_bar_for("EURUSD") is earlier
+
+
+def test_from_buffer_preserves_provider_metadata_fields() -> None:
+    retrieved_at = datetime.datetime(2026, 1, 15, 12, tzinfo=datetime.UTC)
+    provider_timestamp = datetime.datetime(2026, 1, 15, tzinfo=datetime.UTC)
+    buffer = {
+        KEY_FX_SPOT: {
+            "EURUSD": [
+                {
+                    "date": "2026-01-15",
+                    "pair": "EURUSD",
+                    "open": 1.0,
+                    "high": 1.2,
+                    "low": 0.9,
+                    "close": 1.1,
+                    "volume": 10.0,
+                    "provider": "polygon",
+                    "instrument": "C:EURUSD",
+                    "retrieved_at": retrieved_at,
+                    "provider_timestamp": provider_timestamp,
+                    "session_timezone": "UTC",
+                    "provider_metadata": {"date_label_policy": "timestamp_utc_date"},
+                    "volume_source": "cme",
+                    "volume_instrument": "6E",
+                }
+            ]
+        }
+    }
+
+    snapshot = IngestionSnapshot.from_buffer(datetime.date(2026, 1, 15), buffer)
+    bar = snapshot.spots["EURUSD"][0]
+
+    assert bar.provider == "polygon"
+    assert bar.instrument == "C:EURUSD"
+    assert bar.retrieved_at is retrieved_at
+    assert bar.provider_timestamp is provider_timestamp
+    assert bar.provider_metadata == {"date_label_policy": "timestamp_utc_date"}
+    assert bar.volume_source == "cme"
+    assert bar.volume_instrument == "6E"

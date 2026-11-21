@@ -1,0 +1,33 @@
+{
+  "verified_at": "2026-10-01T19:29:50.899315+00:00",
+  "url": "http://127.0.0.1:8765",
+  "server_pid": 5052,
+  "report_sha256": "19136098e5f3b369eca5c11ba3e29e1fd3068524fec7329156969c90331a75f6",
+  "parent_report_sha256": "1af3f4192c4086b73ad468d32ad4fff493d75561d6fbc7359b0a7d90372f6a2c",
+  "method_version": "private-daily-risk-v1",
+  "accepted_calls": 2321,
+  "skipped_calls": 96,
+  "daily_boundaries": 4485,
+  "modelled_exit_requests": 1,
+  "post_decision_breach_days": 0,
+  "mean_modelled_net_r": -0.04038604225308634,
+  "common_coverage_frequency": {
+    "complete_week_count": 799,
+    "mean_weekly_entries": 1.8322903629536922,
+    "weeks_meeting_target": 229,
+    "zero_entry_week_count": 149,
+    "basis": "Same complete all-pair test weeks as the preserved v1 audit"
+  },
+  "journal_publications": 32,
+  "distinct_observations": 8,
+  "repeat_publications": 24,
+  "outcome_status_counts": {
+    "PENDING": 5,
+    "UNAVAILABLE": 3
+  },
+  "csv_rows": 32,
+  "authentication_csrf_export_logout": "PASS",
+  "report_and_events_unchanged": true,
+  "original_research_preserved": true,
+  "execution_and_intraday_qualification": "UNQUALIFIED"
+}

@@ -10,6 +10,8 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
+from src.signals.rate_inputs import finite_rate, real_yield_spread
+
 logger = logging.getLogger(__name__)
 
 MAD_NORMAL_SCALE = 1.4826
@@ -21,7 +23,7 @@ STRUCTURAL_MAD_DAYS = 2520
 
 @dataclass(frozen=True)
 class RateNormZ:
-    """Dual-horizon robust Z on the same carry series (clipped composite inputs)."""
+    """Separate tactical and structural robust scores, with explicit missing inputs."""
 
     z_tactical: float | None
     z_structural: float | None
@@ -48,15 +50,21 @@ def build_carry_history_from_rows(
     *,
     max_points: int = CARRY_LOOKBACK_DAYS,
 ) -> list[float]:
-    """Risk-adjusted carry (2Y / RV20) oldest-first, at most ``max_points`` most recent points."""
+    """Qualified 2Y yield-spread/RV20 proxy, oldest-first.
+
+    Untagged historical rows used incompatible instruments; they cannot be reused
+    as the baseline for a repaired feature. This proxy is not realized carry P&L.
+    """
 
     parsed: list[tuple[date, float]] = []
     for row in historical_rows:
+        if row.get("rate_input_contract") != "pair-2y-v1":
+            continue
         dt = _to_date(row.get("date"))
         if dt is None:
             continue
-        rate_2y = _to_float(row.get("rate_diff_2y"))
-        rv20f = _to_float(row.get("realized_vol_20d"))
+        rate_2y = finite_rate(row.get("rate_diff_2y"))
+        rv20f = finite_rate(row.get("realized_vol_20d"))
         if rate_2y is None or rv20f is None or rv20f <= 0.0:
             continue
         parsed.append((dt, rate_2y / rv20f))
@@ -70,22 +78,26 @@ def build_real_yield_10y_spread_history_from_rows(
     *,
     max_points: int = CARRY_LOOKBACK_DAYS,
 ) -> list[float]:
-    """Nominal 10Y pair spread minus same-day breakeven (when present); oldest-first.
+    """Only explicitly qualified two-sided real-spread rows, oldest-first.
 
-    Real_Yield_10Y ≈ ``rate_diff_10y - breakeven_inflation_10y``. Missing breakeven falls back
-    to nominal ``rate_diff_10y`` so backfilled history still produces a structural series.
+    Existing one-sided US inflation rows cannot reconstruct this feature. New
+    qualified history requires a separate version and both inflation inputs.
     """
 
     parsed: list[tuple[date, float]] = []
     for row in historical_rows:
+        if row.get("real_rate_contract") != "pair-real10y-v1":
+            continue
         dt = _to_date(row.get("date"))
         if dt is None:
             continue
-        r10 = _to_float(row.get("rate_diff_10y"))
-        if r10 is None:
+        real = real_yield_spread(
+            finite_rate(row.get("rate_diff_10y")),
+            finite_rate(row.get("breakeven_base_10y")),
+            finite_rate(row.get("breakeven_quote_10y")),
+        )
+        if real is None:
             continue
-        bei = _to_float(row.get("breakeven_inflation_10y"))
-        real = float(r10) - float(bei) if bei is not None else float(r10)
         parsed.append((dt, real))
     parsed.sort(key=lambda x: x[0])
     tail = parsed[-max_points:] if len(parsed) > max_points else parsed
@@ -177,35 +189,27 @@ def normalize_rate_signal(
     spread_structural: float | None = None,
     historical_structural: list[float] | None = None,
 ) -> RateNormZ:
-    """252d tactical MAD Z on carry; 2520d structural on real 10Y spread when available.
+    """Normalize tactical carry and a separately qualified structural series.
 
-    Tactical input ``spread`` is typically risk-adjusted carry (2Y / RV20). Structural uses
-    ``spread_structural`` (nominal 10Y pair spread minus breakeven) against
-    ``historical_structural`` (same construction on past days). If structural history is
-    omitted, structural Z reuses the tactical series (legacy behavior).
+    Missing structural data stays missing; it never inherits the tactical score.
     """
 
     arr = np.asarray(historical_spreads[-CARRY_LOOKBACK_DAYS:], dtype=np.float64)
     arr = arr[np.isfinite(arr)]
-    if arr.size == 0:
-        logger.info("Rate normalization fallback: empty history for %s", pair)
-        return RateNormZ(z_tactical=None, z_structural=None, z_blended=None)
-
-    z_tactical = _mad_z_from_series(
-        spread, arr, TACTICAL_MAD_DAYS, "tactical", pair
-    )
+    z_tactical = None
+    if arr.size > 0 and finite_rate(spread) is not None:
+        z_tactical = _mad_z_from_series(
+            spread, arr, TACTICAL_MAD_DAYS, "tactical", pair
+        )
     hist_s = historical_structural
     ss = spread_structural
-    use_real_structural = ss is not None and hist_s is not None and len(hist_s) > 0
+    z_structural = None
+    use_real_structural = finite_rate(ss) is not None and hist_s is not None and len(hist_s) > 0
     if use_real_structural:
         assert hist_s is not None and ss is not None
         arr_s = np.asarray(hist_s[-CARRY_LOOKBACK_DAYS:], dtype=np.float64)
         arr_s = arr_s[np.isfinite(arr_s)]
-        if arr_s.size == 0:
-            z_structural = _mad_z_from_series(
-                spread, arr, STRUCTURAL_MAD_DAYS, "structural", pair
-            )
-        else:
+        if arr_s.size > 0:
             z_structural = _mad_z_from_series(
                 ss,
                 arr_s,
@@ -213,10 +217,6 @@ def normalize_rate_signal(
                 "structural_real10y",
                 pair,
             )
-    else:
-        z_structural = _mad_z_from_series(
-            spread, arr, STRUCTURAL_MAD_DAYS, "structural", pair
-        )
 
     z_blended = None
     if z_tactical is not None and z_structural is not None:

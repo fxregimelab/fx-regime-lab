@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import datetime
+from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from src import config
+from src.scheduler.contracts import DailyRunOutput
 from src.staged.contracts import MultiPairRunOutput, PublishOutput, StageHealth
 from src.types import RegimeCall
 
@@ -54,11 +56,19 @@ def _sample_publish_output() -> PublishOutput:
 def _sample_v2_output() -> MultiPairRunOutput:
     return MultiPairRunOutput(
         date=datetime.date(2026, 5, 20),
-        outputs={"EURUSD": _sample_publish_output()},
+        outputs={
+            pair: replace(
+                _sample_publish_output(),
+                pair=pair,
+                regime_call=replace(_sample_regime_call(), pair=pair),
+            )
+            for pair in ("EURUSD", "USDJPY", "USDINR")
+        },
         validation_rows=[],
         health=StageHealth("MultiPairRun", "OK"),
-        pairs_processed=1,
-        regime_calls_count=1,
+        pairs_processed=3,
+        regime_calls_count=3,
+        stage_health=(StageHealth("ValidateStage", "OK", notes=["validation_scan_completed"]),),
     )
 
 
@@ -66,18 +76,28 @@ def _sample_v2_output() -> MultiPairRunOutput:
 def patched_pipeline(monkeypatch: pytest.MonkeyPatch) -> dict[str, MagicMock]:
     """Patch all downstream steps so run_pipeline can be exercised in isolation."""
 
+    monkeypatch.setattr(
+        "src.scheduler.run_pipeline.run_pipeline",
+        __import__("src.scheduler.run_pipeline", fromlist=["run_pipeline"]).run_pipeline.fn,
+    )
     mocks: dict[str, MagicMock] = {
-        "run_daily": AsyncMock(),
+        "run_daily": AsyncMock(
+            return_value=DailyRunOutput(
+                "2026-05-20",
+                ("EURUSD", "USDJPY", "USDINR"),
+                0.95,
+                StageHealth("DailyRun", "OK"),
+                (StageHealth("ValidateStage", "OK", notes=["validation_scan_completed"]),),
+            )
+        ),
         "_run_v2_live_pipeline": AsyncMock(return_value=_sample_v2_output()),
-        "run_overnight_check": MagicMock(),
-        "run_aggregate_stats": MagicMock(),
+        "run_overnight_check": MagicMock(return_value=StageHealth("overnight_check", "OK")),
+        "run_aggregate_stats": MagicMock(return_value=[object()]),
         "check_accuracy_alerts": MagicMock(return_value=[]),
         "send_success_heartbeat": MagicMock(),
-        "get_health_for_date": MagicMock(return_value=None),
+        "ProductionAlertPort": MagicMock(),
         "write_pipeline_run": MagicMock(),
         "write_pipeline_error": MagicMock(),
-        "get_regime_calls_dqs_for_date": MagicMock(return_value=[0.95]),
-        "count_regime_calls_for_date": MagicMock(return_value=3),
     }
 
     monkeypatch.setattr("src.scheduler.run_pipeline.run_daily", mocks["run_daily"])
@@ -102,8 +122,8 @@ def patched_pipeline(monkeypatch: pytest.MonkeyPatch) -> dict[str, MagicMock]:
         mocks["send_success_heartbeat"],
     )
     monkeypatch.setattr(
-        "src.scheduler.run_pipeline.get_health_for_date",
-        mocks["get_health_for_date"],
+        "src.scheduler.run_pipeline.ProductionAlertPort",
+        mocks["ProductionAlertPort"],
     )
     monkeypatch.setattr(
         "src.scheduler.run_pipeline.write_pipeline_run",
@@ -112,14 +132,6 @@ def patched_pipeline(monkeypatch: pytest.MonkeyPatch) -> dict[str, MagicMock]:
     monkeypatch.setattr(
         "src.scheduler.run_pipeline.write_pipeline_error",
         mocks["write_pipeline_error"],
-    )
-    monkeypatch.setattr(
-        "src.scheduler.run_pipeline.get_regime_calls_dqs_for_date",
-        mocks["get_regime_calls_dqs_for_date"],
-    )
-    monkeypatch.setattr(
-        "src.scheduler.run_pipeline.count_regime_calls_for_date",
-        mocks["count_regime_calls_for_date"],
     )
     return mocks
 

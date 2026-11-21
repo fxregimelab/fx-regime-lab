@@ -1,0 +1,57 @@
+{
+  "verified_at": "2026-10-01T19:34:38.427070+00:00",
+  "report_sha256": "19136098e5f3b369eca5c11ba3e29e1fd3068524fec7329156969c90331a75f6",
+  "reviewed_bindings": {
+    "docs/PRIVATE_DAILY_RISK_CONTRACT.md": "2a811f16e9e0b3aae1ae80d2c9aa185a56d656035170ae573c6ab4029e2d85b1",
+    "pipeline/src/private_desk/risk_control.py": "bc00c13e2e44c1e64948588c6c3d66bca698a15caad020afbd318d558973d780",
+    "pipeline/src/private_desk/engine.py": "3a2aa79e9bbd3677fa9ecf61f78d9bf496680833093547ebeb49cda5a74f07c9",
+    "pipeline/src/private_desk/correlation.py": "88418c1711da2da1e818ce1d512cedb90d99cae779b6cd2f9a921cc0fbc79e69",
+    "pipeline/src/private_desk/report.py": "ef52e9bf555937641a6082bf304e8fe8ece22de4d0f19fc1829b2fb83ca2f76a",
+    "pipeline/src/private_desk/cli.py": "edd5561dc6cb0652f3ad7a64ec07a511f406a1acc5409ac20e3a7139d860c45e",
+    "private-desk/index.html": "eb4c659bef920a2c4b71fcf208c4d34e65c77618d5be95cbbb2c02915a1ce6ae",
+    "private-desk/verify-ui.mjs": "1b23986265b6ffce5bd2118106ca38d8b851f048cb0720e7a94d08747dfa2e91",
+    "pipeline/tests/test_private_desk_daily_risk.py": "b923d1435569ff16ecd3cf58a03eff50613776c8ddc59748639227b05f5a9dc3",
+    "pipeline/tests/test_private_desk_engine.py": "8489350d3b8de5758d2a0fc137b7c8974c47bc98240fcca90e52c5b3dae2bde8",
+    "pipeline/tests/test_private_desk_correlation.py": "c0cc2a1975626511c24a4acdbaf9dd153cd2ff4ee98fd8252d100c4986932617"
+  },
+  "artifact_bindings": {
+    ".private-fx\\report.json": "19136098e5f3b369eca5c11ba3e29e1fd3068524fec7329156969c90331a75f6",
+    ".private-fx\\daily-risk\\parent-1af3f4192c4086b73ad468d32ad4fff493d75561d6fbc7359b0a7d90372f6a2c.json": "1af3f4192c4086b73ad468d32ad4fff493d75561d6fbc7359b0a7d90372f6a2c",
+    "reports\\private-daily-risk-independent-review.md": "f336c5f39e9c561bdfd125a9647a8152a84bb51ba8d57748e3306ed17a697faf",
+    "reports\\private-continuous-risk-source-research.md": "c6dc364569c9a3241e8abb19371bcd00ec5fbb576629bbdf2e1975ec9befc9f4",
+    "reports\\private-daily-risk-before.json": "d9e5ae6785443c2f98bf0604f7f74d466f62306abd40dfd11bb1d2b4c3dc3d33",
+    "reports\\private-daily-risk-checks-final.txt": "04eb5e6b4857679198353f39a0eb469b5b674eb03f99a0b9e88cd614cd2f4146",
+    "reports\\private-daily-risk-replay.txt": "b9ddc09dd46c00422c8dfa3511e374279323cc9ad3b2aee4a350da80e819b3cf",
+    "reports\\private-daily-risk-ui.txt": "449073843780406a258c18ca7de126369fddcd4d64a2aa52b7e746dbe3caaf98",
+    "reports\\private-daily-risk-runtime.json": "4af1d72d1127ed93e9fffe3f63052094b2e050a0bdd43df743400cfca128afb2",
+    "reports\\private-daily-risk-browser.json": "0d84bc7e6f2ced1693b4de4f98c3efc64e44345c6defb36e910d4c27af88ac00",
+    "reports\\private-daily-risk-journal-dashboard.png": "2beb34ecb2177c95a1b20c8ef5fc713345c015f51b2b6e0772f6807161c5c71a",
+    "reports\\private-daily-risk-dashboard.png": "4bb56591316ab43732dd57c0911013dba30a1981da5094045225dde6be9588c6",
+    "reports\\private-daily-risk-acceptance.md": "1fddfb6e490cc76cd542d9e96a731285f4459091d262106d867ad28db85d7aef",
+    "scripts\\repair\\verify_private_daily_risk_runtime.py": "947e097d5211080a8fc31ef6d975cba45e8214cd69a6782a0f33b3fe9564e21b",
+    "TASK.md": "0f1657028f0fc0f6a72b199db0e4509a603c74075c18026387a5174f1d16fe26",
+    "MASTERPLAN.md": "41ced79bf91a7285f07f03d0b021ac5aee57e6ff7b13a43c9b779f0315d13ed3",
+    "docs\\PRIVATE_DESK_CONTRACT.md": "993dd4b3e326e60fc84cd4c630964cff115722178841c05cf18c87acfb4d9e25",
+    ".unlazy\\private-desk\\PLAN.md": "e5813ebe34d0acf7ce28f054ac53fc88a27e0f64b9c33ecb811a39e132a5bdec",
+    ".unlazy\\private-daily-risk\\GATES.md": "f6e90814ed8f608b9c81d99ebf76760f4846a12e249d921d0e9631b364d23492"
+  },
+  "parent_prior_research_and_v4_review_preserved": true,
+  "all_earlier_journal_files_preserved": true,
+  "journal": {
+    "publications": 32,
+    "distinct_observations": 8,
+    "repeats": 24,
+    "outcomes": {
+      "PENDING": 5,
+      "UNAVAILABLE": 3
+    }
+  },
+  "direct_full_tests": 2751,
+  "mypy_sources": 276,
+  "manual_gates_met": 3,
+  "formal_runnable_gates_pending": 3,
+  "abandoned_gates": 0,
+  "strategy_qualification": "UNQUALIFIED",
+  "goal_status": "active",
+  "server_pid": 5052
+}

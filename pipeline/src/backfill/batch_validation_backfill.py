@@ -1,247 +1,90 @@
-"""Batch validation backfill for all historical regime_calls.
-
-Loads prices into memory, computes T+5/T+20 metrics in bulk,
-and inserts via pg8000 direct SQL for speed.
-"""
+"""Batch replay through the shared immutable-evidence evaluator."""
 
 from __future__ import annotations
 
 import argparse
 import logging
-import math
-from collections import defaultdict
-from datetime import UTC, date, datetime, timedelta
+from collections.abc import Callable, Mapping
+from datetime import date
 from typing import Any
 
-from src.validation.calendar import add_trading_days
+from src.db import writer
+from src.validation.calculator import (
+    brier_score,
+    directional_correctness,
+    realized_direction,
+    validate_probability,
+)
+from src.validation.evaluator import evaluate_call, normalize_call_id
 
 logger = logging.getLogger(__name__)
 
-
-def _pg_conn() -> Any:
-    import ssl
-
-    import pg8000.native
-    ctx = ssl._create_unverified_context()
-    import os
-    host = os.environ.get("SUPABASE_DB_HOST", "db.weaaacohvzzgkgxzpaee.supabase.co")
-    password = os.environ.get("SUPABASE_DB_PASSWORD")
-    if not password:
-        raise RuntimeError("SUPABASE_DB_PASSWORD must be set in the environment.")
-    return pg8000.native.Connection(
-        host=host,
-        database="postgres",
-        user="postgres",
-        password=password,
-        ssl_context=ctx,
-    )
-
-
-def log_return_bps(s0: float, sh: float) -> float:
-    return 10_000.0 * math.log(sh / s0)
-
-
-def realized_direction(bps: float, deadband: float = 5.0) -> str:
-    if bps > deadband:
-        return "UP"
-    if bps < -deadband:
-        return "DOWN"
-    return "NEUTRAL"
+_VALIDATION_PAIRS = ("EURUSD", "USDJPY", "USDINR")
 
 
 def is_correct(predicted: str, realized: str) -> bool:
-    p = predicted.strip().upper()
-    r = realized.strip().upper()
-    if p == "BULLISH":
-        return r == "UP"
-    if p == "BEARISH":
-        return r == "DOWN"
-    if p == "NEUTRAL":
-        return r == "NEUTRAL"
-    return False
+    return bool(directional_correctness(predicted, realized))
 
 
 def apply_dead_band(bps: float, predicted: str) -> str:
-    realized = realized_direction(bps)
-    if realized == "NEUTRAL":
+    correct = directional_correctness(predicted, realized_direction(bps))
+    if correct is None:
         return "NEUTRAL"
-    return "CORRECT" if is_correct(predicted, realized) else "WRONG"
+    return "CORRECT" if correct else "WRONG"
 
 
-def compute_brier_score(conviction: float, outcome: str) -> float:
-    p = float(conviction)
+def compute_brier_score(conviction: float, outcome: str) -> float | None:
+    probability = validate_probability(conviction)
     if outcome == "CORRECT":
-        y = 1.0
-    elif outcome == "WRONG":
-        y = 0.0
-    else:
-        y = 0.5
-    return (p - y) ** 2
+        return brier_score(probability, True)
+    if outcome == "WRONG":
+        return brier_score(probability, False)
+    if outcome == "NEUTRAL":
+        return None
+    raise ValueError(f"unsupported outcome: {outcome!r}")
 
 
-def _load_prices() -> dict[str, dict[date, float]]:
-    conn = _pg_conn()
-    result = conn.run(
-        "SELECT pair, date, close FROM historical_prices ORDER BY pair, date"
-    )
-    out: dict[str, dict[date, float]] = defaultdict(dict)
-    for row in result:
-        pair = row[0]
-        d = row[1] if isinstance(row[1], date) else date.fromisoformat(str(row[1])[:10])
-        out[pair][d] = float(row[2])
-    conn.close()
-    logger.info("Loaded %d price series", len(out))
-    return dict(out)
-
-
-def _load_regime_calls() -> list[dict[str, Any]]:
-    conn = _pg_conn()
-    result = conn.run(
-        "SELECT id, date, pair, regime, predicted_direction, confidence, "
-        "strategy_version, data_source "
-        "FROM regime_calls ORDER BY date"
-    )
-    out: list[dict[str, Any]] = []
-    for row in result:
-        d = row[1] if isinstance(row[1], date) else date.fromisoformat(str(row[1])[:10])
-        out.append({
-            "id": int(row[0]),
-            "date": d,
-            "pair": row[2],
-            "regime": row[3],
-            "predicted_direction": row[4] or "NEUTRAL",
-            "confidence": float(row[5] or 0.0),
-            "strategy_version": row[6] or "v2",
-            "data_source": row[7] or "live",
-        })
-    conn.close()
-    logger.info("Loaded %d regime_calls", len(out))
-    return out
-
-
-def _get_spot(prices: dict[date, float], target: date) -> float | None:
-    """Exact match first, then forward-fill (next available), then backward-fill."""
-    if target in prices:
-        return prices[target]
-    # Forward-fill: next available date
-    for offset in range(1, 10):
-        d = target + timedelta(days=offset)
-        if d in prices:
-            return prices[d]
-    # Backward-fill: previous available date
-    for offset in range(1, 10):
-        d = target - timedelta(days=offset)
-        if d in prices:
-            return prices[d]
-    return None
+def _get_spot(prices: Mapping[date, float], target: date) -> float | None:
+    """Compatibility helper that permits only an exact calendar-date key."""
+    return prices.get(target)
 
 
 def _build_validation_rows(
     calls: list[dict[str, Any]],
-    prices: dict[str, dict[date, float]],
     as_of: date,
+    *,
+    read_existing: Callable[[int], Mapping[str, Any] | None],
+    read_entry: Callable[[int], Mapping[str, Any] | None],
+    read_price: Callable[[str, date], Mapping[str, Any] | None],
 ) -> list[dict[str, Any]]:
+    """Evaluate calls in order using the same readers as live validation."""
     rows: list[dict[str, Any]] = []
     for call in calls:
-        pair = call["pair"]
-        call_date = call["date"]
-        pair_prices = prices.get(pair, {})
-
-        s0 = _get_spot(pair_prices, call_date)
-        if s0 is None:
+        try:
+            call_id = normalize_call_id(call)
+        except ValueError:
+            logger.warning("Batch replay skip: missing persisted call_id")
             continue
-
-        predicted = str(call.get("predicted_direction") or "NEUTRAL")
-        confidence = float(call.get("confidence") or 0.0)
-
-        t5_date = add_trading_days(call_date, 5)
-        t20_date = add_trading_days(call_date, 20)
-
-        row: dict[str, Any] = {
-            "call_date": call_date,
-            "date": call_date,
-            "pair": pair,
-            "predicted_direction": predicted,
-            "predicted_regime": call.get("regime"),
-            "confidence": confidence,
-            "call_id": call["id"],
-            "validation_date": as_of,
-            "created_at": datetime.now(UTC).isoformat(),
-            "is_superseded": False,
-            "strategy_version": call.get("strategy_version", "v2"),
-            "data_source": call.get("data_source", "live"),
-        }
-
-        has_any = False
-
-        if as_of >= t5_date:
-            s5 = _get_spot(pair_prices, t5_date)
-            if s5 is not None:
-                bps5 = log_return_bps(s0, s5)
-                outcome5 = apply_dead_band(bps5, predicted)
-                brier5 = compute_brier_score(confidence, outcome5)
-                row["log_return_t5_bps"] = bps5
-                row["correct_t5"] = outcome5 == "CORRECT"
-                row["brier_score_t5"] = brier5
-                row["actual_direction_t5"] = realized_direction(bps5)
-                row["actual_return_5d"] = bps5 / 10_000.0
-                row["correct_5d"] = outcome5 == "CORRECT"
-                row["brier_5d"] = brier5
-                has_any = True
-
-        if as_of >= t20_date:
-            s20 = _get_spot(pair_prices, t20_date)
-            if s20 is not None:
-                bps20 = log_return_bps(s0, s20)
-                outcome20 = apply_dead_band(bps20, predicted)
-                brier20 = compute_brier_score(confidence, outcome20)
-                row["log_return_t20_bps"] = bps20
-                row["correct_t20"] = outcome20 == "CORRECT"
-                row["brier_score_t20"] = brier20
-                row["actual_direction_t20"] = realized_direction(bps20)
-                row["actual_return_20d"] = bps20 / 10_000.0
-                row["correct_20d"] = outcome20 == "CORRECT"
-                row["brier_20d"] = brier20
-                has_any = True
-
-        if has_any:
+        existing = read_existing(call_id)
+        row = evaluate_call(
+            call,
+            as_of,
+            existing,
+            read_entry=read_entry,
+            read_price=read_price,
+        )
+        if row is not None:
             rows.append(row)
-
     return rows
 
 
 def _batch_insert(rows: list[dict[str, Any]], batch_size: int = 1000) -> None:
-    if not rows:
-        return
-
-    conn = _pg_conn()
-
-    # Get column list from first row (all rows have same keys)
-    columns = list(rows[0].keys())
-    col_str = ", ".join(columns)
-
-    for i in range(0, len(rows), batch_size):
-        batch = rows[i : i + batch_size]
-        placeholders = []
-        params: dict[str, Any] = {}
-        for bidx, row in enumerate(batch):
-            prefix = f"p{i}_{bidx}_"
-            row_placeholders = []
-            for cidx, col in enumerate(columns):
-                param_key = f"{prefix}c{cidx}"
-                row_placeholders.append(f":{param_key}")
-                val = row.get(col)
-                # Handle booleans for pg8000
-                if isinstance(val, bool):
-                    val = str(val).lower()
-                params[param_key] = val
-            placeholders.append(f"({', '.join(row_placeholders)})")
-
-        sql = f"INSERT INTO validation_log ({col_str}) VALUES {', '.join(placeholders)}"
-        conn.run(sql, **params)
-        logger.info("Inserted batch %d-%d", i, i + len(batch) - 1)
-
-    conn.close()
+    """Persist rows through the canonical transactional writer."""
+    for offset in range(0, len(rows), batch_size):
+        batch = rows[offset : offset + batch_size]
+        for row in batch:
+            writer.write_validation_row(row)
+        logger.info("Inserted batch %d-%d", offset, offset + len(batch) - 1)
 
 
 def run_batch_backfill(
@@ -249,19 +92,25 @@ def run_batch_backfill(
     dry_run: bool = False,
     as_of: date | None = None,
 ) -> tuple[int, int]:
-    as_of = as_of or date.today()
-    prices = _load_prices()
-    calls = _load_regime_calls()
-    rows = _build_validation_rows(calls, prices, as_of)
-
-    logger.info("Built %d validation rows from %d calls", len(rows), len(calls))
-
-    if dry_run:
-        logger.info("[DRY-RUN] Would insert %d rows", len(rows))
-        return len(rows), 0
-
-    _batch_insert(rows)
-    logger.info("Batch backfill complete: %d rows inserted", len(rows))
+    """Replay the complete three-pair call history without private connections."""
+    evaluation_date = as_of or date.today()
+    calls = [
+        call
+        for pair in _VALIDATION_PAIRS
+        for call in writer.get_historical_regime_calls(pair, limit=None)
+    ]
+    rows = _build_validation_rows(
+        calls,
+        evaluation_date,
+        read_existing=writer.get_validation_log_for_call,
+        read_entry=writer.get_publication_signal_for_call,
+        read_price=lambda pair, target: writer.get_exact_historical_price_for_date(
+            pair, target.isoformat()
+        ),
+    )
+    logger.info("Built %d validation revisions from %d calls", len(rows), len(calls))
+    if not dry_run:
+        _batch_insert(rows)
     return len(rows), len(calls) - len(rows)
 
 
@@ -271,9 +120,8 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--as-of", type=date.fromisoformat, default=None)
     args = parser.parse_args()
-
     processed, skipped = run_batch_backfill(dry_run=args.dry_run, as_of=args.as_of)
-    logger.info("Done: %d processed, %d skipped", processed, skipped)
+    logger.info("Done: %d revisions, %d unchanged or unavailable", processed, skipped)
 
 
 if __name__ == "__main__":

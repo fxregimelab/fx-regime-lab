@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.regime.classifier import get_regime_category
+from src.signals.direction import DIRECTIONAL_MODEL_VERSION, DIRECTIONAL_STRATEGY_VERSION
 from src.signals.volatility import compute_rvol
 from src.types import (
     Layer2DirectionalOutput,
@@ -80,6 +81,9 @@ class RegimeCallBuilder:
     ) -> SignalRow:
         """Assemble the signal row for ``pair`` from the snapshot and layer outputs."""
 
+        if fpi_raw is not None or fpi_signal is not None:
+            raise ValueError("FPI requires qualified dated source evidence")
+
         today_bar = self.snapshot.today_bar_for(pair)
         if today_bar is None:
             raise ValueError(f"No spot bars available for {pair} in snapshot")
@@ -105,10 +109,6 @@ class RegimeCallBuilder:
 
         volumes = [float(b.volume) for b in self.snapshot.spot_bars_for(pair) if b.volume > 0]
         volume_rvol = compute_rvol(volumes)
-
-        fpi_flow: float | None = None
-        if fpi_raw is not None:
-            fpi_flow = fpi_raw.get("fpi_total_net_cr")
 
         macro = self.snapshot.macro or {}
 
@@ -144,7 +144,7 @@ class RegimeCallBuilder:
             risk_reversal_25d=risk_reversal_25d,
             risk_reversal_source=risk_reversal_source,
             days_since_cot=days_since_cot,
-            fpi_flow=fpi_flow,
+            fpi_flow=None,
             cot_net_pos=cot_net_pos,
             cot_asset_mgr_net=cot_asset_mgr_net,
             cot_lev_money_net=cot_lev_money_net,
@@ -199,17 +199,17 @@ class RegimeCallBuilder:
         )
         vol_label = (
             "VOL_EXPANDING"
-            if vol_expanding
+            if vol_expanding or (vol_norm is not None and vol_norm > 0.15)
             else (
-                "BULLISH"
-                if vol_norm is not None and vol_norm > 0.15
-                else ("BEARISH" if vol_norm is not None and vol_norm < -0.15 else "NEUTRAL")
+                "UNAVAILABLE"
+                if vol_norm is None
+                else ("VOL_CONTRACTING" if vol_norm < -0.15 else "VOL_STABLE")
             )
         )
         oi_label = (
-            "BULLISH"
-            if oi_norm is not None and oi_norm > 0.15
-            else ("BEARISH" if oi_norm is not None and oi_norm < -0.15 else "NEUTRAL")
+            "UNAVAILABLE"
+            if oi_norm is None
+            else ("OI_LOW" if oi_norm > 0.15 else ("OI_HIGH" if oi_norm < -0.15 else "OI_TYPICAL"))
         )
         rr_label = (
             "BULLISH"
@@ -224,7 +224,7 @@ class RegimeCallBuilder:
         special_label = {
             "EURUSD": "Bund-BTP + ECB BS",
             "USDJPY": "VIX + JPY Funding Stress",
-            "USDINR": "Oil + DXY + EM Risk",
+            "USDINR": "Oil + DXY",
         }.get(pair)
 
         dqs_score = (
@@ -256,7 +256,9 @@ class RegimeCallBuilder:
             special_signal_value=special_signal,
             special_signal_label=special_label,
             regime_category=get_regime_category(regime),
-            model_version=model_version if model_version is not None else "2.0-live",
-            strategy_version=strategy_version if strategy_version is not None else "v2",
+            model_version=model_version if model_version is not None else DIRECTIONAL_MODEL_VERSION,
+            strategy_version=(
+                strategy_version if strategy_version is not None else DIRECTIONAL_STRATEGY_VERSION
+            ),
             data_source=data_source if data_source is not None else "live",
         )

@@ -1,0 +1,17 @@
+CURRENT_REVIEW_DETACHED
+EURUSD pinned daily/reference/session/bidask replay passed
+GBPUSD pinned daily/reference/session/bidask replay passed
+AUDUSD pinned daily/reference/session/bidask replay passed
+NZDUSD pinned daily/reference/session/bidask replay passed
+USDCAD pinned daily/reference/session/bidask replay passed
+USDCHF pinned daily/reference/session/bidask replay passed
+USDJPY pinned daily/reference/session/bidask replay passed
+EURGBP pinned daily/reference/session/bidask replay passed
+HISTORICAL_VINTAGE_REPLAY_OK
+HISTORICAL_RELEASE_REPLAY_OK
+PRIVATE_PORTFOLIO_REPLAY_OK
+PRIVATE_CORRELATION_REPLAY_OK
+PRIVATE_DAILY_RISK_REPLAY_OK
+HISTORICAL_POLICY_REPLAY_OK
+PRIVATE_FOMC_HISTORY_REPLAY_OK
+PRIVATE_DESK_REPLAY_OK 42.27s

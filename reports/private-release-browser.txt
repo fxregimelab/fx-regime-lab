@@ -1,0 +1,48 @@
+### Result
+{"pairs":[{"pair":"EUR / USD","missing":"EUR"},{"pair":"GBP / USD","missing":"GBP"},{"pair":"AUD / USD","missing":"AUD"},{"pair":"NZD / USD","missing":"NZD"},{"pair":"USD / CAD","missing":"CAD"},{"pair":"USD / CHF","missing":"CHF"},{"pair":"EUR / GBP","missing":"EUR / GBP"}],"mobile":{"viewport":390,"client":375,"document":375},"overflowControl":true,"reload":"authenticated","csrfStatus":403,"protectedStatus":[401,401,401],"result":"PRIVATE_RELEASE_BROWSER_OK"}
+### Ran Playwright code
+```js
+await (async (page) => {
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.setViewportSize({width:1440,height:1000});
+  const results=[];
+  for(const [pair,missing] of [['EUR / USD','EUR'],['GBP / USD','GBP'],['AUD / USD','AUD'],['NZD / USD','NZD'],['USD / CAD','CAD'],['USD / CHF','CHF'],['EUR / GBP','EUR / GBP']]) {
+    await page.getByRole('button',{name:'Read '+pair+' research brief',exact:true}).click();
+    const text=await page.locator('#releaseBody').innerText();
+    for(const item of ['monetary20230201a','monetary20230322a','monetary20230726a','2:00 p.m. EST','2:00 p.m. EDT','2023-02-01T19:00:00+00:00','2023-03-22T18:00:00+00:00','4.50 percent','4.75 percent','5.25 percent','5.50 percent','403','UNKNOWN','UNQUALIFIED',missing]) {
+      if(!text.includes(item)) throw new Error('Missing release evidence '+pair+' '+item);
+    }
+    if(await page.locator('#eligibleCount').innerText()!=='0 eligible') throw new Error('Source clock changed qualification');
+    results.push({pair,missing});
+  }
+  await page.locator('#releaseBody').locator('..').screenshot({path:'output/playwright/private-release-eurgbp.png'});
+  await page.getByRole('button',{name:'Read EUR / USD research brief',exact:true}).click();
+  await page.locator('#releaseBody').locator('..').screenshot({path:'output/playwright/private-release-desktop.png'});
+  await page.setViewportSize({width:390,height:844});
+  await page.getByRole('heading',{name:'Historical release clocks',exact:true}).scrollIntoViewIfNeeded();
+  const width=await page.evaluate(()=>({viewport:innerWidth,client:document.documentElement.clientWidth,document:document.documentElement.scrollWidth}));
+  if(width.document>width.client) throw new Error('Mobile document overflow');
+  const detectsOverflow=await page.evaluate(()=>{const probe=document.createElement('div');probe.style.width='900px';probe.textContent='Temporary browser overflow control';document.body.append(probe);const detected=document.documentElement.scrollWidth>document.documentElement.clientWidth;probe.remove();return detected;});
+  if(!detectsOverflow) throw new Error('Overflow detector failed its adverse control');
+  await page.locator('#releaseBody').locator('..').evaluate(node=>node.scrollIntoView({block:'start',behavior:'instant'}));
+  await page.screenshot({path:'output/playwright/private-release-mobile.png'});
+  await page.locator('#releaseBody .table-wrap').evaluate(node=>node.scrollLeft=node.scrollWidth);
+  await page.screenshot({path:'output/playwright/private-release-mobile-values.png'});
+  await page.reload();
+  await page.locator('#releaseBody').waitFor({state:'visible'});
+  if(!(await page.locator('#releaseBody').innerText()).includes('monetary20230201a')) throw new Error('Reload lost release evidence');
+  const csrfStatus=await page.evaluate(async()=>(await fetch('/api/refresh',{method:'POST'})).status);
+  if(csrfStatus!==403) throw new Error('Missing-CSRF request accepted');
+  await page.getByRole('button',{name:'Sign out',exact:true}).click();
+  await page.getByRole('button',{name:'Open research desk',exact:true}).waitFor({state:'visible'});
+  const protectedStatus=await page.evaluate(async()=>Promise.all(['/api/report','/api/status','/api/export.csv'].map(async url=>(await fetch(url)).status)));
+  if(protectedStatus.some(status=>status!==401)) throw new Error('Protected API after logout');
+  return {pairs:results,mobile:width,overflowControl:detectsOverflow,reload:'authenticated',csrfStatus,protectedStatus,result:'PRIVATE_RELEASE_BROWSER_OK'};
+})(page);
+```
+### Page
+- Page URL: http://127.0.0.1:8765/
+- Page Title: Private desk · FX Research Lab
+- Console: 4 errors, 0 warnings
+### Events
+- New console entries: .playwright-cli\console-2026-10-01T12-47-44-655Z.log#L17-L21

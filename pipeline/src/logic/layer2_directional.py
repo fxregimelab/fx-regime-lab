@@ -4,7 +4,8 @@ multiplier, Marcus B clash, composite-informed direction.
 
 from __future__ import annotations
 
-from src.types import Layer2DirectionalBias, Layer2DirectionalOutput
+from src.signals.direction import currency_strength_to_pair
+from src.types import Layer2DirectionalBias, Layer2DirectionalOutput, normalize_fx_pair_key
 
 _CROWD_SOFT_HI = 90.0
 _CROWD_SOFT_LO = 10.0
@@ -132,32 +133,45 @@ def run_layer2_directional(
     rate_direction: str,
     positioning_percentile: float | None,
     layer1_invalidated: bool,
+    pair: str = "EURUSD",
 ) -> Layer2DirectionalOutput:
     """Chamber 1 Layer 2: π, crowding, m_π, integer conviction, Marcus B bias.
 
-    Direction logic (v2):
+    Direction logic (directional reference):
+      0. Missing composite always produces NEUTRAL.
       1. If Layer1 invalidated / crowd veto / Marcus B clash / composite-rate clash → NEUTRAL.
       2. If composite is materially non-zero (|S| > 0.30), composite drives direction.
       3. Otherwise rate sign drives direction.
       4. If both composite and rate are neutral → NEUTRAL.
 
     This prevents the model from making directional calls when the composite
-    (which subsumes rate, COT, vol, OI) strongly disagrees with the rate signal alone.
+    (pair-oriented rate, COT, special and FPI) strongly disagrees with rate alone.
     """
 
+    pair_key = normalize_fx_pair_key(pair)
+    if pair_key not in ("EURUSD", "USDJPY", "USDINR"):
+        raise ValueError(f"Unsupported FX pair: {pair!r}")
     p_crowd, crowd_flag, crowd_veto = crowding_metrics_pi(positioning_percentile)
     if layer1_invalidated:
         rate_s = 0
     else:
         rate_s = effective_rate_sign(rate_direction, z_tactical, z_structural)
-    pos_s = positioning_sign_pi(positioning_percentile)
+    raw_pos_s = positioning_sign_pi(positioning_percentile)
+    pos_s = (
+        int(currency_strength_to_pair(
+            float(raw_pos_s), currency="EUR" if pair_key == "EURUSD" else "JPY", pair=pair_key
+        ) or 0)
+        if pair_key != "USDINR"
+        else 0
+    )
     clash_b = marcus_b_rate_positioning_clash(rate_s, pos_s)
     clash_c = composite_rate_clash(composite, rate_s)
     m_pi = conviction_multiplier_pi(positioning_percentile, p_crowd, rate_s, pos_s)
 
     if composite is not None:
         comp_clip = max(-2.0, min(2.0, float(composite)))
-        base_c = 3.0 + comp_clip
+        # Conviction measures strength; direction is decided separately below.
+        base_c = 3.0 + abs(comp_clip)
     else:
         base_c = 2.35
 
@@ -170,7 +184,7 @@ def run_layer2_directional(
 
     # Direction: composite wins when strong; otherwise rate; clash → neutral.
     bias: Layer2DirectionalBias
-    if layer1_invalidated or crowd_veto or clash_b or clash_c:
+    if composite is None or layer1_invalidated or crowd_veto or clash_b or clash_c:
         bias = "NEUTRAL"
     elif composite is not None and abs(composite) > _COMPOSITE_STRONG:
         bias = _bias_label_from_sign(1 if composite > 0 else -1)

@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import time
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
 
@@ -14,6 +15,8 @@ import aiohttp
 from fredapi import Fred
 
 from src.fetchers.async_engine import AsyncFetcher
+from src.signals.rate_inputs import SOURCE_DEFINITIONS, RateInstrument
+from src.signals.rate_observation import RateObservation
 
 logger = logging.getLogger(__name__)
 
@@ -52,45 +55,126 @@ FRED_FALLBACK_SERIES: dict[str, tuple[str, ...]] = {
     "in_10y": ("INDIRLTLT01STM",),
 }
 
+_LOGGABLE_YIELD_IDS = frozenset(
+    {
+        *YF_2Y_TICKERS.values(),
+        *YF_10Y_TICKERS.values(),
+        *_US_YAHOO_TO_FRED.values(),
+        *(series_id for series_ids in FRED_FALLBACK_SERIES.values() for series_id in series_ids),
+        "ECBASSETSW",
+        "ECBDFR",
+        "IRLTLT01ITM156N",
+        "IRSTCI01JPM156N",
+        "T10YIE",
+    }
+)
 
-def _yf_leg(ticker: str, label: str, period: str) -> float | None:
+_OBSERVATION_INSTRUMENTS: dict[str, RateInstrument] = {
+    **SOURCE_DEFINITIONS,
+    "DGS10": RateInstrument("USD", 10, "government_yield", "daily"),
+    "IRLTLT01DEM156N": RateInstrument("EUR", 10, "government_yield", "monthly"),
+    "IRLTLT01ITM156N": RateInstrument("EUR", 10, "government_yield", "monthly"),
+    "T10YIE": RateInstrument("USD", 10, "inflation_compensation", "daily"),
+}
+
+
+def _yield_id_for_log(source_id: str) -> str:
+    """Return only a known yield identifier for diagnostic context."""
+
+    return source_id if source_id in _LOGGABLE_YIELD_IDS else "<unrecognized-yield-id>"
+
+
+def _record_observation(
+    sink: dict[str, RateObservation] | None,
+    key: str,
+    source_id: str,
+    value: float | None,
+    observed_on: Any,
+    retrieved_at: datetime,
+    vintage: str | None = None,
+    missing_reason: str | None = None,
+    provider_realtime_start: str | None = None,
+    provider_realtime_end: str | None = None,
+) -> None:
+    if sink is None:
+        return
+    try:
+        observed = observed_on.date() if isinstance(observed_on, datetime) else observed_on
+        if not hasattr(observed, "year"):
+            observed = datetime.fromisoformat(str(observed)[:10]).date()
+    except (TypeError, ValueError):
+        observed = None
+    instrument = _OBSERVATION_INSTRUMENTS.get(source_id)
+    sink[key] = RateObservation(
+        source_id=source_id,
+        instrument=instrument,
+        observed_on=observed,
+        available_at=None,
+        retrieved_at=retrieved_at,
+        vintage=vintage,
+        value=value,
+        unit=instrument.unit if instrument else None,
+        missing_reason=missing_reason if value is None else None,
+        provider_realtime_start=provider_realtime_start,
+        provider_realtime_end=provider_realtime_end,
+    )
+
+
+def _yf_leg(
+    ticker: str, label: str, period: str, observations: dict[str, RateObservation] | None = None
+) -> float | None:
     try:
         history = _yfinance().Ticker(ticker).history(period=period)
+        retrieved_at = datetime.now(UTC)
         if history is None or history.empty or "Close" not in history:
-            logger.warning("yfinance %s (%s) returned empty history", label, ticker)
+            logger.warning("yfinance yield returned empty history")
             return None
         closes = history["Close"].dropna()
         if closes.empty:
-            logger.warning("yfinance %s (%s) returned empty close series", label, ticker)
+            logger.warning("yfinance yield returned empty close series")
             return None
-        return float(closes.iloc[-1])
+        value = float(closes.iloc[-1])
+        _record_observation(observations, label, ticker, value, closes.index[-1], retrieved_at)
+        return value
     except Exception as exc:  # noqa: BLE001
-        logger.warning("yfinance %s (%s) fetch failed: %s", label, ticker, exc)
+        logger.warning("yfinance yield fetch failed: %s", type(exc).__name__)
         return None
 
 
-def _fred_leg(fred: Fred | None, series_ids: tuple[str, ...], label: str) -> float | None:
+def _fred_leg(
+    fred: Fred | None,
+    series_ids: tuple[str, ...],
+    label: str,
+    observations: dict[str, RateObservation] | None = None,
+    key: str | None = None,
+) -> float | None:
     if fred is None:
         return None
     for series_id in series_ids:
         try:
             values = fred.get_series_latest_release(series_id)
+            retrieved_at = datetime.now(UTC)
             if values is None or values.empty:
-                logger.warning("FRED %s (%s) returned empty series", label, series_id)
+                logger.warning("FRED yield returned empty series")
                 continue
             clean = values.dropna()
             if clean.empty:
-                logger.warning("FRED %s (%s) returned NaN-only series", label, series_id)
+                logger.warning("FRED yield returned NaN-only series")
                 continue
-            return float(clean.iloc[-1])
+            value = float(clean.iloc[-1])
+            _record_observation(
+                observations, key or series_id, series_id, value, clean.index[-1], retrieved_at
+            )
+            return value
         except Exception as exc:  # noqa: BLE001
-            logger.warning("FRED %s (%s) fetch failed: %s", label, series_id, exc)
+            logger.warning("FRED yield fetch failed: %s", type(exc).__name__)
     return None
 
 
 def _fetch_yf_legs(
     tickers: dict[str, str],
     period: str,
+    observations: dict[str, RateObservation] | None = None,
 ) -> dict[str, float | None]:
     legs: dict[str, float | None] = {leg_name: None for leg_name in tickers}
     if not tickers:
@@ -99,6 +183,7 @@ def _fetch_yf_legs(
         ticker_list = list(tickers.values())
         # yfinance 0.2.x download returns a multi-index dataframe if >1 ticker
         df = _yfinance().download(ticker_list, period=period, auto_adjust=True, progress=False)
+        retrieved_at = datetime.now(UTC)
         if df.empty or "Close" not in df:
             return legs
         closes = df["Close"]
@@ -110,14 +195,24 @@ def _fetch_yf_legs(
                     series = closes[ticker].dropna()
                 if not series.empty:
                     legs[leg_name] = float(series.iloc[-1])
+                    _record_observation(
+                        observations,
+                        leg_name,
+                        ticker,
+                        legs[leg_name],
+                        series.index[-1],
+                        retrieved_at,
+                    )
             except Exception as exc:
-                logger.warning("yfinance batch parse failed for %s (%s): %s", leg_name, ticker, exc)
+                logger.warning("yfinance batch parse failed: %s", type(exc).__name__)
     except Exception as exc:
-        logger.warning("yfinance batch download failed: %s", exc)
+        logger.warning("yfinance batch download failed: %s", type(exc).__name__)
     return legs
 
 
-def fetch_legacy_10y_legs(lookback_days: int = 5) -> dict[str, float | None]:
+def fetch_legacy_10y_legs(
+    lookback_days: int = 5, *, observations: dict[str, RateObservation] | None = None
+) -> dict[str, float | None]:
     """US/DE/JP/IN 10Y legs only (FRED-primary US; Yahoo + FRED fallbacks for others)."""
 
     window_days = max(lookback_days, 1)
@@ -128,20 +223,37 @@ def fetch_legacy_10y_legs(lookback_days: int = 5) -> dict[str, float | None]:
         logger.warning("FRED_API_KEY not set — US 10Y will use yfinance only")
 
     yf_10y_non_us = {k: v for k, v in YF_10Y_TICKERS.items() if k != "us_10y"}
-    ten_year_legs = _fetch_yf_legs(yf_10y_non_us, period)
+    ten_year_legs = _fetch_yf_legs(yf_10y_non_us, period, observations)
 
-    us_10y = _fred_leg(fred, FRED_FALLBACK_SERIES["us_10y"], "US 10Y")
+    us_10y = _fred_leg(fred, FRED_FALLBACK_SERIES["us_10y"], "US 10Y", observations, "us_10y")
     if us_10y is None:
-        us_10y = _yf_leg(YF_10Y_TICKERS["us_10y"], "us_10y", period)
+        us_10y = _yf_leg(YF_10Y_TICKERS["us_10y"], "us_10y", period, observations)
     if us_10y is None:
         logger.warning("US 10Y unavailable in both FRED and yfinance")
     ten_year_legs["us_10y"] = us_10y
     if ten_year_legs["de_10y"] is None:
-        ten_year_legs["de_10y"] = _fred_leg(fred, FRED_FALLBACK_SERIES["de_10y"], "DE 10Y")
+        ten_year_legs["de_10y"] = _fred_leg(
+            fred, FRED_FALLBACK_SERIES["de_10y"], "DE 10Y", observations, "de_10y"
+        )
     if ten_year_legs["jp_10y"] is None:
-        ten_year_legs["jp_10y"] = _fred_leg(fred, FRED_FALLBACK_SERIES["jp_10y"], "JP 10Y")
+        ten_year_legs["jp_10y"] = _fred_leg(
+            fred, FRED_FALLBACK_SERIES["jp_10y"], "JP 10Y", observations, "jp_10y"
+        )
     if ten_year_legs["in_10y"] is None:
-        ten_year_legs["in_10y"] = _fred_leg(fred, FRED_FALLBACK_SERIES["in_10y"], "IN 10Y")
+        ten_year_legs["in_10y"] = _fred_leg(
+            fred, FRED_FALLBACK_SERIES["in_10y"], "IN 10Y", observations, "in_10y"
+        )
+    if observations is not None:
+        for leg, value in ten_year_legs.items():
+            if value is None and leg not in observations:
+                source_id = (
+                    FRED_FALLBACK_SERIES[leg][-1] if fred is not None
+                    else YF_10Y_TICKERS[leg]
+                )
+                _record_observation(
+                    observations, leg, source_id, None, None,
+                    datetime.now(UTC), missing_reason="provider_unavailable",
+                )
     return ten_year_legs
 
 
@@ -167,7 +279,7 @@ def fetch_ecb_balance_sheet(fred: Fred | None = None) -> float | None:
             return None
         return float(clean.iloc[-1]) / 1000.0
     except Exception as exc:  # noqa: BLE001
-        logger.warning("FRED ECB balance sheet (ECBASSETSW) fetch failed: %s", exc)
+        logger.warning("FRED ECB balance sheet (ECBASSETSW) fetch failed: %s", type(exc).__name__)
         return None
 
 
@@ -216,7 +328,9 @@ def fetch_boj_policy_rate(fred: Fred | None = None) -> float | None:
     return _fred_leg(fred, ("IRSTCI01JPM156N",), "BoJ policy rate")
 
 
-def fetch_yields(lookback_days: int = 5) -> dict[str, float | None]:
+def fetch_yields(
+    lookback_days: int = 5, *, observations: dict[str, RateObservation] | None = None
+) -> dict[str, float | None]:
     """Legacy sync yield fetch; flat map with keys like ``us_2y``, ``us_10y``."""
 
     window_days = max(lookback_days, 1)
@@ -227,35 +341,42 @@ def fetch_yields(lookback_days: int = 5) -> dict[str, float | None]:
         logger.warning("FRED_API_KEY not set — US yields will use yfinance only")
 
     yf_2y_non_us = {k: v for k, v in YF_2Y_TICKERS.items() if k != "us_2y"}
-    two_year_legs = _fetch_yf_legs(yf_2y_non_us, period)
+    two_year_legs = _fetch_yf_legs(yf_2y_non_us, period, observations)
     time.sleep(1.0)
-    ten_year_legs = fetch_legacy_10y_legs(window_days)
+    ten_year_legs = (
+        fetch_legacy_10y_legs(window_days)
+        if observations is None
+        else fetch_legacy_10y_legs(window_days, observations=observations)
+    )
 
-    us_2y = _fred_leg(fred, FRED_FALLBACK_SERIES["us_2y"], "US 2Y")
+    us_2y = _fred_leg(fred, FRED_FALLBACK_SERIES["us_2y"], "US 2Y", observations, "us_2y")
     if us_2y is None:
-        us_2y = _yf_leg(YF_2Y_TICKERS["us_2y"], "us_2y", period)
+        us_2y = _yf_leg(YF_2Y_TICKERS["us_2y"], "us_2y", period, observations)
     if us_2y is None:
         logger.warning("US 2Y unavailable in both FRED and yfinance")
     two_year_legs["us_2y"] = us_2y
 
-    # Best effort for EURUSD: if dedicated 2Y is unavailable, use 10Y as tenor proxy.
-    if two_year_legs["de_2y"] is None and ten_year_legs["de_10y"] is not None:
-        two_year_legs["de_2y"] = ten_year_legs["de_10y"]
-
-    # Best effort for USDINR: if dedicated 2Y is unavailable, use 10Y as tenor proxy.
-    if two_year_legs["in_2y"] is None and ten_year_legs["in_10y"] is not None:
-        two_year_legs["in_2y"] = ten_year_legs["in_10y"]
-
     if us_2y is None:
+        _record_observation(
+            observations, "us_2y", YF_2Y_TICKERS["us_2y"], None, None,
+            datetime.now(UTC), missing_reason="provider_unavailable",
+        )
         logger.warning("US yield leg missing after fallback; returning empty yield map")
         return {}
 
     out: dict[str, float | None] = {}
     out.update(two_year_legs)
     out.update(ten_year_legs)
-    bei = _fred_leg(fred, ("T10YIE",), "US 10Y breakeven T10YIE")
+    bei = _fred_leg(fred, ("T10YIE",), "US 10Y breakeven T10YIE", observations)
     if bei is not None:
         out["T10YIE"] = bei
+    if observations is not None:
+        for leg, value in out.items():
+            if value is None and leg not in observations:
+                _record_observation(
+                    observations, leg, YF_2Y_TICKERS.get(leg, leg), None, None,
+                    datetime.now(UTC), missing_reason="provider_unavailable",
+                )
     return out
 
 
@@ -284,32 +405,47 @@ async def _yahoo_yield_latest_async(
     ticker: str,
     period: str,
     fetcher: AsyncFetcher,
+    observations: dict[str, RateObservation] | None = None,
 ) -> float | None:
     t0 = time.perf_counter()
 
     def _close() -> float | None:
         history = _yfinance().Ticker(ticker).history(period=period)
+        retrieved_at = datetime.now(UTC)
         if history is None or history.empty or "Close" not in history:
-            logger.warning("yfinance async %s returned empty history", ticker)
+            logger.warning("yfinance async %s returned empty history", _yield_id_for_log(ticker))
             return None
         closes = history["Close"].dropna()
         if closes.empty:
-            logger.warning("yfinance async %s returned empty close series", ticker)
+            logger.warning(
+                "yfinance async %s returned empty close series", _yield_id_for_log(ticker)
+            )
             return None
-        return float(closes.iloc[-1])
+        value = float(closes.iloc[-1])
+        _record_observation(
+            observations, ticker, ticker, value, closes.index[-1], retrieved_at
+        )
+        return value
 
     async with fetcher.semaphore:
         try:
             out = await asyncio.to_thread(_close)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("yfinance async %s failed: %s", ticker, exc)
+            logger.warning("yfinance async yield failed: %s", type(exc).__name__)
             out = None
-    logger.info(
-        "fetch_yields_async yahoo ticker=%s value=%s in %.3fs",
-        ticker,
-        out,
-        time.perf_counter() - t0,
-    )
+    if out is None:
+        _record_observation(
+            observations, ticker, ticker, None, None,
+            datetime.now(UTC), missing_reason="provider_unavailable",
+        )
+        logger.info("fetch_yields_async yahoo unavailable in %.3fs", time.perf_counter() - t0)
+    else:
+        logger.info(
+            "fetch_yields_async yahoo ticker=%s value=%s in %.3fs",
+            _yield_id_for_log(ticker),
+            out,
+            time.perf_counter() - t0,
+        )
     return out
 
 
@@ -317,16 +453,13 @@ async def _fred_latest_async(
     series_id: str,
     session: aiohttp.ClientSession,
     fetcher: AsyncFetcher,
+    observations: dict[str, RateObservation] | None = None,
 ) -> float | None:
     t0 = time.perf_counter()
     key = os.environ.get("FRED_API_KEY")
     if not key:
-        logger.warning("FRED_API_KEY not set — async leg %s skipped", series_id)
-        logger.info(
-            "fetch_yields_async FRED series_id=%s skipped in %.3fs",
-            series_id,
-            time.perf_counter() - t0,
-        )
+        logger.warning("FRED_API_KEY not set — async yield leg skipped")
+        logger.info("fetch_yields_async FRED skipped in %.3fs", time.perf_counter() - t0)
         return None
     url = (
         "https://api.stlouisfed.org/fred/series/observations"
@@ -334,24 +467,50 @@ async def _fred_latest_async(
         "&limit=1&sort_order=desc"
     )
     status, body = await fetcher.fetch_with_retry(url, session)
+    retrieved_at = datetime.now(UTC)
     result: float | None = None
+    observed_on: Any = None
+    provider_realtime_start: str | None = None
+    provider_realtime_end: str | None = None
+    missing_reason: str | None = "provider_unavailable"
     if status != 200 or body is None:
-        logger.warning("FRED async %s HTTP status=%s", series_id, status)
+        logger.warning("FRED async yield HTTP status=%s", status)
     else:
         try:
             payload = json.loads(body.decode("utf-8"))
             obs = payload.get("observations") or []
             if obs:
+                missing_reason = "provider_missing_value"
                 val = obs[0].get("value")
+                observed_on = obs[0].get("date")
+                provider_realtime_start = obs[0].get("realtime_start")
+                provider_realtime_end = obs[0].get("realtime_end")
                 if val not in (None, ".", ""):
                     result = float(val)
+                    missing_reason = None
         except Exception as exc:  # noqa: BLE001
-            logger.warning("FRED async parse %s failed: %s", series_id, exc)
-    logger.info(
-        "fetch_yields_async FRED series_id=%s value=%s in %.3fs",
+            missing_reason = "provider_parse_failed"
+            logger.warning("FRED async yield parse failed: %s", type(exc).__name__)
+    if result is None:
+        logger.info("fetch_yields_async FRED unavailable in %.3fs", time.perf_counter() - t0)
+    else:
+        logger.info(
+            "fetch_yields_async FRED series_id=%s value=%s in %.3fs",
+            _yield_id_for_log(series_id),
+            result,
+            time.perf_counter() - t0,
+        )
+    _record_observation(
+        observations,
+        series_id,
         series_id,
         result,
-        time.perf_counter() - t0,
+        observed_on,
+        retrieved_at,
+        None,
+        missing_reason,
+        provider_realtime_start,
+        provider_realtime_end,
     )
     return result
 
@@ -361,17 +520,22 @@ async def _fetch_yield_leg_async(
     session: aiohttp.ClientSession,
     fetcher: AsyncFetcher,
     period: str,
+    observations: dict[str, RateObservation] | None = None,
 ) -> tuple[str, float | None]:
     fred_override = _US_YAHOO_TO_FRED.get(series_id)
     if fred_override is not None:
-        val = await _fred_latest_async(fred_override, session, fetcher)
+        val = await _fred_latest_async(fred_override, session, fetcher, observations)
         if val is None:
-            val = await _yahoo_yield_latest_async(series_id, period, fetcher)
+            val = await _yahoo_yield_latest_async(series_id, period, fetcher, observations)
+            if observations is not None and series_id in observations:
+                observations[series_id] = observations.pop(series_id)
+        elif observations is not None and fred_override in observations:
+            observations[series_id] = observations[fred_override]
         return series_id, val
     if _is_yahoo_yield_symbol(series_id):
-        val = await _yahoo_yield_latest_async(series_id, period, fetcher)
+        val = await _yahoo_yield_latest_async(series_id, period, fetcher, observations)
     else:
-        val = await _fred_latest_async(series_id, session, fetcher)
+        val = await _fred_latest_async(series_id, session, fetcher, observations)
     return series_id, val
 
 
@@ -381,6 +545,7 @@ async def fetch_yields_async(
     *,
     lookback_days: int = 5,
     fetcher: AsyncFetcher | None = None,
+    observations: dict[str, RateObservation] | None = None,
 ) -> dict[str, float | None]:
     """Resolve yield legs from ``universe``; normalized in-memory map only (no Supabase)."""
 
@@ -390,16 +555,22 @@ async def fetch_yields_async(
     ids = _unique_yield_ids(universe)
     t_batch = time.perf_counter()
     results = await asyncio.gather(
-        *[_fetch_yield_leg_async(sid, session, gate, period) for sid in ids],
+        *[_fetch_yield_leg_async(sid, session, gate, period, observations) for sid in ids],
         return_exceptions=True,
     )
     out: dict[str, float | None] = {}
     for res in results:
         if isinstance(res, BaseException):
-            logger.error("fetch_yields_async leg task failed: %s", res)
+            logger.error("fetch_yields_async leg task failed: %s", type(res).__name__)
             continue
         key, val = res
         out[key] = val
+        if observations is not None and val is None and key not in observations:
+            source_id = _US_YAHOO_TO_FRED.get(key, key)
+            _record_observation(
+                observations, key, source_id, None, None,
+                datetime.now(UTC), missing_reason="provider_unavailable",
+            )
     logger.info(
         "fetch_yields_async unique_legs=%s ok=%s wall=%.3fs",
         len(ids),
@@ -412,7 +583,8 @@ async def fetch_yields_async(
 async def fetch_t10yie_breakeven_async(
     session: aiohttp.ClientSession,
     fetcher: AsyncFetcher,
+    observations: dict[str, RateObservation] | None = None,
 ) -> float | None:
     """FRED T10YIE — 10-year breakeven inflation (%), for real-rate adjustment."""
 
-    return await _fred_latest_async("T10YIE", session, fetcher)
+    return await _fred_latest_async("T10YIE", session, fetcher, observations)

@@ -46,10 +46,7 @@ def _trading_date_range(start: datetime.date, days: int) -> list[datetime.date]:
 def _make_pair_spots(pair: str, as_of: datetime.date, base: float) -> tuple[SpotBar, ...]:
     start = as_of - datetime.timedelta(days=60)
     dates = _trading_date_range(start, 40)
-    return tuple(
-        _spot_bar(pair, d, round(base + i * 0.0005, 4))
-        for i, d in enumerate(dates)
-    )
+    return tuple(_spot_bar(pair, d, round(base + i * 0.0005, 4)) for i, d in enumerate(dates))
 
 
 def _make_cot_rows(pair: str, as_of: datetime.date) -> list[CotRow]:
@@ -76,7 +73,8 @@ def _make_multi_pair_snapshot() -> IngestionSnapshot:
     spots = {pair: _make_pair_spots(pair, as_of, base) for pair, base in pairs}
     cot_rows: list[CotRow] = []
     for pair, _ in pairs:
-        cot_rows.extend(_make_cot_rows(pair, as_of))
+        if pair != "USDINR":
+            cot_rows.extend(_make_cot_rows(pair, as_of))
 
     return IngestionSnapshot(
         date=as_of,
@@ -100,6 +98,12 @@ def _make_multi_pair_snapshot() -> IngestionSnapshot:
             "gold": 2000.0,
             "copper": 4.0,
             "stoxx": 4500.0,
+            "hist": {
+                # Synthetic causal histories: 30 past observations plus the
+                # current scalar above. USDINR has no COT input by contract.
+                "oil": [60.0 + i * 0.5 for i in range(30)] + [75.0],
+                "dxy": [96.5 + i * 0.25 for i in range(30)] + [104.0],
+            },
         },
         macro={
             "ecb_balance_sheet": 7000.0,
@@ -272,12 +276,8 @@ def test_run_shadow_comparison_runs_v2_and_compares() -> None:
             run_validation=False,
         )
     )
-    v1_calls = {
-        pair: output.regime_call for pair, output in baseline_output.outputs.items()
-    }
-    v1_briefs = {
-        pair: output.brief_markdown for pair, output in baseline_output.outputs.items()
-    }
+    v1_calls = {pair: output.regime_call for pair, output in baseline_output.outputs.items()}
+    v1_briefs = {pair: output.brief_markdown for pair, output in baseline_output.outputs.items()}
 
     shadow_writer = FakeWriterPort()
     shadow_alert = FakeAlertPort()
@@ -298,7 +298,10 @@ def test_run_shadow_comparison_runs_v2_and_compares() -> None:
     assert result.equivalent is True
     # Shadow ports captured v2 side effects but did not touch the live ledger.
     assert len(shadow_writer.regime_calls) == 3
-    assert len(shadow_alert.successes) == 3
+    assert len(shadow_writer.signal_rows) == 3
+    assert not shadow_alert.successes and not shadow_alert.heartbeats
+    assert len(shadow_alert.statuses) == 4
+    assert all(notice["health"].status == "DEGRADED" for notice in shadow_alert.statuses)
 
 
 def test_run_shadow_comparison_detects_v1_v2_divergence() -> None:
@@ -316,14 +319,10 @@ def test_run_shadow_comparison_detects_v1_v2_divergence() -> None:
             run_validation=False,
         )
     )
-    v1_calls = {
-        pair: output.regime_call for pair, output in baseline_output.outputs.items()
-    }
+    v1_calls = {pair: output.regime_call for pair, output in baseline_output.outputs.items()}
     # Introduce a divergence on EURUSD.
     eurusd_call = v1_calls["EURUSD"]
-    v1_calls["EURUSD"] = RegimeCall(
-        **{**eurusd_call.__dict__, "confidence": 0.99}
-    )
+    v1_calls["EURUSD"] = RegimeCall(**{**eurusd_call.__dict__, "confidence": 0.99})
 
     result = asyncio.run(
         run_shadow_comparison(

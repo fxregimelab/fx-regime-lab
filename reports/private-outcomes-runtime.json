@@ -1,0 +1,57 @@
+{
+  "verified_at": "2026-10-01T17:42:28.278636+00:00",
+  "url": "http://127.0.0.1:8765",
+  "server_pid": 31692,
+  "report_sha256": "d70d94256bc4c16986d69793e596927429d5bc1619d820c5292865e428543c81",
+  "pairs": [
+    "AUDUSD",
+    "EURGBP",
+    "EURUSD",
+    "GBPUSD",
+    "NZDUSD",
+    "USDCAD",
+    "USDCHF",
+    "USDJPY"
+  ],
+  "decision_count": 8,
+  "unique_observation_count": 8,
+  "outcome_status_counts": {
+    "PENDING": 5,
+    "UNAVAILABLE": 3
+  },
+  "evaluation_event_count": 8,
+  "earliest_entry_dates": [
+    "2026-10-02"
+  ],
+  "recorded_at": [
+    "2026-10-01T17:38:06.951317+00:00"
+  ],
+  "csv_sha256": "b78e9671211f3037b840feb4f3009ed2794dcf6e4ae253aef683c12eeb10d8e6",
+  "csv_rows": 8,
+  "report_and_events_unchanged": true,
+  "authentication_and_csrf_checks": "PASS",
+  "execution_state": "NOT_RECORDED",
+  "forecast_qualification": "UNQUALIFIED",
+  "journal_files": {
+    ".private-fx\\journal\\decisions\\d70d94256bc4c16986d69793e596927429d5bc1619d820c5292865e428543c81.json": "2b6f62c6a9ec58a578fe76909ae172cdb346a1d45fd650c4ba7236e5de51f45a",
+    ".private-fx\\journal\\evaluations\\1c69cbb12ace2a17b4cc954f43949e133f9192c234a1740af4d74a0b65e36483.json": "eb3788396dc8c4fc6835edf719ff67c504c6760aa243329c9237e575073dd34e",
+    ".private-fx\\journal\\evaluations\\28abd0a21a9363996e16eb6f53e193c8a925e6efc6dfdcba4c2a6465d62bee76.json": "310601acefef2d3bdfb20c532098c4f383f3af496d9bb5cb92c382af0b4454b6",
+    ".private-fx\\journal\\evaluations\\2d294b03546bb20b194661e9c4dd66b5ff8325c54cf0a02be288360e4eb98a2d.json": "3b02ffffc3903b4df740d9ba1445b2005487a7d3d2bc81612366d464dc4b372c",
+    ".private-fx\\journal\\evaluations\\3dc202c6bdcae05ef93927c13064eb0c7f48a20bc58301b2542dc7954a458aad.json": "be85574faadf0fad7d93edff6e8c66087a639fa3b9e89cacbe5a0221187d0cdc",
+    ".private-fx\\journal\\evaluations\\3f4f3c1d7460c1f6e8482f39eef6ac53d3343bb88ba40bc97c80ff85dc87ed29.json": "176414975a6143d04a613ea2eb0e1ab9d0411bf0d54efc19f854783942877054",
+    ".private-fx\\journal\\evaluations\\62c3c02eec300c5f8293ff8282108027a0c7aa8c50647aa09a97854f64fd69be.json": "cd34b25c138a5853ba75649473bbdb78d63c030e87010cf9de749bb95317f16b",
+    ".private-fx\\journal\\evaluations\\689e92a4150b6f91fbce8fb4e379afaa5cbb4591ed8d49e5c73940c5bedb7fad.json": "581095b4c883710b06e65f36bedf7a1a5559b8310d43171415612b95f885ccd2",
+    ".private-fx\\journal\\evaluations\\ccae99f267ceda3e8861f08015e15b25da5e6a77e52957634c80dec9be40c429.json": "4ab7c9be16b2a3577da3882580b1f92ce17beb533c39a70b7a532eecc9ad579f",
+    ".private-fx\\journal\\publications\\d70d94256bc4c16986d69793e596927429d5bc1619d820c5292865e428543c81.json": "1b9e228c7923605da1b15a91ca0c592b62c651b73ed9107a89f04f12ec2abaf6",
+    ".private-fx\\journal\\reports\\d70d94256bc4c16986d69793e596927429d5bc1619d820c5292865e428543c81.json": "d70d94256bc4c16986d69793e596927429d5bc1619d820c5292865e428543c81",
+    ".private-fx\\journal\\sources\\14e6ff16123d66a89bd1ef2aeb0e0afa1c26f57047e3631014ab44a01a5f0a7d.json": "14e6ff16123d66a89bd1ef2aeb0e0afa1c26f57047e3631014ab44a01a5f0a7d",
+    ".private-fx\\journal\\sources\\2a264e8584f3e8cc3d957ff2b60f2a1982e9dcbb6c0ce3daf6354672fc739649.json": "2a264e8584f3e8cc3d957ff2b60f2a1982e9dcbb6c0ce3daf6354672fc739649",
+    ".private-fx\\journal\\sources\\94ef9417f09019dd6feed2ce6091b580231073ce5137d7d5b6d5beaaf91d3edb.json": "94ef9417f09019dd6feed2ce6091b580231073ce5137d7d5b6d5beaaf91d3edb",
+    ".private-fx\\journal\\sources\\ab0914412fe8d77db04e99c58886ab6290e1e6d8de59c33b9214d525a434983f.json": "ab0914412fe8d77db04e99c58886ab6290e1e6d8de59c33b9214d525a434983f",
+    ".private-fx\\journal\\sources\\b88214d82fbd083072b408ae9cf6def70ddbf8e15b1dda34ca469fda7052218d.json": "b88214d82fbd083072b408ae9cf6def70ddbf8e15b1dda34ca469fda7052218d",
+    ".private-fx\\journal\\sources\\d58f3476d89d4d2b2385bcace82af4f9a99e0d82af24955da2ab5b2168c311a1.json": "d58f3476d89d4d2b2385bcace82af4f9a99e0d82af24955da2ab5b2168c311a1",
+    ".private-fx\\journal\\sources\\e3fc596916e152cffbb432ed381af0a8726db119573128136cff7ba2b55ab0ed.json": "e3fc596916e152cffbb432ed381af0a8726db119573128136cff7ba2b55ab0ed",
+    ".private-fx\\journal\\sources\\f0c8d276467849affd0b187b19fb02f41cd791e3b066f580141160cf8417fcfa.json": "f0c8d276467849affd0b187b19fb02f41cd791e3b066f580141160cf8417fcfa"
+  },
+  "verification_scope": "Existing eight-record initial packet; no source refresh, AI or orders."
+}

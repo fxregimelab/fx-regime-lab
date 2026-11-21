@@ -1,0 +1,44 @@
+### Result
+{"pairs":[{"pair":"EUR / USD","missing":"EUR"},{"pair":"GBP / USD","missing":"GBP"},{"pair":"AUD / USD","missing":"AUD"},{"pair":"NZD / USD","missing":"NZD"},{"pair":"USD / CAD","missing":"CAD"},{"pair":"USD / CHF","missing":"CHF"},{"pair":"EUR / GBP","missing":"EUR / GBP"}],"mobile":{"viewport":390,"document":390},"reload":"authenticated","csrfStatus":403,"protectedStatus":[401,401,401],"result":"PRIVATE_VINTAGE_BROWSER_OK"}
+### Ran Playwright code
+```js
+await (async (page) => {
+  await page.setViewportSize({width:1440,height:1000});
+  const results=[];
+  for(const [pair,missing] of [['EUR / USD','EUR'],['GBP / USD','GBP'],['AUD / USD','AUD'],['NZD / USD','NZD'],['USD / CAD','CAD'],['USD / CHF','CHF'],['EUR / GBP','EUR / GBP']]) {
+    await page.getByRole('button',{name:'Read '+pair+' research brief',exact:true}).click();
+    const text=await page.locator('#vintageBody').innerText();
+    for(const item of ['CPIAUCSL','DGS2','2023-02-13','2023-02-14','2024-02-13','300.536','300.356','UNKNOWN','UNQUALIFIED',missing]) {
+      if(!text.includes(item)) throw new Error('Missing vintage evidence '+pair+' '+item);
+    }
+    if(await page.locator('#eligibleCount').innerText()!=='0 eligible') throw new Error('Source audit changed qualification');
+    results.push({pair,missing});
+  }
+  await page.getByRole('button',{name:'Read EUR / GBP research brief',exact:true}).click();
+  await page.locator('#vintageBody').locator('..').screenshot({path:'output/playwright/private-vintage-eurgbp.png'});
+  await page.getByRole('button',{name:'Read EUR / USD research brief',exact:true}).click();
+  await page.locator('#vintageBody').locator('..').screenshot({path:'output/playwright/private-vintage-desktop.png'});
+  await page.setViewportSize({width:390,height:844});
+  await page.getByRole('heading',{name:'Historical fundamental vintages',exact:true}).scrollIntoViewIfNeeded();
+  const width=await page.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth}));
+  if(width.viewport!==width.document) throw new Error('Mobile document overflow');
+  await page.locator('#vintageBody').locator('..').screenshot({path:'output/playwright/private-vintage-mobile.png'});
+  await page.reload();
+  await page.locator('#vintageBody').waitFor({state:'visible'});
+  if(!(await page.locator('#vintageBody').innerText()).includes('CPIAUCSL')) throw new Error('Reload lost historical evidence');
+  const csrfStatus=await page.evaluate(async()=>(await fetch('/api/refresh',{method:'POST'})).status);
+  if(csrfStatus!==403) throw new Error('Missing-CSRF request accepted');
+  await page.getByRole('button',{name:'Sign out',exact:true}).click();
+  await page.getByRole('button',{name:'Open research desk',exact:true}).waitFor({state:'visible'});
+  const protectedStatus=await page.evaluate(async()=>Promise.all(['/api/report','/api/status','/api/export.csv'].map(async url=>(await fetch(url)).status)));
+  if(protectedStatus.some(status=>status!==401)) throw new Error('Protected API after logout');
+  return {pairs:results,mobile:width,reload:'authenticated',csrfStatus,protectedStatus,result:'PRIVATE_VINTAGE_BROWSER_OK'};
+}
+)(page);
+```
+### Page
+- Page URL: http://127.0.0.1:8765/
+- Page Title: Private desk · FX Research Lab
+- Console: 4 errors, 0 warnings
+### Events
+- New console entries: .playwright-cli\console-2026-10-01T12-27-11-926Z.log#L3-L7

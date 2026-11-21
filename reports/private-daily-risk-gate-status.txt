@@ -1,0 +1,6 @@
+  UNMET GATES:G1 (unchecked): Daily controls, old red drift control, assumed exit costs, partial/gap rules and future-information controls pass focused regressions.
+  UNMET GATES:G2 (unchecked): Full pipeline tests, Ruff and MyPy pass.
+  UNMET GATES:G3 (unchecked): Dashboard lifecycle and unsafe/null-input controls pass.
+GATES.md: 6 gates
+UNMET: 3 (met: 3)
+  GATES:G1, GATES:G2, GATES:G3

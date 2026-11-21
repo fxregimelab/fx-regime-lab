@@ -1,0 +1,132 @@
+{
+  "verified_at_utc": "2026-10-01T20:17:01.173623+00:00",
+  "report_sha256": "c7fca95ddfaf994ecf499bc63dc4026dc0581b7add23765d3d82e28ae437c804",
+  "parent_sha256": "19136098e5f3b369eca5c11ba3e29e1fd3068524fec7329156969c90331a75f6",
+  "changed_top_level_fields": [
+    "ai_summary",
+    "fomc_history",
+    "fomc_publication",
+    "fomc_study",
+    "pair_reports"
+  ],
+  "pair_changes": {
+    "EURUSD": [
+      "ai_analysis"
+    ],
+    "GBPUSD": [
+      "ai_analysis"
+    ],
+    "AUDUSD": [
+      "ai_analysis"
+    ],
+    "NZDUSD": [
+      "ai_analysis"
+    ],
+    "USDCAD": [
+      "ai_analysis"
+    ],
+    "USDCHF": [
+      "ai_analysis"
+    ],
+    "USDJPY": [
+      "ai_analysis"
+    ],
+    "EURGBP": [
+      "ai_analysis"
+    ]
+  },
+  "all_old_pair_research_identical_except_ai_unavailable_reason": true,
+  "prior_ai_preserved": true,
+  "old_journal_files_preserved": 52,
+  "frozen_study_replayed": true,
+  "manifest_written_before_result": true,
+  "manifest_registered_before_publication": true,
+  "source_counts": {
+    "status": "SOURCE_RECONSTRUCTION",
+    "inventory_statement_count": 83,
+    "captured_statement_count": 84,
+    "exact_clock_count": 75,
+    "target_change_count": 28
+  },
+  "selected_changes": 27,
+  "valid_pair_horizon_paths": 200,
+  "exclusion_counts": {
+    "NO_TARGET_CHANGE": 55,
+    "EXACT_CLOCK_UNAVAILABLE": 1,
+    "MISSING_OR_QUARANTINED_WINDOW": 154,
+    "MISSING_RISK_WINDOW": 24
+  },
+  "horizons": [
+    {
+      "horizon": 3,
+      "complete_event_count": 2,
+      "complete_event_dates": [
+        "2023-03-22",
+        "2024-09-18"
+      ],
+      "valid_pair_alternatives": 103,
+      "event_average_paired_difference_r": 0.2680476088156902,
+      "event_block_interval95_descriptive_r": null
+    },
+    {
+      "horizon": 5,
+      "complete_event_count": 2,
+      "complete_event_dates": [
+        "2023-03-22",
+        "2024-09-18"
+      ],
+      "valid_pair_alternatives": 97,
+      "event_average_paired_difference_r": 0.25871823662677607,
+      "event_block_interval95_descriptive_r": null
+    }
+  ],
+  "calendar_weeks": 521,
+  "zero_event_weeks": 494,
+  "mean_policy_events_per_week": 0.05182341650671785,
+  "journal_counts": {
+    "decision_count": 40,
+    "unique_observation_count": 8,
+    "repeated_publication_count": 32,
+    "outcome_status_counts": {
+      "PENDING": 5,
+      "UNAVAILABLE": 3
+    }
+  },
+  "current_candidates": {
+    "EURUSD": {
+      "status": "ABSTAIN",
+      "probability": null
+    },
+    "GBPUSD": {
+      "status": "ABSTAIN",
+      "probability": null
+    },
+    "AUDUSD": {
+      "status": "ABSTAIN",
+      "probability": null
+    },
+    "NZDUSD": {
+      "status": "ABSTAIN",
+      "probability": null
+    },
+    "USDCAD": {
+      "status": "ABSTAIN",
+      "probability": null
+    },
+    "USDCHF": {
+      "status": "ABSTAIN",
+      "probability": null
+    },
+    "USDJPY": {
+      "status": "ABSTAIN",
+      "probability": null
+    },
+    "EURGBP": {
+      "status": "ABSTAIN",
+      "probability": null
+    }
+  },
+  "qualification": "UNQUALIFIED",
+  "model_calls": 0,
+  "execution": "NOT_RECORDED"
+}

@@ -21,6 +21,10 @@ class RegimeMetadata:
 
 
 REGIME_METADATA: dict[str, RegimeMetadata] = {
+    "USD_STRENGTH_STRONG": RegimeMetadata(ui_color_key="bullish", base_regime="USD_STRENGTH"),
+    "USD_STRENGTH_MODERATE": RegimeMetadata(ui_color_key="bullish", base_regime="USD_STRENGTH"),
+    "USD_WEAKNESS_STRONG": RegimeMetadata(ui_color_key="bearish", base_regime="USD_WEAKNESS"),
+    "USD_WEAKNESS_MODERATE": RegimeMetadata(ui_color_key="bearish", base_regime="USD_WEAKNESS"),
     "USD_POLICY_BREAKOUT": RegimeMetadata(ui_color_key="bullish", base_regime="USD_POLICY"),
     "CARRY_COLLAPSE": RegimeMetadata(ui_color_key="caution", base_regime="CARRY_STRESS"),
     "GROWTH_SURPRISE_USD": RegimeMetadata(ui_color_key="bullish", base_regime="USD_POLICY"),
@@ -63,6 +67,9 @@ def get_regime_category(regime: str) -> str:
     LIQUIDITY_SHOCK, NEUTRAL.
     """
     base = _strip_gate_suffix(regime)
+    if base.startswith(("USD_STRENGTH_", "USD_WEAKNESS_",
+                        "INR_DEPRECIATION_", "INR_APPRECIATION_")):
+        return "DIRECTIONAL_REFERENCE"
     if "CARRY" in base or "UNWIND" in base or "COLLAPSE" in base:
         return "CARRY_DRIVEN"
     if "VOL" in base or "VOLATILITY" in base:

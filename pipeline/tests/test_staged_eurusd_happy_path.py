@@ -17,7 +17,8 @@ from src.staged.stages import (
     SignalStage,
     ValidateStage,
 )
-from src.types import CotRow, RegimeCall, SpotBar
+from src.types import CotRow, RegimeCall, SignalRow, SpotBar
+from src.validation.calendar import add_trading_days
 
 
 def _spot_bar(pair: str, d: datetime.date, close: float) -> SpotBar:
@@ -120,6 +121,30 @@ def _make_prior_calls() -> Sequence[RegimeCall]:
     ]
 
 
+def _publication_signal(call: RegimeCall, spot: float) -> SignalRow:
+    return SignalRow(
+        pair=call.pair,
+        date=call.date,
+        rate_diff_2y=None,
+        rate_diff_10y=None,
+        cot_percentile=None,
+        realized_vol_20d=None,
+        realized_vol_5d=None,
+        implied_vol_30d=None,
+        spot=spot,
+        day_change=None,
+        day_change_pct=None,
+        cross_asset_vix=None,
+        cross_asset_dxy=None,
+        cross_asset_oil=None,
+        cross_asset_us10y=None,
+        cross_asset_gold=None,
+        cross_asset_copper=None,
+        cross_asset_stoxx=None,
+        oi_delta=None,
+    )
+
+
 def test_eurusd_happy_path_with_fake_ports() -> None:
     """Run the full EUR/USD pipeline end-to-end with fake external ports."""
 
@@ -129,9 +154,14 @@ def test_eurusd_happy_path_with_fake_ports() -> None:
     writer = FakeWriterPort()
     alert = FakeAlertPort()
 
-    # Seed a prior call so ValidateStage has something to evaluate.
+    # Seed exact publication and historical evidence for a prior call.
     for call in _make_prior_calls():
-        writer.write_regime_call(call)
+        call.model_version = "happy-path-v1"
+        prices = {bar.date: bar.close for bar in snapshot.spots[pair]}
+        writer.publish_regime_call(call, _publication_signal(call, prices[call.date]))
+        for horizon in (5, 20):
+            target = add_trading_days(call.date, horizon)
+            writer.seed_historical_price(pair, target, prices[target])
 
     ingestion = IngestionStage(fetcher)
     signal_stage = SignalStage()
@@ -143,7 +173,10 @@ def test_eurusd_happy_path_with_fake_ports() -> None:
     ingested = asyncio.run(ingestion.run(snapshot.date))
     signal_result = signal_stage.run(pair, ingested)
     regime_call = regime_stage.run(pair, signal_result)
-    publish_output = asyncio.run(publish_stage.run(pair, regime_call))
+    publish_output = asyncio.run(publish_stage.run(
+        pair, regime_call, signal_row=signal_result.signal_row,
+        upstream_health=(ingested.health, signal_result.health),
+    ))
     validation_rows = validate_stage.run(
         snapshot.date,
         [pair],
@@ -185,12 +218,13 @@ def test_eurusd_happy_path_with_fake_ports() -> None:
     assert publish_output.date == snapshot.date
     assert publish_output.regime_call == regime_call
     assert "wrote_regime_call:2" in publish_output.alerts_sent
-    assert "success_alert" in publish_output.alerts_sent
+    assert "status_alert" in publish_output.alerts_sent
     assert len(writer.regime_calls) == 2
     assert writer.regime_calls[-1][0] == regime_call
     assert writer.regime_calls[-1][1]["correlation_id"] == "test-correlation"
-    assert len(alert.successes) == 1
-    assert alert.successes[0] == regime_call
+    assert not alert.successes
+    assert len(alert.statuses) == 1
+    assert writer.signal_rows[-1] == signal_result.signal_row
 
     # Assert: validation produced rows for the prior call
     assert len(validation_rows) >= 1
@@ -210,4 +244,4 @@ def test_eurusd_happy_path_with_fake_ports() -> None:
     # Assert: StageHealth propagated through the pipeline
     assert ingested.health.status == "OK"
     assert signal_result.health.status in ("OK", "DEGRADED")
-    assert publish_output.health.status == "OK"
+    assert publish_output.health.status == "DEGRADED"

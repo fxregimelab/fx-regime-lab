@@ -91,11 +91,11 @@ def test_hysteresis_holds_strong_bid_regime(monkeypatch: pytest.MonkeyPatch) -> 
 
     ctx = _dense_ctx(
         composite=0.86,
-        prior_regime_label=FxRegime.RISK_OFF_DOLLAR_BID.value,
+        prior_regime_label="USD_WEAKNESS_STRONG",
     )
     out = run_layer1_gate(ctx)
     assert out["invalidated"] is False
-    assert out["raw_regime"] == FxRegime.RISK_OFF_DOLLAR_BID.value
+    assert out["raw_regime"] == "USD_WEAKNESS_STRONG"
 
 
 def test_vol_expanding_neutral_suffix() -> None:

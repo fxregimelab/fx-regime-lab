@@ -6,13 +6,21 @@ import copy
 import logging
 import math
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any, Literal, NamedTuple
 
 import numpy as np
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
-from src.fetchers.buffer_keys import KEY_COT, KEY_CROSS_ASSET, KEY_FX_SPOT, KEY_YIELDS
+from src.fetchers.buffer_keys import (
+    KEY_COT,
+    KEY_CROSS_ASSET,
+    KEY_FX_SPOT,
+    KEY_RATE_DECISION_AT,
+    KEY_YIELD_OBSERVATIONS,
+    KEY_YIELDS,
+)
+from src.signals.rate_observation import RateObservation, qualified_rate_value
 from src.types import CotRow, SpotBar
 
 logger = logging.getLogger(__name__)
@@ -243,8 +251,7 @@ def _spots_bucket_freshness(buffer: dict[str, Any], universe: dict[str, Any], as
 
 
 def _rates_bucket_freshness(buffer: dict[str, Any], universe: dict[str, Any], as_of: date) -> float:
-    """Missing required yield legs ⇒ stale (critical).
-    Else freshness vs 36h using spot observation age."""
+    """Score required rates from their own witnessed source timing, never spot age."""
 
     y_any = buffer.get(KEY_YIELDS)
     if not isinstance(y_any, dict):
@@ -264,15 +271,31 @@ def _rates_bucket_freshness(buffer: dict[str, Any], universe: dict[str, Any], as
                 required.add(tid)
     if not required:
         return 1.0
-    for sid in required:
-        if yields_dict.get(sid) is None:
-            logger.warning("DQS rates bucket: missing yield series %s", sid)
-            return 0.1
-    spot_date = _latest_spot_observation_date(buffer, universe)
-    age_h = _calendar_age_hours(as_of, spot_date)
-    if age_h is None:
+    observations = buffer.get(KEY_YIELD_OBSERVATIONS)
+    decision_at = buffer.get(KEY_RATE_DECISION_AT)
+    if (
+        not isinstance(observations, dict)
+        or not isinstance(decision_at, datetime)
+        or decision_at.tzinfo is None
+        or decision_at.astimezone(UTC).date() != as_of
+    ):
         return 0.1
-    return freshness_score_from_age_hours(age_h, _MAX_AGE_RATES_H)
+    for sid in required:
+        observation = observations.get(sid)
+        if not isinstance(observation, RateObservation):
+            return 0.1
+        qualified = qualified_rate_value(
+            observation, source_id=sid, decision_at=decision_at,
+            max_age=timedelta(hours=_MAX_AGE_RATES_H),
+        )
+        if qualified is None or qualified != yields_dict.get(sid):
+            return 0.1
+        assert observation.observed_on is not None
+        earliest_observation = datetime.combine(observation.observed_on, time.min, tzinfo=UTC)
+        age_seconds = (decision_at.astimezone(UTC) - earliest_observation).total_seconds()
+        if age_seconds > _MAX_AGE_RATES_H * 3600:
+            return 0.1
+    return 1.0
 
 
 def _cot_bucket_freshness(buffer: dict[str, Any], universe: dict[str, Any], as_of: date) -> float:

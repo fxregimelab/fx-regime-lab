@@ -128,7 +128,7 @@ def test_eurusd_regime_call_tracer_bullet() -> None:
         signal_row=signal_row,
         composite=1.0,
         confidence=0.65,
-        regime="RISK_OFF_DOLLAR_BID",
+        regime="USD_WEAKNESS_STRONG",
         primary_driver="rate",
         layer2=layer2,
         layer3=layer3,
@@ -143,7 +143,7 @@ def test_eurusd_regime_call_tracer_bullet() -> None:
 
     assert call.pair == "EURUSD"
     assert call.date == as_of
-    assert call.regime == "RISK_OFF_DOLLAR_BID"
+    assert call.regime == "USD_WEAKNESS_STRONG"
     assert call.confidence == 0.65
     assert call.signal_composite == 1.0
     assert call.rate_signal == "BULLISH"
@@ -158,8 +158,12 @@ def test_eurusd_regime_call_tracer_bullet() -> None:
     assert call.stress_level == "GREEN"
     assert call.special_signal_value == 0.55
     assert call.special_signal_label == "Bund-BTP + ECB BS"
-    assert call.regime_category == "RATE_DRIVEN"
-    assert call.model_version == "2.0-live"
+    assert call.cot_signal == "BULLISH"
+    assert call.vol_signal == "VOL_EXPANDING"
+    assert call.oi_signal == "OI_TYPICAL"
+    assert call.regime_category == "DIRECTIONAL_REFERENCE"
+    assert call.model_version == "3.0-directional-reference"
+    assert call.strategy_version == "pair-direction-v1"
 
     assert signal_row.pair == "EURUSD"
     assert signal_row.date == as_of
@@ -464,7 +468,7 @@ def test_eurusd_builder_matches_inline_construction() -> None:
     rate_dir = "BULLISH"
     composite = 1.0
     confidence = 0.65
-    regime = "RISK_OFF_DOLLAR_BID"
+    regime = "USD_WEAKNESS_STRONG"
     driver = "rate"
 
     # ── Inline construction (mirrors orchestrator pre-refactor) ────────────
@@ -624,7 +628,20 @@ def test_eurusd_builder_matches_inline_construction() -> None:
     )
 
     assert builder_signal_row == inline_signal_row
-    assert builder_call == inline_call
+    changed_contract_fields = {
+        "vol_signal",
+        "oi_signal",
+        "model_version",
+        "strategy_version",
+    }
+    unchanged_fields = set(vars(inline_call)) - changed_contract_fields
+    assert {field: getattr(builder_call, field) for field in unchanged_fields} == {
+        field: getattr(inline_call, field) for field in unchanged_fields
+    }
+    assert builder_call.vol_signal == "VOL_EXPANDING"
+    assert builder_call.oi_signal == "OI_TYPICAL"
+    assert builder_call.model_version == "3.0-directional-reference"
+    assert builder_call.strategy_version == "pair-direction-v1"
 
 
 def test_usdjpy_pair_specific_macro_fields() -> None:
@@ -710,7 +727,7 @@ def test_usdinr_regime_call_label() -> None:
 
     assert call.pair == "USDINR"
     assert call.predicted_direction == "BEARISH"
-    assert call.special_signal_label == "Oil + DXY + EM Risk"
+    assert call.special_signal_label == "Oil + DXY"
 
 
 def test_all_pairs_use_same_dqs_cap_logic() -> None:
@@ -755,7 +772,7 @@ def test_all_pairs_use_same_dqs_cap_logic() -> None:
             "USDINR",
             86.5,
             {"india_vix": 12.5, "inr_forward_premium": 2.25},
-            "Oil + DXY + EM Risk",
+            "Oil + DXY",
         ),
     ],
 )
@@ -856,7 +873,7 @@ def test_builder_matches_inline_construction_for_pair(
     rate_dir = "BULLISH"
     composite = 1.0
     confidence = 0.65
-    regime = "RISK_OFF_DOLLAR_BID"
+    regime = "USD_WEAKNESS_STRONG"
     driver = "rate"
 
     # ── Inline construction (mirrors pre-refactor orchestrator assembly) ────
@@ -1015,12 +1032,29 @@ def test_builder_matches_inline_construction_for_pair(
     )
 
     assert builder_signal_row == inline_signal_row
-    assert builder_call == inline_call
+    changed_contract_fields = {
+        "vol_signal",
+        "oi_signal",
+        "special_signal_label",
+        "model_version",
+        "strategy_version",
+    }
+    unchanged_fields = set(vars(inline_call)) - changed_contract_fields
+    assert {field: getattr(builder_call, field) for field in unchanged_fields} == {
+        field: getattr(inline_call, field) for field in unchanged_fields
+    }
+    assert builder_call.cot_signal == "BULLISH"
+    assert builder_call.vol_signal == "VOL_EXPANDING"
+    assert builder_call.oi_signal == "OI_TYPICAL"
+    assert builder_call.rr_signal == "NEUTRAL"
+    assert builder_call.special_signal_label == special_label
+    assert builder_call.model_version == "3.0-directional-reference"
+    assert builder_call.strategy_version == "pair-direction-v1"
 
 
 
 def test_regime_call_defaults_version_and_source() -> None:
-    """Builder defaults model_version and data_source to live values."""
+    """Builder defaults identify the directional reference and live source."""
 
     snapshot = _eurusd_snapshot()
     builder = RegimeCallBuilder(snapshot)
@@ -1030,16 +1064,16 @@ def test_regime_call_defaults_version_and_source() -> None:
         signal_row=signal_row,
         composite=0.5,
         confidence=0.6,
-        regime="RISK_OFF_DOLLAR_BID",
+        regime="USD_WEAKNESS_MODERATE",
         primary_driver="rate",
         layer2=_layer2("LONG"),
         layer3=_layer3(),
         rate_direction="BULLISH",
         apply_dqs_cap=False,
     )
-    assert call.model_version == "2.0-live"
+    assert call.model_version == "3.0-directional-reference"
     assert call.data_source == "live"
-    assert call.strategy_version == "v2"
+    assert call.strategy_version == "pair-direction-v1"
 
 
 def test_regime_call_accepts_version_and_source_overrides() -> None:

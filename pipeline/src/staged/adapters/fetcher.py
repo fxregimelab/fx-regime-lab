@@ -6,6 +6,7 @@ import datetime
 from typing import Any
 
 from src.core.ingestion_snapshot import IngestionSnapshot as CoreIngestionSnapshot
+from src.core.spot_history import strict_date
 from src.fetchers.async_engine import build_master_buffer
 from src.staged.contracts import IngestionSnapshot, StageHealth, StageStatus
 from src.staged.ports import FetcherPort
@@ -36,13 +37,20 @@ class ProductionFetcherPort(FetcherPort):
         self._stress_level = stress_level
 
     async def fetch(self, as_of: datetime.date) -> IngestionSnapshot:
+        requested = strict_date(as_of, field="as_of")
+        utc_today = datetime.datetime.now(datetime.UTC).date()
+        if requested != utc_today:
+            raise ValueError(
+                "ProductionFetcherPort only supports the current UTC date; "
+                "use a recorded snapshot or replay adapter for historical dates"
+            )
         buffer = await build_master_buffer(
             spot_lookback_days=self._spot_lookback_days,
             yield_lookback_days=self._yield_lookback_days,
         )
 
         core = CoreIngestionSnapshot.from_buffer(
-            as_of,
+            requested,
             buffer,
             macro=self._macro,
             dqs_score=self._dqs_score,
@@ -73,9 +81,7 @@ def _map_core_to_staged(core: CoreIngestionSnapshot) -> IngestionSnapshot:
 
     critical_missing = [f for f in missing_fields if f in ("spots", "yields")]
     if critical_missing:
-        raise ValueError(
-            f"Critical ingestion inputs missing: {', '.join(critical_missing)}"
-        )
+        raise ValueError(f"Critical ingestion inputs missing: {', '.join(critical_missing)}")
 
     status: StageStatus = "OK" if not missing_fields else "DEGRADED"
 
@@ -94,4 +100,6 @@ def _map_core_to_staged(core: CoreIngestionSnapshot) -> IngestionSnapshot:
         dqs_score=core.dqs_score,
         stress_level=core.stress_level,
         health=StageHealth("IngestionStage", status, missing_fields=missing_fields),
+        rate_observations=dict(getattr(core, "rate_observations", {})),
+        rate_decision_at=getattr(core, "rate_decision_at", None),
     )

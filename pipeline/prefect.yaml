@@ -29,7 +29,7 @@ pull:
 deployments:
   - name: Daily_FX_Regime_Engine
     description: Automated 24h FX Regime Context Generation
-    entrypoint: src/scheduler/orchestrator.py:run_daily
+    entrypoint: src/scheduler/run_pipeline.py:run_pipeline
     schedule:
       cron: "0 9 * * *"
     work_pool:
@@ -41,7 +41,7 @@ deployments:
         pip_packages:
           - websockets>=14.0
           - yfinance>=0.2.65
-        # Injected into the flow run process (required by `run_daily` / `_require_pipeline_runtime_env`).
+        # Injected into the flow run process (required by the scheduled pipeline).
         env:
           SUPABASE_URL: "{{ $SUPABASE_URL }}"
           SUPABASE_SERVICE_ROLE_KEY: "{{ $SUPABASE_SERVICE_ROLE_KEY }}"

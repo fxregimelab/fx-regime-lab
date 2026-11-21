@@ -1,0 +1,165 @@
+TAP version 13
+# Subtest: live metrics retrieve every row beyond 200 and 1000 without a date heuristic
+not ok 1 - live metrics retrieve every row beyond 200 and 1000 without a date heuristic
+  ---
+  duration_ms: 2.9355
+  type: 'test'
+  location: 'D:\\Projects\\fxregimelab\\web\\tests\\validation-queries.test.mjs:66:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 2201
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 2201
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/Projects/fxregimelab/web/tests/validation-queries.test.mjs:70:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: source, strategy, model, evaluation and superseded filters are exact
+not ok 2 - source, strategy, model, evaluation and superseded filters are exact
+  ---
+  duration_ms: 0.3983
+  type: 'test'
+  location: 'D:\\Projects\\fxregimelab\\web\\tests\\validation-queries.test.mjs:75:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/Projects/fxregimelab/web/tests/validation-queries.test.mjs:79:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: neutral is an abstention and remains visible without a Brier score
+not ok 3 - neutral is an abstention and remains visible without a Brier score
+  ---
+  duration_ms: 0.4216
+  type: 'test'
+  location: 'D:\\Projects\\fxregimelab\\web\\tests\\validation-queries.test.mjs:84:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/Projects/fxregimelab/web/tests/validation-queries.test.mjs:87:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: requested replay model does not mix models or use a publication date cutoff
+not ok 4 - requested replay model does not mix models or use a publication date cutoff
+  ---
+  duration_ms: 0.5696
+  type: 'test'
+  location: 'D:\\Projects\\fxregimelab\\web\\tests\\validation-queries.test.mjs:91:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + undefined
+    - '2.1-m3'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '2.1-m3'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/Projects/fxregimelab/web/tests/validation-queries.test.mjs:95:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: query errors do not fall back to unfiltered evidence
+not ok 5 - query errors do not fall back to unfiltered evidence
+  ---
+  duration_ms: 0.5162
+  type: 'test'
+  location: 'D:\\Projects\\fxregimelab\\web\\tests\\validation-queries.test.mjs:99:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///D:/Projects/fxregimelab/web/tests/validation-queries.test.mjs:101:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: aggregate snapshot filters and denominators match selected group
+not ok 6 - aggregate snapshot filters and denominators match selected group
+  ---
+  duration_ms: 0.5372
+  type: 'test'
+  location: 'D:\\Projects\\fxregimelab\\web\\tests\\validation-queries.test.mjs:105:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    3 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 3
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/Projects/fxregimelab/web/tests/validation-queries.test.mjs:109:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: model chooser uses actual replay model metadata and no invented fallback
+not ok 7 - model chooser uses actual replay model metadata and no invented fallback
+  ---
+  duration_ms: 1.1241
+  type: 'test'
+  location: 'D:\\Projects\\fxregimelab\\web\\tests\\validation-queries.test.mjs:117:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   'v2'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 'v2'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///D:/Projects/fxregimelab/web/tests/validation-queries.test.mjs:118:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 0
+# fail 7
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 617.2292

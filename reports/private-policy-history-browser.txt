@@ -1,0 +1,56 @@
+### Result
+{"pairs":["EURUSD","GBPUSD","AUDUSD","NZDUSD","USDCAD","USDCHF","EURGBP"],"policy_currencies":[{"currency":"USD","numeric":10128,"missing":0,"last":"2026-09-28"},{"currency":"EUR","numeric":10098,"missing":32,"last":"2026-09-29"},{"currency":"GBP","numeric":7013,"missing":231,"last":"2026-09-28"},{"currency":"AUD","numeric":7021,"missing":0,"last":"2026-09-24"},{"currency":"NZD","numeric":8859,"missing":1245,"last":"2026-09-25"},{"currency":"CAD","numeric":7216,"missing":1895,"last":"2026-09-28"},{"currency":"CHF","numeric":7231,"missing":5,"last":"2026-09-29"}],"projection_bytes":8433243,"measured_fetch_ms":515,"saved_report_bytes":56642633,"export_rows":2000,"mobile":{"viewport":390,"client":390,"document":390},"overflowControl":true,"csrf":403,"protectedStatus":[401,401,401],"result":"PRIVATE_POLICY_HISTORY_BROWSER_OK"}
+### Ran Playwright code
+```js
+await (async (page) => {
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.setViewportSize({width:1440,height:1000});
+  const transport=await page.evaluate(async()=>{const start=performance.now(),response=await fetch('/api/report'),text=await response.text();return {status:response.status,bytes:new TextEncoder().encode(text).length,elapsed_ms:performance.now()-start,data:JSON.parse(text)};});
+  if(transport.status!==200||transport.bytes>=56642633/4)throw new Error('Policy projection ineffective');
+  const data=transport.data;
+  if(data.historical_policy.series_audits.length!==7||data.historical_policy.failures.length!==0)throw new Error('Missing successful policy sources');
+  if(data.historical_policy.forecast_qualification!=='UNQUALIFIED')throw new Error('False policy qualification');
+  if(data.historical_policy.series_audits.some(item=>'rows' in item))throw new Error('Full histories transferred');
+  const expected={EURUSD:[7234,7209,15],GBPUSD:[7003,6201,5],AUDUSD:[7020,6294,0],NZDUSD:[7160,6945,5],USDCAD:[7215,7124,0],USDCHF:[7229,7194,5],EURGBP:[7004,6192,20]};
+  const seen=[];
+  for(const item of data.pair_reports){
+    const f=item.historical_policy_features,wanted=expected[item.pair],name=item.pair.slice(0,3)+' / '+item.pair.slice(3);
+    if('rows' in f||f.recent_rows.length>6||[f.matched_numeric_count,f.change_numeric_count,f.definition_break_windows].some((n,i)=>n!==wanted[i]))throw new Error('Bad projection '+item.pair);
+    await page.getByRole('button',{name:'Read '+name+' research brief',exact:true}).click();
+    const text=(await page.locator('#policyHistoryBody').innerText()).toLowerCase();
+    for(const token of ['usd','eur','gbp','aud','nzd','cad','chf','1999-01-05',String(wanted[0]),String(wanted[1]),'unqualified','retrospective','percentage points','not a two-year yield spread',name.toLowerCase()])if(!text.includes(token))throw new Error('Missing evidence '+item.pair+' '+token);
+    if(await page.locator('#eligibleCount').innerText()!=='0 eligible')throw new Error('False eligibility');
+    if(!(await page.locator('#briefBody').innerText()).includes('No validated probability'))throw new Error('False probability');
+    seen.push(item.pair);
+  }
+  await page.locator('#policyHistoryAudit').screenshot({path:'output/playwright/private-policy-desktop.png'});
+  const csv=await page.evaluate(async()=>{const r=await fetch('/api/export.csv');return {status:r.status,text:await r.text()};});
+  if(csv.status!==200||csv.text.trim().split('\n').length-1!==2000)throw new Error('Export changed');
+  await page.reload();
+  await page.locator('#appView').waitFor({state:'visible'});
+  if(await page.locator('#policyHistoryBody table tbody tr').count()!==7)throw new Error('Reload lost coverage');
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('#policyHistoryAudit').scrollIntoViewIfNeeded();
+  const mobile=await page.evaluate(()=>({viewport:innerWidth,client:document.documentElement.clientWidth,document:document.documentElement.scrollWidth}));
+  if(mobile.document>mobile.client)throw new Error('Mobile overflow '+JSON.stringify(mobile));
+  await page.locator('#policyHistoryAudit').screenshot({path:'output/playwright/private-policy-mobile.png'});
+  await page.evaluate(()=>{const probe=document.createElement('div');probe.id='policyOverflowProbe';probe.style.cssText='position:absolute;left:0;top:0;width:900px;height:1px';document.body.append(probe);});
+  const overflowControl=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);
+  await page.locator('#policyOverflowProbe').evaluate(node=>node.remove());
+  if(!overflowControl)throw new Error('Overflow check cannot detect failure');
+  const csrf=await page.evaluate(async()=>(await fetch('/api/refresh',{method:'POST'})).status);
+  if(csrf!==403)throw new Error('Unprotected refresh');
+  const state=await page.evaluate(async()=>(await (await fetch('/api/status')).json()));
+  if(state.running)throw new Error('Unauthorized refresh started');
+  await page.getByRole('button',{name:'Sign out',exact:true}).click();
+  const protectedStatus=await page.evaluate(async()=>Promise.all(['/api/report','/api/status','/api/export.csv'].map(async url=>(await fetch(url)).status)));
+  if(protectedStatus.some(status=>status!==401))throw new Error('Logout leak');
+  return {pairs:seen,policy_currencies:data.historical_policy.series_audits.map(x=>({currency:x.currency,numeric:x.numeric_count,missing:x.missing_value_count,last:x.last_numeric.observation_date})),projection_bytes:transport.bytes,measured_fetch_ms:Math.round(transport.elapsed_ms),saved_report_bytes:56642633,export_rows:2000,mobile,overflowControl,csrf,protectedStatus,result:'PRIVATE_POLICY_HISTORY_BROWSER_OK'};
+})(page);
+```
+### Page
+- Page URL: http://127.0.0.1:8765/
+- Page Title: Private desk · FX Research Lab
+- Console: 4 errors, 0 warnings
+### Events
+- New console entries: .playwright-cli\console-2026-10-01T13-51-36-834Z.log#L3-L7

@@ -1,4 +1,51 @@
+> Repair packets30/31 locally accepted: saved-read originals, SQL, central loader and six storage timeout boundaries independently verified. 199 gates met, six root gates unmet, zero abandoned. Full pipeline receipt after writer edits: 2,036 collected tests. PostgreSQL stopped after scratch cleanup. FPI inactive; full goal active; no deployment. See reports/REPAIR_CHECKPOINT.md.
+
+
+
 # CONTEXT.md — FX Regime Lab
+
+## Private manual research vocabulary
+
+**Bias context**: Dated evidence that helps the owner assess a bullish, bearish or mixed technical view. It is separate from permission to enter a trade.
+
+**Price phase**: A description of observed trend, range or transition behaviour. A price-only phase does not establish professional accumulation or distribution.
+
+**Continuation watch**: Agreement between observed short and longer price moves. It is not a calibrated probability that the next move will continue.
+
+**Reversal watch**: A conflict or failed directional move worth checking against technical analysis and new fundamental evidence. It does not mean a reversal has been predicted.
+
+**Fundamental relation**: Whether source-backed evidence supports, contradicts or leaves a directional thesis unresolved. A policy-rate level alone is not a directional forecast.
+
+**Evidence strength**: The completeness and agreement of named observations. It is different from the probability of a winning trade.
+
+**Positive return skew**: A return distribution with a longer positive tail. It does not by itself mean positive expectancy or a power-law distribution.
+
+
+## FPI evidence vocabulary
+
+**FPI value**: One complete dated set of reported INR components. Identical values can appear in several captures without being the same source occurrence.
+
+**FPI occurrence**: One captured report response. A later response remains a distinct occurrence even when it repeats an earlier value.
+
+**FPI parsed membership**: A dated value found in a particular occurrence by a particular parser implementation. Correcting the parser creates new interpretation evidence; it does not create a new source occurrence.
+
+**FPI qualification**: A recorded decision to accept, quarantine or withdraw a parsed membership, or an explicitly broader value or parser scope, under a stated research policy. A successful parse alone does not qualify it.
+
+**FPI decision snapshot**: The exact evidence and qualification state observed for a particular decision. It preserves what that decision used even when later evidence changes.
+
+**FPI first-seen time**: A description of when an identity was first observed under a stated evidence basis. It is not an ordering rule for later source occurrences or proof of a past decision's knowledge.
+
+**FPI qualification command**: A request for one qualification change from an explicitly named prior state. Repeating the same request preserves its identity.
+
+**FPI qualification event**: The retained acceptance of a qualification command, with an explicit place in the qualification sequence. Its clock time does not establish source release order.
+
+**FPI qualification head**: The last qualification event observed for one target at a particular read, or an explicit observation that none existed.
+
+**FPI resolution witness**: The member, value and parser qualification states that justified a recorded choice among a date's candidates. Later changes do not rewrite those earlier states.
+
+## Active repair context — 27 September 2026
+
+The current owner-authorized work is the complete structural and research repair described in [docs/REPAIR_REGISTER.md](docs/REPAIR_REGISTER.md). Base revision `9fa1505`; branch `codex/frontend` (same base; shared checkout changed during repair). The prior 319-test baseline passed but did not prove scoring, economic definitions or out-of-sample validity. Historical completion and performance claims in this document require reconciliation against that register. No repair has yet been deployed or applied to the historical ledger.
 
 > **Read `HANDOVER.md` first** for complete operator identity, career context, locked decisions, and session operating rules. This file contains the technical project context. `HANDOVER.md` contains the personal/career context. Both are required for full context.
 

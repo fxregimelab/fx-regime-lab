@@ -23,6 +23,8 @@ class IngestionStage:
                 date=snapshot.date,
                 spots=snapshot.spots,
                 yields=snapshot.yields,
+                rate_observations=snapshot.rate_observations,
+                rate_decision_at=snapshot.rate_decision_at,
                 cot_rows=snapshot.cot_rows,
                 cross_asset=snapshot.cross_asset,
                 macro=snapshot.macro,

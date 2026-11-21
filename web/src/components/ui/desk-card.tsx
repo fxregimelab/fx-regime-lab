@@ -4,8 +4,16 @@ import { BinaryResolve } from "@/components/ui/BinaryResolve";
 import { GhostResolve } from "@/components/ui/GhostResolve";
 import { DataLineage } from "@/components/ui/data-lineage";
 import { ReproducibilityExport } from "@/components/ui/reproducibility-export";
+import {
+  crowdingUnavailableMessage,
+  formatAlignment,
+  formatSignedInteger,
+  formatSignedPercent,
+  readCrowdingDiagnostic,
+} from "@/lib/crowding-diagnostic";
 import type { DominanceItem, MarkovPayload } from "@/lib/queries";
 import type { TelemetryAuditPayload } from "@/lib/queries";
+import { formatRegimeShareNote } from "@/lib/regime-share";
 import { AnimatePresence, motion } from "framer-motion";
 import React from "react";
 import { fmt2, normalizeProp } from "./utils";
@@ -17,40 +25,43 @@ const OMEGA_BEVEL_CRISIS =
 const OMEGA_DIVIDER_Y =
   "border-b-[0.5px] border-b-[var(--color-border-subtle)]";
 
-/** Desk `ai_brief` JSON: new triple (bias / catalyst / squeeze) or legacy regime_state keys. */
+const PARTICIPANT_RISK_UNAVAILABLE =
+  "Participant losses and squeeze probability unavailable";
+
+/** Desk `ai_brief` JSON with unsupported risk assertions removed. */
 export function parseDeskAiBriefRows(
   raw: string | null,
 ): { label: string; value: string }[] {
   if (!raw?.trim()) return [];
   const t = raw.trim();
   try {
-    const j = JSON.parse(t) as Record<string, unknown>;
+    const parsed = JSON.parse(t) as unknown;
     if (
-      typeof j.bias_summary === "string" &&
-      typeof j.catalyst_driver === "string" &&
-      typeof j.squeeze_risk === "string"
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
     ) {
-      return [
-        { label: "BIAS", value: j.bias_summary.trim() },
-        { label: "CATALYST", value: j.catalyst_driver.trim() },
-        { label: "SQUEEZE", value: j.squeeze_risk.trim() },
-      ];
+      return [{ label: "DIAGNOSTICS", value: PARTICIPANT_RISK_UNAVAILABLE }];
     }
-    const legacy: { label: string; value: string }[] = [];
-    for (const [k, label] of [
+    const j = parsed as Record<string, unknown>;
+    const rows: { label: string; value: string }[] = [];
+    for (const [key, label] of [
+      ["bias_summary", "BIAS"],
       ["regime_state", "BIAS"],
+      ["catalyst_driver", "CATALYST"],
       ["key_divergence", "CATALYST"],
-      ["swing_factor", "SQUEEZE"],
     ] as const) {
-      const v = j[k];
-      if (typeof v === "string" && v.trim())
-        legacy.push({ label, value: v.trim() });
+      if (rows.some((row) => row.label === label)) continue;
+      const value = j[key];
+      if (typeof value === "string" && value.trim()) {
+        rows.push({ label, value: value.trim() });
+      }
     }
-    if (legacy.length) return legacy;
+    rows.push({ label: "DIAGNOSTICS", value: PARTICIPANT_RISK_UNAVAILABLE });
+    return rows;
   } catch {
-    /* raw non-JSON */
+    return [{ label: "DIAGNOSTICS", value: PARTICIPANT_RISK_UNAVAILABLE }];
   }
-  return [{ label: "NOTE", value: t.length > 320 ? `${t.slice(0, 320)}…` : t }];
 }
 
 function ModelInstabilityBadge({ className }: { className?: string }) {
@@ -84,7 +95,6 @@ export function DeskCardTelemetryRow({
   spot,
   structuralRegime,
   confidence,
-  apexScoreDisplay,
   telemetryAudit,
   parameterInstability,
   paused = false,
@@ -102,11 +112,6 @@ export function DeskCardTelemetryRow({
     <div
       className={`relative ${OMEGA_BEVEL} px-2 py-2 grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-3 gap-y-1 items-baseline text-[var(--color-text)]`}
     >
-      {apexScoreDisplay != null ? (
-        <span className="absolute top-1.5 right-2 font-mono text-[10px] font-bold tabular-nums text-[var(--color-text-muted)] z-10">
-          {apexScoreDisplay}
-        </span>
-      ) : null}
       <span className="font-mono text-[11px] tracking-wide shrink-0">
         {pairLabel}
       </span>
@@ -165,8 +170,6 @@ type DeskCardProps = {
   telemetryAudit: TelemetryAuditPayload | null;
   /** Normalized from snapshot; falls back to ``telemetry_audit.parameter_instability``. */
   parameterInstability?: boolean;
-  /** When set (hero only), shows [ SHARE REGIME NOTE ] → ``/api/linkedin-alpha-hook``. */
-  linkedinCardData?: Record<string, unknown> | null;
   /** [∫] inspector — falls back to ``telemetry_audit`` MAD fields when null. */
   mathRateZTactical?: number | null;
   mathRateZStructural?: number | null;
@@ -184,19 +187,15 @@ export function DeskCard({
   pairDisplay,
   spot,
   confidence,
-  rankJump,
   regimeAge,
-  apexScoreDisplay,
   structuralRegime,
   invalidationTriggered,
   telemetryStatus,
   dominanceArray,
-  painIndex,
   markovProbabilities,
   aiBrief,
   telemetryAudit,
   parameterInstability,
-  linkedinCardData,
   mathRateZTactical,
   mathRateZStructural,
   mathDynamicBeta,
@@ -204,7 +203,7 @@ export function DeskCard({
   whisper = null,
   corrLockedWhisper = null,
 }: DeskCardProps) {
-  type LiPhase = "idle" | "loading" | "success";
+  type LiPhase = "idle" | "copying" | "success";
   const [liPhase, setLiPhase] = React.useState<LiPhase>("idle");
   const [liErr, setLiErr] = React.useState<string | null>(null);
   const [mathOpen, setMathOpen] = React.useState(false);
@@ -246,6 +245,10 @@ export function DeskCard({
         )
       : null;
   const aiRows = parseDeskAiBriefRows(aiBrief);
+  const crowding = readCrowdingDiagnostic(
+    telemetryAudit?.crowding_diagnostic,
+    pairDisplay,
+  );
 
   const zT =
     mathRateZTactical ??
@@ -274,17 +277,12 @@ export function DeskCard({
       onMouseEnter={() => setCardHover(true)}
       onMouseLeave={() => setCardHover(false)}
     >
-      {apexScoreDisplay != null ? (
-        <span className="absolute top-3 right-3 font-mono text-[12px] font-bold tabular-nums text-[var(--color-text-muted)] z-10">
-          {apexScoreDisplay}
-        </span>
-      ) : null}
       <div
         className={`${OMEGA_DIVIDER_Y} px-4 py-3 flex items-center justify-between gap-2`}
       >
         <p className="font-mono text-[10px] tracking-widest">
           {isHero
-            ? `[ APEX DESK · ${pairDisplay ?? "—"} ]`
+            ? `[ FX DESK · ${pairDisplay ?? "—"} ]`
             : "[ DESK OPEN CARD ]"}
           {regimeAge != null && regimeAge >= 0 ? (
             <span className="text-[var(--color-text-dim)] tabular-nums">
@@ -337,7 +335,7 @@ export function DeskCard({
             transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
             className={`overflow-hidden ${OMEGA_DIVIDER_Y} bg-[var(--color-sunken)] shadow-none`}
           >
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2 px-4 py-3 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2 px-4 py-3 md:grid-cols-3">
               <div className="min-w-0">
                 <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)]">
                   RATE Z (T)
@@ -364,22 +362,6 @@ export function DeskCard({
               </div>
               <div className="min-w-0">
                 <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)]">
-                  PAIN INDX
-                </p>
-                <p className="font-mono text-[10px] tabular-nums text-[var(--color-text)]">
-                  <BinaryResolve
-                    value={
-                      painIndex == null || Number.isNaN(painIndex)
-                        ? "—"
-                        : painIndex.toFixed(2)
-                    }
-                    resolveKey={painIndex ?? 0}
-                    paused={pausedBinaryResolve}
-                  />
-                </p>
-              </div>
-              <div className="min-w-0">
-                <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)]">
                   DYN BETA
                 </p>
                 <p className="font-mono text-[10px] tabular-nums text-[var(--color-text)]">
@@ -400,11 +382,6 @@ export function DeskCard({
           className={`${OMEGA_DIVIDER_Y} px-4 py-4 flex flex-wrap items-end justify-between gap-3`}
         >
           <div className="flex flex-wrap items-center gap-2 min-w-0">
-            {rankJump != null && rankJump > 0 ? (
-              <span className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] shrink-0">
-                [ RANK JUMP: +{rankJump} ]
-              </span>
-            ) : null}
             {confPct != null ? (
               <DataLineage
                 lineage={{
@@ -523,16 +500,47 @@ export function DeskCard({
 
       <div className="border-t-[0.5px] border-t-[var(--color-border-subtle)] px-4 py-3">
         <p className="font-mono text-[9px] tracking-widest text-[var(--color-text-muted)] mb-2">
-          ASYMMETRY RADAR
+          DIAGNOSTICS
         </p>
-        {painIndex != null && painIndex > 80 ? (
-          <p className="font-mono text-[11px] text-[var(--color-warn)] tracking-wide">
-            [ ASYMMETRIC SETUP DETECTED: Fundamental vs. Positioning Divergence
-            ]
-          </p>
+        {crowding.kind === "valid" ? (
+          <div className="space-y-1 font-mono text-[10px] text-[var(--color-text-muted)]">
+            <p>
+              {crowding.diagnostic.cot.status === "PROVISIONAL" &&
+              crowding.diagnostic.cot.net_long !== null
+                ? `Reported net (provisional): ${formatSignedInteger(crowding.diagnostic.cot.net_long)} contracts · ${formatAlignment(crowding.diagnostic.cot.alignment)}.`
+                : "Reported net: unavailable."}
+            </p>
+            {crowding.diagnostic.cot.report_date ? (
+              <p>
+                Report date: {crowding.diagnostic.cot.report_date} · category
+                definition unknown.
+              </p>
+            ) : null}
+            <p>Source availability: unverified.</p>
+            {crowding.diagnostic.price.status === "PROVISIONAL" &&
+            crowding.diagnostic.price.spot !== null &&
+            crowding.diagnostic.price.latest_date ? (
+              <p>
+                Latest supplied close:{" "}
+                {crowding.diagnostic.price.spot.toLocaleString("en-US", {
+                  maximumFractionDigits: 6,
+                })}{" "}
+                · date: {crowding.diagnostic.price.latest_date} · observations:{" "}
+                {crowding.diagnostic.price.observation_count}.
+              </p>
+            ) : null}
+            <p>
+              {crowding.diagnostic.price.relative_to_mean_pct !== null &&
+              crowding.diagnostic.price.latest_date
+                ? `Close vs 40-observation mean: ${formatSignedPercent(crowding.diagnostic.price.relative_to_mean_pct)} · latest close date: ${crowding.diagnostic.price.latest_date}.`
+                : "Close vs 40-observation mean: unavailable."}
+            </p>
+            <p>{PARTICIPANT_RISK_UNAVAILABLE}.</p>
+          </div>
         ) : (
           <p className="font-mono text-[10px] text-[var(--color-text-muted)]">
-            No extreme divergence signal.
+            {crowdingUnavailableMessage(crowding.kind)}{" "}
+            {PARTICIPANT_RISK_UNAVAILABLE}.
           </p>
         )}
       </div>
@@ -563,33 +571,32 @@ export function DeskCard({
               ))}
             </div>
           )}
-          {isHero &&
-          linkedinCardData &&
-          Object.keys(linkedinCardData).length > 0 ? (
+          {pairDisplay ? (
             <div className="mt-3">
               <button
                 type="button"
-                disabled={liPhase === "loading"}
+                disabled={liPhase === "copying"}
                 onClick={async () => {
                   setLiErr(null);
                   if (liSuccessTimer.current) {
                     clearTimeout(liSuccessTimer.current);
                     liSuccessTimer.current = null;
                   }
-                  setLiPhase("loading");
+                  setLiPhase("copying");
                   try {
-                    const res = await fetch("/api/linkedin-alpha-hook", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ cardData: linkedinCardData }),
+                    const pair = pairDisplay
+                      .toUpperCase()
+                      .replace(/[\s/]/gu, "");
+                    const text = formatRegimeShareNote({
+                      pair,
+                      regime: structuralRegime,
+                      url: `https://fxregimelab.com/terminal/fx-regime/${pair.toLowerCase()}`,
+                      spot: spot ?? null,
+                      confidencePercent: confPct,
+                      dominantSignal: top?.signal_family ?? null,
+                      dominantScore: top?.dominance_score ?? null,
                     });
-                    const j = (await res.json().catch(() => ({}))) as {
-                      error?: string;
-                      text?: string;
-                    };
-                    if (!res.ok) throw new Error(j.error || "Request failed");
-                    if (!j.text?.trim()) throw new Error("Empty response");
-                    await navigator.clipboard.writeText(j.text.trim());
+                    await navigator.clipboard.writeText(text);
                     setLiPhase("success");
                     liSuccessTimer.current = setTimeout(() => {
                       setLiPhase("idle");
@@ -604,10 +611,10 @@ export function DeskCard({
                   liPhase === "success"
                     ? "border-t-[var(--color-up)]/50 text-[var(--color-up)]"
                     : "text-[var(--color-text)] hover:border-t-[color-mix(in_srgb,var(--color-border)_20%,transparent)] hover:text-[var(--color-text)]"
-                } ${liPhase === "loading" ? "animate-pulse opacity-70" : ""}`}
+                } ${liPhase === "copying" ? "animate-pulse opacity-70" : ""}`}
               >
-                {liPhase === "loading"
-                  ? "[ GENERATING... ]"
+                {liPhase === "copying"
+                  ? "[ COPYING... ]"
                   : liPhase === "success"
                     ? "[ COPIED! ✓ ]"
                     : "[ SHARE REGIME NOTE ]"}

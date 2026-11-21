@@ -1,0 +1,47 @@
+### Result
+{"pairs":[{"pair":"EUR / USD","count":7168,"gaps":32},{"pair":"GBP / USD","count":7121,"gaps":79},{"pair":"AUD / USD","count":7148,"gaps":52},{"pair":"NZD / USD","count":7111,"gaps":89},{"pair":"USD / CAD","count":7134,"gaps":66},{"pair":"USD / CHF","count":null,"gaps":null},{"pair":"EUR / GBP","count":7183,"gaps":17}],"mobile":{"viewport":390,"document":390},"reload":"authenticated","csrfStatus":403,"protectedStatus":[401,401,401],"result":"PRIVATE_BIDASK_BROWSER_OK"}
+### Ran Playwright code
+```js
+await (async (page) => {
+  const expected = [['EUR / USD',7168,32],['GBP / USD',7121,79],['AUD / USD',7148,52],['NZD / USD',7111,89],['USD / CAD',7134,66],['USD / CHF',null,null],['EUR / GBP',7183,17]];
+  const evidence = [];
+  for (const [pair,count,gaps] of expected) {
+    await page.getByRole('button',{name:'Read '+pair+' research brief',exact:true}).click();
+    const text = await page.locator('#bidaskBody').innerText();
+    if (!text.includes('UNKNOWN') || !text.includes('UNQUALIFIED')) throw new Error('Missing evidence limits '+pair);
+    if (count===null) {
+      if (!text.includes('Crossed side bounds') || !text.includes('Unavailable')) throw new Error('CHF rejection not shown');
+    } else if (!text.includes(String(count)) || !text.includes(String(gaps))) throw new Error('Coverage differs '+pair);
+    if (await page.locator('#eligibleCount').innerText() !== '0 eligible') throw new Error('Eligibility changed');
+    evidence.push({pair,count,gaps});
+  }
+  await page.getByRole('button',{name:'Read USD / CHF research brief',exact:true}).click();
+  await page.getByRole('heading',{name:'Bid/ask archive evidence',exact:true}).scrollIntoViewIfNeeded();
+  await page.screenshot({path:'output/playwright/private-bidask-chf-rejected.png'});
+  await page.getByRole('button',{name:'Read EUR / USD research brief',exact:true}).click();
+  await page.getByRole('heading',{name:'Bid/ask archive evidence',exact:true}).scrollIntoViewIfNeeded();
+  await page.screenshot({path:'output/playwright/private-bidask-eurusd.png'});
+  await page.setViewportSize({width:390,height:844});
+  const width = await page.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth}));
+  if(width.document>width.viewport) throw new Error('Mobile overflow');
+  await page.getByRole('heading',{name:'Bid/ask archive evidence',exact:true}).scrollIntoViewIfNeeded();
+  await page.screenshot({path:'output/playwright/private-bidask-mobile.png'});
+  await page.reload();
+  await page.locator('#bidaskBody').waitFor({state:'visible'});
+  if (await page.locator('#eligibleCount').innerText() !== '0 eligible') throw new Error('Reload changed eligibility');
+  const csrfStatus=await page.evaluate(async()=> (await fetch('/api/refresh',{method:'POST'})).status);
+  if(csrfStatus!==403) throw new Error('Missing-CSRF request accepted');
+  await page.getByRole('button',{name:'Sign out',exact:true}).click();
+  await page.getByRole('button',{name:'Open research desk',exact:true}).waitFor({state:'visible'});
+  const protectedStatus=await page.evaluate(async()=>Promise.all(['/api/report','/api/status','/api/export.csv'].map(async url=>(await fetch(url)).status)));
+  if(protectedStatus.some(status=>status!==401)) throw new Error('Protected API available after logout');
+  return {pairs:evidence,mobile:width,reload:'authenticated',csrfStatus,protectedStatus,result:'PRIVATE_BIDASK_BROWSER_OK'};
+}
+)(page);
+```
+### Page
+- Page URL: http://127.0.0.1:8765/
+- Page Title: Private desk · FX Research Lab
+- Console: 4 errors, 0 warnings
+### Events
+- New console entries: .playwright-cli\console-2026-10-01T11-48-27-237Z.log#L7-L11

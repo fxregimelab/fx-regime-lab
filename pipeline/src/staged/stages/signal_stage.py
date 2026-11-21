@@ -3,24 +3,35 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import numpy as np
 
+from src.core.spot_history import select_spot_history
 from src.fetchers.open_interest import compute_oi_delta_from_cot, compute_oi_from_cot
 from src.logic.layer2_directional import run_layer2_directional
 from src.logic.layer3_execution import run_layer3_execution
 from src.regime.classifier import classify_regime_layer1
-from src.regime.composite import compute_composite, get_primary_driver
+from src.regime.composite import compute_composite
 from src.regime.confidence import compute_confidence
-from src.signals.cot import compute_cot_percentile, normalize_cot_signal
+from src.signals.cot import (
+    compute_cot_percentile,
+    compute_cot_smart_spread_percentile,
+    normalize_cot_signal,
+)
+from src.signals.direction import directional_inputs
+from src.signals.fpi import FPI_UNAVAILABLE_NOTES
 from src.signals.rate import (
     RateNormZ,
     compute_risk_adjusted_carry_v2,
-    normalize_rate_signal,
     rate_direction_from_spreads,
 )
+from src.signals.rate_inputs import (
+    current_real_yield_spread,
+    nominal_ten_year_context,
+)
+from src.signals.rate_observation import RateObservation, qualified_two_year_spread
 from src.signals.special import compute_special_signal
 from src.signals.volatility import (
     compute_realized_vol_rank_from_closes,
@@ -40,46 +51,19 @@ from src.types import (
 )
 
 
-def _rate_spread_2y(pair: str, yields: dict[str, float | None]) -> float | None:
-    """2-year yield spread for the pair using universe tickers."""
-
-    if pair == "EURUSD":
-        base, quote = yields.get("DGS2"), yields.get("ECBDFR")
-    elif pair == "USDJPY":
-        base, quote = yields.get("DGS2"), yields.get("IRLTLT01JPM156N")
-    elif pair == "USDINR":
-        base, quote = yields.get("DGS2"), yields.get("INDIRLTLT01STM")
-    else:
-        return None
-    if base is None or quote is None:
-        return None
-    return float(base) - float(quote)
+def _rate_spread_2y(
+    pair: str,
+    yields: dict[str, float | None],
+    observations: dict[str, RateObservation] | None = None,
+    decision_at: datetime | None = None,
+) -> float | None:
+    """Scalar yields remain descriptive; qualification needs source evidence."""
+    return qualified_two_year_spread(pair, observations or {}, decision_at=decision_at)
 
 
 def _rate_spread_10y(pair: str, yields: dict[str, float | None]) -> float | None:
-    """10-year nominal spread where legacy legs exist."""
-
-    us = yields.get("us_10y")
-    if us is None:
-        return None
-    qk = {"EURUSD": "de_10y", "USDJPY": "jp_10y", "USDINR": "in_10y"}.get(pair)
-    if qk is None:
-        return None
-    qv = yields.get(qk)
-    if qv is None:
-        return None
-    return float(us) - float(qv)
-
-
-def _real_yield_spread_10y(
-    spread_10y: float | None,
-    breakeven: float | None,
-) -> float | None:
-    if spread_10y is None:
-        return None
-    if breakeven is None:
-        return spread_10y
-    return float(spread_10y) - float(breakeven)
+    """Unqualified nominal context; never substituted into forecast features."""
+    return nominal_ten_year_context(pair, yields)
 
 
 def _cot_rows_for_pair(rows: list[CotRow], pair: str) -> list[CotRow]:
@@ -94,9 +78,7 @@ def _latest_cot_net_pos(rows: list[CotRow], pair: str) -> int | None:
     return int(latest.net_long)
 
 
-def _latest_cot_breakdown(
-    rows: list[CotRow], pair: str
-) -> tuple[int | None, int | None]:
+def _latest_cot_breakdown(rows: list[CotRow], pair: str) -> tuple[int | None, int | None]:
     pair_rows = _cot_rows_for_pair(rows, pair)
     if not pair_rows:
         return None, None
@@ -146,21 +128,8 @@ def _normalize_rate_signal(
     spread: float | None,
     spread_structural: float | None,
 ) -> RateNormZ:
-    """Robust MAD Z on a constructed history (current value only for happy path)."""
-
-    if spread is None:
-        return RateNormZ(z_tactical=None, z_structural=None, z_blended=None)
-    # Build a minimal history containing the current value so normalization does
-    # not crash; with no dispersion MAD hits the noise floor and Z=0.
-    history = [spread] * 5
-    structural_history = [spread_structural] * 5 if spread_structural is not None else None
-    return normalize_rate_signal(
-        spread=spread,
-        pair=pair,
-        historical_spreads=history,
-        spread_structural=spread_structural,
-        historical_structural=structural_history,
-    )
+    """The staged snapshot contains no rate history from which to estimate Z."""
+    return RateNormZ(z_tactical=None, z_structural=None, z_blended=None)
 
 
 class SignalStage:
@@ -170,42 +139,47 @@ class SignalStage:
         """Compute signals, layers, and assemble the result for ``pair``."""
 
         as_of = snapshot.date
-        spot_bars = snapshot.spots.get(pair, ())
-        spot_closes = tuple(float(b.close) for b in spot_bars if b.close is not None)
+        spot_bars = select_spot_history(snapshot.spots.get(pair, ()), pair=pair, as_of=as_of)
+        if len(spot_bars) < 2:
+            raise ValueError(f"At least two causal spot observations are required for {pair}")
+        spot_closes = tuple(float(b.close) for b in spot_bars)
 
         # Rate spreads
-        rate_spread_2y = _rate_spread_2y(pair, snapshot.yields)
+        rate_spread_2y = _rate_spread_2y(
+            pair, snapshot.yields, snapshot.rate_observations, snapshot.rate_decision_at
+        )
         rate_spread_10y = _rate_spread_10y(pair, snapshot.yields)
         bei = snapshot.yields.get("T10YIE")
-        rate_spread_10y_real = _real_yield_spread_10y(rate_spread_10y, bei)
+        rate_spread_10y_real = current_real_yield_spread(pair, rate_spread_10y, snapshot.yields)
 
         # Rate normalization
-        rate_norm_z = _normalize_rate_signal(
-            pair, rate_spread_2y, rate_spread_10y_real
-        )
+        rate_norm_z = _normalize_rate_signal(pair, rate_spread_2y, rate_spread_10y_real)
         rate_z_tactical = rate_norm_z.z_tactical
         rate_z_structural = rate_norm_z.z_structural
         z_blended = rate_norm_z.z_blended
         rate_direction = rate_direction_from_spreads(
             rate_spread_2y,
-            rate_spread_10y,
+            rate_spread_10y_real,
             z_tactical=rate_z_tactical,
         )
 
         # COT
         cot_pct = compute_cot_percentile(snapshot.cot_rows, pair, as_of=as_of)
         cot_norm = normalize_cot_signal(cot_pct)
+        cot_smart = compute_cot_smart_spread_percentile(snapshot.cot_rows, pair, as_of=as_of)
+        cot_smart_norm = normalize_cot_signal(cot_smart)
+        if cot_norm is not None and cot_smart_norm is not None:
+            cot_norm = 0.70 * cot_norm + 0.30 * cot_smart_norm
+        if pair == "USDINR":
+            cot_pct = None
+            cot_norm = None
         oi_pct = compute_oi_from_cot(snapshot.cot_rows, pair)
         oi_norm = (
-            float(max(-1.0, min(1.0, -(oi_pct - 50.0) / 50.0)))
-            if oi_pct is not None
-            else None
+            float(max(-1.0, min(1.0, -(oi_pct - 50.0) / 50.0))) if oi_pct is not None else None
         )
         oi_delta = compute_oi_delta_from_cot(snapshot.cot_rows, pair)
         cot_net_pos = _latest_cot_net_pos(snapshot.cot_rows, pair)
-        cot_asset_mgr_net, cot_lev_money_net = _latest_cot_breakdown(
-            snapshot.cot_rows, pair
-        )
+        cot_asset_mgr_net, cot_lev_money_net = _latest_cot_breakdown(snapshot.cot_rows, pair)
         days_since_cot = _days_since_cot(snapshot.cot_rows, pair, as_of)
 
         # Volatility
@@ -229,6 +203,11 @@ class SignalStage:
             ecb_balance_sheet=(snapshot.macro or {}).get("ecb_balance_sheet"),
         )
 
+        directional = directional_inputs(
+            pair, rate=rate_z_tactical, cot=cot_norm, special=special_signal, fpi=None
+        )
+        cot_norm, special_signal = directional.cot, directional.special
+
         # Composite and confidence
         composite = compute_composite(
             rate_norm=rate_z_tactical,
@@ -239,16 +218,9 @@ class SignalStage:
             special_signal=special_signal,
         )
         if composite is None:
-            composite = 0.0
+            raise ValueError("directional_inputs_unavailable")
 
-        betas: dict[str, float] = {
-            "rate": 0.0 if rate_z_tactical is None else float(rate_z_tactical),
-            "cot": 0.0 if cot_norm is None else float(cot_norm),
-            "vol": 0.0 if vol_norm is None else float(vol_norm),
-            "oi": 0.0 if oi_norm is None else float(oi_norm),
-            "special": special_signal if special_signal is not None else 0.0,
-        }
-        primary_driver = get_primary_driver(betas)
+        primary_driver = "Static directional reference (unvalidated)"
 
         confidence = compute_confidence(
             composite,
@@ -265,16 +237,9 @@ class SignalStage:
             pair,
         )
 
-        # Layer 1: construct minimal carry and spot histories from available data.
+        # Snapshots have current rates, not observed rate/inflation histories.
         carry_series: tuple[float, ...] = ()
-        if risk_adjusted_carry is not None:
-            carry_series = tuple(
-                float(risk_adjusted_carry)
-                for _ in range(max(len(spot_closes), 30))
-            )
         bei_series: tuple[float, ...] | None = None
-        if bei is not None:
-            bei_series = tuple(float(bei) for _ in range(max(len(spot_closes), 30)))
 
         layer1: Layer1GateOutput = classify_regime_layer1(
             Layer1ClassifierContext(
@@ -295,6 +260,7 @@ class SignalStage:
 
         # Layer 2
         layer2: Layer2DirectionalOutput = run_layer2_directional(
+            pair=pair,
             composite=float(composite),
             z_tactical=rate_z_tactical,
             z_structural=rate_z_structural,
@@ -304,11 +270,8 @@ class SignalStage:
         )
 
         # Layer 3
-        today_bar = next(
-            (b for b in spot_bars if b.date == as_of),
-            spot_bars[-1] if spot_bars else None,
-        )
-        spot = float(today_bar.close) if today_bar is not None else None
+        today_bar = spot_bars[-1]
+        spot = float(today_bar.close)
         rr_series: tuple[float, ...] = ()
         layer3: Layer3ExecutionOutput = run_layer3_execution(
             layer2=layer2,
@@ -328,26 +291,12 @@ class SignalStage:
         # stays independent of the core IngestionSnapshot type.
         volumes = [float(b.volume) for b in spot_bars if b.volume > 0]
         volume_rvol = compute_rvol(volumes)
-        yest_bar = (
-            spot_bars[-2]
-            if len(spot_bars) >= 2
-            else (today_bar if today_bar is not None else None)
-        )
-        day_change = (
-            (today_bar.close - yest_bar.close)
-            if today_bar is not None
-            and yest_bar is not None
-            and today_bar.close is not None
-            and yest_bar.close is not None
-            else 0.0
-        )
-        day_change_pct = (
-            (day_change / yest_bar.close * 100.0)
-            if yest_bar is not None and yest_bar.close not in (None, 0.0)
-            else 0.0
-        )
+        yest_bar = spot_bars[-2]
+        day_change = today_bar.close - yest_bar.close
+        day_change_pct = day_change / yest_bar.close * 100.0
         macro = snapshot.macro or {}
 
+        fpi_notes = list(FPI_UNAVAILABLE_NOTES) if pair == "USDINR" else []
         signal_row = SignalRow(
             pair=pair,
             date=as_of,
@@ -388,10 +337,16 @@ class SignalStage:
             boj_policy_rate=macro.get("boj_policy_rate") if pair == "USDJPY" else None,
             india_vix=macro.get("india_vix") if pair == "USDINR" else None,
             inr_forward_premium=macro.get("inr_forward_premium") if pair == "USDINR" else None,
-            data_quality_notes=None,
+            data_quality_notes=["rate_inputs_unqualified", "rate_history_unavailable", *fpi_notes],
         )
 
-        health_notes: list[str] = []
+        health_notes: list[str] = [
+            "rate_inputs_unqualified",
+            "rate_history_unavailable",
+            *fpi_notes,
+        ]
+        if today_bar.date < as_of:
+            health_notes.append("spot_observation_prior_session")
         if layer1["invalidated"]:
             health_notes.append(f"layer1_invalidated:{','.join(layer1['stale_fields'])}")
 
@@ -405,7 +360,7 @@ class SignalStage:
             snapshot=snapshot,
             health=StageHealth(
                 stage_name="SignalStage",
-                status="DEGRADED" if layer1["invalidated"] else "OK",
+                status="DEGRADED",
                 notes=health_notes,
             ),
             rate_spread_2y=rate_spread_2y,

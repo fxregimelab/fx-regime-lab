@@ -13,9 +13,11 @@ import hashlib
 import json
 import logging
 import os
+import re
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict
-from datetime import date
+from concurrent.futures import CancelledError
+from dataclasses import asdict, fields
+from datetime import UTC, date, datetime, timedelta
 from functools import lru_cache
 from typing import Any, cast
 
@@ -23,7 +25,31 @@ from postgrest.exceptions import APIError
 from postgrest.types import CountMethod
 from supabase import Client, create_client
 
+from src.research.fpi_capture import FpiCapture, validate_fpi_capture
+from src.research.fpi_parse_record import (
+    FpiArtifact,
+    build_fpi_parse_record,
+    validate_fpi_artifact,
+)
+from src.research.fpi_qualification import (
+    FpiQualificationCommand,
+    decode_fpi_qualification_command,
+    decode_fpi_qualification_event,
+)
+from src.research.fpi_saved_read import (
+    FpiAdminReadManifest,
+    FpiAdminReadPolicy,
+    FpiAdminReadRequest,
+    validate_fpi_admin_policy_receipt,
+    validate_fpi_admin_read_receipt,
+    verify_fpi_admin_read_originals,
+)
+from src.research.fpi_selection import FpiParseResult
+from src.research.quote_attempt import validate_quote_acquisition_event
+from src.research.quote_capture import canonical_json, validate_quote_page
+from src.research.quote_reference import build_quote_reference
 from src.types import DeskOpenCardRow, RegimeCall, SignalRow
+from src.validation.calculator import EVALUATION_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +65,519 @@ def _client() -> Client:
             f"SUPABASE_URL set: {bool(url)}, SUPABASE_SERVICE_ROLE_KEY set: {bool(key)}."
         )
     return create_client(url, key)
+
+
+def archive_price_observations(observations: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Append provider evidence atomically; never promote it to a final close."""
+    if len(observations) > 5000:
+        raise ValueError("Price observation batches cannot exceed 5000 rows")
+    payload = json.loads(json.dumps([dict(row) for row in observations], allow_nan=False))
+    result = _client().rpc("append_price_observations", {"p_observations": payload}).execute().data
+    if not isinstance(result, dict):
+        raise RuntimeError("Price observation archive returned no receipt")
+    ids = result.get("observation_ids")
+    inserted, existing = result.get("inserted_count"), result.get("existing_count")
+    if (
+        not isinstance(ids, list) or len(ids) != len(payload)
+        or any(type(value) is not int or value <= 0 for value in ids)
+        or type(inserted) is not int or type(existing) is not int
+        or inserted < 0 or existing < 0 or inserted + existing != len(payload)
+        or inserted > len(set(ids))
+    ):
+        raise RuntimeError("Price observation archive returned an invalid receipt")
+    return cast(dict[str, Any], result)
+
+
+def archive_fpi_capture(capture: FpiCapture) -> dict[str, Any]:
+    """Archive one validated private FPI response and verify its database receipt."""
+    validate_fpi_capture(capture)
+    requested_identity = capture.capture_sha256
+    retrieved_at = datetime.fromisoformat(json.loads(capture.document_json)["retrieved_at"])
+    try:
+        result = _client().rpc(
+            "append_fpi_capture",
+            {
+                "p_capture_sha256": requested_identity,
+                "p_document_json": capture.document_json,
+            },
+        ).execute().data
+    except Exception:
+        raise RuntimeError("FPI capture archive failed") from None
+    if (
+        type(result) is not dict
+        or set(result) != {"capture_sha256", "inserted", "stored_at"}
+        or type(result.get("capture_sha256")) is not str
+        or result["capture_sha256"] != requested_identity
+        or type(result.get("inserted")) is not bool
+        or type(result.get("stored_at")) is not str
+        or re.fullmatch(
+            r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}"
+            r"(?:\.[0-9]{1,6})?(?:\+00:00|Z)",
+            result["stored_at"],
+        ) is None
+    ):
+        raise RuntimeError("FPI capture archive returned an invalid receipt")
+    try:
+        stored_at = datetime.fromisoformat(result["stored_at"].replace("Z", "+00:00"))
+    except ValueError:
+        raise RuntimeError("FPI capture archive returned an invalid receipt") from None
+    if stored_at.tzinfo != UTC or stored_at < retrieved_at:
+        raise RuntimeError("FPI capture archive returned an invalid receipt")
+    return {
+        "capture_sha256": result["capture_sha256"],
+        "inserted": result["inserted"],
+        "stored_at": result["stored_at"],
+    }
+
+
+def _fpi_receipt_timestamp(value: Any, *, minimum: datetime | None = None) -> None:
+    if type(value) is not str or re.fullmatch(
+        r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}"
+        r"(?:\.[0-9]{1,6})?(?:\+00:00|Z)",
+        value,
+    ) is None:
+        raise RuntimeError("FPI archive returned an invalid receipt")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        raise RuntimeError("FPI archive returned an invalid receipt") from None
+    if parsed.tzinfo != UTC or minimum is not None and parsed < minimum:
+        raise RuntimeError("FPI archive returned an invalid receipt")
+
+
+def archive_fpi_artifact(artifact: FpiArtifact) -> dict[str, Any]:
+    """Retain exact implementation bytes without executing the artifact."""
+    validate_fpi_artifact(artifact)
+    document = json.loads(artifact.document_json)
+    try:
+        result = _client().rpc(
+            "append_fpi_artifact",
+            {
+                "p_artifact_sha256": artifact.artifact_sha256,
+                "p_document_json": artifact.document_json,
+            },
+        ).execute().data
+    except Exception:
+        raise RuntimeError("FPI artifact archive failed") from None
+    if (
+        type(result) is not dict
+        or set(result) != {"artifact_sha256", "kind", "inserted", "stored_at"}
+        or type(result.get("artifact_sha256")) is not str
+        or result.get("artifact_sha256") != artifact.artifact_sha256
+        or type(result.get("kind")) is not str
+        or result.get("kind") != document["kind"]
+        or type(result.get("inserted")) is not bool
+    ):
+        raise RuntimeError("FPI artifact archive returned an invalid receipt")
+    try:
+        _fpi_receipt_timestamp(result.get("stored_at"))
+    except RuntimeError:
+        raise RuntimeError("FPI artifact archive returned an invalid receipt") from None
+    return {
+        "artifact_sha256": result["artifact_sha256"],
+        "kind": result["kind"],
+        "inserted": result["inserted"],
+        "stored_at": result["stored_at"],
+    }
+
+
+def archive_fpi_parse_result(
+    parse: FpiParseResult, *, source_evidence_documents: tuple[str, ...]
+) -> dict[str, Any]:
+    """Append one complete parse envelope; dependencies are archived separately."""
+    record = build_fpi_parse_record(
+        parse, source_evidence_documents=source_evidence_documents
+    )
+    document = json.loads(record.document_json)
+    membership_ids = [day["membership_id"] for day in document["days"]]
+    try:
+        result = _client().rpc(
+            "append_fpi_parse_result",
+            {
+                "p_parse_id": record.parse_id,
+                "p_record_sha256": record.record_sha256,
+                "p_document_json": record.document_json,
+            },
+        ).execute().data
+    except Exception:
+        raise RuntimeError("FPI parse archive failed") from None
+    if (
+        type(result) is not dict
+        or set(result)
+        != {
+            "parse_id",
+            "record_sha256",
+            "content_sha256",
+            "membership_ids",
+            "inserted",
+            "stored_at",
+        }
+        or type(result.get("parse_id")) is not str
+        or result.get("parse_id") != record.parse_id
+        or type(result.get("record_sha256")) is not str
+        or result.get("record_sha256") != record.record_sha256
+        or type(result.get("content_sha256")) is not str
+        or result.get("content_sha256") != document["content_sha256"]
+        or type(result.get("membership_ids")) is not list
+        or result.get("membership_ids") != membership_ids
+        or any(type(value) is not str for value in result["membership_ids"])
+        or type(result.get("inserted")) is not bool
+    ):
+        raise RuntimeError("FPI parse archive returned an invalid receipt")
+    try:
+        _fpi_receipt_timestamp(result.get("stored_at"), minimum=parse.recorded_at)
+    except RuntimeError:
+        raise RuntimeError("FPI parse archive returned an invalid receipt") from None
+    return {
+        "parse_id": result["parse_id"],
+        "record_sha256": result["record_sha256"],
+        "content_sha256": result["content_sha256"],
+        "membership_ids": list(result["membership_ids"]),
+        "inserted": result["inserted"],
+        "stored_at": result["stored_at"],
+    }
+
+
+def append_fpi_qualification(command: FpiQualificationCommand) -> dict[str, Any]:
+    """Append an administrative assertion; a receipt does not authorize consumption."""
+    try:
+        if type(command) is not FpiQualificationCommand:
+            raise ValueError
+        submitted = decode_fpi_qualification_command(command.document_json)
+        for name in (
+            "scope", "target", "action", "reason_code", "evidence_sha256",
+            "expected_prior_event_id", "chosen_membership_id", "basis_membership_ids",
+            "document_json", "command_id",
+        ):
+            original, rebuilt = getattr(command, name), getattr(submitted, name)
+            if type(original) is not type(rebuilt):
+                raise ValueError
+            if name == "basis_membership_ids" and (
+                len(original) != len(rebuilt) or any(type(item) is not str for item in original)
+            ):
+                raise ValueError
+            if original != rebuilt:
+                raise ValueError
+    except Exception:
+        raise ValueError("Invalid FPI qualification command") from None
+    try:
+        result = _client().rpc(
+            "append_fpi_qualification",
+            {"p_command_id": submitted.command_id, "p_document_json": submitted.document_json},
+        ).execute().data
+    except Exception:
+        raise RuntimeError("FPI qualification append failed") from None
+    try:
+        if (
+            type(result) is not dict
+            or any(type(key) is not str for key in result)
+            or set(result) != {
+                "version", "command_id", "event_id", "event_ordinal", "recorded_at",
+                "event_document_json", "inserted",
+            }
+            or type(result["version"]) is not str
+            or result["version"] != "fpi-qualification-receipt-v2"
+            or type(result["command_id"]) is not str
+            or result["command_id"] != submitted.command_id
+            or type(result["event_id"]) is not str
+            or type(result["event_ordinal"]) is not int
+            or not 1 <= result["event_ordinal"] <= 2**63 - 1
+            or type(result["recorded_at"]) is not str
+            or type(result["inserted"]) is not bool
+        ):
+            raise ValueError
+        event = decode_fpi_qualification_event(result["event_document_json"])
+        if (
+            event.command != submitted
+            or event.event_id != result["event_id"]
+            or event.event_ordinal != result["event_ordinal"]
+            or event.recorded_at.isoformat() != result["recorded_at"]
+        ):
+            raise ValueError
+    except Exception:
+        raise RuntimeError("FPI qualification append returned an invalid receipt") from None
+    return {
+        "version": "fpi-qualification-receipt-v2",
+        "command_id": submitted.command_id,
+        "event_id": event.event_id,
+        "event_ordinal": event.event_ordinal,
+        "recorded_at": event.recorded_at.isoformat(),
+        "event_document_json": event.document_json,
+        "inserted": result["inserted"],
+    }
+
+
+_FPI_ADMIN_READ_PROJECTION = (
+    "read_id,decision_id,request_sha256,request_document_json,policy_sha256,"
+    "read_sha256,manifest_document_json,read_at,status"
+)
+_FPI_ADMIN_BATCH_SIZE = 64
+
+
+class _FpiAdminDependencyMissing(ValueError):  # noqa: N818
+    pass
+
+
+def _fpi_admin_rebuild(value: Any, expected: type[Any]) -> Any:
+    try:
+        if type(value) is not expected:
+            raise ValueError
+        rebuilt = expected(value.document_json)
+        for item in fields(rebuilt):
+            original = getattr(value, item.name)
+            if type(original) is not str or original != getattr(rebuilt, item.name):
+                raise ValueError
+        return rebuilt
+    except (ValueError, TypeError, AttributeError):
+        raise ValueError("READ_INTEGRITY_ERROR") from None
+
+
+def append_fpi_admin_read_policy(policy: FpiAdminReadPolicy) -> dict[str, Any]:
+    """Retain administrative intent and bind its receipt; confer no approval."""
+    submitted = _fpi_admin_rebuild(policy, FpiAdminReadPolicy)
+    try:
+        result = _client().rpc("append_fpi_admin_read_policy", {
+            "p_policy_sha256": submitted.policy_sha256,
+            "p_document_json": submitted.document_json,
+        }).execute().data
+        return validate_fpi_admin_policy_receipt(result, submitted)
+    except (CancelledError, MemoryError):
+        raise
+    except Exception:
+        raise RuntimeError("READ_INTEGRITY_ERROR") from None
+
+
+def capture_fpi_admin_read(request: FpiAdminReadRequest) -> dict[str, Any]:
+    """Request one saved database snapshot and verify only its detached receipt."""
+    submitted = _fpi_admin_rebuild(request, FpiAdminReadRequest)
+    try:
+        result = _client().rpc("capture_fpi_admin_read", {
+            "p_request_sha256": submitted.request_sha256,
+            "p_document_json": submitted.document_json,
+        }).execute().data
+        return validate_fpi_admin_read_receipt(result, submitted)
+    except (CancelledError, MemoryError):
+        raise
+    except Exception:
+        raise RuntimeError("READ_INTEGRITY_ERROR") from None
+
+
+def _fpi_admin_rows(value: Any, projection: str, maximum: int) -> tuple[dict[str, Any], ...]:
+    if type(value) is not list or len(value) > maximum:
+        raise ValueError
+    keys = set(projection.split(","))
+    copies = []
+    for row in value:
+        if (
+            type(row) is not dict or set(row) != keys
+            or any(type(key) is not str for key in row)
+            or any(type(item) is not str for item in row.values())
+        ):
+            raise ValueError
+        copies.append(row.copy())
+    return tuple(copies)
+
+
+def _fpi_admin_original_batches(
+    client: Client, *, table: str, projection: str, identity: str,
+    expected_rows: list[dict[str, Any]], document_limit: int,
+    byte_budget: list[int], total_limit: int, kind: str | None = None,
+) -> tuple[dict[str, Any], ...]:
+    expected = {row[identity]: row for row in expected_rows}
+    ids = sorted(expected)
+    originals: list[dict[str, Any]] = []
+    document_key = "event_document_json" if identity == "event_id" else "document_json"
+    for offset in range(0, len(ids), _FPI_ADMIN_BATCH_SIZE):
+        batch = ids[offset:offset + _FPI_ADMIN_BATCH_SIZE]
+        query = client.table(table).select(projection).in_(identity, batch)
+        if kind is not None:
+            query = query.eq("kind", kind)
+        # One sentinel row exposes over-returning transports. Missing pages never retry.
+        rows = _fpi_admin_rows(query.limit(len(batch) + 1).execute().data,
+                               projection, len(batch) + 1)
+        returned = [row[identity] for row in rows]
+        if len(set(returned)) != len(returned) or set(returned) - set(batch):
+            raise ValueError
+        if set(returned) != set(batch):
+            raise _FpiAdminDependencyMissing
+        for row in rows:
+            text = row[document_key]
+            if (
+                kind is not None and row["kind"] != kind
+                or len(text) > document_limit or not text.isascii()
+                or len(text) != expected[row[identity]]["document_size"]
+            ):
+                raise ValueError
+            byte_budget[0] += len(text)
+            if byte_budget[0] > total_limit:
+                raise ValueError
+        originals.extend(rows)
+    return tuple(originals)
+
+
+def load_fpi_admin_read(read_id: str) -> FpiAdminReadManifest:
+    """Prove only immutable originals named by a saved, permanently ineligible read."""
+    if type(read_id) is not str or re.fullmatch(r"[0-9a-f]{64}", read_id) is None:
+        raise ValueError("READ_INTEGRITY_ERROR")
+    try:
+        client = _client()
+        rows = _fpi_admin_rows(
+            client.table("fpi_admin_reads").select(_FPI_ADMIN_READ_PROJECTION)
+            .eq("read_id", read_id).limit(2).execute().data,
+            _FPI_ADMIN_READ_PROJECTION, 2,
+        )
+        if not rows:
+            raise _FpiAdminDependencyMissing
+        if len(rows) != 1:
+            raise ValueError
+        row = rows[0]
+        manifest = FpiAdminReadManifest(row["manifest_document_json"])
+        request = FpiAdminReadRequest(row["request_document_json"])
+        document = json.loads(manifest.document_json)
+        if (
+            row["read_id"] != read_id or manifest.read_id != read_id
+            or any(row[key] != getattr(manifest, key) for key in (
+                "decision_id", "request_sha256", "read_sha256", "status",
+            ))
+            or request.read_id != read_id
+            or row["policy_sha256"] != document["policy_sha256"]
+            or json.loads(request.document_json) != document["request"]
+        ):
+            raise ValueError
+        _fpi_receipt_timestamp(row["read_at"])
+        if datetime.fromisoformat(row["read_at"]) != datetime.fromisoformat(manifest.read_at):
+            raise ValueError
+        captures: tuple[dict[str, Any], ...] = ()
+        parses: tuple[dict[str, Any], ...] = ()
+        artifacts: tuple[dict[str, Any], ...] = ()
+        events: tuple[dict[str, Any], ...] = ()
+        if manifest.status == "COMPLETE":
+            data = document["data"]
+            budget = [0]
+            captures = _fpi_admin_original_batches(
+                client, table="fpi_captures",
+                projection="capture_sha256,document_json,stored_at", identity="capture_sha256",
+                expected_rows=data["references"]["captures"], document_limit=7_000_000,
+                byte_budget=budget, total_limit=64_000_000,
+            )
+            parses = _fpi_admin_original_batches(
+                client, table="fpi_parse_results",
+                projection="parse_id,record_sha256,document_json,stored_at", identity="parse_id",
+                expected_rows=data["references"]["parses"], document_limit=4_000_000,
+                byte_budget=budget, total_limit=64_000_000,
+            )
+            for kind in ("PARSER", "SELECTOR"):
+                artifacts += _fpi_admin_original_batches(
+                    client, table="fpi_implementation_artifacts",
+                    projection="kind,artifact_sha256,document_json,stored_at",
+                    identity="artifact_sha256",
+                    expected_rows=[item for item in data["artifacts"] if item["kind"] == kind],
+                    document_limit=7_000_000, byte_budget=budget, total_limit=64_000_000,
+                    kind=kind,
+                )
+            expected_events = []
+            for event in data["qualification"]["events"]:
+                text = json.dumps(event, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+                expected_events.append({
+                    "event_id": hashlib.sha256(text.encode("ascii")).hexdigest(),
+                    "document_size": len(text),
+                })
+            events = _fpi_admin_original_batches(
+                client, table="fpi_qualification_events",
+                projection="event_id,event_document_json", identity="event_id",
+                expected_rows=expected_events, document_limit=400_000,
+                byte_budget=[0], total_limit=16_000_000,
+            )
+        return verify_fpi_admin_read_originals(
+            manifest, capture_rows=captures, parse_rows=parses,
+            artifact_rows=artifacts, event_rows=events,
+        )
+    except (CancelledError, MemoryError):
+        raise
+    except _FpiAdminDependencyMissing:
+        raise RuntimeError("READ_DEPENDENCY_MISSING") from None
+    except Exception:
+        raise RuntimeError("READ_INTEGRITY_ERROR") from None
+
+
+def archive_quote_acquisition_event(event: Mapping[str, Any]) -> dict[str, Any]:
+    """Append an attempt event with exact identity and an acknowledged receipt."""
+    validate_quote_acquisition_event(event)
+    unsigned = canonical_json({key: value for key, value in event.items() if key != "event_sha256"})
+    fingerprint = event["event_sha256"]
+    attempt_id, sequence = event["attempt_id"], event["sequence"]
+    try:
+        result = _client().rpc("append_quote_acquisition_event", {
+            "p_event_sha256": fingerprint, "p_unsigned_json": unsigned,
+        }).execute().data
+    except Exception:
+        raise RuntimeError("Quote attempt archive failed") from None
+    if (
+        not isinstance(result, dict)
+        or set(result) != {"event_sha256", "attempt_id", "sequence", "inserted"}
+        or result["event_sha256"] != fingerprint or result["attempt_id"] != attempt_id
+        or type(result["sequence"]) is not int or result["sequence"] != sequence
+        or type(result["inserted"]) is not bool
+    ):
+        raise RuntimeError("Quote attempt archive returned an invalid receipt")
+    return cast(dict[str, Any], result)
+
+
+def archive_quote_capture(page: Mapping[str, Any]) -> dict[str, Any]:
+    """Append one validated sanitized response; retries preserve the capture identity."""
+    validate_quote_page(page)
+    fingerprint = page["capture_sha256"]
+    unsigned = canonical_json({key: value for key, value in page.items()
+                               if key != "capture_sha256"})
+    if len(unsigned.encode("utf-8")) > 32 * 1024 * 1024:
+        raise ValueError("Serialized quote capture exceeds 32 MiB")
+    result = _client().rpc("append_quote_capture", {
+        "p_capture_sha256": fingerprint, "p_unsigned_json": unsigned,
+    }).execute().data
+    if (
+        not isinstance(result, dict) or set(result) != {"capture_sha256", "inserted"}
+        or result["capture_sha256"] != fingerprint or type(result["inserted"]) is not bool
+    ):
+        raise RuntimeError("Quote capture archive returned an invalid receipt")
+    return cast(dict[str, Any], result)
+
+
+def archive_quote_snapshot(
+    pages: Sequence[Mapping[str, Any]], *, as_of: datetime,
+    implementation_sha256: str, client_version: str,
+) -> dict[str, Any]:
+    """Append derived evidence referencing already archived pages, without qualification."""
+    if not 1 <= len(pages) <= 10_000:
+        raise ValueError("Quote snapshot requires between 1 and 10000 captures")
+    if (not isinstance(implementation_sha256, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", implementation_sha256)):
+        raise ValueError("Quote implementation fingerprint must be lowercase SHA-256")
+    if (not isinstance(client_version, str)
+            or not re.fullmatch(r"[a-zA-Z0-9._-]{1,128}", client_version)):
+        raise ValueError("Invalid quote client version")
+    reference = build_quote_reference(pages, as_of=as_of)
+    identity_fields = ("pair", "instrument", "window_start_ns", "window_end_ns")
+    if any(page[field] != pages[0][field] for page in pages for field in identity_fields):
+        raise ValueError("Quote snapshot captures must have one pair, instrument and window")
+    unsigned = canonical_json({
+        "version": "quote-snapshot-v1", "implementation_sha256": implementation_sha256,
+        "client_version": client_version, "reference": reference,
+    })
+    encoded = unsigned.encode("utf-8")
+    if len(encoded) > 1024 * 1024:
+        raise ValueError("Serialized quote snapshot exceeds 1 MiB")
+    fingerprint = hashlib.sha256(encoded).hexdigest()
+    result = _client().rpc("append_quote_snapshot", {
+        "p_snapshot_sha256": fingerprint, "p_unsigned_json": unsigned,
+    }).execute().data
+    if (
+        not isinstance(result, dict)
+        or set(result) != {"snapshot_sha256", "inserted", "capture_count"}
+        or result["snapshot_sha256"] != fingerprint or type(result["inserted"]) is not bool
+        or type(result["capture_count"]) is not int or result["capture_count"] != len(pages)
+    ):
+        raise RuntimeError("Quote snapshot archive returned an invalid receipt")
+    return cast(dict[str, Any], result)
 
 
 def fetch_universe_registry() -> list[dict[str, Any]]:
@@ -101,6 +640,7 @@ def write_signal_row(row: SignalRow) -> None:
         "boj_policy_rate": row.boj_policy_rate,
         "india_vix": row.india_vix,
         "inr_forward_premium": row.inr_forward_premium,
+        "data_quality_notes": row.data_quality_notes,
     }
     _client().table("signals").upsert(payload, on_conflict="pair,date").execute()
 
@@ -114,41 +654,92 @@ def compute_write_hash(inputs: dict[str, Any]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _publication_request(
+    call: RegimeCall,
+    signal_row: SignalRow,
+    *,
+    rationale: Mapping[str, Any] | None = None,
+    correlation_id: str | None = None,
+    supersedes_call_id: int | None = None,
+) -> dict[str, Any]:
+    """Validate and detach a complete, finite publication before any I/O."""
+    if call.pair not in {"EURUSD", "USDJPY", "USDINR"}:
+        raise ValueError("Publication pair is outside the locked universe")
+    if (call.pair, call.date) != (signal_row.pair, signal_row.date):
+        raise ValueError("Publication call and signal identity must match")
+    if call.data_source not in {"live", "backtest"}:
+        raise ValueError("Publication source must be live or backtest")
+    if any(
+        not isinstance(v, str) or not v.strip() for v in (call.model_version, call.strategy_version)
+    ):
+        raise ValueError("Publication requires explicit model and strategy versions")
+    if call.predicted_direction not in {"BULLISH", "BEARISH", "NEUTRAL"}:
+        raise ValueError("Publication requires an explicit published direction")
+    if supersedes_call_id is not None and (
+        isinstance(supersedes_call_id, bool)
+        or not isinstance(supersedes_call_id, int)
+        or supersedes_call_id <= 0
+    ):
+        raise ValueError("Publication predecessor must be a positive integer call ID")
+    as_of = call.date.isoformat()
+    call_payload = asdict(call)
+    call_payload["date"] = as_of
+    if correlation_id is not None:
+        call_payload["correlation_id"] = correlation_id
+    signal_payload = asdict(signal_row)
+    signal_payload["date"] = as_of
+    rationale_payload = (
+        dict(rationale)
+        if rationale is not None
+        else {"confidence_explanation": "Rationale not supplied; signal snapshot retained."}
+    )
+    if rationale_payload.get("call_id") is not None:
+        raise ValueError("Publication rationale cannot claim an existing call ID")
+    rationale_payload.pop("call_id", None)
+    for key, expected in (("pair", call.pair), ("date", as_of)):
+        if key in rationale_payload and rationale_payload[key] != expected:
+            raise ValueError("Publication rationale identity must match")
+        rationale_payload[key] = expected
+    request = {
+        "p_call": call_payload,
+        "p_signal": signal_payload,
+        "p_rationale": rationale_payload,
+        "p_supersedes_call_id": supersedes_call_id,
+    }
+    # Round-tripping also detaches mutable dataclass lists and refuses NaN/infinity.
+    return cast(dict[str, Any], json.loads(json.dumps(request, allow_nan=False)))
+
+
+def publish_regime_call(
+    call: RegimeCall,
+    signal_row: SignalRow,
+    *,
+    rationale: Mapping[str, Any] | None = None,
+    correlation_id: str | None = None,
+    supersedes_call_id: int | None = None,
+) -> int:
+    """Atomically append call, immutable signal evidence and rationale via one RPC."""
+    request = _publication_request(
+        call,
+        signal_row,
+        rationale=rationale,
+        correlation_id=correlation_id,
+        supersedes_call_id=supersedes_call_id,
+    )
+    result = _client().rpc("append_regime_publication", request).execute().data
+    if isinstance(result, bool) or not isinstance(result, int) or result <= 0:
+        raise RuntimeError("Atomic publication returned no durable integer call ID")
+    return result
+
+
 def write_regime_call(
     call: RegimeCall,
     *,
     correlation_id: str | None = None,
     write_hash: str | None = None,
 ) -> int | str | None:
-    """Insert a regime call row.  Returns the existing or new row id.
-
-    Uses INSERT with conflict detection rather than upsert so that the
-    immutable trigger (which blocks UPDATE) never fires on re-runs.
-    """
-    payload: dict[str, Any] = asdict(call)
-    payload["date"] = _date_iso(call.date)
-    if correlation_id is not None:
-        payload["correlation_id"] = correlation_id
-    if write_hash is not None:
-        payload["write_hash"] = write_hash
-    client = _client()
-
-    # Check for existing row first — avoids immutable-trigger UPDATE error
-    existing = (
-        client.table("regime_calls")
-        .select("id")
-        .eq("pair", call.pair)
-        .eq("date", payload["date"])
-        .maybe_single()
-        .execute()
-    )
-    if existing and existing.data:
-        row = cast(dict[str, Any], existing.data)
-        return row.get("id")
-
-    res = client.table("regime_calls").insert(payload).execute()
-    rows = cast(list[dict[str, Any]], res.data or [])
-    return rows[0].get("id") if rows else None
+    """Reject unbound publication; callers must supply immutable signal evidence."""
+    raise RuntimeError("Use publish_regime_call with signal evidence and explicit provenance")
 
 
 def _desk_open_card_payload(card: DeskOpenCardRow) -> dict[str, Any]:
@@ -171,27 +762,26 @@ def write_desk_open_cards_bulk(cards: Sequence[DeskOpenCardRow]) -> None:
 
 
 def write_call_rationale(rows: list[dict[str, Any]]) -> None:
-    """Bulk upsert call_rationale rows on call_id. Graceful if table missing."""
+    """Append retrospective rationale without replacing any existing explanation."""
     if not rows:
         return
-    try:
-        _client().table("call_rationale").upsert(rows, on_conflict="call_id").execute()
-    except APIError as exc:
-        msg = str(getattr(exc, "message", "")) or str(exc)
-        if 'relation "call_rationale" does not exist' in msg:
-            logger.warning("call_rationale write skipped (table does not exist)")
-            return
-        raise
+    client = _client()
+    for row in rows:
+        call_id = row.get("call_id")
+        if isinstance(call_id, bool) or not isinstance(call_id, int) or call_id <= 0:
+            raise ValueError("Retrospective rationale requires a durable integer call ID")
+        existing = client.table("call_rationale").select("*").eq("call_id", call_id).execute()
+        prior = cast(list[dict[str, Any]], existing.data or [])
+        if prior:
+            if any(prior[0].get(key) != value for key, value in row.items()):
+                raise ValueError("Existing rationale is immutable; publish an explicit new version")
+            continue
+        # A concurrent insertion may raise a uniqueness conflict; it cannot overwrite evidence.
+        client.table("call_rationale").insert(dict(row)).execute()
 
 
 def get_desk_open_cards_for_date(date_str: str) -> list[dict[str, Any]]:
-    res = (
-        _client()
-        .table("desk_open_cards")
-        .select("*")
-        .eq("date", str(date_str)[:10])
-        .execute()
-    )
+    res = _client().table("desk_open_cards").select("*").eq("date", str(date_str)[:10]).execute()
     return cast(list[dict[str, Any]], res.data or [])
 
 
@@ -294,217 +884,37 @@ def update_desk_open_card_telemetry_audit(
     )
 
 
-# Module-level cache: True = modern schema (call_date exists),
-# False = legacy schema (call_date missing), None = not yet probed.
-_has_call_date: bool | None = None
-
-
-_VALIDATION_IGNORED_DIFF_KEYS = {"id", "created_at", "is_superseded"}
-
-
-def _validation_payload_matches_existing(
-    payload: dict[str, Any], existing: dict[str, Any]
-) -> bool:
-    """Return True when every substantive field in *payload* matches *existing*."""
-    for key, value in payload.items():
-        if key in _VALIDATION_IGNORED_DIFF_KEYS:
-            continue
-        if existing.get(key) != value:
-            return False
-    return True
-
-
-def _insert_validation_log(payload: dict[str, Any]) -> None:
-    """Insert a validation_log row, stripping unknown columns on legacy schemas."""
-    client = _client()
-    insert_payload = {k: v for k, v in payload.items() if k != "id"}
-    for _attempt in range(10):
-        try:
-            client.table("validation_log").insert(insert_payload).execute()
-            return
-        except APIError as exc:
-            msg = str(getattr(exc, "message", "")) or str(exc)
-            if "Could not find the '" in msg and "' column of 'validation_log'" in msg:
-                col_match = msg.split("Could not find the '")[1].split("'")[0]
-                insert_payload.pop(col_match, None)
-                continue
-            raise
-
-
-def get_validation_log_entry(call_date: date | str, pair: str) -> dict[str, Any] | None:
-    """Fetch the current (non-superseded) validation_log row for a call + pair.
-
-    Falls back to ``date`` when ``call_date`` column is not yet migrated.
-    Probes the schema once and caches the result to avoid repeated failed
-    queries.
-    """
-    global _has_call_date
-    iso = _date_iso(call_date)
-    client = _client()
-
-    if _has_call_date is not False:
-        try:
-            res = (
-                client.table("validation_log")
-                .select("*")
-                .eq("call_date", iso)
-                .eq("pair", pair)
-                .eq("is_superseded", False)
-                .order("created_at", desc=True)
-                .limit(1)
-                .maybe_single()
-                .execute()
-            )
-            if res is not None:
-                raw = res.data
-                if isinstance(raw, dict):
-                    _has_call_date = True
-                    return cast(dict[str, Any], raw)
-        except APIError as exc:
-            msg = str(getattr(exc, "message", "")) or str(exc)
-            if "column validation_log.call_date does not exist" in msg:
-                _has_call_date = False
-            elif "column validation_log.is_superseded does not exist" in msg:
-                # Schema has call_date but not yet is_superseded
-                try:
-                    res = (
-                        client.table("validation_log")
-                        .select("*")
-                        .eq("call_date", iso)
-                        .eq("pair", pair)
-                        .maybe_single()
-                        .execute()
-                    )
-                    if res is not None:
-                        raw = res.data
-                        if isinstance(raw, dict):
-                            _has_call_date = True
-                            return cast(dict[str, Any], raw)
-                except APIError:
-                    pass
-            else:
-                raise
-
-    # Legacy schema fallback
-    if _has_call_date is not True:
-        try:
-            res = (
-                client.table("validation_log")
-                .select("*")
-                .eq("date", iso)
-                .eq("pair", pair)
-                .eq("is_superseded", False)
-                .order("created_at", desc=True)
-                .limit(1)
-                .maybe_single()
-                .execute()
-            )
-            if res is not None:
-                raw = res.data
-                if isinstance(raw, dict):
-                    return cast(dict[str, Any], raw)
-        except APIError as exc:
-            msg = str(getattr(exc, "message", "")) or str(exc)
-            if "column validation_log.is_superseded does not exist" in msg:
-                res = (
-                    client.table("validation_log")
-                    .select("*")
-                    .eq("date", iso)
-                    .eq("pair", pair)
-                    .maybe_single()
-                    .execute()
-                )
-                if res is not None:
-                    raw = res.data
-                    if isinstance(raw, dict):
-                        return cast(dict[str, Any], raw)
-            else:
-                raise
-    return None
+def get_validation_log_for_call(call_id: int | str) -> dict[str, Any] | None:
+    """Read one current canonical evaluation by immutable published identity."""
+    if isinstance(call_id, bool) or not isinstance(call_id, (int, str)) or call_id == "":
+        raise ValueError("A persisted call_id is required")
+    res = (
+        _client()
+        .table("validation_log")
+        .select("*")
+        .eq("call_id", call_id)
+        .eq("evaluation_version", EVALUATION_VERSION)
+        .eq("is_superseded", False)
+        .maybe_single()
+        .execute()
+    )
+    return cast(dict[str, Any], res.data) if res and isinstance(res.data, dict) else None
 
 
 def write_validation_row(row: Mapping[str, Any]) -> None:
-    """Insert a validation_log row, versioning if materially different.
+    """Atomically append or complete an evaluation through the database contract.
 
-    The validation_log is an append-only ledger. If a current
-    (non-superseded) row already exists for the same call and the new
-    payload is materially different, the existing row is marked
-    ``is_superseded = true`` and the new row is inserted. If the payload
-    is identical, the write is skipped.
+    PostgreSQL serializes writes for a published call, preserves completed
+    horizons and validates identity. No direct insert or schema fallback is safe.
     """
-    payload = cast(dict[str, Any], dict(row))
-    client = _client()
-
+    payload = dict(row)
     call_id = payload.get("call_id")
-    pair = payload.get("pair")
-    date_val = payload.get("call_date") or payload.get("date")
-
-    # Ensure new rows start as current versions.
-    payload["is_superseded"] = False
-
-    # ── Find current (non-superseded) row ─────────────────────────────
-    existing: dict[str, Any] | None = None
-    if call_id is not None:
-        try:
-            res = (
-                client.table("validation_log")
-                .select("*")
-                .eq("call_id", call_id)
-                .eq("is_superseded", False)
-                .order("created_at", desc=True)
-                .limit(1)
-                .maybe_single()
-                .execute()
-            )
-            if res is not None and res.data is not None:
-                raw = res.data
-                if isinstance(raw, dict):
-                    existing = cast(dict[str, Any], raw)
-        except APIError as exc:
-            msg = str(getattr(exc, "message", "")) or str(exc)
-            if "column validation_log.is_superseded does not exist" in msg:
-                res = (
-                    client.table("validation_log")
-                    .select("*")
-                    .eq("call_id", call_id)
-                    .maybe_single()
-                    .execute()
-                )
-                if res is not None and res.data is not None:
-                    raw = res.data
-                    if isinstance(raw, dict):
-                        existing = cast(dict[str, Any], raw)
-            elif "column validation_log.call_id does not exist" not in msg:
-                raise
-
-    if existing is None and pair is not None and date_val is not None:
-        existing = get_validation_log_entry(date_val, pair)
-
-    if existing is not None:
-        # If the existing row already has T+5 data and the payload would not
-        # add T+20 data, skip the write. This avoids creating a duplicate
-        # partial version when only metadata/non-result fields differ.
-        if existing.get("log_return_t5_bps") is not None:
-            existing_has_t20 = existing.get("log_return_t20_bps") is not None
-            payload_has_t20 = payload.get("log_return_t20_bps") is not None
-            if existing_has_t20 or not payload_has_t20:
-                return
-
-        # Idempotency: if every substantive payload field already matches,
-        # do not insert another identical row.
-        if _validation_payload_matches_existing(payload, existing):
-            return
-
-        # Materially different: mark the existing row superseded, then insert
-        # the new current version. The trigger allows updates that only touch
-        # is_superseded.
-        existing_id = existing.get("id")
-        if existing_id is not None:
-            client.table("validation_log").update({"is_superseded": True}).eq(
-                "id", existing_id
-            ).execute()
-
-    _insert_validation_log(payload)
+    if call_id is None or isinstance(call_id, bool) or not str(call_id).strip():
+        raise ValueError("validation requires a persisted call_id")
+    version = payload.setdefault("evaluation_version", EVALUATION_VERSION)
+    if version != EVALUATION_VERSION:
+        raise ValueError("evaluation_version does not match the canonical calculator")
+    _client().rpc("append_validation_evaluation", {"p_payload": payload}).execute()
 
 
 def write_brief(
@@ -558,7 +968,9 @@ def write_brief_log(
         for pair, regime in pair_regimes.items():
             col = f"{pair.lower()}_regime"
             if col in {
-                "eurusd_regime", "usdjpy_regime", "usdinr_regime",
+                "eurusd_regime",
+                "usdjpy_regime",
+                "usdinr_regime",
             }:
                 payload[col] = regime
     _client().table("brief_log").upsert(payload, on_conflict="date").execute()
@@ -600,8 +1012,7 @@ def write_macro_events(events: list[dict[str, Any]]) -> None:
 
 def write_ai_request(date_str: str, purpose: str, model: str) -> None:
     _client().rpc(
-        "increment_ai_usage",
-        {"p_date": date_str, "p_purpose": purpose, "p_model": model}
+        "increment_ai_usage", {"p_date": date_str, "p_purpose": purpose, "p_model": model}
     ).execute()
 
 
@@ -613,42 +1024,149 @@ def get_ai_request_count_today(date_str: str) -> int:
     return int(sum(int(r.get("request_count", 0)) for r in rows))
 
 
-def get_latest_regime_call(pair: str) -> dict[str, Any] | None:
-    res = (
+_CURRENT_PUBLICATION_PAIRS = frozenset({"EURUSD", "USDJPY", "USDINR"})
+
+
+def _publication_read_cutoff(value: date | str) -> str:
+    if isinstance(value, datetime):
+        raise ValueError("Publication cutoff must be a calendar date, not a timestamp")
+    try:
+        parsed = value if isinstance(value, date) else date.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Publication cutoff must be an ISO calendar date") from exc
+    return parsed.isoformat()
+
+
+def _publication_read_instant(value: datetime | str) -> str:
+    try:
+        parsed = (
+            datetime.fromisoformat(value.replace("Z", "+00:00"))
+            if isinstance(value, str)
+            else value
+        )
+    except ValueError as exc:
+        raise ValueError("Publication availability cutoff must be an ISO timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("Publication availability cutoff must include an explicit timezone")
+    return parsed.astimezone(UTC).isoformat()
+
+
+def get_current_live_regime_history(
+    pair: str,
+    *,
+    as_of: date | str,
+    session_limit: int = 5000,
+    strictly_before: bool = False,
+    published_before: datetime | str | None = None,
+) -> list[dict[str, Any]]:
+    """Return latest live-v2 publication per session, newest session first.
+
+    Raw publications are paged before session deduplication. This matters when
+    one session has enough appended versions to fill a Supabase response page.
+    """
+    if pair not in _CURRENT_PUBLICATION_PAIRS:
+        raise ValueError("Current publication pair is outside the locked universe")
+    if (
+        isinstance(session_limit, bool)
+        or not isinstance(session_limit, int)
+        or session_limit < 0
+    ):
+        raise ValueError("session_limit must be a nonnegative integer")
+    if session_limit == 0:
+        return []
+
+    cutoff = _publication_read_cutoff(as_of)
+    query = (
         _client()
         .table("regime_calls")
         .select("*")
         .eq("pair", pair)
-        .order("date", desc=True)
-        .limit(1)
+        .eq("data_source", "live")
+        .eq("strategy_version", "v2")
+    )
+    query = query.lt("date", cutoff) if strictly_before else query.lte("date", cutoff)
+    if published_before is not None:
+        # PostgreSQL comparisons exclude NULL created_at values. Decision-state
+        # inference therefore uses only publications known before this instant.
+        query = query.lt("created_at", _publication_read_instant(published_before))
+    query = query.order("date", desc=True).order("id", desc=True)
+
+    selected: list[dict[str, Any]] = []
+    seen_sessions: set[str] = set()
+    offset = 0
+    page_size = 1000
+    while len(selected) < session_limit:
+        res = query.range(offset, offset + page_size - 1).execute()
+        if res is None or not isinstance(res.data, list):
+            raise RuntimeError("Current publication history returned an invalid response")
+        page = cast(list[dict[str, Any]], res.data)
+        for row in page:
+            session = str(row.get("date") or "")[:10]
+            if not session or session in seen_sessions:
+                continue
+            seen_sessions.add(session)
+            selected.append(row)
+            if len(selected) == session_limit:
+                break
+        if len(page) < page_size:
+            break
+        offset += page_size
+    return selected
+
+
+def get_current_live_regime_call(
+    pair: str,
+    *,
+    as_of: date | str,
+    strictly_before: bool = False,
+    published_before: datetime | str | None = None,
+) -> dict[str, Any] | None:
+    """Return the deterministic current live-v2 call at an explicit cutoff."""
+    rows = get_current_live_regime_history(
+        pair,
+        as_of=as_of,
+        session_limit=1,
+        strictly_before=strictly_before,
+        published_before=published_before,
+    )
+    return rows[0] if rows else None
+
+
+def get_publication_signal_for_call(call_id: int) -> dict[str, Any] | None:
+    """Read the immutable signal snapshot for exactly one selected call ID."""
+    if isinstance(call_id, bool) or not isinstance(call_id, int) or call_id <= 0:
+        raise ValueError("Publication evidence requires a positive integer call ID")
+    res = (
+        _client()
+        .table("publication_evidence")
+        .select("signal_payload")
+        .eq("call_id", call_id)
+        .maybe_single()
         .execute()
     )
-    data = cast(list[dict[str, Any]], res.data or [])
-    return data[0] if data else None
+    data = res.data if res is not None else None
+    if data is None:
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("signal_payload"), dict):
+        raise RuntimeError("Publication evidence contains no valid signal snapshot")
+    return cast(dict[str, Any], data["signal_payload"])
+
+
+def get_latest_regime_call(pair: str) -> dict[str, Any] | None:
+    """Compatibility wrapper for descriptive reads, cut off at today's UTC date."""
+    return get_current_live_regime_call(pair, as_of=datetime.now(UTC).date())
 
 
 def get_brief_for_date(pair: str, date_str: str) -> str | None:
     res = (
-        _client()
-        .table("brief")
-        .select("analysis")
-        .eq("pair", pair)
-        .eq("date", date_str)
-        .execute()
+        _client().table("brief").select("analysis").eq("pair", pair).eq("date", date_str).execute()
     )
     data = cast(list[dict[str, Any]], res.data or [])
     return str(data[0]["analysis"]) if data else None
 
 
 def get_signal_for_pair_date(pair: str, date_str: str) -> dict[str, Any] | None:
-    res = (
-        _client()
-        .table("signals")
-        .select("*")
-        .eq("pair", pair)
-        .eq("date", date_str)
-        .execute()
-    )
+    res = _client().table("signals").select("*").eq("pair", pair).eq("date", date_str).execute()
     data = cast(list[dict[str, Any]], res.data or [])
     return data[0] if data else None
 
@@ -670,41 +1188,11 @@ def get_historical_signals(pair: str, limit: int = 1260) -> list[dict[str, Any]]
 
 
 def delete_pipeline_data_for_date(date_str: str, *, force: bool = False) -> None:
-    """Remove pipeline-owned rows for one calendar date (SRE rollback; service role).
-
-    Args:
-        date_str: Calendar date to purge (YYYY-MM-DD).
-        force: If False, raises an exception because the ledger is immutable.
-            If True, performs the deletion after logging to audit_log.
-    """
-    if not force:
-        raise RuntimeError(
-            "Immutable ledger: historical data deletion requires force=True. "
-            "Pass force=True only in genuine emergency situations."
-        )
-
-    d = str(date_str)[:10]
-    client = _client()
-    tables_eq_date: tuple[tuple[str, str], ...] = (
-        ("signals", "date"),
-        ("regime_calls", "date"),
-        ("brief_log", "date"),
-        ("historical_prices", "date"),
-        ("strategy_ledger", "date"),
-        ("desk_open_cards", "date"),
+    """Retired: a rollback cannot delete original research observations."""
+    raise RuntimeError(
+        "Immutable originals cannot be purged, including with force=True. "
+        "Publish an explicit versioned correction and retain the original ledger."
     )
-
-    # Log to audit_log before deleting
-    for table, col in tables_eq_date:
-        rows = client.table(table).select("*").eq(col, d).execute()
-        for row in cast(list[dict[str, Any]], rows.data or []):
-            _log_audit(operation="DELETE", table_name=table, old_value=row)
-        client.table(table).delete().eq(col, d).execute()
-
-    analog_rows = client.table("research_analogs").select("*").eq("as_of_date", d).execute()
-    for row in cast(list[dict[str, Any]], analog_rows.data or []):
-        _log_audit(operation="DELETE", table_name="research_analogs", old_value=row)
-    client.table("research_analogs").delete().eq("as_of_date", d).execute()
 
 
 def write_pipeline_error(
@@ -754,17 +1242,31 @@ def _log_audit(
         pass
 
 
-def get_historical_regime_calls(pair: str, limit: int = 5000) -> list[dict[str, Any]]:
-    res = (
+def get_historical_regime_calls(pair: str, limit: int | None = 5000) -> list[dict[str, Any]]:
+    """Read the newest requested calls, oldest first; None retrieves all pages."""
+    if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int) or limit < 0):
+        raise ValueError("limit must be a nonnegative integer or None")
+    if limit == 0:
+        return []
+    query = (
         _client()
         .table("regime_calls")
-        .select("id,date,regime,signal_composite,rate_signal,confidence")
+        .select(
+            "id,date,pair,regime,signal_composite,rate_signal,predicted_direction,"
+            "confidence,data_source,strategy_version,model_version"
+        )
         .eq("pair", pair)
         .order("date", desc=True)
-        .limit(limit)
-        .execute()
+        .order("id", desc=True)
     )
-    rows = cast(list[dict[str, Any]], res.data or [])
+    rows: list[dict[str, Any]] = []
+    while limit is None or len(rows) < limit:
+        size = 1000 if limit is None else min(1000, limit - len(rows))
+        res = query.range(len(rows), len(rows) + size - 1).execute()
+        page = cast(list[dict[str, Any]], res.data or [])
+        rows.extend(page)
+        if len(page) < size:
+            break
     return list(reversed(rows))
 
 
@@ -812,12 +1314,7 @@ def write_historical_macro_surprises(rows: list[Mapping[str, Any]]) -> None:
 
 
 def fetch_event_aliases() -> list[dict[str, Any]]:
-    res = (
-        _client()
-        .table("event_aliases")
-        .select("canonical_name,alias_name")
-        .execute()
-    )
+    res = _client().table("event_aliases").select("canonical_name,alias_name").execute()
     return cast(list[dict[str, Any]], res.data or [])
 
 
@@ -857,51 +1354,26 @@ def write_historical_prices(
     *,
     source: str | None = None,
 ) -> None:
-    """Upsert historical price rows.  Adds ``source`` and ``fetch_timestamp`` when provided.
+    """Reject legacy canonical-close writes before opening a database client.
 
-    Gracefully handles missing columns (schema not yet migrated) by stripping
-    unknown fields and retrying — identical to the ``validation_log`` strategy.
+    Provider bars belong in the append-only observation archive. Promotion to
+    ``historical_prices`` remains blocked until a source-specific final-close
+    qualification and a migration define that boundary.
     """
     if not rows:
         return
-    from datetime import UTC, datetime
-
-    now = datetime.now(UTC).isoformat()
-    payload_rows: list[dict[str, Any]] = []
-    for r in rows:
-        row = cast(dict[str, Any], dict(r))
-        if source is not None:
-            row["source"] = source
-            row["fetch_timestamp"] = now
-        payload_rows.append(row)
-
-    client = _client()
-    max_retries = 10
-    for _attempt in range(max_retries):
-        try:
-            (
-                client.table("historical_prices")
-                .upsert(payload_rows, on_conflict="pair,date")
-                .execute()
-            )
-            return
-        except APIError as exc:
-            msg = str(getattr(exc, "message", "")) or str(exc)
-            if "Could not find the '" in msg and "' column of 'historical_prices'" in msg:
-                col_match = msg.split("Could not find the '")[1].split("'")[0]
-                for row in payload_rows:
-                    row.pop(col_match, None)
-                continue
-            raise
+    raise RuntimeError(
+        "Direct historical_prices writes are retired. Archive provider observations "
+        "with archive_price_observations; canonical closes require an explicit "
+        "source-qualification policy and database migration."
+    )
 
 
 def write_historical_yields(rows: list[dict[str, Any]]) -> None:
     """Bulk upsert historical_yields rows on date,series_id."""
     if not rows:
         return
-    _client().table("historical_yields").upsert(
-        rows, on_conflict="date,series_id"
-    ).execute()
+    _client().table("historical_yields").upsert(rows, on_conflict="date,series_id").execute()
 
 
 def get_rpc_historical_analogs(
@@ -914,17 +1386,56 @@ def get_rpc_historical_analogs(
 ) -> list[dict[str, Any]]:
     """Run ``match_historical_analogs`` in Postgres (no deep history fetch in Python)."""
 
-    res = _client().rpc(
-        "match_historical_analogs",
-        {
-            "target_pair": pair,
-            "as_of_date": as_of_date,
-            "current_trend": current_trend,
-            "current_comp": current_comp,
-            "limit_rows": limit_rows,
-        },
-    ).execute()
+    res = (
+        _client()
+        .rpc(
+            "match_historical_analogs",
+            {
+                "target_pair": pair,
+                "as_of_date": as_of_date,
+                "current_trend": current_trend,
+                "current_comp": current_comp,
+                "limit_rows": limit_rows,
+            },
+        )
+        .execute()
+    )
     return cast(list[dict[str, Any]], res.data or [])
+
+
+def get_exact_historical_price_for_date(
+    pair: str, date_str: str
+) -> dict[str, Any] | None:
+    """Read an exact dated close for validation; never fill missing sessions."""
+    if pair not in _CURRENT_PUBLICATION_PAIRS:
+        raise ValueError("Historical validation price requires a supported pair")
+    if not isinstance(date_str, str):
+        raise ValueError("Historical price date must be YYYY-MM-DD")
+    try:
+        requested = date.fromisoformat(date_str)
+    except ValueError as exc:
+        raise ValueError("Historical price date must be YYYY-MM-DD") from exc
+    if requested.isoformat() != date_str:
+        raise ValueError("Historical price date must be YYYY-MM-DD")
+    response = (
+        _client()
+        .table("historical_prices")
+        .select("date,pair,open,high,low,close,volume")
+        .eq("pair", pair)
+        .eq("date", date_str)
+        .maybe_single()
+        .execute()
+    )
+    if response is None:
+        raise RuntimeError("Historical price query returned no response")
+    raw = response.data
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise ValueError("Historical price query returned an invalid row")
+    if raw.get("pair") != pair or raw.get("date") != date_str:
+        raise ValueError("Historical price identity does not match the requested session")
+    return dict(raw)
 
 
 def get_historical_price_for_date(pair: str, date_str: str) -> dict[str, Any] | None:
@@ -967,9 +1478,7 @@ def get_historical_price_for_date(pair: str, date_str: str) -> dict[str, Any] | 
     return None
 
 
-def _validation_log_has_t5_for_call(
-    call_id: Any, call_date: str, pair: str
-) -> bool:
+def _validation_log_has_t5_for_call(call_id: Any, call_date: str, pair: str) -> bool:
     """Return True when a current (non-superseded) validation_log row exists."""
     client = _client()
 
@@ -1037,33 +1546,46 @@ def _validation_log_has_t5_for_call(
 
 
 def get_unvalidated_regime_calls(limit: int | None = None) -> list[dict[str, Any]]:
-    """Return regime_calls rows lacking a current validation_log entry with brier_score_t5.
+    """Return calls with at least one horizon still missing, oldest first.
 
-    Ordered by date ascending (oldest first) so backfill proceeds chronologically.
-    Superseded validation_log rows are ignored.
+    A T+5 result is not a completed T+20 evaluation. Brier cannot indicate
+    maturity either: an abstention has no directional Brier score. The caller
+    checks whether the missing horizon has matured before fetching its price.
+    ``limit`` bounds returned incomplete calls, not the initial database page.
     """
+    if limit is not None and limit <= 0:
+        return []
     query = (
         _client()
         .table("regime_calls")
-        .select("id,date,pair,regime,rate_signal,confidence")
+        .select("id,date,pair,regime,rate_signal,predicted_direction,confidence")
         .order("date", desc=False)
+        .order("id", desc=False)
     )
-    if limit is not None:
-        query = query.limit(limit)
-
-    res = query.execute()
-    calls = cast(list[dict[str, Any]], res.data or [])
-
     unvalidated: list[dict[str, Any]] = []
-    for call in calls:
-        call_id = call.get("id")
-        call_date = str(call.get("date"))[:10]
-        pair = str(call.get("pair"))
-
-        if not _validation_log_has_t5_for_call(call_id, call_date, pair):
-            unvalidated.append(call)
-
-    return unvalidated
+    page_size = 1000
+    offset = 0
+    while True:
+        res = query.range(offset, offset + page_size - 1).execute()
+        calls = cast(list[dict[str, Any]], res.data or [])
+        for call in calls:
+            existing = get_validation_log_for_call(call["id"])
+            same_call = existing is not None and existing.get("call_id") == call.get("id")
+            complete = (
+                existing is not None
+                and same_call
+                and all(
+                    existing.get(key) is not None
+                    for key in ("log_return_t5_bps", "log_return_t20_bps")
+                )
+            )
+            if not complete:
+                unvalidated.append(call)
+                if limit is not None and len(unvalidated) >= limit:
+                    return unvalidated
+        if len(calls) < page_size:
+            return unvalidated
+        offset += page_size
 
 
 def get_historical_prices(pair: str, limit: int = 10000) -> list[dict[str, Any]]:
@@ -1280,7 +1802,7 @@ def _pg_conn(max_retries: int = 5) -> Any:
         except Exception as e:
             last_err = e
             logger.warning("DB connection attempt %d/%d failed: %s", attempt + 1, max_retries, e)
-            time.sleep(min(2 ** attempt, 30))
+            time.sleep(min(2**attempt, 30))
     if last_err is not None:
         raise last_err
     raise RuntimeError(f"Failed to connect to database after {max_retries} attempts")
@@ -1290,171 +1812,27 @@ def bulk_write_backfill_results(
     pair: str,
     results: Sequence[tuple[SignalRow, RegimeCall]],
 ) -> None:
-    """Bulk-persist backfill (signal, call) tuples for a single pair.
-
-    This is a deliberate, audited exception for ``signals`` and
-    ``regime_calls``: backfills must first purge stale reconstructed rows
-    for the pair before inserting the regenerated history. Triggers are
-    disabled for the duration, deletes/inserts are committed per batch, and
-    triggers are re-enabled before the function returns.
-
-    ``validation_log`` is intentionally untouched: it is an immutable
-    append-only ledger and is never deleted or updated here (the trigger
-    that blocks UPDATE/DELETE remains enabled).
-    """
-    if not results:
-        return
-
-    conn = _pg_conn()
-    conn.run("ALTER TABLE regime_calls DISABLE TRIGGER trg_protect_immutable_calls")
-    conn.run("ALTER TABLE regime_calls DISABLE TRIGGER trg_log_regime_call_audit")
-
-    conn.run("DELETE FROM signals WHERE pair = :pair", pair=pair)
-    conn.run("DELETE FROM regime_calls WHERE pair = :pair", pair=pair)
-
-    signal_rows: list[tuple[Any, ...]] = []
-    regime_rows: list[tuple[Any, ...]] = []
+    """Append versioned replay calls; completed prefixes are safe to retry."""
+    identities: set[tuple[str, date, str, str, str | None]] = set()
     for signal_row, call in results:
-        signal_rows.append((
-            signal_row.pair, signal_row.date.isoformat(), signal_row.rate_diff_2y,
-            signal_row.rate_diff_10y, signal_row.cot_percentile, signal_row.realized_vol_20d,
-            signal_row.realized_vol_5d, signal_row.implied_vol_30d, signal_row.spot,
-            signal_row.day_change, signal_row.day_change_pct, signal_row.cross_asset_vix,
-            signal_row.cross_asset_dxy, signal_row.cross_asset_oil, signal_row.cross_asset_us10y,
-            signal_row.cross_asset_gold, signal_row.cross_asset_copper,
-            signal_row.cross_asset_stoxx,
-            signal_row.oi_delta, signal_row.volume_rvol, signal_row.structural_instability,
-            signal_row.breakeven_inflation_10y, signal_row.rate_diff_10y_real,
-            signal_row.rate_z_tactical, signal_row.rate_z_structural,
-            signal_row.realized_vol_rank, signal_row.skew_alignment,
-        ))
-        regime_rows.append((
-            call.pair, call.date.isoformat(), call.regime, call.confidence,
-            call.signal_composite, call.rate_signal, call.primary_driver,
-            call.entry_timing, call.position_size, call.stop_level,
-            call.data_quality_score, call.stress_level, call.predicted_direction,
-            call.directional_bias, call.conviction, call.cot_signal,
-            call.vol_signal, call.oi_signal, call.rr_signal,
-            call.special_signal_value, call.special_signal_label, call.model_version,
-            call.strategy_version, call.data_source,
-        ))
-
-    # Batch insert signals using multi-row INSERT with per-batch commit
-    batch_size = 500
-    for i in range(0, len(signal_rows), batch_size):
-        batch = signal_rows[i:i + batch_size]
-        values_sql = []
-        params: dict[str, Any] = {}
-        for j, row in enumerate(batch):
-            prefix = f"r{j}_"
-            values_sql.append(
-                f"(:{prefix}pair, :{prefix}date, :{prefix}r2y, :{prefix}r10y, :{prefix}cot, "
-                f":{prefix}rv20, :{prefix}rv5, :{prefix}iv, :{prefix}spot, "
-                f":{prefix}dc, :{prefix}dcp, "
-                f":{prefix}vix, :{prefix}dxy, :{prefix}oil, "
-                f":{prefix}us10y, :{prefix}gold, "
-                f":{prefix}copper, :{prefix}stoxx, :{prefix}oi, :{prefix}rvol, :{prefix}si, "
-                f":{prefix}bei, :{prefix}r10r, :{prefix}rzt, :{prefix}rzs, "
-                f":{prefix}rvr, :{prefix}sa)"
+        if call.pair != pair or call.data_source != "backtest":
+            raise ValueError(
+                "Historical publication requires the requested pair and backtest source"
             )
-            params[f"{prefix}pair"] = row[0]
-            params[f"{prefix}date"] = row[1]
-            params[f"{prefix}r2y"] = row[2]
-            params[f"{prefix}r10y"] = row[3]
-            params[f"{prefix}cot"] = row[4]
-            params[f"{prefix}rv20"] = row[5]
-            params[f"{prefix}rv5"] = row[6]
-            params[f"{prefix}iv"] = row[7]
-            params[f"{prefix}spot"] = row[8]
-            params[f"{prefix}dc"] = row[9]
-            params[f"{prefix}dcp"] = row[10]
-            params[f"{prefix}vix"] = row[11]
-            params[f"{prefix}dxy"] = row[12]
-            params[f"{prefix}oil"] = row[13]
-            params[f"{prefix}us10y"] = row[14]
-            params[f"{prefix}gold"] = row[15]
-            params[f"{prefix}copper"] = row[16]
-            params[f"{prefix}stoxx"] = row[17]
-            params[f"{prefix}oi"] = row[18]
-            params[f"{prefix}rvol"] = row[19]
-            params[f"{prefix}si"] = row[20]
-            params[f"{prefix}bei"] = row[21]
-            params[f"{prefix}r10r"] = row[22]
-            params[f"{prefix}rzt"] = row[23]
-            params[f"{prefix}rzs"] = row[24]
-            params[f"{prefix}rvr"] = row[25]
-            params[f"{prefix}sa"] = row[26]
-        sql = (
-            "INSERT INTO signals (pair, date, rate_diff_2y, rate_diff_10y, cot_percentile, "
-            "realized_vol_20d, realized_vol_5d, implied_vol_30d, spot, day_change, day_change_pct, "
-            "cross_asset_vix, cross_asset_dxy, cross_asset_oil, "
-            "cross_asset_us10y, cross_asset_gold, "
-            "cross_asset_copper, cross_asset_stoxx, oi_delta, volume_rvol, structural_instability, "
-            "breakeven_inflation_10y, rate_diff_10y_real, rate_z_tactical, rate_z_structural, "
-            "realized_vol_rank, skew_alignment) VALUES " + ",".join(values_sql)
+        _publication_request(call, signal_row)
+        identity = (
+            call.pair,
+            call.date,
+            call.data_source,
+            call.strategy_version,
+            call.model_version,
         )
-        conn.run(sql, **params)
-        logger.info("Signals batch %d-%d inserted", i, i + len(batch) - 1)
-
-    for i in range(0, len(regime_rows), batch_size):
-        batch = regime_rows[i:i + batch_size]
-        values_sql = []
-        regime_params: dict[str, Any] = {}
-        for j, row in enumerate(batch):
-            prefix = f"r{j}_"
-            values_sql.append(
-                f"(:{prefix}pair, :{prefix}date, :{prefix}regime, :{prefix}conf, :{prefix}comp, "
-                f":{prefix}rate, :{prefix}driver, :{prefix}et, :{prefix}ps, :{prefix}sl, "
-                f":{prefix}dqs, :{prefix}stress, :{prefix}pred, :{prefix}bias, :{prefix}conv, "
-                f":{prefix}cot, :{prefix}vol, :{prefix}oi, :{prefix}rr, "
-                f":{prefix}ssv, :{prefix}ssl, :{prefix}mv, "
-                f":{prefix}sv, :{prefix}ds)"
-            )
-            regime_params[f"{prefix}pair"] = row[0]
-            regime_params[f"{prefix}date"] = row[1]
-            regime_params[f"{prefix}regime"] = row[2]
-            regime_params[f"{prefix}conf"] = row[3]
-            regime_params[f"{prefix}comp"] = row[4]
-            regime_params[f"{prefix}rate"] = row[5]
-            regime_params[f"{prefix}driver"] = row[6]
-            regime_params[f"{prefix}et"] = row[7]
-            regime_params[f"{prefix}ps"] = row[8]
-            regime_params[f"{prefix}sl"] = row[9]
-            regime_params[f"{prefix}dqs"] = row[10]
-            regime_params[f"{prefix}stress"] = row[11]
-            regime_params[f"{prefix}pred"] = row[12]
-            regime_params[f"{prefix}bias"] = row[13]
-            regime_params[f"{prefix}conv"] = row[14]
-            regime_params[f"{prefix}cot"] = row[15]
-            regime_params[f"{prefix}vol"] = row[16]
-            regime_params[f"{prefix}oi"] = row[17]
-            regime_params[f"{prefix}rr"] = row[18]
-            regime_params[f"{prefix}ssv"] = row[19]
-            regime_params[f"{prefix}ssl"] = row[20]
-            regime_params[f"{prefix}mv"] = row[21]
-            regime_params[f"{prefix}sv"] = row[22]
-            regime_params[f"{prefix}ds"] = row[23]
-        sql = (
-            "INSERT INTO regime_calls (pair, date, regime, confidence, signal_composite, "
-            "rate_signal, primary_driver, entry_timing, position_size, stop_level, "
-            "data_quality_score, stress_level, predicted_direction, directional_bias, "
-            "conviction, cot_signal, vol_signal, oi_signal, rr_signal, special_signal_value, "
-            "special_signal_label, model_version, strategy_version, data_source) VALUES "
-            + ",".join(values_sql)
-        )
-        conn.run(sql, **regime_params)
-        logger.info("Regime batch %d-%d inserted", i, i + len(batch) - 1)
-
-    conn.run("ALTER TABLE regime_calls ENABLE TRIGGER trg_protect_immutable_calls")
-    conn.run("ALTER TABLE regime_calls ENABLE TRIGGER trg_log_regime_call_audit")
-
-    conn.close()
-    logger.info(
-        "Batch wrote %d signals and %d regime_calls for %s",
-        len(signal_rows),
-        len(regime_rows),
-        pair,
-    )
+        if identity in identities:
+            raise ValueError("Historical batch contains duplicate publication identities")
+        identities.add(identity)
+    for signal_row, call in results:
+        publish_regime_call(call, signal_row)
+    logger.info("Appended %d versioned replay publications for %s", len(results), pair)
 
 
 def get_latest_research_memo_thesis_bullets() -> list[str]:
@@ -1530,121 +1908,94 @@ def _normalize_validation_row(row: dict[str, Any]) -> dict[str, Any]:
 def get_validation_log_for_stats(
     pair_filter: str | None = None,
     lookback_days: int | None = None,
+    as_of_date: date | None = None,
 ) -> list[dict[str, Any]]:
-    """Fetch validation rows for aggregate statistics.
+    """Read all published calls joined by ID to their current evaluation.
 
-    Returns rows with T+5/T+20 horizons populated (non-superseded only).
-    If ``lookback_days`` is set, filter to calls within that window.
-
-    Automatically adapts to both the **legacy** schema (pre-migration) and
-    the **modern** schema (post-migration).
+    Missing evaluations stay in the population with null outcomes. The read-only
+    view owns the join so backend and public readers cannot disagree on coverage.
     """
-    modern_select = (
-        "pair,predicted_direction,confidence,date,"
-        "actual_direction_t5,log_return_t5_bps,correct_t5,brier_score_t5,"
-        "correct_net_t5,cost_bps_t5,"
-        "actual_direction_t20,log_return_t20_bps,correct_t20,brier_score_t20,"
-        "correct_net_t20,cost_bps_t20"
+    q = (
+        _client()
+        .table("validation_observations")
+        .select("*")
+        .eq("evaluation_version", EVALUATION_VERSION)
+        .eq("population_version", "published-calls-v1")
+        .order("id")
     )
-    legacy_select = (
-        "pair,predicted_direction,confidence,date,"
-        "actual_direction,actual_return_1d,actual_return_5d,"
-        "correct_1d,correct_5d"
-    )
-
-    def _build_query(select: str, include_superseded_filter: bool) -> Any:
-        q = _client().table("validation_log").select(select)
-        if include_superseded_filter:
-            q = q.eq("is_superseded", False)
-        if pair_filter:
-            q = q.eq("pair", pair_filter)
-        if lookback_days is not None and lookback_days > 0:
-            cutoff = date.today() - __import__("datetime").timedelta(days=lookback_days)
-            q = q.gte("date", cutoff.isoformat())
-        return q
-
-    def _fetch_all(q: Any) -> list[dict[str, Any]]:
-        """Paginate through Supabase's 1000-row default limit."""
-        all_rows: list[dict[str, Any]] = []
-        page_size = 1000
-        page = 0
-        while True:
-            res = q.range(page * page_size, (page + 1) * page_size - 1).execute()
-            rows = cast(list[dict[str, Any]], res.data or [])
-            if not rows:
-                break
-            all_rows.extend(rows)
-            if len(rows) < page_size:
-                break
-            page += 1
-        return all_rows
-
-    # Attempt modern schema first
-    try:
-        q = _build_query(modern_select, include_superseded_filter=True)
-        return _fetch_all(q)
-    except APIError as exc:
-        msg = str(getattr(exc, "message", "")) or str(exc)
-        if "column validation_log." in msg:
-            # One or more modern columns are missing → fall back to legacy schema
-            try:
-                q = _build_query(legacy_select, include_superseded_filter=False)
-                rows = _fetch_all(q)
-            except APIError as exc2:
-                msg2 = str(getattr(exc2, "message", "")) or str(exc2)
-                if "is_superseded" in msg2:
-                    q = _build_query(legacy_select, include_superseded_filter=False)
-                    rows = _fetch_all(q)
-                else:
-                    raise
-            return [_normalize_validation_row(r) for r in rows]
-        raise
+    if pair_filter:
+        q = q.eq("pair", pair_filter)
+    anchor = as_of_date or date.today()
+    q = q.lte("date", anchor.isoformat())
+    if lookback_days is not None and lookback_days > 0:
+        cutoff = anchor - timedelta(days=lookback_days - 1)
+        q = q.gte("date", cutoff.isoformat())
+    rows: list[dict[str, Any]] = []
+    page_size = 1000
+    while True:
+        res = q.range(len(rows), len(rows) + page_size - 1).execute()
+        page = cast(list[dict[str, Any]], res.data or [])
+        rows.extend(page)
+        if len(page) < page_size:
+            return rows
 
 
 def write_validation_stats(row: Mapping[str, Any]) -> None:
-    """Upsert aggregate stats into ``validation_stats`` on (as_of_date, pair)."""
-    payload = cast(dict[str, Any], dict(row))
+    """Persist one exact evidence-group snapshot without overwriting other groups."""
+    payload = dict(row)
+    keys = (
+        "data_source",
+        "strategy_version",
+        "model_version",
+        "evaluation_version",
+        "population_version",
+    )
+    if any(not isinstance(payload.get(k), str) or not payload[k].strip() for k in keys):
+        raise ValueError("validation stats require explicit evidence-group metadata")
+    window = payload.get("window_days")
+    if isinstance(window, bool) or not isinstance(window, int) or window < 0:
+        raise ValueError("validation stats require a nonnegative window_days")
     _client().table("validation_stats").upsert(
-        payload, on_conflict="as_of_date,pair"
+        payload,
+        on_conflict=(
+            "as_of_date,pair,data_source,strategy_version,"
+            "model_version,evaluation_version,window_days,population_version"
+        ),
     ).execute()
 
 
 def get_latest_validation_stats_per_pair() -> list[dict[str, Any]]:
-    """Fetch the most recent validation_stats row for each pair.
-
-    Uses a simple window-function approach via RPC when available,
-    otherwise falls back to fetching the latest 50 rows and de-duping.
-    """
-    client = _client()
-    # Fallback: fetch latest rows and take first per pair
-    res = (
-        client.table("validation_stats")
-        .select(
-            "as_of_date,pair,t5_rolling_90d_accuracy,t5_win_rate,"
-            "t5_mean_brier,t5_brier_skill,t5_sharpe_like"
-        )
-        .order("as_of_date", desc=True)
-        .limit(200)
-        .execute()
-    )
-    rows = cast(list[dict[str, Any]], res.data or [])
-    seen: set[str] = set()
+    """Read the latest snapshot for each pair under the current live model only."""
     out: list[dict[str, Any]] = []
-    for r in rows:
-        pair = str(r.get("pair", ""))
-        if pair and pair not in seen:
-            seen.add(pair)
-            out.append(r)
+    for pair in ("EURUSD", "USDJPY", "USDINR", "ALL"):
+        res = (
+            _client()
+            .table("validation_stats")
+            .select("*")
+            .eq("pair", pair)
+            .eq("data_source", "live")
+            .eq("strategy_version", "v2")
+            .eq("model_version", "2.0-live")
+            .eq("evaluation_version", EVALUATION_VERSION)
+            .eq("window_days", 0)
+            .eq("population_version", "published-calls-v1")
+            .order("as_of_date", desc=True)
+            .order("id", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = cast(list[dict[str, Any]], res.data or [])
+        if rows:
+            out.append(rows[0])
     return out
 
 
 def write_pipeline_run(row: Mapping[str, Any]) -> None:
-    """Upsert a pipeline health snapshot into ``pipeline_runs`` on date."""
+    """Replace the dated health snapshot in one database upsert."""
     payload = cast(dict[str, Any], dict(row))
-    date_str = str(payload.get("date") or "")[:10]
-    if date_str:
-        _client().table("pipeline_runs").delete().eq("date", date_str).execute()
-    _client().table("pipeline_runs").insert(payload).execute()
+    raw_date = str(payload.get("date") or "")
+    payload["date"] = date.fromisoformat(raw_date).isoformat()
+    _client().table("pipeline_runs").upsert(payload, on_conflict="date").execute()
 
 
 def get_pipeline_runs_for_dates(start_iso: str, end_iso: str) -> list[dict[str, Any]]:
@@ -1748,12 +2099,7 @@ def count_validation_log_for_date(date_str: str) -> int:
 
 def brief_log_exists_for_date(date_str: str) -> bool:
     res = (
-        _client()
-        .table("brief_log")
-        .select("id")
-        .eq("date", str(date_str)[:10])
-        .limit(1)
-        .execute()
+        _client().table("brief_log").select("id").eq("date", str(date_str)[:10]).limit(1).execute()
     )
     rows = cast(list[dict[str, Any]], res.data or [])
     return bool(rows)

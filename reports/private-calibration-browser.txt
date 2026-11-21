@@ -1,0 +1,54 @@
+### Result
+{"pairs":["EUR / USD","GBP / USD","AUD / USD","NZD / USD","USD / CAD","USD / CHF","EUR / GBP"],"csv":{"rows":2000,"accepted":1198,"skipped":802},"mobile":{"viewport":390,"client":390,"document":390},"overflowControl":true,"csrf":403,"protectedStatus":[401,401,401],"result":"PRIVATE_CALIBRATION_BROWSER_OK"}
+### Ran Playwright code
+```js
+await (async (page) => {
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.setViewportSize({width:1440,height:1000});
+  const pairs=[];
+  for(const pair of ['EUR / USD','GBP / USD','AUD / USD','NZD / USD','USD / CAD','USD / CHF','EUR / GBP']){
+    await page.getByRole('button',{name:'Read '+pair+' research brief',exact:true}).click();
+    const portfolio=await page.locator('#portfolioBody').innerText();
+    for(const value of ['Accepted calls','1198','Skipped calls','802','-54.28R','56.27R','Missing forecasts','UNQUALIFIED','-4.08R','-1.11R','cannot establish account drawdown']){
+      if(!portfolio.toLowerCase().includes(value.toLowerCase()))throw new Error('Missing overlap evidence '+pair+' '+value);
+    }
+    const brief=await page.locator('#briefBody').innerText();
+    if(!brief.includes('Exact probability evidence')||!brief.includes('No validated probability'))throw new Error('Missing probability evidence '+pair);
+    if(!brief.includes('Prior AI review used older quantitative inputs'))throw new Error('Stale AI review shown '+pair);
+    if(await page.locator('#eligibleCount').innerText()!=='0 eligible')throw new Error('False eligibility');
+    if(await page.locator('#portfolioChart svg').count()!==1)throw new Error('Missing realised curve');
+    pairs.push(pair);
+  }
+  await page.locator('#portfolioAudit').screenshot({path:'output/playwright/private-calibration-desktop.png'});
+  const csv=await page.evaluate(async()=>{const r=await fetch('/api/export.csv');return {status:r.status,text:await r.text()};});
+  if(csv.status!==200||!csv.text.includes('overlap_audit_decision')||!csv.text.includes('CURRENCY_OCCUPIED'))throw new Error('Missing export decisions');
+  const header=csv.text.split('\n')[0].trim().split(',');
+  const decision=header.indexOf('overlap_audit_decision');
+  const records=csv.text.trim().split('\n').slice(1).map(row=>row.split(','));
+  if(records.length!==2000||records.filter(row=>row[decision]==='ACCEPTED').length!==1198||records.filter(row=>row[decision]==='SKIPPED').length!==802)throw new Error('Export count mismatch');
+  await page.reload();
+  await page.locator('#appView').waitFor({state:'visible'});
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('#portfolioAudit').scrollIntoViewIfNeeded();
+  const mobile=await page.evaluate(()=>({viewport:innerWidth,client:document.documentElement.clientWidth,document:document.documentElement.scrollWidth}));
+  if(mobile.document>mobile.client)throw new Error('Mobile body overflow '+JSON.stringify(mobile));
+  await page.locator('#portfolioAudit').screenshot({path:'output/playwright/private-calibration-mobile.png'});
+  await page.locator('#portfolioChart').screenshot({path:'output/playwright/private-calibration-mobile-chart.png'});
+  await page.evaluate(()=>{const probe=document.createElement('div');probe.id='overflowProbe';probe.style.cssText='position:absolute;left:0;top:0;width:900px;height:1px';document.body.append(probe);});
+  const overflowControl=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);
+  await page.locator('#overflowProbe').evaluate(node=>node.remove());
+  if(!overflowControl)throw new Error('Overflow oracle ineffective');
+  const csrf=await page.evaluate(async()=>{const r=await fetch('/api/refresh',{method:'POST',headers:{'X-CSRF-Token':'wrong-test-token'}});return r.status;});
+  if(csrf!==403)throw new Error('CSRF protection changed');
+  await page.getByRole('button',{name:'Sign out',exact:true}).click();
+  const protectedStatus=await page.evaluate(async()=>Promise.all(['/api/report','/api/status','/api/export.csv'].map(async url=>(await fetch(url)).status)));
+  if(protectedStatus.some(status=>status!==401))throw new Error('Logout leak');
+  return {pairs,csv:{rows:records.length,accepted:1198,skipped:802},mobile,overflowControl,csrf,protectedStatus,result:'PRIVATE_CALIBRATION_BROWSER_OK'};
+})(page);
+```
+### Page
+- Page URL: http://127.0.0.1:8765/
+- Page Title: Private desk · FX Research Lab
+- Console: 4 errors, 0 warnings
+### Events
+- New console entries: .playwright-cli\console-2026-10-01T13-24-24-980Z.log#L5-L9

@@ -5,21 +5,42 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from datetime import UTC, datetime
 from typing import Any, Final
+from urllib.parse import urlsplit
 
 import aiohttp
 
-from src.fetchers.buffer_keys import KEY_COT, KEY_CROSS_ASSET, KEY_FX_SPOT, KEY_YIELDS
+from src.fetchers.buffer_keys import (
+    KEY_COT,
+    KEY_CROSS_ASSET,
+    KEY_FX_SPOT,
+    KEY_RATE_DECISION_AT,
+    KEY_YIELD_OBSERVATIONS,
+    KEY_YIELDS,
+)
+from src.signals.rate_observation import RateObservation
 from src.types import load_universe
 
 logger: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def _safe_url_for_log(url: str, max_len: int = 120) -> str:
-    redacted = url
-    if "api_key=" in redacted:
-        redacted = redacted.split("api_key=")[0] + "api_key=REDACTED"
-    return redacted[:max_len]
+    try:
+        parsed = urlsplit(url)
+        host = parsed.hostname
+        if (
+            parsed.scheme not in {"https", "http"}
+            or not host
+            or not all(char.isascii() and (char.isalnum() or char in ".-:") for char in host)
+        ):
+            return "<invalid-url>"
+        if ":" in host:
+            host = f"[{host}]"
+        # Paths, query strings, fragments and userinfo can all carry credentials.
+        return f"{parsed.scheme}://{host}"[: max(0, max_len)]
+    except ValueError:
+        return "<invalid-url>"
 
 
 # Strict cap: free-tier providers (Yahoo/FRED/CFTC) share one gate.
@@ -79,7 +100,7 @@ class AsyncFetcher:
                         "fetch_with_retry error url=%s attempt=%s: %s",
                         _safe_url_for_log(url),
                         attempt + 1,
-                        exc,
+                        type(exc).__name__,
                     )
                 if attempt < retries - 1:
                     delay = 2**attempt
@@ -113,6 +134,8 @@ async def build_master_buffer(
 
     universe = load_universe()
     fetcher = AsyncFetcher()
+    yield_observations: dict[str, RateObservation] = {}
+    legacy_observations: dict[str, RateObservation] = {}
     t0 = time.perf_counter()
     async with aiohttp.ClientSession() as session:
         spots_t, ylds_t, cot_t, cross_t, ten_t, bei_t = await asyncio.gather(
@@ -127,18 +150,21 @@ async def build_master_buffer(
                 session,
                 lookback_days=yield_lookback_days,
                 fetcher=fetcher,
+                observations=yield_observations,
             ),
             fetch_cot_async(universe, session, fetcher=fetcher),
             fetch_cross_asset_async(session, fetcher, percentile_lookback=60),
-            asyncio.to_thread(fetch_legacy_10y_legs, yield_lookback_days),
-            fetch_t10yie_breakeven_async(session, fetcher),
+            asyncio.to_thread(
+                fetch_legacy_10y_legs, yield_lookback_days, observations=legacy_observations
+            ),
+            fetch_t10yie_breakeven_async(session, fetcher, yield_observations),
             return_exceptions=True,
         )
 
     buffer: dict[str, Any] = {}
 
     if isinstance(spots_t, Exception):
-        logger.error("build_master_buffer fx_spot failed: %s", spots_t)
+        logger.error("build_master_buffer fx_spot failed: %s", type(spots_t).__name__)
         buffer[KEY_FX_SPOT] = {}
     elif isinstance(spots_t, dict):
         buffer[KEY_FX_SPOT] = spots_t
@@ -148,24 +174,29 @@ async def build_master_buffer(
 
     ylds: dict[str, float | None] = {}
     if isinstance(ylds_t, Exception):
-        logger.error("build_master_buffer yields (async universe) failed: %s", ylds_t)
+        logger.error(
+            "build_master_buffer yields (async universe) failed: %s",
+            type(ylds_t).__name__,
+        )
     elif isinstance(ylds_t, dict):
         ylds = dict(ylds_t)
 
     if isinstance(ten_t, Exception):
-        logger.error("build_master_buffer legacy 10Y failed: %s", ten_t)
+        logger.error("build_master_buffer legacy 10Y failed: %s", type(ten_t).__name__)
     elif isinstance(ten_t, dict):
         ylds = {**ylds, **ten_t}
 
     if isinstance(bei_t, Exception):
-        logger.warning("build_master_buffer T10YIE breakeven failed: %s", bei_t)
+        logger.warning("build_master_buffer T10YIE breakeven failed: %s", type(bei_t).__name__)
     elif isinstance(bei_t, (int, float)):
         ylds["T10YIE"] = float(bei_t)
 
     buffer[KEY_YIELDS] = ylds
+    buffer[KEY_YIELD_OBSERVATIONS] = {**yield_observations, **legacy_observations}
+    buffer[KEY_RATE_DECISION_AT] = datetime.now(UTC)
 
     if isinstance(cot_t, Exception):
-        logger.error("build_master_buffer cot failed: %s", cot_t)
+        logger.error("build_master_buffer cot failed: %s", type(cot_t).__name__)
         buffer[KEY_COT] = []
     elif isinstance(cot_t, list):
         buffer[KEY_COT] = cot_t
@@ -174,7 +205,7 @@ async def build_master_buffer(
         buffer[KEY_COT] = []
 
     if isinstance(cross_t, Exception):
-        logger.error("build_master_buffer cross_asset failed: %s", cross_t)
+        logger.error("build_master_buffer cross_asset failed: %s", type(cross_t).__name__)
         buffer[KEY_CROSS_ASSET] = {
             "vix": None,
             "dxy": None,

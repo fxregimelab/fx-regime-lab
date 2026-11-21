@@ -1,0 +1,20 @@
+{
+  "scope": "First actual eight-leg JPY policy extension; hypothetical journal, no model/fetch/order",
+  "verified_at": "2026-10-01T18:23:50.251441+00:00",
+  "url": "http://127.0.0.1:8765",
+  "server_pid": 30320,
+  "report_sha256": "861d0799918805ee6ef571deb2968820ced36a385e5f89071c87e0a2807bd745",
+  "source_sha256": "75146b9afa795f2e27e6f47b2af5303879ccd7604857512848793cedd6c5984a",
+  "jpy_numeric_count": 5532,
+  "usd_jpy_matched_markers": 4642,
+  "usd_jpy_five_weekday_changes": 4597,
+  "current_ai_status": "UNAVAILABLE",
+  "journal_publications": 16,
+  "distinct_observations": 8,
+  "repeat_publications": 8,
+  "csv_rows": 16,
+  "source_availability": "UNKNOWN",
+  "forecast_qualification": "UNQUALIFIED",
+  "authentication_and_csrf": "PASS",
+  "report_and_events_unchanged": true
+}

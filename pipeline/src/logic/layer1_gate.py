@@ -12,7 +12,7 @@ from src.logic.math_utils import (
     rolling_zscore_last,
 )
 from src.models.regime_enums import FxRegime
-from src.types import Layer1ClassifierContext, Layer1GateOutput
+from src.types import Layer1ClassifierContext, Layer1GateOutput, normalize_fx_pair_key
 
 # Keep aligned with ``src.regime.classifier.VOL_EXPANDING_SUFFIX``.
 VOL_EXPANDING_SUFFIX_LOCAL = "__VOL_EXPANDING"
@@ -38,7 +38,7 @@ def prior_tier_from_regime(label: str | None, pair: str) -> int | None:
 
     if not label:
         return None
-    base = _strip_vol_suffix(label)
+    base = _strip_vol_suffix(label).upper()
 
     tier_map: dict[str, int] = {
         "NEUTRAL": 2,
@@ -63,8 +63,8 @@ def prior_tier_from_regime(label: str | None, pair: str) -> int | None:
         "INR_APPR_STRONG": 0,
     }
     mapped = tier_map.get(base)
-    if mapped is None and pair.upper() == "USDINR":
-        return tier_map.get(base.upper())
+    if mapped is not None and normalize_fx_pair_key(pair) == "EURUSD":
+        return 4 - mapped
     return mapped
 
 
@@ -73,7 +73,8 @@ def _neutral_label_for_pair(pair: str) -> str:
 
 
 def _tier_to_regime(pair: str, tier: int) -> str:
-    if pair.upper() == "USDINR":
+    pair_key = normalize_fx_pair_key(pair)
+    if pair_key == "USDINR":
         if tier >= 4:
             return FxRegime.INR_DEPRECIATION_STRONG.value
         if tier == 3:
@@ -84,15 +85,16 @@ def _tier_to_regime(pair: str, tier: int) -> str:
             return FxRegime.INR_APPRECIATION_MODERATE.value
         return FxRegime.INR_APPRECIATION_STRONG.value
 
-    if tier >= 4:
-        return FxRegime.RISK_OFF_DOLLAR_BID.value
-    if tier == 3:
-        return FxRegime.GROWTH_SURPRISE_USD.value
-    if tier == 2:
-        return FxRegime.NEUTRAL.value
-    if tier == 1:
-        return FxRegime.RISK_ON_DOLLAR_OFF.value
-    return FxRegime.RISK_ON_DOLLAR_OFF.value
+    if pair_key not in ("EURUSD", "USDJPY"):
+        raise ValueError(f"Unsupported FX pair: {pair!r}")
+    usd_tier = 4 - tier if pair_key == "EURUSD" else tier
+    return {
+        4: "USD_STRENGTH_STRONG",
+        3: "USD_STRENGTH_MODERATE",
+        2: FxRegime.NEUTRAL.value,
+        1: "USD_WEAKNESS_MODERATE",
+        0: "USD_WEAKNESS_STRONG",
+    }[max(0, min(4, usd_tier))]
 
 
 def _apply_vol_neutral_overlay(raw_label: str, vol_expanding: bool) -> str:

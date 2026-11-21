@@ -1,0 +1,74 @@
+{
+  "verified_at": "2026-10-01T18:54:00.552421+00:00",
+  "current_report_sha256": "1af3f4192c4086b73ad468d32ad4fff493d75561d6fbc7359b0a7d90372f6a2c",
+  "parent_report_sha256": "861d0799918805ee6ef571deb2968820ced36a385e5f89071c87e0a2807bd745",
+  "legacy_report_sha256": "d70d94256bc4c16986d69793e596927429d5bc1619d820c5292865e428543c81",
+  "legacy_v3_replay": "PASS",
+  "v4_negative_control_changed_legacy_input_hash": true,
+  "current_review_method": "private-current-headline-v4",
+  "quantitative_fingerprint": "5b85904fe728be926dbe0db889e0fedace64e70fea943b470534f920347b8bb7",
+  "all_non_context_preservation": "PASS enforced by verify_current_review",
+  "policy_original": {
+    "capture_path": "D:\\Projects\\fxregimelab\\.private-fx\\captures\\fundamentals\\boj\\bodies\\5dcdd87286d207642eb3df49c2adb3fbdd4fad498aefc3e8b582d7879316424d.bin",
+    "sha256": "5dcdd87286d207642eb3df49c2adb3fbdd4fad498aefc3e8b582d7879316424d"
+  },
+  "policy_receipt": {
+    "capture_path": "D:\\Projects\\fxregimelab\\.private-fx\\captures\\fundamentals\\boj\\receipts\\85c86ffe582a62e95d8cb8f03d34519b16dd8dec4c38cfc0eb62f6ad4c100b97.json",
+    "sha256": "85c86ffe582a62e95d8cb8f03d34519b16dd8dec4c38cfc0eb62f6ad4c100b97"
+  },
+  "policy_value": 1.25,
+  "policy_qualifier": "around",
+  "policy_clocks": {
+    "published_at": null,
+    "decision_date": null,
+    "effective_from": null,
+    "received_at": "2026-10-01T18:49:13.821773+00:00"
+  },
+  "feed_original": {
+    "capture_path": "D:\\Projects\\fxregimelab\\.private-fx\\sources\\news\\boj\\bodies\\5117346484b14aa71fc798d57ad3d158b697353888573e78b793bc7bd342303f.bin",
+    "sha256": "5117346484b14aa71fc798d57ad3d158b697353888573e78b793bc7bd342303f"
+  },
+  "feed_receipt": {
+    "capture_path": "D:\\Projects\\fxregimelab\\.private-fx\\sources\\news\\boj\\receipts\\ec7703f28e28c3122eea67ba4cb06493d70092b896432465777282360dfd1e14.json",
+    "sha256": "ec7703f28e28c3122eea67ba4cb06493d70092b896432465777282360dfd1e14"
+  },
+  "boj_news_count": 52,
+  "main_policy_decision_in_feed": false,
+  "headline_admission": {
+    "supplied_news": 166,
+    "accepted_before_cap": 89,
+    "selected_news": 40,
+    "news_currencies": [
+      "AUD",
+      "CHF",
+      "EUR",
+      "GBP",
+      "JPY"
+    ],
+    "missing_news_currencies": [
+      "CAD",
+      "NZD",
+      "USD"
+    ]
+  },
+  "ai": {
+    "status": "GENERATED_UNVALIDATED",
+    "model": "deepseek-v4-pro",
+    "usage": {
+      "input_tokens": 12994,
+      "output_tokens": 1181,
+      "cached_input_tokens": 384
+    }
+  },
+  "journal": {
+    "decision_count": 24,
+    "unique_observation_count": 8,
+    "repeated_publication_count": 16,
+    "outcome_status_counts": {
+      "PENDING": 5,
+      "UNAVAILABLE": 3
+    },
+    "unpublished_report_count": 0
+  },
+  "forecast_qualification": "UNQUALIFIED"
+}

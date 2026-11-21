@@ -29,10 +29,9 @@ export const revalidate = 3600;
 
 export default async function TerminalIndexPage() {
   const supabase = await createClient();
+  const calls = await getLatestRegimeCalls(supabase);
 
-  // Parallel fetch all data
   const [
-    calls,
     signals,
     crossAsset,
     macroEvents,
@@ -41,12 +40,11 @@ export default async function TerminalIndexPage() {
     pipelineHealth,
     ...pairHistories
   ] = await Promise.all([
-    getLatestRegimeCalls(supabase),
-    getLatestSignals(supabase),
+    getLatestSignals(supabase, calls),
     getCrossAssetSnapshot(supabase),
     getMacroEventsToday(supabase),
     getLatestBrief(supabase),
-    getValidationLogT5T20(supabase, 100),
+    getValidationLogT5T20(supabase, null),
     getPipelineHealth(supabase, 7),
     ...PAIRS.map((p) => getHistoricalRegimeCalls(supabase, p.label, 30)),
   ]);
@@ -123,6 +121,7 @@ export default async function TerminalIndexPage() {
             // Extract signal composite history for sparkline from regime_calls
             const signalHistory = regimeHistory
               .map((r) => r.signal_composite)
+              .filter((value): value is number => value != null)
               .reverse();
 
             const pairLog = validationLog.filter((r) => r.pair === p.display);

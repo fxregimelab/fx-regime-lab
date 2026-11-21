@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 import pytest
 
+from src.validation.calculator import EVALUATION_VERSION
 from src.validation.engine import run_validation
 
 
@@ -30,22 +31,27 @@ def _writer_mock() -> Any:
         captured: list[dict[str, Any]] = []
 
         def _get_historical_regime_calls(
-            pair: str, limit: int = 5000
+            pair: str, limit: int | None = 5000
         ) -> list[dict[str, Any]]:
             return [r for r in regime_calls if r.get("pair") == pair]
 
-        def _get_signal_for_pair_date(
-            pair: str, date_str: str
-        ) -> dict[str, Any] | None:
+        def _get_publication_signal_for_call(call_id: int) -> dict[str, Any] | None:
+            call = next((row for row in regime_calls if row.get("id") == call_id), None)
+            if call is None:
+                return None
+            pair = str(call["pair"])
+            date_str = str(call["date"])
             key = f"{pair}:{date_str}"
             spot = spots.get(key)
             if spot is not None:
-                return {"spot": spot}
+                return {"pair": pair, "date": date_str, "spot": spot}
             return None
 
-        def _get_validation_log_entry(
-            call_date: date, pair: str
-        ) -> dict[str, Any] | None:
+        def _get_exact_historical_price_for_date(pair: str, date_str: str) -> dict[str, Any] | None:
+            spot = spots.get(f"{pair}:{date_str}")
+            return None if spot is None else {"pair": pair, "date": date_str, "close": spot}
+
+        def _get_validation_log_for_call(call_id: int | str) -> dict[str, Any] | None:
             return existing_validation
 
         def _write_validation_row(row: dict[str, Any]) -> None:
@@ -57,12 +63,16 @@ def _writer_mock() -> Any:
                 _get_historical_regime_calls,
             ),
             patch(
-                "src.validation.engine.writer.get_signal_for_pair_date",
-                _get_signal_for_pair_date,
+                "src.validation.engine.writer.get_publication_signal_for_call",
+                _get_publication_signal_for_call,
             ),
             patch(
-                "src.validation.engine.writer.get_validation_log_entry",
-                _get_validation_log_entry,
+                "src.validation.engine.writer.get_exact_historical_price_for_date",
+                _get_exact_historical_price_for_date,
+            ),
+            patch(
+                "src.validation.engine.writer.get_validation_log_for_call",
+                _get_validation_log_for_call,
             ),
             patch(
                 "src.validation.engine.writer.write_validation_row",
@@ -93,7 +103,7 @@ def test_validation_engine_computes_t5_and_t20_separately(_writer_mock: Any) -> 
             "pair": "EURUSD",
             "date": call_date.isoformat(),
             "regime": "NEUTRAL",
-            "rate_signal": "BULLISH",
+            "predicted_direction": "BULLISH",
             "confidence": 0.75,
             "signal_composite": 0.3,
         }
@@ -138,12 +148,8 @@ def test_validation_engine_computes_t5_and_t20_separately(_writer_mock: Any) -> 
     assert row["log_return_t5_bps"] != row["log_return_t20_bps"]
 
     # Legacy columns populated too
-    assert row.get("actual_return_5d") == pytest.approx(
-        expected_t5_bps / 10_000.0, rel=1e-6
-    )
-    assert row.get("actual_return_20d") == pytest.approx(
-        expected_t20_bps / 10_000.0, rel=1e-6
-    )
+    assert row.get("actual_return_5d") == pytest.approx(expected_t5_bps / 10_000.0, rel=1e-6)
+    assert row.get("actual_return_20d") == pytest.approx(expected_t20_bps / 10_000.0, rel=1e-6)
 
     # call_id passed through
     assert row.get("call_id") == 42
@@ -160,7 +166,7 @@ def test_validation_engine_skips_t20_when_not_ready(_writer_mock: Any) -> None:
             "pair": "USDJPY",
             "date": call_date.isoformat(),
             "regime": "NEUTRAL",
-            "rate_signal": "BEARISH",
+            "predicted_direction": "BEARISH",
             "confidence": 0.60,
             "signal_composite": -0.2,
         }
@@ -201,14 +207,24 @@ def test_validation_engine_does_not_overwrite_existing_t5(_writer_mock: Any) -> 
             "pair": "USDINR",
             "date": call_date.isoformat(),
             "regime": "NEUTRAL",
-            "rate_signal": "NEUTRAL",
-            "confidence": 0.0,
+            "predicted_direction": "BULLISH",
+            "confidence": 0.70,
             "signal_composite": 0.0,
         }
     ]
 
     # Pre-existing T+5 data
     existing_validation = {
+        "call_id": 44,
+        "evaluation_version": EVALUATION_VERSION,
+        "entry_price_evidence": {
+            "kind": "publication_signal",
+            "pair": "USDINR",
+            "date": "2026-05-01",
+            "price": 83.50,
+            "source": "publication_evidence.signal_payload.spot",
+            "call_id": 44,
+        },
         "log_return_t5_bps": 12.34,
         "correct_t5": True,
         "brier_score_t5": 0.25,
@@ -216,6 +232,16 @@ def test_validation_engine_does_not_overwrite_existing_t5(_writer_mock: Any) -> 
         "actual_return_5d": 0.001234,
         "correct_5d": True,
         "brier_5d": 0.25,
+        "log_return_net_bps_t5": 2.34,
+        "correct_net_t5": True,
+        "cost_bps_t5": 10.0,
+        "price_evidence_t5": {
+            "kind": "historical_close",
+            "pair": "USDINR",
+            "date": "2026-05-08",
+            "price": 83.55,
+            "source": "historical_prices.close",
+        },
     }
 
     spots = {
@@ -241,7 +267,95 @@ def test_validation_engine_does_not_overwrite_existing_t5(_writer_mock: Any) -> 
     assert row["log_return_t5_bps"] == 12.34
     assert row["correct_t5"] is True
     assert row["brier_score_t5"] == 0.25
+    assert row["log_return_net_bps_t5"] == 2.34
+    assert row["correct_net_t5"] is True
+    assert row["cost_bps_t5"] == 10.0
 
     # T+20 should be freshly computed
     assert row.get("log_return_t20_bps") is not None
     assert row.get("correct_t20") is not None
+
+
+def test_validation_engine_scores_published_direction_not_rate_component(
+    _writer_mock: Any,
+) -> None:
+    call_date = date(2026, 5, 1)
+    regime_calls = [
+        {
+            "id": 45,
+            "pair": "EURUSD",
+            "date": call_date.isoformat(),
+            "regime": "RISK_ON",
+            "predicted_direction": "BEARISH",
+            "rate_signal": "BULLISH",
+            "confidence": 0.8,
+        }
+    ]
+    spots = {
+        "EURUSD:2026-05-01": 1.0,
+        "EURUSD:2026-05-08": 0.99,
+    }
+
+    patches, captured = _writer_mock(regime_calls=regime_calls, spots=spots)
+    with ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
+        run_validation(as_of_date=date(2026, 5, 8))
+
+    assert captured[0]["predicted_direction"] == "BEARISH"
+    assert captured[0]["correct_t5"] is True
+
+
+def test_validation_engine_skips_missing_published_direction(_writer_mock: Any) -> None:
+    call_date = date(2026, 5, 1)
+    regime_calls = [
+        {
+            "id": 46,
+            "pair": "EURUSD",
+            "date": call_date.isoformat(),
+            "rate_signal": "BULLISH",
+            "confidence": 0.8,
+        }
+    ]
+    spots = {
+        "EURUSD:2026-05-01": 1.0,
+        "EURUSD:2026-05-08": 1.01,
+    }
+
+    patches, captured = _writer_mock(regime_calls=regime_calls, spots=spots)
+    with ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
+        run_validation(as_of_date=date(2026, 5, 8))
+
+    assert captured == []
+
+
+def test_validation_engine_fails_closed_on_ambiguous_existing_call(
+    _writer_mock: Any,
+) -> None:
+    call_date = date(2026, 5, 1)
+    calls = [
+        {
+            "id": 47,
+            "pair": "EURUSD",
+            "date": call_date.isoformat(),
+            "predicted_direction": "BULLISH",
+            "confidence": 0.8,
+        }
+    ]
+    spots = {
+        "EURUSD:2026-05-01": 1.0,
+        "EURUSD:2026-05-08": 1.01,
+    }
+    patches, captured = _writer_mock(
+        regime_calls=calls,
+        spots=spots,
+        existing_validation={"call_id": 999, "log_return_t5_bps": 12.0},
+    )
+    with ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
+        run_validation(as_of_date=date(2026, 5, 8))
+
+    assert captured == []

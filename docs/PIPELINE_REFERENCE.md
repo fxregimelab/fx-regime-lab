@@ -1,13 +1,26 @@
 # Pipeline reference
 
-## Current state (April 2026)
+## Supported daily entrypoint — repair branch, 27 September 2026
 
-- **Daily / weekly automation:** **Prefect Cloud** deployment `Daily_FX_Regime_Engine` (see `pipeline/prefect.yaml`) runs `run_daily` / `run_weekly` from `src.scheduler.orchestrator`. GitHub Actions cron workflows for the pipeline were removed in favor of Prefect-only scheduling.
-- **Prefect managed workers:** runtime API keys are **not** read from the cloned repo. `pipeline/prefect.yaml` maps `job_variables.env` from shell at **deploy** time (`{{ $SUPABASE_URL }}`, etc.). After changing keys, redeploy from a shell that has them exported (see the comment block at the top of `prefect.yaml`), or set equivalent env on the deployment / work pool in the Prefect UI.
-- **No `web/` app** and **no root `wrangler.toml`**. ISR pings to Next were removed from `pipeline/src/scheduler/orchestrator.py`.
-- **Worker:** [`workers/site-entry.js`](../workers/site-entry.js) is **API-only** (no static `ASSETS`, no `/assets/supabase-env.js`). See [[HOSTING_AFTER_UI_REMOVAL]].
+The checked-in Prefect deployment `Daily_FX_Regime_Engine` selects `src/scheduler/run_pipeline.py:run_pipeline`. This is a local repair; deployed configuration has not been verified or changed. The lower-level legacy `run_daily` and staged `run_multi_pair_flow` do not by themselves provide the complete daily completion boundary.
 
-The sections below about root `run.py`, `daily_brief.yml`, `deploy_web.yml`, and HTML brief steps are **legacy** documentation; cross-check paths against the repo before using them.
+The wrapper runs:
+
+1. Legacy or staged inference and publication, selected by `USE_V2_PIPELINE`, including required validation.
+2. Optional staged shadow comparison when legacy is live and `SHADOW_V2` is enabled. Its fake writer and alert ports keep the comparison separate from live publication.
+3. Overnight checks for the current date. Historical dates return unavailable/degraded status instead of using current prices.
+4. Validation aggregation for the requested date.
+5. The execution health record, followed by a final status notice.
+
+A required-stage exception fails the scheduled flow. Degraded inputs, missing pairs, missing quality scores, empty aggregate output or a shadow problem prevent the healthy heartbeat. A completed Prefect flow with a DEGRADED return means execution finished with limitations; it is not a clean-data or forecasting-skill result. Only EURUSD, USDJPY and USDINR qualify for publication coverage.
+
+The wrapper records evidence returned by this execution, not stages inferred from older rows. AI brief completion remains unknown until an explicit receipt exists. The current health table is a daily snapshot; immutable per-attempt history and the public audit page still need repair. Signal/call/rationale publication is not yet atomic.
+
+For a configured production operator, the corresponding module entrypoint is `python -m src.scheduler.run_pipeline` from `pipeline/`. It performs real pipeline work; the test suite uses fake external ports. The checked-in deployment still clones `main`, so local branch changes require a reviewed release before taking effect.
+
+Prefect managed workers receive runtime settings through deployment/work-pool environment configuration. They do not read a local repository `.env`. No GitHub Actions workflow is used. The current repository contains a Next.js `web/` application; earlier UI-removal notes below are historical.
+
+Local verification and remaining release requirements: [repair checkpoint](../reports/REPAIR_CHECKPOINT.md), [scheduler evidence](../reports/repair-scheduler-health.md), and [repair register](REPAIR_REGISTER.md).
 
 ---
 
@@ -116,3 +129,9 @@ If you reintroduce Next.js or another SPA, supply public Supabase URL and anon k
 - [[SIGNAL_DEFINITIONS]]
 - [[DATABASE_SCHEMA]]
 - [[TECH_STACK]]
+
+## Validation price evidence repair
+
+The current evaluator is `publication-snapshot-v2`; deploy forward migration `20260927000006_validation_price_evidence.sql` with its prerequisite migrations before using the changed writer. It preserves earlier v1 evidence. All validation paths use original publication spot by call ID and exact stored historical closes. Missing evidence remains unavailable. `docs/VALIDATION_PRICE_CONTRACT.md` defines the contract.
+
+Continuous endpoint archival is still an open repair: current daily ingestion does not guarantee completed bars in `historical_prices`. Do not run validation expecting a mutable signal fallback, or label absent outcomes successful research evidence. Source/session/cutoff and archival changes must precede release acceptance.

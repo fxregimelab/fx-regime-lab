@@ -18,6 +18,8 @@ def _to_core_snapshot(snapshot: IngestionSnapshot) -> CoreIngestionSnapshot:
         date=snapshot.date,
         spots=cast(dict[str, Sequence[SpotBar]], snapshot.spots),
         yields=dict(snapshot.yields),
+        rate_observations=dict(snapshot.rate_observations),
+        rate_decision_at=snapshot.rate_decision_at,
         cot_rows=list(snapshot.cot_rows),
         cross_asset=dict(snapshot.cross_asset),
         macro=dict(snapshot.macro) if snapshot.macro is not None else None,

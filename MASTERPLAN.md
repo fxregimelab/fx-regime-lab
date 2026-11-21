@@ -1,5 +1,34 @@
 # FX Regime Lab — Ultimate Masterplan
 
+## Latest owner amendment — manual bias confirmation, 2 October 2026 IST
+
+The primary private desk supports the owner's technical-analysis bias over two to five business days. The owner decides entries, stops, exits and position management. Legacy exact-bracket profitability and probability gates do not prevent descriptive direction/phase evidence from being displayed. Keep price structure and fundamental support separate, preserve honest data/source checks and journal every suggestion or abstention. High probability, positive skew and a power-law return distribution are separate unproven objectives. All seven USD majors including JPY and EURGBP remain included. Contract: docs/PRIVATE_BIAS_CONTEXT_CONTRACT.md. The complete goal remains active.
+
+The preceding Fed-history packet is directly verified and independently reviewed: 83 statements, 75 clocks, 28 changes, 200 valid paths and 178 missing pair/horizon windows; only two complete all-seven events per horizon. Final direct checks: 2,786 tests, Ruff/MyPy279, exact full replay, independent actual/source review and authenticated HTTP/browser. Journal40 publications, eight distinct observations, 32 repeats, five pending and three unavailable. Three manual gates met, three formal runnable pending. No strategy improvement is claimed. Receipt: reports/private-fomc-history-acceptance.md. R1–R5 remain open.
+
+
+## Owner direction — private research desk, 1 October 2026
+
+The owner authorized autonomous implementation of an authenticated private desk for manual, two-to-five-day quant and fundamental research. The latest amendment explicitly restores USDJPY: seven USD majors plus the retained EURGBP research cross. The owner targets 3–5 entries per week, at most five concurrent positions and at most two positions in the same correlated directional risk group. Research must measure attainable frequency and shortfalls alongside returns after costs, drawdown, currency exposure and possible hedges. It must not force trades or claim that correlation alone creates profitable hedging. The contracts are docs/PRIVATE_DESK_CONTRACT.md and docs/PRIVATE_PORTFOLIO_EXPANSION_CONTRACT.md. Trade briefs, source-grounded AI context, cost-aware partial exits, chronological research, honest probability eligibility and session evidence are required. Profitability and 60–70% win rates are hypotheses, not acceptance claims. Existing repair findings remain relevant to input validity; private outputs do not rewrite public history.
+
+## Current priority — evidence and structural repair, 27 September 2026
+
+Private outcome-history amendment, 1 October 2026: preserve every eight-pair suggestion and abstention at its real recording time and append later source-backed hypothetical outcomes. Keep the frozen model plan separate from uniform BUY/SELL diagnostics and actual execution. Repeated report versions must not inflate sample counts. Use these records to investigate failures; strategy changes still require predeclared research and independent evaluation. Contract: docs/PRIVATE_OUTCOME_JOURNAL_CONTRACT.md. Current implementation and remaining holds: reports/private-outcomes-acceptance.md.
+
+Private Japanese-history amendment, 1 October 2026: preserve original BIS policy markers for JPY as an eighth retrospective currency leg, retain replay of the earlier seven-leg method and leave unsupported Japanese policy intervals missing. Historical arrival/vintage and forecast qualification remain unknown. All evidence-acquisition publications must use the decision journal; changed reports preserve prior AI evidence and detach its current binding. Receipt: reports/private-jpy-policy-acceptance.md. Current descriptive JPY policy/news and R1-R5 remain open.
+
+Private current-JPY checkpoint, 2 October 2026 IST: original BoJ current guideline and official attributed headlines are connected as descriptive context. Current AI uses versioned v4 inputs; exact v3 replay and prior research remain preserved. Overall fundamentals and strategy qualification remain incomplete. Every publication still enters the journal: 24 records, eight distinct observations and 16 repeats, with five pending and three unavailable outcomes. Receipt: reports/private-jpy-current-acceptance.md. Continuous currency-risk limits, costed hedges, source-available historical fundamentals, untouched strategy evaluation and observed forward outcomes remain next research.
+
+Private daily-risk checkpoint, 2 October 2026 IST: a separate lagged daily-boundary counterfactual preserves the original portfolio studies and forward journal. All 2,417 original paths reproduce; 2,321 admitted calls and one modelled exit leave no oversized group immediately after 4,485 simulated reviews. Executable/intraday controls and hedges remain unqualified. Mean returns stay negative and common-coverage frequency remains below target. The new publication yields 32 records, eight distinct observations, 24 repeats, five pending and three unavailable outcomes. Prior AI is preserved/detached; no new model call. Receipt: reports/private-daily-risk-acceptance.md; contract: docs/PRIVATE_DAILY_RISK_CONTRACT.md. R1-R5 and the goal remain open.
+
+The owner has authorized complete repair of identified implementation, economic, statistical, research and operational defects. [The repair register](docs/REPAIR_REGISTER.md) is the detailed task and acceptance record under this masterplan. It takes priority over the historical work streams below until repair acceptance is complete.
+
+Measurement correctness and research validity come before external presentation at every sample size. No claimed percentage-point improvement, calibrated confidence, causal mechanism or out-of-sample result is accepted without its data, cohort, source revision and reproducible method. Previously published calls remain immutable; corrections require separate versions and reconciliation.
+
+The sequence is: prediction/measurement contracts; source timing and pair economics; shared live/replay logic; frozen research evaluation; public reporting and operational/security repair; migration/release checks and actual observation evidence. The three-pair identity and phase gates remain in force. Passing a 55% gate alone does not prove forecasting skill under overlapping outcomes or model selection.
+
+Historical completion statements and strategy assumptions below are subject to this repair audit. Missing source data, unavailable vintages and unobserved live windows remain explicit gaps; they must not be replaced with synthetic evidence.
+
 > **Read `IDENTITY.md` first.** It is the hard constraint. Nothing in this plan may violate it.  
 > This document is the single source of truth for product direction.  
 > All other roadmap, plan, and spec documents are deprecated.  

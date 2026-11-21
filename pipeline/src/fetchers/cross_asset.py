@@ -3,15 +3,14 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
 
 import aiohttp
 import pandas as pd
 
-from src.db import writer
+from src.backfill.historical_fetcher import backfill_spot_for_pair
 from src.fetchers.async_engine import AsyncFetcher
-from src.types import spot_tickers_from_universe
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +19,6 @@ def _yfinance() -> Any:
     import yfinance as yf
 
     return yf
-
-
-def _yf_row_float(row: Any, attr: str) -> float | None:
-    val = getattr(row, attr, None)
-    return float(val) if val is not None and pd.notna(val) else None
 
 
 def _latest_and_change_1d(df: pd.DataFrame) -> tuple[float | None, float | None]:
@@ -323,51 +317,11 @@ def fetch_inr_forward_premium() -> float | None:
 
 
 def fetch_max_history(pair: str, years_back: int = 30) -> int:
-    """Fetch deep daily OHLCV history for a pair and upsert into historical_prices.
-
-    This is intended as a one-time backfill helper for 20y-50y archives.
-    Returns the number of rows written.
-    """
-    ticker = spot_tickers_from_universe().get(pair)
-    if not ticker:
-        logger.warning("No yfinance ticker configured for pair=%s", pair)
-        return 0
-
-    start_year = max(1970, date.today().year - years_back)
-    start_date = f"{start_year}-01-01"
-    try:
-        df = _yfinance().download(ticker, start=start_date, auto_adjust=False, progress=False)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Deep history fetch failed for %s: %s", pair, exc)
-        return 0
-
-    if df.empty:
-        logger.warning("No deep history rows returned for %s", pair)
-        return 0
-
-    normalized = df.reset_index().rename(columns={"Date": "date"})
-    rows: list[dict[str, Any]] = []
-    for row in normalized.itertuples(index=False):
-        d = getattr(row, "date", None)
-        if d is None:
-            continue
-        rows.append(
-            {
-                "date": str(d)[:10],
-                "pair": pair,
-                "open": _yf_row_float(row, "Open"),
-                "high": _yf_row_float(row, "High"),
-                "low": _yf_row_float(row, "Low"),
-                "close": _yf_row_float(row, "Close"),
-                "volume": _yf_row_float(row, "Volume"),
-            }
-        )
-
-    if not rows:
-        return 0
-
-    chunk = 1000
-    for idx in range(0, len(rows), chunk):
-        writer.write_historical_prices(rows[idx : idx + chunk])
-    logger.info("Historical backfill complete pair=%s rows=%s", pair, len(rows))
-    return len(rows)
+    """Archive the requested calendar span through the shared strict acquisition path."""
+    if isinstance(years_back, bool) or not isinstance(years_back, int) or years_back <= 0:
+        raise ValueError("years_back must be a positive integer")
+    end = datetime.now(UTC).date()
+    start = date(max(1970, end.year - years_back), 1, 1)
+    count = backfill_spot_for_pair(pair, start, end)
+    logger.info("Historical observations archived pair=%s rows=%s", pair, count)
+    return count

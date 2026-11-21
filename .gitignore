@@ -18,6 +18,8 @@ supabase/.temp/
 web/supabase/.temp/
 
 # Agent artifacts
+.unlazy/
+.unlazy-hook-state.json
 .agent/
 .cursor/
 
@@ -49,3 +51,6 @@ lighthouse-reports/
 
 # Old pipeline run artifacts
 runs/
+.private-fx/
+.playwright-cli/
+**/output/playwright/

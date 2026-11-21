@@ -1,0 +1,25 @@
+{
+  "scope": "Actual current Japanese descriptive policy/headlines and publication journal",
+  "verified_at": "2026-10-01T18:56:43.958149+00:00",
+  "url": "http://127.0.0.1:8765",
+  "server_pid": 37404,
+  "report_sha256": "1af3f4192c4086b73ad468d32ad4fff493d75561d6fbc7359b0a7d90372f6a2c",
+  "policy_original_sha256": "5dcdd87286d207642eb3df49c2adb3fbdd4fad498aefc3e8b582d7879316424d",
+  "feed_original_sha256": "5117346484b14aa71fc798d57ad3d158b697353888573e78b793bc7bd342303f",
+  "boj_headlines": 52,
+  "current_ai_status": "GENERATED_UNVALIDATED",
+  "current_ai_method": "private-current-headline-v4",
+  "policy_currencies_missing": [],
+  "overall_fundamentals_status": "PARTIAL",
+  "journal_publications": 24,
+  "distinct_observations": 8,
+  "repeat_publications": 16,
+  "outcome_status_counts": {
+    "PENDING": 5,
+    "UNAVAILABLE": 3
+  },
+  "csv_rows": 24,
+  "forecast_qualification": "UNQUALIFIED",
+  "authentication_csrf_export_logout": "PASS",
+  "report_and_events_unchanged": true
+}

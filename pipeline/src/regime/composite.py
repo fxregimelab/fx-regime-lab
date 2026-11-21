@@ -24,7 +24,7 @@ WEIGHTS = {"rate": 0.40, "cot": 0.30, "vol": 0.20, "oi": 0.10}
 PAIR_COMPOSITE_WEIGHTS: dict[str, PairWeightConfig] = {
     "EURUSD": PairWeightConfig(rate=0.45, cot=0.25, vol=0.20, oi=0.05, special=0.05, fpi=0.0),
     "USDJPY": PairWeightConfig(rate=0.40, cot=0.20, vol=0.25, oi=0.05, special=0.10, fpi=0.0),
-    "USDINR": PairWeightConfig(rate=0.30, cot=0.10, vol=0.20, oi=0.05, special=0.20, fpi=0.15),
+    "USDINR": PairWeightConfig(rate=0.30, cot=0.0, vol=0.20, oi=0.05, special=0.20, fpi=0.15),
 }
 
 logger = logging.getLogger(__name__)
@@ -364,31 +364,26 @@ def compute_composite(
     fpi_signal: float | None = None,
     betas: dict[str, float] | None = None,
 ) -> float | None:
-    """Weighted composite; missing legs drop out and remaining weights renormalize.
+    """Blend already pair-oriented direction inputs using retained static weights.
 
-    If ``betas`` is provided and contains non-zero values, static weights are
-    replaced by beta-informed precision weights.
+    VOL/OI describe state and never supply direction or denominator weight.
+    Betas remain accepted for compatibility but adaptation is disabled in the
+    unvalidated directional reference model. Missing directional legs drop out;
+    an observed zero retains its weight.
     """
 
     weights = _weights_for_pair(pair)
     values: dict[str, float | None] = {
         "rate": rate_norm,
         "cot": cot_norm,
-        "vol": vol_norm,
-        "oi": oi_norm,
+        "special": special_signal,
+        "fpi": fpi_signal,
     }
-    if "special" in weights and special_signal is not None:
-        values["special"] = special_signal
-    if "fpi" in weights and fpi_signal is not None:
-        values["fpi"] = fpi_signal
-    active = [k for k, v in values.items() if v is not None]
+    active = [k for k, v in values.items() if v is not None and weights.get(k, 0.0) > 0.0]
     if not active:
         return None
 
     active_weights = {k: weights[k] for k in active if k in weights}
-    if betas is not None and any(betas.values()):
-        active_weights = _precision_weights(active_weights, betas)
-
     wsum = sum(active_weights.values())
     if wsum <= 0.0:
         return None
@@ -397,6 +392,8 @@ def compute_composite(
         v = values[k]
         if v is None:
             continue
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
+            raise ValueError(f"Active directional input {k} must be a finite number")
         w = active_weights.get(k)
         if w is None or w <= 0.0:
             continue

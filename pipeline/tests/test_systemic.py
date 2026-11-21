@@ -6,22 +6,15 @@ from src.analysis.systemic import (
     assign_apex_ranking,
     build_yesterday_rank_maps,
     compute_apex_score,
-    normalize_rank_velocity,
     resolve_idiosyncratic_outlier,
     top_three_clustered,
 )
 
 
-def test_compute_apex_score_pain_none_penalizes() -> None:
-    with_pain = compute_apex_score(0.5, 50.0, 0.0)
-    no_pain = compute_apex_score(0.5, None, 0.0)
-    assert no_pain < with_pain
-
-
-def test_normalize_rank_velocity_bounds() -> None:
-    assert normalize_rank_velocity(0.0) == 0.5
-    assert normalize_rank_velocity(-6.0) == 0.0
-    assert normalize_rank_velocity(6.0) == 1.0
+def test_compute_apex_score_is_retired_and_input_invariant() -> None:
+    assert compute_apex_score(0.5, None, 0.0) is None
+    assert compute_apex_score(0.99, 100.0, 6.0) is None
+    assert compute_apex_score(0.01, 0.0, -6.0) is None
 
 
 def test_build_yesterday_rank_maps_incumbent() -> None:
@@ -35,22 +28,23 @@ def test_build_yesterday_rank_maps_incumbent() -> None:
     assert apex["USDJPY"] == 0.9
 
 
-def test_hysteresis_keeps_incumbent() -> None:
-    pairs = ["EURUSD", "USDJPY"]
-    conf = {"EURUSD": 0.9, "USDJPY": 0.5}
-    pain: dict[str, float | None] = {"EURUSD": 50.0, "USDJPY": 50.0}
-    y_rank = {"EURUSD": 2, "USDJPY": 1}
-    out = assign_apex_ranking(
-        pairs=pairs,
-        confidences=conf,
-        pain_indices=pain,
-        yesterday_rank_by_pair=y_rank,
+def test_assign_apex_ranking_is_retired_and_input_invariant() -> None:
+    assert assign_apex_ranking(
+        pairs=["EURUSD", "USDJPY"],
+        confidences={"EURUSD": 0.9, "USDJPY": 0.5},
+        pain_indices={"EURUSD": 0.0, "USDJPY": None},
+        yesterday_rank_by_pair={"EURUSD": 2, "USDJPY": 1},
         yesterday_incumbent="USDJPY",
         yesterday_incumbent_apex=0.95,
-    )
-    top = out[0]
-    assert top.pair == "USDJPY"
-    assert top.global_rank == 1
+    ) == []
+    assert assign_apex_ranking(
+        pairs=["EURUSD", "USDJPY"],
+        confidences={"EURUSD": 0.01, "USDJPY": 0.99},
+        pain_indices={"EURUSD": 100.0, "USDJPY": 100.0},
+        yesterday_rank_by_pair={"EURUSD": 1, "USDJPY": 2},
+        yesterday_incumbent="EURUSD",
+        yesterday_incumbent_apex=0.01,
+    ) == []
 
 
 def test_cluster_detection_mutual_high_corr() -> None:

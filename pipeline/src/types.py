@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
-from datetime import date
+from dataclasses import dataclass, field
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Literal, Required, TypedDict, cast
 
@@ -154,6 +154,17 @@ class SpotBar:
     low: float
     close: float
     volume: float = 0.0
+    provider: str | None = None
+    instrument: str | None = None
+    retrieved_at: datetime | None = None
+    provider_timestamp: datetime | None = None
+    session_timezone: str | None = None
+    session_definition: str | None = None
+    window_start: datetime | None = None
+    window_end: datetime | None = None
+    provider_metadata: dict[str, Any] = field(default_factory=dict)
+    volume_source: str | None = None
+    volume_instrument: str | None = None
 
 
 @dataclass

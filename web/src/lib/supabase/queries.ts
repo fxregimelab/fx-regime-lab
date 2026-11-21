@@ -1,9 +1,13 @@
 import { DEFAULT_ACCURACY_GATE, EURUSD_ACCURACY_GATE } from "@/lib/config";
-import type { Database } from "./database.types";
+import { validationCohort, validationOutcome } from "../validation-contract";
+import type { Database, Json } from "./database.types";
 
 type RegimeCallRow = Database["public"]["Tables"]["regime_calls"]["Row"];
 type SignalRow = Database["public"]["Tables"]["signals"]["Row"];
-type ValidationLogRow = Database["public"]["Tables"]["validation_log"]["Row"];
+type LivePublicationSignalRow =
+  Database["public"]["Views"]["live_publication_signals"]["Row"];
+type ValidationObservationRow =
+  Database["public"]["Views"]["validation_observations"]["Row"];
 type ValidationStatsRow =
   Database["public"]["Tables"]["validation_stats"]["Row"];
 export type BriefLogRow = Database["public"]["Tables"]["brief_log"]["Row"];
@@ -18,6 +22,7 @@ type ResearchMemoRow = Database["public"]["Tables"]["research_memos"]["Row"];
 type HealthCheckRow = Database["public"]["Tables"]["health_checks"]["Row"];
 
 export interface LatestRegimeCall {
+  id: number;
   pair: string;
   date: string;
   regime: string;
@@ -69,7 +74,7 @@ export interface LatestSignal {
   inr_forward_premium: number | null;
   oi_delta: number | null;
   volume_rvol: number | null;
-  structural_instability: boolean;
+  structural_instability: boolean | null;
   ecb_balance_sheet: number | null;
   bund_btp_spread: number | null;
   boj_policy_rate: number | null;
@@ -80,11 +85,29 @@ export interface ValidationRow {
   date: string;
   pair: string;
   call: string;
-  outcome: "correct" | "incorrect" | "neutral";
-  return_pct: number;
+  outcome: "correct" | "incorrect" | "neutral" | "pending";
+  return_pct: number | null;
 }
 
 export interface ValidationStats {
+  totalCalls?: number;
+  evaluationCalls?: number;
+  missingEvaluationCalls?: number;
+  populationVersion?: string;
+  matureCalls?: number;
+  pendingCalls?: number;
+  unknownDirectionCalls?: number;
+  directionalCalls?: number;
+  brierSampleSize?: number;
+  abstainedCalls?: number;
+  missingOutcomeCalls?: number;
+  coverage?: number | null;
+  dataSource?: string;
+  strategyVersion?: string;
+  modelVersion?: string;
+  evaluationVersion?: string;
+  windowDays?: number;
+
   pair: string;
   horizon: "t5" | "t20";
   winRate: number | null;
@@ -103,6 +126,15 @@ export interface ValidationStats {
 }
 
 export interface ValidationRowT5 {
+  callId?: number;
+  evaluationId?: number | null;
+  evaluationPresent?: boolean;
+  populationVersion?: string;
+  dataSource?: string;
+  strategyVersion?: string;
+  modelVersion?: string;
+  evaluationVersion?: string;
+  regime?: string;
   date: string;
   pair: string;
   predicted: string;
@@ -122,6 +154,7 @@ export interface ValidationRowT5 {
 
 function toLatestRegimeCall(row: RegimeCallRow): LatestRegimeCall {
   return {
+    id: row.id,
     pair: row.pair,
     date: row.date,
     regime: row.regime,
@@ -150,36 +183,39 @@ function toLatestSignal(row: SignalRow): LatestSignal {
   return {
     pair: row.pair,
     date: row.date,
-    spot: row.spot,
-    rate_diff_2y: row.rate_diff_2y,
-    cot_percentile: row.cot_percentile,
-    realized_vol_20d: row.realized_vol_20d,
-    realized_vol_5d: row.realized_vol_5d,
-    implied_vol_30d: row.implied_vol_30d,
-    day_change: row.day_change,
-    day_change_pct: row.day_change_pct,
-    cross_asset_us10y: row.cross_asset_us10y,
-    realized_vol_rank: row.realized_vol_rank,
-    rate_z_tactical: row.rate_z_tactical,
-    rate_z_structural: row.rate_z_structural,
+    spot: row.spot ?? null,
+    rate_diff_2y: row.rate_diff_2y ?? null,
+    cot_percentile: row.cot_percentile ?? null,
+    realized_vol_20d: row.realized_vol_20d ?? null,
+    realized_vol_5d: row.realized_vol_5d ?? null,
+    implied_vol_30d: row.implied_vol_30d ?? null,
+    day_change: row.day_change ?? null,
+    day_change_pct: row.day_change_pct ?? null,
+    cross_asset_us10y: row.cross_asset_us10y ?? null,
+    realized_vol_rank: row.realized_vol_rank ?? null,
+    rate_z_tactical: row.rate_z_tactical ?? null,
+    rate_z_structural: row.rate_z_structural ?? null,
     z_blended: row.z_blended ?? null,
-    rate_diff_10y_real: row.rate_diff_10y_real,
-    breakeven_inflation_10y: row.breakeven_inflation_10y,
-    skew_alignment: row.skew_alignment,
-    risk_reversal_25d: row.risk_reversal_25d,
-    fpi_flow: row.fpi_flow,
-    cot_net_pos: row.cot_net_pos,
-    cot_asset_mgr_net: row.cot_asset_mgr_net,
-    cot_lev_money_net: row.cot_lev_money_net,
+    rate_diff_10y_real: row.rate_diff_10y_real ?? null,
+    breakeven_inflation_10y: row.breakeven_inflation_10y ?? null,
+    skew_alignment: row.skew_alignment ?? null,
+    risk_reversal_25d: row.risk_reversal_25d ?? null,
+    fpi_flow: row.fpi_flow ?? null,
+    cot_net_pos: row.cot_net_pos ?? null,
+    cot_asset_mgr_net: row.cot_asset_mgr_net ?? null,
+    cot_lev_money_net: row.cot_lev_money_net ?? null,
     india_vix: row.india_vix ?? null,
     inr_forward_premium: row.inr_forward_premium ?? null,
     oi_delta: row.oi_delta ?? null,
     volume_rvol: row.volume_rvol ?? null,
-    structural_instability: row.structural_instability ?? false,
+    structural_instability:
+      typeof row.structural_instability === "boolean"
+        ? row.structural_instability
+        : null,
     ecb_balance_sheet: row.ecb_balance_sheet ?? null,
     bund_btp_spread: row.bund_btp_spread ?? null,
     boj_policy_rate: row.boj_policy_rate ?? null,
-    created_at: row.created_at,
+    created_at: null,
   };
 }
 
@@ -187,105 +223,104 @@ import type { createClient } from "./server";
 
 type TypedSupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
+const LIVE_PUBLICATION_PAIRS = ["EURUSD", "USDJPY", "USDINR"] as const;
+const PUBLICATION_PAGE_SIZE = 1000;
+
+function todayUtc(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function signalPayloadRow(row: LivePublicationSignalRow): SignalRow {
+  const payload = row.signal_payload;
+  if (!payload || Array.isArray(payload) || typeof payload !== "object")
+    throw new Error(`Publication signal evidence ${row.call_id} is malformed`);
+  const object = payload as Record<string, Json | undefined>;
+  if (object.pair !== row.pair || object.date !== row.date)
+    throw new Error(
+      `Publication signal evidence ${row.call_id} has inconsistent identity`,
+    );
+  return object as SignalRow;
+}
+
 export async function getLatestRegimeCalls(
   supabase: TypedSupabaseClient,
+  cutoff = todayUtc(),
 ): Promise<Record<string, LatestRegimeCall>> {
-  const { data, error } = await supabase
-    .from("regime_calls")
-    .select("*")
-    .order("date", { ascending: false })
-    .limit(100);
-
-  if (error || !data) return {};
-
   const latest: Record<string, LatestRegimeCall> = {};
-  for (const row of data as RegimeCallRow[]) {
-    const pair = row.pair;
-    if (!latest[pair]) {
-      latest[pair] = toLatestRegimeCall(row);
-    }
+  const rows = await Promise.all(
+    LIVE_PUBLICATION_PAIRS.map(async (pair) => {
+      const { data, error } = await supabase
+        .from("regime_calls")
+        .select("*")
+        .eq("pair", pair)
+        .eq("data_source", "live")
+        .eq("strategy_version", "v2")
+        .lte("date", cutoff)
+        .order("date", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(1);
+      if (error)
+        throw new Error(`Current publications unavailable: ${error.message}`);
+      if (!data) throw new Error("Current publications returned no response");
+      return (data as RegimeCallRow[])[0] ?? null;
+    }),
+  );
+  for (const row of rows) {
+    if (row) latest[row.pair] = toLatestRegimeCall(row);
   }
   return latest;
 }
 
 export async function getLatestSignals(
   supabase: TypedSupabaseClient,
+  calls: Record<string, LatestRegimeCall>,
 ): Promise<Record<string, LatestSignal>> {
+  const callIds = Object.values(calls).map((call) => call.id);
+  if (callIds.length === 0) return {};
   const { data, error } = await supabase
-    .from("signals")
-    .select("*")
-    .order("date", { ascending: false })
-    .limit(100);
+    .from("live_publication_signals")
+    .select("call_id,pair,date,signal_payload")
+    .in("call_id", callIds);
 
-  if (error || !data) return {};
+  if (error)
+    throw new Error(
+      `Publication signal evidence unavailable: ${error.message}`,
+    );
+  if (!data)
+    throw new Error("Publication signal evidence returned no response");
 
   const latest: Record<string, LatestSignal> = {};
-  for (const row of data as SignalRow[]) {
-    const pair = row.pair;
-    if (!latest[pair]) {
-      latest[pair] = toLatestSignal(row);
-    }
+  for (const row of data as LivePublicationSignalRow[]) {
+    const selected = calls[row.pair];
+    if (!selected || selected.id !== row.call_id) continue;
+    if (selected.date !== row.date)
+      throw new Error(
+        `Publication signal evidence ${row.call_id} does not match its selected call`,
+      );
+    const payload = signalPayloadRow(row);
+    latest[row.pair] = toLatestSignal(payload);
   }
   return latest;
 }
 
 export async function getValidationLog(
   supabase: TypedSupabaseClient,
-  limit = 100,
+  limit = 20,
 ): Promise<ValidationRow[]> {
-  const PAIR_DISPLAY: Record<string, string> = {
-    EURUSD: "EUR/USD",
-    USDJPY: "USD/JPY",
-    USDINR: "USD/INR",
-  };
-
-  // Try joined query first to fetch regime call labels
-  const { data, error } = await supabase
-    .from("validation_log")
-    .select("*, regime_calls!fk_validation_log_call_id(regime)")
-    .eq("is_superseded", false)
-    .order("date", { ascending: false })
-    .limit(limit);
-
-  if (!error && data) {
-    return (data as (ValidationLogRow & { regime_calls: { regime: string } })[])
-      .filter((r) => r.correct_t5 !== null)
-      .map((r) => ({
-        date: r.date,
-        pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-        call: r.regime_calls?.regime?.replace(/_/g, " ") ?? "—",
-        outcome: r.correct_t5
-          ? "correct"
-          : r.actual_direction_t5 === "NEUTRAL"
-            ? "neutral"
-            : "incorrect",
-        return_pct: Number(r.log_return_t5_bps ?? 0),
-      }));
-  }
-
-  // Fallback: plain validation_log without join
-  const { data: fallback, error: fallbackErr } = await supabase
-    .from("validation_log")
-    .select("*")
-    .eq("is_superseded", false)
-    .order("date", { ascending: false })
-    .limit(limit);
-
-  if (fallbackErr || !fallback) return [];
-
-  return (fallback as ValidationLogRow[])
-    .filter((r) => r.correct_t5 !== null)
-    .map((r) => ({
-      date: r.date,
-      pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-      call: "—",
-      outcome: r.correct_t5
+  return (await getValidationLogT5T20(supabase, limit)).map((r) => ({
+    date: r.date,
+    pair: r.pair,
+    call: r.predicted,
+    outcome:
+      r.t5Outcome === "CORRECT"
         ? "correct"
-        : r.actual_direction_t5 === "NEUTRAL"
-          ? "neutral"
-          : "incorrect",
-      return_pct: Number(r.log_return_t5_bps ?? 0),
-    }));
+        : r.t5Outcome === "WRONG"
+          ? "incorrect"
+          : r.t5Outcome === "NEUTRAL"
+            ? "neutral"
+            : "pending",
+    return_pct: r.t5ReturnBps,
+  }));
 }
 
 export async function getLatestBrief(
@@ -302,177 +337,174 @@ export async function getLatestBrief(
   return data as BriefLogRow | null;
 }
 
+const PAIR_LABELS: Record<string, string> = {
+  EURUSD: "EUR/USD",
+  USDJPY: "USD/JPY",
+  USDINR: "USD/INR",
+};
+
+async function fetchValidationCohort(
+  supabase: TypedSupabaseClient,
+  table: "validation_observations" | "validation_stats",
+  limit: number | null,
+  dataSource: string,
+  modelVersion?: string,
+  pair?: string,
+): Promise<(ValidationObservationRow | ValidationStatsRow)[]> {
+  const cohort = validationCohort(dataSource, modelVersion);
+  if (limit !== null && (!Number.isInteger(limit) || limit < 0))
+    throw new Error("Invalid validation row limit");
+  const rows: (ValidationObservationRow | ValidationStatsRow)[] = [];
+  while (limit === null || rows.length < limit) {
+    const size = limit === null ? 1000 : Math.min(1000, limit - rows.length);
+    let q = supabase
+      .from(table)
+      .select("*")
+      .eq("data_source", cohort.dataSource)
+      .eq("strategy_version", cohort.strategyVersion)
+      .eq("model_version", cohort.modelVersion)
+      .eq("evaluation_version", cohort.evaluationVersion)
+      .order(table === "validation_observations" ? "date" : "as_of_date", {
+        ascending: false,
+      })
+      .order("id", { ascending: false });
+    q = q.eq("population_version", cohort.populationVersion);
+    if (table === "validation_stats")
+      q = q.eq("window_days", cohort.windowDays);
+    if (pair) q = q.eq("pair", pair);
+    const { data, error } = await q.range(rows.length, rows.length + size - 1);
+    if (error)
+      throw new Error(`Validation evidence unavailable: ${error.message}`);
+    if (!data) throw new Error("Validation evidence returned no response");
+    const page = data as (ValidationObservationRow | ValidationStatsRow)[];
+    rows.push(...page);
+    if (page.length < size) break;
+  }
+  return rows;
+}
+
+function toValidationRow(r: ValidationObservationRow): ValidationRowT5 {
+  return {
+    callId: r.call_id,
+    evaluationId: r.evaluation_id,
+    evaluationPresent: r.evaluation_present,
+    populationVersion: r.population_version,
+    date: r.call_date ?? r.date,
+    pair: PAIR_LABELS[r.pair] ?? r.pair,
+    predicted: r.predicted_direction ?? "—",
+    regime: r.predicted_regime ?? "UNKNOWN",
+    dataSource: r.data_source ?? "unknown",
+    strategyVersion: r.strategy_version ?? "unknown",
+    modelVersion: r.model_version ?? "unknown",
+    evaluationVersion: r.evaluation_version,
+    t5ReturnBps: r.log_return_t5_bps,
+    t5ReturnNetBps: r.log_return_net_bps_t5,
+    t5Outcome: validationOutcome(
+      r.predicted_direction,
+      r.log_return_t5_bps,
+      r.correct_t5,
+    ),
+    t5CorrectNet: r.correct_net_t5,
+    t5CostBps: r.cost_bps_t5,
+    t5Brier: r.brier_score_t5,
+    t20ReturnBps: r.log_return_t20_bps,
+    t20ReturnNetBps: r.log_return_net_bps_t20,
+    t20Outcome: validationOutcome(
+      r.predicted_direction,
+      r.log_return_t20_bps,
+      r.correct_t20,
+    ),
+    t20CorrectNet: r.correct_net_t20,
+    t20CostBps: r.cost_bps_t20,
+    t20Brier: r.brier_score_t20,
+  };
+}
+
 export async function getValidationStats(
   supabase: TypedSupabaseClient,
   horizon: "t5" | "t20",
-  _dataSource = "live",
+  dataSource = "live",
+  modelVersion?: string,
 ): Promise<ValidationStats[]> {
-  // NOTE: validation_stats table does not have data_source column.
-  // We return the latest overall stats; callers should compute live-only
-  // stats from validation_log when precise filtering is needed.
-  const { data, error } = await supabase
-    .from("validation_stats")
-    .select("*")
-    .order("as_of_date", { ascending: false })
-    .limit(100);
-
-  if (error || !data) return [];
-
-  const rows = Array.isArray(data) ? (data as ValidationStatsRow[]) : [];
-  // Get latest as_of_date
-  const latestDate = rows[0]?.as_of_date;
-  if (!latestDate) return [];
-
-  // Filter to latest date only
-  const latest = rows.filter((r) => r.as_of_date === latestDate);
-
-  const prefix = horizon === "t5" ? "t5" : "t20";
-
-  const PAIR_DISPLAY: Record<string, string> = {
-    EURUSD: "EUR/USD",
-    USDJPY: "USD/JPY",
-    USDINR: "USD/INR",
-    ALL: "ALL",
-  };
-
-  const mapRow = (r: ValidationStatsRow): ValidationStats => ({
-    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    horizon,
-    winRate: r[`${prefix}_win_rate` as keyof ValidationStatsRow] as
-      | number
-      | null,
-    winRateCI: [
-      (r[`${prefix}_win_rate_ci_lower` as keyof ValidationStatsRow] as
-        | number
-        | null) ?? 0,
-      (r[`${prefix}_win_rate_ci_upper` as keyof ValidationStatsRow] as
-        | number
-        | null) ?? 0,
-    ] as [number, number],
-    netWinRate:
-      (r[`${prefix}_net_win_rate` as keyof ValidationStatsRow] as
-        | number
-        | null) ?? null,
-    netWinRateCI: [
-      (r[`${prefix}_net_win_rate_ci_lower` as keyof ValidationStatsRow] as
-        | number
-        | null) ?? 0,
-      (r[`${prefix}_net_win_rate_ci_upper` as keyof ValidationStatsRow] as
-        | number
-        | null) ?? 0,
-    ] as [number, number],
-    costBps:
-      (r[`${prefix}_cost_bps` as keyof ValidationStatsRow] as number | null) ??
-      null,
-    wins: r[`${prefix}_wins` as keyof ValidationStatsRow] as number | null,
-    brierScore: r[`${prefix}_mean_brier` as keyof ValidationStatsRow] as
-      | number
-      | null,
-    sampleSize: r[`${prefix}_total_calls` as keyof ValidationStatsRow] as
-      | number
-      | null,
-    avgReturnBps: r[
-      `${prefix}_mean_log_return_bps` as keyof ValidationStatsRow
-    ] as number | null,
-    sharpeLike: r[`${prefix}_sharpe_like` as keyof ValidationStatsRow] as
-      | number
-      | null,
-    rolling90dAccuracy: r[
-      `${prefix}_rolling_90d_accuracy` as keyof ValidationStatsRow
-    ] as number | null,
-    asOfDate: r.as_of_date,
-  });
-
-  return latest.map(mapRow);
+  const rows = (await fetchValidationCohort(
+    supabase,
+    "validation_stats",
+    null,
+    dataSource,
+    modelVersion,
+  )) as ValidationStatsRow[];
+  const seen = new Set<string>();
+  return rows
+    .filter((r) => {
+      if (seen.has(r.pair)) return false;
+      seen.add(r.pair);
+      return true;
+    })
+    .map((r) => {
+      const number = (suffix: string): number | null => {
+        const value = r[`${horizon}_${suffix}` as keyof ValidationStatsRow];
+        return typeof value === "number" && Number.isFinite(value)
+          ? value
+          : null;
+      };
+      const interval = (prefix: string): [number, number] | null => {
+        const low = number(`${prefix}_ci_lower`);
+        const high = number(`${prefix}_ci_upper`);
+        return low !== null && high !== null ? [low, high] : null;
+      };
+      const directional = number("directional_calls") ?? 0;
+      const total = number("total_calls") ?? 0;
+      return {
+        pair: PAIR_LABELS[r.pair] ?? r.pair,
+        horizon,
+        winRate: number("win_rate"),
+        winRateCI: interval("win_rate"),
+        netWinRate: number("net_win_rate"),
+        netWinRateCI: interval("net_win_rate"),
+        costBps: number("cost_bps"),
+        wins: number("wins"),
+        brierScore: number("mean_brier"),
+        sampleSize: directional,
+        directionalCalls: directional,
+        totalCalls: total,
+        evaluationCalls: number("evaluation_calls") ?? 0,
+        missingEvaluationCalls: number("missing_evaluation_calls") ?? 0,
+        populationVersion: r.population_version,
+        matureCalls: number("mature_calls") ?? 0,
+        pendingCalls: number("pending_calls") ?? 0,
+        unknownDirectionCalls: number("unknown_direction_calls") ?? 0,
+        netSampleSize: number("net_directional_calls"),
+        brierSampleSize: number("probability_score_calls") ?? 0,
+        abstainedCalls: number("abstention_calls") ?? 0,
+        missingOutcomeCalls: number("missing_outcome_calls") ?? 0,
+        coverage: total > 0 ? directional / total : null,
+        avgReturnBps: number("mean_signed_gross_return_bps"),
+        sharpeLike: null,
+        rolling90dAccuracy: number("rolling_90d_accuracy"),
+        asOfDate: r.as_of_date,
+        dataSource: r.data_source ?? "unknown",
+        strategyVersion: r.strategy_version,
+        modelVersion: r.model_version,
+        evaluationVersion: r.evaluation_version,
+        windowDays: r.window_days,
+      };
+    });
 }
 
 export async function getValidationLogT5T20(
   supabase: TypedSupabaseClient,
-  limit = 100,
+  limit: number | null = 100,
   dataSource = "live",
+  modelVersion?: string,
 ): Promise<ValidationRowT5[]> {
-  let q = supabase
-    .from("validation_log")
-    .select("*")
-    .eq("is_superseded", false)
-    .not("brier_score_t5", "is", null)
-    .order("date", { ascending: false })
-    .limit(limit);
-  // validation_log does not have data_source column; filter by date instead
-  if (dataSource === "live") q = q.gte("date", "2026-05-01");
-  else if (dataSource === "backtest") q = q.lt("date", "2026-05-01");
-  const { data, error } = await q;
-
-  if (error || !data) return [];
-
-  // Fetch predicted_direction from regime_calls via call_id
-  const callIds = (data as ValidationLogRow[])
-    .map((r) => r.call_id)
-    .filter((id): id is number => id != null);
-
-  const predictedMap = new Map<number, string>();
-  if (callIds.length > 0) {
-    const { data: regimeData } = await supabase
-      .from("regime_calls")
-      .select("id, predicted_direction")
-      .in("id", callIds);
-    for (const rc of (regimeData ?? []) as Array<{
-      id: number | null;
-      predicted_direction: string | null;
-    }>) {
-      if (rc.id != null && rc.predicted_direction) {
-        predictedMap.set(rc.id, rc.predicted_direction);
-      }
-    }
-  }
-
-  const PAIR_DISPLAY: Record<string, string> = {
-    EURUSD: "EUR/USD",
-    USDJPY: "USD/JPY",
-    USDINR: "USD/INR",
-  };
-
-  return (data as ValidationLogRow[]).map((r) => ({
-    date: r.date,
-    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    predicted: r.call_id != null ? (predictedMap.get(r.call_id) ?? "—") : "—",
-    t5ReturnBps: r.log_return_t5_bps,
-    t5ReturnNetBps:
-      (r as ValidationLogRow & { log_return_net_bps_t5: number | null })
-        .log_return_net_bps_t5 ?? null,
-    t5Outcome: r.correct_t5
-      ? "CORRECT"
-      : r.actual_direction_t5 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t5 != null
-          ? "WRONG"
-          : "—",
-    t5CorrectNet:
-      (r as ValidationLogRow & { correct_net_t5: boolean | null })
-        .correct_net_t5 ?? null,
-    t5CostBps:
-      (r as ValidationLogRow & { cost_bps_t5: number | null }).cost_bps_t5 ??
-      null,
-    t5Brier: r.brier_score_t5,
-    t20ReturnBps: r.log_return_t20_bps,
-    t20ReturnNetBps:
-      (r as ValidationLogRow & { log_return_net_bps_t20: number | null })
-        .log_return_net_bps_t20 ?? null,
-    t20Outcome: r.correct_t20
-      ? "CORRECT"
-      : r.actual_direction_t20 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t20 != null
-          ? "WRONG"
-          : "—",
-    t20CorrectNet:
-      (r as ValidationLogRow & { correct_net_t20: boolean | null })
-        .correct_net_t20 ?? null,
-    t20CostBps:
-      (r as ValidationLogRow & { cost_bps_t20: number | null }).cost_bps_t20 ??
-      null,
-    t20Brier: r.brier_score_t20,
-  }));
+  const rows = await fetchValidationCohort(
+    supabase,
+    "validation_observations",
+    limit,
+    dataSource,
+    modelVersion,
+  );
+  return (rows as ValidationObservationRow[]).map(toValidationRow);
 }
 
 export interface RegimeBreakdownRow {
@@ -484,170 +516,36 @@ export interface RegimeBreakdownRow {
 
 export async function getRegimeBreakdown(
   supabase: TypedSupabaseClient,
-  limit = 100,
+  limit: number | null = 100,
   dataSource = "live",
+  modelVersion?: string,
 ): Promise<RegimeBreakdownRow[]> {
-  // 1. Fetch validation outcomes (current versions only)
-  let q = supabase
-    .from("validation_log")
-    .select(
-      "date, pair, correct_t5, actual_direction_t5, correct_t20, actual_direction_t20",
-    )
-    .eq("is_superseded", false)
-    .not("brier_score_t5", "is", null)
-    .order("date", { ascending: false })
-    .limit(limit);
-  // validation_log does not have data_source column; filter by date instead
-  if (dataSource === "live") q = q.gte("date", "2026-05-01");
-  else if (dataSource === "backtest") q = q.lt("date", "2026-05-01");
-  const { data: valData, error: valError } = await q;
-
-  if (valError || !valData) return [];
-
-  interface ValRow {
-    date: string;
-    pair: string;
-  }
-  interface RegimeRow {
-    date: string;
-    pair: string;
-    regime: string;
-  }
-
-  // 2. Fetch corresponding regime names from regime_calls
-  const pairs = [...new Set((valData as ValRow[]).map((r) => r.pair))];
-  const dates = [...new Set((valData as ValRow[]).map((r) => r.date))];
-  const { data: regimeData, error: regimeError } = await supabase
-    .from("regime_calls")
-    .select("date, pair, regime")
-    .in("pair", pairs)
-    .in("date", dates);
-
-  if (regimeError || !regimeData) return [];
-
-  const regimeMap = new Map<string, string>();
-  for (const r of regimeData as RegimeRow[]) {
-    regimeMap.set(`${r.date}|${r.pair}`, r.regime);
-  }
-
-  const PAIR_DISPLAY: Record<string, string> = {
-    EURUSD: "EUR/USD",
-    USDJPY: "USD/JPY",
-    USDINR: "USD/INR",
-  };
-
-  return (valData as ValidationLogRow[]).map((r) => ({
-    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    regime: regimeMap.get(`${r.date}|${r.pair}`) ?? "UNKNOWN",
-    t5Outcome: r.correct_t5
-      ? "CORRECT"
-      : r.actual_direction_t5 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t5 != null
-          ? "WRONG"
-          : "—",
-    t20Outcome: r.correct_t20
-      ? "CORRECT"
-      : r.actual_direction_t20 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t20 != null
-          ? "WRONG"
-          : "—",
+  return (
+    await getValidationLogT5T20(supabase, limit, dataSource, modelVersion)
+  ).map((r) => ({
+    pair: r.pair,
+    regime: r.regime ?? "UNKNOWN",
+    t5Outcome: r.t5Outcome,
+    t20Outcome: r.t20Outcome,
   }));
 }
 
 export async function getValidationLogForPair(
   supabase: TypedSupabaseClient,
   pair: string,
-  limit = 200,
+  limit: number | null = 200,
 ): Promise<ValidationRowT5[]> {
-  const PAIR_CODE: Record<string, string> = {
-    "EUR/USD": "EURUSD",
-    "USD/JPY": "USDJPY",
-    "USD/INR": "USDINR",
-  };
-  const code = PAIR_CODE[pair] ?? pair;
-
-  // Fetch validation_log rows (current versions only)
-  const { data: valData, error: valError } = await supabase
-    .from("validation_log")
-    .select("*")
-    .eq("pair", code)
-    .eq("is_superseded", false)
-    .not("brier_score_t5", "is", null)
-    .order("date", { ascending: false })
-    .limit(limit);
-
-  if (valError || !valData) return [];
-
-  // Fetch predicted_direction from regime_calls via call_id
-  const callIds = (valData as ValidationLogRow[])
-    .map((r) => r.call_id)
-    .filter((id): id is number => id != null);
-
-  const predictedMap = new Map<number, string>();
-  if (callIds.length > 0) {
-    const { data: regimeData } = await supabase
-      .from("regime_calls")
-      .select("id, predicted_direction")
-      .in("id", callIds);
-    for (const rc of (regimeData ?? []) as Array<{
-      id: number | null;
-      predicted_direction: string | null;
-    }>) {
-      if (rc.id != null && rc.predicted_direction) {
-        predictedMap.set(rc.id, rc.predicted_direction);
-      }
-    }
-  }
-
-  const PAIR_DISPLAY: Record<string, string> = {
-    EURUSD: "EUR/USD",
-    USDJPY: "USD/JPY",
-    USDINR: "USD/INR",
-  };
-
-  return (valData as ValidationLogRow[]).map((r) => ({
-    date: r.date,
-    pair: PAIR_DISPLAY[r.pair] ?? r.pair,
-    predicted: r.call_id != null ? (predictedMap.get(r.call_id) ?? "—") : "—",
-    t5ReturnBps: r.log_return_t5_bps,
-    t5ReturnNetBps:
-      (r as ValidationLogRow & { log_return_net_bps_t5: number | null })
-        .log_return_net_bps_t5 ?? null,
-    t5Outcome: r.correct_t5
-      ? "CORRECT"
-      : r.actual_direction_t5 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t5 != null
-          ? "WRONG"
-          : "—",
-    t5CorrectNet:
-      (r as ValidationLogRow & { correct_net_t5: boolean | null })
-        .correct_net_t5 ?? null,
-    t5CostBps:
-      (r as ValidationLogRow & { cost_bps_t5: number | null }).cost_bps_t5 ??
-      null,
-    t5Brier: r.brier_score_t5,
-    t20ReturnBps: r.log_return_t20_bps,
-    t20ReturnNetBps:
-      (r as ValidationLogRow & { log_return_net_bps_t20: number | null })
-        .log_return_net_bps_t20 ?? null,
-    t20Outcome: r.correct_t20
-      ? "CORRECT"
-      : r.actual_direction_t20 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t20 != null
-          ? "WRONG"
-          : "—",
-    t20CorrectNet:
-      (r as ValidationLogRow & { correct_net_t20: boolean | null })
-        .correct_net_t20 ?? null,
-    t20CostBps:
-      (r as ValidationLogRow & { cost_bps_t20: number | null }).cost_bps_t20 ??
-      null,
-    t20Brier: r.brier_score_t20,
-  }));
+  const code = pair.replaceAll("/", "");
+  return (
+    (await fetchValidationCohort(
+      supabase,
+      "validation_observations",
+      limit,
+      "live",
+      undefined,
+      code,
+    )) as ValidationObservationRow[]
+  ).map(toValidationRow);
 }
 
 export async function getHistoricalRegimeCalls(
@@ -655,21 +553,18 @@ export async function getHistoricalRegimeCalls(
   pair: string,
   limit = 30,
 ) {
-  const { data, error } = await supabase
-    .from("regime_calls")
-    .select(
-      "date,regime,confidence,signal_composite,primary_driver,rate_signal,entry_timing,position_size,stop_level,created_at,predicted_direction",
-    )
-    .eq("pair", pair)
-    .order("date", { ascending: false })
-    .limit(limit);
-
-  if (error || !data) return [];
-  return data as Array<{
+  if (!Number.isInteger(limit) || limit < 0)
+    throw new Error("Invalid publication history limit");
+  if (limit === 0) return [];
+  const pairCode = pair.replaceAll("/", "");
+  if (!(LIVE_PUBLICATION_PAIRS as readonly string[]).includes(pairCode))
+    throw new Error(`Unsupported publication pair: ${pair}`);
+  type HistoryRow = {
+    id: number;
     date: string;
     regime: string;
-    confidence: number;
-    signal_composite: number;
+    confidence: number | null;
+    signal_composite: number | null;
     primary_driver: string | null;
     rate_signal: string | null;
     entry_timing: string | null;
@@ -677,7 +572,37 @@ export async function getHistoricalRegimeCalls(
     stop_level: number | null;
     created_at: string | null;
     predicted_direction: string | null;
-  }>;
+    model_version: string | null;
+  };
+  const history: HistoryRow[] = [];
+  const seenDates = new Set<string>();
+  let offset = 0;
+  while (history.length < limit) {
+    const { data, error } = await supabase
+      .from("regime_calls")
+      .select(
+        "id,date,regime,confidence,signal_composite,primary_driver,rate_signal,entry_timing,position_size,stop_level,created_at,predicted_direction,model_version",
+      )
+      .eq("pair", pairCode)
+      .eq("data_source", "live")
+      .eq("strategy_version", "v2")
+      .lte("date", todayUtc())
+      .order("date", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + PUBLICATION_PAGE_SIZE - 1);
+    if (error)
+      throw new Error(`Publication history unavailable: ${error.message}`);
+    if (!data) throw new Error("Publication history returned no response");
+    for (const row of data as HistoryRow[]) {
+      if (seenDates.has(row.date)) continue;
+      seenDates.add(row.date);
+      history.push(row);
+      if (history.length === limit) break;
+    }
+    if (data.length < PUBLICATION_PAGE_SIZE) break;
+    offset += data.length;
+  }
+  return history;
 }
 
 export async function getSignalHistory(
@@ -721,26 +646,23 @@ export async function getPairValidationSummary(
   supabase: TypedSupabaseClient,
   pair: string,
 ): Promise<PairValidationSummary | null> {
-  const { data, error } = await supabase
-    .from("validation_stats")
-    .select("*")
-    .eq("pair", pair)
-    .order("as_of_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error || !data) return null;
-
-  const row = data as ValidationStatsRow;
+  const [t5, t20] = await Promise.all([
+    getValidationStats(supabase, "t5"),
+    getValidationStats(supabase, "t20"),
+  ]);
+  const label = PAIR_LABELS[pair] ?? pair;
+  const a = t5.find((r) => r.pair === label);
+  const b = t20.find((r) => r.pair === label);
+  if (!a && !b) return null;
   return {
-    t5WinRate: row.t5_win_rate,
-    t5Brier: row.t5_mean_brier,
-    t5SampleSize: row.t5_total_calls,
-    t5SharpeLike: row.t5_sharpe_like,
-    t20WinRate: row.t20_win_rate,
-    t20Brier: row.t20_mean_brier,
-    t20SampleSize: row.t20_total_calls,
-    t20SharpeLike: row.t20_sharpe_like,
+    t5WinRate: a?.winRate ?? null,
+    t5Brier: a?.brierScore ?? null,
+    t5SampleSize: a?.sampleSize ?? null,
+    t5SharpeLike: null,
+    t20WinRate: b?.winRate ?? null,
+    t20Brier: b?.brierScore ?? null,
+    t20SampleSize: b?.sampleSize ?? null,
+    t20SharpeLike: null,
   };
 }
 
@@ -760,38 +682,15 @@ export async function getPairValidationHistory(
   pair: string,
   limit = 20,
 ): Promise<PairValidationHistoryItem[]> {
-  const { data, error } = await supabase
-    .from("validation_log")
-    .select("*")
-    .eq("pair", pair)
-    .eq("is_superseded", false)
-    .not("brier_score_t5", "is", null)
-    .order("date", { ascending: false })
-    .limit(limit);
-
-  if (error || !data) return [];
-
-  return (data as ValidationLogRow[]).map((r) => ({
+  return (await getValidationLogForPair(supabase, pair, limit)).map((r) => ({
     date: r.date,
-    predicted: "—",
-    t5Outcome: r.correct_t5
-      ? "CORRECT"
-      : r.actual_direction_t5 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t5 != null
-          ? "WRONG"
-          : "—",
-    t5ReturnBps: r.log_return_t5_bps,
-    t5Brier: r.brier_score_t5,
-    t20Outcome: r.correct_t20
-      ? "CORRECT"
-      : r.actual_direction_t20 === "NEUTRAL"
-        ? "NEUTRAL"
-        : r.actual_direction_t20 != null
-          ? "WRONG"
-          : "—",
-    t20ReturnBps: r.log_return_t20_bps,
-    t20Brier: r.brier_score_t20,
+    predicted: r.predicted,
+    t5Outcome: r.t5Outcome,
+    t5ReturnBps: r.t5ReturnBps,
+    t5Brier: r.t5Brier,
+    t20Outcome: r.t20Outcome,
+    t20ReturnBps: r.t20ReturnBps,
+    t20Brier: r.t20Brier,
   }));
 }
 
@@ -1168,41 +1067,26 @@ export interface AccuracyAlert {
 export async function getLatestAccuracyAlerts(
   supabase: TypedSupabaseClient,
 ): Promise<AccuracyAlert[]> {
-  const { data, error } = await supabase
-    .from("validation_stats")
-    .select("*")
-    .order("as_of_date", { ascending: false })
-    .limit(20);
-
-  if (error || !data) return [];
-
-  const rows = data as ValidationStatsRow[];
-  const latestDate = rows[0]?.as_of_date;
-  if (!latestDate) return [];
-
-  const latest = rows.filter(
-    (r) => r.as_of_date === latestDate && r.pair !== "ALL",
-  );
-  const alerts: AccuracyAlert[] = [];
-
-  for (const row of latest) {
-    const acc =
-      row.t5_rolling_90d_accuracy ?? row.t20_rolling_90d_accuracy ?? null;
-    if (acc == null) continue;
-
+  const stats = await getValidationStats(supabase, "t5");
+  return stats.flatMap((row) => {
+    if (row.pair === "ALL" || row.rolling90dAccuracy == null) return [];
+    const pair = row.pair.replaceAll("/", "");
     const gate =
-      row.pair === "EURUSD" ? EURUSD_ACCURACY_GATE : DEFAULT_ACCURACY_GATE;
-    if (acc < gate) {
-      alerts.push({
-        pair: row.pair,
-        accuracy: acc,
-        threshold: gate,
-        severity: acc < DEFAULT_ACCURACY_GATE ? "critical" : "warning",
-      });
-    }
-  }
-
-  return alerts;
+      pair === "EURUSD" ? EURUSD_ACCURACY_GATE : DEFAULT_ACCURACY_GATE;
+    return row.rolling90dAccuracy < gate
+      ? [
+          {
+            pair,
+            accuracy: row.rolling90dAccuracy,
+            threshold: gate,
+            severity:
+              row.rolling90dAccuracy < DEFAULT_ACCURACY_GATE
+                ? ("critical" as const)
+                : ("warning" as const),
+          },
+        ]
+      : [];
+  });
 }
 
 /* ─── Backtest / Versioned Queries ─────────────────────────────────────── */
@@ -1210,18 +1094,25 @@ export async function getLatestAccuracyAlerts(
 export async function getBacktestVersions(
   supabase: TypedSupabaseClient,
 ): Promise<string[]> {
-  const { data, error } = await supabase
-    // biome-ignore lint/suspicious/noExplicitAny: table not present in generated Supabase types yet
-    .from("backtest_versions" as any)
-    .select("version")
-    .eq("is_public", true)
-    .order("version", { ascending: false });
-
-  if (error || !data) return ["v2"];
-  const versions = (data as Array<{ version: string | null }>)
-    .map((r) => r.version)
-    .filter((v): v is string => v != null);
-  return versions.length > 0 ? versions : ["v2"];
+  const versions = new Set<string>();
+  let offset = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("regime_calls")
+      .select("id,model_version")
+      .eq("data_source", "backtest")
+      .eq("strategy_version", "v2")
+      .order("id")
+      .range(offset, offset + 999);
+    if (error)
+      throw new Error(`Backtest versions unavailable: ${error.message}`);
+    if (!data) throw new Error("Backtest versions returned no response");
+    for (const row of data as Pick<RegimeCallRow, "id" | "model_version">[])
+      if (row.model_version?.trim()) versions.add(row.model_version);
+    if (data.length < 1000) break;
+    offset += data.length;
+  }
+  return [...versions].sort().reverse();
 }
 
 export interface VersionedRegimeCall {
@@ -1256,6 +1147,8 @@ export async function getRegimeCallsByVersion(
       "id,pair,date,regime,confidence,signal_composite,predicted_direction,primary_driver,model_version,rate_signal,cot_signal,vol_signal,rr_signal,oi_signal,entry_timing,created_at",
     )
     .eq("model_version", version)
+    .eq("data_source", "backtest")
+    .eq("strategy_version", "v2")
     .order("date", { ascending: false })
     .limit(limit);
 
@@ -1265,7 +1158,8 @@ export async function getRegimeCallsByVersion(
   }
 
   const { data, error } = await q;
-  if (error || !data) return [];
+  if (error) throw new Error(`Versioned calls unavailable: ${error.message}`);
+  if (!data) return [];
   return data as VersionedRegimeCall[];
 }
 
@@ -1365,81 +1259,28 @@ export async function getValidationByVersion(
   horizon?: "t5" | "t20",
   limit = 100,
 ): Promise<VersionedValidationRow[]> {
-  let q = supabase
-    .from("validation_log")
-    .select(
-      "date,pair,predicted_direction,confidence,t5Outcome:correct_t5,t20Outcome:correct_t20,t5ReturnBps:log_return_t5_bps,t20ReturnBps:log_return_t20_bps,t5Brier:brier_score_t5,t20Brier:brier_score_t20,regime_calls!inner(model_version)",
-    )
-    .eq("is_superseded", false)
-    .eq("regime_calls.model_version", version)
-    .order("date", { ascending: false })
-    .limit(limit);
-
-  if (pair) q = q.eq("pair", pair);
-  if (horizon === "t5") {
-    q = q.not("correct_t5", "is", null);
-  } else if (horizon === "t20") {
-    q = q.not("correct_t20", "is", null);
-  }
-
-  const { data, error } = await q;
-  if (error || !data) {
-    // Fallback: fetch validation_log and filter in-memory if join fails
-    const { data: fallback, error: fallbackErr } = await supabase
-      .from("validation_log")
-      .select("*")
-      .eq("is_superseded", false)
-      .order("date", { ascending: false })
-      .limit(limit);
-    if (fallbackErr || !fallback) return [];
-    let rows = fallback as ValidationLogRow[];
-    if (pair) rows = rows.filter((r) => r.pair === pair);
-    return rows.map((r) => ({
-      date: r.date,
-      pair: r.pair,
-      predicted: null,
+  const raw = (await fetchValidationCohort(
+    supabase,
+    "validation_observations",
+    null,
+    "backtest",
+    version,
+    pair,
+  )) as ValidationObservationRow[];
+  return raw
+    .map((r) => ({
+      ...toValidationRow(r),
       confidence: r.confidence,
-      t5Outcome: r.correct_t5
-        ? "CORRECT"
-        : r.correct_t5 === false
-          ? "WRONG"
-          : "PENDING",
-      t20Outcome: r.correct_t20
-        ? "CORRECT"
-        : r.correct_t20 === false
-          ? "WRONG"
-          : "PENDING",
-      t5ReturnBps: r.log_return_t5_bps,
-      t20ReturnBps: r.log_return_t20_bps,
-      t5Brier: r.brier_score_t5,
-      t20Brier: r.brier_score_t20,
-      model_version: null,
-    }));
-  }
-
-  return (data as unknown as Array<Record<string, unknown>>).map((r) => ({
-    date: String(r.date),
-    pair: String(r.pair),
-    predicted: r.predicted_direction ? String(r.predicted_direction) : null,
-    confidence: r.confidence != null ? Number(r.confidence) : null,
-    t5Outcome: r.correct_t5
-      ? "CORRECT"
-      : r.correct_t5 === false
-        ? "WRONG"
-        : "PENDING",
-    t20Outcome: r.correct_t20
-      ? "CORRECT"
-      : r.correct_t20 === false
-        ? "WRONG"
-        : "PENDING",
-    t5ReturnBps:
-      r.log_return_t5_bps != null ? Number(r.log_return_t5_bps) : null,
-    t20ReturnBps:
-      r.log_return_t20_bps != null ? Number(r.log_return_t20_bps) : null,
-    t5Brier: r.brier_score_t5 != null ? Number(r.brier_score_t5) : null,
-    t20Brier: r.brier_score_t20 != null ? Number(r.brier_score_t20) : null,
-    model_version: version,
-  }));
+      model_version: r.model_version,
+    }))
+    .filter(
+      (r) =>
+        !horizon ||
+        (horizon === "t5"
+          ? ["CORRECT", "WRONG"].includes(r.t5Outcome)
+          : ["CORRECT", "WRONG"].includes(r.t20Outcome)),
+    )
+    .slice(0, limit);
 }
 
 export interface VersionedRegimeBreakdownRow {
@@ -1453,38 +1294,31 @@ export interface VersionedRegimeBreakdownRow {
 export async function getRegimeBreakdownByVersion(
   supabase: TypedSupabaseClient,
   version: string,
-  limit = 100,
+  _limit = 100,
 ): Promise<VersionedRegimeBreakdownRow[]> {
-  const { data, error } = await supabase
-    .from("regime_calls")
-    .select("pair,regime")
-    .eq("model_version", version)
-    .order("date", { ascending: false })
-    .limit(limit);
-
-  if (error || !data) return [];
-
-  const counts = new Map<
-    string,
-    { pair: string; regime: string; count: number }
-  >();
-  for (const row of data as Array<{ pair: string; regime: string }>) {
+  const rows = await getRegimeBreakdown(supabase, null, "backtest", version);
+  const groups = new Map<string, RegimeBreakdownRow[]>();
+  for (const row of rows) {
     const key = `${row.pair}::${row.regime}`;
-    const existing = counts.get(key);
-    if (existing) {
-      existing.count++;
-    } else {
-      counts.set(key, { pair: row.pair, regime: row.regime, count: 1 });
-    }
+    groups.set(key, [...(groups.get(key) ?? []), row]);
   }
-
-  return Array.from(counts.values()).map((c) => ({
-    pair: c.pair,
-    regime: c.regime,
-    count: c.count,
-    winRateT5: null,
-    winRateT20: null,
-  }));
+  return [...groups.values()].map((group) => {
+    const accuracy = (h: "t5Outcome" | "t20Outcome") => {
+      const eligible = group.filter(
+        (r) => r[h] === "CORRECT" || r[h] === "WRONG",
+      );
+      return eligible.length
+        ? eligible.filter((r) => r[h] === "CORRECT").length / eligible.length
+        : null;
+    };
+    return {
+      pair: group[0].pair,
+      regime: group[0].regime,
+      count: group.length,
+      winRateT5: accuracy("t5Outcome"),
+      winRateT20: accuracy("t20Outcome"),
+    };
+  });
 }
 
 /* ─── Site Content (CMS) ──────────────────────────────────────────────── */

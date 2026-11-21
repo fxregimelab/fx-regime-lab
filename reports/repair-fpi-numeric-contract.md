@@ -1,0 +1,15 @@
+# FPI numeric contract repair
+
+27 September 2026. Local changes on `codex/frontend`, base `9fa150538d08ab5a2a6c587976552944f47a724d`. This fixes arithmetic safety; it does not qualify an FPI data source or demonstrate forecasting skill.
+
+Direct pre-fix counterexamples returned +1.0 for both NaN and positive infinity supplied as the latest flow. A zero-width window silently used the entire history. The normalizer now rejects invalid observed numbers as unavailable and rejects invalid window configuration with ValueError. Boolean values, numeric strings, missing historical observations, non-finite values and conversion overflow cannot become neutral or maximum directional evidence. Supplied prior history remains distinct from the current observation and is not mutated.
+
+Finite arithmetic also needs checking: the first regression run caught a median-absolute-deviation overflow returning an artificial zero. Non-finite median, absolute deviation or scale now returns unavailable, as does non-finite final arithmetic. The existing near-zero-deviation policy remains zero and is not newly validated as an economic rule.
+
+The score is a deviation from the prior median, not the sign of cash flow. An independent fixture with prior values 10 through 29 has median 19.5 and median absolute deviation 5. A positive current inflow of 18 produces -1.5 / (1.4826 * 5); converting that candidate once into USDINR direction reverses its sign. The original cash flow remains positive. A separate 10-observation trailing-window fixture uses median 14.5 and deviation 2.5, distinguishing the latest window from the full or oldest history.
+
+Focused pytest: 27 passed, including 23 new cases and four existing cases. Scoped Ruff passed. The parent reran leaf18.6:G1 through the approved checker; it passed with current automatic evidence. A separate read-only worker independently reviewed the numerical contract, probed additional finite-overflow cases and reran all 27 tests; no actionable defect was found. Integrated verification is recorded in the packet integration report when complete.
+
+GitNexus upstream analysis for `normalize_fpi_signal` reported CRITICAL, 33 direct dependents and seven flows; the graph repeated unrelated UI references. `_mad_z` resolved the wrong intervention file despite a supplied FPI path, so its LOW count is not accepted as the real blast radius. Direct inspection identifies the FPI normalizer as this helper's caller and the scheduler as the live consumer. The new test function was absent from the index. These limitations and the critical warning were reported before edits; no index rebuild or commit occurred.
+
+The central historical reader still omits `fpi_flow`; its descending order also conflicts with the normalizer's chronological input contract. Release timestamps and actual source qualification remain missing. Adding a column alone would not safely activate this feature. No provider request, credential access, production write, paid AI, notification, runtime startup or release was used for these tests.

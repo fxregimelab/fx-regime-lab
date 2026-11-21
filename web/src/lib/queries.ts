@@ -89,13 +89,13 @@ export type MarkovPayload = {
 };
 
 export type TelemetryAuditPayload = {
-  cot_is_stale?: boolean;
+  cot_is_stale?: boolean | null;
   cot_age_days?: number | null;
-  underwater_triggered?: boolean;
+  underwater_triggered?: boolean | null;
   parameter_instability?: boolean;
   weighted_sample_size?: number;
   overnight_day_change_pct?: number;
-  Systemic_Cluster?: boolean;
+  Systemic_Cluster?: boolean | null;
   overnight_vol_threshold?: number;
   overnight_vix?: number | null;
   overnight_dxy?: number | null;
@@ -103,6 +103,8 @@ export type TelemetryAuditPayload = {
   rate_z_tactical_mad?: number | null;
   rate_z_structural_mad?: number | null;
   dynamic_beta?: number | null;
+  crowding_diagnostic?: unknown;
+  ranking_status?: unknown;
 };
 
 export type DeskOpenCardSnapshotRow = {
@@ -219,7 +221,9 @@ function mapDeskRow(row: DeskOpenCardsRow): DeskOpenCardSnapshotRow {
     pair: row.pair,
     structural_regime: row.structural_regime,
     dominance_array: (row.dominance_array as DominanceItem[] | null) ?? [],
-    pain_index: row.pain_index,
+    // Stored legacy values remain untouched in the database, but the current
+    // reader never promotes them as accepted measurements.
+    pain_index: null,
     markov_probabilities:
       (row.markov_probabilities as MarkovPayload | null) ?? null,
     ai_brief: row.ai_brief,
@@ -227,16 +231,10 @@ function mapDeskRow(row: DeskOpenCardsRow): DeskOpenCardSnapshotRow {
     parameter_instability: Boolean(audit?.parameter_instability),
     invalidation_triggered: Boolean(row.invalidation_triggered),
     telemetry_status: row.telemetry_status ?? "ONLINE",
-    global_rank: row.global_rank ?? null,
-    apex_score: row.apex_score ?? null,
+    global_rank: null,
+    apex_score: null,
     regime_age: row.regime_age ?? null,
   };
-}
-
-function utcPrevCalendarDay(isoDate: string): string {
-  const d = new Date(`${isoDate}T12:00:00.000Z`);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
 }
 
 export function useLatestDeskOpenCardsSnapshot() {
@@ -267,32 +265,7 @@ export function useLatestDeskOpenCardsSnapshot() {
       if (error) throw error;
       const cards = ((rows as DeskOpenCardsRow[]) ?? []).map(mapDeskRow);
 
-      const prevDay = utcPrevCalendarDay(latest);
-      const { data: prevRows, error: prevErr } = await supabase
-        .from("desk_open_cards")
-        .select("pair, global_rank")
-        .eq("date", prevDay)
-        .in("pair", pairs);
-      if (prevErr) throw prevErr;
-
-      const prevRankByPair: Record<string, number> = {};
-      for (const r of (prevRows as {
-        pair: string;
-        global_rank: number | null;
-      }[]) ?? []) {
-        if (r.global_rank != null) prevRankByPair[r.pair] = r.global_rank;
-      }
-
-      const rankJumpByPair: Record<string, number> = {};
-      for (const c of cards) {
-        const prev = prevRankByPair[c.pair];
-        const curr = c.global_rank;
-        if (prev != null && curr != null && prev > curr) {
-          rankJumpByPair[c.pair] = prev - curr;
-        }
-      }
-
-      return { asOfDate: latest, cards, rankJumpByPair };
+      return { asOfDate: latest, cards, rankJumpByPair: {} };
     },
     enabled: universeQ.isSuccess && pairs.length > 0,
     staleTime: 60000,

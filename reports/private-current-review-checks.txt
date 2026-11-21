@@ -1,0 +1,53 @@
+Verification receipt, 1 October 2026.
+This is a concise record of observed command results, not a raw terminal transcript or automatic gate certificate.
+
+CWD: D:/Projects/fxregimelab/pipeline
+Command: python -m src.private_desk.cli checks
+Result: 2439 passed in 68.46s
+Ruff: All checks passed!
+MyPy: Success: no issues found in 256 source files
+Success marker: PRIVATE_DESK_CHECKS_OK
+
+Command: python -m pytest tests/test_private_desk_current_review.py tests/test_private_desk_report.py tests/test_private_desk_api.py tests/test_private_desk_data.py -q
+Result: 129 passed in 4.67s
+
+Command: python -m src.private_desk.cli replay
+All seven pinned daily/reference/session/bidask replays passed.
+HISTORICAL_VINTAGE_REPLAY_OK
+HISTORICAL_RELEASE_REPLAY_OK
+PRIVATE_PORTFOLIO_REPLAY_OK
+HISTORICAL_POLICY_REPLAY_OK
+CURRENT_REVIEW_REPLAY_OK
+PRIVATE_DESK_REPLAY_OK 13.15s
+No model call was made by replay.
+
+CWD: D:/Projects/fxregimelab
+Command: node private-desk/verify-ui.mjs
+PASS 1: HTML, script syntax, accessibility hooks and safe content sinks
+PASS 2: All seven pairs, missing observations, null probability and empty charts
+PASS 3: Engine schema, charts, long-history separation, session evidence, pagination and untrusted content
+PASS 4: Authentication, failed login, CSRF refresh, progress, report recovery, export and logout
+PRIVATE_DESK_UI_VERIFIED
+
+Direct final artifact comparison and verify_current_review:
+All non-context top-level and pair fields equal the original policy report: true.
+Original policy report byte hash unchanged: true.
+Final latest report byte hash: 7b075844f1d1ad7594e13b4284dde06f24d0f2bbb003a2023c3dc747a73638da
+All seven current candidates: ABSTAIN; probability null.
+
+Final implementation SHA-256:
+a6ae28663c93e9bc73c634982cb172d1c439a6db6768a042f463d9bf93d25949  pipeline/src/ai/client.py
+2bf3000cf95035f6fc37940687a9ebdc1507f2d7311141949cfffa87ab4204e5  pipeline/src/private_desk/current_review.py
+e684e1ffec96e67fd989124e7b5e18776c752c9dbc72854d8a006f41cff2ad9c  pipeline/src/private_desk/report.py
+5271ef3a9dcece993e5d43381a74ff9505df81edd489d8d52a0498b4e8aa128a  pipeline/src/private_desk/cli.py
+b014736fdf430c10fe2caeab9aacc1e2ea46ff130f2fd7bdf99367752d3c4f65  pipeline/src/private_desk/data.py
+dd10794f6d88dbb8ffccf4b33a06bd96ad44dce3a05a4e5c9375ff0c580f8acd  pipeline/tests/test_private_desk_current_review.py
+f7466263da3feca83b241cf16dca9bc47f2d0e602531a51d07b3969be952613e  pipeline/tests/test_private_desk_report.py
+10c1660115ebf150b3fbc01d9c49afa312b58f3232f8cb505718843d89d85ba9  pipeline/tests/test_private_desk_api.py
+0324277d36782bcf2521929f50d652520737c9bc87b08b157fd75370cffa8b33  pipeline/tests/test_private_desk_data.py
+16ac76b35578d4683f145872cdbe2620406c46e3a9f76ae7ca821d3b03e4b80c  private-desk/index.html
+a9b8ef1e53245f834ad592976e51057e79c3057ad54a3264908c19ff708f0b64  private-desk/verify-ui.mjs
+3d173d75faaa47bf4fad1ee7623a13b66842e3a56d83fa63a6d3c93430965290  private-desk/README.md
+81d3e42aec13b9b947831fdc1e30646a11863220f3cb629806824096b4c12c6a  pipeline/src/private_desk/engine.py (unchanged)
+
+Automatic checker approval absent; these direct results do not certify the four runnable gates.

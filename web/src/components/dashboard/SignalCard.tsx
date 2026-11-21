@@ -46,19 +46,19 @@ export function SignalCard({
     signal?.created_at ?? call?.created_at,
   );
 
-  // Regime age: days since last regime change
-  // regimeHistory is descending (latest first)
-  let regimeAge: number | null = null;
-  if (regimeHistory && regimeHistory.length >= 2) {
+  // Count observed publication sessions in the current regime streak.
+  // regimeHistory is descending and already deduplicated by session.
+  let regimeStreak: number | null = null;
+  if (regimeHistory && regimeHistory.length > 0) {
     const currentRegime = regimeHistory[0].regime;
-    let daysSinceChange = 0;
+    let observedSessions = 1;
     for (let i = 1; i < regimeHistory.length; i++) {
       if (regimeHistory[i].regime !== currentRegime) {
         break;
       }
-      daysSinceChange++;
+      observedSessions++;
     }
-    regimeAge = daysSinceChange;
+    regimeStreak = observedSessions;
   }
 
   return (
@@ -83,14 +83,13 @@ export function SignalCard({
                 query: "getLatestRegimeCalls + getLatestSignals",
                 parameters: {
                   pair: pairLabel,
-                  date:
-                    call?.date ??
-                    signal?.date ??
-                    new Date().toISOString().slice(0, 10),
+                  date: call?.date ?? null,
+                  call_id: call?.id ?? null,
+                  model_version: call?.model_version ?? "unknown",
                 },
                 timestamp: new Date().toISOString(),
-                dataVersion: call?.model_version ?? "v3",
-                sourceTable: "regime_calls, signals",
+                dataVersion: call?.model_version ?? "unknown",
+                sourceTable: "regime_calls, live_publication_signals",
               }}
               variant="icon"
             />
@@ -135,6 +134,11 @@ export function SignalCard({
             </p>
           </DataLineage>
         </div>
+        {call && !signal && (
+          <p className="font-mono text-[9px] text-[var(--color-warn)] tracking-wider mt-3">
+            ORIGINAL INPUTS UNAVAILABLE
+          </p>
+        )}
       </div>
 
       {/* Sparkline */}
@@ -154,15 +158,19 @@ export function SignalCard({
         <p className="font-mono text-[9px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase mb-2">
           Layer 1 — Regime Gate
         </p>
+        <p className="font-mono text-[8px] text-[var(--color-text-dim)] tracking-wider mb-2">
+          MODEL {call?.model_version ?? "UNLABELED"} · REVISED PUBLICATION
+          HISTORY
+        </p>
         <div className="flex justify-between items-center">
           <DataLineage lineage={LINEAGE.regime(call)}>
             <span className="font-mono text-[11px] text-[var(--color-text-secondary)]">
               {(call?.regime ?? "—").replace(/_/g, " ")}
             </span>
           </DataLineage>
-          {regimeAge != null && (
+          {regimeStreak != null && (
             <span className="font-mono text-[9px] text-[var(--color-text-muted)] tabular-nums">
-              {regimeAge}D
+              {regimeStreak} OBSERVED SESSIONS
             </span>
           )}
         </div>

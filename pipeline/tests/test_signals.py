@@ -29,7 +29,7 @@ def test_rate_normalize_eurusd() -> None:
     history = [0.0, 1.0, 2.0]
     z = normalize_rate_signal(1.5, "EURUSD", history)
     assert z.z_tactical == pytest.approx(0.17, abs=0.01)
-    assert z.z_structural == pytest.approx(0.17, abs=0.01)
+    assert z.z_structural is None
 
 
 def test_rate_normalize_clips() -> None:
@@ -37,9 +37,9 @@ def test_rate_normalize_clips() -> None:
     z_hi = normalize_rate_signal(10.0, "EURUSD", history)
     z_lo = normalize_rate_signal(-10.0, "EURUSD", history)
     assert z_hi.z_tactical == pytest.approx(1.0)
-    assert z_hi.z_structural == pytest.approx(1.0)
+    assert z_hi.z_structural is None
     assert z_lo.z_tactical == pytest.approx(-1.0)
-    assert z_lo.z_structural == pytest.approx(-1.0)
+    assert z_lo.z_structural is None
 
 
 def test_rate_normalize_noise_floor_zero() -> None:
@@ -47,7 +47,7 @@ def test_rate_normalize_noise_floor_zero() -> None:
     history = [1.0] * 30
     z = normalize_rate_signal(2.0, "EURUSD", history)
     assert z.z_tactical == pytest.approx(0.0)
-    assert z.z_structural == pytest.approx(0.0)
+    assert z.z_structural is None
 
 
 def test_rate_normalize_empty_history_none() -> None:
@@ -61,7 +61,7 @@ def test_real_yield_history_from_rows() -> None:
         {"date": "2026-01-02", "rate_diff_10y": 1.0, "breakeven_inflation_10y": 2.5},
     ]
     hist = build_real_yield_10y_spread_history_from_rows(rows, max_points=1260)
-    assert hist == pytest.approx([-0.5, -1.5])
+    assert hist == []  # US-only inflation cannot identify a cross-country real spread.
 
 
 def test_normalize_structural_uses_real_spread_series() -> None:
@@ -218,17 +218,18 @@ def test_vol_signal_stable() -> None:
 
 def test_composite_full() -> None:
     c = compute_composite(1.0, 1.0, 1.0, 0.0)
-    assert c == pytest.approx(0.90, abs=0.01)
+    # Only rate and COT are directional. VOL/OI are descriptive state inputs.
+    assert c == pytest.approx((1.0 * 0.40 + 1.0 * 0.30) / (0.40 + 0.30))
 
 
 def test_composite_rate_none() -> None:
     c = compute_composite(None, 0.5, 0.0, 0.0)
-    assert c == pytest.approx(0.25, abs=0.01)
+    assert c == pytest.approx(0.5)
 
 
 def test_composite_both_none_reweights() -> None:
     c = compute_composite(None, None, 0.5, 0.0)
-    assert c == pytest.approx(1.0 / 3.0, abs=0.01)
+    assert c is None
 
 
 def test_composite_all_none() -> None:

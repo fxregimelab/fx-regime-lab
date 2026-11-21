@@ -1,0 +1,105 @@
+{
+  "verified_at": "2026-10-01T19:02:17.571916+00:00",
+  "scope": "Current descriptive JPY policy/news and every publication retained",
+  "current_report_sha256": "1af3f4192c4086b73ad468d32ad4fff493d75561d6fbc7359b0a7d90372f6a2c",
+  "independently_reviewed_file_count": 8,
+  "independently_reviewed_files": {
+    "docs/PRIVATE_JPY_CURRENT_CONTRACT.md": "014271cbd7bfa946f3351f1019c62ebab2e67b92cb8990918f6bb607fe9395ec",
+    "reports/private-jpy-current-source-research.md": "60b68394a1ab8fa3f3f8b96d31e0d0fe936a17aabcdb815dda2fc406a227c2bf",
+    "pipeline/src/private_desk/boj_current.py": "d1c24e4cef36d140a6762beffffa4927d9c2bf8ac781bb84c21396adfbe9066b",
+    "pipeline/src/private_desk/data.py": "703509dd0b83fd8b225421524d8a041eb5ea6d23ace660515f3a4e910c4cbcff",
+    "pipeline/src/private_desk/current_review.py": "c019b513a10e2761b96e62bf5cc4f4230bef04dae3972f8c1684b8018e1477fd",
+    "pipeline/src/ai/client.py": "915ae99673aa89a6c31dcec4f04b98c42c4ec9bb2d1cae8eeb019854a17cd3d0",
+    "pipeline/tests/test_private_desk_jpy_current.py": "5d584626f9e544cd37ec2925b25e996dd6489b5f8a3e8540355078cd5177889f",
+    "pipeline/tests/test_private_desk_data.py": "23b18982fde75ee742086c8686e6fedc785e747865fb13c0e2e7ff31f33e03e6"
+  },
+  "artifact_count": 14,
+  "artifacts": {
+    "reports/private-jpy-current-acceptance.md": {
+      "sha256": "6c1e037c0394fb69b1f0aaceeff11c283526c00ef63922513718a6400d8fcd3b",
+      "bytes": 7844
+    },
+    "reports/private-jpy-current-checks.txt": {
+      "sha256": "e07b9b90b8f7cea4649bf90193d67d8f4f244f12d2660a40c1cd7ffb323bed65",
+      "bytes": 3201
+    },
+    "reports/private-jpy-current-replay.txt": {
+      "sha256": "9341958b15cbd2b1a7b4b44ef1fd1e45987fe04bfe4ee81b122bc28221afd482",
+      "bytes": 686
+    },
+    "reports/private-jpy-current-ui.txt": {
+      "sha256": "95d1a2fb5c5768d7f024b26600bac0c669bdf9691b0a93555ee16be03802a7cf",
+      "bytes": 486
+    },
+    "reports/private-jpy-current-refresh.txt": {
+      "sha256": "0bc85f72ebbfc4a48585457318f13818d405e5cd3e7187b1a3e3c232f7e336a2",
+      "bytes": 304
+    },
+    "reports/private-jpy-current-source-replay.json": {
+      "sha256": "b9ecf3941c79b2a4e5aa28b19de99bd6064647464318c559d1c85451b888a5ca",
+      "bytes": 2867
+    },
+    "reports/private-jpy-current-runtime.json": {
+      "sha256": "58340d1975a30a2a5626226a99625e1302f25c1a728d7d406d06c79d2d5a13c7",
+      "bytes": 1017
+    },
+    "reports/private-jpy-current-browser.json": {
+      "sha256": "8ba9490347d5f434f4af71461019b7a80580620ca16a6011385eab18a486f1c6",
+      "bytes": 7414
+    },
+    "reports/private-jpy-current-dashboard.png": {
+      "sha256": "a6d1743daaea0e3f5655f503fc4c3a6dccdac1e4c2d77514036eeb3c8a11db1f",
+      "bytes": 46358
+    },
+    "reports/private-jpy-current-journal-dashboard.png": {
+      "sha256": "4ba7e0528cdf9f45a311c8ebf5929c3337a92f0a408313c8144d47cd9e44308a",
+      "bytes": 41807
+    },
+    "reports/private-jpy-current-source-research.md": {
+      "sha256": "60b68394a1ab8fa3f3f8b96d31e0d0fe936a17aabcdb815dda2fc406a227c2bf",
+      "bytes": 13080
+    },
+    "reports/private-jpy-current-independent-review.md": {
+      "sha256": "f87ac39f3a5a776f4addc0283b334adea0edae1838464bfc960203b02d906ffc",
+      "bytes": 11407
+    },
+    "scripts/repair/verify_private_jpy_current_runtime.py": {
+      "sha256": "707b716a438cda90cc16691db5929eed8ad0f26162a24e68dde4c25173464ab8",
+      "bytes": 5010
+    },
+    ".unlazy/private-jpy-current/GATES.md": {
+      "sha256": "166e2de9d9e76a5d4f81f70b30621c0e4caf53c073318799c7d4f12823b85942",
+      "bytes": 2734
+    }
+  },
+  "original_body_and_receipt_replay": "PASS",
+  "actual_v3_preservation_and_v4_negative_control": "PASS",
+  "all_non_context_parent_research_preserved": "PASS",
+  "old_jpy_history_receipts_unchanged": true,
+  "manual_gates_met": 3,
+  "formal_runnable_gates_pending": 3,
+  "abandoned_gates": 0,
+  "current_server_pid": 37404,
+  "browser_no_horizontal_overflow": true,
+  "browser_error_logs": [],
+  "journal": {
+    "decision_count": 24,
+    "unique_observation_count": 8,
+    "repeated_publication_count": 16,
+    "outcome_status_counts": {
+      "PENDING": 5,
+      "UNAVAILABLE": 3
+    },
+    "unpublished_report_count": 0
+  },
+  "independent_verdict": "PASS_BOUNDED",
+  "forecast_qualification": "UNQUALIFIED",
+  "goal_status": "ACTIVE",
+  "remaining_research": [
+    "R1 executable prices/costs",
+    "R2 historical availability/surprises",
+    "R3 predeclared strategy and untouched evaluation",
+    "R4 continuous currency/concentration and costed hedges",
+    "R5 actually observed forward results"
+  ]
+}

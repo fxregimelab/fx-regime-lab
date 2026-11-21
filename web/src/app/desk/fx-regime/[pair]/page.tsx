@@ -402,16 +402,15 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
   ];
 
   const supabase = await createClient();
+  const calls = await getLatestRegimeCalls(supabase);
 
-  const [calls, signals, history, prices, valStats, valHistory] =
-    await Promise.all([
-      getLatestRegimeCalls(supabase),
-      getLatestSignals(supabase),
-      getHistoricalRegimeCalls(supabase, pairMeta.label, 30),
-      getHistoricalPrices(supabase, pairMeta.label, 30),
-      getPairValidationSummary(supabase, pairMeta.label),
-      getPairValidationHistory(supabase, pairMeta.label, 20),
-    ]);
+  const [signals, history, prices, valStats, valHistory] = await Promise.all([
+    getLatestSignals(supabase, calls),
+    getHistoricalRegimeCalls(supabase, pairMeta.label, 30),
+    getHistoricalPrices(supabase, pairMeta.label, 30),
+    getPairValidationSummary(supabase, pairMeta.label),
+    getPairValidationHistory(supabase, pairMeta.label, 20),
+  ]);
 
   const call = calls[pairMeta.label] as LatestRegimeCall | undefined;
   const sig = signals[pairMeta.label] as LatestSignal | undefined;
@@ -605,6 +604,14 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
         lastUpdatedAt={sig?.created_at ?? call?.created_at}
         source={`${pairMeta.label} desk`}
       />
+
+      {call && !sig && (
+        <div className="mb-px border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+          <p className="font-mono text-[10px] text-[var(--color-warn)] tracking-wider">
+            ORIGINAL INPUTS UNAVAILABLE FOR THIS LEGACY PUBLICATION
+          </p>
+        </div>
+      )}
 
       {/* Top strip: spot + regime + confidence + composite */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px mb-px bg-[var(--color-border)]">
@@ -1101,8 +1108,11 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                 key={h.date}
                 className="group relative flex justify-between items-center py-1.5 border-b border-[var(--color-border-subtle)] last:border-b-0"
               >
-                <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
-                  {h.date}
+                <span className="flex flex-col font-mono text-[10px] text-[var(--color-text-muted)]">
+                  <span>{h.date}</span>
+                  <span className="text-[8px] text-[var(--color-text-dim)]">
+                    {h.model_version ?? "MODEL UNLABELED"}
+                  </span>
                 </span>
                 <span className="font-mono text-[10px] text-[var(--color-text)] font-medium">
                   {h.regime.replace(/_/g, " ")}
@@ -1128,6 +1138,12 @@ export default async function PairDeskPage({ params }: PairDeskPageProps) {
                     </span>
                     <span className="font-mono text-[11px] text-[var(--color-text)] text-right">
                       {h.date}
+                    </span>
+                    <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
+                      MODEL VERSION
+                    </span>
+                    <span className="font-mono text-[11px] text-[var(--color-text)] text-right">
+                      {h.model_version ?? "UNLABELED"}
                     </span>
                     <span className="font-mono text-[10px] text-[var(--color-text-muted)]">
                       REGIME

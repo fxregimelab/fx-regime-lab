@@ -1,0 +1,5 @@
+
+> fx-regime-lab@0.1.0 lint
+> biome check .
+
+Checked 195 files in 154ms. No fixes applied.

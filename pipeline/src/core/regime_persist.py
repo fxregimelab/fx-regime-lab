@@ -24,6 +24,8 @@ def _build_call_rationale(
     pair: str,
     signals: SignalRow,
     composite: float,
+    *,
+    call: RegimeCall | None = None,
 ) -> dict[str, Any]:
     """Build a call_rationale payload from signals and composite.
 
@@ -35,8 +37,7 @@ def _build_call_rationale(
     - confidence_explanation: How confidence was derived
     - contrarian_flags: Any crowding or divergence warnings
     """
-    driver = signals.skew_alignment
-    driver_text = f"skew_alignment={driver}" if driver is not None else "rate_driven"
+    driver_text = str(call.primary_driver or "not recorded") if call is not None else "not recorded"
 
     layer1 = (
         f"Composite={composite:.3f} on {call_date.isoformat()}. "
@@ -65,10 +66,15 @@ def _build_call_rationale(
         else f"Primary driver detail: {driver_text}."
     )
 
-    conf_exp = (
-        f"Confidence derived from composite magnitude |{composite:.3f}|/2.0 "
-        f"plus alignment bonus. DQS={signals.volume_rvol}."
-    )
+    conf_exp = "Confidence is a heuristic score, not a calibrated probability. "
+    if call is not None:
+        conf_exp += f"Published score={call.confidence}; DQS={call.data_quality_score}."
+        layer3 = (
+            f"Published timing={call.entry_timing}, size={call.position_size}, "
+            f"stop={call.stop_level}. " + layer3
+        )
+    else:
+        conf_exp += "Retrospective explanation; original confidence derivation unavailable."
 
     flags: list[str] = []
     if signals.structural_instability:
@@ -107,44 +113,18 @@ def persist_regime_call(
     *,
     correlation_id: str | None = None,
 ) -> int | str | None:
-    """Persist a regime call AND its rationale.
-
-    Sets strategy_version='v2' and data_source='live' automatically.
-    Returns the regime_calls row id.
-    """
-    call.strategy_version = "v2"
-    call.data_source = "live"
-
-    write_hash = compute_write_hash({
-        "pair": call.pair,
-        "date": call.date.isoformat(),
-        "regime": call.regime,
-        "confidence": call.confidence,
-        "signal_composite": call.signal_composite,
-        "rate_signal": call.rate_signal,
-        "primary_driver": call.primary_driver,
-        "entry_timing": call.entry_timing,
-        "position_size": call.position_size,
-        "stop_level": call.stop_level,
-        "data_quality_score": call.data_quality_score,
-        "stress_level": call.stress_level,
-        "strategy_version": call.strategy_version,
-        "data_source": call.data_source,
-    })
-
-    call_id = writer.write_regime_call(
-        call,
-        correlation_id=correlation_id,
-        write_hash=write_hash,
-    )
-
+    """Build descriptive rationale and atomically publish without changing provenance."""
     rationale = _build_call_rationale(
-        call_id=call_id,
+        call_id=None,
         call_date=call.date,
         pair=call.pair,
         signals=signals,
         composite=float(call.signal_composite),
+        call=call,
     )
-    _write_call_rationale(rationale)
-
-    return call_id
+    return writer.publish_regime_call(
+        call,
+        signals,
+        rationale=rationale,
+        correlation_id=correlation_id,
+    )

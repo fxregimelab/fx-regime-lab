@@ -22,6 +22,7 @@ import numpy as np
 from src.backfill.simulation_engine import _pg_conn
 from src.regime.composite import compute_composite, compute_dynamic_betas
 from src.signals.cot import compute_cot_smart_spread_percentile, normalize_cot_signal
+from src.signals.direction import directional_inputs
 from src.signals.special import compute_special_signal
 from src.signals.volatility import compute_vol_signal
 from src.types import CotRow, normalize_fx_pair_key
@@ -241,14 +242,18 @@ def _compute_accuracy(
         special_norm = family_values["special"][i]
         fpi_norm = family_values["fpi"][i]
 
+        directional = directional_inputs(
+            pair, rate=rate_norm, cot=cot_norm if pair != "USDINR" else None,
+            special=special_norm, fpi=fpi_norm,
+        )
         composite = compute_composite(
-            rate_norm,
-            cot_norm,
+            directional.rate,
+            directional.cot,
             vol_norm,
             oi_norm,
             pair=pair,
-            special_signal=special_norm,
-            fpi_signal=fpi_norm,
+            special_signal=directional.special,
+            fpi_signal=directional.fpi,
             betas=betas,
         )
         predicted = _predicted_direction(composite)

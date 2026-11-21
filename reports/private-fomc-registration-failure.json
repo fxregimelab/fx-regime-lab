@@ -1,0 +1,12 @@
+{
+  "at_utc": "2026-10-01T20:12:10.494851+00:00",
+  "stage": "REGISTRATION_BEFORE_MANIFEST_AND_OUTCOMES",
+  "error": "Relative git untracked file docs/CROWDING_DIAGNOSTIC_CONTRACT.md resolved under pipeline cwd rather than repository root.",
+  "outcomes_calculated": false,
+  "repair": "Resolve git names against explicit repository root, then enforce bounded_path. Regression also detects untracked byte and HEAD patch changes.",
+  "failed_source_snapshot_retained": [
+    "D:\\Projects\\fxregimelab\\.private-fx\\fomc-history\\studies\\c9f040bbfbae425cb001d226083c143b.sources.json"
+  ],
+  "existing_manifest_count": 0,
+  "existing_result_count": 0
+}

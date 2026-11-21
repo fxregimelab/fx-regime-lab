@@ -1,0 +1,36 @@
+{
+  "verified_at": "2026-10-01T18:30:28.000224+00:00",
+  "report_sha256": "861d0799918805ee6ef571deb2968820ced36a385e5f89071c87e0a2807bd745",
+  "review_sha256": "88f2d6de2a4c3fe61d9b65f802319ec633e08b0db9a3dd1a2718f645042978f8",
+  "reviewed_files_rehashed": 10,
+  "source_and_legacy_replay": "PASS",
+  "artifact_hashes_verified": {
+    "reports/private-jpy-policy-acceptance.md": "aa6c0c0e0ce1d0f40207bef8a093f3e6c3559f298e2f191544af10b8b70c15b0",
+    "reports/private-jpy-policy-source-research.md": "70c2e9309ba60382aaaa9b4dd7c735de89b3956dbeb95279cb2b4436ac27024d",
+    "reports/private-jpy-policy-checks.txt": "d81a0e2d0df5d71cf42ac3995dc6c710b4df9f02e2d74603006033629c346cc3",
+    "reports/private-jpy-policy-runtime.json": "c5a28303b7c3fbd541a632cfb0eb6fa9aca6618577f5fab873f67f866619edbc",
+    "reports/private-jpy-policy-browser.json": "80c98e07d85b85191c206314d4514ca463e746274288e3c3efab95c27eea78f9",
+    "reports/private-jpy-policy-dashboard.png": "8d7643da618ec1691708675543942e65cf6b69a74b56acd65bbc6bca0d6d1012",
+    "reports/private-jpy-policy-journal-dashboard.png": "0bed41f06030c343279b319cb957cf101dfbacc1e5a46ef2183334a98955bcaf",
+    ".private-fx/jpy-policy/source-verification.json": "3a538825387d456003f43224c0d6f89c502dc462ee2495862aa610f4bd783f74",
+    ".private-fx/policy-history/evidence.json": "c149224466bf98417d5bdc72fe1fda1fad3caadea889992a1a7d6206b8dd96b2",
+    ".private-fx/jpy-policy/policy-history-evidence.json": "cbb53c36f98129cfd77d538b187b73507a88303926891388b7fae20f5b2070b0",
+    ".private-fx/jpy-policy/.private-fx-report.json": "d70d94256bc4c16986d69793e596927429d5bc1619d820c5292865e428543c81"
+  },
+  "journal_counts": {
+    "decision_count": 16,
+    "unique_observation_count": 8,
+    "repeated_publication_count": 8,
+    "unpublished_report_count": 0,
+    "outcome_status_counts": {
+      "PENDING": 5,
+      "UNAVAILABLE": 3
+    }
+  },
+  "manual_met": 4,
+  "formal_unmet": 3,
+  "abandoned": 0,
+  "server_pid": 30320,
+  "goal": "ACTIVE",
+  "predictive_qualification": "UNQUALIFIED"
+}

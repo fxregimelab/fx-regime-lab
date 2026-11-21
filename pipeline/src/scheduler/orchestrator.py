@@ -16,7 +16,8 @@ import sys
 import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
+from math import isfinite
 from typing import Any, Literal, cast
 
 # ── Prefect managed worker patch ──────────────────────────────────────────────
@@ -30,15 +31,19 @@ from prefect import flow, task
 from prefect.settings import Settings
 
 if not hasattr(_pr, "_has_current_run_context"):
+
     def _has_current_run_context() -> bool:
         from prefect.context import FlowRunContext, TaskRunContext
+
         return TaskRunContext.get() is not None or FlowRunContext.get() is not None
 
     _pr._has_current_run_context = _has_current_run_context
 
 if not hasattr(_pr, "get_current_settings"):
+
     def get_current_settings() -> Settings:
         from prefect.context import SettingsContext
+
         settings_context = SettingsContext.get()
         if settings_context is not None:
             return settings_context.settings
@@ -47,6 +52,7 @@ if not hasattr(_pr, "get_current_settings"):
     _pr.get_current_settings = get_current_settings  # type: ignore[attr-defined]
 
 if not hasattr(_pr, "get_default_persist_setting"):
+
     def get_default_persist_setting() -> bool:
         return _pr.get_current_settings().results.persist_by_default  # type: ignore[attr-defined]
 
@@ -54,10 +60,12 @@ if not hasattr(_pr, "get_default_persist_setting"):
 
 if not hasattr(_pr, "_read_server_default_result_storage_block_id"):
     from uuid import UUID
+
     def _read_server_default_result_storage_block_id() -> UUID | None:
         import httpx
         from prefect.client.orchestration import get_client
         from prefect.exceptions import PrefectHTTPStatusError
+
         try:
             client = get_client(sync_client=True)
             configuration = client.read_server_default_result_storage()
@@ -69,10 +77,12 @@ if not hasattr(_pr, "_read_server_default_result_storage_block_id"):
 
 if not hasattr(_pr, "_aread_server_default_result_storage_block_id"):
     from uuid import UUID
+
     async def _aread_server_default_result_storage_block_id() -> UUID | None:
         import httpx
         from prefect.client.orchestration import get_client
         from prefect.exceptions import PrefectHTTPStatusError
+
         try:
             client = get_client()
             configuration = await client.read_server_default_result_storage()
@@ -85,6 +95,7 @@ if not hasattr(_pr, "_aread_server_default_result_storage_block_id"):
     )
 
 if not hasattr(_pr, "_get_default_persist_result"):
+
     def _get_default_persist_result() -> bool:
         persist_result = _pr.should_persist_result()
         if persist_result or _pr._has_current_run_context():
@@ -97,6 +108,7 @@ if not hasattr(_pr, "_get_default_persist_result"):
     _pr._get_default_persist_result = _get_default_persist_result
 
 if not hasattr(_pr, "_aget_default_persist_result"):
+
     async def _aget_default_persist_result() -> bool:
         persist_result = _pr.should_persist_result()
         if persist_result or _pr._has_current_run_context():
@@ -110,25 +122,25 @@ if not hasattr(_pr, "_aget_default_persist_result"):
 # ──────────────────────────────────────────────────────────────────────────────
 
 from src.ai.client import desk_card_brief_fallback
-from src.analysis.asymmetry import compute_pain_index
+from src.analysis.asymmetry import compute_crowding_diagnostic
 from src.analysis.event_risk import compute_event_risk_matrix
 from src.analysis.markov import compute_time_decayed_markov
 from src.analysis.systemic import (
-    apply_cluster_to_telemetry,
-    assign_apex_ranking,
-    build_yesterday_rank_maps,
     compute_dollar_dominance_score,
     resolve_idiosyncratic_outlier,
-    top_three_clustered,
 )
 from src.core.ingestion_snapshot import IngestionSnapshot
+from src.core.price_archive_stage import (
+    PriceArchiveStageResult,
+    archive_price_snapshot,
+)
 from src.core.regime_call_builder import RegimeCallBuilder
 from src.core.regime_persist import persist_regime_call
+from src.core.spot_history import select_spot_history, strict_date
 from src.db import writer
 from src.fetchers.async_engine import build_master_buffer
 from src.fetchers.buffer_keys import KEY_COT, KEY_CROSS_ASSET, KEY_FX_SPOT, KEY_YIELDS
 from src.fetchers.cross_asset import fetch_india_vix, fetch_inr_forward_premium
-from src.fetchers.fpi_india import fetch_fpi_flows
 from src.fetchers.macro_calendar import fetch_macro_events
 from src.fetchers.open_interest import compute_oi_delta_from_cot, compute_oi_from_cot
 from src.fetchers.substack import fetch_latest_substack_memo
@@ -142,7 +154,6 @@ from src.logic.layer2_directional import run_layer2_directional
 from src.logic.layer3_execution import run_layer3_execution
 from src.monitoring.alerts import (
     alert_on_low_dqs,
-    send_success_heartbeat,
 )
 from src.regime.classifier import (
     VOL_EXPANDING_SUFFIX,
@@ -155,16 +166,16 @@ from src.regime.composite import (
     compute_dominance_scores,
     compute_dynamic_betas,
     dominance_top_family,
-    get_primary_driver,
 )
 from src.regime.confidence import compute_confidence
+from src.scheduler.contracts import DailyRunOutput
 from src.signals.cot import (
     compute_cot_percentile,
     compute_cot_smart_spread_percentile,
     normalize_cot_signal,
 )
-from src.signals.fpi import normalize_fpi_signal
-from src.signals.intervention import compute_intervention_proximity
+from src.signals.direction import DIRECTIONAL_MODEL_VERSION, directional_inputs
+from src.signals.fpi import FPI_UNAVAILABLE_NOTES
 from src.signals.open_interest import compute_oi_signal
 from src.signals.rate import (
     build_carry_history_from_rows,
@@ -174,6 +185,12 @@ from src.signals.rate import (
     rate_direction_from_spreads,
     structural_instability_from_carry_history,
 )
+from src.signals.rate_inputs import (
+    current_real_yield_spread,
+    nominal_ten_year_context,
+    qualify_rate_history,
+)
+from src.signals.rate_observation import RateObservation, qualified_two_year_spread
 from src.signals.special import compute_special_signal
 from src.signals.volatility import (
     TRADING_DAYS_3Y_VOL_RANK,
@@ -182,6 +199,7 @@ from src.signals.volatility import (
     compute_vol_signal,
     is_vol_expanding,
 )
+from src.staged.contracts import StageHealth, combine_stage_health
 from src.types import (
     PAIRS,
     CotRow,
@@ -195,6 +213,7 @@ from src.types import (
     load_universe,
 )
 from src.validation import ledger
+from src.validation.coverage import ValidationRunResult
 from src.validation.engine import run_validation
 from src.validation.ingestion_buffer import (
     compute_dqs,
@@ -203,6 +222,8 @@ from src.validation.ingestion_buffer import (
 )
 
 logger = logging.getLogger(__name__)
+
+_LOCKED_DAILY_PAIRS = ("EURUSD", "USDJPY", "USDINR")
 
 
 def _yfinance_dl() -> Any:
@@ -375,6 +396,7 @@ async def _ingest_weekly_research_memo(iso_date: str) -> None:
     ai_summary: list[str] | None = None
     try:
         from src.ai.client import summarize_weekly_memo_async
+
         ai_summary = await summarize_weekly_memo_async(raw_content, date_str=date_str)
     except Exception as exc:
         logger.warning("Weekly memo AI summarization failed: %s", exc)
@@ -411,12 +433,17 @@ def get_regime_age(pair: str, current_regime: str, *, as_of: date) -> int:
         return label
 
     target = _norm_label(current_regime)
-    rows = writer.get_historical_regime_calls(pair, limit=5000)
-    age = 0
-    for row in reversed(rows):
-        rd = date.fromisoformat(str(row["date"])[:10])
-        if rd > as_of:
-            continue
+    rows = writer.get_current_live_regime_history(
+        pair,
+        as_of=as_of,
+        strictly_before=True,
+        published_before=datetime.combine(as_of, datetime.min.time(), tzinfo=UTC),
+        session_limit=5000,
+    )
+    # The current decision is day one. Only publications that were available
+    # before this UTC session may extend its prior-state streak.
+    age = 1
+    for row in rows:
         if _norm_label(str(row["regime"])) == target:
             age += 1
         else:
@@ -440,47 +467,23 @@ def _rate_spread_2y_for_pair(
     pair: str,
     universe: dict[str, Any],
     yields_dict: dict[str, float | None],
+    observations: dict[str, RateObservation] | None = None,
+    decision_at: datetime | None = None,
 ) -> float | None:
-    base_id, quote_id = _universe_yield_tickers(universe, pair)
-    if base_id is None or quote_id is None:
-        logger.warning("Universe missing yield_base/yield_quote for %s", pair)
-        return None
-    base_val = yields_dict.get(base_id)
-    quote_val = yields_dict.get(quote_id)
-    if base_val is None or quote_val is None:
-        logger.warning(
-            "Yield leg missing for %s (base %s=%s, quote %s=%s) — rate spread unavailable",
-            pair,
-            base_id,
-            base_val,
-            quote_id,
-            quote_val,
-        )
-        return None
-    return float(base_val) - float(quote_val)
+    return qualified_two_year_spread(
+        pair,
+        observations or {},
+        decision_at=decision_at,
+        source_ids=_universe_yield_tickers(universe, pair),
+    )
 
 
 def _rate_spread_10y_legacy(
     pair: str,
     yields_dict: dict[str, float | None],
 ) -> float | None:
-    """10Y spread where legacy ``us_10y`` / ``*_10y`` legs exist (subset of pairs)."""
-
-    us = yields_dict.get("us_10y")
-    if us is None:
-        return None
-    if pair == "EURUSD":
-        qk = "de_10y"
-    elif pair == "USDJPY":
-        qk = "jp_10y"
-    elif pair == "USDINR":
-        qk = "in_10y"
-    else:
-        return None
-    qv = yields_dict.get(qk)
-    if qv is None:
-        return None
-    return float(us) - float(qv)
+    """Unqualified nominal context, oriented base currency minus quote currency."""
+    return nominal_ten_year_context(pair, yields_dict)
 
 
 try:
@@ -607,7 +610,6 @@ def _signal_row_from_db(row: dict[str, Any]) -> SignalRow:
         oi_delta=row.get("oi_delta"),
         volume_rvol=row.get("volume_rvol"),
         structural_instability=row.get("structural_instability", False),
-
         breakeven_inflation_10y=row.get("breakeven_inflation_10y"),
         rate_diff_10y_real=row.get("rate_diff_10y_real"),
         rate_z_tactical=row.get("rate_z_tactical"),
@@ -658,9 +660,7 @@ def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
         position_size=position_size,
         stop_level=stop_level,
         data_quality_score=(
-            float(row["data_quality_score"])
-            if row.get("data_quality_score") is not None
-            else None
+            float(row["data_quality_score"]) if row.get("data_quality_score") is not None else None
         ),
         stress_level=str(row["stress_level"]) if row.get("stress_level") else None,
         predicted_direction=(
@@ -678,15 +678,9 @@ def _regime_call_from_db(row: dict[str, Any]) -> RegimeCall:
             else None
         ),
         special_signal_label=(
-            str(row.get("special_signal_label"))
-            if row.get("special_signal_label")
-            else None
+            str(row.get("special_signal_label")) if row.get("special_signal_label") else None
         ),
-        regime_category=(
-            str(row.get("regime_category"))
-            if row.get("regime_category")
-            else None
-        ),
+        regime_category=(str(row.get("regime_category")) if row.get("regime_category") else None),
         model_version=str(row.get("model_version")) if row.get("model_version") else None,
     )
 
@@ -772,7 +766,7 @@ def _upsert_pair_briefs_for_date(
 
     pair_contexts: list[str] = []
     for pair in PAIRS:
-        prior = writer.get_latest_regime_call(pair)
+        prior = writer.get_current_live_regime_call(pair, as_of=date_str)
         if not prior:
             continue
         prior_date = str(prior.get("date") or "")[:10]
@@ -781,10 +775,17 @@ def _upsert_pair_briefs_for_date(
         if not prior_date:
             continue
 
-        # Look up signal using the regime call's actual trading date.
-        sig = writer.get_signal_for_pair_date(pair, prior_date)
+        call_id = prior.get("id")
+        if isinstance(call_id, bool) or not isinstance(call_id, int):
+            raise RuntimeError("Selected live publication has no durable integer call ID")
+        sig = writer.get_publication_signal_for_call(call_id)
         if not sig:
+            pair_contexts.append(
+                f"{pair} regime={prior.get('regime')} original publication inputs unavailable"
+            )
             continue
+        if str(sig.get("pair") or "") != pair or str(sig.get("date") or "")[:10] != prior_date:
+            raise RuntimeError("Selected publication evidence identity does not match call")
         signal_row = _signal_row_from_db(sig)
 
         try:
@@ -796,9 +797,7 @@ def _upsert_pair_briefs_for_date(
                 signal_row=signal_row,
                 date_str=date_str,
                 primary_driver=(
-                    str(prior.get("primary_driver"))
-                    if prior.get("primary_driver")
-                    else None
+                    str(prior.get("primary_driver")) if prior.get("primary_driver") else None
                 ),
                 polymarket_context=polymarket_context,
                 dollar_dominance_pct=dollar_dominance_pct,
@@ -812,9 +811,7 @@ def _upsert_pair_briefs_for_date(
                 composite=float(prior.get("signal_composite") or 0.0),
                 analysis=brief,
                 primary_driver=(
-                    str(prior.get("primary_driver"))
-                    if prior.get("primary_driver")
-                    else ""
+                    str(prior.get("primary_driver")) if prior.get("primary_driver") else ""
                 ),
             )
             pair_contexts.append(brief)
@@ -855,6 +852,7 @@ async def batch_desk_briefs_task(
         bkw = cast(dict[str, Any], item["brief_kw"])
         try:
             brief, human_grounding = await generate_desk_card_brief_async(
+                call_id=int(bkw["call_id"]),
                 pair=str(bkw.get("pair") or ""),
                 regime=str(bkw.get("regime") or ""),
                 date_str=str(bkw.get("date_str") or ""),
@@ -915,14 +913,231 @@ def upsert_macro_event_briefs_task(
     )
 
 
+def _persist_daily_regime_call(
+    *,
+    call: RegimeCall,
+    signal_row: SignalRow,
+    requested_date: date,
+    published_pairs: list[str],
+    correlation_id: str | None,
+) -> int | str:
+    """Persist one requested-date call and record only a confirmed durable write."""
+
+    if call.pair != signal_row.pair or call.date != signal_row.date:
+        raise ValueError("Regime call and signal row identities do not match")
+    if call.pair not in _LOCKED_DAILY_PAIRS:
+        raise ValueError(f"Cannot publish pair outside the locked universe: {call.pair}")
+    if call.date != requested_date:
+        raise ValueError(
+            f"Regime call date {call.date.isoformat()} does not match requested date "
+            f"{requested_date.isoformat()}"
+        )
+    if call.pair in published_pairs:
+        raise RuntimeError(f"Duplicate publication recorded for {call.pair}")
+
+    call_id = persist_regime_call(
+        call,
+        signals=signal_row,
+        correlation_id=correlation_id,
+    )
+    if (
+        call_id is None
+        or isinstance(call_id, bool)
+        or str(call_id).strip() == ""
+        or (isinstance(call_id, int) and call_id <= 0)
+    ):
+        raise RuntimeError("Call publication returned no durable row id")
+    published_pairs.append(call.pair)
+    return call_id
+
+
+def _price_archive_stage_health(result: PriceArchiveStageResult) -> StageHealth:
+    """Translate the core archive receipt into the scheduler health contract."""
+
+    return StageHealth(
+        "PriceArchiveStage",
+        "DEGRADED" if result.degraded else "OK",
+        missing_fields=list(result.missing_fields),
+        notes=list(result.notes),
+    )
+
+
+def _finalize_daily_run(
+    *,
+    date_str: str,
+    run_as_of: date,
+    published_pairs: Sequence[str],
+    dqs_score: float | None,
+    stress_red: bool,
+    signal_quality_notes: Sequence[str],
+    archive_health: StageHealth | None = None,
+) -> DailyRunOutput:
+    """Run required validation and assemble the legacy daily outcome."""
+
+    unique_quality_notes = list(dict.fromkeys(signal_quality_notes))
+    signal_health = StageHealth("SignalQuality", "OK")
+    if unique_quality_notes:
+        signal_health = StageHealth(
+            "SignalQuality",
+            "DEGRADED",
+            notes=unique_quality_notes,
+        )
+
+    dqs_health = StageHealth("DataQuality", "OK")
+    if dqs_score is None or not isfinite(dqs_score) or not 0 <= dqs_score <= 1:
+        dqs_health = StageHealth(
+            "DataQuality",
+            "DEGRADED",
+            missing_fields=["valid_dqs_score"],
+        )
+    elif dqs_score < 0.75:
+        dqs_health = StageHealth("DataQuality", "DEGRADED", notes=["low_dqs"])
+
+    recorded_pairs = tuple(published_pairs)
+    extra_pairs = [pair for pair in recorded_pairs if pair not in _LOCKED_DAILY_PAIRS]
+    if extra_pairs:
+        raise ValueError(f"Daily run published pairs outside the locked universe: {extra_pairs}")
+    if len(set(recorded_pairs)) != len(recorded_pairs):
+        raise ValueError("Daily run recorded duplicate published pairs")
+    missing_pairs = [pair for pair in _LOCKED_DAILY_PAIRS if pair not in recorded_pairs]
+    published = tuple(pair for pair in _LOCKED_DAILY_PAIRS if pair in recorded_pairs)
+    publication_notes = ["stress_withholding"] if stress_red else []
+    publication_health = StageHealth("Publication", "OK")
+    if missing_pairs or publication_notes:
+        publication_health = StageHealth(
+            "Publication",
+            "DEGRADED",
+            missing_fields=missing_pairs,
+            notes=publication_notes,
+        )
+
+    validation_result = run_validation(as_of_date=run_as_of)
+    logger.info("Validation engine completed for %s", date_str)
+    validation_health = _validation_stage_health(validation_result)
+    if archive_health is None:
+        archive_health = StageHealth(
+            "PriceArchiveStage",
+            "DEGRADED",
+            missing_fields=["price_observations"],
+            notes=["price_archive_not_run"],
+        )
+    reports = (
+        signal_health,
+        dqs_health,
+        archive_health,
+        publication_health,
+        validation_health,
+    )
+    return DailyRunOutput(
+        date=date_str[:10],
+        published_pairs=published,
+        dqs_score=dqs_score,
+        health=combine_stage_health("DailyRun", *reports),
+        stage_health=reports,
+    )
+
+
+def _validation_stage_health(result: object) -> StageHealth:
+    """Require complete validation coverage evidence before reporting health."""
+
+    if not isinstance(result, ValidationRunResult):
+        return StageHealth(
+            "ValidateStage",
+            "DEGRADED",
+            missing_fields=["validation_report"],
+            notes=["validation_report_unavailable"],
+        )
+    missing_fields: list[str] = []
+    if result.missing_horizons:
+        missing_fields.append("mature_validation_outcomes")
+    if result.invalid_calls:
+        missing_fields.append("valid_published_calls")
+    return StageHealth(
+        "ValidateStage",
+        "OK" if result.healthy else "DEGRADED",
+        missing_fields=missing_fields,
+        notes=list(result.notes),
+    )
+
+
+def _crowding_telemetry_for_call(
+    *,
+    call: RegimeCall,
+    call_id: int | None,
+    cot_rows: list[CotRow],
+    spot_bars: Sequence[SpotBar],
+) -> dict[str, Any]:
+    """Bind provisional descriptors to the frozen call, without inferred risk."""
+    try:
+        diagnostic = compute_crowding_diagnostic(
+            pair=call.pair,
+            as_of_date=call.date,
+            predicted_direction=call.predicted_direction,
+            call_id=call_id,
+            cot_rows=cot_rows,
+            spot_bars=spot_bars,
+        )
+    except Exception as exc:
+        logger.warning("Crowding description failed for %s (%s)", call.pair, type(exc).__name__)
+        diagnostic = {
+            "version": "crowding-description-v1",
+            "pair": call.pair,
+            "call_id": call_id,
+            "as_of_date": call.date.isoformat(),
+            "predicted_direction": call.predicted_direction,
+            "cot": {
+                "status": "UNAVAILABLE",
+                "report_date": None,
+                "report_age_days": None,
+                "net_long": None,
+                "asset_mgr_net": None,
+                "lev_money_net": None,
+                "pair_direction": None,
+                "alignment": "UNAVAILABLE",
+                "series_definition": "UNKNOWN",
+                "release_status": "UNVERIFIED",
+                "rank_percentile": None,
+                "reasons": ["DIAGNOSTIC_FAILED"],
+            },
+            "price": {
+                "status": "UNAVAILABLE",
+                "latest_date": None,
+                "spot": None,
+                "mean_close_40": None,
+                "observation_count": 0,
+                "relative_to_mean_pct": None,
+                "reasons": ["DIAGNOSTIC_FAILED"],
+            },
+            "participant_loss_estimate": None,
+            "squeeze_probability": None,
+            "point_in_time_qualified": False,
+        }
+    cot = diagnostic.get("cot")
+    return {
+        "crowding_diagnostic": diagnostic,
+        "cot_is_stale": None,
+        "cot_age_days": cot.get("report_age_days") if isinstance(cot, dict) else None,
+        "underwater_triggered": None,
+        "ranking_status": "UNAVAILABLE_UNVALIDATED_MODEL",
+        "Systemic_Cluster": None,
+    }
+
+
 @flow(name="Daily FX Regime Pipeline", log_prints=True, timeout_seconds=1800)
 async def run_daily(
     date_str: str | None = None,
     *,
     correlation_id: str | None = None,
-) -> None:
+) -> DailyRunOutput:
+    utc_today = datetime.now(UTC).date()
     if date_str is None:
-        date_str = date.today().isoformat()
+        date_str = utc_today.isoformat()
+    as_of_day = strict_date(date_str, field="date_str")
+    if as_of_day != utc_today:
+        raise ValueError(
+            "run_daily only supports the current UTC date; use a recorded "
+            "snapshot or replay path for historical dates"
+        )
 
     if correlation_id is None:
         correlation_id = str(uuid.uuid4())
@@ -941,7 +1156,6 @@ async def run_daily(
         raise RuntimeError("Spot ingestion quorum breach — telemetry OFFLINE.")
     buffer = gate.buffer
 
-    as_of_day = date.fromisoformat(date_str[:10])
     dqs_out = compute_dqs(buffer, universe, as_of_day)
     logger.info(
         "DQS=%.4f (rates=%.3f spots=%.3f cot=%.3f comm=%.3f "
@@ -965,9 +1179,23 @@ async def run_daily(
     _log_dqs_band(dqs_out.score)
 
     spots_raw = buffer.get(KEY_FX_SPOT)
-    spots: dict[str, Sequence[SpotBar]] = (
+    unselected_spots: dict[str, Sequence[SpotBar]] = (
         cast(dict[str, Sequence[SpotBar]], spots_raw) if isinstance(spots_raw, dict) else {}
     )
+    archive_result = archive_price_snapshot(
+        unselected_spots,
+        as_of=as_of_day,
+        cutoff=datetime.now(UTC),
+        writer=writer,
+    )
+    archive_health = _price_archive_stage_health(archive_result)
+    spots: dict[str, Sequence[SpotBar]] = {}
+    for pair in PAIRS:
+        selected = select_spot_history(unselected_spots.get(pair, ()), pair=pair, as_of=as_of_day)
+        if selected:
+            spots[pair] = selected
+    buffer = dict(buffer)
+    buffer[KEY_FX_SPOT] = spots
 
     yields_dict_raw = buffer.get(KEY_YIELDS)
     yields_dict: dict[str, float | None] = (
@@ -1023,9 +1251,7 @@ async def run_daily(
 
     # ── Stream A: pair-specific macro signal fetchers ─────────────────────
     ecb_balance_sheet = fetch_ecb_balance_sheet()
-    bund_btp_spread = fetch_bund_btp_spread(
-        germany_10y=yields_dict.get("de_10y")
-    )
+    bund_btp_spread = fetch_bund_btp_spread(germany_10y=yields_dict.get("de_10y"))
     boj_policy_rate = fetch_boj_policy_rate()
     india_vix = fetch_india_vix()
     inr_forward_premium = fetch_inr_forward_premium()
@@ -1054,53 +1280,57 @@ async def run_daily(
     )
 
     pending_desk_cards: list[dict[str, Any]] = []
+    published_pairs: list[str] = []
+    signal_quality_notes: list[str] = []
 
     for pair in PAIRS:
-        prior_db = writer.get_latest_regime_call(pair)
-        historical_rows = writer.get_historical_signals(pair, limit=2520)
+        historical_rows = qualify_rate_history(writer.get_historical_signals(pair, limit=2520))
         historical_carry = build_carry_history_from_rows(historical_rows, max_points=2520)
         historical_real_10y = build_real_yield_10y_spread_history_from_rows(
             historical_rows, max_points=2520
         )
         structural_instability = structural_instability_from_carry_history(historical_carry)
         historical_us10y = [
-            float(v)
-            for row in historical_rows
-            if (v := row.get("cross_asset_us10y")) is not None
+            float(v) for row in historical_rows if (v := row.get("cross_asset_us10y")) is not None
         ]
         historical_oi_delta = [
-            int(v)
-            for row in historical_rows
-            if (v := row.get("oi_delta")) is not None
+            int(v) for row in historical_rows if (v := row.get("oi_delta")) is not None
         ]
         historical_rv5 = [
-            float(v)
-            for row in historical_rows
-            if (v := row.get("realized_vol_5d")) is not None
+            float(v) for row in historical_rows if (v := row.get("realized_vol_5d")) is not None
         ]
         historical_rr = [
-            float(v)
-            for row in historical_rows
-            if (v := row.get("risk_reversal_25d")) is not None
-        ]
-        historical_fpi = [
-            float(v)
-            for row in historical_rows
-            if (v := row.get("fpi_flow")) is not None
+            float(v) for row in historical_rows if (v := row.get("risk_reversal_25d")) is not None
         ]
         spot_bars = spots.get(pair, [])
         if not spot_bars:
             logger.warning("No spot bars for %s — skipping", pair)
+            signal_quality_notes.append(f"{pair}:spot_history_missing")
+            continue
+        if len(spot_bars) < 2:
+            logger.warning("No earlier spot bar for %s — skipping", pair)
+            signal_quality_notes.append(f"{pair}:spot_history_missing_prior")
             continue
 
-        # Find bar matching as_of_day for backfill; fall back to latest
-        _as_of_idx = next(
-            (i for i, b in enumerate(spot_bars) if b.date == as_of_day),
-            len(spot_bars) - 1,
+        today_bar = spot_bars[-1]
+        prior_db = writer.get_current_live_regime_call(
+            pair,
+            as_of=today_bar.date,
+            strictly_before=True,
+            published_before=datetime.combine(
+                today_bar.date,
+                datetime.min.time(),
+                tzinfo=UTC,
+            ),
         )
-        today_bar = spot_bars[_as_of_idx]
 
-        rate_spread_2y = _rate_spread_2y_for_pair(pair, universe, yields_dict)
+        rate_spread_2y = _rate_spread_2y_for_pair(
+            pair,
+            universe,
+            yields_dict,
+            ingestion_snapshot.rate_observations,
+            ingestion_snapshot.rate_decision_at,
+        )
         if rate_spread_2y is None:
             logger.warning(
                 "Rate 2Y spread unavailable for %s — dominance scores computed without rate carry",
@@ -1109,18 +1339,11 @@ async def run_daily(
         rate_spread_10y = _rate_spread_10y_legacy(pair, yields_dict)
         bei_raw = yields_dict.get("T10YIE") if isinstance(yields_dict, dict) else None
         bei = float(bei_raw) if bei_raw is not None else None
-        rate_spread_10y_real = (
-            None
-            if rate_spread_10y is None
-            else (float(rate_spread_10y) - bei if bei is not None else float(rate_spread_10y))
-        )
-        rate_spread_for_norm = rate_spread_2y if rate_spread_2y is not None else rate_spread_10y
+        rate_spread_10y_real = current_real_yield_spread(pair, rate_spread_10y, yields_dict)
 
         # ── COT: traditional net long + smart spread (M.3.3) ────────────────
         cot_pct = compute_cot_percentile(cot_rows, pair, as_of=today_bar.date)
-        cot_smart = compute_cot_smart_spread_percentile(
-            cot_rows, pair, as_of=today_bar.date
-        )
+        cot_smart = compute_cot_smart_spread_percentile(cot_rows, pair, as_of=today_bar.date)
         cot_pct_norm = normalize_cot_signal(cot_pct) if cot_pct is not None else None
         cot_smart_norm = normalize_cot_signal(cot_smart) if cot_smart is not None else None
         cot_blended: float | None = None
@@ -1129,6 +1352,9 @@ async def run_daily(
         elif cot_pct_norm is not None:
             cot_blended = cot_pct_norm
         cot_norm = cot_blended
+        if pair == "USDINR":
+            cot_pct = None
+            cot_norm = None
 
         # Extract latest COT breakdowns for signal row.
         pair_cot_rows = sorted(
@@ -1148,11 +1374,8 @@ async def run_daily(
 
         # ── Rate: risk-adjusted carry v2 prefers implied vol (M.3.4) ────────
         iv = fetch_implied_vol(pair)
-        risk_adjusted_carry = compute_risk_adjusted_carry_v2(
-            rate_spread_2y, rv20, iv, pair
-        )
-        if risk_adjusted_carry is not None:
-            rate_spread_for_norm = risk_adjusted_carry
+        risk_adjusted_carry = compute_risk_adjusted_carry_v2(rate_spread_2y, rv20, iv, pair)
+        rate_spread_for_norm = risk_adjusted_carry
         rate_norm_z = None
         if rate_spread_for_norm is not None:
             struct_spread = rate_spread_10y_real
@@ -1169,12 +1392,8 @@ async def run_daily(
                 historical_structural=struct_hist,
             )
         rate_norm = rate_norm_z.z_blended if rate_norm_z is not None else None
-        rate_z_tactical_val = (
-            rate_norm_z.z_tactical if rate_norm_z is not None else None
-        )
-        rate_z_structural_val = (
-            rate_norm_z.z_structural if rate_norm_z is not None else None
-        )
+        rate_z_tactical_val = rate_norm_z.z_tactical if rate_norm_z is not None else None
+        rate_z_structural_val = rate_norm_z.z_structural if rate_norm_z is not None else None
         # Rate direction uses z-score when available (detects changes, not levels).
         rate_dir = rate_direction_from_spreads(
             rate_spread_2y, rate_spread_10y_real, z_tactical=rate_norm
@@ -1182,9 +1401,7 @@ async def run_daily(
         vol_90th = _percentile(historical_rv5, 0.90) if historical_rv5 else None
         vol_norm = compute_vol_signal(rv5, rv20, vol_90th)
         vol_exp = (
-            is_vol_expanding(rv5, vol_90th)
-            if rv5 is not None and vol_90th is not None
-            else False
+            is_vol_expanding(rv5, vol_90th) if rv5 is not None and vol_90th is not None else False
         )
 
         oi_pct = compute_oi_from_cot(cot_rows, pair)
@@ -1220,11 +1437,6 @@ async def run_daily(
 
         # ── Stream A: blend pair-specific macro signals into special slot ────
         if pair == "USDJPY":
-            intervention = compute_intervention_proximity(
-                today_bar.close if today_bar.close else None
-            )
-            if intervention is not None and special_signal is not None:
-                special_signal = 0.85 * special_signal + 0.15 * intervention
             # Supplementary US-JP rate differential context (does not replace rate_diff_2y)
             us_2y_for_jp = yields_dict.get("us_2y")
             if us_2y_for_jp is not None and boj_policy_rate is not None:
@@ -1235,22 +1447,17 @@ async def run_daily(
                     boj_policy_rate,
                     jp_rate_spread,
                 )
-        special_norm = special_signal if special_signal is not None else 0.0
 
         # ── FPI flow (USDINR only) ──────────────────────────────────────────
+        # Await qualified dated FPI source/history before activating this feature.
         fpi_signal: float | None = None
         fpi_raw: dict[str, Any] | None = None
-        if pair == "USDINR":
-            try:
-                fpi_raw = fetch_fpi_flows(today_bar.date)
-                if fpi_raw:
-                    fpi_flow_cr = fpi_raw.get("fpi_total_net_cr")
-                    fpi_signal = normalize_fpi_signal(
-                        latest_flow=fpi_flow_cr,
-                        history=historical_fpi,
-                    )
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("FPI fetch failed for %s: %s", pair, exc)
+        directional = directional_inputs(
+            pair, rate=rate_norm, cot=cot_norm, special=special_signal, fpi=fpi_signal
+        )
+        rate_norm, cot_norm = directional.rate, directional.cot
+        special_signal, fpi_signal = directional.special, directional.fpi
+        special_norm = special_signal if special_signal is not None else 0.0
         fpi_norm = fpi_signal if fpi_signal is not None else 0.0
 
         top_5y = dominance_top_family(
@@ -1275,11 +1482,7 @@ async def run_daily(
             if betas_3y is not None
             else None
         )
-        parameter_instability = (
-            top_5y is not None
-            and top_3y is not None
-            and top_5y != top_3y
-        )
+        parameter_instability = top_5y is not None and top_3y is not None and top_5y != top_3y
         dominance_scores = compute_dominance_scores(
             rate_norm=rate_norm,
             cot_norm=cot_norm,
@@ -1289,16 +1492,19 @@ async def run_daily(
             special_norm=special_norm,
             fpi_norm=fpi_norm,
         )
-        # ── Composite with beta-informed precision weighting (M.2.1) ────────
+        # Static directional reference; betas above remain descriptive diagnostics.
         composite = compute_composite(
-            rate_norm, cot_norm, vol_norm, oi_norm,
+            rate_norm,
+            cot_norm,
+            vol_norm,
+            oi_norm,
             pair=pair,
             special_signal=special_signal,
             fpi_signal=fpi_signal,
-            betas=betas_5y,
         )
         if composite is None:
-            logger.warning("Not enough data for %s — skipping", pair)
+            logger.warning("directional_inputs_unavailable for %s — no call", pair)
+            signal_quality_notes.append(f"{pair}:directional_inputs_unavailable")
             continue
 
         # Pair-specific confidence adjustments
@@ -1321,7 +1527,9 @@ async def run_daily(
             betas_5y,
         )
         confidence = compute_confidence(
-            composite, rate_norm, cot_norm,
+            composite,
+            rate_norm,
+            cot_norm,
             pair=pair,
             special_signal=special_signal,
             commodity_components_agree=commodity_components_agree,
@@ -1332,7 +1540,7 @@ async def run_daily(
         if pair == "USDINR" and cot_pct is None:
             # INR does not have liquid CFTC positioning — do not penalise for missing COT.
             pass
-        driver = get_primary_driver(betas_5y)
+        driver = "Static directional reference (unvalidated)"
         driver_family = max(
             ("rate", "cot", "vol", "oi"),
             key=lambda f: abs(float(betas_5y.get(f, 0.0))),
@@ -1345,7 +1553,9 @@ async def run_daily(
         )
         prior_label = (
             str(prior_db["regime"])
-            if prior_db and prior_db.get("regime") is not None
+            if prior_db
+            and prior_db.get("model_version") == DIRECTIONAL_MODEL_VERSION
+            and prior_db.get("regime") is not None
             else None
         )
         spot_closes = tuple(float(bar.close) for bar in spot_bars)
@@ -1378,6 +1588,7 @@ async def run_daily(
             )
 
         layer2_out = run_layer2_directional(
+            pair=pair,
             composite=float(composite),
             z_tactical=rate_norm,
             z_structural=rate_z_structural_val,
@@ -1459,6 +1670,17 @@ async def run_daily(
             risk_reversal_source=rr_source,
             historical_us10y=us10y_value,
         )
+        rate_notes = []
+        if rate_spread_2y is None:
+            rate_notes.append("rate_inputs_unqualified")
+        if rate_spread_10y_real is None:
+            rate_notes.append("cross_country_inflation_unavailable")
+        if not historical_carry:
+            rate_notes.append("rate_history_unavailable")
+        if pair == "USDINR":
+            rate_notes.extend(FPI_UNAVAILABLE_NOTES)
+        signal_row.data_quality_notes = rate_notes or None
+        signal_quality_notes.extend(rate_notes)
         call = builder.build_regime_call(
             pair=pair,
             signal_row=signal_row,
@@ -1481,20 +1703,25 @@ async def run_daily(
 
         if pair == "TESTPAIR":
             continue
-        writer.write_signal_row(signal_row)
-
+        persisted_call_id: int | None = None
         if stress_red:
+            writer.write_signal_row(signal_row)
             logger.warning(
                 "RED Stress Mode — withholding regime call "
                 "publication for %s (signals still saved)",
                 pair,
             )
         else:
-            persist_regime_call(
-                call,
-                signals=signal_row,
+            durable_call_id = _persist_daily_regime_call(
+                call=call,
+                signal_row=signal_row,
+                requested_date=as_of_day,
+                published_pairs=published_pairs,
                 correlation_id=correlation_id,
             )
+            if isinstance(durable_call_id, bool) or not isinstance(durable_call_id, int):
+                raise RuntimeError("Current publication did not return an integer call ID")
+            persisted_call_id = durable_call_id
             ledger.log_initial_signal(
                 pair=pair,
                 target_date=today_bar.date,
@@ -1508,9 +1735,7 @@ async def run_daily(
         try:
             recent_closes = [float(bar.close) for bar in spot_bars[-10:]]
             if len(recent_closes) >= 6 and recent_closes[-6] != 0:
-                current_trend_5d = (
-                    (recent_closes[-1] / recent_closes[-6]) - 1.0
-                ) * 100.0
+                current_trend_5d = ((recent_closes[-1] / recent_closes[-6]) - 1.0) * 100.0
             else:
                 current_trend_5d = 0.0
             analog_rpc = writer.get_rpc_historical_analogs(
@@ -1543,38 +1768,12 @@ async def run_daily(
         except Exception as exc:  # noqa: BLE001
             logger.warning("Analog RPC failed for %s: %s", pair, exc)
 
-        carry_by_date: dict[date, float] = {}
-        for row in historical_rows:
-            rd = row.get("date")
-            if rd is None:
-                continue
-            try:
-                d_co = date.fromisoformat(str(rd)[:10])
-            except ValueError:
-                continue
-            r2c = row.get("rate_diff_2y")
-            if r2c is not None:
-                carry_by_date[d_co] = float(r2c)
-        if rate_spread_2y is not None:
-            carry_by_date[today_bar.date] = float(rate_spread_2y)
-
-        try:
-            pain = None
-            pain = compute_pain_index(
-                pair=pair,
-                as_of_date=today_bar.date,
-                regime=regime,
-                cot_percentile=cot_pct,
-                cot_rows=cot_rows,
-                spot_bars=spot_bars,
-                realized_vol_20d=rv20,
-                implied_vol_30d=iv,
-                carry_by_date=carry_by_date,
-                rvol=rvol,
-            )
-            logger.info("Pain index (%s): %s", pair, pain)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Pain index failed for %s: %s", pair, exc)
+        crowding_telemetry = _crowding_telemetry_for_call(
+            call=call,
+            call_id=persisted_call_id,
+            cot_rows=cot_rows,
+            spot_bars=spot_bars,
+        )
 
         try:
             markov = None
@@ -1583,7 +1782,17 @@ async def run_daily(
                 as_of_date=today_bar.date,
                 current_regime=regime,
                 historical_prices=writer.get_historical_prices(pair, limit=5000),
-                regime_calls=writer.get_historical_regime_calls(pair, limit=5000),
+                regime_calls=writer.get_current_live_regime_history(
+                    pair,
+                    as_of=today_bar.date,
+                    strictly_before=True,
+                    published_before=datetime.combine(
+                        today_bar.date,
+                        datetime.min.time(),
+                        tzinfo=UTC,
+                    ),
+                    session_limit=5000,
+                ),
                 forward_days=5,
                 half_life_years=3.0,
             )
@@ -1611,12 +1820,8 @@ async def run_daily(
             else {"continuation_probability": 0.0, "transitions": {}, "weighted_sample_size": 0.0}
         )
         telemetry_audit = {
-            "cot_is_stale": pain.cot_is_stale if pain is not None else True,
-            "cot_age_days": pain.cot_age_days if pain is not None else None,
-            "underwater_triggered": pain.underwater_triggered if pain is not None else False,
-            "weighted_sample_size": (
-                markov.weighted_sample_size if markov is not None else 0.0
-            ),
+            **crowding_telemetry,
+            "weighted_sample_size": (markov.weighted_sample_size if markov is not None else 0.0),
             "parameter_instability": parameter_instability,
             "layer2_directional": dict(layer2_out),
             "layer3_execution": dict(layer3_out),
@@ -1636,11 +1841,12 @@ async def run_daily(
                 {
                     "confidence": confidence,
                     "brief_kw": {
+                        "call_id": persisted_call_id,
                         "pair": pair,
                         "regime": regime,
                         "date_str": today_bar.date.isoformat(),
                         "primary_driver": driver,
-                        "pain_index": pain.pain_index if pain is not None else None,
+                        "pain_index": None,
                         "rvol": rvol,
                         "todays_event_matrix": todays_event_matrix,
                         "dollar_dominance_score": None,
@@ -1651,7 +1857,7 @@ async def run_daily(
                         "pair": pair,
                         "structural_regime": regime,
                         "dominance_array": dominance_array,
-                        "pain_index": pain.pain_index if pain is not None else None,
+                        "pain_index": None,
                         "markov_probabilities": markov_probabilities,
                         "telemetry_audit": telemetry_audit,
                         "invalidation_triggered": False,
@@ -1679,59 +1885,6 @@ async def run_daily(
         ref_raw = pending_desk_cards[0]["card"]["date"]
         ref_date = ref_raw if isinstance(ref_raw, date) else date.fromisoformat(str(ref_raw)[:10])
         trading_date_str = ref_date.isoformat()
-        yesterday = (ref_date - timedelta(days=1)).isoformat()
-        y_rows = writer.get_desk_open_cards_for_date(yesterday)
-        yb_rank, yb_apex, incumbent = build_yesterday_rank_maps(y_rows)
-        inc_apex = yb_apex.get(incumbent) if incumbent else None
-
-        pairs_today = [str(item["card"]["pair"]) for item in pending_desk_cards]
-        conf_map = {
-            str(item["card"]["pair"]): float(item["confidence"]) for item in pending_desk_cards
-        }
-        pain_map = {
-            str(item["card"]["pair"]): cast(float | None, item["card"].get("pain_index"))
-            for item in pending_desk_cards
-        }
-
-        ranking_results = assign_apex_ranking(
-            pairs=pairs_today,
-            confidences=conf_map,
-            pain_indices=pain_map,
-            yesterday_rank_by_pair=yb_rank,
-            yesterday_incumbent=incumbent,
-            yesterday_incumbent_apex=inc_apex,
-        )
-        by_apex = {r.pair: r for r in ranking_results}
-
-        matrix: dict[str, dict[str, float]] = {}
-        try:
-            matrix = writer.get_rpc_fx_correlation_matrix()
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("FX correlation matrix RPC failed: %s", exc)
-
-        systemic_cluster = False
-        if len(ranking_results) >= 3:
-            systemic_cluster = top_three_clustered(
-                (ranking_results[0].pair, ranking_results[1].pair, ranking_results[2].pair),
-                matrix,
-            )
-
-        if ranking_results:
-            apex_leader = ranking_results[0]
-            logger.info(
-                "[ APEX TARGET IDENTIFIED: %s | SCORE: %.4f | STATUS: %s ]",
-                apex_leader.pair,
-                apex_leader.apex_score,
-                "Cluster" if systemic_cluster else "Consensus",
-            )
-
-        for item in pending_desk_cards:
-            pair_key = str(item["card"]["pair"])
-            r_inst = by_apex.get(pair_key)
-            if r_inst is not None:
-                ta = cast(dict[str, Any], item["card"]["telemetry_audit"])
-                item["card"]["telemetry_audit"] = apply_cluster_to_telemetry(ta, systemic_cluster)
-
         brief_outcomes = await batch_desk_briefs_task(pending_desk_cards)
         bulk_desk: list[DeskOpenCardRow] = []
         for idx, item in enumerate(pending_desk_cards):
@@ -1760,7 +1913,6 @@ async def run_daily(
             telemetry_merged = dict(cast(dict[str, Any], card["telemetry_audit"]))
             telemetry_merged["human_grounding_active"] = human_grounding
             pair_key = str(card["pair"])
-            r_inst = by_apex.get(pair_key)
             bulk_desk.append(
                 DeskOpenCardRow(
                     date=card["date"],
@@ -1773,8 +1925,8 @@ async def run_daily(
                     telemetry_audit=telemetry_merged,
                     invalidation_triggered=bool(card.get("invalidation_triggered", False)),
                     telemetry_status=str(card.get("telemetry_status") or "ONLINE"),
-                    global_rank=r_inst.global_rank if r_inst is not None else None,
-                    apex_score=r_inst.apex_score if r_inst is not None else None,
+                    global_rank=None,
+                    apex_score=None,
                     regime_age=cast(int | None, card.get("regime_age")),
                 )
             )
@@ -1802,7 +1954,7 @@ async def run_daily(
 
     pair_regimes: dict[str, str] = {}
     for p in PAIRS:
-        rc = writer.get_latest_regime_call(p)
+        rc = writer.get_current_live_regime_call(p, as_of=run_as_of)
         if rc is None:
             continue
         rc_date = str(rc.get("date") or "")[:10]
@@ -1870,6 +2022,7 @@ async def run_daily(
         )
         try:
             from src.ai.client import generate_global_macro_summary
+
             global_summary = await generate_global_macro_summary(
                 date_str=date_str,
                 pair_contexts=pair_contexts,
@@ -1917,14 +2070,17 @@ async def run_daily(
         polymarket_context=polymarket_context,
     )
 
-    # ── Run Round 3 validation engine (T+5 / T+20 Brier scores) ─────
-    try:
-        run_validation(as_of_date=run_as_of)
-        logger.info("Validation engine completed for %s", date_str)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Validation engine failed for %s: %s", date_str, exc)
+    outcome = _finalize_daily_run(
+        date_str=date_str,
+        run_as_of=run_as_of,
+        published_pairs=published_pairs,
+        dqs_score=float(dqs_out.score),
+        stress_red=stress_red,
+        signal_quality_notes=signal_quality_notes,
+        archive_health=archive_health,
+    )
 
-    # ── Alerting / heartbeat ──────────────────────────────────────────
+    # Low-quality notices remain local; the outer scheduler owns completion alerts.
     try:
         if dqs_out.score < 0.70:
             stale_sources: list[str] = []
@@ -1935,22 +2091,17 @@ async def run_daily(
             if dqs_out.cot_freshness < 0.80:
                 stale_sources.append("cot")
             alert_on_low_dqs(date_str, dqs_out.score, stale_sources)
-        else:
-            send_success_heartbeat(
-                date_str=date_str,
-                pairs_processed=len(pair_regimes),
-                regime_calls_count=len(pair_regimes),
-                dqs_score=dqs_out.score,
-            )
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Alerting/heartbeat failed for %s: %s", date_str, exc)
+        logger.warning("Low-DQS alerting failed for %s: %s", date_str, exc)
 
     logger.info("Daily run complete for %s", date_str)
+    return outcome
 
 
 def run_weekly(date_str: str | None = None) -> None:
     if date_str is None:
         date_str = date.today().isoformat()
+    run_as_of = date.fromisoformat(date_str)
 
     _require_pipeline_runtime_env()
 
@@ -1984,7 +2135,7 @@ def run_weekly(date_str: str | None = None) -> None:
 
         for pair in PAIRS:
             try:
-                latest_call = writer.get_latest_regime_call(pair)
+                latest_call = writer.get_current_live_regime_call(pair, as_of=run_as_of)
                 if latest_call is None:
                     continue
                 active_regime_raw = latest_call.get("regime")
@@ -1992,7 +2143,11 @@ def run_weekly(date_str: str | None = None) -> None:
                     continue
                 active_regime = str(active_regime_raw)
                 historical_prices = writer.get_historical_prices(pair, limit=10000)
-                historical_regime_calls = writer.get_historical_regime_calls(pair, limit=5000)
+                historical_regime_calls = writer.get_current_live_regime_history(
+                    pair,
+                    as_of=run_as_of,
+                    session_limit=5000,
+                )
                 historical_surprises = writer.get_historical_macro_surprises(event_name)
                 risk = compute_event_risk_matrix(
                     pair=pair,
@@ -2019,7 +2174,7 @@ def run_weekly(date_str: str | None = None) -> None:
     pm_json_w = _polymarket_json_for_llm(markets)
     pair_regimes_w: dict[str, str] = {}
     for p in PAIRS:
-        rc = writer.get_latest_regime_call(p)
+        rc = writer.get_current_live_regime_call(p, as_of=run_as_of)
         if rc is None:
             continue
         pair_regimes_w[p] = str(rc.get("regime") or "")

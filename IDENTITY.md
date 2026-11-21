@@ -1,4 +1,6 @@
 # FX Regime Lab — IDENTITY.md
+# Owner amendment — 1 October 2026: private research scope
+# The owner authorized a separate authenticated private desk for manual trading research, focused on 2–5-day holds. The latest amendment explicitly restores USDJPY: the private universe is EURUSD, GBPUSD, AUDUSD, NZDUSD, USDCAD, USDCHF, USDJPY and the additional EURGBP cross. This is an explicit exception to the historical three-pair and public-purpose rules for the private desk only. Details and acceptance: docs/PRIVATE_DESK_CONTRACT.md and docs/PRIVATE_PORTFOLIO_EXPANSION_CONTRACT.md. Existing public records retain their original scope.
 # This document defines what FX Regime Lab is, what it is not, and what must remain true before any phase can advance.
 # Any AI agent working on this codebase must read and conform to this document before writing a single line.
 

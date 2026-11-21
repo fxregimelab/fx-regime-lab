@@ -1,4 +1,4 @@
-"""Cross-sectional FX basket apex ranking, hysteresis, and systemic cluster detection."""
+"""Retired Apex entry points and retained systemic correlation descriptions."""
 
 from __future__ import annotations
 
@@ -6,42 +6,18 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Final
 
-import numpy as np
-
-# Hysteresis threshold on a 0–100 apex scale (stored apex remains 0–1 float).
-HYSTERESIS_MARGIN_POINTS: Final[float] = 10.0
 CLUSTER_CORR_THRESHOLD: Final[float] = 0.90
 OUTLIER_CORR_THRESHOLD: Final[float] = 0.3
-DEFAULT_RANK_FALLBACK: Final[int] = 7
-RANK_VELOCITY_CLIP: Final[float] = 6.0
-
-WEIGHT_CONFIDENCE: Final[float] = 0.4
-WEIGHT_PAIN: Final[float] = 0.4
-WEIGHT_RANK_VELOCITY: Final[float] = 0.2
-
-
-def normalize_rank_velocity(velocity: float) -> float:
-    """Map rank improvement (yesterday_rank - raw_rank) to [0, 1]."""
-
-    return float(
-        np.clip((float(velocity) + RANK_VELOCITY_CLIP) / (2.0 * RANK_VELOCITY_CLIP), 0.0, 1.0)
-    )
 
 
 def compute_apex_score(
     confidence: float,
     pain_index: float | None,
     rank_velocity: float,
-) -> float:
-    """Apex score from confidence, pain (None → 0), and rank velocity."""
+) -> float | None:
+    """Retired because the inputs do not support an Apex investment ranking."""
 
-    pain_term = 0.0 if pain_index is None else float(pain_index) / 100.0
-    vel_term = normalize_rank_velocity(rank_velocity)
-    return (
-        float(confidence) * WEIGHT_CONFIDENCE
-        + pain_term * WEIGHT_PAIN
-        + vel_term * WEIGHT_RANK_VELOCITY
-    )
+    return None
 
 
 def _corr_lookup(matrix: dict[str, Any], a: str, b: str) -> float | None:
@@ -76,7 +52,7 @@ def top_three_clustered(
 
 @dataclass(frozen=True)
 class ApexRankingResult:
-    """Per-pair outputs after hysteresis and global ordering."""
+    """Legacy compatibility shape; new ranking calls return no rows."""
 
     pair: str
     global_rank: int
@@ -116,65 +92,9 @@ def assign_apex_ranking(
     yesterday_incumbent: str | None,
     yesterday_incumbent_apex: float | None,
 ) -> list[ApexRankingResult]:
-    """Compute apex scores, apply rank hysteresis for #1, return globally ordered results."""
+    """Retired because no validated cross-pair ranking model is available."""
 
-    if not pairs:
-        return []
-
-    # Raw score ordering (before velocity — velocity needs raw rank)
-    # First pass: velocity uses yesterday vs provisional raw rank from score-only
-    score_only: dict[str, float] = {}
-    for p in pairs:
-        pain = pain_indices.get(p)
-        pain_c = 0.0 if pain is None else float(pain) / 100.0
-        score_only[p] = confidences[p] * WEIGHT_CONFIDENCE + pain_c * WEIGHT_PAIN
-
-    raw_by_score = sorted(pairs, key=lambda x: score_only[x], reverse=True)
-    raw_rank_map: dict[str, int] = {p: i + 1 for i, p in enumerate(raw_by_score)}
-
-    apex_by_pair: dict[str, float] = {}
-    for p in pairs:
-        vel = float(yesterday_rank_by_pair.get(p, DEFAULT_RANK_FALLBACK) - raw_rank_map[p])
-        apex_by_pair[p] = compute_apex_score(confidences[p], pain_indices.get(p), vel)
-
-    # Re-rank by full apex score
-    order_by_apex = sorted(pairs, key=lambda x: apex_by_pair[x], reverse=True)
-    apex_rank_map: dict[str, int] = {p: i + 1 for i, p in enumerate(order_by_apex)}
-    challenger = order_by_apex[0]
-
-    leader: str
-    if yesterday_incumbent is None or yesterday_incumbent not in pairs:
-        leader = challenger
-    elif challenger == yesterday_incumbent:
-        leader = challenger
-    elif yesterday_incumbent_apex is None:
-        leader = challenger
-    elif (apex_by_pair[challenger] * 100.0) > (
-        float(yesterday_incumbent_apex) * 100.0 + HYSTERESIS_MARGIN_POINTS
-    ):
-        leader = challenger
-    else:
-        leader = yesterday_incumbent
-
-    rest = sorted(
-        (p for p in order_by_apex if p != leader),
-        key=lambda x: apex_by_pair[x],
-        reverse=True,
-    )
-    final_order = [leader, *rest]
-
-    results: list[ApexRankingResult] = []
-    for i, p in enumerate(final_order):
-        results.append(
-            ApexRankingResult(
-                pair=p,
-                global_rank=i + 1,
-                apex_score=apex_by_pair[p],
-                raw_rank=apex_rank_map[p],
-            )
-        )
-
-    return results
+    return []
 
 
 def apply_cluster_to_telemetry(

@@ -1,4 +1,3 @@
-import { SampleSizeBadge } from "@/components/ui/sample-size-badge";
 import { normalizeProp } from "@/components/ui/utils";
 import { PAIRS } from "@/lib/constants";
 import type { ValidationStats } from "@/lib/supabase/queries";
@@ -8,151 +7,92 @@ interface PairBreakdownTableProps {
   statsT20: ValidationStats[];
 }
 
-function fmtPctDigits(n: number | null | undefined, digits = 1) {
-  if (n == null) return "—";
-  const prop = normalizeProp(n) ?? 0;
-  const sign = prop >= 0 ? "+" : "";
-  return `${sign}${(prop * 100).toFixed(digits)}%`;
+function fmtPct(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return `${((normalizeProp(value) ?? 0) * 100).toFixed(1)}%`;
 }
 
-function fmtBrier(n: number | null | undefined) {
-  if (n == null) return "—";
-  return n.toFixed(3);
-}
-
-function fmtNum(n: number | null | undefined) {
-  if (n == null) return "—";
-  return n.toFixed(0);
-}
-
-function fmtAcc(n: number | null | undefined) {
-  if (n == null) return "—";
-  const prop = normalizeProp(n) ?? 0;
-  return `${(prop * 100).toFixed(1)}%`;
+function fmtBrier(value: number | null | undefined) {
+  return value == null || !Number.isFinite(value) ? "—" : value.toFixed(3);
 }
 
 export function PairBreakdownTable({
   statsT5,
   statsT20,
 }: PairBreakdownTableProps) {
-  const t5Map = new Map(statsT5.map((s) => [s.pair, s]));
-  const t20Map = new Map(statsT20.map((s) => [s.pair, s]));
+  const t5Map = new Map(statsT5.map((stats) => [stats.pair, stats]));
+  const t20Map = new Map(statsT20.map((stats) => [stats.pair, stats]));
+  const labels = [...PAIRS.map((pair) => pair.display), "ALL"];
 
   return (
     <div className="border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
       <div className="px-5 py-3 border-b border-[var(--color-border)]">
         <p className="font-mono text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase">
-          Per-Pair Breakdown
+          Per-pair validation
         </p>
       </div>
       <div className="overflow-x-auto">
         <table
           className="w-full border-collapse font-mono text-[11px]"
-          aria-label="Per-pair performance breakdown"
+          aria-label="Per-pair directional performance by published call"
         >
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-[var(--color-elevated)]">
               {[
                 "PAIR",
-                "T+5 WIN",
-                "T+5 BRIER",
-                "T+5 90D",
-                "T+5 N",
-                "T+20 WIN",
-                "T+20 BRIER",
-                "T+20 90D",
-                "T+20 N",
-              ].map((h) => (
+                "T+5 ACC",
+                "T+5 SCORED / ALL CALLS",
+                "T+5 BRIER N",
+                "T+20 ACC",
+                "T+20 SCORED / ALL CALLS",
+                "T+20 BRIER N",
+              ].map((heading) => (
                 <th
-                  key={h}
+                  key={heading}
                   scope="col"
                   className="px-4 py-2.5 text-left text-[9px] text-[var(--color-text-muted)] tracking-[0.15em] font-semibold uppercase whitespace-nowrap"
                 >
-                  {h}
+                  {heading}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {PAIRS.map((p, i) => {
-              const label = p.display;
+            {labels.map((label, index) => {
               const t5 = t5Map.get(label);
               const t20 = t20Map.get(label);
               return (
                 <tr
-                  key={p.label}
-                  className={`border-b border-[var(--color-border-subtle)] last:border-b-0 ${i % 2 === 1 ? "bg-[var(--color-elevated)]" : "bg-[var(--color-surface)]"} hover:bg-[var(--color-elevated)] transition-colors`}
+                  key={label}
+                  className={`border-b border-[var(--color-border-subtle)] last:border-b-0 ${label === "ALL" ? "border-t-2 font-bold" : index % 2 === 1 ? "bg-[var(--color-elevated)]" : "bg-[var(--color-surface)]"}`}
                 >
                   <th
                     scope="row"
                     className="px-4 py-2.5 text-[var(--color-text-secondary)] whitespace-nowrap font-medium text-left"
                   >
-                    {p.display}
+                    {label}
                   </th>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtPctDigits(t5?.winRate)}
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtBrier(t5?.brierScore)}
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtAcc(t5?.rolling90dAccuracy)}
+                    {fmtPct(t5?.winRate)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
-                    <SampleSizeBadge n={t5?.sampleSize} />
+                    {t5?.directionalCalls ?? 0} / {t5?.totalCalls ?? 0}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtPctDigits(t20?.winRate)}
+                    {fmtBrier(t5?.brierScore)} · n={t5?.brierSampleSize ?? 0}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtBrier(t20?.brierScore)}
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtAcc(t20?.rolling90dAccuracy)}
+                    {fmtPct(t20?.winRate)}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
-                    <SampleSizeBadge n={t20?.sampleSize} />
+                    {t20?.directionalCalls ?? 0} / {t20?.totalCalls ?? 0}
+                  </td>
+                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
+                    {fmtBrier(t20?.brierScore)} · n={t20?.brierSampleSize ?? 0}
                   </td>
                 </tr>
               );
             })}
-            {/* ALL aggregate row */}
-            {(() => {
-              const allT5 = t5Map.get("ALL");
-              const allT20 = t20Map.get("ALL");
-              if (!allT5 && !allT20) return null;
-              return (
-                <tr className="border-t-2 border-[var(--color-border)] bg-[var(--color-elevated)] font-bold">
-                  <td className="px-4 py-2.5 text-[var(--color-text)] whitespace-nowrap uppercase">
-                    ALL
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtPctDigits(allT5?.winRate)}
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtBrier(allT5?.brierScore)}
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtAcc(allT5?.rolling90dAccuracy)}
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
-                    <SampleSizeBadge n={allT5?.sampleSize} />
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtPctDigits(allT20?.winRate)}
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtBrier(allT20?.brierScore)}
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text)]">
-                    {fmtAcc(allT20?.rolling90dAccuracy)}
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums text-[var(--color-text-muted)]">
-                    <SampleSizeBadge n={allT20?.sampleSize} />
-                  </td>
-                </tr>
-              );
-            })()}
           </tbody>
         </table>
       </div>

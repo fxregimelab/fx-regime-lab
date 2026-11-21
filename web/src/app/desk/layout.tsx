@@ -4,10 +4,8 @@ import { CircuitBreaker } from "@/components/ui/circuit-breaker";
 import { DensityIndicator } from "@/components/ui/density-indicator";
 import {
   getLatestRegimeCalls,
-  getLatestSignals,
   getPipelineHealth,
 } from "@/lib/supabase/queries";
-import type { LatestSignal } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
@@ -29,13 +27,10 @@ export default async function DeskLayout({
   let status: "HEALTHY" | "DEGRADED" | "FAILED" | "UNKNOWN" = "UNKNOWN";
   let dqs: number | null = null;
   let errors: string[] = [];
-  let signals: Record<string, LatestSignal> = {};
-
   try {
     const supabase = await createClient();
-    const [health, latestSignals, calls] = await Promise.all([
+    const [health, calls] = await Promise.all([
       getPipelineHealth(supabase, 1),
-      getLatestSignals(supabase),
       getLatestRegimeCalls(supabase),
     ]);
     if (health.length > 0) {
@@ -55,7 +50,6 @@ export default async function DeskLayout({
       const latestCall = Object.values(calls)[0];
       dqs = latestCall?.data_quality_score ?? null;
     }
-    signals = latestSignals;
   } catch {
     // Graceful fallback
   }

@@ -6,7 +6,7 @@ import asyncio
 import logging
 import os
 import time
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, cast
 
 import aiohttp
@@ -41,42 +41,65 @@ def _polygon_ticker(pair: str) -> str:
     return f"C:{pair.replace('/', '')}"
 
 
-def _parse_polygon_aggs(pair: str, data: dict[str, Any]) -> list[SpotBar]:
-    """Parse Polygon v2 aggs response into ``SpotBar`` list."""
+def _retrieval_time(value: datetime | None) -> datetime:
+    instant = value if value is not None else datetime.now(UTC)
+    if instant.tzinfo is None or instant.utcoffset() is None:
+        raise ValueError("Retrieval time must include a timezone")
+    return instant.astimezone(UTC)
+
+
+def _valid_ohlc(open_: float, high: float, low: float, close: float) -> bool:
+    return bool(
+        all(np.isfinite(v) and v > 0 for v in (open_, high, low, close))
+        and low <= min(open_, close) <= max(open_, close) <= high
+    )
+
+
+def _parse_polygon_aggs(
+    pair: str, data: dict[str, Any], *, retrieved_at: datetime | None = None
+) -> list[SpotBar]:
+    """Preserve raw provider time; UTC date is a label, not a session claim."""
     results = data.get("results")
     if not isinstance(results, list) or not results:
         return []
+    instrument = _polygon_ticker(pair)
+    if data.get("ticker") not in (None, instrument):
+        return []
+    receipt = _retrieval_time(retrieved_at)
     bars: list[SpotBar] = []
-    for r in results:
-        if not isinstance(r, dict):
+    for row in results:
+        if not isinstance(row, dict):
             continue
-        ts_ms = r.get("t")
-        if not isinstance(ts_ms, (int, float)):
+        ts_ms = row.get("t")
+        if isinstance(ts_ms, bool) or not isinstance(ts_ms, int):
+            continue
+        if any(isinstance(row.get(k), bool) for k in ("o", "h", "l", "c", "v")):
             continue
         try:
-            d = date.fromtimestamp(int(ts_ms) / 1000.0)
-            o = float(r.get("o", "nan"))
-            h = float(r.get("h", "nan"))
-            lo = float(r.get("l", "nan"))
-            c = float(r.get("c", "nan"))
-            v = float(r.get("v", 0.0))
-        except (TypeError, ValueError):
+            instant = datetime.fromtimestamp(ts_ms / 1000, UTC)
+            open_, high, low, close = (float(row.get(k, "nan")) for k in ("o", "h", "l", "c"))
+            volume = float(row.get("v", 0.0))
+        except (TypeError, ValueError, OverflowError, OSError):
             continue
-        if any(np.isnan(v) for v in (o, h, lo, c)):
+        if instant > receipt or not _valid_ohlc(open_, high, low, close):
             continue
-        bars.append(
-            SpotBar(
-                date=d,
-                pair=pair,
-                open=o,
-                high=h,
-                low=lo,
-                close=c,
-                volume=v,
-            ),
-        )
-    bars.sort(key=lambda b: b.date)
-    return bars
+        if not np.isfinite(volume) or volume < 0:
+            continue
+        metadata: dict[str, Any] = {
+            "date_label_policy": "timestamp_utc_date", "raw_timestamp_ms": ts_ms,
+        }
+        for key, output in (("ticker", "response_ticker"), ("status", "response_status"),
+                            ("request_id", "request_id"), ("adjusted", "adjusted")):
+            value = data.get(key)
+            if isinstance(value, (str, bool, int, float)):
+                metadata[output] = value
+        bars.append(SpotBar(
+            date=instant.date(), pair=pair, open=open_, high=high, low=low,
+            close=close, volume=volume, provider="polygon", instrument=instrument,
+            retrieved_at=receipt, provider_timestamp=instant,
+            provider_metadata=metadata, volume_source="polygon", volume_instrument=instrument,
+        ))
+    return sorted(bars, key=lambda bar: bar.date)
 
 
 def fetch_fx_spot_polygon(
@@ -94,7 +117,7 @@ def fetch_fx_spot_polygon(
         return None
 
     ticker = _polygon_ticker(pair)
-    end = date.today()
+    end = _retrieval_time(None).date()
     start = end - timedelta(days=lookback_days + 5)  # buffer for weekends
     url = (
         f"{_POLYGON_BASE}/{ticker}/range/1/day/"
@@ -106,10 +129,11 @@ def fetch_fx_spot_polygon(
             params={"apiKey": api_key, "adjusted": "true"},
             timeout=_POLYGON_TIMEOUT_S,
         )
+        receipt = _retrieval_time(None)
         resp.raise_for_status()
         raw: Any = resp.json()
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Polygon.io request failed for %s: %s", pair, exc)
+        logger.warning("Polygon.io request failed for %s (%s)", pair, type(exc).__name__)
         return None
 
     if not isinstance(raw, dict):
@@ -121,7 +145,7 @@ def fetch_fx_spot_polygon(
         logger.warning("Polygon.io status=%s for %s", status, pair)
         return None
 
-    bars = _parse_polygon_aggs(pair, raw)
+    bars = _parse_polygon_aggs(pair, raw, retrieved_at=receipt)
     if bars:
         logger.info("Polygon.io pair=%s bars=%s", pair, len(bars))
     return bars if bars else None
@@ -150,29 +174,47 @@ def _trim_lookback(bars: list[SpotBar], lookback_days: int) -> list[SpotBar]:
     return [b for b in ordered if b.date >= start]
 
 
-def _parse_av_fx_daily(pair: str, data: dict[str, Any]) -> list[SpotBar]:
-    ts = data.get("Time Series FX (Daily)")
-    if not isinstance(ts, dict) or not ts:
+def _parse_av_fx_daily(
+    pair: str, data: dict[str, Any], *, retrieved_at: datetime | None = None
+) -> list[SpotBar]:
+    series = data.get("Time Series FX (Daily)")
+    if not isinstance(series, dict) or not series:
+        return []
+    receipt = _retrieval_time(retrieved_at)
+    raw_meta = data.get("Meta Data")
+    raw_meta = raw_meta if isinstance(raw_meta, dict) else {}
+    metadata: dict[str, Any] = {"date_label_policy": "provider_date"}
+    for key, output in (
+        ("2. From Symbol", "from_symbol"), ("3. To Symbol", "to_symbol"),
+        ("4. Last Refreshed", "last_refreshed"), ("6. Time Zone", "provider_timezone"),
+    ):
+        if isinstance(raw_meta.get(key), str):
+            metadata[output] = raw_meta[key]
+    base, quote = alphavantage_fx_legs_from_pair(pair)
+    if metadata.get("from_symbol", base) != base or metadata.get("to_symbol", quote) != quote:
         return []
     bars: list[SpotBar] = []
-    for day_s, row in ts.items():
-        if not isinstance(row, dict):
+    for day_s, row in series.items():
+        if not isinstance(day_s, str) or not isinstance(row, dict):
+            continue
+        if any(isinstance(row.get(k), bool) for k in ("1. open", "2. high", "3. low", "4. close")):
             continue
         try:
-            d = date.fromisoformat(str(day_s)[:10])
-            o = float(str(row.get("1. open", "nan")))
-            h = float(str(row.get("2. high", "nan")))
-            lo = float(str(row.get("3. low", "nan")))
-            c = float(str(row.get("4. close", "nan")))
+            day = date.fromisoformat(day_s)
+            if day.isoformat() != day_s:
+                continue
+            open_, high, low, close = (float(row.get(k, "nan")) for k in (
+                "1. open", "2. high", "3. low", "4. close"))
         except (TypeError, ValueError):
             continue
-        if any(np.isnan(v) for v in (o, h, lo, c)):
+        if not _valid_ohlc(open_, high, low, close):
             continue
-        bars.append(
-            SpotBar(date=d, pair=pair, open=o, high=h, low=lo, close=c),
-        )
-    bars.sort(key=lambda b: b.date)
-    return bars
+        bars.append(SpotBar(
+            date=day, pair=pair, open=open_, high=high, low=low, close=close,
+            provider="alphavantage", instrument=f"{base}/{quote}", retrieved_at=receipt,
+            session_timezone=metadata.get("provider_timezone"), provider_metadata=dict(metadata),
+        ))
+    return sorted(bars, key=lambda bar: bar.date)
 
 
 def _alphavantage_fx_daily_request(
@@ -198,10 +240,11 @@ def _alphavantage_fx_daily_request(
     }
     try:
         resp = requests.get(_AV_BASE, params=params, timeout=_AV_REQUEST_TIMEOUT_S)
+        receipt = _retrieval_time(None)
         resp.raise_for_status()
         raw: Any = resp.json()
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Alpha Vantage HTTP/json failed pair=%s: %s", pair, exc)
+        logger.warning("Alpha Vantage HTTP/json failed pair=%s (%s)", pair, type(exc).__name__)
         return [], False
 
     if not isinstance(raw, dict):
@@ -215,7 +258,7 @@ def _alphavantage_fx_daily_request(
         )
         return [], True
 
-    bars = _parse_av_fx_daily(pair, raw)
+    bars = _parse_av_fx_daily(pair, raw, retrieved_at=receipt)
     bars = _trim_lookback(bars, lookback_days)
     if bars:
         logger.info(
@@ -259,8 +302,9 @@ def _fetch_fx_spot_yfinance_batch(
             group_by="ticker",
             progress=False,
         )
+        receipt = _retrieval_time(None)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("yfinance FX batch download failed: %s", exc)
+        logger.warning("yfinance FX batch download failed (%s)", type(exc).__name__)
         return out
 
     if raw is None or raw.empty:
@@ -280,26 +324,9 @@ def _fetch_fx_spot_yfinance_batch(
                 sub = raw
             if sub.empty:
                 continue
-            for idx, row in sub.iterrows():
-                d = idx.date() if hasattr(idx, "date") else date.fromisoformat(str(idx)[:10])
-                o = row.get("Open", np.nan)
-                h = row.get("High", np.nan)
-                lo = row.get("Low", np.nan)
-                c = row.get("Close", np.nan)
-                if any(pd.isna(v) for v in (o, h, lo, c)):
-                    continue
-                out[pair].append(
-                    SpotBar(
-                        date=d,
-                        pair=pair,
-                        open=float(o),
-                        high=float(h),
-                        low=float(lo),
-                        close=float(c),
-                    ),
-                )
+            out[pair] = _bars_from_yf_frame(sub, pair, ticker, retrieved_at=receipt)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("parse failed for %s: %s", ticker, exc)
+            logger.warning("parse failed for %s (%s)", ticker, type(exc).__name__)
 
     for pair in out:
         out[pair].sort(key=lambda b: b.date)
@@ -356,35 +383,47 @@ def fetch_fx_spot(lookback_days: int = 30) -> dict[str, list[SpotBar]]:
     return out
 
 
-def _bars_from_yf_frame(raw: pd.DataFrame, pair: str, ticker: str) -> list[SpotBar]:
-    bars: list[SpotBar] = []
+def _bars_from_yf_frame(
+    raw: pd.DataFrame, pair: str, ticker: str, *, retrieved_at: datetime | None = None,
+    adjusted: bool = True,
+) -> list[SpotBar]:
     if raw is None or raw.empty:
-        return bars
-    try:
-        for idx, row in raw.iterrows():
-            d = idx.date() if hasattr(idx, "date") else date.fromisoformat(str(idx)[:10])
-            o = row.get("Open", np.nan)
-            h = row.get("High", np.nan)
-            lo = row.get("Low", np.nan)
-            c = row.get("Close", np.nan)
-            v = row.get("Volume", 0.0)
-            if any(pd.isna(val) for val in (o, h, lo, c)):
+        return []
+    receipt = _retrieval_time(retrieved_at)
+    bars: list[SpotBar] = []
+    for idx, row in raw.iterrows():
+        try:
+            if any(isinstance(row.get(k), (bool, np.bool_)) for k in (
+                "Open", "High", "Low", "Close", "Volume",
+            )):
                 continue
-            bars.append(
-                SpotBar(
-                    date=d,
-                    pair=pair,
-                    open=float(o),
-                    high=float(h),
-                    low=float(lo),
-                    close=float(c),
-                    volume=float(v) if not pd.isna(v) else 0.0,
-                ),
+            stamp = pd.Timestamp(idx)
+            if pd.isna(stamp):
+                continue
+            instant = stamp.to_pydatetime() if stamp.tzinfo is not None else None
+            if instant is not None:
+                instant = instant.astimezone(UTC)
+                if instant > receipt:
+                    continue
+            open_, high, low, close = (
+                float(row.get(k, np.nan)) for k in ("Open", "High", "Low", "Close")
             )
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("parse failed for %s (%s): %s", pair, ticker, exc)
-    bars.sort(key=lambda b: b.date)
-    return bars
+            volume_raw = row.get("Volume", 0.0)
+            volume = 0.0 if pd.isna(volume_raw) else float(volume_raw)
+            if not _valid_ohlc(open_, high, low, close) or not np.isfinite(volume) or volume < 0:
+                continue
+            timezone = str(stamp.tzinfo) if stamp.tzinfo is not None else None
+            bars.append(SpotBar(
+                date=stamp.date(), pair=pair, open=open_, high=high, low=low, close=close,
+                volume=volume, provider="yahoo", instrument=ticker, retrieved_at=receipt,
+                provider_timestamp=instant, session_timezone=timezone,
+                provider_metadata={"date_label_policy": "provider_date", "raw_index": str(idx),
+                                   "index_timezone": timezone, "adjusted": adjusted},
+                volume_source="yahoo", volume_instrument=ticker,
+            ))
+        except (TypeError, ValueError, OverflowError):
+            continue
+    return sorted(bars, key=lambda bar: bar.date)
 
 
 async def _fetch_one_spot_async(
@@ -395,17 +434,20 @@ async def _fetch_one_spot_async(
 ) -> tuple[str, list[SpotBar]]:
     t0 = time.perf_counter()
 
-    def _download() -> pd.DataFrame:
-        return cast(
+    def _download() -> tuple[pd.DataFrame, datetime]:
+        frame = cast(
             pd.DataFrame,
             _yfinance().download(ticker, period=period, auto_adjust=True, progress=False),
         )
+        return frame, _retrieval_time(None)
 
     async with fetcher.semaphore:
         try:
-            raw = await asyncio.to_thread(_download)
+            raw, receipt = await asyncio.to_thread(_download)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("yfinance async download failed %s %s: %s", pair, ticker, exc)
+            logger.warning(
+                "yfinance async download failed %s %s (%s)", pair, ticker, type(exc).__name__,
+            )
             logger.info(
                 "fetch_fx_spot_async pair=%s ticker=%s completed in %.3fs (error)",
                 pair,
@@ -420,7 +462,7 @@ async def _fetch_one_spot_async(
         # with names=['Price', 'Ticker']; flatten to simple columns.
         frame.columns = frame.columns.get_level_values(0)
 
-    bars = _bars_from_yf_frame(frame, pair, ticker)
+    bars = _bars_from_yf_frame(frame, pair, ticker, retrieved_at=receipt)
     logger.info(
         "fetch_fx_spot_async pair=%s ticker=%s bars=%s in %.3fs",
         pair,
@@ -503,7 +545,7 @@ async def fetch_fx_spot_async(
         )
         for res in results:
             if isinstance(res, BaseException):
-                logger.error("fetch_fx_spot_async task failed: %s", res)
+                logger.error("fetch_fx_spot_async task failed (%s)", type(res).__name__)
                 continue
             pair, bars = res
             out[pair] = bars
@@ -537,10 +579,12 @@ async def fetch_fx_spot_async(
             if not vol_bars or pair not in out:
                 continue
             # Merge volume into spot bars by matching date
-            vol_map = {b.date: b.volume for b in vol_bars if b.volume > 0}
+            vol_map = {b.date: b for b in vol_bars if b.volume > 0}
             for bar in out[pair]:
                 if bar.date in vol_map:
-                    bar.volume = vol_map[bar.date]
+                    proxy = vol_map[bar.date]
+                    bar.volume = proxy.volume
+                    bar.volume_source = proxy.provider
+                    bar.volume_instrument = proxy.instrument
 
     return out
-

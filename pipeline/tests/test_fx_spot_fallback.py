@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -10,6 +10,12 @@ import pytest
 
 from src.fetchers import fx_spot
 from src.types import SpotBar
+
+
+@pytest.fixture(autouse=True)
+def no_provider_throttle_wait() -> Any:
+    with patch("src.fetchers.fx_spot.time.sleep"):
+        yield
 
 
 class _FakeResponse:
@@ -26,7 +32,7 @@ class _FakeResponse:
 
 
 def _polygon_response(pair: str) -> dict[str, Any]:
-    ts = int(datetime.combine(date(2024, 1, 15), datetime.min.time()).timestamp()) * 1000
+    ts = int(datetime(2024, 1, 15, tzinfo=UTC).timestamp()) * 1000
     return {
         "ticker": f"C:{pair.replace('/', '')}",
         "status": "OK",
@@ -68,7 +74,9 @@ class TestFetchFxSpotFallback:
         mock_get: MagicMock,
     ) -> None:
         """Polygon returns data → AV and yfinance are NOT called."""
-        mock_get.return_value = _FakeResponse(_polygon_response("EUR/USD"))
+        mock_get.side_effect = lambda url, **kwargs: _FakeResponse(
+            _polygon_response(url.split("/ticker/C:")[1].split("/")[0])
+        )
         mock_av.return_value = ([], False)
         mock_yf.return_value = {}
 
@@ -168,7 +176,9 @@ class TestFetchFxSpotFallback:
         assert "EURUSD" in result
         assert result["EURUSD"] == []
 
-    @patch.dict("os.environ", {"ALPHAVANTAGE_API_KEY": "av_test_key"}, clear=False)
+    @patch.dict(
+        "os.environ", {"ALPHAVANTAGE_API_KEY": "av_test_key", "POLYGON_API_KEY": ""}, clear=False,
+    )
     def test_no_polygon_key_skips_to_av(self) -> None:
         """Missing POLYGON_API_KEY → Polygon skipped, AV attempted."""
         with patch("src.fetchers.fx_spot._alphavantage_fx_daily_request") as mock_av:

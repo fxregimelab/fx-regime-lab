@@ -19,10 +19,17 @@ import aiohttp
 import requests
 
 from src.fetchers.async_engine import AsyncFetcher
+from src.signals.cot import COT_PERCENTILE_WINDOW_REPORTS
 from src.types import CotRow, pairs_from_universe
 
 logger = logging.getLogger(__name__)
-_COT_LOOKBACK_WEEKS = 260
+_COT_LOOKBACK_WEEKS = COT_PERCENTILE_WINDOW_REPORTS
+# Allow up to two absent weekly reports in the selected window. Longer
+# interruptions need dated source evidence and an explicit policy exception.
+_COT_MAX_REPORT_GAP_DAYS = 21
+# A 156-report window normally spans 155 weeks. Allow 13 additional weeks
+# for isolated omissions or shifted dates, but reject persistently sparse data.
+_COT_MAX_WINDOW_SPAN_DAYS = 168 * 7
 _K_MKT = "market and exchange names"
 _K_DATE = "as of date in form yymmdd"
 _K_LO = "noncommercial positions-long (all)"
@@ -171,31 +178,35 @@ def _download_cot_bytes(url: str) -> bytes:
 
 def fetch_cot(year: int | None = None) -> list[CotRow]:
     y = year if year is not None else date.today().year
-    y_prev = y - 1
+    # A January report needs almost three complete prior calendar years to fill
+    # the signal's 156-report window. The weekly file may overlap the archive.
     sources = [
-        ("zip", f"https://www.cftc.gov/files/dea/history/fut_fin_txt_{y}.zip"),
-        ("zip", f"https://www.cftc.gov/files/dea/history/fut_fin_txt_{y_prev}.zip"),
-        ("txt", "https://www.cftc.gov/dea/newcot/FinFutWk.txt"),
-        ("txt", f"https://www.cftc.gov/files/dea/history/deacot{y_prev}.txt"),
+        ("zip", f"https://www.cftc.gov/files/dea/history/fut_fin_txt_{source_year}.zip")
+        for source_year in range(y - 3, y + 1)
     ]
+    sources.append(("txt", "https://www.cftc.gov/dea/newcot/FinFutWk.txt"))
     raw_rows: list[dict[str, Any]] = []
-    last_err = ""
+    failed_sources: list[str] = []
     for kind, url in sources:
         try:
             payload = _download_cot_bytes(url)
             parsed = _rows_from_download(payload, from_zip=(kind == "zip"))
             if parsed:
-                raw_rows = parsed
-                break
+                raw_rows.extend(parsed)
+            else:
+                failed_sources.append(f"{url}: empty")
         except Exception as exc:  # noqa: BLE001
-            last_err = str(exc)
+            failed_sources.append(f"{url}: {exc}")
             logger.debug("COT source failed %s: %s", url, exc)
     if not raw_rows:
-        logger.warning("COT download/parse failed (all sources): %s", last_err or "no rows")
+        logger.warning("COT download/parse failed (all sources): %s", "; ".join(failed_sources))
         return []
+    if failed_sources:
+        logger.warning("COT partial source coverage: %s", "; ".join(failed_sources))
     fx_pairs = pairs_from_universe(asset_class="FX")
     fx_set = frozenset(fx_pairs)
-    by_pair: dict[str, list[CotRow]] = defaultdict(list)
+    by_pair: dict[str, dict[date, CotRow]] = defaultdict(dict)
+    conflicting_pairs: set[str] = set()
     for row in raw_rows:
         try:
             nr = _norm_row(row)
@@ -215,22 +226,57 @@ def fetch_cot(year: int | None = None) -> list[CotRow]:
             oi_s = nr.get(_K_OIa, "") or nr.get(_K_OIb, "")
             oi_v = int(float(oi_s.replace(",", ""))) if oi_s else 0
             am_net, lm_net = _breakdown_ls(nr)
-            by_pair[pair].append(
-                CotRow(
-                    date=d,
-                    pair=pair,
-                    net_long=long_v - short_v,
-                    open_interest=oi_v,
-                    asset_mgr_net=am_net,
-                    lev_money_net=lm_net,
-                )
+            cot_row = CotRow(
+                date=d,
+                pair=pair,
+                net_long=long_v - short_v,
+                open_interest=oi_v,
+                asset_mgr_net=am_net,
+                lev_money_net=lm_net,
             )
+            previous = by_pair[pair].get(d)
+            if previous is not None and previous != cot_row:
+                conflicting_pairs.add(pair)
+                logger.warning("COT conflicting duplicate for %s on %s", pair, d)
+            else:
+                by_pair[pair][d] = cot_row
         except Exception as exc:  # noqa: BLE001
             logger.debug("skip COT row: %s", exc)
     merged: list[CotRow] = []
     for pair in fx_pairs:
-        rows = sorted(by_pair.get(pair, []), key=lambda x: x.date)
-        merged.extend(rows[-_COT_LOOKBACK_WEEKS:])
+        if pair in conflicting_pairs:
+            logger.warning("COT %s rejected due to conflicting duplicate reports", pair)
+            continue
+        rows = [by_pair[pair][d] for d in sorted(by_pair[pair])]
+        if len(rows) < COT_PERCENTILE_WINDOW_REPORTS:
+            logger.warning(
+                "COT %s insufficient distinct reports: %d/%d",
+                pair, len(rows), COT_PERCENTILE_WINDOW_REPORTS,
+            )
+            continue
+        window = rows[-_COT_LOOKBACK_WEEKS:]
+        broken_gap = next(
+            (
+                (left.date, right.date, (right.date - left.date).days)
+                for left, right in zip(window, window[1:])
+                if (right.date - left.date).days > _COT_MAX_REPORT_GAP_DAYS
+            ),
+            None,
+        )
+        if broken_gap is not None:
+            logger.warning(
+                "COT %s rejected report-date gap %s to %s (%d days; max %d)",
+                pair, *broken_gap, _COT_MAX_REPORT_GAP_DAYS,
+            )
+            continue
+        span_days = (window[-1].date - window[0].date).days
+        if span_days > _COT_MAX_WINDOW_SPAN_DAYS:
+            logger.warning(
+                "COT %s rejected report-date span %d days (max %d)",
+                pair, span_days, _COT_MAX_WINDOW_SPAN_DAYS,
+            )
+            continue
+        merged.extend(window)
     merged.sort(key=lambda r: (r.date, r.pair))
     return merged
 
